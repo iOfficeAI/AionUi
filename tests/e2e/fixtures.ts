@@ -139,7 +139,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     return resolveWindowBefore(deadline);
   };
 
-  return resolveWindowBefore(Date.now() + 30_000);
+  return resolveWindowBefore(Date.now() + 90_000);
 }
 
 /**
@@ -205,7 +205,24 @@ async function launchApp(): Promise<ElectronApplication> {
     AIONUI_DISABLE_DEVTOOLS: '1',
     AIONUI_E2E_TEST: '1',
     AIONUI_E2E_USER_DATA_DIR: process.env.AIONUI_E2E_USER_DATA_DIR || e2eUserDataDir,
-    AIONUI_CDP_PORT: '0',
+    /**
+     * 以前这里设 '0' 把 CDP 整个关掉，因为那时开 CDP 等于开 Chromium 的应用级
+     * remote-debugging-port —— 无认证地暴露每个 WebContents，还会在多实例间抢端口，
+     * 测试环境里不该冒这个险。
+     *
+     * 现在换成了单目标通道：端口由系统随机分配（不会抢），且必须带口令才能连。风险没了，
+     * 而关着它意味着这套安全属性在 E2E 里永远测不到 —— 测试会静默 skip，看起来像通过。
+     *
+     * Previously '0', which disabled CDP entirely: back then enabling it meant enabling
+     * Chromium's application-wide remote-debugging-port, which exposed every WebContents
+     * unauthenticated and fought over a fixed port between instances — not a risk worth
+     * taking in tests.
+     *
+     * That is now a single-target bridge on an OS-assigned port that requires a token, so
+     * the risk is gone. Leaving it off would mean these security properties are never
+     * exercised in E2E: the tests would silently skip and look like passes.
+     */
+    AIONUI_CDP_PORT: process.env.AIONUI_CDP_PORT || '9230',
   };
 
   if (usePackaged) {

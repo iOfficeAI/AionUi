@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { type ChatFileRef, chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { uuid } from '@/common/utils';
 import {
   getConversationRuntimeViewSnapshot,
@@ -14,7 +15,7 @@ import { classifyConversationBusyError } from './conversationBusyError';
 export type ConversationCommandQueueItem = {
   id: string;
   input: string;
-  files: string[];
+  files: ChatFileRef[];
   created_at: number;
 };
 
@@ -90,7 +91,18 @@ const getStorageKey = (conversation_id: string): string => `conversation-command
 const measureQueueStateBytes = (state: ConversationCommandQueueState): number =>
   new TextEncoder().encode(JSON.stringify(state)).length;
 
-const uniqueFiles = (files: string[]): string[] => Array.from(new Set(files.filter(Boolean)));
+/** Dedup refs by their identity key, preserving first-seen order. */
+const uniqueFiles = (files: ChatFileRef[]): ChatFileRef[] => {
+  const seen = new Set<string>();
+  const result: ChatFileRef[] = [];
+  for (const ref of files) {
+    const key = chatFileRefKey(ref);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(ref);
+  }
+  return result;
+};
 const isInputEmpty = (input: string): boolean => input.trim().length === 0;
 
 const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null => {
@@ -103,7 +115,7 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     typeof candidate.id !== 'string' ||
     typeof candidate.input !== 'string' ||
     !Array.isArray(candidate.files) ||
-    !candidate.files.every((file) => typeof file === 'string') ||
+    !candidate.files.every(isChatFileRef) ||
     typeof candidate.created_at !== 'number' ||
     !Number.isFinite(candidate.created_at)
   ) {
@@ -113,7 +125,9 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
   const normalizedItem: ConversationCommandQueueItem = {
     id: candidate.id,
     input: candidate.input,
-    files: uniqueFiles(candidate.files),
+    // Elements validated by the isChatFileRef guard above; `.every` doesn't
+    // narrow the array element type, so assert it here.
+    files: uniqueFiles(candidate.files as ChatFileRef[]),
     created_at: candidate.created_at,
   };
 

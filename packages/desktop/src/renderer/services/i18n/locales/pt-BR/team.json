@@ -27,7 +27,8 @@
     "runtimeStarting": "Aguardando este membro iniciar…",
     "runtimeFailed": "Não foi possível iniciar este membro.",
     "removing": "Removendo este membro…",
-    "sessionStopped": "A sessão da equipe foi encerrada."
+    "sessionStopped": "A sessão da equipe foi encerrada.",
+    "retryStart": "Tentar iniciar novamente"
   },
   "sendBox": {
     "placeholder": "Enviar mensagem ao assistente líder da equipe..."
@@ -100,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "Quadro"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -114,5 +116,41 @@
     "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
+  },
+  "reorderMember": "Arraste para reordenar o membro",
+  "activity": {
+    "control": {
+      "sortNewest": "Mais recente",
+      "sortOldest": "Mais antigo",
+      "filterAll": "Tudo",
+      "filterMessages": "Mensagens",
+      "filterTasks": "Tarefas",
+      "allMembers": "Todos os membros",
+      "showSystem": "Mensagens do sistema",
+      "showTerminal": "Tarefas concluídas"
+    },
+    "fallbackLane": "Não atribuído / externo",
+    "empty": "Sem atividade",
+    "userIdentity": "Usuário / externo",
+    "broadcast": "Transmitir a todos",
+    "read": "Lido",
+    "unread": "Não lido",
+    "attachments": "{{count}} arquivos",
+    "expand": "Expandir",
+    "collapse": "Recolher",
+    "blockedBy": "bloqueado por #{{id}}",
+    "blockedByNamed": "bloqueado por {{name}}",
+    "blockerUnknown": "Tarefa indisponível",
+    "status": {
+      "pending": "Pendente",
+      "in_progress": "Em andamento",
+      "completed": "Concluído",
+      "deleted": "Excluído"
+    },
+    "msgType": {
+      "message": "Mensagem",
+      "idle_notification": "Aviso de inatividade",
+      "shutdown_request": "Pedido de encerramento"
+    }
   }
 }

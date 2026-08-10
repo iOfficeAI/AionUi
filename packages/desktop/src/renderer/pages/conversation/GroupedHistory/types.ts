@@ -56,12 +56,17 @@ export type ConversationRowProps = {
   onOpenMenu: (conversation: TChatConversation) => void;
   onMenuVisibleChange: (conversation_id: string, visible: boolean) => void;
   onEditStart: (conversation: TChatConversation) => void;
+  onCreateCronTask: (conversation: TChatConversation) => void;
   onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
+  /** Resolve a loaded conversation's name by id (fork-lineage badge tooltip). */
+  resolveConversationName?: (conversation_id: string) => string | undefined;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
+  /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable (pinned) rows. */
+  dragHandle?: ReactNode;
 };
 
 export type WorkspaceGroupedHistoryProps = {

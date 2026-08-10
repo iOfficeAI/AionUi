@@ -13,7 +13,7 @@
     "error": "오류",
     "unread": "새 실행",
     "unconfigured": "예약 작업 미설정",
-    "defaultPrompt": "매일 오전 10시에 최신 AI 뉴스를 검색하고 요약하여 인사이트 보고서를 출력해 주세요."
+    "defaultPrompt": "매일 오전 10시에 최신 AI 뉴스를 검색하고 요약하여 인사이트 보고서를 출력해 주세요. (AionUi에서 예약 작업을 만들려면 /cron 스킬을 사용해 주세요.)"
   },
   "actions": {
     "goTo": "채팅 보기",
@@ -141,7 +141,9 @@
       "weekdays": "요일",
       "monthDay": "매월 날짜",
       "preview": "생성된 Cron"
-    }
+    },
+    "searchPlaceholder": "작업 검색...",
+    "noSearchResults": "일치하는 예약 작업이 없습니다."
   },
   "trigger": {
     "runScheduledTask": "예약 작업 실행: {{name}}"

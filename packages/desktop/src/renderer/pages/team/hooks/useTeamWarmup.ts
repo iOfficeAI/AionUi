@@ -68,6 +68,10 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
         setPhase('ready');
       } else if (event.status === 'failed') {
         setPhase('error');
+      } else if (event.status === 'stopped') {
+        // Idle-reclaim stop: keep the current warmup phase. The stopped state is
+        // surfaced by the send box as a recoverable prompt, not as a page-level
+        // warming/error overlay, and lazy recovery fires on the next send.
       }
     });
 

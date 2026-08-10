@@ -6,13 +6,13 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
-import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
-import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
+import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { Delete, FolderOpen, MoreOne, Plus, Right } from '@icon-park/react';
+import { Delete, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,13 +20,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
-import DragOverlayContent from './DragOverlayContent';
 import SortableConversationRow from './SortableConversationRow';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
-import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
@@ -117,6 +115,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleCreateCronTask,
     handleRemoveProject,
     removeProjectTarget,
     removeProjectLoading,
@@ -132,33 +131,26 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     markAsRead,
   });
 
-  const {
-    exportTask,
-    exportModalVisible,
-    exportTargetPath,
-    exportModalLoading,
-    showExportDirectorySelector,
-    setShowExportDirectorySelector,
-    closeExportModal,
-    handleSelectExportDirectoryFromModal,
-    handleSelectExportFolder,
-    // handleExportConversation / handleBatchExport are intentionally not
-    // destructured: their UI entries are disabled (kanban #14). The useExport
-    // hook and its underlying logic stay intact for a future re-enable.
-    handleConfirmExport,
-  } = useExport({
-    conversations,
-    selectedConversationIds,
-    setSelectedConversationIds,
-    onBatchModeChange,
+  const { sensors, handleDragEnd, isDragEnabled } = useDragAndDrop({
+    pinnedConversations,
+    batchMode,
+    collapsed,
   });
 
-  const { sensors, activeId, activeConversation, handleDragStart, handleDragEnd, handleDragCancel, isDragEnabled } =
-    useDragAndDrop({
-      pinnedConversations,
-      batchMode,
-      collapsed,
-    });
+  // Fork-lineage badge support: resolve a parent conversation's display name
+  // from the already-loaded sidebar list (no extra fetch; unresolved = the
+  // parent was deleted or not loaded → the badge falls back to a generic tip).
+  const conversationNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const conversation of conversations) {
+      map.set(conversation.id, conversation.name);
+    }
+    return map;
+  }, [conversations]);
+  const resolveConversationName = useCallback(
+    (conversationId: string) => conversationNameById.get(conversationId),
+    [conversationNameById]
+  );
 
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation): ConversationRowProps => ({
@@ -176,13 +168,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onOpenMenu: handleOpenMenu,
       onMenuVisibleChange: handleMenuVisibleChange,
       onEditStart: handleEditStart,
+      onCreateCronTask: handleCreateCronTask,
       onDelete: handleDeleteClick,
-      // Export UI entry intentionally disabled (kanban #14): omit onExport so
-      // ConversationRow's `{onExport && ...}` guard hides the menu item. The
-      // underlying handleExportConversation logic from useExport is kept for a
-      // future per-platform re-enable.
       onTogglePin: handleTogglePin,
       getJobStatus,
+      resolveConversationName,
     }),
     [
       collapsed,
@@ -198,9 +188,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleOpenMenu,
       handleMenuVisibleChange,
       handleEditStart,
+      handleCreateCronTask,
       handleDeleteClick,
       handleTogglePin,
       getJobStatus,
+      resolveConversationName,
     ]
   );
 
@@ -280,114 +272,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         />
       </Modal>
 
-      <Modal
-        visible={exportModalVisible}
-        title={t('conversation.history.exportDialogTitle')}
-        onCancel={closeExportModal}
-        footer={null}
-        style={{ borderRadius: '12px' }}
-        className='conversation-export-modal'
-        alignCenter
-        getPopupContainer={() => document.body}
-      >
-        <div className='py-8px'>
-          <div className='text-14px mb-16px text-t-secondary'>
-            {exportTask?.mode === 'batch'
-              ? t('conversation.history.exportDialogBatchDescription', { count: exportTask.conversation_ids.length })
-              : t('conversation.history.exportDialogSingleDescription')}
-          </div>
-
-          <div className='mb-16px p-16px rounded-12px bg-fill-1'>
-            <div className='text-14px mb-8px text-t-primary'>{t('conversation.history.exportTargetFolder')}</div>
-            <div
-              className='flex items-center justify-between px-12px py-10px rounded-8px transition-colors'
-              style={{
-                backgroundColor: 'var(--color-bg-1)',
-                border: '1px solid var(--color-border-2)',
-                cursor: exportModalLoading ? 'not-allowed' : 'pointer',
-                opacity: exportModalLoading ? 0.55 : 1,
-              }}
-              onClick={() => {
-                void handleSelectExportFolder();
-              }}
-            >
-              <span
-                className='text-14px overflow-hidden text-ellipsis whitespace-nowrap'
-                style={{ color: exportTargetPath ? 'var(--color-text-1)' : 'var(--color-text-3)' }}
-              >
-                {exportTargetPath || t('conversation.history.exportSelectFolder')}
-              </span>
-              <FolderOpen theme='outline' size='18' fill='var(--color-text-3)' />
-            </div>
-          </div>
-
-          <div className='flex items-center gap-8px mb-20px text-14px text-t-secondary'>
-            <span>💡</span>
-            <span>{t('conversation.history.exportDialogHint')}</span>
-          </div>
-
-          <div className='flex gap-12px justify-end'>
-            <button
-              className='px-24px py-8px rounded-20px text-14px font-medium transition-all'
-              style={{
-                border: '1px solid var(--color-border-2)',
-                backgroundColor: 'var(--color-fill-2)',
-                color: 'var(--color-text-1)',
-              }}
-              onMouseEnter={(event) => {
-                event.currentTarget.style.backgroundColor = 'var(--color-fill-3)';
-              }}
-              onMouseLeave={(event) => {
-                event.currentTarget.style.backgroundColor = 'var(--color-fill-2)';
-              }}
-              onClick={closeExportModal}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              className='px-24px py-8px rounded-20px text-14px font-medium transition-all'
-              style={{
-                border: 'none',
-                backgroundColor: exportModalLoading ? 'var(--color-fill-3)' : 'var(--color-text-1)',
-                color: 'var(--color-bg-1)',
-                cursor: exportModalLoading ? 'not-allowed' : 'pointer',
-              }}
-              onMouseEnter={(event) => {
-                if (!exportModalLoading) {
-                  event.currentTarget.style.opacity = '0.85';
-                }
-              }}
-              onMouseLeave={(event) => {
-                if (!exportModalLoading) {
-                  event.currentTarget.style.opacity = '1';
-                }
-              }}
-              onClick={() => {
-                void handleConfirmExport();
-              }}
-              disabled={exportModalLoading}
-            >
-              {exportModalLoading ? t('conversation.history.exporting') : t('common.confirm')}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <DirectorySelectionModal
-        visible={showExportDirectorySelector}
-        onConfirm={handleSelectExportDirectoryFromModal}
-        onCancel={() => setShowExportDirectorySelector(false)}
-      />
-
       {batchMode && !collapsed && (
         <div className='px-12px pb-8px pt-2px sticky top-0 z-20 bg-[var(--bg-2)]'>
           <div className='rd-8px bg-fill-1 p-10px flex flex-col gap-8px border border-solid border-[rgba(var(--primary-6),0.08)]'>
             <div className='text-12px leading-18px text-t-secondary'>
               {t('conversation.history.selectedCount', { count: selectedCount })}
             </div>
-            {/* Batch export UI entry intentionally disabled (kanban #14): the
-                button is removed so select-all + delete share the two columns.
-                handleBatchExport from useExport is kept for a future re-enable. */}
             <div className='grid grid-cols-2 gap-6px'>
               <Button
                 className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
@@ -482,9 +372,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
+          modifiers={[restrictToVerticalAxis]}
           onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
         >
           {pinnedConversations.length > 0 && (
             <div className='min-w-0'>
@@ -505,10 +394,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               )}
             </div>
           )}
-
-          <DragOverlay dropAnimation={null}>
-            {activeId && activeConversation ? <DragOverlayContent conversation={activeConversation} /> : null}
-          </DragOverlay>
         </DndContext>
 
         {/* Slot 由父级（Sider）填入：例如 Team / CronJob sections，位于「置顶」之后、「项目」之前 */}

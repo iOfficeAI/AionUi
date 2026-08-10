@@ -24,6 +24,7 @@ import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
+import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -37,6 +38,7 @@ import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
+import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -138,6 +140,7 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   }
 } else if (process.platform === 'win32') {
   hydrateWindowsProcessPath();
+  registerWindowsAppUserModelId({ app });
 }
 
 // Handle Squirrel startup events (Windows installer)
@@ -280,10 +283,21 @@ ipcMain.handle('backend:recover-corrupted-database', async () => {
   });
 });
 
+// Push the latest backend startup state to the renderer so it can either show
+// the "starting" view, switch to the honest-failure view, or return to the App.
+// The renderer only reads window.__backendStartupFailure once at preload; this
+// channel delivers subsequent ready/exit transitions.
+function broadcastBackendStartupState(state: BackendStartupFailureInfo | null): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('backend-startup-state', state);
+  }
+}
+
 function markBackendStartupFailed(error: unknown): void {
   backendStartupFailed = true;
   backendStartupFailureInfo = classifyBackendStartupFailure(error);
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+  broadcastBackendStartupState(backendStartupFailureInfo);
 }
 
 function registerCronResumeBridge(backendPort: number): void {
@@ -357,6 +371,8 @@ function markBackendReady(backendPort: number, source: string): void {
   backendStartupFailed = false;
   backendStartupFailureInfo = null;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
+  // Backend is ready: tell the renderer to drop any "starting" view and show the App.
+  broadcastBackendStartupState(null);
   void ensureAdminUserOnce(backendPort);
   scheduleBackendMigrations();
 }
@@ -396,6 +412,15 @@ function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
       missingRuntimeDir: true,
       missingResources: ['managed node runtime', 'ACP adapters'],
     };
+  }
+  if (reason === 'backend_startup_pending_slow') {
+    return { reason };
+  }
+  if (reason === 'backend_startup_exited') {
+    return { reason };
+  }
+  if (reason === 'backend_startup_port_report_timeout') {
+    return { reason };
   }
 
   console.warn(`[AionUi] Ignoring unknown AIONUI_DEBUG_BACKEND_STARTUP_FAILURE value: ${reason}`);
@@ -512,11 +537,16 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         autoUpdaterService.setBeforeQuitAndInstall(async () => {
           await backendManager.stop();
         });
-        // Check for updates after 3 seconds delay
-        // 3秒后检查更新
-        setTimeout(() => {
-          void autoUpdaterService.checkForUpdatesAndNotify();
-        }, 3000);
+        // Check for updates after 3 seconds delay. Skipped in the discontinued
+        // build: AionUi's final version guides users to the website instead of
+        // auto-checking, so startup stays silent. The flag is a compile-time
+        // literal, so this branch is tree-shaken out of non-discontinued builds.
+        // 3秒后检查更新。停更版启动静默，不做应用内检测。
+        if (!process.env.IS_DISCONTINUED_BUILD) {
+          setTimeout(() => {
+            void autoUpdaterService.checkForUpdatesAndNotify();
+          }, 3000);
+        }
       })
       .catch((error) => {
         console.error('[App] Failed to initialize autoUpdaterService:', error);
@@ -650,6 +680,75 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
+  /**
+   * 启动单目标 CDP 通道，并把端口/口令写进自己的 env。
+   *
+   * ⚠️ 必须在 startBackendOrExit() 之前 —— 这是硬顺序，不是风格问题。
+   *
+   * 两个值靠进程继承链传给 Agent：aioncore 是本进程的子进程，内置浏览器 MCP 又是
+   * aioncore 的子进程，所以不用落库、不用写配置。但继承是「spawn 那一刻的快照」：
+   * backend-launcher 用 `{ ...process.env }` spawn aioncore，此后我们再改 process.env
+   * 对已经起来的 aioncore 毫无影响。一旦这段挪到 backend 启动之后，aioncore 继承到的
+   * 口令就是 undefined，浏览器 MCP 读不到凭证直接 exit(1)，「Agent 可控」这条链就断在
+   * 最后一环 —— 而手动浏览、标签、前进后退全都正常，故障看起来跟浏览器无关，极难排查。
+   *
+   * 这里只起一个 node http/ws 服务，不碰 Electron 的 app.ready 相关能力，
+   * 附加目标是后续渲染进程通过 IPC 报上来的，所以放在这个位置是安全的。
+   *
+   * Start the single-target CDP bridge and publish port/token into our own env.
+   *
+   * ⚠️ MUST run before startBackendOrExit(). This ordering is a hard requirement, not
+   * style. Both values reach the agent by process inheritance (aioncore is our child; the
+   * in-app browser MCP is aioncore's child), so neither is persisted. But inheritance is a
+   * snapshot taken at spawn time: backend-launcher spawns aioncore with
+   * `{ ...process.env }`, and any later mutation of our process.env is invisible to the
+   * already-running aioncore. Move this block after backend startup and aioncore inherits
+   * an undefined token, so the browser MCP exits(1) for want of credentials and agent
+   * control silently breaks at the last hop — while manual browsing, tabs and history all
+   * keep working, making the failure look unrelated to the browser and very hard to trace.
+   *
+   * Safe this early: it only starts a node http/ws server and touches no app.ready-gated
+   * Electron API. The attach target arrives later over IPC from the renderer.
+   */
+  const { cdpStartupEnabled, setActiveCdpPort } = await import('./process/utils/configureChromium');
+  if (cdpStartupEnabled) {
+    try {
+      const { startCdpBridge } = await import('./process/resources/builtinMcp/cdpBridge');
+      const { setCdpBridgeHandle } = await import('./process/utils/cdpBridgeRegistry');
+      const bridge = await startCdpBridge();
+      setCdpBridgeHandle(bridge);
+      /**
+       * 回填真实端口，让设置页显示的是「连得上的地址」。
+       * 以前这里显示的是 9230 段那个预留号，而通道走 listen(0) —— 用户照着复制的
+       * MCP 配置根本连不上。
+       *
+       * Backfill the real port so the settings page shows a reachable address. It used to
+       * display the reserved 9230-range number while the bridge listened on listen(0), so
+       * any MCP config the user copied from there could never connect.
+       */
+      setActiveCdpPort(bridge.port);
+      process.env.AIONUI_CDP_ACTIVE_PORT = String(bridge.port);
+      process.env.AIONUI_CDP_BRIDGE_TOKEN = bridge.token;
+      console.log(`[CDP] Single-target bridge listening on 127.0.0.1:${bridge.port} (token required)`);
+      app.once('will-quit', () => {
+        void bridge.close();
+        setCdpBridgeHandle(null);
+        setActiveCdpPort(null);
+      });
+      mark('cdpBridge');
+    } catch (error) {
+      /**
+       * 通道起不来就不设 env。MCP 读不到端口/口令会自行退出（见 browserServer.ts），
+       * 绝不会退回去自己开一个独立 Chrome —— 那正是我们要消灭的行为。
+       *
+       * If the bridge fails to start we leave the env unset. The MCP exits when it cannot
+       * read port/token (see browserServer.ts) and never falls back to spawning its own
+       * separate Chrome — the exact behaviour we are eliminating.
+       */
+      console.error('[CDP] Failed to start single-target bridge; agent browser control stays off.', error);
+    }
+  }
+
   const debugBackendStartupFailure = resolveDebugBackendStartupFailure();
   if (debugBackendStartupFailure) {
     applyDebugBackendStartupFailure(debugBackendStartupFailure);
@@ -680,6 +779,13 @@ const handleAppReady = async (): Promise<void> => {
             allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
             onHealthTimeout: async (error) => {
               markBackendStartupFailed(error);
+              // Hard rule: while the process is still alive, a health timeout is a
+              // recoverable "still starting" state — never auto-report to Sentry
+              // or escalate to a fatal dialog. Only genuinely abnormal shapes that
+              // fall through to a non-pending reason are captured.
+              if (backendStartupFailureInfo?.reason === 'backend_startup_pending_slow') {
+                return;
+              }
               await captureBackendStartupFailure(error);
             },
             onPendingExit: async (error) => {
@@ -900,20 +1006,6 @@ const handleAppReady = async (): Promise<void> => {
       });
     }
   }
-
-  // Verify CDP is ready and log status
-  const { cdpPort, verifyCdpReady } = await import('./process/utils/configureChromium');
-  if (cdpPort) {
-    const cdpReady = await verifyCdpReady(cdpPort);
-    if (cdpReady) {
-      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
-      console.log(
-        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@0.16.0 --browser-url=http://127.0.0.1:${cdpPort}`
-      );
-    } else {
-      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
-    }
-  }
 };
 
 // ============ Protocol Registration ============
@@ -939,15 +1031,22 @@ app.on('open-url', (event, url) => {
 // 监听 GPU 子进程崩溃，连续多次后下次启动自动关闭硬件加速（参见 ELECTRON-9A / ELECTRON-9D）。
 installGpuCrashHandler();
 
-// Ensure we don't miss the ready event when running in CLI/WebUI mode
-void app
-  .whenReady()
-  .then(handleAppReady)
-  .catch((error) => {
-    // App initialization failed
-    console.error('[AionUi] App initialization failed:', error);
-    app.quit();
-  });
+// Register the backend startup flow only when this process owns the single
+// instance lock. A lock-losing instance must NOT spawn a competing aioncore
+// backend — doing so races the first instance's aioncore over the same data
+// directory and produced the "local data repair failed" false alarm
+// (Sentry 135525166). Gating here (rather than at the top-level second-instance
+// block) keeps it after handleAppReady is declared.
+if (shouldRegisterBackendStartup(gotTheLock)) {
+  void app
+    .whenReady()
+    .then(handleAppReady)
+    .catch((error) => {
+      // App initialization failed
+      console.error('[AionUi] App initialization failed:', error);
+      app.quit();
+    });
+}
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

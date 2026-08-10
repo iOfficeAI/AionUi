@@ -21,7 +21,11 @@ import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
+import { buildTurnClipboardText } from '@renderer/utils/chat/turnCopy';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
+import { isForkEnabled } from '@/common/chat/forkConversation';
+import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
+import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 
 /**
  * Format a timestamp for message display.
@@ -144,7 +148,15 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = ({ message, showCopyRow = true }) => {
+const MessageText: React.FC<{
+  message: IMessageText;
+  showCopyRow?: boolean;
+  isLastMessage?: boolean;
+  hasForkAnchor?: boolean;
+  /** All text segments of this message's turn, in order — the copy button
+   * copies the whole reply, not just the segment it happens to sit on. */
+  turnTexts?: string[];
+}> = ({ message, showCopyRow = true, isLastMessage = false, hasForkAnchor = false, turnTexts }) => {
   const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -174,6 +186,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const { data, json } = useFormatContent(text);
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
+  const forkConversation = useForkConversation(conversationContext?.conversation_id);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const handleLocalFileLink = useLocalFilePreview(conversationContext?.workspace);
@@ -190,7 +203,9 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const handleCopy = () => {
     const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
-    const textToCopy = fileList + baseText;
+    // An AI turn split by tool calls / thinking stores several text messages;
+    // the row sits on the last one but must copy the whole reply.
+    const textToCopy = turnTexts?.length ? buildTurnClipboardText(turnTexts) : fileList + baseText;
     copyText(textToCopy)
       .then(() => {
         setShowCopyAlert(true);
@@ -212,6 +227,26 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
       </div>
     </Tooltip>
   );
+
+  // Fork entry point: only when the agent declares the capability, and only on
+  // messages the backend can actually fork at (any message for at_turn/codex,
+  // the last message otherwise) — see `isForkEnabled`.
+  const showForkButton = isForkEnabled(conversationContext?.forkCapability, {
+    isLastMessage,
+    hasTurnAnchor: hasForkAnchor,
+  });
+  const forkButton = showForkButton ? (
+    <Tooltip content={t('messages.fork.action')}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={() => void forkConversation(message.msg_id ?? message.id)}
+        style={{ lineHeight: 0 }}
+        data-testid='message-fork-button'
+      >
+        <ForkBranchIcon size={16} fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  ) : null;
 
   const cronMeta = message.content.cronMeta;
   const senderName = message.content.senderName;
@@ -241,7 +276,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
           </div>
         )}
         {files.length > 0 && (
-          <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
+          <div className={classNames('mt-6px min-w-0 max-w-full', { 'self-end': isUserMessage })}>
             {resolvedFiles.length === 1 ? (
               <div className='flex items-center'>
                 <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
@@ -274,7 +309,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
-            <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
+            <div className='whitespace-pre-wrap [overflow-wrap:anywhere]' data-testid='message-text-content'>
               {text}
             </div>
           ) : json ? (
@@ -305,6 +340,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             })}
           >
             {copyButton}
+            {forkButton}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
                 {formatMessageTime(message.created_at)}

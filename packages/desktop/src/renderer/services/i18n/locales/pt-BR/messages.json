@@ -16,6 +16,11 @@
   "downloadFailed": "Falha ao baixar",
   "imageLoadFailed": "Falha ao carregar a imagem",
   "scrollToBottom": "Rolar para o final",
+  "anchorRail": {
+    "label": "Âncoras das mensagens da conversa",
+    "tickAria": "Ir para a mensagem {{index}}",
+    "searchAria": "Pesquisar na conversa"
+  },
   "availableCommands": "{{count}} Comandos Disponíveis",
   "atFile.hint": "Digite para procurar arquivos",
   "atFile.menuLabel": "Menções de arquivo",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "Nenhuma opção disponível",
   "processing": "Processando...",
   "responseSentSuccessfully": "Resposta enviada com sucesso",
+  "permissionResponseFailed": "Não foi possível enviar a resposta. Tente novamente.",
   "confirmation": {
     "applyChange": "Aplicar esta alteração?",
     "allowExecution": "Permitir execução?",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "Sim, sempre permitir a ferramenta \"{{toolName}}\" do servidor \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Sim, sempre permitir todas as ferramentas do servidor \"{{serverName}}\"",
     "no": "Não (esc)"
-  }
+  },
+  "fork": {
+    "action": "Bifurcar a partir daqui",
+    "errorTurnInFlight": "Aguarde a resposta atual terminar antes de bifurcar",
+    "errorParentUnbound": "Esta conversa ainda não tem uma sessão de backend para bifurcar",
+    "errorPointUnsupported": "Este agente só pode bifurcar a partir da mensagem mais recente",
+    "errorUnsupported": "Este agente não oferece suporte a bifurcação",
+    "errorGeneric": "Falha ao bifurcar: {{message}}"
+  },
+  "askSubmit": "Enviar",
+  "askDecline": "Não responder",
+  "askAnswered": "Respondido",
+  "askDeclined": "Ignorado",
+  "askOther": "Outro",
+  "askOtherPlaceholder": "Digite sua resposta",
+  "requestDetails": "Detalhes da solicitação:"
 }

@@ -1,18 +1,5 @@
 {
-  "historyVersions": "Versiones del historial",
-  "currentFile": "Archivo actual",
   "loading": "Cargando...",
-  "loadHistoryFailed": "Error al cargar el historial",
-  "noHistory": "Sin versiones en el historial",
-  "snapshotSaved": "Instantánea guardada",
-  "snapshotSaveFailed": "Error al guardar la instantánea",
-  "historyLoaded": "Versión del historial cargada",
-  "historyLoadFailed": "Error al cargar la versión del historial",
-  "tooFrequent": "Demasiado frecuente, intenta más tarde",
-  "saveSnapshot": "Guardar instantánea actual",
-  "snapshotNotSupported": "El contenido actual no admite instantáneas",
-  "history": "Historial",
-  "historyNotSupported": "El contenido actual no admite historial",
   "downloadFile": "Descargar archivo",
   "closePreview": "Cerrar vista previa",
   "collapsePanel": "Contraer panel",
@@ -21,7 +8,6 @@
   "preview": "Vista previa",
   "editor": "Editor",
   "previewEffect": "Vista previa",
-  "snapshot": "Instantánea",
   "downloadMarkdown": "Descargar archivo Markdown",
   "downloadCode": "Descargar archivo {{language}}",
   "downloadDiff": "Descargar archivo Diff",
@@ -36,6 +22,8 @@
   "continueEdit": "Continuar editando",
   "closeTabTitle": "Cerrar pestaña",
   "closeTabMessage": "El contenido actual no se ha guardado. ¿Deseas guardarlo antes de cerrar?",
+  "closeTabsTitle": "Cerrar pestañas",
+  "closeTabsMessage": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
   "saveAndClose": "Guardar y cerrar",
   "closeWithoutSave": "No guardar",
   "pptTitle": "Presentación de PowerPoint",
@@ -60,14 +48,21 @@
   "noTabs": "Sin pestañas abiertas",
   "openInPanelTooltip": "Ver en panel de vista previa",
   "mermaidTitle": "Diagrama Mermaid",
-  "largeTextTruncatedHint": "Modo de vista previa de archivo grande: mostrando los primeros {{count}} caracteres por rendimiento.",
-  "truncatedBanner": "El contenido de la vista previa fue truncado. Haz clic en descargar para ver el archivo completo.",
+  "oversized": {
+    "title": "El archivo es demasiado grande para previsualizarlo",
+    "detail": "El tamaño del archivo {{size}} supera el límite de {{threshold}}. Ábrelo en un editor del sistema.",
+    "downloadUnavailable": "Este archivo es demasiado grande para descargarlo aquí. Usa “Abrir en el sistema”."
+  },
+  "unsupported": {
+    "title": "La vista previa no admite este formato",
+    "detail": "Los archivos {{format}} no se pueden previsualizar aquí. Ábrelos en una aplicación del sistema.",
+    "downloadUnavailable": "Este archivo no se puede descargar aquí. Usa “Abrir en el sistema”."
+  },
   "aiWriting": "La IA está escribiendo...",
   "errors": {
     "missingFilePath": "Falta la ruta del archivo",
     "openWithoutPath": "No se puede abrir: no se proporcionó la ruta del archivo",
-    "conversionFailed": "Error de conversión",
-    "emptySnapshot": "El contenido de la instantánea está vacío"
+    "conversionFailed": "Error de conversión"
   },
   "office": {
     "installLinkText": "Abrir guía de instalación de officecli",
@@ -139,5 +134,28 @@
     "installing": "Instalando componente de vista previa...",
     "startFailed": "Error al iniciar la vista previa de PPT",
     "installHint": "Instala OfficeCLI desde la página oficial de versiones de iOfficeAI/OfficeCLI"
+  },
+  "browser": {
+    "newTab": "Nueva pestaña",
+    "addressPlaceholder": "Escribe una URL o busca",
+    "agentActiveTooltip": "El agente está operando esta pestaña",
+    "tabLimitReached": "Se alcanzó el límite de pestañas ({{count}}). Se reutilizó la pestaña más antigua.",
+    "agentFirstUseTitle": "El agente está usando el navegador integrado",
+    "agentFirstUseContent": "Puede abrir páginas, hacer clic y leer contenido en este panel. Tu sesión se conserva.",
+    "agentFirstUseAction": "Abrir ajustes"
+  },
+  "saveConflict": "No se pudo guardar: este archivo cambió en el disco después de que lo abrieras. Vuelve a cargarlo para ver los otros cambios; tus ediciones siguen aquí, sin guardar.",
+  "persistQuotaExceeded": "El almacenamiento local está lleno, así que ya no se pueden recordar las pestañas abiertas de este proyecto. Cierra algunas pestañas o borra los datos del sitio.",
+  "refresh": {
+    "label": "Actualizar",
+    "tooltip": "Volver a cargar desde el disco",
+    "hasUpdate": "Este archivo cambió en el disco: haz clic para recargarlo",
+    "noSignalSource": "Este archivo no está en el proyecto, así que no se anunciarán los cambios",
+    "unavailable": "No se puede localizar este archivo",
+    "failed": "No se pudo recargar este archivo",
+    "confirmTitle": "¿Recargar y perder los cambios sin guardar?",
+    "confirmMessage": "Esta pestaña tiene cambios sin guardar. Recargar los reemplaza por el contenido del disco.",
+    "discardAndRefresh": "Descartar cambios y actualizar",
+    "officeNotWired": "Actualizar documentos de Office todavía no está disponible: cierra y vuelve a abrir el archivo para ver los cambios."
   }
 }

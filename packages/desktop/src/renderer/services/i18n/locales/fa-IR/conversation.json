@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "سلام، برنامه‌تان برای امروز چیست؟",
-    "placeholder": "پیام بفرستید، فایل آپلود کنید، پوشه باز کنید یا کار زمان‌بندی‌شده ایجاد کنید...",
+    "placeholder": "پیام بفرستید، فایل آپلود کنید، پوشه باز کنید، کار زمان‌بندی‌شده ایجاد کنید یا برای دستورات / را تایپ کنید...",
     "linkFolder": "باز کردن پوشه",
     "newConversation": "چت جدید",
     "selectModel": "انتخاب مدل",
@@ -30,6 +30,7 @@
     "saveName": "ذخیره",
     "cancelEdit": "لغو",
     "rename": "تغییر نام",
+    "createCronTask": "ایجاد کار زمان‌بندی‌شده",
     "renameTitle": "تغییر نام چت",
     "renamePlaceholder": "لطفاً نام جدیدی وارد کنید",
     "renameSuccess": "نام با موفقیت تغییر کرد",
@@ -72,7 +73,10 @@
     "removeProject": "حذف پروژه",
     "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
     "newConversationInProject": "چت جدید در این پروژه",
-    "deleting": "در حال حذف..."
+    "deleting": "در حال حذف...",
+    "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
+    "forkedFrom": "انشعاب از «{{name}}»",
+    "forkedConversation": "گفتگوی منشعب"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -414,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "ترمینال",
-      "explorer": "فایل اکسپلورر"
+      "explorer": "فایل اکسپلورر",
+      "browser": "مرورگر"
     }
   },
   "minimap": {
@@ -506,7 +511,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "زمینه استفاده‌شده"
+    "contextUsed": "زمینه استفاده‌شده",
+    "tokensUsed": "{{tokens}} توکن استفاده شده",
+    "windowUnknown": "اندازه پنجره زمینه نامشخص است",
+    "sessionCost": "هزینه جلسه",
+    "input": "ورودی",
+    "output": "خروجی",
+    "thought": "تفکر",
+    "cachedRead": "خواندن حافظه پنهان",
+    "cachedWrite": "نوشتن حافظه پنهان"
   },
   "skill_generator": {
     "title": "ساخت مهارت/قانون",
@@ -553,12 +566,19 @@
     "sendboxHint": "در حال آماده‌سازی محیط اجرا. اولین راه‌اندازی ممکن است کمی بیشتر طول بکشد."
   },
   "sendbox": {
-    "hint": "برای دستورات / بزنید، برای ارجاع فایل‌ها @ بزنید"
+    "hint": "برای دستورات /، برای ارجاع فایل‌ها @ و برای تاریخچه پیام‌ها ↑/↓ را بزنید",
+    "mediaPathFallback": "این ایجنت از این نوع فایل به‌صورت بومی پشتیبانی نمی‌کند؛ به‌صورت مسیر فایل ارسال خواهد شد."
   },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "این درخواست پاسخ قابل مشاهده‌ای تولید نکرد."
+      },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "این درخواست هیچ پاسخ قابل‌مشاهده‌ای تولید نکرد. اگر قبلاً وارد شده‌اید، ممکن است یک مشکل موقتی در بک‌اند یا اتصال باشد؛ دوباره تلاش کنید یا گفت‌وگوی جدیدی را آغاز کنید. اگر هنوز وارد نشده‌اید، می‌توانید وارد شوید: {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "این درخواست هیچ پاسخ قابل‌مشاهده‌ای تولید نکرد. ممکن است گفت‌وگوی فعلی به حد طول زمینه نزدیک شده باشد؛ دوباره تلاش کنید یا گفت‌وگوی جدیدی را آغاز کرده و دوباره امتحان کنید."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "این درخواست قبل از تولید پاسخ قابل مشاهده، به حد توکن خروجی مدل رسید."
@@ -568,8 +588,136 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "مدل قبل از تولید پاسخ قابل مشاهده، این درخواست را رد کرد."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} مرحله ناموفق بود و اعمال نشد. agy چنین نوبت‌هایی را همچنان موفق پایان می‌دهد؛ بنابراین به‌جای پاسخ، نتیجهٔ واقعی را بررسی کنید."
+      },
+      "CLI_VERSION_OLDER": {
+        "body": "نسخهٔ نصب‌شدهٔ {{cli}} قدیمی‌تر از نسخهٔ تأییدشده توسط AionUi است؛ ممکن است برخی قابلیت‌ها نباشند. ارتقای {{cli}} توصیه می‌شود. (نصب‌شده: {{reported}} / تأییدشده توسط AionUi: {{verified}})"
+      },
+      "CLI_VERSION_NEWER": {
+        "body": "نسخهٔ نصب‌شدهٔ {{cli}} جدیدتر از نسخهٔ تأییدشده توسط AionUi است. معمولاً کار می‌کند؛ رفتار غیرعادی را گزارش کنید. (نصب‌شده: {{reported}} / تأییدشده توسط AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (تلاش {{attempts}}، {{elapsed}} سپری شده — ارائه‌دهنده ایجنت مدام اتصال را قطع می‌کند؛ AionUi در حال انتظار است.)"
       }
     }
   },
-  "notFound": "مکالمه یافت نشد یا حذف شده است"
+  "notFound": "مکالمه یافت نشد یا حذف شده است",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "تغییر نام",
+      "addToChat": "افزودن به گفتگو",
+      "copyRelativePath": "کپی کردن مسیر نسبی",
+      "copyAbsolutePath": "کپی کردن مسیر مطلق"
+    },
+    "namePlaceholder": "نام",
+    "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
+    "renameFailed": "تغییر نام ناموفق بود",
+    "tabs": {
+      "files": "پرونده‌ها",
+      "changes": "تغییرات"
+    },
+    "addedToChat": "{{name}} به گفتگو افزوده شد",
+    "imported": "{{count}} فایل وارد شد",
+    "importPartialFailed": "{{copied}} کپی شد، {{failed}} ناموفق (تداخل نام یا پشتیبانی‌نشده)",
+    "importFailed": "وارد کردن فایل‌ها ناموفق بود",
+    "search": {
+      "placeholder": "جستجوی فایل‌ها بر اساس نام",
+      "searching": "در حال جستجو…",
+      "empty": "هیچ فایلی مطابقت ندارد",
+      "limitReached": "نمایش {{count}} مورد اول — جستجو را محدود کنید"
+    },
+    "scm": {
+      "notARepository": "این پوشه تحت کنترل نسخه نیست",
+      "noChanges": "تغییری وجود ندارد",
+      "loading": "در حال بارگیری تغییرات…",
+      "loadFailed": "بارگیری تغییرات ممکن نشد",
+      "refresh": "به‌روزرسانی",
+      "groups": {
+        "staged": "تغییرات آماده‌شده",
+        "unstaged": "تغییرات",
+        "changes": "تغییرات",
+        "blocked": "نیازمند رفع"
+      },
+      "sections": {
+        "repositories": "مخازن",
+        "changes": "تغییرات"
+      },
+      "viewAsTree": "نمایش درختی",
+      "viewAsList": "نمایش فهرستی",
+      "worktree": "درخت‌کاری",
+      "expandWorktrees": "نمایش درخت‌کاری‌ها",
+      "collapseWorktrees": "پنهان کردن درخت‌کاری‌ها",
+      "state": {
+        "created": "افزوده‌شده",
+        "modified": "تغییریافته",
+        "deleted": "حذف‌شده",
+        "renamed": "تغییر نام یافته",
+        "conflicted": "تضاد",
+        "unknown": "وضعیت ناشناخته"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "نخست این تضاد را بیرون از AionUi برطرف کنید",
+      "opaqueHint": "این وضعیت از یک بک‌اند جدیدتر آمده — فقط برای مشاهده",
+      "degraded": "به‌روزرسانی در حالت کندتر اجرا می‌شود چون نمایه git قابل نوشتن نیست",
+      "truncated": "تغییرات بیش از حد زیاد است — تنها بخش نخست نمایش داده می‌شود",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "در حال بارگیری تفاوت‌ها…",
+        "failed": "بارگیری تفاوت‌ها ممکن نشد",
+        "binary": "پرونده دودویی — تفاوت متنی ندارد",
+        "truncated": "تفاوت‌ها کوتاه شد (پرونده بزرگ)",
+        "empty": "تغییر متنی وجود ندارد",
+        "close": "بستن تفاوت‌ها"
+      },
+      "actions": {
+        "stage": "آماده‌سازی تغییرات",
+        "unstage": "لغو آماده‌سازی",
+        "discard": "دور ریختن تغییرات",
+        "stageAll": "آماده‌سازی همه",
+        "unstageAll": "لغو آماده‌سازی همه",
+        "blockedHint": "پیش از آماده‌سازی یا دور ریختن، تضاد را بیرون از AionUi برطرف کنید",
+        "confirmDiscardTitle": "تغییرات دور ریخته شود؟",
+        "confirmDiscardTracked": "ویرایش {{count}} پرونده از دست می‌رود و بازگردانی‌پذیر نیست.",
+        "confirmDiscardUntracked": "{{count}} پرونده تازه به زباله‌دان منتقل می‌شوند.",
+        "confirmDiscardMixed": "ویرایش {{tracked}} پرونده به‌طور برگشت‌ناپذیر از دست می‌رود؛ {{untracked}} پرونده تازه به زباله‌دان می‌رود.",
+        "discardConfirmButton": "دور ریختن",
+        "okStage": "{{count}} پرونده آماده شد",
+        "okUnstage": "آماده‌سازی {{count}} پرونده لغو شد",
+        "okDiscard": "{{count}} پرونده دور ریخته شد",
+        "partial": "{{succeeded}} از {{total}} انجام شد —— {{failed}} کامل نشد",
+        "partialDetail": "کامل‌نشده: {{files}}",
+        "rejectedBlocked": "چیزی تغییر نکرد —— نخست تضاد را برطرف کنید",
+        "rejectedUnsupported": "این مخزن از این عمل پشتیبانی نمی‌کند",
+        "rejectedFailed": "انجام این عمل ممکن نشد",
+        "retry": "تلاش دوباره",
+        "notSent": "درخواست به بک‌اند نرسید و چیزی تغییر نکرد. می‌توانید دوباره تلاش کنید.",
+        "outcomeUnknown": "پیش از رسیدن پاسخ، اتصال بازنشانی شد — این عمل ممکن است کامل شده باشد یا نه. پیش از تلاش دوباره، بازخوانی کنید و فهرست پرونده‌ها را بررسی کنید.",
+        "allFailed": "هیچ‌یک از {{count}} پرونده پردازش نشد"
+      }
+    },
+    "pathCopied": "مسیر کپی شد",
+    "copyFailed": "کپی مسیر ناموفق بود"
+  },
+  "terminal": {
+    "running": "در حال اجرا",
+    "stopped": "متوقف شد",
+    "exited": "کد خروج {{code}}",
+    "stop": "توقف",
+    "truncated": "(خروجی قبلی کوتاه شد)"
+  }
 }

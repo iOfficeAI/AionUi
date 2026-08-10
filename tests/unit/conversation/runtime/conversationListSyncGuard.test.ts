@@ -39,4 +39,44 @@ describe('getSidebarStreamGuardDecision', () => {
       lateIgnored: false,
     });
   });
+
+  it("does not treat a NEWER turn's frame as late (codex keeps streaming past its own turn)", () => {
+    expect(
+      getSidebarStreamGuardDecision({
+        type: 'content',
+        completed: true,
+        completedTurnId: 'turn-orphan',
+        streamTurnId: 'turn-new',
+      })
+    ).toEqual({
+      markGenerating: true,
+      clearCompleted: true,
+      lateIgnored: false,
+    });
+  });
+
+  it('still ignores a frame from the very turn that completed', () => {
+    expect(
+      getSidebarStreamGuardDecision({
+        type: 'content',
+        completed: true,
+        completedTurnId: 'turn-1',
+        streamTurnId: 'turn-1',
+      })
+    ).toEqual({
+      markGenerating: false,
+      clearCompleted: false,
+      lateIgnored: true,
+    });
+  });
+
+  it('falls back to late-ignore when turn ids are unknown', () => {
+    expect(
+      getSidebarStreamGuardDecision({ type: 'content', completed: true, completedTurnId: null, streamTurnId: null })
+    ).toEqual({
+      markGenerating: false,
+      clearCompleted: false,
+      lateIgnored: true,
+    });
+  });
 });

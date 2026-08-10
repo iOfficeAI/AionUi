@@ -16,6 +16,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('node:fs', () => ({
   mkdirSync: vi.fn(),
+  statSync: vi.fn(),
 }));
 
 vi.mock('node:net', () => ({
@@ -28,10 +29,16 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
-import { buildSpawnArgs, buildSpawnEnv, findAvailablePort, BackendLifecycleManager } from './backend-launcher.js';
+import {
+  buildSpawnArgs,
+  buildSpawnEnv,
+  findAvailablePort,
+  BackendLifecycleManager,
+  BackendStartupError,
+} from './backend-launcher.js';
 import type { AppMetadata } from './types.js';
 
 const APP_META: AppMetadata = {
@@ -450,6 +457,44 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     expect(mgr.status).toBe('error');
   });
 
+  it('skips mkdir for a pre-existing work dir so a Windows drive root can start (ELECTRON-3S4)', async () => {
+    // Windows drive roots exist but can never be mkdir'd: CreateDirectory on
+    // `D:\` reports access-denied (not already-exists), so mkdirSync throws
+    // EPERM even with recursive:true. Directory preparation must stat first
+    // and skip mkdir for directories that already exist.
+    vi.mocked(statSync).mockImplementation(((p: unknown) =>
+      p === 'D:\\' ? { isDirectory: () => true } : undefined) as unknown as typeof statSync);
+    vi.mocked(mkdirSync).mockImplementation(((p: unknown) => {
+      if (p === 'D:\\') throw new Error('EPERM: operation not permitted, mkdir D:\\');
+      return undefined;
+    }) as unknown as typeof mkdirSync);
+    // Halt startup deterministically right after directory preparation: a
+    // spawn that throws proves preparation passed without hanging on health.
+    vi.mocked(spawn).mockImplementationOnce(() => {
+      throw new Error('halted by test after directory preparation');
+    });
+
+    try {
+      const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+      const error = await mgr
+        .start('/db/path', '/log/dir', { cacheDir: '/cache', workDir: 'D:\\', logDir: '/log' })
+        .catch((e: unknown) => e as Error);
+
+      // Startup got PAST directory preparation and reached spawn.
+      expect((error as Error).message).toContain('spawn threw before startup');
+      expect((error as Error).message).not.toContain('directory preparation failed');
+      expect(mkdirSync).not.toHaveBeenCalledWith('D:\\', expect.anything());
+      expect(spawn).toHaveBeenCalled();
+    } finally {
+      // Implementations survive the global clearAllMocks; reset so later
+      // tests keep the default no-op fs/spawn mocks (an unconsumed spawn
+      // mockImplementationOnce would otherwise leak into the next test).
+      vi.mocked(statSync).mockReset();
+      vi.mocked(mkdirSync).mockReset();
+      vi.mocked(spawn).mockReset();
+    }
+  });
+
   it('captures backend boundary code and stage from early-exit stderr', async () => {
     vi.useFakeTimers();
     vi.mocked(createServer).mockImplementation(
@@ -532,10 +577,11 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
       details: expect.objectContaining({
         stage: 'listen_timeout',
         port: 0,
+        healthCheckTimeoutMs: 60_000,
       }),
     });
 
-    await vi.advanceTimersByTimeAsync(31_000);
+    await vi.advanceTimersByTimeAsync(61_000);
     await expectedRejection;
 
     expect(mgr.status).toBe('error');
@@ -876,6 +922,110 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     fetchSpy.mockRestore();
   }, 15_000);
+
+  it('marks the health_timeout error kept-alive when pending timeout is allowed', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33342) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+    const onHealthTimeout = vi.fn();
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', undefined, {
+      allowPendingOnHealthTimeout: true,
+      onHealthTimeout,
+    });
+
+    await Promise.resolve();
+    emitListening(child, 33342);
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(startPromise).resolves.toBe(33342);
+
+    expect(onHealthTimeout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.objectContaining({
+          stage: 'health_timeout',
+          serverListeningObserved: true,
+          healthTimeoutKeptAlive: true,
+        }),
+      })
+    );
+
+    fetchSpy.mockRestore();
+  }, 15_000);
+});
+
+describe('BackendLifecycleManager.start (AIONCORE_READY consumption)', () => {
+  it('AC-7: treats an AIONCORE_READY marker as ready without /health passing', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33343) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    // /health never returns ok — readiness must come solely from the marker.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', undefined, {
+      allowPendingOnHealthTimeout: true,
+    });
+
+    await Promise.resolve();
+    emitListening(child, 33343);
+    await Promise.resolve();
+    child.stdout?.emit('data', Buffer.from('AIONCORE_READY\n'));
+
+    await expect(startPromise).resolves.toBe(33343);
+    expect(mgr.status).toBe('running');
+    // /health was polled but never returned ok; readiness came from the marker.
+    expect(fetchSpy).not.toHaveBeenCalledWith(expect.stringContaining('AIONCORE_READY'));
+
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('AC-7: a late AIONCORE_READY marker resolves the pending state and fires onReady', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33344) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+    const onHealthTimeout = vi.fn();
+    const onReady = vi.fn();
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', undefined, {
+      allowPendingOnHealthTimeout: true,
+      onHealthTimeout,
+      onReady,
+    });
+
+    await Promise.resolve();
+    emitListening(child, 33344);
+    // Health times out first; the process is kept alive (pending).
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(startPromise).resolves.toBe(33344);
+    expect(mgr.status).toBe('starting');
+    expect(onHealthTimeout).toHaveBeenCalled();
+
+    // A late readiness marker deterministically resolves the pending state.
+    child.stdout?.emit('data', Buffer.from('AIONCORE_READY\n'));
+    await vi.advanceTimersByTimeAsync(0);
+    await Promise.resolve();
+
+    expect(mgr.status).toBe('running');
+    expect(onReady).toHaveBeenCalledWith(33344);
+
+    fetchSpy.mockRestore();
+  }, 15_000);
 });
 
 describe('BackendLifecycleManager.stop', () => {
@@ -1180,5 +1330,75 @@ describe('BackendLifecycleManager crash restart', () => {
     });
 
     errorSpy.mockRestore();
+  });
+});
+
+// T-A4 — bounded peer-already-running retry (Sentry 135525166).
+type AttemptStartSpyTarget = { attemptStart: (...args: unknown[]) => Promise<number> };
+
+function makePeerAlreadyRunningError(): BackendStartupError {
+  return new BackendStartupError('aioncore exited before health check passed', {
+    stage: 'early_exit',
+    appVersion: APP_META.version,
+    backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING',
+    backendBoundaryStage: 'instance_guard.acquire',
+  });
+}
+
+describe('BackendLifecycleManager.start peer retry', () => {
+  it('retries with bounded backoff and succeeds once the peer releases the data dir', async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValueOnce(makePeerAlreadyRunningError())
+      .mockRejectedValueOnce(makePeerAlreadyRunningError())
+      .mockResolvedValueOnce(58672);
+
+    const started = mgr.start('/data/aionui-backend.db');
+    await vi.runAllTimersAsync();
+
+    await expect(started).resolves.toBe(58672);
+    expect(attemptStart).toHaveBeenCalledTimes(3);
+
+    warnSpy.mockRestore();
+  });
+
+  it('throws the peer boundary error after exhausting the retry budget', async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValue(makePeerAlreadyRunningError());
+
+    const started = mgr.start('/data/aionui-backend.db');
+    const assertion = expect(started).rejects.toMatchObject({
+      details: { backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING' },
+    });
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    // 5 attempts: initial + 4 retries.
+    expect(attemptStart).toHaveBeenCalledTimes(5);
+
+    warnSpy.mockRestore();
+  });
+
+  it('does not retry a non-peer startup failure', async () => {
+    const mgr = new BackendLifecycleManager(APP_META, () => '/abs/path/aioncore');
+    const nonPeerError = new BackendStartupError('assistant storage bootstrap failed', {
+      stage: 'early_exit',
+      appVersion: APP_META.version,
+      backendBoundaryCode: 'BOOTSTRAP_SERVER_FAILED',
+      backendBoundaryStage: 'router.assistant.bootstrap',
+    });
+    const attemptStart = vi
+      .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
+      .mockRejectedValue(nonPeerError);
+
+    await expect(mgr.start('/data/aionui-backend.db')).rejects.toBe(nonPeerError);
+    expect(attemptStart).toHaveBeenCalledTimes(1);
   });
 });

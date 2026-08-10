@@ -7,7 +7,7 @@
 import MarkdownView from '@/renderer/components/Markdown';
 import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { Button, Modal, Progress } from '@arco-design/web-react';
-import { CheckOne, Close, Download } from '@icon-park/react';
+import { CheckOne, Close, Download, Minus } from '@icon-park/react';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -271,14 +271,24 @@ const UpdateNotificationCard: React.FC = () => {
               : t('update.modalTitle')}
           </div>
           {state.status === 'downloading' && (
-            <button
-              type='button'
-              className='flex items-center justify-center bg-transparent border-none p-0 cursor-pointer text-t-tertiary hover:text-t-primary transition-colors'
-              onClick={actions.cancelDownload}
-              aria-label={t('update.cancel')}
-            >
-              <Close size='16' />
-            </button>
+            <div className='flex items-center gap-4px'>
+              <Button
+                type='text'
+                size='mini'
+                className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
+                icon={<Minus size='16' />}
+                onClick={actions.minimize}
+                aria-label={t('update.minimize')}
+              />
+              <Button
+                type='text'
+                size='mini'
+                className='!p-0 !w-24px !h-24px !text-t-tertiary hover:!text-t-primary'
+                icon={<Close size='16' />}
+                onClick={actions.cancelDownload}
+                aria-label={t('update.cancel')}
+              />
+            </div>
           )}
         </div>
         {state.status === 'downloading' ? (

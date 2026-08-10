@@ -4,9 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { localFileRef } from '@/common/types/chatFile';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export type FileSelectionItem = string | FileOrFolderItem;
+
+/**
+ * Wrap backend-machine picker paths (native dialog in Electron / server-fs browse
+ * in WebUI) as selection items tagged with a `local` chatRef, so the send path
+ * emits them as `local` refs (absolute backend paths, sent as-is) rather than
+ * `upload` refs — which the backend would reject as outside its managed upload
+ * directory. Empty paths are dropped.
+ */
+export const localSelectionItems = (paths: string[]): FileOrFolderItem[] =>
+  paths
+    .filter((path) => Boolean(path))
+    .map((path) => ({
+      path,
+      name: path.split(/[\\/]/).pop() || path,
+      isFile: true,
+      chatRef: localFileRef(path),
+    }));
 
 /**
  * 剥离 Windows 扩展长度路径前缀（`\\?\C:\DEV` → `C:\DEV`，`\\?\UNC\srv\share` → `\\srv\share`）
@@ -24,9 +42,18 @@ export const stripWindowsVerbatimPrefix = (path: string): string => {
   return path;
 };
 
+/**
+ * Dedup key for a selection item. Project Explorer items are keyed by their pe
+ * identity (`chatRef`) so the same `relative_path` under different pes stays
+ * distinct and never collides with an upload sharing that path string; uploads
+ * and `@` mentions key by their absolute path.
+ */
 const getItemPath = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;
+  }
+  if (item.chatRef?.kind === 'project') {
+    return `project\0${item.chatRef.pe_id}\0${item.chatRef.relative_path}`;
   }
   return item.path;
 };

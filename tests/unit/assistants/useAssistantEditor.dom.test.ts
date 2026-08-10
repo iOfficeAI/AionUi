@@ -119,6 +119,9 @@ describe('useAssistantEditor', () => {
     activeAssistant: null,
     setActiveAssistantId: vi.fn(),
     loadAssistants: vi.fn(),
+    assistants: [] as AssistantListItem[],
+    assistantOrder: [] as string[],
+    setAssistantOrder: vi.fn(async () => {}),
     message: mockMessage,
   };
 
@@ -374,7 +377,6 @@ describe('useAssistantEditor', () => {
     expect(loadAssistantsMock).toHaveBeenCalled();
     expect(setActiveAssistantIdMock).toHaveBeenCalledWith('new-id');
     expect(swrMutate).toHaveBeenCalledWith('assistants.list');
-    expect(swrMutate).toHaveBeenCalledWith('assistants');
     expect(result.current.editVisible).toBe(false);
   });
 
@@ -415,7 +417,6 @@ describe('useAssistantEditor', () => {
     expect(mockMessage.success).toHaveBeenCalled();
     expect(loadAssistantsMock).toHaveBeenCalled();
     expect(swrMutate).toHaveBeenCalledWith('assistants.list');
-    expect(swrMutate).toHaveBeenCalledWith('assistants');
     expect(swrMutate).toHaveBeenCalledWith('guid.assistant.detail.a1.en');
   });
 
@@ -596,8 +597,49 @@ describe('useAssistantEditor', () => {
     expect(swrMutate).toHaveBeenNthCalledWith(1, 'assistants.list', expect.any(Function), { revalidate: false });
     expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledWith({ id: 'builtin-1', enabled: false });
     expect(loadAssistantsMock).toHaveBeenCalled();
-    expect(swrMutate).toHaveBeenCalledWith('assistants');
     expect(swrMutate).toHaveBeenCalledWith('guid.assistant.detail.builtin-1.en');
+  });
+
+  it('appends a re-enabled assistant to the shared enabled order', async () => {
+    const cli = {
+      id: 'cli',
+      name: 'CLI',
+      sort_order: 1,
+      source: 'generated',
+      enabled: true,
+    } as AssistantListItem;
+    const custom = {
+      id: 'custom',
+      name: 'Custom',
+      sort_order: 2,
+      source: 'user',
+      enabled: true,
+    } as AssistantListItem;
+    const official = {
+      id: 'official',
+      name: 'Official',
+      sort_order: 3,
+      source: 'builtin',
+      enabled: false,
+    } as AssistantListItem;
+    const setAssistantOrder = vi.fn(async () => {});
+    (ipcBridge.assistants.setState.invoke as any).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        assistants: [cli, custom, official],
+        assistantOrder: ['custom', 'cli'],
+        setAssistantOrder,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleToggleEnabled(official, true);
+    });
+
+    expect(setAssistantOrder).toHaveBeenCalledWith(['custom', 'cli', 'official']);
+    expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledWith({ id: 'official', enabled: true });
   });
 
   it('revalidates the shared assistant list if toggle enabled fails', async () => {
@@ -620,7 +662,6 @@ describe('useAssistantEditor', () => {
     expect(consoleErrorSpy).toHaveBeenCalled();
     expect(mockMessage.error).toHaveBeenCalled();
     expect(swrMutate).toHaveBeenNthCalledWith(1, 'assistants.list', expect.any(Function), { revalidate: false });
-    expect(swrMutate).toHaveBeenCalledWith('assistants');
 
     consoleErrorSpy.mockRestore();
   });

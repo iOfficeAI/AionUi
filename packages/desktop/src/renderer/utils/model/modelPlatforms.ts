@@ -48,14 +48,30 @@ export interface PlatformConfig {
  * Model Platform options list
  *
  * 顺序：
- * 1. Gemini (官方)
- * 2. Gemini Vertex AI
- * 3. 自定义（需要用户输入 base url）
+ * 1. 自定义（需要用户输入 base url）
+ * 2. Moonshot/Kimi（战略合作，置顶展示）
+ * 3. New API / Gemini 官方平台
  * 4+ 预设供应商
  */
 export const MODEL_PLATFORMS: PlatformConfig[] = [
   // 自定义选项（需要用户输入 base url）/ Custom option (requires user to input base url)
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
+
+  // Moonshot/Kimi 战略合作伙伴，紧随 Custom 置顶 / Strategic partner pinned right after Custom
+  {
+    name: 'Moonshot (China)',
+    value: 'Moonshot',
+    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
+    platform: 'custom',
+    base_url: 'https://api.moonshot.cn/v1',
+  },
+  {
+    name: 'Moonshot (Global)',
+    value: 'Moonshot-Global',
+    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
+    platform: 'custom',
+    base_url: 'https://api.moonshot.ai/v1',
+  },
 
   // New API 多模型网关 / New API multi-model gateway
   {
@@ -169,20 +185,6 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://open.bigmodel.cn/api/paas/v4',
   },
   {
-    name: 'Moonshot (China)',
-    value: 'Moonshot',
-    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
-    platform: 'custom',
-    base_url: 'https://api.moonshot.cn/v1',
-  },
-  {
-    name: 'Moonshot (Global)',
-    value: 'Moonshot-Global',
-    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
-    platform: 'custom',
-    base_url: 'https://api.moonshot.ai/v1',
-  },
-  {
     name: 'xAI',
     value: 'xAI',
     logo: buildLogoAssetUrl('ai-major/xai.svg'),
@@ -282,6 +284,12 @@ export const detectNewApiProtocol = (modelName: string): string => {
   // Default to openai (covers gpt, deepseek, qwen, o1, o3, etc.)
   return 'openai';
 };
+
+/**
+ * 添加模型弹窗的默认平台——始终跟随列表第一位
+ * Default platform for the add-model modal — always the first list entry
+ */
+export const DEFAULT_PLATFORM_VALUE = MODEL_PLATFORMS[0].value;
 
 // ============ 工具函数 / Utility Functions ============
 

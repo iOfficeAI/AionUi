@@ -12,10 +12,6 @@ import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
 
 const previewMocks = vi.hoisted(() => ({
   openPreview: vi.fn(),
@@ -36,14 +32,32 @@ const localFileLinkMocks = vi.hoisted(() => ({
 }));
 const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='file-preview'>{path}</div>);
 
+const forkMocks = vi.hoisted(() => ({
+  fork: vi.fn(),
+  ensureRuntime: vi.fn().mockResolvedValue(undefined),
+  navigate: vi.fn(),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       getFileMetadata: { invoke: vi.fn() },
       getImageBase64: { invoke: vi.fn() },
       readFile: { invoke: vi.fn() },
+      // ChatFileRef content endpoints — useLocalFilePreview reads by Local ref.
+      getContentMetadata: { invoke: vi.fn() },
+      readContent: { invoke: vi.fn() },
+    },
+    conversation: {
+      fork: { invoke: forkMocks.fork },
+      ensureRuntime: { invoke: forkMocks.ensureRuntime },
     },
   },
+}));
+
+// useForkConversation needs a router context; MessageText renders without one.
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => forkMocks.navigate,
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
@@ -161,6 +175,9 @@ describe('MessageText attachment paths', () => {
     vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockReset();
     vi.mocked(ipcBridge.fs.getImageBase64.invoke).mockReset();
     vi.mocked(ipcBridge.fs.readFile.invoke).mockReset();
+    // Default: file exists (metadata resolves); tests that read set readContent.
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockReset().mockResolvedValue(fileMetadata('/x'));
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockReset().mockResolvedValue('');
   });
 
   const renderMessageWithLocalLink = (content = '[report](/missing/report.xlsx)') => {
@@ -253,6 +270,19 @@ describe('MessageText attachment paths', () => {
     const content = screen.getByTestId('message-text-content');
     expect(content.parentElement?.className).toContain('min-w-0');
     expect(content.parentElement?.className).not.toContain('max-w-780px');
+  });
+
+  it('wraps a long unbroken url/path in a user message so the bubble never overflows', () => {
+    const longPath = '/var/folders/gd/6bb7q8jd1ll0g17q5gly4flw0000gn/T/aionui/0265f4a8/image-xxxxxxxxxxxxxxxxxx';
+
+    renderMessageText(longPath, { position: 'right' });
+
+    const content = screen.getByTestId('message-text-content');
+    // overflow-wrap: anywhere breaks a no-space run by character AND shrinks
+    // min-content, so the bubble stays within the row. break-words does neither.
+    expect(content.className).toContain('[overflow-wrap:anywhere]');
+    expect(content.className).not.toContain('break-words');
+    expect(content).toHaveTextContent(longPath);
   });
 
   it('keeps absolute attachment paths unchanged before previewing', () => {
@@ -428,7 +458,8 @@ describe('MessageText attachment paths', () => {
   });
 
   it('opens a missing-file preview when a local markdown link no longer exists', async () => {
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(null);
+    // Missing file: the content-metadata existence check rejects (backend 404).
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockRejectedValue(new Error('not found'));
     localFileLinkMocks.payload = {
       path: '/missing/report.xlsx',
       reference: {
@@ -471,8 +502,7 @@ describe('MessageText attachment paths', () => {
         column: 7,
       },
     };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('const value = 1;\n');
 
     renderMessageWithLocalLink('[app.ts](/workspace/demo/src/app.ts:42:7)');
 
@@ -484,15 +514,22 @@ describe('MessageText attachment paths', () => {
         'code',
         expect.objectContaining({
           file_name: 'app.ts',
+          fileRef: { kind: 'local', path: filePath },
           file_path: filePath,
           workspace: '/workspace/demo',
           language: 'ts',
           targetLine: 42,
           targetColumn: 7,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
+    });
+    // Content read by Local ChatFileRef over /content (utf8), not the legacy path endpoints.
+    expect(ipcBridge.fs.readContent.invoke).toHaveBeenCalledWith({
+      file: { kind: 'local', path: filePath },
+      encoding: 'utf8',
     });
   });
 
@@ -507,8 +544,7 @@ describe('MessageText attachment paths', () => {
         endLine: 20,
       },
     };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue('const value = 1;\n');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('const value = 1;\n');
 
     renderMessageWithLocalLink('[app.ts](/workspace/demo/src/app.ts#L10-L20)');
 
@@ -525,7 +561,8 @@ describe('MessageText attachment paths', () => {
           language: 'ts',
           targetLine: 10,
           targetColumn: undefined,
-          truncated: false,
+          oversized: false,
+          lastModified: 1_717_000_000,
         }),
         { replace: true }
       );
@@ -565,8 +602,7 @@ describe('MessageText attachment paths', () => {
   it('opens image local markdown links from base64 content without reading text content', async () => {
     const filePath = '/workspace/demo/assets/chart.png';
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.getImageBase64.invoke).mockResolvedValue('data:image/png;base64,abc123');
+    vi.mocked(ipcBridge.fs.readContent.invoke).mockResolvedValue('data:image/png;base64,abc123');
 
     renderMessageWithLocalLink('[chart.png](/workspace/demo/assets/chart.png)');
 
@@ -578,6 +614,7 @@ describe('MessageText attachment paths', () => {
         'image',
         expect.objectContaining({
           file_name: 'chart.png',
+          fileRef: { kind: 'local', path: filePath },
           file_path: filePath,
           workspace: '/workspace/demo',
           language: 'png',
@@ -586,15 +623,27 @@ describe('MessageText attachment paths', () => {
         { replace: true }
       );
     });
-    expect(ipcBridge.fs.readFile.invoke).not.toHaveBeenCalled();
+    // Image read as a data URL over /content (dataurl encoding).
+    expect(ipcBridge.fs.readContent.invoke).toHaveBeenCalledWith({
+      file: { kind: 'local', path: filePath },
+      encoding: 'dataurl',
+    });
   });
 
-  it('opens large code local markdown links with truncated read content', async () => {
+  // Supersedes the old "truncated read content" case. Truncation is gone: an
+  // oversized file is not read at all, because a partially read document reaching
+  // a saveable editor is what destroyed the unread remainder on save.
+  it('opens oversized local markdown links without reading content, read-only', async () => {
     const filePath = '/workspace/demo/logs/app.log';
-    const content = 'a'.repeat(LARGE_TEXT_PREVIEW_THRESHOLD + 1);
+    const oversize = 1024 * 1024 + 1;
     localFileLinkMocks.payload = { path: filePath, reference: undefined };
-    vi.mocked(ipcBridge.fs.getFileMetadata.invoke).mockResolvedValue(fileMetadata(filePath));
-    vi.mocked(ipcBridge.fs.readFile.invoke).mockResolvedValue(content);
+    vi.mocked(ipcBridge.fs.getContentMetadata.invoke).mockResolvedValue({
+      name: 'app.log',
+      path: filePath,
+      size: oversize,
+      type: 'file',
+      lastModified: 1_717_000_000,
+    });
 
     renderMessageWithLocalLink('[app.log](/workspace/demo/logs/app.log)');
 
@@ -602,16 +651,87 @@ describe('MessageText attachment paths', () => {
 
     await waitFor(() => {
       expect(previewMocks.openPreview).toHaveBeenCalledWith(
-        content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH),
+        '',
         'code',
         expect.objectContaining({
           file_name: 'app.log',
           file_path: filePath,
-          truncated: true,
+          oversized: true,
+          sizeBytes: oversize,
+          thresholdBytes: 1024 * 1024,
           editable: false,
         }),
         { replace: true }
       );
+    });
+    // The whole point: the content endpoint is never hit for an oversized file.
+    expect(ipcBridge.fs.readContent.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('MessageText fork entry point', () => {
+  const forkMessage = (overrides: Partial<IMessageText> = {}): IMessageText => ({
+    id: 'msg-fork-1',
+    msg_id: 'msg-fork-1',
+    conversation_id: 'conv-fork',
+    type: 'text',
+    position: 'left',
+    createdAt: Date.now(),
+    content: { content: 'assistant reply' },
+    ...overrides,
+  });
+
+  const renderWithCapability = (
+    capability: { at_turn: boolean } | undefined,
+    props: { isLastMessage?: boolean; hasForkAnchor?: boolean } = {}
+  ) => {
+    render(
+      <ConversationProvider
+        value={{ conversation_id: 'conv-fork', workspace: '/workspace/demo', type: 'acp', forkCapability: capability }}
+      >
+        <MessageText message={forkMessage()} isLastMessage={props.isLastMessage} hasForkAnchor={props.hasForkAnchor} />
+      </ConversationProvider>
+    );
+  };
+
+  beforeEach(() => {
+    forkMocks.fork.mockReset().mockResolvedValue({ id: 'conv-forked' });
+    forkMocks.ensureRuntime.mockReset().mockResolvedValue(undefined);
+    forkMocks.navigate.mockReset();
+  });
+
+  it('hides the fork button when the agent declares no capability', () => {
+    renderWithCapability(undefined, { isLastMessage: true });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on anchored mid-history messages for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('hides the fork button on un-anchored legacy messages even for at_turn backends', () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('limits head-only backends to the last message', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: false });
+    expect(screen.queryByTestId('message-fork-button')).toBeNull();
+  });
+
+  it('shows the fork button on the last message for head-only backends', () => {
+    renderWithCapability({ at_turn: false }, { isLastMessage: true });
+    expect(screen.getByTestId('message-fork-button')).toBeInTheDocument();
+  });
+
+  it('clicking fork calls the API, refreshes, navigates, and pre-warms the runtime', async () => {
+    renderWithCapability({ at_turn: true }, { isLastMessage: false, hasForkAnchor: true });
+    fireEvent.click(screen.getByTestId('message-fork-button'));
+    await waitFor(() => {
+      expect(forkMocks.fork).toHaveBeenCalledWith({ conversation_id: 'conv-fork', message_id: 'msg-fork-1' });
+      expect(forkMocks.navigate).toHaveBeenCalledWith('/conversation/conv-forked');
+      expect(forkMocks.ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'conv-forked' });
     });
   });
 });

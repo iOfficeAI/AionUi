@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
+import type { ChatSearchPanelOpenDetail } from '@/renderer/utils/chat/chatMinimapEvents';
+import { CHAT_SEARCH_PANEL_OPEN_EVENT, dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
 import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
+import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MinimapVisualStyle, TurnPreviewItem } from './minimapTypes';
@@ -269,16 +271,28 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
     };
   }, [visible]);
 
+  // Open on request from the anchor rail, which now carries the primary search
+  // entry. Scoped to this conversation so a stale rail cannot open the wrong panel.
+  useEffect(() => {
+    if (!conversation_id) return;
+    const handleOpenRequest = (event: Event) => {
+      const detail = (event as CustomEvent<ChatSearchPanelOpenDetail>).detail;
+      if (!detail || detail.conversation_id !== conversation_id) return;
+      openSearchPanel();
+    };
+    window.addEventListener(CHAT_SEARCH_PANEL_OPEN_EVENT, handleOpenRequest);
+    return () => {
+      window.removeEventListener(CHAT_SEARCH_PANEL_OPEN_EVENT, handleOpenRequest);
+    };
+  }, [conversation_id, openSearchPanel]);
+
   // Global search shortcut (Cmd/Ctrl+F)
   useEffect(() => {
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if ((event as unknown as { isComposing?: boolean }).isComposing) return;
-      const key = event.key.toLowerCase();
-      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
-      if (!isCmdOrCtrl || event.shiftKey || key !== 'f' || event.altKey) return;
+      if (!isPrimaryApplicationShortcut(event, { key: 'f', targetGuard: 'embedded-editor' })) return;
       // Keep browser/native find behavior in WebUI; intercept only desktop runtime.
       if (typeof window !== 'undefined' && !window.electronAPI) return;
+      if (!conversation_id) return;
       event.preventDefault();
       openSearchPanel();
     };
@@ -286,7 +300,7 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
     return () => {
       document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
     };
-  }, [openSearchPanel]);
+  }, [conversation_id, openSearchPanel]);
 
   // Search focus
   useEffect(() => {

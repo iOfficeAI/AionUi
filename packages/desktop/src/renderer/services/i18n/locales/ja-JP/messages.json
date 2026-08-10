@@ -16,6 +16,11 @@
   "downloadFailed": "ダウンロードに失敗しました",
   "imageLoadFailed": "画像の読み込みに失敗しました",
   "scrollToBottom": "下にスクロール",
+  "anchorRail": {
+    "label": "会話メッセージのアンカー",
+    "tickAria": "メッセージ {{index}} へ移動",
+    "searchAria": "会話を検索"
+  },
   "availableCommands": "{{count}} 個の利用可能なコマンド",
   "atFile.hint": "ファイルを検索するには入力してください",
   "atFile.menuLabel": "ファイル参照",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "利用可能なオプションはありません",
   "processing": "Processing...",
   "responseSentSuccessfully": "応答が正常に送信されました",
+  "permissionResponseFailed": "応答を送信できませんでした。もう一度お試しください。",
   "confirmation": {
     "applyChange": "この変更を適用しますか？",
     "allowExecution": "実行を許可しますか？",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
     "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
     "no": "いいえ (esc)"
-  }
+  },
+  "fork": {
+    "action": "ここから分岐",
+    "errorTurnInFlight": "現在の応答が完了してから分岐してください",
+    "errorParentUnbound": "この会話にはまだ分岐できるバックエンドセッションがありません",
+    "errorPointUnsupported": "このエージェントは最新メッセージからのみ分岐できます",
+    "errorUnsupported": "このエージェントは分岐をサポートしていません",
+    "errorGeneric": "分岐に失敗しました：{{message}}"
+  },
+  "askSubmit": "送信",
+  "askDecline": "回答しない",
+  "askAnswered": "回答済み",
+  "askDeclined": "スキップ済み",
+  "askOther": "その他",
+  "askOtherPlaceholder": "回答を入力",
+  "requestDetails": "リクエスト内容:"
 }

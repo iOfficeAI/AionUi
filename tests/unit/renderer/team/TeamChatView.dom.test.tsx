@@ -31,6 +31,12 @@ vi.mock('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversati
   default: () => <div data-testid='mock-legacy-conversation' />,
 }));
 
+const switchTabMock = vi.fn();
+const teamTabsState = { activeSlotId: 'slot-a', switchTab: switchTabMock };
+vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
+  useTeamTabs: () => teamTabsState,
+}));
+
 import TeamChatView from '@/renderer/pages/team/components/TeamChatView';
 
 describe('TeamChatView', () => {
@@ -38,6 +44,8 @@ describe('TeamChatView', () => {
     usePresetAssistantInfoMock.mockReset();
     acpChatMock.mockClear();
     aionrsChatMock.mockClear();
+    switchTabMock.mockClear();
+    teamTabsState.activeSlotId = 'slot-a';
   });
 
   it('prefers preset assistant backend over legacy conversation extra backend', async () => {
@@ -187,7 +195,6 @@ describe('TeamChatView', () => {
     ['runtime_starting', 'Waiting for this assistant to start…', true],
     ['runtime_failed', 'This assistant failed to start.', false],
     ['removing', 'Removing this assistant…', false],
-    ['session_stopped', 'The team session has stopped.', false],
   ] as const)('maps %s to authoritative team runtime status', async (blockedReason, statusText, canSendMessage) => {
     usePresetAssistantInfoMock.mockReturnValue({ info: null });
 
@@ -236,5 +243,137 @@ describe('TeamChatView', () => {
         }),
       })
     );
+  });
+
+  it('keeps sending open for a stale session_stopped slot', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-1'
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team member',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        teamRunView={{
+          activeRun: undefined,
+          childTurnsBySlot: {},
+          slotWorkBySlot: {
+            'worker-1': {
+              slot_id: 'worker-1',
+              role: 'teammate',
+              state: 'blocked',
+              queued_foreground_count: 1,
+              queued_background_count: 2,
+              active_turn_id: null,
+              active_turn_started_at_ms: null,
+              active_turn_elapsed_ms: null,
+              active_turn_slow: null,
+              active_turn_slow_threshold_ms: null,
+              blocked_reason: 'session_stopped',
+              team_run_id: null,
+            },
+          },
+          sessionStopped: false,
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamRuntime: expect.objectContaining({
+          statusText: 'The team session has stopped.',
+          runtimeGate: expect.objectContaining({ canSendMessage: true, isProcessing: false }),
+        }),
+      })
+    );
+  });
+
+  it('surfaces the stopped prompt and keeps sending open when sessionStopped flag is set', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-1'
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team member',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+        teamRunView={{
+          activeRun: undefined,
+          childTurnsBySlot: {},
+          slotWorkBySlot: {},
+          sessionStopped: true,
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        teamRuntime: expect.objectContaining({
+          statusText: 'The team session has stopped.',
+          loading: false,
+          runtimeGate: expect.objectContaining({ canSendMessage: true, isProcessing: false }),
+        }),
+      })
+    );
+  });
+
+  it('marks teamRuntime.isActive true when slot matches activeSlotId and wires onFocus to switchTab', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: { name: 'A', logo: '📋', isEmoji: true, backend: 'claude' } });
+    teamTabsState.activeSlotId = 'slot-a';
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='slot-a'
+        conversation={{
+          id: 'conv-a',
+          type: 'acp',
+          name: 'Team - A',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+    await screen.findByTestId('mock-acp-chat');
+    const props = acpChatMock.mock.calls[0]?.[0] as { teamRuntime?: { isActive?: boolean; onFocus?: () => void } };
+    expect(props.teamRuntime?.isActive).toBe(true);
+    props.teamRuntime?.onFocus?.();
+    expect(switchTabMock).toHaveBeenCalledWith('slot-a');
+  });
+
+  it('marks teamRuntime.isActive false when slot does not match activeSlotId', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: { name: 'B', logo: '📋', isEmoji: true, backend: 'claude' } });
+    teamTabsState.activeSlotId = 'slot-a';
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='slot-b'
+        conversation={{
+          id: 'conv-b',
+          type: 'acp',
+          name: 'Team - B',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+    await screen.findByTestId('mock-acp-chat');
+    const props = acpChatMock.mock.calls[0]?.[0] as { teamRuntime?: { isActive?: boolean } };
+    expect(props.teamRuntime?.isActive).toBe(false);
   });
 });

@@ -209,10 +209,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     />
   );
 
-  // Get display label for current mode
+  // Get display label for current mode. When the current value matches no option
+  // (e.g. backend mode-vocabulary drift), surface the raw value instead of an empty
+  // string so the compact pill never renders a bare "prefix · " with nothing after it.
   const getCurrentModeLabel = () => {
     const modeOption = modes.find((m) => m.value === current_mode);
-    return modeOption ? getDisplayModeLabel(modeOption) : '';
+    return modeOption ? getDisplayModeLabel(modeOption) : current_mode;
   };
 
   // Dropdown menu (shared between compact and full mode)

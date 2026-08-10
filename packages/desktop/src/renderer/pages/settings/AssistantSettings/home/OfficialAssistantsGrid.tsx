@@ -20,6 +20,7 @@ type OfficialAssistantsGridProps = {
   onDuplicate: (assistant: AssistantListItem) => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
   onStartChat: (assistant: AssistantListItem) => void;
+  searchActive?: boolean;
 };
 
 const FILTER_OPTIONS: AssistantEnabledFilter[] = ['all', 'enabled', 'disabled'];
@@ -36,6 +37,7 @@ const OfficialAssistantsGrid: React.FC<OfficialAssistantsGridProps> = ({
   onDuplicate,
   onToggleEnabled,
   onStartChat,
+  searchActive = false,
 }) => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<AssistantEnabledFilter>('all');
@@ -91,6 +93,13 @@ const OfficialAssistantsGrid: React.FC<OfficialAssistantsGridProps> = ({
       </div>
 
       <div className='grid grid-cols-1 gap-14px sm:grid-cols-2 lg:grid-cols-3'>
+        {officialAssistants.length === 0 ? (
+          <div className='col-span-full rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center text-13px text-t-secondary'>
+            {searchActive
+              ? t('settings.assistantNoMatch', { defaultValue: 'No assistants match the current filters.' })
+              : t('settings.assistantsEmpty', { defaultValue: 'No assistants configured.' })}
+          </div>
+        ) : null}
         {officialAssistants.map((assistant) => {
           const enabled = assistant.enabled !== false;
           const actionMenu = (

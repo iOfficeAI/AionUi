@@ -120,7 +120,10 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 modified_at: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
                 extra:
-                  source.type === 'acp'
+                  // Antigravity stores its resume anchor in the same fields, so
+                  // it must be cleared too — otherwise the clone resumes the
+                  // source conversation's agy session instead of starting clean.
+                  source.type === 'acp' || source.type === 'antigravity'
                     ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
                     : source.extra,
               } as TChatConversation,
@@ -167,7 +170,10 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     initialModel: conversation.model,
     onSelectModel,
   });
-  const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  // Project conversations get the Layout-level Explorer column (stage3 FULL);
+  // ChatLayout's own right sider is only for no-project (legacy tree), so it does
+  // not double up or reserve an empty column.
+  const workspaceEnabled = Boolean(conversation.extra?.workspace) && !conversation.project_id;
   const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
@@ -212,7 +218,15 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       </div>
     ),
     workspaceEnabled,
+    // For project conversations the preview panel is hoisted to the Layout-level
+    // project host (structurally persistent across same-project conversation
+    // switches — no remount). ChatLayout then renders chat only.
+    previewHosted: Boolean(conversation.project_id),
     workspacePath: conversation.extra?.workspace,
+    // Key the workspace-panel collapse preference per-project (falls back to
+    // conversation_id inside ChatLayout when there is no project) so the panel's
+    // open/closed state restores when switching conversations within a project.
+    workspacePreferenceKey: conversation.project_id,
     isTemporaryWorkspace: (conversation.extra as { is_temporary_workspace?: boolean } | undefined)
       ?.is_temporary_workspace,
     backend: 'aionrs' as const,
@@ -245,7 +259,7 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'conversation', id: conversation?.id });
-  const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -271,6 +285,12 @@ const ChatConversation: React.FC<{
     }
     switch (conversation.type) {
       case 'acp':
+      // Antigravity reports its own conversation type but renders through the
+      // ACP chat surface: same extra payload, same event stream, same send box.
+      // Without this case it falls to `default: null` — the chat area renders
+      // empty, no send box mounts, and the queued initial message in
+      // `acp_initial_message_<id>` is never delivered, so the turn never starts.
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}
@@ -287,6 +307,8 @@ const ChatConversation: React.FC<{
               (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
             }
             assistantId={acpAssistantId}
+            forkCapability={conversation.fork_capability}
+            promptCapability={conversation.prompt_capability}
           ></AcpChat>
         );
       default:
@@ -319,7 +341,10 @@ const ChatConversation: React.FC<{
     if (!conversation || isAionrsConversation) return undefined;
     if (isMobile) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;
-    if (conversation.type === 'acp') {
+    // Antigravity included: the backend discovers agy's model list and writes it
+    // into the same catalog the ACP picker reads, so it must not fall through to
+    // the disabled selector below.
+    if (conversation.type === 'acp' || conversation.type === 'antigravity') {
       const extra = conversation.extra as { current_model_id?: string };
       return (
         <AcpModelSelector
@@ -369,7 +394,9 @@ const ChatConversation: React.FC<{
       siderTitle={sliderTitle}
       sider={<ChatSlider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
+      previewHosted={Boolean(conversation?.project_id)}
       workspacePath={conversation?.extra?.workspace}
+      workspacePreferenceKey={conversation?.project_id}
       isTemporaryWorkspace={
         (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
       }

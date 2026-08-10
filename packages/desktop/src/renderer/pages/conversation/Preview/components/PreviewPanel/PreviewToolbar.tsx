@@ -4,20 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewHistoryTarget } from '@/common/types/office/preview';
 import { iconColors } from '@/renderer/styles/colors';
-import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { shouldShowDownload } from './previewToolbarUtils';
-
-/**
- * 暂时隐藏快照/历史入口（保留底层逻辑，日后翻 true 即恢复）
- * Temporarily hide the snapshot/history entry (underlying logic is kept;
- * flip to true to restore the UI).
- */
-const SHOW_SNAPSHOT_HISTORY = false;
 
 /**
  * PreviewToolbar 组件属性
@@ -67,16 +58,41 @@ interface PreviewToolbarProps {
   showOpenInSystemButton: boolean;
 
   /**
-   * 历史目标
-   * History target
+   * 这个 tab 没有内容可操作（超过大小上限，或格式无法渲染）。
+   * 视图切换、分屏、审查元素都是对内容的操作，隐藏；
+   * 但「在系统中打开」与「下载」照常显示 —— 那是用户唯一的出路。
+   *
+   * The tab has no content to act on — either it exceeded the size ceiling or its
+   * format cannot be rendered. View-mode switching, split screen and inspect all
+   * operate on content, so they are hidden; "open in system" and "download" stay,
+   * because they are the only way the user reaches the file.
    */
-  historyTarget: PreviewHistoryTarget | null;
+  hasNoRenderableContent?: boolean;
 
   /**
-   * 是否正在保存快照
-   * Whether snapshot is saving
+   * 文件是否在磁盘上（有 file_path）。
+   * 刻意与 showOpenInSystemButton 分开传：后者现在也接受纯 fileRef（逃生出口），
+   * 不再等价于「文件在磁盘上」，继续复用它会让 Explorer 打开的 code/md tab
+   * 悄悄丢掉下载按钮。
+   *
+   * Whether the file exists on disk (has a file_path). Passed separately from
+   * showOpenInSystemButton on purpose: that flag now also accepts a bare fileRef
+   * (the escape hatch), so it no longer means "on disk". Reusing it here would
+   * silently drop the download button from explorer-opened code/markdown tabs.
    */
-  snapshotSaving: boolean;
+  hasFilePath: boolean;
+
+  /**
+   * 刷新按钮状态 token；`'hidden'` 或未提供时不渲染。
+   * Refresh control state token; not rendered when `'hidden'` or absent.
+   */
+  refreshState?: string;
+
+  /** 刷新按钮是否可点 / Whether the refresh control accepts a click */
+  refreshActionable?: boolean;
+
+  /** 点击刷新 / Reload the current tab */
+  onRefresh?: () => void;
 
   /**
    * 设置视图模式
@@ -89,24 +105,6 @@ interface PreviewToolbarProps {
    * Set split-screen mode
    */
   onSplitScreenToggle: () => void;
-
-  /**
-   * 保存快照
-   * Save snapshot
-   */
-  onSaveSnapshot: () => void;
-
-  /**
-   * 刷新历史列表
-   * Refresh history list
-   */
-  onRefreshHistory: () => void;
-
-  /**
-   * 渲染历史下拉菜单
-   * Render history dropdown
-   */
-  renderHistoryDropdown: () => React.ReactNode;
 
   /**
    * 在系统中打开文件
@@ -155,8 +153,8 @@ interface PreviewToolbarProps {
  * 预览面板工具栏组件
  * Preview panel toolbar component
  *
- * 包含文件名、视图模式切换、快照/历史按钮、下载按钮、关闭按钮等
- * Contains filename, view mode toggle, snapshot/history buttons, download button, close button, etc.
+ * 包含文件名、视图模式切换、下载按钮、关闭按钮等
+ * Contains filename, view mode toggle, download button, close button, etc.
  */
 // eslint-disable-next-line max-len
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
@@ -167,13 +165,13 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isSplitScreenEnabled,
   file_name,
   showOpenInSystemButton,
-  historyTarget,
-  snapshotSaving,
+  hasNoRenderableContent = false,
+  hasFilePath,
+  refreshState,
+  refreshActionable = false,
+  onRefresh,
   onViewModeChange,
   onSplitScreenToggle,
-  onSaveSnapshot,
-  onRefreshHistory,
-  renderHistoryDropdown,
   onOpenInSystem,
   onDownload,
   onClose,
@@ -185,8 +183,11 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
-  // showOpenInSystemButton === Boolean(metadata.file_path) upstream — i.e. "file is on disk".
-  const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
+  // 下载的隐藏规则看的是「文件是否在磁盘上」，用 hasFilePath 而不是
+  // showOpenInSystemButton（后者已包含纯 fileRef 的情况）。
+  // The download rule keys off "is the file on disk", so use hasFilePath rather
+  // than showOpenInSystemButton (which now also covers bare-fileRef tabs).
+  const showDownload = shouldShowDownload(content_type, hasFilePath);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
@@ -198,7 +199,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
       <div className='flex items-center justify-between gap-8px w-full' style={{ minWidth: 'max-content' }}>
         {/* 左侧：Tabs（Markdown/HTML）+ 文件名 / Left: Tabs (Markdown/HTML) + Filename */}
         <div className='flex items-center h-full gap-8px'>
-          {(isMarkdown || isHTML || isDiff) && (
+          {(isMarkdown || isHTML || isDiff) && !hasNoRenderableContent && (
             <>
               <div className='flex items-center h-full gap-0'>
                 <div
@@ -294,78 +295,47 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
         </div>
 
         <div className='flex items-center gap-4px flex-shrink-0'>
-          {rightExtra}
+          {/* 刷新：放在这个稳定容器里，不进下面那两个「前置/后置」重复块 ——
+              那两块由 preferActionButtonsInFront 二选一，只有 PDF 注入 leftExtra，
+              所以按钮会随 tab 类型左右跳。
+              Refresh lives in this stable container rather than in the duplicated
+              front/back action blocks below: those two are selected by
+              preferActionButtonsInFront, and only PDF injects leftExtra, so anything
+              placed in them jumps sides when the tab type changes. */}
+          {refreshState !== undefined && refreshState !== 'hidden' && (
+            <div
+              data-testid='preview-refresh'
+              data-refresh-state={refreshState}
+              className={`${toolbarBtn} ${refreshState === 'updated' ? '!text-warning-6' : ''} ${
+                refreshActionable ? '' : '!cursor-not-allowed opacity-50'
+              }`}
+              onClick={refreshActionable ? onRefresh : undefined}
+              title={
+                refreshState === 'updated'
+                  ? t('preview.refresh.hasUpdate')
+                  : refreshState === 'idle-no-signal'
+                    ? t('preview.refresh.noSignalSource')
+                    : refreshState === 'disabled'
+                      ? t('preview.refresh.unavailable')
+                      : t('preview.refresh.tooltip')
+              }
+            >
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+              >
+                <path d='M21 12a9 9 0 1 1-3-6.7' />
+                <polyline points='21 3 21 9 15 9' />
+              </svg>
+              <span>{t('preview.refresh.label')}</span>
+            </div>
+          )}
 
-          {SHOW_SNAPSHOT_HISTORY &&
-            ((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-              (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
-              <>
-                <div
-                  className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
-                  onClick={historyTarget && !snapshotSaving ? onSaveSnapshot : undefined}
-                  title={historyTarget ? t('preview.saveSnapshot') : t('preview.snapshotNotSupported')}
-                >
-                  <svg
-                    width={toolbarIconSize}
-                    height={toolbarIconSize}
-                    viewBox='0 0 24 24'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='1.8'
-                    className='text-t-secondary'
-                  >
-                    <path d='M5 7h3l1-2h6l1 2h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z' />
-                    <circle cx='12' cy='13' r='3' />
-                  </svg>
-                  <span>{t('preview.snapshot')}</span>
-                </div>
-                {historyTarget ? (
-                  <Dropdown
-                    droplist={renderHistoryDropdown()}
-                    trigger={['hover']}
-                    position='br'
-                    onVisibleChange={(visible) => visible && onRefreshHistory()}
-                  >
-                    <div className={toolbarBtn} title={t('preview.historyVersions')}>
-                      <svg
-                        width={toolbarIconSize}
-                        height={toolbarIconSize}
-                        viewBox='0 0 24 24'
-                        fill='none'
-                        stroke='currentColor'
-                        strokeWidth='1.8'
-                        className='text-t-secondary'
-                      >
-                        <path d='M12 8v5l3 2' />
-                        <path d='M12 3a9 9 0 1 0 9 9' />
-                        <polyline points='21 3 21 9 15 9' />
-                      </svg>
-                      <span>{t('preview.history')}</span>
-                    </div>
-                  </Dropdown>
-                ) : (
-                  <div
-                    className={`${toolbarBtn} !cursor-not-allowed opacity-50`}
-                    title={t('preview.historyNotSupported')}
-                  >
-                    <svg
-                      width={toolbarIconSize}
-                      height={toolbarIconSize}
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='1.8'
-                      className='text-t-secondary'
-                    >
-                      <path d='M12 8v5l3 2' />
-                      <path d='M12 3a9 9 0 1 0 9 9' />
-                      <polyline points='21 3 21 9 15 9' />
-                    </svg>
-                    <span>{t('preview.history')}</span>
-                  </div>
-                )}
-              </>
-            )}
+          {rightExtra}
 
           {!preferActionButtonsInFront && showOpenInSystemButton && (
             <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
@@ -405,7 +375,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
-          {isHTML && onInspectModeToggle && (
+          {isHTML && !hasNoRenderableContent && onInspectModeToggle && (
             <div
               className={`${toolbarBtn} ${inspectMode ? toolbarBtnActive : ''}`}
               onClick={onInspectModeToggle}

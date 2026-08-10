@@ -38,6 +38,47 @@ export const setIsQuitting = (quitting: boolean): void => {
 };
 
 /**
+ * Pure decision helper: when tray icon is activated, should we show or hide?
+ * Visible + not minimized → hide; otherwise show/focus.
+ * Exported for unit tests.
+ */
+export const shouldShowFromTray = (isVisible: boolean, isMinimized: boolean): boolean => {
+  return !isVisible || isMinimized;
+};
+
+const showAndFocusMainWindow = (): void => {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
+  if (process.platform === 'darwin' && app.dock) {
+    void app.dock.show();
+  }
+  if (mainWindowRef.isMinimized()) {
+    mainWindowRef.restore();
+  }
+  mainWindowRef.show();
+  mainWindowRef.focus();
+};
+
+const hideMainWindowToTray = (): void => {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
+  mainWindowRef.hide();
+  if (process.platform === 'darwin' && app.dock) {
+    void app.dock.hide();
+  }
+};
+
+/**
+ * Toggle main window visibility from the tray icon (show if hidden/minimized, hide if visible).
+ */
+export const toggleMainWindowFromTray = (): void => {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
+  if (shouldShowFromTray(mainWindowRef.isVisible(), mainWindowRef.isMinimized())) {
+    showAndFocusMainWindow();
+  } else {
+    hideMainWindowToTray();
+  }
+};
+
+/**
  * Get tray icon.
  * macOS uses Template image to adapt to dark/light menu bar.
  */
@@ -71,42 +112,20 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const recentConversations = await getRecentConversations();
   const runningTasksCount = getRunningTasksCount();
 
-  const showAndFocus = () => {
-    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      if (process.platform === 'darwin' && app.dock) {
-        void app.dock.show();
-      }
-      if (mainWindowRef.isMinimized()) {
-        mainWindowRef.restore();
-      }
-      mainWindowRef.show();
-      mainWindowRef.focus();
-    }
-  };
-
-  const hideToTray = () => {
-    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      mainWindowRef.hide();
-      if (process.platform === 'darwin' && app.dock) {
-        void app.dock.hide();
-      }
-    }
-  };
-
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: i18n.t('common.tray.showWindow'),
-      click: showAndFocus,
+      click: showAndFocusMainWindow,
     },
     {
       label: i18n.t('common.tray.closeToTray'),
-      click: hideToTray,
+      click: hideMainWindowToTray,
     },
     { type: 'separator' },
     {
       label: i18n.t('common.tray.newChat'),
       click: () => {
-        showAndFocus();
+        showAndFocusMainWindow();
         mainWindowRef?.webContents.send('tray:navigate-to-guid');
       },
     },
@@ -123,7 +142,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
       template.push({
         label: displayTitle,
         click: () => {
-          showAndFocus();
+          showAndFocusMainWindow();
           mainWindowRef?.webContents.send('tray:navigate-to-conversation', {
             conversation_id: conv.id,
           });
@@ -140,7 +159,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   template.push({
     label: i18n.t('common.tray.pauseAll'),
     click: () => {
-      showAndFocus();
+      showAndFocusMainWindow();
       mainWindowRef?.webContents.send('tray:pause-all-tasks');
     },
   });
@@ -201,7 +220,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   template.push({
     label: i18n.t('common.tray.checkUpdate'),
     click: () => {
-      showAndFocus();
+      showAndFocusMainWindow();
       mainWindowRef?.webContents.send('tray:check-update');
     },
   });
@@ -209,7 +228,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   template.push({
     label: i18n.t('common.tray.about'),
     click: () => {
-      showAndFocus();
+      showAndFocusMainWindow();
       mainWindowRef?.webContents.send('tray:open-about');
     },
   });
@@ -246,23 +265,19 @@ export const createOrUpdateTray = (): void => {
     tray.setToolTip('AionUi');
     void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
+    // Double-click: always show/focus (Windows/Linux; macOS rarely fires this).
     tray.on('double-click', () => {
-      if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-        if (process.platform === 'darwin' && app.dock) {
-          void app.dock.show();
-        }
-        if (mainWindowRef.isMinimized()) {
-          mainWindowRef.restore();
-        }
-        mainWindowRef.show();
-        mainWindowRef.focus();
-      }
+      showAndFocusMainWindow();
     });
 
-    tray.on('click', (event: any) => {
-      if (event.event?.button === 2) {
+    // Left-click: toggle show/hide on Windows & Linux (Discord/Slack pattern).
+    // macOS convention is click → context menu only, so skip toggle there.
+    tray.on('click', () => {
+      if (process.platform === 'darwin') {
         void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+        return;
       }
+      toggleMainWindowFromTray();
     });
 
     void fetchActiveCountAndMaybeRebuild();

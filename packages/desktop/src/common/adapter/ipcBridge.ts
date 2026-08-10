@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
   ICssTheme,
@@ -34,7 +35,6 @@ import type {
   SetAssistantStateRequest,
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   EnsureConversationRuntimeResponse,
   GetConfigOptionsResponse,
@@ -55,9 +55,12 @@ import type {
   ITeamAgentRuntimeStatusEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamActivityPage,
   ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMailboxChangedEvent,
+  ITeamMailboxMessage,
   ITeamRemovedEvent,
   ITeamRenamedEvent,
   ITeamRunAck,
@@ -65,7 +68,9 @@ import type {
   ITeamRunStateResponse,
   ITeamSessionChangedEvent,
   ITeamSessionStatusChangedEvent,
+  ITeamSlotWorkChangedEvent,
   ITeamTaskChangedEvent,
+  ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
   IPauseTeamSlotParams,
@@ -88,6 +93,8 @@ import type {
 } from '../update/updateTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
+import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
+import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -116,11 +123,14 @@ import {
   fromBackendTeamOptional,
   toBackendAssistant,
 } from './teamMapper';
-import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
   absoluteToRelativePath,
+  fromBackendSkillFileNodes,
   fromBackendWorkspaceFlatFiles,
   fromBackendWorkspaceList,
+  resolveWebSkillFile,
+  resolveWebSkillRoot,
+  type RawSkillFileNode,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
 
@@ -213,7 +223,13 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
+  // `name_source` qualifies a `name` change: 'user' = explicit rename (backend
+  // locks the name against agent-generated titles; also the default when absent),
+  // 'auto' = frontend-derived default title (stays agent-overwritable).
+  update: httpPatch<
+    boolean,
+    { id: string; updates: Partial<TChatConversation> & { name_source?: 'user' | 'auto' }; merge_extra?: boolean }
+  >(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
       const updates = p.updates as Record<string, unknown>;
@@ -227,6 +243,19 @@ export const conversation = {
     }
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
+  /**
+   * Fork the conversation at a message (inclusive) into a new conversation.
+   * The backend session materializes on the fork's first open — callers should
+   * follow up with `ensureRuntime` on the returned id to surface failures
+   * eagerly. Error reasons carry stable `FORK_*` prefixes for i18n mapping.
+   */
+  fork: withResponseMap(
+    httpPost<TChatConversation, { conversation_id: string; message_id: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/fork`,
+      (p) => ({ message_id: p.message_id })
+    ),
+    fromApiConversation
+  ),
   ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
@@ -238,6 +267,10 @@ export const conversation = {
   stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/cancel`,
     (p) => ({ turn_id: p.turn_id })
+  ),
+  killTerminal: httpPost<void, { conversation_id: string; terminal_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/terminals/${encodeURIComponent(p.terminal_id)}/kill`,
+    () => undefined
   ),
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
   sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
@@ -252,6 +285,18 @@ export const conversation = {
   getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),
+  // Latest context-usage snapshot (ACP UsageUpdate shape: tokens in context /
+  // window size / cumulative cost, with per-turn counters under _meta).
+  // Null until the agent reports usage.
+  getUsage: httpGet<
+    {
+      used: number;
+      size: number;
+      cost?: { amount: number; currency: string };
+      _meta?: Record<string, unknown>;
+    } | null,
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/usage`),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question })
@@ -259,6 +304,13 @@ export const conversation = {
   confirmMessage: httpPost<void, IConfirmMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
+  ),
+  // Dedicated answer channel for the structured question card (AskUserQuestion)
+  // — question answers must not ride the permission confirm endpoint
+  // (2026-08-05 ruling). Send either answers[] or decline:true, never both.
+  answerAsk: httpPost<void, IAnswerAskParams>(
+    (p) => `/api/conversations/${p.conversation_id}/asks/${encodeURIComponent(p.request_id)}/answer`,
+    (p) => (p.decline ? { decline: true } : { answers: p.answers ?? [] })
   ),
   listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/artifacts`
@@ -340,10 +392,6 @@ export const conversation = {
       return fromBackendWorkspaceList(raw, p.workspace, rel);
     }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
   },
-  responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
-    'responseSearchWorkSpace',
-    undefined as unknown as void
-  ),
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
@@ -372,6 +420,50 @@ export const runtime = {
 };
 
 // ---------------------------------------------------------------------------
+// Project Explorer control plane — routed to /api/projects/* (HTTP; the data
+// plane is the WS fs/* monitor). See explorer-stage3 HTTP contract.
+// ---------------------------------------------------------------------------
+
+export const project = {
+  /** GET /api/projects/{id} → full project detail incl. all pe roots (entries). */
+  get: httpGet<ProjectDetailDto, { project_id: string }>((p) => `/api/projects/${encodeURIComponent(p.project_id)}`),
+  /**
+   * POST /api/projects/{id}/folders → attach a folder, returns the single new (or,
+   * for a subdir, the existing focused) entry. 409 `project_explorer_duplicate` /
+   * `project_explorer_overlap` surface via BackendHttpError.code.
+   */
+  /**
+   * POST /api/projects/{id}/resolve-ref → the strongest identity for a file.
+   *
+   * The explorer and a chat link describe the same file differently (`project` vs
+   * `local`), so anything keyed on the ref — tab identity, change subscriptions —
+   * would otherwise treat one file as two. This resolves a local path that lives
+   * under one of the project's roots into its project form.
+   *
+   * Always answers with a usable ref: `project` and `upload` come back untouched,
+   * and a path outside every root — or one that does not exist — is echoed back
+   * rather than raising, so a caller mid-way through opening a missing file still
+   * has something to render with. `upgraded` says whether it changed.
+   *
+   * The comparison stays server-side because case folding is a compile-time
+   * platform decision; comparing path strings here would miss matches on macOS and
+   * merge distinct files on Linux.
+   */
+  resolveRef: httpPost<{ file: ChatFileRef; upgraded: boolean }, { project_id: string; file: ChatFileRef }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/resolve-ref`,
+    (p) => ({ file: p.file })
+  ),
+  attachFolder: httpPost<ProjectEntryDto, { project_id: string } & AttachFolderRequest>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders`,
+    (p) => (p.display_name ? { uri: p.uri, display_name: p.display_name } : { uri: p.uri })
+  ),
+  /** DELETE /api/projects/{id}/folders/{pe_id} → 204. Workspace entry is immutable (backend rejects). */
+  removeFolder: httpDelete<void, { project_id: string; pe_id: string }>(
+    (p) => `/api/projects/${encodeURIComponent(p.project_id)}/folders/${encodeURIComponent(p.pe_id)}`
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // CDP status / config types (used by application, stays IPC)
 // ---------------------------------------------------------------------------
 
@@ -379,12 +471,6 @@ export interface ICdpStatus {
   enabled: boolean;
   port: number | null;
   startupEnabled: boolean;
-  instances: Array<{
-    pid: number;
-    port: number;
-    cwd: string;
-    startTime: number;
-  }>;
   configEnabled: boolean;
   isDevMode: boolean;
 }
@@ -406,6 +492,7 @@ export type RuntimeFailureKind =
   | 'unsupported_platform'
   | 'bundled_resource_missing'
   | 'bundled_resource_invalid'
+  | 'activation_io_failed'
   | 'unknown';
 
 export interface IRuntimeStatusScope {
@@ -487,6 +574,32 @@ export const application = {
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'),
+  /**
+   * 清空应用内浏览器的登录态与缓存（cookie / localStorage / 缓存）。
+   * 登录态是全局共享的，所以这是唯一的"退出所有网站登录"入口。
+   *
+   * Clear the in-app browser's sign-in state and cache (cookies / localStorage /
+   * caches). Sign-in state is globally shared, so this is the only way to sign out
+   * of every site the agent or user logged into.
+   */
+  clearBrowserData: bridge.buildProvider<IBridgeResponse<void>, void>('app.clear-browser-data'),
+  /**
+   * 渲染进程把侧边浏览器 webview 的 webContents id 报给主进程，用于把单目标 CDP 通道
+   * 附加到它。
+   *
+   * 为什么必须由渲染进程报：webview 的句柄只存在于渲染进程（webviewRef），主进程无法
+   * 凭空知道哪个 webContents 是「侧边浏览器」。主进程会校验 getType() === 'webview'，
+   * 所以即使这个通道被误用也无法拿主窗口去附加。
+   *
+   * The renderer reports the in-app browser webview's webContents id so the single-target
+   * CDP bridge can attach to it. It must come from the renderer because the webview handle
+   * only exists there (webviewRef); main cannot otherwise tell which WebContents is the
+   * in-app browser. Main validates getType() === 'webview', so even a misused call cannot
+   * attach to the main window.
+   */
+  reportBrowserWebContentsId: bridge.buildProvider<IBridgeResponse<void>, { webContentsId: number }>(
+    'app.report-browser-webcontents-id'
+  ),
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
@@ -532,23 +645,110 @@ export const autoUpdate = {
 };
 
 // ---------------------------------------------------------------------------
-// Dialog — stays IPC (native file picker)
+// Dialog — native IPC picker on Electron, server-side picker on WebUI
 // ---------------------------------------------------------------------------
 
+export type ShowOpenOptions =
+  | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
+  | undefined;
+
+export type ShowOpenHandler = (options: ShowOpenOptions) => Promise<string[] | undefined>;
+
+/**
+ * `show-open` is an Electron-only IPC channel: on WebUI the bridge speaks over a
+ * WebSocket whose server side has no provider for it, so an invoke would hang
+ * forever with no rejection — every directory/file picker silently does nothing.
+ *
+ * The renderer registers a server-side picker here during startup. Electron is
+ * unaffected: `window.electronAPI` is present there, so the native dialog wins.
+ */
+let webShowOpenHandler: ShowOpenHandler | null = null;
+
+export const registerWebShowOpenHandler = (handler: ShowOpenHandler | null): void => {
+  webShowOpenHandler = handler;
+};
+
+const nativeShowOpen = bridge.buildProvider<string[] | undefined, ShowOpenOptions>('show-open');
+
+/** Detect Electron at call time because this adapter is shared by Electron and WebUI renderers. */
+const isElectronRenderer = (): boolean =>
+  typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
+
 export const dialog = {
-  showOpen: bridge.buildProvider<
-    string[] | undefined,
-    | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
-    | undefined
-  >('show-open'),
+  showOpen: {
+    provider: nativeShowOpen.provider,
+    invoke: ((options?: ShowOpenOptions) => {
+      if (!isElectronRenderer() && webShowOpenHandler) {
+        return webShowOpenHandler(options);
+      }
+      return nativeShowOpen.invoke(options);
+    }) as typeof nativeShowOpen.invoke,
+  },
 };
 
 // ---------------------------------------------------------------------------
 // File System — routed to /api/fs/* and /api/skills/*
 // ---------------------------------------------------------------------------
 
+export type SkillFileNode = {
+  name: string;
+  relativePath: string;
+  type: 'directory' | 'file';
+  children?: SkillFileNode[];
+};
+
+// Keep both transports available: Electron owns dedicated skill-file IPC channels,
+// while WebUI must use the backend's workspace-scoped filesystem endpoints.
+const webListSkillFiles = httpPost<RawSkillFileNode[], { dir: string; root: string }>('/api/fs/dir');
+const webReadSkillFile = httpPost<string | null, { path: string; workspace: string }>('/api/fs/read');
+const nativeListSkillFiles = bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list');
+const nativeReadSkillFile = bridge.buildProvider<string, { skill_location: string; relative_path: string }>(
+  'skills.files.read'
+);
+
+/** Raw metadata as the backend serializes it (snake_case). */
+type RawFileMetadata = {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  last_modified: number;
+  is_directory?: boolean;
+};
+
+/** Map backend snake_case metadata to the camelCase {@link IFileMetadata}. */
+function fromBackendFileMetadata(raw: RawFileMetadata): IFileMetadata {
+  return {
+    name: raw.name,
+    path: raw.path,
+    size: raw.size,
+    type: raw.type,
+    lastModified: raw.last_modified,
+    isDirectory: raw.is_directory,
+  };
+}
+
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
+  // Reveal a project-scoped entry in the OS file manager (Finder/Explorer).
+  // The backend resolves the pe-ref to an absolute path (resolve_reference) and
+  // calls shell.showItemInFolder — the front end never builds the absolute path
+  // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
+  reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
+  // Copy a project-scoped entry's absolute device path to the OS clipboard, for
+  // the Explorer "copy absolute path" action. Mirrors reveal: the backend resolves
+  // the path AND writes the clipboard itself, returning void — the front end never
+  // receives the absolute path. Electron desktop-only (a remote WebUI must not use
+  // it). Errors come back as codes only, never a message containing a path.
+  copyAbsolutePath: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/copy-absolute-path'),
+  // Open a file in the OS default application, addressed by ChatFileRef so it
+  // works for all three ref kinds (project / local / upload). The backend
+  // resolves the ref and shells out; the front end never receives an absolute
+  // path — errors come back as codes only (FILE_NOT_FOUND / REVEAL_FAILED /
+  // INTERNAL_ERROR), never a message containing a path. This is the escape hatch
+  // for tabs that cannot be previewed (oversized, unsupported), including
+  // explorer-opened files that deliberately carry no file_path.
+  openSystem: httpPost<void, { file: ChatFileRef }>('/api/fs/open-system'),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles
@@ -556,31 +756,33 @@ export const fs = {
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
-  readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
-  createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
   writeFile: httpPost<boolean, { path: string; data: string; workspace?: string }>('/api/fs/write'),
-  createZip: httpPost<
-    boolean,
-    {
-      path: string;
-      workspace?: string;
-      source_root?: string;
-      request_id?: string;
-      files: Array<{
-        name: string;
-        content?: string | Uint8Array;
-        source_path?: string;
-      }>;
-    }
-  >('/api/fs/zip'),
-  cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
-  copyFilesToWorkspace: httpPost<
-    { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
-    { file_paths: string[]; workspace: string; source_root?: string }
+  // ── ChatFileRef content endpoints (PR-2: preview I/O by ref identity) ──────
+  // Read a file addressed by ChatFileRef; `encoding` selects text (utf8) vs image
+  // data URL (dataurl) vs raw base64. Backend: POST /api/fs/content → String.
+  readContent: httpPost<string, { file: ChatFileRef; encoding: ContentEncoding }>('/api/fs/content'),
+  // Write a file addressed by ChatFileRef. Optimistic concurrency: when `ifMatch`
+  // (last-known mtime ms) is set it travels as the `If-Match` header, and a stale
+  // value yields 409 Conflict (surfaced as BackendHttpError.status). PUT /api/fs/content.
+  writeContent: httpPut<boolean, { file: ChatFileRef; data: string; ifMatch?: number }>(
+    '/api/fs/content',
+    ({ file, data }) => ({ file, data }),
+    ({ ifMatch }) => (ifMatch != null ? { 'If-Match': String(ifMatch) } : undefined)
+  ),
+  // Metadata for a ChatFileRef-addressed file; backend snake_case is mapped to the
+  // camelCase IFileMetadata the preview layer reads. POST /api/fs/content/metadata.
+  getContentMetadata: withResponseMap(
+    httpPost<RawFileMetadata, { file: ChatFileRef }>('/api/fs/content/metadata'),
+    fromBackendFileMetadata
+  ),
+  // Import OS files into a project entry's directory (A-paste). `target` is the
+  // drop-target pe + relative dir ('' = its root). Name conflicts are reported in
+  // `failed_files` (not overwritten); directories are rejected there this round.
+  copyFilesToProject: httpPost<
+    { copied_files: string[]; failed_files: Array<{ path: string; reason: string }> },
+    { file_paths: string[]; target: { pe_id: string; relative_path: string }; source_root?: string }
   >('/api/fs/copy'),
-  removeEntry: httpPost<void, { path: string; workspace?: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string; workspace?: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),
@@ -682,25 +884,40 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
+  listSkillFiles: {
+    provider: nativeListSkillFiles.provider,
+    invoke: async ({ skill_location }: { skill_location: string }) => {
+      if (isElectronRenderer()) return nativeListSkillFiles.invoke({ skill_location });
+
+      // The generic WebUI directory endpoint returns backend-shaped nodes, so
+      // normalize them to the same contract consumed from native IPC.
+      const root = resolveWebSkillRoot(skill_location);
+      const nodes = await webListSkillFiles.invoke({ dir: root, root });
+      return fromBackendSkillFileNodes(nodes);
+    },
+  },
+  readSkillFile: {
+    provider: nativeReadSkillFile.provider,
+    invoke: async ({ skill_location, relative_path }: { skill_location: string; relative_path: string }) => {
+      if (isElectronRenderer()) return nativeReadSkillFile.invoke({ skill_location, relative_path });
+      const content = await webReadSkillFile.invoke(resolveWebSkillFile(skill_location, relative_path));
+      if (content === null) throw new Error('Skill file could not be read');
+      return content;
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
 
-export const fileWatch = {
-  startWatch: httpPost<void, { file_path: string }>('/api/fs/watch/start'),
-  stopWatch: httpPost<void, { file_path: string }>('/api/fs/watch/stop'),
-  stopAllWatches: httpPost<void, void>('/api/fs/watch/stop-all'),
-  fileChanged: wsEmitter<{ file_path: string; event_type: string }>('fileWatch.fileChanged'),
-};
-
-// Workspace Office file watch
-export const workspaceOfficeWatch = {
-  start: httpPost<void, { workspace: string }>('/api/fs/office-watch/start'),
-  stop: httpPost<void, { workspace: string }>('/api/fs/office-watch/stop'),
-  fileAdded: wsEmitter<{ file_path: string; workspace: string }>('workspaceOfficeWatch.fileAdded'),
-};
+// Note for whoever next compares a watch event's path against a local one: the
+// workspace Office watch removed here carried the repo's only macOS
+// `/private/var` → `/var` (and `/private/tmp` → `/tmp`) normalizer. macOS reports
+// watch events under the `/private` symlink while a workspace path usually is not,
+// so a naive string comparison silently never matches on that platform. The fold
+// survives as `normalizeWatchPath` in `renderer/utils/workspace/workspace.ts` —
+// use it on both sides of the comparison.
 
 // File streaming updates (real-time content push when agent writes)
 export const fileStream = {
@@ -711,43 +928,6 @@ export const fileStream = {
     relative_path: string;
     operation: 'write' | 'delete';
   }>('fileStream.contentUpdate'),
-};
-
-// File snapshot providers
-export const fileSnapshot = {
-  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/init'
-  ),
-  compare: withResponseMap(
-    httpPost<RawCompareResult, { workspace: string }>('/api/fs/snapshot/compare'),
-    fromBackendCompareResult
-  ),
-  getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/info'
-  ),
-  dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
-  stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
-  stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
-  unstageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/unstage'),
-  unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
-  discardFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/discard'),
-  resetFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/reset'),
-  getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1101,28 +1281,6 @@ export const database = {
   ),
 };
 
-// ---------------------------------------------------------------------------
-// Preview History — routed to /api/preview-history/*
-// ---------------------------------------------------------------------------
-
-function mapPreviewTarget(target: PreviewHistoryTarget): Record<string, unknown> {
-  return { ...target, content_type: target.contentType, contentType: undefined };
-}
-
-export const previewHistory = {
-  list: httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list', (p) => ({
-    target: mapPreviewTarget(p.target),
-  })),
-  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>(
-    '/api/preview-history/save',
-    (p) => ({ target: mapPreviewTarget(p.target), content: p.content })
-  ),
-  getContent: httpPost<
-    { snapshot: PreviewSnapshotInfo; content: string } | null,
-    { target: PreviewHistoryTarget; snapshot_id: string }
-  >('/api/preview-history/get-content', (p) => ({ target: mapPreviewTarget(p.target), snapshot_id: p.snapshot_id })),
-};
-
 // Preview panel
 export const preview = {
   open: wsEmitter<{
@@ -1150,25 +1308,34 @@ export const document = {
 // Office Previews — routed to /api/*-preview/*
 // ---------------------------------------------------------------------------
 
+// Office watch bridges. start/stop additively carry a `file` (ChatFileRef) the
+// backend prefers over `file_path` (resolves pe→path server-side, keeps the same
+// watch session key for stop). `file_path` is still sent (required by the DTO;
+// '' when only a ref is available) and used as the legacy fallback.
+type OfficeStartParams = { file_path?: string; workspace?: string; file?: ChatFileRef };
+type OfficeStopParams = { file_path?: string; file?: ChatFileRef };
+const officeStartBody = (p: OfficeStartParams) => ({
+  file_path: p.file_path ?? '',
+  workspace: p.workspace,
+  file: p.file,
+});
+const officeStopBody = (p: OfficeStopParams) => ({ file_path: p.file_path ?? '', file: p.file });
+
 export const pptPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/ppt-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/ppt-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/word-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/word-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/word-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
-    '/api/excel-preview/start'
-  ),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string; error?: string }, OfficeStartParams>('/api/excel-preview/start', officeStartBody),
+  stop: httpPost<void, OfficeStopParams>('/api/excel-preview/stop', officeStopBody),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 
@@ -1231,10 +1398,6 @@ export const systemSettings = {
   getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     saveUploadToWorkspace: p.enabled,
-  })),
-  getAutoPreviewOfficeFiles: httpGetClientSetting<boolean>('autoPreviewOfficeFiles'),
-  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    autoPreviewOfficeFiles: p.enabled,
   })),
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
@@ -1481,7 +1644,9 @@ export interface ICronJobUpdateParams {
 interface ISendMessageParams {
   input: string;
   conversation_id: string;
-  files?: string[];
+  /** Source-tagged file refs; the backend resolves each to an absolute path and
+   *  injects it into the message. See {@link ChatFileRef}. */
+  files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
 }
@@ -1493,6 +1658,13 @@ export interface ISendMessageResult {
   msg_id: string;
   turn_id: string;
   runtime: TConversationRuntimeSummary;
+}
+
+export interface IAnswerAskParams {
+  conversation_id: string;
+  request_id: string;
+  answers?: Array<{ question: string; labels: string[] }>;
+  decline?: boolean;
 }
 
 export interface IConfirmMessageParams {
@@ -1598,6 +1770,9 @@ export interface IResponseMessage {
   turn_id?: string;
   conversation_id: string;
   created_at?: number;
+  /** Backend turn anchor (codex Turn.id) for fork gating; mirrors the
+   *  persisted messages.backend_turn_id so live frames gate like history. */
+  backend_turn_id?: string;
   hidden?: boolean;
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
@@ -1990,6 +2165,31 @@ export const team = {
     (p) => ({ mode: p.session_mode })
   ),
   getRunState: httpGet<ITeamRunStateResponse, { team_id: string }>((p) => `/api/teams/${p.team_id}/run-state`),
+  listMailbox: httpGet<ITeamMailboxMessage[], { team_id: string; limit?: number }>(
+    (p) => `/api/teams/${p.team_id}/mailbox?limit=${p.limit ?? 500}`
+  ),
+  listTasks: httpGet<ITeamTaskItem[], { team_id: string; limit?: number; ids?: string[] }>((p) =>
+    buildListTasksPath(p)
+  ),
+  listActivity: httpGet<
+    ITeamActivityPage,
+    {
+      team_id: string;
+      limit?: number;
+      cursor_ts?: number;
+      cursor_id?: string;
+      direction?: 'desc' | 'asc';
+      kind?: 'all' | 'message' | 'task';
+    }
+  >((p) => {
+    const q = new URLSearchParams();
+    if (p.limit != null) q.set('limit', String(p.limit));
+    if (p.cursor_ts != null) q.set('cursor_ts', String(p.cursor_ts));
+    if (p.cursor_id != null) q.set('cursor_id', p.cursor_id);
+    if (p.direction) q.set('direction', p.direction);
+    if (p.kind) q.set('kind', p.kind);
+    return `/api/teams/${p.team_id}/activity?${q.toString()}`;
+  }),
   sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
@@ -2003,6 +2203,9 @@ export const team = {
       content: p.input,
       files: p.files,
     })
+  ),
+  attachAgent: httpPost<void, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/attach`
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,
@@ -2035,6 +2238,7 @@ export const team = {
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
   sessionStatusChanged: wsEmitter<ITeamSessionStatusChangedEvent>('team.sessionStatusChanged'),
   taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  mailboxChanged: wsEmitter<ITeamMailboxChangedEvent>('team.mailboxChanged'),
   sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
   runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
   runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),
@@ -2045,4 +2249,5 @@ export const team = {
   childTurnStarted: wsEmitter<ITeamChildTurnEvent>('team.childTurnStarted'),
   childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
   childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
+  slotWorkChanged: wsEmitter<ITeamSlotWorkChangedEvent>('team.slotWorkChanged'),
 };

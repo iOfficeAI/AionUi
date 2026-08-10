@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { Message, Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
@@ -6,9 +7,15 @@ import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime, buildTeamStopHandler, buildTeamWorkStatusText } from './teamSendRuntime';
+import {
+  buildTeamRetryStartHandler,
+  buildTeamSendRuntime,
+  buildTeamStopHandler,
+  buildTeamWorkStatusText,
+} from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
+import { useTeamTabs } from '@/renderer/pages/team/hooks/TeamTabsContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 
@@ -20,7 +27,7 @@ const LegacyReadOnlyConversation = React.lazy(
 
 // Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
-type TeamSendOverride = (payload: { input: string; files: string[] }) => Promise<void>;
+type TeamSendOverride = (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
 type TeamConversationCapabilitySnapshot = {
   skills?: string[];
   mcp_servers?: string[];
@@ -30,6 +37,7 @@ const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
   slotWorkBySlot: {},
+  sessionStopped: false,
 };
 
 const resolveAssistantDisplayName = (
@@ -125,6 +133,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onRunStateStale,
 }) => {
   const { t } = useTranslation();
+  const { activeSlotId, switchTab } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -164,37 +173,52 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     assistant_name
   );
   const slotWork = slot_id ? teamRunView.slotWorkBySlot[slot_id] : undefined;
-  const teamWorkStatusText = buildTeamWorkStatusText(slotWork, {
-    processing: () => t('conversation.chat.processing', { defaultValue: 'Processing…' }),
-    processingWithQueued: (count) =>
-      t('team.work.processingWithQueued', {
-        count,
-        defaultValue: `Processing… ${count} queued`,
-      }),
-    runtimeStarting: () => t('team.work.runtimeStarting', { defaultValue: 'Waiting for this assistant to start…' }),
-    runtimeFailed: () => t('team.work.runtimeFailed', { defaultValue: 'This assistant failed to start.' }),
-    removing: () => t('team.work.removing', { defaultValue: 'Removing this assistant…' }),
-    sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
-  });
+  // Prefer the event-driven stopped flag so the prompt shows even when the stale
+  // slot has no `blocked_reason`; fall back to slot-derived status text otherwise.
+  const teamWorkStatusText = teamRunView.sessionStopped
+    ? t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' })
+    : buildTeamWorkStatusText(slotWork, {
+        processing: () => t('conversation.chat.processing', { defaultValue: 'Processing…' }),
+        processingWithQueued: (count) =>
+          t('team.work.processingWithQueued', {
+            count,
+            defaultValue: `Processing… ${count} queued`,
+          }),
+        runtimeStarting: () => t('team.work.runtimeStarting', { defaultValue: 'Waiting for this assistant to start…' }),
+        runtimeFailed: () => t('team.work.runtimeFailed', { defaultValue: 'This assistant failed to start.' }),
+        removing: () => t('team.work.removing', { defaultValue: 'Removing this assistant…' }),
+        sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
+      });
+  const isRuntimeFailed = slot_id ? slotWork?.blocked_reason === 'runtime_failed' : false;
   const teamRuntime =
     team_id && slot_id
-      ? buildTeamSendRuntime({
-          slot_id,
-          runView: teamRunView,
-          statusText: teamWorkStatusText,
-          onStop: buildTeamStopHandler({
-            team_id,
+      ? {
+          ...buildTeamSendRuntime({
             slot_id,
             runView: teamRunView,
-            pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
-            onStopFailed: () => {
-              Message.error(
-                t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
-              );
-            },
-            onRunStateStale,
+            statusText: teamWorkStatusText,
+            sessionStopped: teamRunView.sessionStopped,
+            onStop: buildTeamStopHandler({
+              team_id,
+              slot_id,
+              runView: teamRunView,
+              pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+              onStopFailed: () => {
+                Message.error(
+                  t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
+                );
+              },
+              onRunStateStale,
+            }),
           }),
-        })
+          // Only offer "retry start" when this slot's runtime failed; it triggers
+          // a directed per-member attach (not warmupSession/ensure_session).
+          onRetryStart: isRuntimeFailed ? buildTeamRetryStartHandler({ team_id, slot_id }) : undefined,
+          // Focus coordination: the active tab owns its column's sendbox focus,
+          // and focusing that sendbox syncs the active tab back.
+          isActive: slot_id === activeSlotId,
+          onFocus: () => switchTab(slot_id),
+        }
       : undefined;
   const content = (() => {
     if (isLegacyReadOnlyConversationType(conversation.type)) {
@@ -203,6 +227,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
 
     switch (conversation.type) {
       case 'acp':
+      // Antigravity renders through the ACP chat surface here for the same
+      // reason it does outside a team: same extra payload, same event stream,
+      // same send box. Without this it falls to `default: null` and the
+      // teammate shows neither a message list nor an input box.
+      case 'antigravity':
         return (
           <AcpChat
             key={conversation.id}

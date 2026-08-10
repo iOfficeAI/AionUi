@@ -16,6 +16,11 @@
   "downloadFailed": "下载失败",
   "imageLoadFailed": "图片加载失败",
   "scrollToBottom": "滚动到底部",
+  "anchorRail": {
+    "label": "对话消息锚点",
+    "tickAria": "跳转到第 {{index}} 条消息",
+    "searchAria": "搜索对话内容"
+  },
   "availableCommands": "{{count}} 个可用命令",
   "atFile.hint": "输入以搜索文件",
   "atFile.menuLabel": "文件提及",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "无可用选项",
   "processing": "处理中...",
   "responseSentSuccessfully": "响应已成功发送",
+  "permissionResponseFailed": "未能发送响应，请重试。",
   "confirmation": {
     "applyChange": "应用此更改？",
     "allowExecution": "允许执行？",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
     "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
     "no": "否 (esc)"
-  }
+  },
+  "fork": {
+    "action": "从此处分叉",
+    "errorTurnInFlight": "请等待当前回复完成后再分叉",
+    "errorParentUnbound": "该会话还没有可分叉的后端会话",
+    "errorPointUnsupported": "该智能体仅支持从最新消息分叉",
+    "errorUnsupported": "该智能体不支持会话分叉",
+    "errorGeneric": "分叉失败：{{message}}"
+  },
+  "askSubmit": "提交",
+  "askDecline": "不回答",
+  "askAnswered": "已回答",
+  "askDeclined": "已跳过",
+  "askOther": "其它",
+  "askOtherPlaceholder": "输入你的回答",
+  "requestDetails": "请求内容："
 }

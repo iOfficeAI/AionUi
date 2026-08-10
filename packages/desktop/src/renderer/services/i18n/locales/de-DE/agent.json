@@ -44,5 +44,8 @@
     "label": "Denk-Stufe",
     "switchSuccess": "Denk-Stufe gewechselt",
     "switchFailed": "Wechsel der Denk-Stufe fehlgeschlagen"
+  },
+  "warmup": {
+    "clickToWake": "Klicken, um dieses Mitglied zu aktivieren"
   }
 }

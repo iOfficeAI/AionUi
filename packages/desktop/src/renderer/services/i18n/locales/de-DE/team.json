@@ -27,7 +27,8 @@
     "runtimeStarting": "Warten auf den Start dieses Mitglieds…",
     "runtimeFailed": "Dieses Mitglied konnte nicht gestartet werden.",
     "removing": "Dieses Mitglied wird entfernt…",
-    "sessionStopped": "Die Teamsitzung wurde beendet."
+    "sessionStopped": "Die Teamsitzung wurde beendet.",
+    "retryStart": "Neustart versuchen"
   },
   "sendBox": {
     "placeholder": "Nachricht an Dispatch-Agenten..."
@@ -100,7 +101,8 @@
   "view": {
     "label": "View",
     "parallel": "Parallel",
-    "single": "Single"
+    "single": "Single",
+    "board": "Board"
   },
   "warmup": {
     "title": "Waking up the team…",
@@ -114,5 +116,41 @@
     "memberFailedHint": "Switch its model above, or remove it from the bar on top, then retry.",
     "leaderFailedHint": "Switch its model above, then retry.",
     "retry": "Retry"
+  },
+  "reorderMember": "Ziehen, um Mitglied neu anzuordnen",
+  "activity": {
+    "control": {
+      "sortNewest": "Neueste",
+      "sortOldest": "Älteste",
+      "filterAll": "Alle",
+      "filterMessages": "Nachrichten",
+      "filterTasks": "Aufgaben",
+      "allMembers": "Alle Mitglieder",
+      "showSystem": "Systemnachrichten",
+      "showTerminal": "Erledigte Aufgaben"
+    },
+    "fallbackLane": "Nicht zugewiesen / extern",
+    "empty": "Noch keine Aktivität",
+    "userIdentity": "Benutzer / extern",
+    "broadcast": "An alle senden",
+    "read": "Gelesen",
+    "unread": "Ungelesen",
+    "attachments": "{{count}} Dateien",
+    "expand": "Aufklappen",
+    "collapse": "Einklappen",
+    "blockedBy": "blockiert von #{{id}}",
+    "blockedByNamed": "blockiert von {{name}}",
+    "blockerUnknown": "Aufgabe nicht verfügbar",
+    "status": {
+      "pending": "Ausstehend",
+      "in_progress": "In Bearbeitung",
+      "completed": "Abgeschlossen",
+      "deleted": "Gelöscht"
+    },
+    "msgType": {
+      "message": "Nachricht",
+      "idle_notification": "Leerlaufhinweis",
+      "shutdown_request": "Stopp-Anfrage"
+    }
   }
 }

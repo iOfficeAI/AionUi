@@ -16,6 +16,11 @@
   "downloadFailed": "Failed to download",
   "imageLoadFailed": "Failed to load image",
   "scrollToBottom": "Scroll to bottom",
+  "anchorRail": {
+    "label": "Conversation message anchors",
+    "tickAria": "Jump to message {{index}}",
+    "searchAria": "Search conversation"
+  },
   "availableCommands": "{{count}} Available Commands",
   "atFile.hint": "Type to search for files",
   "atFile.menuLabel": "File mentions",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "No options available",
   "processing": "Processing...",
   "responseSentSuccessfully": "Response sent successfully",
+  "permissionResponseFailed": "Could not send the response. Please try again.",
   "confirmation": {
     "applyChange": "Apply this change?",
     "allowExecution": "Allow execution?",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
     "no": "No (esc)"
-  }
+  },
+  "fork": {
+    "action": "Fork from here",
+    "errorTurnInFlight": "Wait for the current reply to finish before forking",
+    "errorParentUnbound": "This conversation has no backend session to fork yet",
+    "errorPointUnsupported": "This agent can only fork from the latest message",
+    "errorUnsupported": "This agent does not support forking",
+    "errorGeneric": "Fork failed: {{message}}"
+  },
+  "askSubmit": "Submit",
+  "askDecline": "Dismiss",
+  "askAnswered": "Answered",
+  "askDeclined": "Dismissed",
+  "askOther": "Other",
+  "askOtherPlaceholder": "Type your answer",
+  "requestDetails": "Request details:"
 }

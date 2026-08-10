@@ -10,6 +10,33 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
+const assistantOrderConfigMock = vi.hoisted(() => {
+  const state: { value: string[] | undefined; listeners: Set<() => void> } = {
+    value: undefined,
+    listeners: new Set(),
+  };
+  const notify = () => {
+    for (const listener of state.listeners) listener();
+  };
+  const service = {
+    get: vi.fn(() => state.value),
+    set: vi.fn(async (_key: string, value: string[] | undefined) => {
+      state.value = value;
+      notify();
+    }),
+    setLocal: vi.fn((_key: string, value: string[] | undefined) => {
+      state.value = value;
+      notify();
+    }),
+    subscribe: vi.fn((_key: string, listener: () => void) => {
+      state.listeners.add(listener);
+      return () => state.listeners.delete(listener);
+    }),
+  };
+
+  return { state, service, notify };
+});
+
 // Mock @/common
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -18,6 +45,10 @@ vi.mock('@/common', () => ({
       setState: { invoke: vi.fn(), provider: vi.fn() },
     },
   },
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: assistantOrderConfigMock.service,
 }));
 
 // Mock react-i18next
@@ -29,12 +60,26 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { useAssistantList } from '@/renderer/hooks/assistant/useAssistantList';
+import { normalizeAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('useAssistantList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    assistantOrderConfigMock.state.value = undefined;
+    assistantOrderConfigMock.service.set.mockImplementation(async (_key, value) => {
+      assistantOrderConfigMock.state.value = value;
+      assistantOrderConfigMock.notify();
+    });
+    assistantOrderConfigMock.service.setLocal.mockImplementation((_key, value) => {
+      assistantOrderConfigMock.state.value = value;
+      assistantOrderConfigMock.notify();
+    });
+  });
+
+  it('normalizes duplicate and malformed stored order entries', () => {
+    expect(normalizeAssistantOrder([' official ', '', 'cli', 'official'])).toEqual(['official', 'cli']);
   });
 
   it('loads assistants on mount and selects first by default', async () => {
@@ -144,48 +189,60 @@ describe('useAssistantList', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('reorders assistants and persists sort_order updates', async () => {
+  it('reorders only enabled assistants through the shared preference', async () => {
+    assistantOrderConfigMock.state.value = ['cli', 'custom', 'official'];
     const initialList: Assistant[] = [
-      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
-      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
-      { id: '3', name: 'C', sort_order: 3, source: 'user', enabled: true },
+      { id: 'official', name: 'Official', sort_order: 1, source: 'builtin', enabled: true },
+      { id: 'disabled', name: 'Disabled', sort_order: 2, source: 'builtin', enabled: false },
+      { id: 'custom', name: 'Custom', sort_order: 3, source: 'user', enabled: true },
+      { id: 'cli', name: 'CLI', sort_order: 4, source: 'generated', enabled: true },
     ];
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
-    (ipcBridge.assistants.setState.invoke as any).mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useAssistantList());
-    await waitFor(() => expect(result.current.assistants).toHaveLength(3));
+    await waitFor(() => expect(result.current.assistants).toHaveLength(4));
 
     await act(async () => {
-      await result.current.reorderAssistants('3', '1');
+      await result.current.reorderEnabledAssistants('official', 'cli');
     });
 
-    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['3', '1', '2']);
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledTimes(3);
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(1, { id: '3', sort_order: 1000 });
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(2, { id: '1', sort_order: 2000 });
-    expect(ipcBridge.assistants.setState.invoke).toHaveBeenNthCalledWith(3, { id: '2', sort_order: 3000 });
+    expect(result.current.assistantOrder).toEqual(['official', 'cli', 'custom']);
+    expect(assistantOrderConfigMock.service.set).toHaveBeenCalledWith('assistants.enabledOrder', [
+      'official',
+      'cli',
+      'custom',
+    ]);
+    expect(ipcBridge.assistants.setState.invoke).not.toHaveBeenCalled();
   });
 
-  it('restores the previous order when reorder persistence fails', async () => {
+  it('restores the enabled order when preference persistence fails', async () => {
+    assistantOrderConfigMock.state.value = ['cli', 'official'];
     const initialList: Assistant[] = [
-      { id: '1', name: 'A', sort_order: 1, source: 'user', enabled: true },
-      { id: '2', name: 'B', sort_order: 2, source: 'user', enabled: true },
+      { id: 'official', name: 'Official', sort_order: 1, source: 'builtin', enabled: true },
+      { id: 'cli', name: 'CLI', sort_order: 2, source: 'generated', enabled: true },
     ];
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue(initialList);
-    (ipcBridge.assistants.setState.invoke as any).mockRejectedValue(new Error('persist failed'));
+    assistantOrderConfigMock.service.set.mockImplementationOnce(async (_key, value) => {
+      assistantOrderConfigMock.state.value = value;
+      assistantOrderConfigMock.notify();
+      throw new Error('preference write failed');
+    });
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHook(() => useAssistantList());
     await waitFor(() => expect(result.current.assistants).toHaveLength(2));
 
     await act(async () => {
-      await result.current.reorderAssistants('2', '1');
+      await expect(result.current.reorderEnabledAssistants('official', 'cli')).rejects.toThrow(
+        'preference write failed'
+      );
     });
 
-    expect(result.current.assistants.map((assistant) => assistant.id)).toEqual(['1', '2']);
-    expect(consoleErrorSpy).toHaveBeenCalled();
-
+    expect(result.current.assistantOrder).toEqual(['cli', 'official']);
+    expect(assistantOrderConfigMock.service.setLocal).toHaveBeenCalledWith('assistants.enabledOrder', [
+      'cli',
+      'official',
+    ]);
     consoleErrorSpy.mockRestore();
   });
 });

@@ -28,8 +28,8 @@
     "statusAvailable": "Disponible"
   },
   "defaultPrompts": {
-    "capabilities": "What can you do for me?",
-    "skills": "What skills do you have?",
-    "tools": "What tools do you have?"
+    "understand": "Familiarízate con este proyecto y explícame con palabras sencillas qué hace y por dónde empezar",
+    "cleanup": "Encuentra archivos duplicados e inútiles en esta carpeta y lístalos para que los confirme",
+    "create": "Créame una página personal bonita y ábrela cuando esté lista"
   }
 }

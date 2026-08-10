@@ -22,7 +22,7 @@ type AgentRepairPanelProps = {
 // misconception that "online" means "ready to use" — online only means a
 // connection handshake succeeded, not that the agent is logged in/authorized.
 type DiagnosticBanner = {
-  type: 'success' | 'warning' | 'error';
+  type: 'success' | 'warning' | 'error' | 'info';
   title: string;
   content: string;
 };
@@ -42,11 +42,21 @@ const resolveDiagnosticBanner = (t: ReturnType<typeof useTranslation>['t'], agen
         title: t('settings.repair.offlineTitle'),
         content: diagnostics || t('settings.repair.offlineHint'),
       };
-    default:
+    case 'online':
       return {
         type: 'success',
         title: t('settings.repair.onlineTitle'),
         content: t('settings.repair.onlineHint'),
+      };
+    default:
+      // 'unchecked' (never connection-tested) and any future/unknown status.
+      // Must NOT fall through to the success banner — that would claim the
+      // agent is "connected" when we have never probed it (the list correctly
+      // shows it as unchecked, so the two views would disagree otherwise).
+      return {
+        type: 'info',
+        title: t('settings.repair.uncheckedTitle'),
+        content: t('settings.repair.uncheckedHint'),
       };
   }
 };
@@ -160,12 +170,27 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
 
   const banner = resolveDiagnosticBanner(t, agent);
 
-  // When the agent is online, the launch path was already resolved correctly,
-  // so showing it only invites confusion ("it's connected, why edit the path?").
-  // Lead with environment variables (where API keys/auth tokens go) and hide the
-  // path field entirely. When the agent is missing/offline, the launch path is
-  // the primary lever, so show it first.
-  const showPath = agent.status !== 'online';
+  // A launch-path override only makes sense for direct-CLI agents. Bridge-launched
+  // rows (e.g. `npx`) keep the bridge's own arguments (`-y <package> …`) in `args`;
+  // pointing the launch path at a resolved binary would forward those bridge args to
+  // it (e.g. `kilo.cmd -y @kilocode/cli acp`) and break startup. Never offer the
+  // field for them — the backend also rejects such overrides.
+  const sourceInfo = agent.agent_source_info;
+  const isBridgeLaunched = Boolean(sourceInfo?.bridge_binary && sourceInfo.bridge_binary !== sourceInfo.binary_name);
+
+  // Only surface the actionable fields (launch path, env vars, Save & Test) once
+  // a check has run. While the agent is still `unchecked` we deliberately show
+  // nothing but a hint pointing to Test Connection: the launch path may well be
+  // correct, and env-var editing is only a last-resort fallback (we'd rather the
+  // user resolve login in their terminal). Anything other than a known
+  // online/offline/missing status is treated as not-yet-actionable.
+  const isActionable = agent.status === 'online' || agent.status === 'offline' || agent.status === 'missing';
+
+  // The launch-path override is only the right lever once a check has actually
+  // failed: `missing` (command not found on the default path) or `offline`
+  // (found but couldn't connect). For `online` it was already resolved.
+  // Bridge-launched (npx) rows never expose it (their args belong to the bridge).
+  const showPath = !isBridgeLaunched && (agent.status === 'missing' || agent.status === 'offline');
 
   const pathBlock = (
     <div>
@@ -223,14 +248,15 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
           which field below to use. */}
       <Alert type={banner.type} title={banner.title} content={banner.content} className='!rounded-8px' />
 
-      {!isInternalAionCli && showPath ? pathBlock : null}
-      {!isInternalAionCli ? envBlock : null}
+      {!isInternalAionCli && isActionable && showPath ? pathBlock : null}
+      {!isInternalAionCli && isActionable ? envBlock : null}
 
       {/* Error Alert */}
       {error && <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />}
 
-      {/* Save Button */}
-      {!isInternalAionCli ? (
+      {/* Save Button — only once the agent is actionable (checked). While
+          unchecked we show just the banner and steer the user to Test Connection. */}
+      {!isInternalAionCli && isActionable ? (
         <Button
           type='primary'
           size='large'

@@ -5,64 +5,27 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { Message } from '@arco-design/web-react';
 import React from 'react';
-import ChatWorkspace from '../Workspace';
+import { ExplorerContainer } from '../explorer/ExplorerContainer';
 
+/**
+ * ChatLayout's right-sider content. The legacy per-conversation Workspace tree
+ * (HTTP `getWorkspace` data source) has been removed — file browsing is now the
+ * project-level Explorer host at the Layout level, gated on `project_id`.
+ *
+ * This sider only renders while `workspaceEnabled` (a workspace conversation
+ * before its project_id backfill lands). Once the backfill arrives the
+ * conversation is project-bound → `workspaceEnabled` is false and the Explorer
+ * host takes over. The `project_id` branch is a defensive passthrough;
+ * pure-chat (no workspace) conversations correctly show nothing here.
+ */
 const ChatSlider: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
-  const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
-
-  let workspaceNode: React.ReactNode = null;
-  if (conversation?.type === 'acp' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='acp'
-        messageApi={messageApi}
-      ></ChatWorkspace>
-    );
-  } else if (conversation?.type === 'codex' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='codex'
-        messageApi={messageApi}
-      ></ChatWorkspace>
-    );
-  } else if (conversation?.type === 'aionrs' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='aionrs'
-        messageApi={messageApi}
-      ></ChatWorkspace>
-    );
+  if (conversation?.project_id) {
+    return <ExplorerContainer projectId={conversation.project_id} />;
   }
-
-  if (!workspaceNode) {
-    return <div></div>;
-  }
-
-  return (
-    <>
-      {messageContext}
-      {workspaceNode}
-    </>
-  );
+  return <div />;
 };
 
 export default ChatSlider;

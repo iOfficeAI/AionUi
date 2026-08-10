@@ -12,7 +12,11 @@ type InstallationIntegrityDialogKind =
   | 'data_migration'
   | 'local_data_repair'
   | 'recoverable_database_corruption'
-  | 'startup_directory';
+  | 'transient_concurrent_startup'
+  | 'startup_directory'
+  | 'backend_exited'
+  | 'port_report_timeout'
+  | 'startup_failed';
 
 export type InstallationIntegrityDiagnostics = {
   source: 'backend_startup_failure' | 'runtime_status';
@@ -40,8 +44,14 @@ export function getInstallationIntegrityTitle(
   if (diagnosticsKind === 'recoverable_database_corruption') {
     return t('common.backendStartup.recoverableDatabaseCorruption.title');
   }
+  if (diagnosticsKind === 'transient_concurrent_startup') {
+    return t('common.backendStartup.transientConcurrentStartup.title');
+  }
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.title');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.title');
+  if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.title');
+  if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.title');
+  if (diagnosticsKind === 'startup_failed') return t('common.backendStartup.startupFailed.title');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.title')
     : t('common.backendStartup.incompleteInstallation.title');
@@ -70,8 +80,14 @@ export function getInstallationIntegrityDiagnosticsSentText(
   if (diagnosticsKind === 'recoverable_database_corruption') {
     return t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsSent');
   }
+  if (diagnosticsKind === 'transient_concurrent_startup') {
+    return t('common.backendStartup.transientConcurrentStartup.diagnosticsSent');
+  }
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.diagnosticsSent');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
+  if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.diagnosticsSent');
+  if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.diagnosticsSent');
+  if (diagnosticsKind === 'startup_failed') return t('common.backendStartup.startupFailed.diagnosticsSent');
   return diagnosticsKind === 'data_migration'
     ? t('common.backendStartup.dataMigration.diagnosticsSent')
     : t('common.backendStartup.incompleteInstallation.diagnosticsSent');
@@ -164,13 +180,21 @@ export function getInstallationIntegrityModalActions(
     reportText:
       diagnosticsKind === 'recoverable_database_corruption'
         ? t('common.backendStartup.recoverableDatabaseCorruption.sendDiagnostics')
-        : diagnosticsKind === 'startup_directory'
-          ? t('common.backendStartup.startupDirectory.sendDiagnostics')
-          : diagnosticsKind === 'local_data_repair'
-            ? t('common.backendStartup.localDataRepair.sendDiagnostics')
-            : diagnosticsKind === 'data_migration'
-              ? t('common.backendStartup.dataMigration.sendDiagnostics')
-              : getInstallationIntegritySendDiagnosticsText(t),
+        : diagnosticsKind === 'transient_concurrent_startup'
+          ? t('common.backendStartup.transientConcurrentStartup.sendDiagnostics')
+          : diagnosticsKind === 'startup_directory'
+            ? t('common.backendStartup.startupDirectory.sendDiagnostics')
+            : diagnosticsKind === 'local_data_repair'
+              ? t('common.backendStartup.localDataRepair.sendDiagnostics')
+              : diagnosticsKind === 'data_migration'
+                ? t('common.backendStartup.dataMigration.sendDiagnostics')
+                : diagnosticsKind === 'backend_exited'
+                  ? t('common.backendStartup.exited.sendDiagnostics')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.sendDiagnostics')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.sendDiagnostics')
+                      : getInstallationIntegritySendDiagnosticsText(t),
   };
 }
 
@@ -208,7 +232,7 @@ export const InstallationIntegrityContent: React.FC<{ description: string; diagn
   </div>
 );
 
-const InstallationIntegrityFooter: React.FC<{
+export const InstallationIntegrityFooter: React.FC<{
   diagnostics?: InstallationIntegrityDiagnostics;
   diagnosticsKind?: InstallationIntegrityDialogKind;
 }> = ({ diagnostics, diagnosticsKind = 'incomplete_installation' }) => {
@@ -233,36 +257,62 @@ const InstallationIntegrityFooter: React.FC<{
       Message.success(
         diagnosticsKind === 'recoverable_database_corruption'
           ? t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsReportSuccess')
-          : diagnosticsKind === 'local_data_repair'
-            ? t('common.backendStartup.localDataRepair.diagnosticsReportSuccess')
-            : diagnosticsKind === 'data_migration'
-              ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
-              : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
+          : diagnosticsKind === 'transient_concurrent_startup'
+            ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportSuccess')
+            : diagnosticsKind === 'local_data_repair'
+              ? t('common.backendStartup.localDataRepair.diagnosticsReportSuccess')
+              : diagnosticsKind === 'data_migration'
+                ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
+                : diagnosticsKind === 'backend_exited'
+                  ? t('common.backendStartup.exited.diagnosticsReportSuccess')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
       );
     } catch {
       Message.error(
         diagnosticsKind === 'recoverable_database_corruption'
           ? t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsReportFailed')
-          : diagnosticsKind === 'local_data_repair'
-            ? t('common.backendStartup.localDataRepair.diagnosticsReportFailed')
-            : diagnosticsKind === 'data_migration'
-              ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
-              : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
+          : diagnosticsKind === 'transient_concurrent_startup'
+            ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportFailed')
+            : diagnosticsKind === 'local_data_repair'
+              ? t('common.backendStartup.localDataRepair.diagnosticsReportFailed')
+              : diagnosticsKind === 'data_migration'
+                ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
+                : diagnosticsKind === 'backend_exited'
+                  ? t('common.backendStartup.exited.diagnosticsReportFailed')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
       );
     } finally {
       setReporting(false);
     }
   };
 
-  const handleRecoverCorruptedDatabase = async () => {
+  const handleRecoverCorruptedDatabase = () => {
     if (recovering) return;
-    setRecovering(true);
-    try {
-      await actions.onRecoverCorruptedDatabase();
-    } catch {
-      Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
-      setRecovering(false);
-    }
+    // Rebuild is destructive (backs up the corrupted DB and creates an empty one),
+    // so gate it behind an explicit second confirmation before invoking recovery.
+    Modal.confirm({
+      title: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.title'),
+      content: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.content'),
+      okText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.okText'),
+      cancelText: t('common.backendStartup.recoverableDatabaseCorruption.confirmDialog.cancelText'),
+      onOk: async () => {
+        setRecovering(true);
+        try {
+          await actions.onRecoverCorruptedDatabase();
+        } catch {
+          Message.error(t('common.backendStartup.recoverableDatabaseCorruption.rebuildFailed'));
+          setRecovering(false);
+        }
+      },
+    });
   };
 
   return (
@@ -284,7 +334,8 @@ const InstallationIntegrityFooter: React.FC<{
         <Button
           data-testid='recoverable-database-corruption-rebuild'
           loading={recovering}
-          type='primary'
+          status='danger'
+          type='outline'
           onClick={handleRecoverCorruptedDatabase}
         >
           {actions.recoverText}
@@ -302,13 +353,15 @@ export function showInstallationIntegrityModal(
   description: string,
   diagnostics?: InstallationIntegrityDiagnostics,
   diagnosticsKind: InstallationIntegrityDialogKind = 'incomplete_installation'
-): void {
+): ReturnType<InstallationIntegrityModalController['error']> {
   const diagnosticsHint =
     diagnosticsKind === 'recoverable_database_corruption'
       ? t('common.backendStartup.recoverableDatabaseCorruption.diagnosticsHint')
-      : undefined;
+      : diagnosticsKind === 'transient_concurrent_startup'
+        ? t('common.backendStartup.transientConcurrentStartup.diagnosticsHint')
+        : undefined;
 
-  modal.error({
+  return modal.error({
     title: getInstallationIntegrityTitle(t, diagnosticsKind),
     content: <InstallationIntegrityContent description={description} diagnosticsHint={diagnosticsHint} />,
     footer: <InstallationIntegrityFooter diagnostics={diagnostics} diagnosticsKind={diagnosticsKind} />,

@@ -32,6 +32,11 @@ async function main() {
       entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/imageGenServer.ts')],
       outfile: path.join(ROOT, 'out/main/builtin-mcp-image-gen.js'),
     }),
+    esbuild.build({
+      ...SHARED_OPTIONS,
+      entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/browserServer.ts')],
+      outfile: path.join(ROOT, 'out/main/builtin-mcp-browser.js'),
+    }),
   ]);
 }
 

@@ -2,6 +2,7 @@ import type {
   ConversationCommandQueueItem,
   ConversationCommandQueueMode,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import {
   type Modifier,
   closestCenter,
@@ -19,11 +20,6 @@ import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const getCommandPreview = (input: string): string => input.replace(/\s+/g, ' ').trim();
-
-const restrictQueueDragToVerticalAxis: Modifier = ({ transform }) => ({
-  ...transform,
-  x: 0,
-});
 
 const createRestrictToQueueContainerModifier = (
   queueContainerRef: React.RefObject<HTMLDivElement | null>
@@ -380,7 +376,7 @@ const CommandQueuePanel: React.FC<CommandQueuePanelProps> = ({
     defaultValue: 'Drag to reorder queued command',
   });
   const dragModifiers = useMemo(
-    () => [restrictQueueDragToVerticalAxis, createRestrictToQueueContainerModifier(queueContainerRef)],
+    () => [restrictToVerticalAxis, createRestrictToQueueContainerModifier(queueContainerRef)],
     []
   );
 

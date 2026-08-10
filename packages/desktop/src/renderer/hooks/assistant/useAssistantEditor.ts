@@ -9,8 +9,9 @@ import type {
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
-import { getSkillImportErrorMessage } from '@/renderer/pages/settings/skillImportMessages';
+import { getSkillImportErrorMessage } from '@/renderer/pages/settings/SkillsSettings/skillImportMessages';
 import { emitter } from '@/renderer/utils/emitter';
+import { assistantOrderAfterToggle, selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
@@ -20,6 +21,9 @@ type UseAssistantEditorParams = {
   activeAssistant: AssistantListItem | null;
   setActiveAssistantId: (id: string | null) => void;
   loadAssistants: () => Promise<void>;
+  assistants: AssistantListItem[];
+  assistantOrder: readonly string[];
+  setAssistantOrder: (nextOrder: readonly string[]) => Promise<void>;
   message: ReturnType<typeof Message.useMessage>[0];
 };
 
@@ -66,6 +70,9 @@ export const useAssistantEditor = ({
   activeAssistant,
   setActiveAssistantId,
   loadAssistants,
+  assistants,
+  assistantOrder,
+  setAssistantOrder,
   message,
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
@@ -109,7 +116,7 @@ export const useAssistantEditor = ({
   );
 
   const refreshAssistantCatalog = useCallback(async () => {
-    await Promise.all([loadAssistants(), swrMutate('assistants.list'), swrMutate('assistants')]);
+    await Promise.all([loadAssistants(), swrMutate('assistants.list')]);
   }, [loadAssistants]);
 
   const refreshAssistantDetailCaches = useCallback(
@@ -565,6 +572,10 @@ export const useAssistantEditor = ({
   };
 
   const handleToggleEnabled = async (assistant: AssistantListItem, enabled: boolean) => {
+    const previousOrder = selectableAssistants(assistants, assistantOrder).map((item) => item.id);
+    const nextOrder = assistantOrderAfterToggle(assistants, assistantOrder, assistant.id, enabled);
+    let orderPersisted = false;
+
     try {
       await swrMutate(
         'assistants.list',
@@ -574,12 +585,21 @@ export const useAssistantEditor = ({
           ),
         { revalidate: false }
       );
+      await setAssistantOrder(nextOrder);
+      orderPersisted = true;
       await ipcBridge.assistants.setState.invoke({ id: assistant.id, enabled });
       await refreshAssistantCatalog();
       await refreshAssistantDetailCaches(assistant.id);
     } catch (error) {
       console.error('Failed to toggle assistant:', error);
-      await Promise.all([swrMutate('assistants.list'), swrMutate('assistants')]);
+      if (orderPersisted) {
+        try {
+          await setAssistantOrder(previousOrder);
+        } catch (rollbackError) {
+          console.error('Failed to restore assistant order after toggle failure:', rollbackError);
+        }
+      }
+      await swrMutate('assistants.list');
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };

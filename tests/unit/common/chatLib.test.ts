@@ -69,6 +69,21 @@ function createToolCallMessage(toolCallId: string): IMessageAcpToolCall {
   };
 }
 
+function createTipsMessage(msgId: string, content: string, supersedesKey?: string): IMessageTips {
+  return {
+    id: supersedesKey ? `tip:${supersedesKey}` : `tip-${msgId}`,
+    type: 'tips',
+    msg_id: msgId,
+    conversation_id: CONVERSATION_ID,
+    position: 'center',
+    content: {
+      content,
+      type: 'warning',
+      ...(supersedesKey ? { supersedes_key: supersedesKey } : {}),
+    },
+  };
+}
+
 describe('composeMessage', () => {
   it('preserves thinking boundaries once a tool message has been inserted', () => {
     let list: TMessage[] = [];
@@ -100,6 +115,68 @@ describe('composeMessage', () => {
     expect(list.map((message) => message.type)).toEqual(['thinking', 'acp_tool_call']);
     expect((list[0] as IMessageThinking).content.status).toBe('done');
     expect((list[0] as IMessageThinking).content.duration).toBe(3200);
+  });
+
+  it('merges a completed ACP diff into its running tool call', () => {
+    const running = createToolCallMessage('edit-1');
+    running.content.update = {
+      ...running.content.update,
+      status: 'in_progress',
+      title: 'Edit file',
+      kind: 'edit',
+    };
+    const completed: IMessageAcpToolCall = {
+      ...running,
+      content: {
+        ...running.content,
+        update: {
+          ...running.content.update,
+          status: 'completed',
+          content: [{ type: 'diff', path: '/workspace/file.ts', old_text: 'old', new_text: 'new' }],
+        },
+      },
+    };
+
+    let list = composeMessage(running, []);
+    list = composeMessage(completed, list);
+
+    expect(list).toHaveLength(1);
+    expect((list[0] as IMessageAcpToolCall).content.update.status).toBe('completed');
+    expect((list[0] as IMessageAcpToolCall).content.update.content).toEqual(completed.content.update.content);
+  });
+
+  it('replaces a superseding tip in place instead of appending', () => {
+    // codex reports a stalled turn as a series of retry attempts. Appending each
+    // one buried the conversation under near-identical cards; the user should
+    // watch a single card count up.
+    const retry = (attempt: number) =>
+      createTipsMessage(`tip-${attempt}`, `Reconnecting... ${attempt}/5 — high demand`, 'codex-retry:turn-1');
+
+    let list = composeMessage(retry(1), []);
+    // Something else arriving in between must not break the match: the branch
+    // keys on supersedes_key, not on the tip being the tail of the list.
+    list = composeMessage(createToolCallMessage('tool-1'), list);
+    list = composeMessage(retry(2), list);
+    list = composeMessage(retry(3), list);
+
+    const tips = list.filter((message) => message.type === 'tips');
+    expect(tips).toHaveLength(1);
+    expect((tips[0] as IMessageTips).content.content).toContain('3/5');
+    expect(list.map((message) => message.type)).toEqual(['tips', 'acp_tool_call']);
+  });
+
+  it('keeps a retry card scoped to its own turn', () => {
+    let list = composeMessage(createTipsMessage('tip-1', 'Reconnecting... 1/5', 'codex-retry:turn-1'), []);
+    list = composeMessage(createTipsMessage('tip-2', 'Reconnecting... 1/5', 'codex-retry:turn-2'), list);
+
+    expect(list.filter((message) => message.type === 'tips')).toHaveLength(2);
+  });
+
+  it('still appends tips that carry no superseding key', () => {
+    let list = composeMessage(createTipsMessage('tip-1', 'first'), []);
+    list = composeMessage(createTipsMessage('tip-2', 'second'), list);
+
+    expect(list.filter((message) => message.type === 'tips')).toHaveLength(2);
   });
 });
 

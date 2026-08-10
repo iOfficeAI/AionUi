@@ -12,6 +12,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
+import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, MessageOne, Robot, Search } from '@icon-park/react';
 import classNames from 'classnames';
@@ -302,13 +303,18 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   useEffect(() => {
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if ((event as unknown as { isComposing?: boolean }).isComposing) return;
-      const key = event.key.toLowerCase();
-      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
-      if (!isCmdOrCtrl || !event.shiftKey || key !== 'f' || event.altKey) return;
+      if (
+        !isPrimaryApplicationShortcut(event, {
+          key: 'f',
+          shiftKey: true,
+          targetGuard: 'embedded-editor',
+        })
+      ) {
+        return;
+      }
       // Preserve browser behavior in WebUI; only intercept in the desktop runtime.
       if (typeof window !== 'undefined' && !window.electronAPI) return;
+      if (disabled) return;
       event.preventDefault();
       handleOpen();
     };
@@ -317,7 +323,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     return () => {
       document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
     };
-  }, [handleOpen]);
+  }, [disabled, handleOpen]);
 
   const triggerAriaLabel = t('conversation.historySearch.tooltip');
 

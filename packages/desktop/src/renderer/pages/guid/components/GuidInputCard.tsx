@@ -9,11 +9,13 @@ import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
-import React from 'react';
+import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
+import React, { useEffect, useRef } from 'react';
 import styles from '../index.module.css';
 import GuidWorkspaceFootnote from './GuidWorkspaceFootnote';
 
 type GuidInputCardProps = {
+  focusRequestKey?: string;
   // Input state
   input: string;
   onInputChange: (value: string) => void;
@@ -46,6 +48,7 @@ type GuidInputCardProps = {
 };
 
 const GuidInputCard: React.FC<GuidInputCardProps> = ({
+  focusRequestKey,
   input,
   onInputChange,
   onKeyDown,
@@ -70,7 +73,14 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
+  const inputRef = useRef<RefTextAreaType | null>(null);
   const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
+
+  useEffect(() => {
+    if (!focusRequestKey || isMobile) return;
+    inputRef.current?.focus();
+    inputRef.current?.dom.setSelectionRange(input.length, input.length);
+  }, [focusRequestKey, input, isMobile]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
@@ -114,6 +124,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         }}
       >
         <Input.TextArea
+          ref={inputRef}
           autoSize={textareaAutoSize}
           placeholder={placeholder}
           spellCheck={false}

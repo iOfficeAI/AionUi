@@ -16,6 +16,11 @@
   "downloadFailed": "Не удалось скачать",
   "imageLoadFailed": "Не удалось загрузить изображение",
   "scrollToBottom": "Прокрутить вниз",
+  "anchorRail": {
+    "label": "Якоря сообщений диалога",
+    "tickAria": "Перейти к сообщению {{index}}",
+    "searchAria": "Поиск по переписке"
+  },
   "availableCommands": "{{count}} доступных команд",
   "slash.title": "Команды",
   "slash.hint": "Введите / для открытия меню команд",
@@ -53,6 +58,7 @@
   "noOptionsAvailable": "Нет доступных опций",
   "processing": "Обработка...",
   "responseSentSuccessfully": "Ответ успешно отправлен",
+  "permissionResponseFailed": "Не удалось отправить ответ. Повторите попытку.",
   "confirmation": {
     "applyChange": "Применить это изменение?",
     "allowExecution": "Разрешить выполнение?",
@@ -66,5 +72,20 @@
   },
   "atFile.hint": "Введите текст для поиска файлов",
   "atFile.menuLabel": "Упоминания файлов",
-  "atFile.loading": "Загрузка..."
+  "atFile.loading": "Загрузка...",
+  "fork": {
+    "action": "Ответвить отсюда",
+    "errorTurnInFlight": "Дождитесь завершения текущего ответа перед ответвлением",
+    "errorParentUnbound": "У этой беседы ещё нет серверной сессии для ответвления",
+    "errorPointUnsupported": "Этот агент может ответвляться только от последнего сообщения",
+    "errorUnsupported": "Этот агент не поддерживает ответвление",
+    "errorGeneric": "Не удалось создать ответвление: {{message}}"
+  },
+  "askSubmit": "Отправить",
+  "askDecline": "Не отвечать",
+  "askAnswered": "Отвечено",
+  "askDeclined": "Пропущено",
+  "askOther": "Другое",
+  "askOtherPlaceholder": "Введите свой ответ",
+  "requestDetails": "Детали запроса:"
 }

@@ -11,11 +11,17 @@ import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assist
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 
 /**
- * Shows which runtime engine (CLI) drives an assistant: a muted `runtime:`
- * label + the CLI's icon (no engine name — the icon identifies it). Frameless
- * by default to keep list rows quiet; pass `framed` for standalone contexts.
+ * Shows which runtime engine (CLI) drives an assistant. Frameless by default
+ * to keep list rows quiet; pass `showName` when the runtime must remain
+ * identifiable in a mixed-source row, or hide the label when nearby context
+ * already makes the runtime identity clear.
  */
-const RuntimeBadge: React.FC<{ assistant: Assistant; framed?: boolean }> = ({ assistant, framed = false }) => {
+const RuntimeBadge: React.FC<{
+  assistant: Assistant;
+  framed?: boolean;
+  showLabel?: boolean;
+  showName?: boolean;
+}> = ({ assistant, framed = false, showLabel = true, showName = false }) => {
   const { t } = useTranslation();
   const logos = useAgentLogos();
   const backend = assistantRuntimeKey(assistant);
@@ -30,12 +36,15 @@ const RuntimeBadge: React.FC<{ assistant: Assistant; framed?: boolean }> = ({ as
       }
       data-testid={`assistant-runtime-${assistant.id}`}
     >
-      <span className='text-t-quaternary'>{t('settings.assistantRuntimeLabel', { defaultValue: 'runtime:' })}</span>
+      {showLabel ? (
+        <span className='text-t-quaternary'>{t('settings.assistantRuntimeLabel', { defaultValue: 'runtime:' })}</span>
+      ) : null}
       {logo ? (
         <img src={logo} alt='' className='h-15px w-15px object-contain' />
       ) : (
         <Robot theme='outline' size={13} fill='currentColor' />
       )}
+      {showName && backend ? <span className='max-w-112px truncate'>{backend}</span> : null}
     </span>
   );
 };

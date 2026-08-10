@@ -9,7 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
@@ -157,6 +157,14 @@ export type BackendStartupErrorDetails = {
   serverListeningObserved?: boolean;
   serverListeningObservedAfterMs?: number;
   serverListeningLine?: string;
+  /**
+   * True when this health_timeout error corresponds to a process that the
+   * launcher kept alive (pending) to continue waiting for readiness, rather
+   * than one it killed. Lets the desktop classifier distinguish a recoverable
+   * "slow startup" (kept alive) from a health_timeout on a path that kills the
+   * process (e.g. database recovery), which must not be treated as pending-slow.
+   */
+  healthTimeoutKeptAlive?: boolean;
 };
 
 export type BackendStartOptions = {
@@ -231,7 +239,26 @@ const FETCH_FORBIDDEN_PORTS = new Set([
 
 const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
 const AIONCORE_LISTENING_PREFIX = 'AIONCORE_LISTENING ';
-const BACKEND_PORT_REPORT_TIMEOUT_MS = 30_000;
+// Bare, payload-less readiness marker emitted by aioncore once `axum::serve`
+// actually begins serving (see AionCore cmd_server.rs). Authoritative "ready"
+// signal — matched by exact whole-line equality. The port is already known from
+// the earlier AIONCORE_LISTENING line, so this marker carries no payload.
+const AIONCORE_READY_MARKER = 'AIONCORE_READY';
+const BACKEND_PORT_REPORT_TIMEOUT_MS = 60_000;
+
+// Benign boundary code emitted by an aioncore instance that yielded the
+// data-dir instance guard to a peer that already owns it (Sentry 135525166).
+// This is a transient, self-recoverable condition — the owning peer is expected
+// to finish (or a crash-orphan is expected to self-exit and release the guard),
+// so the launcher retries with bounded backoff rather than surfacing a fatal
+// startup failure.
+const PEER_ALREADY_RUNNING_BOUNDARY_CODE = 'BOOTSTRAP_PEER_ALREADY_RUNNING';
+const PEER_RETRY_MAX_ATTEMPTS = 5;
+const PEER_RETRY_BACKOFF_MS = [250, 500, 1000, 1500];
+
+function delayMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function isFetchForbiddenPort(port: number): boolean {
   return FETCH_FORBIDDEN_PORTS.has(port);
@@ -346,6 +373,10 @@ function clearHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics): 
   delete diagnostics.healthCheckLastErrorCauseCode;
 }
 
+function isAioncoreReadyLine(line: string): boolean {
+  return line === AIONCORE_READY_MARKER;
+}
+
 function parseAioncoreListeningPort(line: string): number | undefined {
   if (!line.startsWith(AIONCORE_LISTENING_PREFIX)) return undefined;
   try {
@@ -367,6 +398,13 @@ function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetai
 
 function ensureBackendStartupDirectory(dir: string | undefined): void {
   if (!dir || dir.trim() === '') return;
+  // Stat first: a directory that already exists needs no preparation. Relying
+  // on mkdirSync's recursive EEXIST tolerance instead breaks on Windows drive
+  // roots (e.g. work dir set to `D:\`): CreateDirectory on a drive root
+  // reports access-denied rather than already-exists, so mkdirSync throws
+  // EPERM even with `recursive: true` and even though the directory is fully
+  // usable — deterministically failing every backend startup (ELECTRON-3S4).
+  if (statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return;
   mkdirSync(dir, { recursive: true });
 }
 
@@ -493,7 +531,48 @@ export class BackendLifecycleManager {
     return this._status;
   }
 
+  private isPeerAlreadyRunningError(error: unknown): boolean {
+    return (
+      error instanceof BackendStartupError && error.details.backendBoundaryCode === PEER_ALREADY_RUNNING_BOUNDARY_CODE
+    );
+  }
+
   async start(
+    dbPath: string,
+    logDir?: string,
+    dirs?: BackendDirConfig,
+    options?: BackendStartOptions,
+    preferredPort?: number,
+    launchFlags: BackendLaunchFlags = {}
+  ): Promise<number> {
+    // Bounded retry loop for the transient "a peer aioncore already owns this
+    // data directory" case (Sentry 135525166). The owning peer either finishes
+    // startup and keeps running, or a crash-orphan self-exits and releases the
+    // data-dir instance guard. Non-peer errors are thrown immediately with no
+    // retry. Runtime crash restarts (handleCrash / maxRestarts) are a separate,
+    // orthogonal mechanism for an already-running backend.
+    let lastPeerError: unknown;
+    for (let attempt = 0; attempt < PEER_RETRY_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.attemptStart(dbPath, logDir, dirs, options, preferredPort, launchFlags);
+      } catch (error) {
+        if (!this.isPeerAlreadyRunningError(error) || attempt >= PEER_RETRY_MAX_ATTEMPTS - 1) {
+          throw error;
+        }
+        lastPeerError = error;
+        const backoff = PEER_RETRY_BACKOFF_MS[Math.min(attempt, PEER_RETRY_BACKOFF_MS.length - 1)];
+        console.warn(
+          `[aioncore] a peer already owns the data directory; retrying startup in ${backoff}ms (attempt ${attempt + 1}/${PEER_RETRY_MAX_ATTEMPTS})`
+        );
+        await delayMs(backoff);
+      }
+    }
+    // Unreachable in practice: the loop either returns on success or throws on
+    // the final attempt. Kept as an explicit safety net for the peer path.
+    throw lastPeerError ?? new Error('aioncore startup failed after peer retries');
+  }
+
+  private async attemptStart(
     dbPath: string,
     logDir?: string,
     dirs?: BackendDirConfig,
@@ -535,6 +614,13 @@ export class BackendLifecycleManager {
     let serverListeningObserved = false;
     let serverListeningObservedAfterMs: number | undefined;
     let serverListeningLine: string | undefined;
+    let serverReadyObserved = false;
+    let resolveReady: () => void = () => {};
+    // Authoritative readiness signal fed by the AIONCORE_READY stdout marker.
+    // Raced against /health polling; whichever fires first wins.
+    const readySignal = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
     let backendPid: number | undefined;
     const makeStartupError = (
       stage: BackendStartupStage,
@@ -720,6 +806,11 @@ export class BackendLifecycleManager {
           serverListeningObservedAfterMs = Date.now() - startupStartedAt;
           serverListeningLine = trimmed;
           resolveReportedPort(port);
+        } else if (isAioncoreReadyLine(trimmed)) {
+          if (!serverReadyObserved) {
+            serverReadyObserved = true;
+            resolveReady();
+          }
         } else if (
           !serverListeningObserved &&
           this._port > 0 &&
@@ -752,23 +843,33 @@ export class BackendLifecycleManager {
       }
       throw error;
     }
-    const health = await Promise.race([this.waitForHealth(port), startupFailure]);
-    if (!health.ok) {
+    // Foreground readiness: whichever of /health polling or the authoritative
+    // AIONCORE_READY marker arrives first wins. A winning ready signal is
+    // treated exactly like health.ok === true and skips the health-timeout path.
+    const healthOrReady = await Promise.race([
+      this.waitForHealth(port).then((health) => ({ kind: 'health' as const, health })),
+      readySignal.then(() => ({ kind: 'ready' as const })),
+      startupFailure,
+    ]);
+
+    if (healthOrReady.kind === 'health' && !healthOrReady.health.ok) {
+      const keptAlive = !!(options?.allowPendingOnHealthTimeout && this.childProcess);
       const healthTimeoutError = makeStartupError(
         'health_timeout',
         'aioncore failed to start within timeout',
         undefined,
         {
-          ...health.diagnostics,
+          ...healthOrReady.health.diagnostics,
+          healthTimeoutKeptAlive: keptAlive,
         }
       );
-      if (options?.allowPendingOnHealthTimeout && this.childProcess) {
+      if (keptAlive && this.childProcess) {
         startupSettled = true;
         console.warn(`[aioncore] health check timed out; keeping process alive on port ${this._port}`);
-        void Promise.resolve(options.onHealthTimeout?.(healthTimeoutError)).catch((error) => {
+        void Promise.resolve(options?.onHealthTimeout?.(healthTimeoutError)).catch((error) => {
           console.error('[aioncore] health timeout handler failed:', error);
         });
-        this.continueWaitingForHealth(this._port, this.childProcess, startupStartedAt, options.onReady);
+        this.continueWaitingForHealth(this._port, this.childProcess, startupStartedAt, readySignal, options?.onReady);
         return this._port;
       }
       startupSettled = true;
@@ -781,9 +882,15 @@ export class BackendLifecycleManager {
     startupSettled = true;
     this._status = 'running';
     this.restartCount = 0;
-    console.info(
-      `[aioncore] health ready on port ${this._port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${health.diagnostics.healthCheckElapsedMs}, data-dir: ${dbPath}`
-    );
+    if (healthOrReady.kind === 'ready') {
+      console.info(
+        `[aioncore] ready signal received on port ${this._port}, elapsed_ms=${Date.now() - startupStartedAt}, data-dir: ${dbPath}`
+      );
+    } else {
+      console.info(
+        `[aioncore] health ready on port ${this._port} after ${healthOrReady.health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${healthOrReady.health.diagnostics.healthCheckElapsedMs}, data-dir: ${dbPath}`
+      );
+    }
     return this._port;
   }
 
@@ -873,20 +980,31 @@ export class BackendLifecycleManager {
     port: number,
     childProcess: ChildProcess,
     startupStartedAt: number,
+    readySignal: Promise<void>,
     onReady?: (port: number) => Promise<void> | void
   ): void {
     void (async () => {
-      const health = await this.waitForHealth(
-        port,
-        Number.POSITIVE_INFINITY,
-        () => this.childProcess === childProcess && this._status === 'starting'
-      );
-      if (!health.ok || this.childProcess !== childProcess || this._status !== 'starting') return;
+      // Race the (unbounded) background /health poll against a late-arriving
+      // AIONCORE_READY marker so either can deterministically resolve the
+      // pending "still starting" state.
+      const outcome = await Promise.race([
+        this.waitForHealth(
+          port,
+          Number.POSITIVE_INFINITY,
+          () => this.childProcess === childProcess && this._status === 'starting'
+        ).then((health) => ({ kind: 'health' as const, health })),
+        readySignal.then(() => ({ kind: 'ready' as const })),
+      ]);
+      if (this.childProcess !== childProcess || this._status !== 'starting') return;
+      if (outcome.kind === 'health' && !outcome.health.ok) return;
       this._status = 'running';
       this.restartCount = 0;
-      const elapsedMs = health.diagnostics.healthCheckElapsedMs ?? Date.now() - startupStartedAt;
+      const elapsedMs =
+        outcome.kind === 'health'
+          ? (outcome.health.diagnostics.healthCheckElapsedMs ?? Date.now() - startupStartedAt)
+          : Date.now() - startupStartedAt;
       console.info(
-        `[aioncore] late health ready on port ${port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
+        `[aioncore] late ${outcome.kind === 'ready' ? 'ready signal' : 'health ready'} on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
       );
       await onReady?.(port);
     })().catch((error) => {

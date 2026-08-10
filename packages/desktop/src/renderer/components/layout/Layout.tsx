@@ -14,15 +14,31 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
+import { usePreviewContext } from '@renderer/pages/conversation/Preview';
+import { ProjectPanelHost } from '@renderer/components/layout/ProjectPanelHost';
+import { ProjectPanelMobileOverlay } from '@renderer/components/layout/ProjectPanelMobileOverlay';
+import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversation/explorer/currentProjectStore';
+import { setCurrentConversation } from '@renderer/pages/conversation/explorer/currentConversationStore';
+import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
+import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
+import { useProjectPreviewRegionWidth } from '@renderer/hooks/ui/useProjectPreviewRegionWidth';
+import { useProjectPanelCollapse } from '@renderer/hooks/ui/useProjectPanelCollapse';
+import { isMacEnvironment } from '@renderer/pages/conversation/utils/detectPlatform';
+import { dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
+import { MIN_PREVIEW_PANEL_PX } from '@renderer/pages/conversation/utils/layoutCalc';
+import { PreviewPanel } from '@renderer/pages/conversation/Preview';
+import { ExpandLeft } from '@icon-park/react';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/notification/useNotificationClick';
 import { useBrowserNotification } from '@renderer/hooks/system/notification/useBrowserNotification';
-import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
+import { useDesktopTurnNotification } from '@renderer/hooks/system/notification/useDesktopTurnNotification';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
+import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
+import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
@@ -109,19 +125,24 @@ const Layout: React.FC<{
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
   const { onClick } = useDebug();
-  const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
   useBrowserNotification();
+  useDesktopTurnNotification();
   const navigate = useNavigate();
-  useConversationShortcuts({ navigate });
+  const location = useLocation();
+  const workspaceAvailable =
+    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+  const toggleSider = useCallback(() => {
+    setCollapsed((previous) => !previous);
+  }, []);
+  useConversationShortcuts({ navigate, toggleSider });
   // Expose navigate to code running outside the Router tree (e.g. the globally
   // mounted FeedbackReportModal's "via chat" action).
   useEffect(() => {
     setGlobalNavigate(navigate);
     return () => setGlobalNavigate(null);
   }, [navigate]);
-  const location = useLocation();
   const { t } = useTranslation();
   // The "AionUi" wordmark acts as Home / Back-to-Chat, but only from settings routes.
   // In non-settings routes the user is already "home", so it is a no-op (and not actionable).
@@ -143,8 +164,68 @@ const Layout: React.FC<{
     }
     void navigate('/guid');
   }, [navigate]);
-  const workspaceAvailable =
-    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+  // Close preview whenever the user leaves the conversation route entirely
+  // (e.g. switches to a team, /guid, or settings). Within /conversation/:id
+  // the finer-grained closePreviewIfScopeChanged in conversation/index.tsx
+  // handles scope changes, so we only need to act here on route-type changes.
+  // Use closePreview directly — closePreviewIfScopeChanged skips the call
+  // when lastScopeRef is already null (e.g. on team routes where it was
+  // never updated), which would leave the panel open.
+  const { closePreview: closePreviewOnRouteChange, isOpen: isPreviewOpen } = usePreviewContext();
+  // Layout-level explorer column width engine (stage3 FULL / P2): measure the
+  // [content | explorer] row, clamp the explorer width so chat (+ preview) keep
+  // their reserve. Active only when a project is bound and on desktop.
+  const currentProject = useCurrentProject();
+  const { containerRef: mainRowRef, containerWidth: mainRowWidth } = useContainerWidth();
+  const explorerActive = Boolean(currentProject) && !isMobile;
+  const { widthPx: explorerWidthPx, createDragHandle: createExplorerDragHandle } = useProjectExplorerColumnWidth(
+    mainRowWidth,
+    isPreviewOpen,
+    explorerActive
+  );
+  // P3: host-level collapse (project-scoped on desktop; overlay on mobile). The
+  // explorer stays mounted (width 0) on collapse, so it is not remounted.
+  const { collapsed: explorerCollapsed } = useProjectPanelCollapse({
+    projectId: currentProject,
+    isMobile,
+    active: Boolean(currentProject),
+  });
+  const isMacRuntime = isMacEnvironment();
+  const toggleExplorer = useCallback(() => {
+    dispatchWorkspaceToggleEvent();
+  }, []);
+  // Mobile overlay width: most of the viewport, capped.
+  const explorerMobileWidthPx = Math.min(420, Math.max(280, Math.round(viewportWidth * 0.85)));
+  // P4 (②B): hoist the preview region to the Layout host for project
+  // conversations so it is structurally persistent (no remount on same-project
+  // switches). ChatLayout renders chat only in that case (previewHosted).
+  const previewRegionActive = Boolean(currentProject) && !isMobile && isPreviewOpen;
+  const { widthPx: previewWidthPx, createDragHandle: createPreviewRegionDragHandle } = useProjectPreviewRegionWidth(
+    mainRowWidth,
+    explorerCollapsed ? 0 : explorerWidthPx,
+    previewRegionActive
+  );
+  const routeLayoutMountedRef = useRef(false);
+  useEffect(() => {
+    if (!routeLayoutMountedRef.current) {
+      routeLayoutMountedRef.current = true;
+      return; // skip initial mount — preview starts closed, don't wipe persisted tabs
+    }
+    if (!workspaceAvailable) {
+      closePreviewOnRouteChange();
+      // Leaving every project-bearing route (conversation + team) → no active
+      // project → hide the Explorer host. Within /conversation/* and /team/* the
+      // route itself publishes project_id, so we only clear when leaving both.
+      setCurrentProject(null);
+    }
+    // The active-conversation target is published by the conversation route
+    // (mounted conversation) and the team route (active member column). Clear it
+    // only when leaving both, so a stale target can't leak to a non-chat route.
+    if (!workspaceAvailable) {
+      setCurrentConversation(null);
+    }
+  }, [location.pathname, workspaceAvailable, closePreviewOnRouteChange]);
+
   const collapsedRef = useRef(collapsed);
   const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
     active: false,
@@ -435,26 +516,113 @@ const Layout: React.FC<{
               )}
             </ArcoLayout.Sider>
 
-            <ArcoLayout.Content
-              className={'bg-1 layout-content flex flex-col min-h-0'}
-              onClick={() => {
-                if (isMobile && !collapsed) setCollapsed(true);
-              }}
-              style={
-                isMobile
-                  ? {
-                      width: '100%',
-                    }
-                  : undefined
-              }
-            >
-              <Outlet />
-              {directorySelectionContextHolder}
-              <PwaPullToRefresh />
-              <Suspense fallback={null}>
-                <UpdateModal />
-              </Suspense>
-            </ArcoLayout.Content>
+            {/* Content + project Explorer share one measured flex row (stage3
+                FULL / P2). `mainRowRef` gives the [content|explorer] width for the
+                explorer clamp (independent of the split → non-circular). The
+                explorer column is a sibling of the route content, above the
+                per-conversation subtree → persists across same-project switches. */}
+            <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden'>
+              <ArcoLayout.Content
+                className={'bg-1 layout-content flex flex-col min-h-0 flex-1'}
+                onClick={() => {
+                  if (isMobile && !collapsed) setCollapsed(true);
+                }}
+                style={
+                  isMobile
+                    ? {
+                        width: '100%',
+                      }
+                    : undefined
+                }
+              >
+                <Outlet />
+                <PwaPullToRefresh />
+                <Suspense fallback={null}>
+                  <UpdateModal />
+                </Suspense>
+                {IS_DISCONTINUED_BUILD && <UpdateMigrationDialog />}
+              </ArcoLayout.Content>
+              {/* Hoisted preview region (project conversations only). Structurally
+                  persistent: lives above the per-conversation subtree, so a
+                  same-project conversation switch does not remount it. */}
+              {previewRegionActive && (
+                <div
+                  data-project-preview-region
+                  className='preview-panel flex flex-col relative overflow-visible'
+                  style={{
+                    width: `${Math.round(previewWidthPx)}px`,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                    // 只保留左边框作为与会话区的分界；上/右/下不留边距，
+                    // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
+                    // Left border only, as the divider from the chat area. No outer
+                    // margins: any gap would expose the window's own background,
+                    // which is jarring in dark mode.
+                    borderLeft: '1px solid var(--bg-3)',
+                    minWidth: `${MIN_PREVIEW_PANEL_PX}px`,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {createPreviewRegionDragHandle({
+                    className: 'absolute top-0 bottom-0 z-30',
+                    style: { width: '20px', left: '-20px' },
+                    reverse: true,
+                    linePlacement: 'end',
+                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
+                    lineStyle: { width: '2px' },
+                  })}
+                  <div className='h-full w-full overflow-hidden'>
+                    <PreviewPanel />
+                  </div>
+                </div>
+              )}
+              {!isMobile && (
+                <ProjectPanelHost
+                  widthPx={explorerWidthPx}
+                  collapsed={explorerCollapsed}
+                  onToggle={toggleExplorer}
+                  showChevron={!isMacRuntime}
+                  dragHandle={createExplorerDragHandle({
+                    className: 'absolute left-0 top-0 bottom-0 z-20',
+                    reverse: true,
+                  })}
+                />
+              )}
+            </div>
+
+            {/* Desktop expand button when the explorer is collapsed. Not on mac
+                (the Titlebar workspace button owns the toggle there). */}
+            {!isMobile && !isMacRuntime && Boolean(currentProject) && explorerCollapsed && (
+              <button
+                type='button'
+                className='workspace-toggle-floating fixed z-101 flex items-center justify-center'
+                style={{
+                  top: '50%',
+                  right: '0px',
+                  transform: 'translateY(-50%)',
+                  width: '20px',
+                  height: '64px',
+                  borderTopLeftRadius: '10px',
+                  borderBottomLeftRadius: '10px',
+                  backgroundColor: 'var(--bg-2)',
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
+                }}
+                onClick={toggleExplorer}
+                aria-label='Expand explorer'
+              >
+                <ExpandLeft size={16} />
+              </button>
+            )}
+
+            {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
+            {isMobile && Boolean(currentProject) && (
+              <ProjectPanelMobileOverlay
+                projectId={currentProject as string}
+                collapsed={explorerCollapsed}
+                onCollapse={toggleExplorer}
+                widthPx={explorerMobileWidthPx}
+              />
+            )}
           </ArcoLayout>
         </div>
       </NavigationHistoryProvider>

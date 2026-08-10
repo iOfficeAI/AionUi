@@ -44,5 +44,8 @@
     "label": "思考强度",
     "switchSuccess": "思考强度切换成功",
     "switchFailed": "思考强度切换失败"
+  },
+  "warmup": {
+    "clickToWake": "点击唤醒该成员"
   }
 }

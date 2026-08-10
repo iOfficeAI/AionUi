@@ -4,6 +4,7 @@ import type {
   ITeamRunAck,
   ITeamRunEvent,
   ITeamSlotWork,
+  ITeamSlotWorkChangedEvent,
   TeamRunStatus,
 } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,12 +18,21 @@ export type TeamRunViewState = {
   activeRun?: TeamRunViewRun;
   childTurnsBySlot: Record<string, TeamRunViewChildTurn | undefined>;
   slotWorkBySlot: Record<string, ITeamSlotWork | undefined>;
+  /**
+   * True when the team session was reclaimed by idle-cleanup (backend broadcast
+   * `sessionStatusChanged` with status `stopped`). Event-driven and independent
+   * of `slotWorkBySlot`, which is re-derived/emptied on reconcile and would
+   * otherwise lose the stopped signal. Cleared on recovery (`starting`/`ready`)
+   * or on any applied active run event (self-heal).
+   */
+  sessionStopped: boolean;
 };
 
 const emptyState: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
   slotWorkBySlot: {},
+  sessionStopped: false,
 };
 
 const isTeamRunDebugEnabled = process.env.NODE_ENV !== 'production';
@@ -57,9 +67,9 @@ const debugTeamChildTurnEvent = (source: string, event: ITeamChildTurnEvent) => 
   });
 };
 
-const indexSlotWork = (slotWork: ITeamSlotWork[]): Record<string, ITeamSlotWork | undefined> => {
+const indexSlotWork = (slotWork?: ITeamSlotWork[] | null): Record<string, ITeamSlotWork | undefined> => {
   const indexed: Record<string, ITeamSlotWork | undefined> = {};
-  for (const work of slotWork) {
+  for (const work of slotWork ?? []) {
     indexed[work.slot_id] = work;
   }
   return indexed;
@@ -84,12 +94,14 @@ export const useTeamRunView = (team_id: string) => {
             activeRun: undefined,
             childTurnsBySlot: prev.childTurnsBySlot,
             slotWorkBySlot: indexSlotWork(event.slot_work),
+            sessionStopped: false,
           };
         }
         return {
           activeRun: event,
           childTurnsBySlot: prev.childTurnsBySlot,
           slotWorkBySlot: indexSlotWork(event.slot_work),
+          sessionStopped: false,
         };
       });
     },
@@ -116,6 +128,7 @@ export const useTeamRunView = (team_id: string) => {
             activeRun,
             childTurnsBySlot: {},
             slotWorkBySlot: indexSlotWork(snapshot.slot_work),
+            sessionStopped: false,
           };
         });
         return true;
@@ -158,6 +171,25 @@ export const useTeamRunView = (team_id: string) => {
     [team_id]
   );
 
+  // Per-slot work update, independent of any team run. Run events only carry
+  // slot_work for slots bound to the active tracked run, so run-less work (e.g.
+  // a leader self-wake draining its mailbox) reaches us only here. Merge the one
+  // slot so an orphaned "running" snapshot from a completed run's terminal event
+  // clears without a full reconcile.
+  const applySlotWork = useCallback(
+    (event: ITeamSlotWorkChangedEvent) => {
+      if (event.team_id !== team_id) return;
+      setState((prev) => ({
+        ...prev,
+        slotWorkBySlot: {
+          ...prev.slotWorkBySlot,
+          [event.slot_work.slot_id]: event.slot_work,
+        },
+      }));
+    },
+    [team_id]
+  );
+
   useEffect(() => {
     void reconcile('load');
   }, [reconcile]);
@@ -173,6 +205,7 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.childTurnStarted.on(applyChildStarted),
       ipcBridge.team.childTurnCompleted.on(applyChildTerminal),
       ipcBridge.team.childTurnCancelled.on(applyChildTerminal),
+      ipcBridge.team.slotWorkChanged.on(applySlotWork),
       ipcBridge.realtime.reconnected.on(() => {
         void reconcile('realtime.reconnected');
       }),
@@ -191,11 +224,20 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.agentRenamed.on((event) => {
         if (event.team_id === team_id) void reconcile('team.agentRenamed');
       }),
+      ipcBridge.team.sessionStatusChanged.on((event) => {
+        if (event.team_id !== team_id) return;
+        if (event.status === 'stopped') {
+          setState((prev) => ({ ...prev, sessionStopped: true }));
+        } else if (event.status === 'starting' || event.status === 'ready') {
+          setState((prev) => ({ ...prev, sessionStopped: false }));
+        }
+        // 'failed' leaves sessionStopped unchanged.
+      }),
     ];
     return () => {
       unsubs.forEach((unsubscribe) => unsubscribe());
     };
-  }, [applyChildStarted, applyChildTerminal, applyRunEvent, reconcile, team_id]);
+  }, [applyChildStarted, applyChildTerminal, applySlotWork, applyRunEvent, reconcile, team_id]);
 
   return useMemo(
     () => ({

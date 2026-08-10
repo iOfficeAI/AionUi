@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hallo, was hast du heute vor?",
-    "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen oder geplante Aufgabe erstellen...",
+    "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",
     "linkFolder": "Ordner öffnen",
     "newConversation": "Neuer Chat",
     "selectModel": "Modell auswählen",
@@ -30,6 +30,7 @@
     "saveName": "Speichern",
     "cancelEdit": "Abbrechen",
     "rename": "Umbenennen",
+    "createCronTask": "Geplante Aufgabe erstellen",
     "renameTitle": "Chat umbenennen",
     "renamePlaceholder": "Bitte neuen Namen eingeben",
     "renameSuccess": "Erfolgreich umbenannt",
@@ -72,7 +73,10 @@
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
-    "deleting": "Wird gelöscht..."
+    "deleting": "Wird gelöscht...",
+    "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
+    "forkedFrom": "Verzweigt von „{{name}}“",
+    "forkedConversation": "Verzweigte Unterhaltung"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -414,7 +418,8 @@
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "Datei-Explorer"
+      "explorer": "Datei-Explorer",
+      "browser": "Browser"
     }
   },
   "minimap": {
@@ -507,7 +512,15 @@
     }
   },
   "contextUsage": {
-    "contextUsed": "Kontext verwendet"
+    "contextUsed": "Kontext verwendet",
+    "tokensUsed": "{{tokens}} Tokens verwendet",
+    "windowUnknown": "Kontextfenstergröße unbekannt",
+    "sessionCost": "Sitzungskosten",
+    "input": "Eingabe",
+    "output": "Ausgabe",
+    "thought": "Denken",
+    "cachedRead": "Cache-Lesen",
+    "cachedWrite": "Cache-Schreiben"
   },
   "skill_generator": {
     "title": "Skill/Regel generieren",
@@ -554,12 +567,19 @@
     "sendboxHint": "Laufzeit-Umgebung wird vorbereitet. Der erste Start kann etwas länger dauern."
   },
   "sendbox": {
-    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren"
+    "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
+    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
   },
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt."
+      },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Wenn Sie bereits angemeldet sind, kann es sich um ein vorübergehendes Backend- oder Verbindungsproblem handeln – versuchen Sie es erneut oder starten Sie eine neue Unterhaltung. Wenn Sie noch nicht angemeldet sind, können Sie sich anmelden – {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Diese Anfrage hat keine sichtbare Antwort erzeugt. Die aktuelle Unterhaltung nähert sich möglicherweise der Kontextlängenbegrenzung – versuchen Sie es erneut oder starten Sie eine neue Unterhaltung und versuchen Sie es noch einmal."
       },
       "ACP_EMPTY_TURN_MAX_TOKENS": {
         "body": "Diese Anfrage hat das Ausgabe-Token-Limit des Modells erreicht, bevor eine sichtbare Antwort erzeugt wurde."
@@ -569,8 +589,136 @@
       },
       "ACP_EMPTY_TURN_REFUSAL": {
         "body": "Das Modell hat diese Anfrage abgelehnt, bevor eine sichtbare Antwort erzeugt wurde."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} Schritt(e) sind fehlgeschlagen und wurden NICHT ausgeführt. agy schließt solche Durchläufe trotzdem als erfolgreich ab – prüfe daher das tatsächliche Ergebnis statt der Antwort."
+      },
+      "CLI_VERSION_OLDER": {
+        "body": "Das installierte {{cli}} ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade von {{cli}} wird empfohlen. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+      },
+      "CLI_VERSION_NEWER": {
+        "body": "Das installierte {{cli}} ist neuer als die von AionUi verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AionUi wartet ab.)"
       }
     }
   },
-  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht"
+  "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht",
+  "explorer": {
+    "addFolder": "Add folder to project",
+    "removeFolder": "Remove from project",
+    "attachDuplicate": "This folder is already in the project",
+    "attachOverlap": "This folder overlaps a folder already in the project",
+    "attachFailed": "Couldn't add the folder",
+    "removeFailed": "Couldn't remove the folder",
+    "contextMenu": {
+      "rename": "Umbenennen",
+      "addToChat": "Zum Chat hinzufügen",
+      "copyRelativePath": "Relativen Pfad kopieren",
+      "copyAbsolutePath": "Absoluten Pfad kopieren"
+    },
+    "namePlaceholder": "Name",
+    "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+    "renameFailed": "Umbenennen fehlgeschlagen",
+    "tabs": {
+      "files": "Dateien",
+      "changes": "Änderungen"
+    },
+    "addedToChat": "{{name}} zum Chat hinzugefügt",
+    "imported": "{{count}} Datei(en) importiert",
+    "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
+    "importFailed": "Import der Dateien fehlgeschlagen",
+    "search": {
+      "placeholder": "Dateien nach Name suchen",
+      "searching": "Suche läuft…",
+      "empty": "Keine passenden Dateien",
+      "limitReached": "Erste {{count}} werden angezeigt — eingrenzen"
+    },
+    "scm": {
+      "notARepository": "Dieser Ordner steht nicht unter Versionskontrolle",
+      "noChanges": "Keine Änderungen",
+      "loading": "Änderungen werden geladen…",
+      "loadFailed": "Änderungen konnten nicht geladen werden",
+      "refresh": "Aktualisieren",
+      "groups": {
+        "staged": "Vorgemerkte Änderungen",
+        "unstaged": "Änderungen",
+        "changes": "Änderungen",
+        "blocked": "Muss gelöst werden"
+      },
+      "sections": {
+        "repositories": "Repositorys",
+        "changes": "Änderungen"
+      },
+      "viewAsTree": "Als Baum anzeigen",
+      "viewAsList": "Als Liste anzeigen",
+      "worktree": "Worktree",
+      "expandWorktrees": "Worktrees anzeigen",
+      "collapseWorktrees": "Worktrees ausblenden",
+      "state": {
+        "created": "Hinzugefügt",
+        "modified": "Geändert",
+        "deleted": "Gelöscht",
+        "renamed": "Umbenannt",
+        "conflicted": "Konflikt",
+        "unknown": "Unbekannter Status"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Lösen Sie diesen Konflikt zuerst außerhalb von AionUi",
+      "opaqueHint": "Dieser Status kommt von einem neueren Backend — nur lesend angezeigt",
+      "degraded": "Die Aktualisierung läuft langsamer, weil der git-Index nicht geschrieben werden kann",
+      "truncated": "Zu viele Änderungen — nur der erste Teil wird angezeigt",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Unterschiede werden geladen…",
+        "failed": "Unterschiede konnten nicht geladen werden",
+        "binary": "Binärdatei — kein Textvergleich",
+        "truncated": "Unterschiede gekürzt (große Datei)",
+        "empty": "Keine textlichen Änderungen",
+        "close": "Unterschiede schließen"
+      },
+      "actions": {
+        "stage": "Änderungen vormerken",
+        "unstage": "Vormerkung aufheben",
+        "discard": "Änderungen verwerfen",
+        "stageAll": "Alle vormerken",
+        "unstageAll": "Alle Vormerkungen aufheben",
+        "blockedHint": "Lösen Sie den Konflikt außerhalb von AionUi, bevor Sie vormerken oder verwerfen",
+        "confirmDiscardTitle": "Änderungen verwerfen?",
+        "confirmDiscardTracked": "Die Änderungen an {{count}} Dateien gehen verloren. Das kann nicht rückgängig gemacht werden.",
+        "confirmDiscardUntracked": "{{count}} neue Dateien werden in den Papierkorb verschoben.",
+        "confirmDiscardMixed": "Änderungen an {{tracked}} Datei(en) gehen unwiderruflich verloren; {{untracked}} neue Datei(en) landen im Papierkorb.",
+        "discardConfirmButton": "Verwerfen",
+        "okStage": "{{count}} Dateien vorgemerkt",
+        "okUnstage": "Vormerkung für {{count}} Dateien aufgehoben",
+        "okDiscard": "{{count}} Dateien verworfen",
+        "partial": "{{succeeded}} von {{total}} erledigt —— {{failed}} konnten nicht abgeschlossen werden",
+        "partialDetail": "Nicht abgeschlossen: {{files}}",
+        "rejectedBlocked": "Es wurde nichts geändert —— lösen Sie zuerst den Konflikt",
+        "rejectedUnsupported": "Dieses Repository unterstützt diese Aktion nicht",
+        "rejectedFailed": "Die Aktion konnte nicht abgeschlossen werden",
+        "retry": "Wiederholen",
+        "notSent": "Die Anfrage hat das Backend nicht erreicht — es wurde nichts geändert. Sie können es erneut versuchen.",
+        "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
+        "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
+      }
+    },
+    "pathCopied": "Pfad kopiert",
+    "copyFailed": "Pfad konnte nicht kopiert werden"
+  },
+  "terminal": {
+    "running": "Läuft",
+    "stopped": "Gestoppt",
+    "exited": "Exit {{code}}",
+    "stop": "Stopp",
+    "truncated": "(frühere Ausgabe gekürzt)"
+  }
 }

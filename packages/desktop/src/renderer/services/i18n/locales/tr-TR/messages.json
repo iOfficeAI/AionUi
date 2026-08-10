@@ -16,6 +16,11 @@
   "downloadFailed": "İndirme başarısız",
   "imageLoadFailed": "Görüntü yüklenemedi",
   "scrollToBottom": "Aşağı kaydır",
+  "anchorRail": {
+    "label": "Sohbet mesajı bağlantı noktaları",
+    "tickAria": "{{index}}. mesaja git",
+    "searchAria": "Sohbette ara"
+  },
   "availableCommands": "{{count}} Kullanılabilir Komut",
   "atFile.hint": "Dosya aramak için yazın",
   "atFile.menuLabel": "Dosya bahsetmeleri",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "Seçenek yok",
   "processing": "İşleniyor...",
   "responseSentSuccessfully": "Yanıt başarıyla gönderildi",
+  "permissionResponseFailed": "Yanıt gönderilemedi. Lütfen tekrar deneyin.",
   "confirmation": {
     "applyChange": "Bu değişikliği uygula?",
     "allowExecution": "Yürütmeye izin ver?",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "Evet, \"{{serverName}}\" sunucusundan \"{{toolName}}\" aracına her zaman izin ver",
     "yesAlwaysAllowServer": "Evet, \"{{serverName}}\" sunucusundaki tüm araçlara her zaman izin ver",
     "no": "Hayır (esc)"
-  }
+  },
+  "fork": {
+    "action": "Buradan çatalla",
+    "errorTurnInFlight": "Çatallamadan önce mevcut yanıtın bitmesini bekleyin",
+    "errorParentUnbound": "Bu konuşmanın henüz çatallanacak bir arka uç oturumu yok",
+    "errorPointUnsupported": "Bu ajan yalnızca en son mesajdan çatallayabilir",
+    "errorUnsupported": "Bu ajan çatallamayı desteklemiyor",
+    "errorGeneric": "Çatallama başarısız: {{message}}"
+  },
+  "askSubmit": "Gönder",
+  "askDecline": "Yanıtlama",
+  "askAnswered": "Yanıtlandı",
+  "askDeclined": "Atlandı",
+  "askOther": "Diğer",
+  "askOtherPlaceholder": "Yanıtınızı yazın",
+  "requestDetails": "İstek ayrıntıları:"
 }

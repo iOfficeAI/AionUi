@@ -27,6 +27,25 @@
     "batchDeleteConfirmContent": "Möchten Sie die {{count}} ausgewählten Skills wirklich löschen?",
     "batchDeleteSuccess": "{{count}} Skill(s) gelöscht",
     "batchDeletePartial": "{{successCount}} Skill(s) gelöscht, {{failedCount}} fehlgeschlagen",
+    "detailBackToList": "Alle Skills",
+    "detailTitle": "Skill-Details",
+    "detailNotFound": "Skill nicht gefunden. Er wurde möglicherweise gelöscht.",
+    "detailInfoTitle": "Skill-Informationen",
+    "detailNoDescription": "Keine Beschreibung.",
+    "detailAddAssistant": "An Assistenten anhängen",
+    "detailDetach": "Entfernen",
+    "detailAttachSuccess": "Assistenten aktualisiert",
+    "detailAttachError": "Assistenten konnten nicht aktualisiert werden",
+    "detailUsedByTitle": "Verwendet von",
+    "detailUsedByEmpty": "Noch kein Assistent verwendet diesen Skill.",
+    "detailBuiltinAssistant": "Integriert",
+    "detailFilesTitle": "Skill-Dateien",
+    "detailFilesError": "Die Dateien dieses Skills konnten nicht geladen werden.",
+    "editViaChat": {
+      "buttonLabel": "Per Chat bearbeiten",
+      "defaultPrompt": "Ich möchte diesen Skill verbessern: {{skillName}}\n\nBitte prüfe den Inhalt und hilf mir, ihn zu verbessern. Meine Änderungsvorschläge sind:"
+    },
+    "usedByCount": "Von {{count}} Assistent(en) verwendet",
     "manageInHub": "Im Skills-Hub verwalten",
     "recommend": "Skills empfehlen",
     "recommendSuccess": "Erfolgreich empfohlen: {{count}} Skills basierend auf Regeln ausgewählt",
@@ -92,7 +111,8 @@
     "officialSkillsEmpty": "Keine offiziellen Skills verfügbar.",
     "noSearchResults": "Keine passenden Skills.",
     "customHint": "Importiere einen Skill-Ordner, übergeordneten Ordner oder eine Zip-Datei; max. {{maxFileSize}} pro Datei und {{maxTotalSize}} pro Skill; ein gleichnamiger Import überschreibt den vorhandenen Skill.",
-    "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert."
+    "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert.",
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
   },
   "authMethod": "Authentifizierung",
   "geminiApiKey": "Gemini-API-Schlüssel",
@@ -148,7 +168,8 @@
   "assistantGoChat": "Chat",
   "assistantReorderHint": "Zum Umsortieren ziehen — das bestimmt die Anzeigereihenfolge überall dort, wo du einen Assistenten auswählst (Startseite, Teams, geplante Aufgaben…).",
   "assistantReorderHintShort": "Zum Umsortieren ziehen",
-  "myAssistantsHintShort": "Assistenten, die automatisch aus deinen lokalen CLIs erzeugt wurden, sowie selbst erstellte oder von offiziellen duplizierte. Ziehe sie, um die Anzeigereihenfolge zu ändern.",
+  "assistantReorderSearchDisabled": "Leere die Suche, um die Reihenfolge zu ändern.",
+  "myAssistantsHintShort": "Assistenten, die automatisch aus deinen lokalen CLIs erzeugt wurden, sowie selbst erstellte oder von offiziellen duplizierte.",
   "assistantGroupCli": "CLI-Assistenten",
   "assistantGroupCreated": "Benutzerdefinierte Assistenten",
   "myAssistantsEmpty": "Hier gibt es noch keine Assistenten. Aktiviere einen offiziellen Assistenten oder verbinde ein lokales CLI-Tool.",
@@ -292,8 +313,6 @@
   "cacheClearFailed": "Cache leeren fehlgeschlagen",
   "language": "Sprache",
   "saveUploadToWorkspace": "Uploads im Arbeitsbereich speichern",
-  "autoPreviewOfficeFiles": "Neue Office-Dateien automatisch vorschau",
-  "autoPreviewOfficeFilesDesc": "Neu erstellte Word-, Excel- und PowerPoint-Dateien im aktuellen Arbeitsbereich automatisch öffnen. Office-temporäre Sperrdateien werden ignoriert.",
   "startOnBoot": "Beim Start ausführen",
   "startOnBootDesc": "AionUi automatisch starten, wenn du dich bei macOS oder Windows anmeldest.",
   "startOnBootUnsupported": "Nur in gepackten macOS- und Windows-Apps verfügbar.",
@@ -302,6 +321,8 @@
   "hardwareAcceleration": "Hardware-Beschleunigung",
   "hardwareAccelerationDesc": "GPU zur Darstellung der UI verwenden. Deaktivieren, wenn die App beim Start abstürzt oder Grafikflimmern auftritt.",
   "hardwareAccelerationAutoDisabled": "Nach wiederholten GPU-Abstürzen automatisch deaktiviert.",
+  "hardwareAccelerationAutoDisabledTitle": "Hardwarebeschleunigung deaktiviert",
+  "hardwareAccelerationAutoDisabledNotice": "Wiederholte Grafikabstürze wurden erkannt, daher wurde die Hardwarebeschleunigung automatisch deaktiviert, um die App stabil zu halten. Sie können sie unter Einstellungen → System wieder aktivieren.",
   "hardwareAccelerationRestartConfirm": "AionUi neu starten, um die neue Einstellung für Hardware-Beschleunigung anzuwenden?",
   "hardwareAccelerationUpdateFailed": "Hardware-Beschleunigung konnte nicht aktualisiert werden",
   "notification": "Benachrichtigungen",
@@ -312,6 +333,8 @@
   "groupAbout": "Sonstiges",
   "agentIdleTimeout": "Agenten-Leerlaufzeitüberschreitung (Min.)",
   "agentIdleTimeoutDesc": "Inaktive Agentenprozesse nach dieser Dauer beenden, um Speicher freizugeben",
+  "previewTextSizeLimit": "Vorschau-Größenlimit (MB)",
+  "previewTextSizeLimitDesc": "Textdateien über dieser Größe werden mit einem Hinweis statt mit Inhalt geöffnet. Gilt nur für neu geöffnete Tabs.",
   "gemini": "Gemini CLI",
   "model": "Modell",
   "system": "System",
@@ -361,6 +384,19 @@
   "platformNewApi": "Neue API",
   "modelProtocol": "Anfrage-Protokoll",
   "modelProtocolTip": "Wähle das API-Anfrageformat für dieses Modell. Das new-api-Gateway leitet zum Upstream unter Verwendung des ausgewählten Protokolls weiter.",
+  "configureModel": "Modell konfigurieren",
+  "modelSettingAuto": "Automatisch (empfohlen)",
+  "imageInput": "Bildeingabe",
+  "imageInputAuto": "Automatisch erkennen",
+  "imageInputSupported": "Durch Konfiguration aktiviert",
+  "imageInputUnsupported": "Durch Konfiguration deaktiviert",
+  "imageInputTip": "Automatisch verwendet die Modellerkennung aus dem Katalog. Nur zum Überschreiben explizit aktivieren oder deaktivieren.",
+  "openAiApiMode": "OpenAI-Anfrage-API",
+  "openAiApiModeAuto": "API · Automatisch",
+  "openAiApiModeChatCompletions": "Chat Completions",
+  "openAiApiModeResponses": "Responses",
+  "openAiApiModeTip": "Nur für Modelle mit OpenAI-kompatiblem Protokoll verfügbar.",
+  "modelSettingsApplyToSelected": "Diese Einstellungen gelten für alle ausgewählten Modelle und können später einzeln geändert werden.",
   "platformBedrock": "AWS Bedrock",
   "bedrock": {
     "authMethod": "Authentifizierungsmethode",
@@ -943,7 +979,25 @@
     "autoFollowCliModel": "Modell automatisch folgen, wenn CLI läuft",
     "agentSwitched": "Agent erfolgreich gewechselt",
     "modelSwitched": "Modell erfolgreich gewechselt",
-    "name": "Assistent"
+    "name": "Assistent",
+    "slackBotToken": "Bot-Token",
+    "slackBotTokenDesc": "Erstelle eine Slack-App, installiere sie in deinem Workspace und kopiere dann das Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Bitte gib ein Bot-Token (xoxb-) ein",
+    "slackBotTokenPrefix": "Das Bot-Token sollte mit „xoxb-\" beginnen",
+    "slackAppToken": "App-Level-Token",
+    "slackAppTokenDesc": "Aktiviere den Socket Mode und erstelle ein App-Level-Token mit dem Scope connections:write (xapp-).",
+    "slackAppTokenRequired": "Bitte gib ein App-Level-Token (xapp-) ein",
+    "slackAppTokenPrefix": "Das App-Level-Token sollte mit „xapp-\" beginnen",
+    "slackTokensRequired": "Bitte gib zuerst deine Slack-Tokens ein und teste sie",
+    "slackPluginEnabled": "Slack-Bot aktiviert",
+    "slackPluginDisabled": "Slack-Bot deaktiviert",
+    "agentDescSlack": "Wird für Slack-Unterhaltungen verwendet",
+    "defaultModelDescSlack": "Für Slack-Unterhaltungen verwendetes Modell",
+    "slackStep1": "Öffne Slack und erwähne deinen Bot in einem Channel oder sende ihm eine DM",
+    "slackStep2": "Sende eine beliebige Nachricht oder @-Erwähnung, um das Pairing zu starten",
+    "slackStep3": "Eine Pairing-Anfrage erscheint unten. Klicke auf „Genehmigen\", um den Benutzer zu autorisieren.",
+    "slackStep4": "Nach der Genehmigung kannst du in Slack mit dem Assistenten chatten!",
+    "unknownUser": "Unbekannter Benutzer"
   },
   "lark": {
     "appId": "App-ID",
@@ -1132,8 +1186,12 @@
       "command_missing": "Install {{command}} and retry the connection test.",
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
-      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test."
-    }
+      "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
+      "version_drift_older": "Die installierte CLI ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade wird empfohlen.",
+      "version_drift_newer": "Die installierte CLI ist neuer als die von AionUi verifizierte Version. Sie sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten."
+    },
+    "searchPlaceholder": "Agenten suchen...",
+    "noSearchResults": "Keine passenden Agenten."
   },
   "remoteAgent": {
     "title": "Remote-Agenten",
@@ -1224,8 +1282,10 @@
       "addMcp": "Hilf mir, einen MCP-Server einzurichten.",
       "addSkill": "Hilf mir, einen Skill zu importieren und einem Assistenten zuzuordnen.",
       "setupRemote": "Hilf mir, den Fernzugriff einzurichten, damit ich AionUi vom Handy oder über das Internet öffnen kann.",
-      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
-    }
+      "diagnose": "Ich habe ein Problem mit AionUi, hilf mir bei der Diagnose.\n\n[Modul] {{module}}\n[Beschreibung] {{description}}\n[Anhänge] siehe die Screenshots im Eingabefeld.\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe.",
+      "diagnoseChatError": "Während einer Unterhaltung in AionUi ist ein Fehler aufgetreten, hilf mir bei der Diagnose.\n\n[Fehler] {{error}}\n\nBitte diagnostiziere die Ursache und sag mir, wie ich es behebe."
+    },
+    "solveWithButler": "Butler fragen"
   },
   "browserNotification": {
     "enable": "Enable browser notifications",
@@ -1250,6 +1310,8 @@
     "offlineHint": "The command was found but the connection failed. Check the error above, then adjust the launch path or environment variables below.",
     "missingTitle": "Not detected",
     "missingHint": "The command wasn't found on the default path. If it is installed, specify its full launch path below.",
+    "uncheckedTitle": "Noch nicht geprüft",
+    "uncheckedHint": "Dieser Agent wurde noch nicht auf eine Verbindung getestet. Klicken Sie oben rechts auf „Test Connection“, um ihn zu prüfen.",
     "envScenariosTitle": "Configuring environment variables can fix:",
     "envScenarioApiKey": "Missing API key or access token (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY) — the common cause of \"needs sign-in\" / connection failures",
     "envScenarioBaseUrl": "Custom API endpoint or gateway (e.g. ANTHROPIC_BASE_URL, OPENAI_BASE_URL) for self-hosted or proxied services",
@@ -1258,5 +1320,19 @@
     "emptyOverridesError": "Enter a launch path or at least one environment variable before saving."
   },
   "providerIdConflict": "Provider-ID existiert bereits. Bitte erneut versuchen.",
-  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt."
+  "autoInjectedSkillsHint": "Werden automatisch in jede Unterhaltung geladen – kein Aktivieren nötig; der Agent entscheidet, wann er sie nutzt.",
+  "browserData": {
+    "title": "Integrierter Browser",
+    "agentControlLabel": "Agent darf den integrierten Browser bedienen",
+    "agentControlDesc": "Wenn aktiviert, kann der Agent im integrierten Browser Seiten öffnen, klicken und Formulare für Sie ausfüllen – etwa um etwas zu recherchieren oder einen Ablauf auf einer Website abzuschließen. Er kann ausschließlich diese eine Browseransicht steuern: die AionUi-Oberfläche selbst bleibt unerreichbar, und es wird nie ein separates Chrome-Fenster geöffnet. Ist die Option aus, können Sie den Browser weiterhin selbst nutzen; nur der Agent verliert den Zugriff.",
+    "agentControlSaved": "Einstellung gespeichert",
+    "agentControlFailed": "Einstellung konnte nicht gespeichert werden",
+    "agentControlRestartRequired": "Diese Einstellung wird nach einem Neustart der App wirksam.",
+    "clearLabel": "Browserdaten löschen",
+    "clearDesc": "Meldet dich von allen Websites ab, bei denen der Browser angemeldet ist, und löscht den Cache. Offene Tabs wirken nach dem Neuladen.",
+    "clearConfirmTitle": "Browserdaten löschen?",
+    "clearConfirmContent": "Du wirst von allen Websites im integrierten Browser abgemeldet. Das kann nicht rückgängig gemacht werden.",
+    "clearSuccess": "Browserdaten gelöscht",
+    "clearFailed": "Browserdaten konnten nicht gelöscht werden"
+  }
 }

@@ -80,8 +80,6 @@ files:
   # Exclude large packages
   - '!**/node_modules/{@img,@emnapi}/**'
   - '!**/node_modules/@img/sharp-*/**'
-  - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
-  - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
   # Exclude JAR files and JNI libraries that cause notarization issues
   - '!**/*.jar'
   - '!**/*.jnilib'
@@ -207,6 +205,7 @@ asarUnpack:
   - '**/node_modules/tree-sitter-bash/**/*'
   # Builtin MCP server scripts must be unpacked so external node processes can execute them
   - 'out/main/builtin-mcp-image-gen.js'
+  - 'out/main/builtin-mcp-browser.js'
   - 'out/main/team-mcp-stdio.js'
 
 # Compression level: normal for faster builds, maximum for smallest size

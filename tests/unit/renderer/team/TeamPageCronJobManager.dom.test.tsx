@@ -80,6 +80,7 @@ vi.mock('@/common', () => ({
       childTurnStarted: makeTeamEventChannel('childTurnStarted'),
       childTurnCompleted: makeTeamEventChannel('childTurnCompleted'),
       childTurnCancelled: makeTeamEventChannel('childTurnCancelled'),
+      slotWorkChanged: makeTeamEventChannel('slotWorkChanged'),
       listChanged: makeTeamEventChannel('listChanged'),
     },
     cron: {
@@ -89,6 +90,7 @@ vi.mock('@/common', () => ({
       list: { invoke: vi.fn(async () => []) },
     },
     conversation: {
+      listChanged: makeTeamEventChannel('conversationListChanged'),
       confirmation: {
         list: { invoke: vi.fn(async () => []) },
         add: makeTeamEventChannel('confirmationAdd'),
@@ -137,6 +139,10 @@ vi.mock('@/renderer/pages/cron', () => ({
     cronJobManagerMock(props);
     return <div data-testid={`team-cron-job-manager-${props.conversation_id}`} />;
   },
+}));
+
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({ closePreview: () => {}, closePreviewIfScopeChanged: () => {} }),
 }));
 
 import { ipcBridge } from '@/common';

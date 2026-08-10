@@ -137,6 +137,9 @@ function formatBytes(bytes: number, decimals = 2): string {
 /** 支持的图片文件扩展名 */
 export const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
 
+/** 支持的音频文件扩展名 */
+export const audioExts = ['.mp3', '.wav', '.m4a', '.ogg', '.flac'];
+
 /** 支持的文档文件扩展名 */
 export const documentExts = ['.pdf', '.doc', '.docx', '.pptx', '.xlsx', '.odt', '.odp', '.ods'];
 
@@ -171,7 +174,7 @@ export const textExts = [
 ];
 
 /** 所有支持的文件扩展名（预先设计，当前实际接受所有文件类型） */
-export const allSupportedExts = [...imageExts, ...documentExts, ...textExts];
+export const allSupportedExts = [...imageExts, ...audioExts, ...documentExts, ...textExts];
 
 // 文件元数据接口
 export interface FileMetadata {
@@ -263,8 +266,11 @@ export function getTextFromDropEvent(event: DragEvent): string {
 }
 
 // 格式化文件大小（使用统一的formatBytes实现）
-export function formatFileSize(bytes: number): string {
-  return formatBytes(bytes, 2); // 保持2位精度以兼容之前的行为
+// `decimals` defaults to 2 to preserve the previous behaviour; callers that must
+// distinguish two nearby sizes (e.g. "just over the 1 MB limit" vs "1 MB") can ask
+// for more precision.
+export function formatFileSize(bytes: number, decimals = 2): string {
+  return formatBytes(bytes, decimals);
 }
 
 /**
@@ -299,13 +305,16 @@ export function isTextFile(file_name: string): boolean {
 
 class FileServiceClass {
   /**
-   * Process files from drag and drop events, uploading any file that lacks a
-   * native disk path via HTTP multipart.
+   * Process files from drag/drop, paste, or the attach button, uploading each
+   * via HTTP multipart and returning the backend's managed stored path.
    *
-   * In Electron, files dragged from the OS file manager already expose an
-   * absolute `path`, so we skip upload for those. Anything without a path
-   * (WebUI, synthetic File objects, browser-sourced drags) is uploaded to the
-   * backend, which returns the absolute stored path.
+   * Every file is uploaded — even Electron OS drags that expose an absolute
+   * `path`. The chat send contract sends attachments as `upload` refs, and the
+   * backend rejects any upload path that is not under its managed upload
+   * directory (`temp_dir/aionui/...`). Passing the raw device path (the old
+   * behaviour) now fails with "uploaded file path is outside the managed upload
+   * directory", so we always route through the upload endpoint to obtain a
+   * managed path.
    */
   async processDroppedFiles(
     files: FileList,
@@ -316,41 +325,35 @@ class FileServiceClass {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // In Electron environment, dragged files have additional path property
-      const electronFile = file as File & { path?: string };
 
-      let file_path = electronFile.path || '';
-
-      // If no valid path (WebUI or some dragged files may not have paths), upload via HTTP multipart
-      if (!file_path) {
-        // Each upload owns its own AbortController; the tracker exposes an `abort()`
-        // that triggers the signal so user-driven cancel and conversation-switch
-        // bulk-abort go through the same path.
-        const controller = new AbortController();
-        const tracker = trackUpload(file.size, {
-          source,
-          name: file.name,
-          conversationId: conversation_id || undefined,
-          onAbort: () => controller.abort(),
+      // Each upload owns its own AbortController; the tracker exposes an `abort()`
+      // that triggers the signal so user-driven cancel and conversation-switch
+      // bulk-abort go through the same path.
+      const controller = new AbortController();
+      const tracker = trackUpload(file.size, {
+        source,
+        name: file.name,
+        conversationId: conversation_id || undefined,
+        onAbort: () => controller.abort(),
+      });
+      let file_path = '';
+      try {
+        file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
+          signal: controller.signal,
         });
-        try {
-          file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
-            signal: controller.signal,
-          });
-        } catch (error) {
-          // Re-throw size errors so caller can show user-facing toast
-          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
-            throw error;
-          }
-          if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
-            // User-initiated abort: drop this file silently (the UI already reflects it).
-            continue;
-          }
-          console.error('Failed to upload dragged file:', error);
-          continue;
-        } finally {
-          tracker.finish();
+      } catch (error) {
+        // Re-throw size errors so caller can show user-facing toast
+        if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+          throw error;
         }
+        if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
+          // User-initiated abort: drop this file silently (the UI already reflects it).
+          continue;
+        }
+        console.error('Failed to upload file:', error);
+        continue;
+      } finally {
+        tracker.finish();
       }
 
       processedFiles.push({

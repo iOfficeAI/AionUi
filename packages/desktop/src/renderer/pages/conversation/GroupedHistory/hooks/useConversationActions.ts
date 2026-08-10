@@ -6,7 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { requestConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
@@ -231,6 +233,31 @@ export const useConversationActions = ({
     setDropdownVisibleId(conversation.id);
   }, []);
 
+  const handleCreateCronTask = useCallback(
+    (conversation: TChatConversation) => {
+      const prefillPrompt = t('cron.status.defaultPrompt');
+      setDropdownVisibleId(null);
+
+      if (isLegacyReadOnlyConversationType(conversation.type)) {
+        void navigate('/guid', {
+          state: {
+            prefillPrompt,
+            preservePrefillDraft: true,
+            focusPrefill: true,
+          },
+        });
+      } else {
+        requestConversationSendBoxPrefill(conversation.id, prefillPrompt);
+        if (id !== conversation.id) {
+          void navigate(`/conversation/${conversation.id}`);
+        }
+      }
+
+      onSessionClick?.();
+    },
+    [id, navigate, onSessionClick, t]
+  );
+
   /**
    * Remove project state — rendered via AionModal in the GroupedHistory component.
    * Uses project's design system: AionModal component with danger-styled action button.
@@ -291,6 +318,7 @@ export const useConversationActions = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleCreateCronTask,
     handleRemoveProject,
     removeProjectTarget,
     removeProjectLoading,

@@ -16,6 +16,11 @@
   "downloadFailed": "Download fehlgeschlagen",
   "imageLoadFailed": "Bild konnte nicht geladen werden",
   "scrollToBottom": "Nach unten scrollen",
+  "anchorRail": {
+    "label": "Anker für Unterhaltungsnachrichten",
+    "tickAria": "Zu Nachricht {{index}} springen",
+    "searchAria": "Unterhaltung durchsuchen"
+  },
   "availableCommands": "{{count}} verfügbare Befehle",
   "atFile.hint": "Zum Suchen nach Dateien tippen",
   "atFile.menuLabel": "Dateierwähnungen",
@@ -56,6 +61,7 @@
   "noOptionsAvailable": "Keine Optionen verfügbar",
   "processing": "Wird verarbeitet...",
   "responseSentSuccessfully": "Antwort erfolgreich gesendet",
+  "permissionResponseFailed": "Antwort konnte nicht gesendet werden. Bitte erneut versuchen.",
   "confirmation": {
     "applyChange": "Diese Änderung anwenden?",
     "allowExecution": "Ausführung erlauben?",
@@ -66,5 +72,20 @@
     "yesAlwaysAllowTool": "Ja, Tool \"{{toolName}}\" vom Server \"{{serverName}}\" immer erlauben",
     "yesAlwaysAllowServer": "Ja, alle Tools vom Server \"{{serverName}}\" immer erlauben",
     "no": "Nein (Esc)"
-  }
+  },
+  "fork": {
+    "action": "Ab hier verzweigen",
+    "errorTurnInFlight": "Warten Sie, bis die aktuelle Antwort abgeschlossen ist, bevor Sie verzweigen",
+    "errorParentUnbound": "Diese Unterhaltung hat noch keine Backend-Sitzung zum Verzweigen",
+    "errorPointUnsupported": "Dieser Agent kann nur ab der neuesten Nachricht verzweigen",
+    "errorUnsupported": "Dieser Agent unterstützt kein Verzweigen",
+    "errorGeneric": "Verzweigen fehlgeschlagen: {{message}}"
+  },
+  "askSubmit": "Absenden",
+  "askDecline": "Nicht beantworten",
+  "askAnswered": "Beantwortet",
+  "askDeclined": "Übersprungen",
+  "askOther": "Andere",
+  "askOtherPlaceholder": "Antwort eingeben",
+  "requestDetails": "Anfragedetails:"
 }

@@ -14,6 +14,9 @@ const STATUS_CONFIG: Record<TeammateStatus, { color: string }> = {
   active: { color: 'bg-green-500' },
   completed: { color: 'bg-gray-400' },
   failed: { color: 'bg-red-500' },
+  // Dormant = never woken (leader-only warmup). Hollow/outlined dot reads as
+  // "asleep", visually distinct from idle's solid gray.
+  dormant: { color: 'bg-transparent border border-solid border-gray-400' },
 };
 
 const FALLBACK_COLOR = 'bg-gray-400';

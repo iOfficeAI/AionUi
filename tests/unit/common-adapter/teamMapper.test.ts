@@ -22,10 +22,16 @@ describe('teamMapper', () => {
       ['tool_use', 'active'],
       ['completed', 'completed'],
       ['error', 'failed'],
+      ['dormant', 'dormant'],
       ['unknown', 'idle'],
       [undefined, 'idle'],
     ] as const)('maps backend status %s to UI status %s', (raw, expected) => {
       expect(normalizeTeamStatus(raw)).toBe(expected);
+    });
+
+    it('passes dormant through without collapsing to idle', () => {
+      expect(normalizeTeamStatus('dormant')).toBe('dormant');
+      expect(normalizeTeamStatus('idle')).toBe('idle');
     });
   });
 

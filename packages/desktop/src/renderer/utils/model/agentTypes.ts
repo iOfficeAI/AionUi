@@ -177,6 +177,27 @@ export async function fetchManagedAgents(): Promise<ManagedAgent[]> {
   return [];
 }
 
+/**
+ * Lowercased haystack for agent search inputs. Every agent-picking surface
+ * (Agent settings page, home-page assistant dropdown) must match on the same
+ * fields, so a query like "ag" finds Antigravity via its `agy` command on all
+ * of them.
+ */
+export function managedAgentSearchText(agent: ManagedAgent, language: string): string {
+  return [
+    agent.name,
+    agent.name_i18n?.[language],
+    agent.description,
+    agent.description_i18n?.[language],
+    agent.backend,
+    agent.command,
+    agent.agent_source_info?.binary_name,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
 const getAgentManagementErrorDetails = (details: unknown): AgentManagementErrorDetails => {
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return {};
@@ -216,6 +237,21 @@ export function formatManagedAgentDiagnosticMessage(t: TFunction, agent: Managed
         resource,
         defaultValue: fallback,
       });
+    // NOT failures: the agent probed online and works, the installed CLI just
+    // differs from the build it was verified against. The two version numbers
+    // arrive in `last_check_error_message` and are appended rather than
+    // interpolated — the availability snapshot has no structured params column
+    // to carry them, and they are the part the user acts on, so they have to
+    // survive translation.
+    case 'version_drift_older':
+    case 'version_drift_newer': {
+      const explanation = t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {
+        defaultValue: agent.last_check_guidance || '',
+      });
+      const versions = agent.last_check_error_message?.trim();
+      if (!explanation) return versions || fallback;
+      return versions ? `${explanation}（${versions}）` : explanation;
+    }
     default:
       return fallback;
   }

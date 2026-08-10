@@ -10,11 +10,12 @@ import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TokenUsageData } from '@/common/config/storage';
+import type { TokenUsageBreakdown, TokenUsageData } from '@/common/config/storage';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import { beginConversationTurn, endConversationTurn } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +28,12 @@ export type UseAcpMessageReturn = {
   acpStatus: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null;
   aiProcessing: boolean;
   setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Absolute start timestamp (ms) of the in-flight turn, persisted per
+   * conversation so the elapsed indicator survives conversation switches.
+   * Null when no turn is running.
+   */
+  turnStartedAtMs: number | null;
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
   context_limit: number;
@@ -34,6 +41,43 @@ export type UseAcpMessageReturn = {
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
 };
+
+const BREAKDOWN_KEYS = [
+  'input_tokens',
+  'output_tokens',
+  'thought_tokens',
+  'cached_read_tokens',
+  'cached_write_tokens',
+] as const;
+
+/**
+ * Convert an ACP UsageUpdate payload (live acp_context_usage frame or
+ * GET /usage snapshot — same shape) into TokenUsageData. Per-turn counters
+ * ride under `_meta`; cost is the agent's cumulative session cost.
+ */
+export function tokenUsageFromAcpUsage(data: {
+  used: number;
+  cost?: { amount: number; currency: string };
+  _meta?: Record<string, unknown>;
+}): TokenUsageData {
+  const usage: TokenUsageData = { total_tokens: data.used };
+  if (data.cost && typeof data.cost.amount === 'number' && data.cost.amount > 0) {
+    usage.cost = { amount: data.cost.amount, currency: data.cost.currency || 'USD' };
+  }
+  if (data._meta) {
+    const breakdown: TokenUsageBreakdown = {};
+    for (const key of BREAKDOWN_KEYS) {
+      const value = data._meta[key];
+      if (typeof value === 'number' && value >= 0) {
+        breakdown[key] = value;
+      }
+    }
+    if (Object.keys(breakdown).length > 0) {
+      usage.breakdown = breakdown;
+    }
+  }
+  return usage;
+}
 
 const slashCommandsInFlight = new Map<string, Promise<SlashCommandItem[]>>();
 
@@ -71,6 +115,9 @@ export const useAcpMessage = (
     'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null
   >(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  // Turn start origin for the elapsed indicator; backed by the module-level
+  // conversation turn clock so it survives unmount on conversation switches.
+  const [turnStartedAtMs, setTurnStartedAtMs] = useState<number | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
@@ -179,6 +226,31 @@ export const useAcpMessage = (
     [mergeLiveMessage]
   );
 
+  // Drop the persisted turn origin once the turn truly terminates (finish,
+  // error, stop). NOT called on the conversation-switch reset, which must keep
+  // the origin alive for re-entry hydration.
+  const markTurnEnded = useCallback(() => {
+    endConversationTurn(conversation_id);
+    setTurnStartedAtMs(null);
+  }, [conversation_id]);
+
+  // Exported setter: the send box flips this on send / send-failure, so track
+  // the turn origin alongside the processing flag.
+  const setAiProcessingTracked = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
+    (action) => {
+      const next = typeof action === 'function' ? action(aiProcessingRef.current) : action;
+      if (next) {
+        setTurnStartedAtMs(beginConversationTurn(conversation_id));
+      } else {
+        endConversationTurn(conversation_id);
+        setTurnStartedAtMs(null);
+      }
+      aiProcessingRef.current = next;
+      setAiProcessing(next);
+    },
+    [conversation_id]
+  );
+
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -195,6 +267,7 @@ export const useAcpMessage = (
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
+        markTurnEnded();
         setThought({ subject: '', description: '' });
         hasContentInTurnRef.current = false;
         hasThinkingMessageRef.current = false;
@@ -216,6 +289,7 @@ export const useAcpMessage = (
           'request_trace',
           'acp_context_usage',
           'acp_model_info',
+          'acp_config_option',
           'codex_model_info',
           'available_commands',
           'slash_commands_updated',
@@ -276,6 +350,9 @@ export const useAcpMessage = (
           hasContentInTurnRef.current = false;
           setRunning(true);
           runningRef.current = true;
+          // Record the turn origin (keeps the earlier send-time origin if the
+          // send box already recorded one for this turn).
+          setTurnStartedAtMs(beginConversationTurn(conversation_id, message.created_at ?? Date.now()));
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
@@ -288,6 +365,7 @@ export const useAcpMessage = (
             runningRef.current = false;
             setAiProcessing(false);
             aiProcessingRef.current = false;
+            markTurnEnded();
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
@@ -347,6 +425,7 @@ export const useAcpMessage = (
               runningRef.current = false;
               setAiProcessing(false);
               aiProcessingRef.current = false;
+              markTurnEnded();
             }
           }
           mergeLiveMessage(transformedMessage);
@@ -380,6 +459,12 @@ export const useAcpMessage = (
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
           break;
+        case 'acp_config_option':
+          // Config-options catalog updates (async model/mode discovery for the
+          // direct-CLI backends) are consumed by useAcpConfigOptions to re-project
+          // the picker. No turn-state change here — must NOT fall through to the
+          // default arm, which would setRunning(true) and light a spurious timer bar.
+          break;
         case 'slash_commands_updated':
           // Slash commands became available (often during bootstrap when
           // agent_status events are suppressed). Update acpStatus so
@@ -393,16 +478,45 @@ export const useAcpMessage = (
           }
           break;
         }
+        case 'acp_terminal_output':
+          // Live client-hosted terminal snapshot. Merge the card only — the
+          // frame can trail the turn's Finish (final exit snapshot), so it
+          // must not re-light turn state like the default arm does.
+          mergeLiveMessage(transformedMessage);
+          break;
         case 'acp_context_usage': {
-          const usageData = message.data as { used: number; size: number };
+          const usageData = message.data as {
+            used: number;
+            size: number;
+            cost?: { amount: number; currency: string };
+            _meta?: Record<string, unknown>;
+          };
           if (usageData && typeof usageData.used === 'number') {
-            setTokenUsage({ total_tokens: usageData.used });
+            setTokenUsage((prev) => {
+              const next = tokenUsageFromAcpUsage(usageData);
+              // Mid-turn UsageUpdate notifications carry no per-turn
+              // breakdown; keep the last end-of-turn one until replaced.
+              if (!next.breakdown && prev?.breakdown) next.breakdown = prev.breakdown;
+              if (!next.cost && prev?.cost) next.cost = prev.cost;
+              return next;
+            });
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
           }
           break;
         }
+        case 'tips':
+          // Advisory tips (backend `Notice`: a rejected mode/model/effort switch, or a
+          // codex out-of-turn warning/deprecation). Render the advisory but do NOT touch
+          // turn state — a config-reject Notice can arrive while idle (dispatched by the
+          // PUT /config-options path, not a turn), so falling through to the `default`
+          // arm's setRunning(true) would light a spurious timer bar with no terminal to
+          // clear it (the same regression the `acp_config_option` case guards against).
+          // Error-severity tips are handled earlier by isErrorTipMessage; only info/
+          // warning advisories reach here.
+          mergeLiveMessage(transformedMessage);
+          break;
         case 'request_trace':
           {
             const trace = message.data as Record<string, unknown>;
@@ -428,6 +542,7 @@ export const useAcpMessage = (
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          markTurnEnded();
           activeThinkingRef.current = null;
           mergeLiveMessage(transformedMessage);
           // Log request error
@@ -456,6 +571,7 @@ export const useAcpMessage = (
       conversation_id,
       mergeLiveMessage,
       completeActiveThinking,
+      markTurnEnded,
       throttledSetThought,
       setThought,
       setRunning,
@@ -488,10 +604,13 @@ export const useAcpMessage = (
     // turns these back on when the backend reports runtime processing state. Otherwise
     // conversation.get's idle branch raced with useAcpInitialMessage's
     // setAiProcessing(true) and hid ThoughtDisplay until the first stream event.
+    // Note: only the local state is cleared here — the persisted turn clock entry
+    // must survive so re-entry hydration can restore the original start time.
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
     aiProcessingRef.current = false;
+    setTurnStartedAtMs(null);
 
     void getConversationOrNull(conversation_id)
       .then((res) => {
@@ -504,6 +623,7 @@ export const useAcpMessage = (
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          endConversationTurn(conversation_id);
           setHasHydratedRunningState(true);
           return;
         }
@@ -513,11 +633,20 @@ export const useAcpMessage = (
         if (isRunning) {
           setAiProcessing(true);
           aiProcessingRef.current = true;
+          // Restore the persisted origin (fall back to now if the app was
+          // relaunched mid-turn and no origin was recorded this session).
+          setTurnStartedAtMs(beginConversationTurn(conversation_id));
+        } else {
+          // Turn ended while this conversation was in the background — drop
+          // the stale origin so the next turn starts from its own send time.
+          endConversationTurn(conversation_id);
         }
         setHasHydratedRunningState(true);
 
         // Restore persisted context usage data
-        if (res.type === 'acp' && res.extra?.last_token_usage) {
+        // Antigravity persists the same usage fields through this surface, so
+        // gating on `acp` alone loses its context meter on reload.
+        if ((res.type === 'acp' || res.type === 'antigravity') && res.extra?.last_token_usage) {
           const { last_token_usage, last_context_limit } = res.extra;
           if (last_token_usage.total_tokens > 0) {
             setTokenUsage(last_token_usage);
@@ -567,6 +696,19 @@ export const useAcpMessage = (
         setSlashCommands(commands);
       })
       .catch(() => {});
+    // Hydrate the context-usage indicator from the backend snapshot. Live
+    // acp_context_usage stream events may land first, so never overwrite a
+    // value that is already set.
+    void runtimeReady
+      .then(() => ipcBridge.conversation.getUsage.invoke({ conversation_id }))
+      .then((usage) => {
+        if (cancelled || !usage || typeof usage.used !== 'number' || usage.used <= 0) return;
+        setTokenUsage((prev) => prev ?? tokenUsageFromAcpUsage(usage));
+        if (usage.size > 0) {
+          setContextLimit((prev) => (prev > 0 ? prev : usage.size));
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -578,12 +720,13 @@ export const useAcpMessage = (
     runningRef.current = false;
     setAiProcessing(false);
     aiProcessingRef.current = false;
+    markTurnEnded();
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
     activeThinkingRef.current = null;
     setHasThinkingMessage(false);
-  }, []);
+  }, [markTurnEnded]);
 
   const fetchSlashCommands = useCallback(() => {
     const runtimeReady = options?.prepareRuntime?.() ?? ensureConversationRuntime(conversation_id);
@@ -603,7 +746,8 @@ export const useAcpMessage = (
     hasHydratedRunningState,
     acpStatus,
     aiProcessing,
-    setAiProcessing,
+    setAiProcessing: setAiProcessingTracked,
+    turnStartedAtMs,
     resetState,
     tokenUsage,
     context_limit,

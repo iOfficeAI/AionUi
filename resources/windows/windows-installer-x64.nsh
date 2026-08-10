@@ -21,28 +21,33 @@
   !insertmacro AIONUI_LOG_EXTRACT_RESULT "7z"
 !macroend
 
-Function .onVerifyInstDir
-  ${IfNot} ${RunningX64}
-    !insertmacro AIONUI_FAIL_UX \
-      "${AIONUI_E_ARCH_MISMATCH}" \
-      "target=x64 actual=x86" \
-      "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
-      "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
-      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
-      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
-      "target=x64 actual=x86" \
-      "target=x64 actual=x86"
-  ${EndIf}
-
+; Architecture guard. Inserted from AIONUI_INSTALLER_PREINIT (preInit) so it runs before any
+; registry mutation, replacing the old .onVerifyInstDir placement which fired after customInit
+; had already healed/cleared/repaired an existing install's registry. (Sentry ELECTRON-3BX)
+; Rejection policy is unchanged: an x64 build refuses both x86 and ARM64 machines.
+!macro AIONUI_ASSERT_TARGET_ARCH
+  Var /GLOBAL AionUiActualArch
   ${If} ${IsNativeARM64}
+    !insertmacro AIONUI_DETECT_NATIVE_ARCH $AionUiActualArch
     !insertmacro AIONUI_FAIL_UX \
       "${AIONUI_E_ARCH_MISMATCH}" \
-      "target=x64 actual=arm64" \
+      "target=x64 actual=$AionUiActualArch" \
       "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
       "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
       "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
       "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
-      "target=x64 actual=arm64" \
-      "target=x64 actual=arm64"
+      "target=x64 actual=$AionUiActualArch" \
+      "target=x64 actual=$AionUiActualArch"
+  ${ElseIfNot} ${RunningX64}
+    !insertmacro AIONUI_DETECT_NATIVE_ARCH $AionUiActualArch
+    !insertmacro AIONUI_FAIL_UX \
+      "${AIONUI_E_ARCH_MISMATCH}" \
+      "target=x64 actual=$AionUiActualArch" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
+      "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
+      "target=x64 actual=$AionUiActualArch" \
+      "target=x64 actual=$AionUiActualArch"
   ${EndIf}
-FunctionEnd
+!macroend

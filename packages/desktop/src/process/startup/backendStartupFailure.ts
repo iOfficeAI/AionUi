@@ -9,6 +9,8 @@ import type { BackendStartupFailureInfo } from '@/common/types/platform/electron
 type ErrorWithDetails = Error & {
   details?: {
     stage?: unknown;
+    serverListeningObserved?: unknown;
+    healthTimeoutKeptAlive?: unknown;
     isPackaged?: unknown;
     causeMessage?: unknown;
     stderrTail?: unknown;
@@ -45,7 +47,12 @@ const STARTUP_DIRECTORY_PERMISSION_RE = /\b(?:EACCES|EPERM)\b|permission denied|
 const STARTUP_DIRECTORY_UNAVAILABLE_RE =
   /startup directory preparation failed|(?:\b(?:ENOENT|ENOTDIR|EEXIST)\b[\s\S]{0,160}\bmkdir\b)|(?:\bmkdir\b[\s\S]{0,160}\b(?:ENOENT|ENOTDIR|EEXIST)\b)/i;
 const ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_CODE = 'BOOTSTRAP_SERVER_FAILED';
-const ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_STAGE = 'router.assistant.bootstrap';
+// Benign boundary code emitted by an aioncore instance that yielded the
+// data-dir instance guard to a peer (Sentry 135525166 Option A).
+const TRANSIENT_CONCURRENT_STARTUP_PEER_CODE = 'BOOTSTRAP_PEER_ALREADY_RUNNING';
+// Distinct bootstrap stage emitted when assistant storage bootstrap loses a
+// concurrent-startup race and exhausts its retries (Sentry 135525166 Option B).
+const ASSISTANT_BOOTSTRAP_CONTENTION_STAGE = 'router.assistant.bootstrap.concurrency_contended';
 const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
@@ -184,18 +191,29 @@ function classifyLocalDataRepairFailure(
   };
 }
 
-function classifyAssistantStorageBootstrapFailure(
+// A transient concurrent-startup race (two aioncore instances briefly bootstrapping
+// the same data directory) is self-recoverable and must NOT be reported as local
+// data corruption. It is signalled either by the benign peer-yield boundary code
+// (Option A) or by the assistant-bootstrap contention stage after retries are
+// exhausted (Option B). Everything else — including an ordinary
+// `router.assistant.bootstrap` failure — is intentionally left to the generic
+// `backend_startup_failed` bucket rather than the old unconditional
+// "local data repair failed" false alarm (Sentry 135525166).
+function classifyTransientConcurrentStartupFailure(
   backendBoundaryCode: string | undefined,
   backendBoundaryStage: string | undefined
 ): BackendStartupFailureInfo | undefined {
-  if (backendBoundaryCode !== ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_CODE) return undefined;
-  if (backendBoundaryStage !== ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_STAGE) return undefined;
+  const isPeerYield = backendBoundaryCode === TRANSIENT_CONCURRENT_STARTUP_PEER_CODE;
+  const isAssistantBootstrapContention =
+    backendBoundaryCode === ASSISTANT_STORAGE_BOOTSTRAP_BOUNDARY_CODE &&
+    backendBoundaryStage === ASSISTANT_BOOTSTRAP_CONTENTION_STAGE;
+
+  if (!isPeerYield && !isAssistantBootstrapContention) return undefined;
 
   return {
-    reason: 'backend_local_data_repair_failed',
+    reason: 'backend_transient_concurrent_startup',
     backendBoundaryCode,
     backendBoundaryStage,
-    localDataIssueKind: 'assistant_storage_bootstrap_failed',
   };
 }
 
@@ -221,6 +239,44 @@ function classifyStartupDirectoryFailure(
   }
 
   return undefined;
+}
+
+// A health_timeout whose process was observed listening AND kept alive (pending)
+// is a recoverable "slow startup", not a broken installation. The kept-alive
+// gate excludes health_timeouts on paths that kill the process (e.g. database
+// recovery, `allowPendingOnHealthTimeout: false`), which must fall through to
+// their existing classification instead of being shown as "still starting".
+function classifyPendingSlowStartup(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'health_timeout') return undefined;
+  if (details.serverListeningObserved !== true) return undefined;
+  if (details.healthTimeoutKeptAlive !== true) return undefined;
+
+  return { reason: 'backend_startup_pending_slow' };
+}
+
+// A process that was observed listening but then exited before becoming ready is
+// an honest startup failure — never a missing-resource / reinstall case. Both
+// exit paths share stage `early_exit` (exit within the health window and exit
+// after the pending health timeout), so this single gate covers both.
+function classifyBackendStartupExited(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'early_exit') return undefined;
+  if (details.serverListeningObserved !== true) return undefined;
+
+  return { reason: 'backend_startup_exited' };
+}
+
+// A spawned process that never reported its listening port within the
+// port-report window (stage `listen_timeout`) timed out while starting — it is
+// NOT a broken installation. Unlike pending-slow/exited this gate must not
+// require `serverListeningObserved === true`: on this stage it is always false
+// by definition (Sentry 136646113).
+function classifyPortReportTimeout(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'listen_timeout') return undefined;
+
+  return { reason: 'backend_startup_port_report_timeout' };
 }
 
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
@@ -252,11 +308,11 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
   const localDataRepairFailure = classifyLocalDataRepairFailure(backendBoundaryCode, backendBoundaryStage, text);
   if (localDataRepairFailure) return localDataRepairFailure;
 
-  const assistantStorageBootstrapFailure = classifyAssistantStorageBootstrapFailure(
+  const transientConcurrentStartupFailure = classifyTransientConcurrentStartupFailure(
     backendBoundaryCode,
     backendBoundaryStage
   );
-  if (assistantStorageBootstrapFailure) return assistantStorageBootstrapFailure;
+  if (transientConcurrentStartupFailure) return transientConcurrentStartupFailure;
 
   if (
     backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&
@@ -280,6 +336,15 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
       backendBoundaryStage,
     };
   }
+
+  const pendingSlowStartup = classifyPendingSlowStartup(details);
+  if (pendingSlowStartup) return pendingSlowStartup;
+
+  const backendStartupExited = classifyBackendStartupExited(details);
+  if (backendStartupExited) return backendStartupExited;
+
+  const portReportTimeout = classifyPortReportTimeout(details);
+  if (portReportTimeout) return portReportTimeout;
 
   return {
     reason: 'backend_startup_failed',

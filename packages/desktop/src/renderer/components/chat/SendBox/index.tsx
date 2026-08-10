@@ -13,17 +13,26 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
+import {
+  buildAtFileInsertion,
+  getActiveAtFileQuery,
+  getAllAtFileQueries,
+  resolveAtFileMenuKey,
+} from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
-import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
+import { filterWorkspaceMentionItems, workspaceMentionItemFromListing } from '@/renderer/utils/file/workspaceMentions';
+import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/search/useProjectMentionSearch';
+import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -52,6 +61,9 @@ const constVoid = (): void => undefined;
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+// Max items shown in the `@` dropdown (both data sources); the result panel skin
+// is unbounded (streaming append) — this caps only the inline mention menu.
+const AT_FILE_MENTION_LIMIT = 8;
 
 const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   if (typeof item === 'string') {
@@ -60,11 +72,22 @@ const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   return [item.relativePath, item.path].filter((value): value is string => Boolean(value));
 };
 
-const getSelectedItemPath = (item: FileSelectionItem): string | undefined => {
+// Stable identity key for dedup / ownership tracking / React render key. A file
+// carrying a `chatRef` is keyed by its ref identity via `chatFileRefKey` — this
+// is what lets an Explorer pe ROOT (whose `relative_path` is '', so `item.path`
+// is the empty string) survive: its ref key is non-empty and unique per pe, so
+// distinct roots no longer collide on an empty path. Items without a chatRef
+// fall back to their path. This is NOT the mention match key set
+// (`getSelectedItemMatchKeys`), which stays keyed on relativePath/path for
+// `@`-query matching.
+const getSelectedItemKey = (item: FileSelectionItem): string | undefined => {
   if (typeof item === 'string') {
     return item;
   }
-  return item.path;
+  if (item.chatRef) {
+    return chatFileRefKey(item.chatRef);
+  }
+  return item.path || undefined;
 };
 
 const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
@@ -75,7 +98,7 @@ const getSelectedItemDisplayLabel = (item: FileSelectionItem): string => {
 };
 
 const rememberSelectedItem = (itemsByPath: Map<string, FileSelectionItem>, item: FileSelectionItem): void => {
-  const path = getSelectedItemPath(item);
+  const path = getSelectedItemKey(item);
   if (!path) {
     return;
   }
@@ -107,7 +130,7 @@ const areSelectionItemsEquivalent = (left: FileSelectionItem[], right: FileSelec
       return false;
     }
 
-    if (getSelectedItemPath(leftItem) !== getSelectedItemPath(rightItem)) {
+    if (getSelectedItemKey(leftItem) !== getSelectedItemKey(rightItem)) {
       return false;
     }
   }
@@ -126,7 +149,7 @@ const buildOwnedSelectionItems = (
   const seenPaths = new Set<string>();
 
   for (const item of currentItems) {
-    const path = getSelectedItemPath(item);
+    const path = getSelectedItemKey(item);
     if (!path || seenPaths.has(path) || !ownedPaths.has(path)) {
       continue;
     }
@@ -184,6 +207,10 @@ const SendBox: React.FC<{
    * `tools` and `rightTools` are not rendered inline on mobile.
    */
   onMobilePlusClick?: () => void;
+  /** Team multi-column focus coordination: whether this box owns focus (default true). */
+  active?: boolean;
+  /** Called when the textarea gains focus, so the team layer can sync tab selection. */
+  onFocused?: () => void;
 }> = ({
   onSend,
   onStop,
@@ -211,6 +238,8 @@ const SendBox: React.FC<{
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
+  active = true,
+  onFocused,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -237,6 +266,12 @@ const SendBox: React.FC<{
   const historyDraftRef = useRef<string | null>(null);
   const [replyQuote, setReplyQuote] = useState<ReplyQuote | null>(null);
   const [caretPosition, setCaretPosition] = useState(0);
+  const [prefillFocusRequest, setPrefillFocusRequest] = useState<{
+    requestId: number;
+    expectedValue: string;
+  } | null>(null);
+  const prefillDraftChainRef = useRef<string | null>(null);
+  const focusedPrefillRequestIdRef = useRef<number | null>(null);
   const [workspaceMentionItems, setWorkspaceMentionItems] = useState<FileOrFolderItem[]>([]);
   const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
@@ -416,7 +451,14 @@ const SendBox: React.FC<{
 
     const mentionQueries = new Set(allAtFileQueries.map((item) => item.query));
     return selectedWorkspaceItems.filter((item) => {
-      if (typeof item !== 'string' && !item.isFile) {
+      // A non-file (folder) item is still a valid chat attachment when it
+      // carries a chatRef — the Explorer tree's add-to-chat builds a project
+      // ref, and a pe ROOT is a folder whose relative_path is ''. The backend
+      // resolves a directory ref to its absolute path (verified in
+      // aionui-project resolve_chat_file_ref: a project ref only requires the
+      // target to exist, not to be a regular file). Only drop a non-file item
+      // that has no ref identity at all.
+      if (typeof item !== 'string' && !item.isFile && !item.chatRef) {
         return false;
       }
       return !getSelectedItemMatchKeys(item).some((key) => mentionQueries.has(key));
@@ -528,16 +570,83 @@ const SendBox: React.FC<{
     Boolean(activeAtFileQuery) &&
     activeAtFileTokenKey !== dismissedAtFileToken &&
     !isCommandMenuOpen;
-  const visibleAtFileMenuItems = useMemo(
-    () => filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery),
-    [deferredAtFileQuery, workspaceMentionItems]
-  );
+  // `@`-mention data source is an INTENTIONAL dual path (not dead code). While
+  // the project's pe roots are unresolved (backfill / async project.get loading
+  // window — see useProjectMentionSearch) `active` is false and `@` uses the
+  // legacy workspace flat-list fallback; once roots arrive it streams from
+  // fs/search. DEFENSIVE loading-window gate, not project-vs-no-project. This
+  // window is also why `list_workspace_files` can't be removed yet. Do not collapse.
+  const projectMention = useProjectMentionSearch({
+    query: deferredAtFileQuery,
+    isOpen: isAtFileMenuOpen,
+    limit: AT_FILE_MENTION_LIMIT,
+  });
+  const visibleAtFileMenuItems = useMemo(() => {
+    // Project path: ranked hits as project chat-ref items. Legacy fallback:
+    // local flat-list filter+rank over the once-loaded workspace list.
+    if (projectMention.active) {
+      return projectMention.items;
+    }
+    return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
+  }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
   const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
     const textarea = containerRef.current?.querySelector('textarea');
     return textarea instanceof HTMLTextAreaElement ? textarea : null;
   }, []);
+
+  const handleConversationPrefill = useCallback(
+    ({ prompt, requestId }: { prompt: string; requestId: number }) => {
+      const expectedValue = appendPromptToDraft(prefillDraftChainRef.current ?? latestInputRef.current, prompt);
+      prefillDraftChainRef.current = expectedValue;
+      setInputRef.current(expectedValue);
+      setPrefillFocusRequest({ requestId, expectedValue });
+    },
+    [latestInputRef, setInputRef]
+  );
+  useConversationSendBoxPrefill(conversationContext?.conversation_id, handleConversationPrefill);
+
+  useEffect(() => {
+    if (!prefillFocusRequest || input !== prefillFocusRequest.expectedValue) {
+      return;
+    }
+    prefillDraftChainRef.current = null;
+    if (isMobile || focusedPrefillRequestIdRef.current === prefillFocusRequest.requestId) return;
+    const textarea = getTextareaElement();
+    if (!textarea) return;
+    focusedPrefillRequestIdRef.current = prefillFocusRequest.requestId;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    setCaretPosition(end);
+  }, [getTextareaElement, input, isMobile, prefillFocusRequest]);
+
+  // Selection→focus latch: whether we've already granted focus for the current
+  // active session. Reset when this box goes inactive so the next activation
+  // re-focuses. Prevents stealing focus back after the user moves elsewhere.
+  const activeFocusGrantedRef = useRef(false);
+
+  useEffect(() => {
+    if (!active) {
+      activeFocusGrantedRef.current = false;
+    }
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || isMobile || disabled) return;
+    if (activeFocusGrantedRef.current) return;
+    const textarea = getTextareaElement();
+    if (!textarea) return;
+    activeFocusGrantedRef.current = true;
+    // Already focused (e.g. user clicked into this box, which drove selection
+    // here via onFocused): latch it but leave the caret where the user put it.
+    if (document.activeElement === textarea) return;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    setCaretPosition(end);
+  }, [active, disabled, isMobile, getTextareaElement]);
 
   const syncCaretPosition = useCallback(
     (target?: EventTarget | null) => {
@@ -676,7 +785,11 @@ const SendBox: React.FC<{
   };
 
   useEffect(() => {
-    if (!isAtFileMenuOpen || !conversationContext?.workspace || !atFileSessionKey) {
+    // Legacy fallback only — runs while pe roots are unresolved (backfill /
+    // loading window, see dual-path note above). Once roots resolve the `@`
+    // dropdown streams from fs/search instead, so skip the one-shot workspace
+    // flat-list fetch entirely.
+    if (!isAtFileMenuOpen || !conversationContext?.workspace || !atFileSessionKey || projectMention.active) {
       fetchedAtFileSessionKeyRef.current = null;
       setWorkspaceMentionItems([]);
       setWorkspaceMentionLoading(false);
@@ -697,12 +810,9 @@ const SendBox: React.FC<{
         if (cancelled) {
           return;
         }
-        const files = result.map((item) => ({
-          path: item.fullPath,
-          name: item.name,
-          isFile: true,
-          relativePath: item.relativePath || undefined,
-        }));
+        // Loading-window fallback items carry a `local` chat-ref so a send does
+        // not fall back to an `upload` ref → managed-dir 400 (ELECTRON-3TG).
+        const files = result.map(workspaceMentionItemFromListing);
         setWorkspaceMentionItems(files);
       })
       .catch((error) => {
@@ -721,7 +831,10 @@ const SendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [atFileSessionKey, conversationContext?.workspace, isAtFileMenuOpen]);
+  }, [atFileSessionKey, conversationContext?.workspace, projectMention.active, isAtFileMenuOpen]);
+
+  // The project path (drive fs/search on open/query, cancel on close) lives in
+  // useProjectMentionSearch — no separate effect here.
 
   useEffect(() => {
     if (!activeAtFileTokenKey) {
@@ -760,7 +873,7 @@ const SendBox: React.FC<{
     }
 
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -772,7 +885,7 @@ const SendBox: React.FC<{
 
     const incomingPaths = new Set<string>();
     for (const item of selectedWorkspaceItems) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (path) {
         incomingPaths.add(path);
       }
@@ -807,7 +920,7 @@ const SendBox: React.FC<{
 
   const handleExternalSelectionAppend = useCallback((items: FileSelectionItem[]) => {
     for (const item of items) {
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
       if (!path) {
         continue;
       }
@@ -822,51 +935,60 @@ const SendBox: React.FC<{
     }
   }, []);
 
+  // Accept an append/set event only when it targets this box's conversation
+  // (undefined target = broadcast, back-compat). Prevents leaks across same-type
+  // send boxes on the multi-column team route.
+  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
+    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
+
   useAddEventListener(
     'aionrs.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'aionrs') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'aionrs' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
   useAddEventListener(
     'acp.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'acp') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'acp' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
   useAddEventListener(
     'codex.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'codex') {
+    (items: FileSelectionItem[], targetConversationId: string | undefined) => {
+      if (conversationContext?.type === 'codex' && acceptsTarget(targetConversationId)) {
         handleExternalSelectionAppend(items);
       }
     },
-    [conversationContext?.type, handleExternalSelectionAppend]
+    [conversationContext?.type, conversationContext?.conversation_id, handleExternalSelectionAppend]
   );
 
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
+      // Target this box's own conversation so an `@` mention adds the file only
+      // here, not to same-type peers on the team route.
+      const targetId = conversationContext?.conversation_id;
       switch (conversationContext?.type) {
         case 'aionrs':
-          emitter.emit('aionrs.selected.file.append', [item]);
+          emitter.emit('aionrs.selected.file.append', [item], targetId);
           break;
         case 'acp':
-          emitter.emit('acp.selected.file.append', [item]);
+          emitter.emit('acp.selected.file.append', [item], targetId);
           break;
         case 'codex':
-          emitter.emit('codex.selected.file.append', [item]);
+          emitter.emit('codex.selected.file.append', [item], targetId);
           break;
         default:
           break;
       }
     },
-    [conversationContext?.type]
+    [conversationContext?.type, conversationContext?.conversation_id]
   );
 
   const insertSelectedAtFile = useCallback(
@@ -882,7 +1004,7 @@ const SendBox: React.FC<{
       const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
       const nextCaret = activeAtFileQuery.start + nextInsertion.length;
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
-      const path = getSelectedItemPath(item);
+      const path = getSelectedItemKey(item);
 
       setDismissedAtFileToken(insertedTokenKey);
       setInput(nextValue);
@@ -970,7 +1092,8 @@ const SendBox: React.FC<{
     mobileUserFocusIntentUntilRef.current = 0;
     handlePasteFocus();
     setIsInputFocused(true);
-  }, [handlePasteFocus, isMobile]);
+    onFocused?.();
+  }, [handlePasteFocus, isMobile, onFocused]);
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
   }, []);
@@ -1084,39 +1207,37 @@ const SendBox: React.FC<{
         return false;
       }
 
-      if (event.key === 'Escape') {
+      // Key→action contract lives in the pure `resolveAtFileMenuKey` (unit-tested).
+      // Enter and Tab both accept; Tab is only hijacked while the dropdown is open
+      // (guarded above), so with the menu closed Tab keeps normal focus behavior.
+      const action = resolveAtFileMenuKey(event.key, visibleAtFileMenuItems.length > 0);
+      if (!action) {
+        return false;
+      }
+
+      if (action === 'dismiss') {
         event.preventDefault();
         setDismissedAtFileToken(activeAtFileTokenKey);
         return true;
       }
-
-      if (!visibleAtFileMenuItems.length) {
-        return false;
-      }
-
-      if (event.key === 'ArrowDown') {
+      if (action === 'down') {
         event.preventDefault();
         setAtFileMenuActiveIndex((previous) => (previous + 1) % visibleAtFileMenuItems.length);
         return true;
       }
-
-      if (event.key === 'ArrowUp') {
+      if (action === 'up') {
         event.preventDefault();
         setAtFileMenuActiveIndex((previous) => (previous === 0 ? visibleAtFileMenuItems.length - 1 : previous - 1));
         return true;
       }
-
-      if (event.key === 'Enter') {
-        const selectedItem = visibleAtFileMenuItems[atFileMenuActiveIndex];
-        if (!selectedItem) {
-          return false;
-        }
-        event.preventDefault();
-        insertSelectedAtFile(selectedItem);
-        return true;
+      // action === 'accept'
+      const selectedItem = visibleAtFileMenuItems[atFileMenuActiveIndex];
+      if (!selectedItem) {
+        return false;
       }
-
-      return false;
+      event.preventDefault();
+      insertSelectedAtFile(selectedItem);
+      return true;
     },
     [activeAtFileTokenKey, atFileMenuActiveIndex, insertSelectedAtFile, isAtFileMenuOpen, visibleAtFileMenuItems]
   );
@@ -1297,15 +1418,11 @@ const SendBox: React.FC<{
   ) : null;
 
   // On mobile compact mode, the parent supplies the action sheet — collapse
-  // tools/rightTools into the `+` launcher and skip the inline speech button.
+  // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
   const renderedRightTools = isMobileCompact ? null : rightTools;
-  const renderedSpeechButton = isMobileCompact ? null : (
-    <SpeechInputButton
-      disabled={disabled || isLoading || loading || isUploading}
-      onLiveTranscript={handleLiveTranscript}
-      onTranscript={handleSpeechTranscript}
-    />
+  const renderedSpeechButton = (
+    <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
 
   const renderHighlightedInputValue = useCallback(() => {
@@ -1389,10 +1506,20 @@ const SendBox: React.FC<{
               }
               items={visibleAtFileMenuItems}
               label={t('messages.atFile.menuLabel', { defaultValue: 'File mentions' })}
-              loading={workspaceMentionLoading}
+              loading={projectMention.active ? projectMention.loading : workspaceMentionLoading}
               loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtFileMenuActiveIndex}
               onSelectItem={insertSelectedAtFile}
+              getSubtitle={
+                projectMention.active
+                  ? (item) =>
+                      peLabeledPath(
+                        item.chatRef?.kind === 'project' ? item.chatRef.pe_id : undefined,
+                        item.relativePath || item.path || '',
+                        projectMention.peNames
+                      )
+                  : undefined
+              }
             />
           </div>
         )}
@@ -1475,11 +1602,11 @@ const SendBox: React.FC<{
             <div className='flex flex-wrap gap-6px mb-8px'>
               {unmatchedSelectedWorkspaceItems.map((item) => (
                 <Tag
-                  key={typeof item === 'string' ? item : item.path}
+                  key={getSelectedItemKey(item) ?? getSelectedItemDisplayLabel(item)}
                   closable
                   closeIcon={<CloseSmall theme='outline' size='12' />}
                   onClose={() => {
-                    const path = getSelectedItemPath(item);
+                    const path = getSelectedItemKey(item);
                     if (!path) {
                       return;
                     }
@@ -1538,7 +1665,7 @@ const SendBox: React.FC<{
               {renderHighlightedInputValue()}
             </div>
             <Input.TextArea
-              autoFocus={!isMobile}
+              autoFocus={active && !isMobile}
               disabled={disabled}
               spellCheck={false}
               value={input}
@@ -1597,7 +1724,7 @@ const SendBox: React.FC<{
             ></Input.TextArea>
           </div>
           {isSingleLine && (
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-1'>
               {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
@@ -1617,7 +1744,7 @@ const SendBox: React.FC<{
             >
               {renderedTools}
             </div>
-            <div className='sendbox-actions flex items-center gap-2'>
+            <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}
               {renderedSpeechButton}
               {sendButtonPrefix}

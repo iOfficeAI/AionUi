@@ -40,7 +40,7 @@ describe('createBrowserNotificationController.onStreamMessage', () => {
   const makeDeps = (gate: NotificationGate = openGate) => {
     const show = vi.fn();
     const controller = createBrowserNotificationController({
-      readGate: () => gate,
+      shouldShow: () => shouldShowNotification(gate),
       show,
       bodyFor: (kind) => kind,
     });
@@ -50,19 +50,19 @@ describe('createBrowserNotificationController.onStreamMessage', () => {
   it('shows a turn-completed notification on a finish stream message', () => {
     const { show, controller } = makeDeps();
     controller.onStreamMessage({ type: 'finish', conversation_id: 'c1', turn_id: 't1' });
-    expect(show).toHaveBeenCalledWith({ body: 'turnCompleted', conversationId: 'c1' });
+    expect(show).toHaveBeenCalledWith({ body: 'turnCompleted', conversationId: 'c1', kind: 'turnCompleted' });
   });
 
   it('shows a confirmation notification on an acp_permission stream message', () => {
     const { show, controller } = makeDeps();
     controller.onStreamMessage({ type: 'acp_permission', conversation_id: 'c2' });
-    expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c2' });
+    expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c2', kind: 'confirmation' });
   });
 
   it('shows a confirmation notification on a permission stream message (aionrs)', () => {
     const { show, controller } = makeDeps();
     controller.onStreamMessage({ type: 'permission', conversation_id: 'c3' });
-    expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c3' });
+    expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c3', kind: 'confirmation' });
   });
 
   it('ignores non-terminal stream message types', () => {

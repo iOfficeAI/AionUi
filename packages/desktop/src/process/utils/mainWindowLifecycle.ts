@@ -6,6 +6,7 @@
 
 import type { BrowserWindow } from 'electron';
 import { setApplicationMainWindow } from '../bridge/applicationBridge';
+import { setNotificationMainWindow } from '../bridge/notificationBridge';
 import { setDeepLinkMainWindow } from './deepLink';
 import { setTrayMainWindow } from './tray';
 
@@ -13,6 +14,7 @@ export const bindMainWindowReferences = (window: BrowserWindow): void => {
   setTrayMainWindow(window);
   setDeepLinkMainWindow(window);
   setApplicationMainWindow(window);
+  setNotificationMainWindow(window);
 };
 
 export const showAndFocusMainWindow = (window: BrowserWindow): void => {
