@@ -13,6 +13,7 @@ import {
   groupAssistantsByEnabled,
   resolveAssistantSourceTag,
   buildAssistantEditorBackends,
+  filterAssistantEditorBackends,
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
@@ -303,5 +304,37 @@ describe('buildAssistantEditorBackends', () => {
     );
 
     expect(backends).toHaveLength(0);
+  });
+});
+
+describe('filterAssistantEditorBackends', () => {
+  const backends = [
+    { id: '2d23ff1c', name: 'Claude Code', runtimeKey: 'claude', modelOptions: [] },
+    { id: 'a9f3c21e', name: 'Antigravity', runtimeKey: 'antigravity', modelOptions: [] },
+    { id: '8e1acf31', name: 'Codex CLI', runtimeKey: 'codex', modelOptions: [] },
+  ] as Parameters<typeof filterAssistantEditorBackends>[0];
+
+  it('returns everything for an empty or blank query', () => {
+    expect(filterAssistantEditorBackends(backends, '')).toHaveLength(3);
+    expect(filterAssistantEditorBackends(backends, '   ')).toHaveLength(3);
+  });
+
+  it('matches the display name, case-insensitively', () => {
+    expect(filterAssistantEditorBackends(backends, 'anti').map((b) => b.id)).toEqual(['a9f3c21e']);
+    expect(filterAssistantEditorBackends(backends, 'CLAUDE').map((b) => b.id)).toEqual(['2d23ff1c']);
+  });
+
+  /**
+   * The reason the runtime key is searched at all: users refer to these agents
+   * by their CLI name, which is not always what the row is labelled — "codex"
+   * finds "Codex CLI", and "antigravity" finds it whatever the label says.
+   */
+  it('matches the runtime key and the id', () => {
+    expect(filterAssistantEditorBackends(backends, 'codex').map((b) => b.id)).toEqual(['8e1acf31']);
+    expect(filterAssistantEditorBackends(backends, 'a9f3').map((b) => b.id)).toEqual(['a9f3c21e']);
+  });
+
+  it('returns nothing when nothing matches, rather than falling back to everything', () => {
+    expect(filterAssistantEditorBackends(backends, 'zzz')).toHaveLength(0);
   });
 });

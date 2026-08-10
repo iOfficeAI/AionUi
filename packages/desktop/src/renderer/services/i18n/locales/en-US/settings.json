@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "{{count}} prompt suggestions maintained by the product.",
   "assistantManagedPromptFallback": "Prompt suggestions are maintained by the product.",
   "assistantEngineAffectsDefaults": "Changing the Agent updates which model and permission values are available below.",
+  "assistantSearchAgent": "Search agents",
+  "assistantNoMatchingAgent": "No matching agents",
   "assistantEffectiveImmediately": "Applies immediately",
   "assistantOnlyNewConversation": "New conversations only",
   "assistantDefaultModelLabel": "Model",

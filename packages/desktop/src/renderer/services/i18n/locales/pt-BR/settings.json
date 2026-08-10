@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "{{count}} prompts recomendados são mantidos pelo produto.",
   "assistantManagedPromptFallback": "Os prompts recomendados são mantidos pelo produto.",
   "assistantEngineAffectsDefaults": "Ao alterar o Agent, os modelos e o escopo de permissões disponíveis abaixo são atualizados de acordo.",
+  "assistantSearchAgent": "Pesquisar agentes",
+  "assistantNoMatchingAgent": "Nenhum agente correspondente",
   "assistantEffectiveImmediately": "Aplica imediatamente",
   "assistantOnlyNewConversation": "Somente para novas conversas",
   "assistantDefaultModelLabel": "Modelo",

@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "제품에서 관리하는 추천 프롬프트가 {{count}}개 있습니다.",
   "assistantManagedPromptFallback": "추천 프롬프트는 제품에서 관리됩니다.",
   "assistantEngineAffectsDefaults": "Agent를 변경하면 아래에서 선택할 수 있는 모델과 권한 범위가 그에 따라 업데이트됩니다.",
+  "assistantSearchAgent": "에이전트 검색",
+  "assistantNoMatchingAgent": "일치하는 에이전트가 없습니다",
   "assistantEffectiveImmediately": "즉시 반영",
   "assistantOnlyNewConversation": "새 대화에만 적용",
   "assistantDefaultModelLabel": "모델",

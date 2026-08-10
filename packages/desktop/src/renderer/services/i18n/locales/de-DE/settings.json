@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "{{count}} vom Produkt verwaltete Prompt-Vorschläge.",
   "assistantManagedPromptFallback": "Prompt-Vorschläge werden vom Produkt verwaltet.",
   "assistantEngineAffectsDefaults": "Beim Ändern des Agent werden die unten verfügbaren Modelle und Berechtigungsbereiche entsprechend aktualisiert.",
+  "assistantSearchAgent": "Agents suchen",
+  "assistantNoMatchingAgent": "Keine passenden Agents",
   "assistantEffectiveImmediately": "Gilt sofort",
   "assistantOnlyNewConversation": "Nur neue Gespräche",
   "assistantDefaultModelLabel": "Modell",

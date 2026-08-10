@@ -218,6 +218,8 @@
   "assistantManagedPromptCount": "{{count}} پیشنهاد پرامپت توسط محصول نگهداری می‌شود.",
   "assistantManagedPromptFallback": "پیشنهادهای پرامپت توسط محصول نگهداری می‌شوند.",
   "assistantEngineAffectsDefaults": "تغییر ایجنت اصلی، مدل‌ها و مقادیر مجوز قابل انتخاب در پایین را به‌روزرسانی می‌کند.",
+  "assistantSearchAgent": "جست‌وجوی ایجنت",
+  "assistantNoMatchingAgent": "هیچ ایجنتی مطابقت ندارد",
   "assistantEffectiveImmediately": "فوراً اعمال می‌شود",
   "assistantOnlyNewConversation": "فقط مکالمات جدید",
   "assistantDefaultModelLabel": "مدل",

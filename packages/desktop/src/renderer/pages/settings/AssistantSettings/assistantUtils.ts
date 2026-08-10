@@ -171,6 +171,25 @@ export const groupMyAssistants = (assistants: AssistantListItem[]) => {
   };
 };
 
+/**
+ * Narrow the editor's agent list by a search query.
+ *
+ * Matches the id and runtime key as well as the display name: a user who knows
+ * an agent as "codex" or "antigravity" should find it without knowing what the
+ * row is labelled.
+ *
+ * Lives here rather than inline in the component so the matching rule is
+ * testable on its own — driving an Arco popup to assert which rows survive is
+ * both slower and less precise.
+ */
+export const filterAssistantEditorBackends = (backends: AvailableBackend[], query: string): AvailableBackend[] => {
+  const keyword = query.trim().toLowerCase();
+  if (!keyword) return backends;
+  return backends.filter((option) =>
+    [option.name, option.id, option.runtimeKey].some((field) => field?.toLowerCase().includes(keyword))
+  );
+};
+
 export const buildAssistantEditorBackends = (
   agents: ManagedAgent[],
   localeKey: string,
