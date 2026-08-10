@@ -47,7 +47,7 @@ import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
-import { setInitialLanguage } from '@process/services/i18n';
+import { readStoredLanguage, setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@csbu-workmate/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
@@ -1064,7 +1064,7 @@ const handleAppReady = async (): Promise<void> => {
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
     try {
-      const savedLanguage = await ProcessConfig.get('language');
+      const savedLanguage = await readStoredLanguage();
       await setInitialLanguage(savedLanguage);
       // After language is set, refresh tray menu if it exists
       await refreshTrayMenu();

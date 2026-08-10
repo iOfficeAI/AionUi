@@ -48,14 +48,14 @@ export function initSystemSettingsBridge(): void {
   // Language change notification, sync main process i18n and notify tray rebuild
   ipcBridge.systemSettings.changeLanguage.provider(async ({ language }) => {
     // Broadcast to all renderers FIRST (desktop + WebUI) for real-time sync.
-    // This must happen before the potentially slow main-process i18n switch.
     ipcBridge.systemSettings.languageChanged.emit({ language });
-    _languageChangeListener?.();
 
-    // Update main process i18n (non-blocking – don't let a hang here block the provider)
-    changeLanguage(language).catch((error) => {
+    try {
+      await changeLanguage(language);
+      _languageChangeListener?.();
+    } catch (error) {
       console.error('[SystemSettings] Main process changeLanguage failed:', error);
-    });
+    }
   });
 
   // Desktop pet settings
