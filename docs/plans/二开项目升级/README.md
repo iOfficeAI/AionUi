@@ -19,7 +19,7 @@
 | 形态 | 位置 | 基线 | 状态 |
 | --- | --- | --- | --- |
 | 主集成分支 | 本仓 `integrate/ad-hoc-team-latest` @ `b397e15fd` | AionUi v2.1.40 × AionCore v0.1.51 | 二开功能最完整（23 个本地提交，其中 18 个为二开/文档，5 个为浅克隆噪声的上游提交） |
-| v2.1.52 隔离 worktree | `/private/tmp/aionui-latest-poc` @ `bd728fb4d` | AionUi v2.1.52（`7ebae30aa`）× AionCore v0.1.62 | "最新基线重做"进行中：15 个已提交重做提交（43 文件，+2476/−30）；临时团队会话 UI 组件（`AdHocTeam/`、`useTeammateBackflow`、`runtimeGate`、`conversationTeamOwnership`）与 SendBox 接线**尚未提交**（untracked / working-tree 修改） |
+| v2.1.52 隔离 worktree | `/private/tmp/aionui-latest-poc` @ `bd728fb4d` | AionUi v2.1.52（`7ebae30aa`）× AionCore v0.1.62 | "最新基线重做"进行中：15 个已提交重做提交（43 文件，+2476/−30）；临时团队会话 UI 组件（`AdHocTeam/`、`useTeammateBackflow`、`runtimeGate`、`conversationTeamOwnership`）与 SendBox 接线已于 2026-08-09 收口为 `d0beccbf8`（原"尚未提交"状态失效，来源审计 §8） |
 | 旧版原型分支 | `feat/ad-hoc-team-context` @ `8b2953a33` | v2.1.33 时代 | 已被 `700fdf117` 取代，仅作溯源；`backup/poc-latest-ui-*` 指向当前 HEAD，属回滚备份 |
 
 另有一份固化补丁：`patches/2026-07-30-feat-team-add-reusable-expert-team-presets.patch`（`e3f154559` 导出，31 文件，+2681/−87，仅专家团功能、纯 AionUi 前端）。
@@ -45,6 +45,6 @@
 ### 必须沿用的命名与规则
 
 - 窗口编号 **P0–P6**，暂停点 **S0–S5**；一次性整合分支 `integrate/ad-hoc-team-YYYYMMDD`；备份 `backup/poc-latest-{ui,core}-<timestamp>`。
-- **迁移编号规则**：二开迁移必须使用上游最新版本号之后的编号（`M+1..`），按依赖排序、不预留空号、已发布不改号；checksum（SHA-384）与 version 必须同事务修复（AionCore 脚本 `scripts/migration/repair-legacy-versions.sh`）。
+- **迁移编号规则**：二开迁移必须使用上游最新版本号之后的编号（`M+1..`），按依赖排序、不预留空号、已发布不改号；checksum（SHA-384）与 version 必须同事务修复（AionCore 脚本 `scripts/migration/repair-legacy-versions.sh`——该脚本为 v0.1.62 重做线资产，`e0e03ab8` 引入；原版 PIN-CORE `eb0c884e` 无此脚本，详见 01 §5.3 双栏）。
 - **成对配套原则**：AionUi `package.json` 的 `aioncoreVersion` pin + bundle manifest（version/sourceType/source + binary SHA256）+ Core tag/SHA 三者必须写入兼容矩阵同一行；AionUi 与 AionCore 成对回滚，禁止对原分支 destructive reset。
 - 术语：临时团队 = ad-hoc team；来源会话 = origin/source conversation（`origin_conversation_id`）；归属键 `extra.teamId`（promoted source）/ `extra.team_id`（成员会话）；专家团 = Team Presets（`TeamPreset`/`TeamPresetMember`，SWR key `team-presets/${user_id}`）。
