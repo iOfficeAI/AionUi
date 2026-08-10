@@ -13,8 +13,13 @@
 declare global {
   interface Window {
     __backendPort?: number;
+    __backendClientSecret?: string;
   }
 }
+
+export const LOCAL_CLIENT_SECRET_HEADER = 'x-aionui-local-secret';
+const LOCAL_CLIENT_SECRET_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const LOCAL_CLIENT_WS_PROTOCOL_PREFIX = 'aionui-local-v1.';
 
 /**
  * Resolve the backend port, honoring both renderer and main-process contexts.
@@ -47,6 +52,22 @@ function getBackendPort(): number {
  */
 function isWebUiBrowserMode(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
+}
+
+/** Return the trusted per-launch credential only in the local desktop runtime. */
+export function getLocalClientSecret(): string | undefined {
+  if (isWebUiBrowserMode()) return undefined;
+  const candidate =
+    typeof window !== 'undefined'
+      ? (window as Window).__backendClientSecret
+      : (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
+  return candidate && LOCAL_CLIENT_SECRET_PATTERN.test(candidate) ? candidate : undefined;
+}
+
+/** WebSocket subprotocol used because browser WebSocket APIs cannot set custom headers. */
+export function getLocalClientWebSocketProtocol(): string | undefined {
+  const secret = getLocalClientSecret();
+  return secret ? `${LOCAL_CLIENT_WS_PROTOCOL_PREFIX}${secret}` : undefined;
 }
 
 export function getBaseUrl(): string {
@@ -154,7 +175,89 @@ export type HttpRequestOptions = {
   headers?: Record<string, string>;
 };
 
-const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
+export type AuthExpiredEvent = {
+  source: 'http' | 'realtime';
+  code?: string;
+  path?: string;
+};
+
+type AuthExpiredListener = (event: AuthExpiredEvent) => void;
+
+const authExpiredListeners = new Set<AuthExpiredListener>();
+
+/** Subscribe to terminal browser-session authentication failures. */
+export function onAuthExpired(listener: AuthExpiredListener): () => void {
+  authExpiredListeners.add(listener);
+  return () => authExpiredListeners.delete(listener);
+}
+
+/** Publish a terminal browser-session authentication failure to the renderer. */
+export function notifyAuthExpired(event: AuthExpiredEvent): void {
+  for (const listener of authExpiredListeners) {
+    try {
+      listener(event);
+    } catch {
+      // Authentication cleanup must continue even if one subscriber fails.
+    }
+  }
+}
+
+const SENSITIVE_LOG_KEY_PATTERN =
+  /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|password|secret/i;
+const CSRF_COOKIE_NAME = 'aionui-csrf-token';
+const CSRF_HEADER_NAME = 'x-csrf-token';
+const SAFE_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const SESSION_AUTH_ERROR_CODES = new Set([
+  'AUTHENTICATION_REQUIRED',
+  'AUTH_REQUIRED',
+  'AUTH_SESSION_EXPIRED',
+  'AUTH_SESSION_INVALID',
+  'SESSION_EXPIRED',
+  'SESSION_REVOKED',
+  'USER_CONTEXT_REQUIRED',
+]);
+const SESSION_AUTH_ERROR_MESSAGES = new Set([
+  'authentication required',
+  'invalid authentication session',
+  'invalid authentication subject',
+  'invalid or expired token',
+  'no token found',
+  'token expired',
+  'token has been revoked',
+  'user not found',
+]);
+
+function readBrowserCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const prefix = `${name}=`;
+  const value = document.cookie
+    .split(';')
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(prefix))
+    ?.slice(prefix.length);
+  if (!value) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+async function getCsrfToken(method: string): Promise<string | undefined> {
+  if (!isWebUiBrowserMode() || SAFE_HTTP_METHODS.has(method.toUpperCase())) return undefined;
+
+  const existing = readBrowserCookie(CSRF_COOKIE_NAME);
+  if (existing) return existing;
+
+  // A safe request lets AionCore seed its double-submit cookie before the
+  // first mutation. Browsers apply Set-Cookie before this promise resolves.
+  await fetch(`${getBaseUrl()}/api/auth/status`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  return readBrowserCookie(CSRF_COOKIE_NAME);
+}
 
 function redactForLog(value: unknown, depth = 0): unknown {
   if (depth > 8 || value === null || typeof value !== 'object') {
@@ -170,6 +273,21 @@ function redactForLog(value: unknown, depth = 0): unknown {
       SENSITIVE_LOG_KEY_PATTERN.test(key) ? '[REDACTED]' : redactForLog(entry, depth + 1),
     ])
   );
+}
+
+function isSessionAuthenticationFailure(status: number, body: unknown): boolean {
+  if (status !== 401 || !body || typeof body !== 'object') return false;
+  const envelope = body as { code?: unknown; error?: unknown };
+  const code = typeof envelope.code === 'string' ? envelope.code : '';
+  if (SESSION_AUTH_ERROR_CODES.has(code)) return true;
+
+  // AionCore v0.1.63 uses the generic UNAUTHORIZED code for both session
+  // middleware failures and domain-level authentication errors. Match only the
+  // middleware's stable messages so an invalid model credential or an incorrect
+  // current password does not sign the user out of AionUi.
+  if (code !== 'UNAUTHORIZED' || typeof envelope.error !== 'string') return false;
+  const message = envelope.error.trim().replace(/[.]$/, '').toLowerCase();
+  return SESSION_AUTH_ERROR_MESSAGES.has(message);
 }
 
 export async function httpRequest<T>(
@@ -189,6 +307,12 @@ export async function httpRequest<T>(
     Object.assign(headers, options.headers);
   }
 
+  const localClientSecret = getLocalClientSecret();
+  if (localClientSecret) headers[LOCAL_CLIENT_SECRET_HEADER] = localClientSecret;
+
+  const csrfToken = await getCsrfToken(method);
+  if (csrfToken) headers[CSRF_HEADER_NAME] = csrfToken;
+
   console.debug(
     `[httpBridge] ${method} ${path}`,
     body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
@@ -198,6 +322,8 @@ export async function httpRequest<T>(
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -208,6 +334,13 @@ export async function httpRequest<T>(
       errorBody = JSON.parse(rawText);
     } catch {
       errorBody = rawText;
+    }
+    if (isWebUiBrowserMode() && isSessionAuthenticationFailure(response.status, errorBody)) {
+      const code =
+        errorBody && typeof errorBody === 'object' && typeof (errorBody as { code?: unknown }).code === 'string'
+          ? ((errorBody as { code: string }).code ?? undefined)
+          : undefined;
+      notifyAuthExpired({ source: 'http', code, path });
     }
     if (options?.silentStatuses?.includes(response.status)) {
       console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
@@ -374,7 +507,8 @@ function ensureWs(): void {
   const url = getWsUrl();
   console.debug('[ensureWs] connecting to', url);
   try {
-    ws = new WebSocket(url);
+    const localProtocol = getLocalClientWebSocketProtocol();
+    ws = localProtocol ? new WebSocket(url, localProtocol) : new WebSocket(url);
   } catch (e) {
     console.error('[ensureWs] WebSocket constructor threw:', e);
     scheduleWsReconnect();

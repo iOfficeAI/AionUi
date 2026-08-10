@@ -454,7 +454,7 @@
   "installed": "설치됨",
   "builtin": "내장",
   "channels": "채널",
-  "webui.description": "AionUi를 '24시간 원격 어시스턴트'로 사용 - 언제 어디서나 원격 장치로 작업을 예약할 수 있습니다.",
+  "webui.description": "데스크톱 모드는 백엔드를 비공개로 유지합니다. 브라우저 접근에는 인증된 Docker 또는 독립 실행형 서버를 사용하세요.",
   "webui.steps": "단계 1. WebUI 켜기; 단계 2. 접근 URL 복사; 단계 3. 원격 브라우저에서 열기",
   "webui.configuration": "WebUI 구성",
   "webui.enable": "WebUI 활성화",
@@ -462,7 +462,7 @@
   "webui.port": "포트",
   "webui.portDesc": "WebUI 서비스 리스닝 포트",
   "webui.allowRemote": "원격 접근 허용",
-  "webui.allowRemoteDesc": "원격 소프트웨어/서버로 안전한 원격 접근",
+  "webui.allowRemoteDesc": "원격 및 다중 사용자 접근은 인증된 Docker 또는 독립 실행형 서버에서 사용할 수 있습니다.",
   "webui.viewGuide": "가이드 보기",
   "webui.accessInfo": "접근 URL",
   "webui.localUrl": "로컬 URL",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "비밀번호는 처음 시작할 때만 표시되며 이후에는 숨겨집니다",
   "webui.resetPasswordWarning": "재설정된 비밀번호를 잘 보관하세요!",
-  "webui.featureRemoteDesc": "WebUI를 활성화하면 휴대폰이나 원격 브라우저에서 AionUi에 접속할 수 있습니다.",
+  "webui.featureRemoteDesc": "데스크톱 프로세스 안의 브라우저 호스팅은 비활성화됩니다. Docker 또는 독립 실행형 서버는 개인 및 다중 사용자 배포를 지원합니다.",
   "webui.featureChannelsTitle": "Messaging Control",
   "webui.featureChannelsDesc": "Telegram, Lark, DingTalk, WeChat을 연결해 IM 앱에서 AionUi와 상호작용하세요.",
   "webui.goToChannels": "Channels로 이동",
@@ -1343,5 +1343,165 @@
     "clearConfirmContent": "앱 내 브라우저의 모든 사이트에서 로그아웃됩니다. 되돌릴 수 없습니다.",
     "clearSuccess": "인터넷 사용 정보를 삭제했습니다",
     "clearFailed": "인터넷 사용 정보 삭제에 실패했습니다"
+  },
+  "account": {
+    "navTitle": "계정",
+    "title": "계정 및 접근 권한",
+    "description": "내 계정, 사이트 사용자 및 보안 활동을 관리합니다.",
+    "changePassword": "비밀번호 변경",
+    "tabs": {
+      "account": "내 계정",
+      "users": "사용자",
+      "audit": "감사",
+      "channels": "채널",
+      "collaboration": "협업"
+    },
+    "roles": {
+      "admin": "관리자",
+      "member": "멤버"
+    },
+    "statuses": {
+      "active": "활성",
+      "disabled": "비활성"
+    },
+    "userTypes": {
+      "local": "로컬 계정",
+      "aionpro": "AionPro 계정"
+    },
+    "errors": {
+      "failed": "계정 작업에 실패했습니다. 다시 시도하세요.",
+      "adminRequired": "관리자 권한이 필요합니다.",
+      "lastAdmin": "마지막 활성 관리자는 변경하거나 비활성화할 수 없습니다.",
+      "userNotFound": "사용자가 더 이상 존재하지 않습니다.",
+      "usernameTaken": "이미 사용 중인 사용자 이름입니다.",
+      "passwordChangeRequired": "계속하기 전에 임시 비밀번호를 변경하세요.",
+      "featureUnavailable": "이 백엔드 버전에서는 계정 관리를 사용할 수 없습니다. AionCore를 업데이트하세요.",
+      "rateLimited": "요청이 너무 많습니다. 잠시 후 새로고침하세요."
+    },
+    "users": {
+      "title": "사이트 사용자",
+      "description": "계정을 만들고 이 AionUi 인스턴스에 대한 접근 권한을 관리합니다.",
+      "add": "사용자 추가",
+      "empty": "사용자가 없습니다",
+      "username": "사용자 이름",
+      "usernamePlaceholder": "사용자 이름 입력",
+      "usernameRequired": "사용자 이름을 입력하세요",
+      "usernameLength": "사용자 이름은 3~32자여야 합니다",
+      "usernameFormat": "문자, 숫자, 밑줄 또는 하이픈만 사용하세요",
+      "role": "역할",
+      "passwordState": "비밀번호",
+      "changeRequired": "변경 필요",
+      "passwordSet": "설정됨",
+      "actions": "작업",
+      "createTitle": "사용자 만들기",
+      "createSuccess": "사용자가 생성되었습니다",
+      "renameTitle": "사용자 이름 편집",
+      "renameSuccess": "사용자 이름이 업데이트되었습니다",
+      "updateSuccess": "사용자가 업데이트되었습니다",
+      "resetPassword": "비밀번호 재설정",
+      "resetConfirm": "{{username}}의 새 임시 비밀번호를 생성할까요? 모든 세션이 해제됩니다.",
+      "resetSuccess": "임시 비밀번호가 생성되었습니다",
+      "revokeSessions": "세션 해제",
+      "revokeConfirm": "{{username}}을 모든 기기에서 로그아웃할까요?",
+      "revokeSuccess": "세션이 해제되었습니다",
+      "temporaryPasswordTitle": "임시 비밀번호",
+      "temporaryPasswordNotice": "지금 이 비밀번호를 복사하세요. 다시 표시되지 않으며 사용자는 로그인 후 변경해야 합니다."
+    },
+    "audit": {
+      "title": "보안 감사",
+      "description": "최근 계정 및 접근 권한 변경을 검토합니다.",
+      "empty": "감사 이벤트가 없습니다",
+      "time": "시간",
+      "actor": "작업자",
+      "action": "작업",
+      "target": "대상",
+      "details": "세부 정보",
+      "loadMore": "더 보기",
+      "actions": {
+        "userCreated": "사용자 생성",
+        "usernameChanged": "사용자 이름 변경",
+        "roleChanged": "역할 변경",
+        "statusChanged": "상태 변경",
+        "passwordReset": "비밀번호 재설정",
+        "passwordChanged": "비밀번호 변경",
+        "sessionsRevoked": "세션 해제",
+        "bootstrapCredentialsSet": "초기 자격 증명 설정"
+      }
+    },
+    "collaboration": {
+      "title": "협업",
+      "description": "나와 공유된 리소스를 확인하고 내가 만든 공유를 관리합니다.",
+      "tabs": {
+        "received": "나와 공유됨",
+        "granted": "내가 공유함"
+      },
+      "emptyReceived": "아직 공유된 리소스가 없습니다",
+      "emptyGranted": "아직 공유한 리소스가 없습니다",
+      "revoke": "철회",
+      "revokeConfirm": "{{username}}의 접근 권한을 철회할까요?",
+      "revokeSuccess": "공유가 철회되었습니다",
+      "columns": {
+        "resource": "리소스",
+        "permission": "권한",
+        "owner": "소유자",
+        "grantee": "공유 대상",
+        "actions": "작업"
+      },
+      "resourceTypes": {
+        "conversation": "대화",
+        "project": "프로젝트",
+        "provider": "연결"
+      },
+      "permissions": {
+        "view": "보기",
+        "edit": "편집"
+      },
+      "grantById": {
+        "title": "리소스 공유",
+        "description": "컨텍스트 메뉴가 없을 때 대화, 프로젝트 또는 프로바이더 ID로 공유 대화상자를 엽니다.",
+        "resourceType": "유형",
+        "resourceId": "리소스 ID",
+        "resourceIdPlaceholder": "리소스 ID 입력",
+        "resourceIdRequired": "리소스 ID를 입력하세요",
+        "open": "공유"
+      },
+      "shareDialog": {
+        "title": "{{name}} 공유",
+        "description": "사용자와 권한 수준을 선택하세요. 기존 공유는 아래에 표시됩니다.",
+        "user": "사용자",
+        "userPlaceholder": "멤버 선택",
+        "userRequired": "사용자를 선택하세요",
+        "noUsers": "다른 활성 사용자가 없습니다",
+        "permission": "권한",
+        "grant": "접근 권한 부여",
+        "grantSuccess": "접근 권한이 부여되었습니다",
+        "existing": "접근 권한이 있는 사용자",
+        "existingEmpty": "아직 누구와도 공유되지 않음"
+      },
+      "errors": {
+        "failed": "공유 작업에 실패했습니다. 다시 시도하세요.",
+        "notFound": "이 공유가 더 이상 존재하지 않습니다.",
+        "alreadyShared": "이 리소스는 이미 해당 사용자와 공유되어 있습니다.",
+        "cannotShareSelf": "자신과 리소스를 공유할 수 없습니다.",
+        "invalidPermission": "유효하지 않은 권한입니다.",
+        "invalidResource": "해당 리소스를 공유할 수 없습니다.",
+        "forbidden": "이 공유를 관리할 권한이 없습니다.",
+        "featureUnavailable": "이 백엔드 버전에서는 리소스 공유를 사용할 수 없습니다. AionCore를 업데이트하세요."
+      },
+      "shareConversation": "대화 공유",
+      "shareConversationHint": "내 대화를 선택한 뒤 접근할 사용자를 고르세요.",
+      "pickConversation": "대화 선택",
+      "shareWithUser": "공유…",
+      "shareResource": "리소스 공유",
+      "shareResourceHint": "대화, 연결(프로바이더) 또는 프로젝트를 선택한 뒤 접근할 사용자를 고르세요.",
+      "pickResource": "항목 선택",
+      "projectFromChat": "프로젝트 · {{name}}",
+      "emptyPicker": {
+        "conversation": "대화가 없습니다",
+        "provider": "연결이 없습니다 — 모델 설정에서 추가",
+        "project": "연결된 프로젝트가 없습니다"
+      }
+    },
+    "signOut": "로그아웃"
   }
 }

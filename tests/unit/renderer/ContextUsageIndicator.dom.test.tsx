@@ -83,7 +83,8 @@ describe('ContextUsageIndicator', () => {
 
     const popover = getByTestId('popover-content').textContent ?? '';
     expect(popover).toContain('Session cost');
-    expect(popover).toContain('0.42');
+    // Intl currency formatting is locale-dependent ("0.42" vs "0,42").
+    expect(popover).toMatch(/0[,.]42/);
     expect(popover).toContain('Input 14.1K');
     expect(popover).toContain('Output 30');
     expect(popover).toContain('Cache read 14.1K');

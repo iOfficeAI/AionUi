@@ -454,7 +454,7 @@
   "installed": "نصب‌شده",
   "builtin": "پیش‌فرض",
   "channels": "کانال‌ها",
-  "webui.description": "از AionUi به‌عنوان «دستیار ریموت ۲۴/۷» خود استفاده کنید - از هر دستگاه ریموت، هر زمان و هر مکانی کارها را مدیریت کنید.",
+  "webui.description": "حالت دسکتاپ، بک‌اند خود را خصوصی نگه می‌دارد. برای دسترسی مرورگر، سرور احراز هویت‌شده Docker یا مستقل را اجرا کنید.",
   "webui.steps": "مرحله ۱. WebUI را روشن کنید؛ مرحله ۲. آدرس دسترسی را کپی کنید؛ مرحله ۳. در مرورگر ریموت باز کنید",
   "webui.configuration": "پیکربندی WebUI",
   "webui.enable": "فعال‌سازی WebUI",
@@ -462,7 +462,7 @@
   "webui.port": "پورت",
   "webui.portDesc": "پورت گوش دادن سرویس WebUI",
   "webui.allowRemote": "اجازه دسترسی ریموت",
-  "webui.allowRemoteDesc": "از نرم‌افزار/سرور ریموت برای دسترسی امن ریموت استفاده کنید",
+  "webui.allowRemoteDesc": "دسترسی راه دور و چندکاربره از طریق سرور Docker یا مستقل احراز هویت‌شده در دسترس است.",
   "webui.viewGuide": "مشاهده راهنما",
   "webui.accessInfo": "آدرس‌های دسترسی",
   "webui.localUrl": "آدرس محلی",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "رمز عبور فقط در اولین اجرا نمایش داده می‌شود و بعداً مخفی خواهد شد",
   "webui.resetPasswordWarning": "لطفاً رمز عبور بازنشانی‌شده را در جای امنی نگه دارید!",
-  "webui.featureRemoteDesc": "WebUI را فعال کنید تا گوشی یا مرورگر ریموت شما بتواند به AionUi دسترسی داشته باشد.",
+  "webui.featureRemoteDesc": "میزبانی مرورگر در فرایند دسکتاپ غیرفعال است. Docker یا سرور مستقل از استقرار شخصی و چندکاربره پشتیبانی می‌کند.",
   "webui.featureChannelsTitle": "کنترل پیام‌رسان",
   "webui.featureChannelsDesc": "تلگرام، Lark، DingTalk و WeChat را متصل کنید تا از طریق برنامه‌های پیام‌رسان با AionUi تعامل کنید.",
   "webui.goToChannels": "رفتن به کانال‌ها",
@@ -1341,5 +1341,165 @@
     "clearConfirmContent": "از همه سایت‌های مرورگر درون‌برنامه خارج می‌شوید. این کار قابل بازگشت نیست.",
     "clearSuccess": "داده‌های مرور پاک شد",
     "clearFailed": "پاک کردن داده‌های مرور ناموفق بود"
+  },
+  "account": {
+    "navTitle": "حساب‌ها",
+    "title": "حساب‌ها و دسترسی",
+    "description": "حساب خود، کاربران سایت و رویدادهای امنیتی را مدیریت کنید.",
+    "changePassword": "تغییر رمز عبور",
+    "tabs": {
+      "account": "حساب من",
+      "users": "کاربران",
+      "audit": "ممیزی",
+      "channels": "کانال‌ها",
+      "collaboration": "همکاری"
+    },
+    "roles": {
+      "admin": "مدیر",
+      "member": "عضو"
+    },
+    "statuses": {
+      "active": "فعال",
+      "disabled": "غیرفعال"
+    },
+    "userTypes": {
+      "local": "حساب محلی",
+      "aionpro": "حساب AionPro"
+    },
+    "errors": {
+      "failed": "عملیات حساب ناموفق بود. دوباره تلاش کنید.",
+      "adminRequired": "دسترسی مدیر لازم است.",
+      "lastAdmin": "آخرین مدیر فعال را نمی‌توان تغییر داد یا غیرفعال کرد.",
+      "userNotFound": "کاربر دیگر وجود ندارد.",
+      "usernameTaken": "این نام کاربری قبلاً استفاده شده است.",
+      "passwordChangeRequired": "پیش از ادامه رمز عبور موقت خود را تغییر دهید.",
+      "featureUnavailable": "مدیریت حساب در این نسخهٔ پشتیبان در دسترس نیست. AionCore را به‌روزرسانی کنید.",
+      "rateLimited": "درخواست‌ها زیاد است. کمی صبر کنید و تازه‌سازی کنید."
+    },
+    "users": {
+      "title": "کاربران سایت",
+      "description": "حساب بسازید و دسترسی به این نمونه AionUi را مدیریت کنید.",
+      "add": "افزودن کاربر",
+      "empty": "کاربری یافت نشد",
+      "username": "نام کاربری",
+      "usernamePlaceholder": "یک نام کاربری وارد کنید",
+      "usernameRequired": "نام کاربری را وارد کنید",
+      "usernameLength": "نام کاربری باید بین ۳ تا ۳۲ نویسه باشد",
+      "usernameFormat": "فقط از حروف، اعداد، زیرخط یا خط تیره استفاده کنید",
+      "role": "نقش",
+      "passwordState": "رمز عبور",
+      "changeRequired": "نیازمند تغییر",
+      "passwordSet": "تنظیم شده",
+      "actions": "عملیات",
+      "createTitle": "ایجاد کاربر",
+      "createSuccess": "کاربر ایجاد شد",
+      "renameTitle": "ویرایش نام کاربری",
+      "renameSuccess": "نام کاربری به‌روزرسانی شد",
+      "updateSuccess": "کاربر به‌روزرسانی شد",
+      "resetPassword": "بازنشانی رمز عبور",
+      "resetConfirm": "یک رمز عبور موقت جدید برای {{username}} ساخته شود؟ نشست‌های او لغو می‌شوند.",
+      "resetSuccess": "رمز عبور موقت ساخته شد",
+      "revokeSessions": "لغو نشست‌ها",
+      "revokeConfirm": "{{username}} از همه دستگاه‌ها خارج شود؟",
+      "revokeSuccess": "نشست‌ها لغو شدند",
+      "temporaryPasswordTitle": "رمز عبور موقت",
+      "temporaryPasswordNotice": "این رمز را اکنون کپی کنید. دوباره نمایش داده نمی‌شود و کاربر باید پس از ورود آن را تغییر دهد."
+    },
+    "audit": {
+      "title": "ممیزی امنیتی",
+      "description": "تغییرات اخیر حساب و دسترسی را مرور کنید.",
+      "empty": "رویداد ممیزی یافت نشد",
+      "time": "زمان",
+      "actor": "انجام‌دهنده",
+      "action": "عملیات",
+      "target": "هدف",
+      "details": "جزئیات",
+      "loadMore": "بارگیری بیشتر",
+      "actions": {
+        "userCreated": "کاربر ایجاد شد",
+        "usernameChanged": "نام کاربری تغییر کرد",
+        "roleChanged": "نقش تغییر کرد",
+        "statusChanged": "وضعیت تغییر کرد",
+        "passwordReset": "رمز عبور بازنشانی شد",
+        "passwordChanged": "رمز عبور تغییر کرد",
+        "sessionsRevoked": "نشست‌ها لغو شدند",
+        "bootstrapCredentialsSet": "اعتبارنامه‌های اولیه تنظیم شدند"
+      }
+    },
+    "collaboration": {
+      "title": "همکاری",
+      "description": "منابع به‌اشتراک‌گذاشته‌شده با شما را ببینید و اشتراک‌های خود را مدیریت کنید.",
+      "tabs": {
+        "received": "اشتراک‌گذاری‌شده با من",
+        "granted": "اشتراک‌گذاری‌شده توسط من"
+      },
+      "emptyReceived": "هنوز منبعی با شما به‌اشتراک گذاشته نشده است",
+      "emptyGranted": "هنوز منبعی به‌اشتراک نگذاشته‌اید",
+      "revoke": "لغو",
+      "revokeConfirm": "دسترسی {{username}} لغو شود؟",
+      "revokeSuccess": "اشتراک لغو شد",
+      "columns": {
+        "resource": "منبع",
+        "permission": "مجوز",
+        "owner": "مالک",
+        "grantee": "به‌اشتراک‌گذاشته با",
+        "actions": "اقدامات"
+      },
+      "resourceTypes": {
+        "conversation": "گفتگو",
+        "project": "پروژه",
+        "provider": "اتصال"
+      },
+      "permissions": {
+        "view": "مشاهده",
+        "edit": "ویرایش"
+      },
+      "grantById": {
+        "title": "اشتراک‌گذاری منبع",
+        "description": "وقتی منوی زمینه در دسترس نیست، گفتگوی اشتراک‌گذاری را با شناسه گفتگو، پروژه یا ارائه‌دهنده باز کنید.",
+        "resourceType": "نوع",
+        "resourceId": "شناسه منبع",
+        "resourceIdPlaceholder": "شناسه منبع را وارد کنید",
+        "resourceIdRequired": "یک شناسه منبع وارد کنید",
+        "open": "اشتراک‌گذاری"
+      },
+      "shareDialog": {
+        "title": "اشتراک‌گذاری {{name}}",
+        "description": "یک کاربر و سطح مجوز انتخاب کنید. مجوزهای موجود در پایین فهرست شده‌اند.",
+        "user": "شخص",
+        "userPlaceholder": "انتخاب عضو",
+        "userRequired": "یک شخص انتخاب کنید",
+        "noUsers": "کاربر فعال دیگری در دسترس نیست",
+        "permission": "مجوز",
+        "grant": "اعطای دسترسی",
+        "grantSuccess": "دسترسی اعطا شد",
+        "existing": "افراد دارای دسترسی",
+        "existingEmpty": "هنوز با کسی به‌اشتراک گذاشته نشده"
+      },
+      "errors": {
+        "failed": "عملیات اشتراک‌گذاری ناموفق بود. دوباره تلاش کنید.",
+        "notFound": "این اشتراک دیگر وجود ندارد.",
+        "alreadyShared": "این منبع از قبل با آن کاربر به‌اشتراک گذاشته شده است.",
+        "cannotShareSelf": "نمی‌توانید منبعی را با خودتان به‌اشتراک بگذارید.",
+        "invalidPermission": "آن مجوز معتبر نیست.",
+        "invalidResource": "آن منبع قابل اشتراک‌گذاری نبود.",
+        "forbidden": "مجوز مدیریت این اشتراک را ندارید.",
+        "featureUnavailable": "اشتراک‌گذاری منابع با این نسخه بک‌اند در دسترس نیست. AionCore را به‌روزرسانی کنید."
+      },
+      "shareConversation": "اشتراک گفتگو",
+      "shareConversationHint": "یکی از گفتگوهای خود را انتخاب کنید، سپس شخص مجاز را.",
+      "pickConversation": "انتخاب گفتگو",
+      "shareWithUser": "اشتراک…",
+      "shareResource": "اشتراک منبع",
+      "shareResourceHint": "گفتگو، اتصال (ارائه‌دهنده) یا پروژه را انتخاب کنید، سپس شخص مجاز را.",
+      "pickResource": "انتخاب مورد",
+      "projectFromChat": "پروژه · {{name}}",
+      "emptyPicker": {
+        "conversation": "هنوز گفتگویی نیست",
+        "provider": "هنوز اتصالی نیست — در مدل‌ها اضافه کنید",
+        "project": "پروژه مرتبطی نیست"
+      }
+    },
+    "signOut": "خروج"
   }
 }

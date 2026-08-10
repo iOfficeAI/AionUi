@@ -122,6 +122,7 @@ async function loadBrowserAdapter() {
   const location = setupBrowserGlobals();
 
   await import('@/common/adapter/browser');
+  const { onAuthExpired } = await import('@/common/adapter/httpBridge');
 
   const adapter = platformMock.adapter.mock.calls[0]?.[0] as BridgeAdapter | undefined;
   const socket = FakeWebSocket.instances[0];
@@ -130,7 +131,7 @@ async function loadBrowserAdapter() {
     throw new Error('browser adapter did not initialize');
   }
 
-  return { adapter, location, socket };
+  return { adapter, location, onAuthExpired, socket };
 }
 
 describe('browser WebSocket realtime error handling', () => {
@@ -150,14 +151,17 @@ describe('browser WebSocket realtime error handling', () => {
     { name: 'realtime.error', data: { code: 'REALTIME_AUTH_MISSING', message: 'Missing auth', recoverable: false } },
     { name: 'realtime.error', data: { code: 'REALTIME_AUTH_EXPIRED', message: 'Expired auth', recoverable: false } },
   ])('treats $name auth payload as terminal and redirects to login', async (payload) => {
-    const { adapter, location, socket } = await loadBrowserAdapter();
+    const { adapter, location, onAuthExpired, socket } = await loadBrowserAdapter();
     const emit = vi.fn();
+    const authExpired = vi.fn();
+    const unsubscribe = onAuthExpired(authExpired);
     adapter.on({ emit });
 
     socket.dispatchMessage(payload);
 
     expect(socket.close).toHaveBeenCalledTimes(1);
     expect(emit).not.toHaveBeenCalled();
+    expect(authExpired).toHaveBeenCalledWith({ source: 'realtime', code: payload.data.code });
 
     socket.dispatchClose(1006);
     const socketCountAfterClose = FakeWebSocket.instances.length;
@@ -167,6 +171,7 @@ describe('browser WebSocket realtime error handling', () => {
 
     vi.advanceTimersByTime(1000);
     expect(location.hash).toBe('/login');
+    unsubscribe();
   });
 
   it('emits non-auth realtime errors without closing or redirecting', async () => {

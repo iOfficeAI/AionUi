@@ -29,17 +29,24 @@ function getPersistedActiveId(): string {
   return (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
 }
 
+function applyConfiguredTheme(): Theme {
+  const activeId = getPersistedActiveId();
+  const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
+  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+  applyTheme(resolved);
+  cacheAppearance(resolved);
+  void seedElectronTheme(resolved).catch(() => {});
+  return resolved;
+}
+
 async function initActiveTheme(): Promise<Theme> {
   try {
-    await configService.whenReady();
-    const activeId = getPersistedActiveId();
-    const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
-    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
-    applyTheme(resolved);
-    cacheAppearance(resolved);
-    // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
-    void seedElectronTheme(resolved).catch(() => {});
-    return resolved;
+    // WebUI preferences are account-scoped and become available after login.
+    // Start from the safe built-in fallback and let subscriptions refresh it.
+    if (typeof window === 'undefined' || window.electronAPI) {
+      await configService.whenReady();
+    }
+    return applyConfiguredTheme();
   } catch (e) {
     console.error('init theme failed', e);
     const fallback = resolveActiveTheme(LIGHT_THEME_ID, BUILTIN_THEMES);
@@ -79,10 +86,21 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
       }
       cacheAppearance(t);
     });
+    const refreshFromConfig = () => {
+      const resolved = applyConfiguredTheme();
+      if (mounted) {
+        setActive(resolved);
+        setActiveId(getPersistedActiveId());
+      }
+    };
+    const offActiveTheme = configService.subscribe('theme.activeId', refreshFromConfig);
+    const offUserThemes = configService.subscribe('theme.userThemes', refreshFromConfig);
     const offSystemWatch = startSystemThemeWatcher();
     return () => {
       mounted = false;
       off?.();
+      offActiveTheme();
+      offUserThemes();
       offSystemWatch();
     };
   }, []);

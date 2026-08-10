@@ -76,7 +76,8 @@
     "deleting": "Deleting...",
     "reorderPinned": "Drag to reorder pinned conversation",
     "forkedFrom": "Forked from “{{name}}”",
-    "forkedConversation": "Forked conversation"
+    "forkedConversation": "Forked conversation",
+    "share": "Share"
   },
   "historySearch": {
     "tooltip": "Search messages",

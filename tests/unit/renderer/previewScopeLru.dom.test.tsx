@@ -128,7 +128,10 @@ describe('a full storage quota is reported', () => {
   const flush = () => act(() => void vi.advanceTimersByTime(300));
 
   it('raises persistQuotaExceededAt when writes cannot succeed', () => {
-    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    // Node now exposes its own experimental Storage implementation in the test
+    // realm. Spy on the exact object used by the module instead of assuming its
+    // prototype comes from jsdom's `window.Storage` constructor.
+    const setItem = vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
       const err = new Error('QuotaExceededError');
       err.name = 'QuotaExceededError';
       throw err;

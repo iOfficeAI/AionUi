@@ -13,18 +13,23 @@ import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, set
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor, session } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
+import { LOCAL_CLIENT_SECRET_HEADER } from './common/adapter/httpBridge';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
+import {
+  isTrustedLocalBackendRequester,
+  shouldAttachLocalBackendSecret,
+} from './process/startup/localBackendRequestAuth';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
@@ -201,7 +206,8 @@ const backendManager = new BackendLifecycleManager(
     resourcesPath: process.resourcesPath,
     userDataPath: app.getPath('userData'),
   },
-  resolveBinaryPath
+  resolveBinaryPath,
+  isWebUIMode ? 'webui' : 'local'
 );
 let disposeCronResumeListener: (() => void) | null = null;
 
@@ -216,6 +222,13 @@ let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
+});
+
+ipcMain.on('get-backend-client-secret', (event) => {
+  const trustedWebContentsId = mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents.id : undefined;
+  event.returnValue = isTrustedLocalBackendRequester(event.sender.id, trustedWebContentsId)
+    ? (backendManager.localClientSecret ?? null)
+    : null;
 });
 
 ipcMain.on('get-initial-language', (event) => {
@@ -308,6 +321,7 @@ function registerCronResumeBridge(backendPort: number): void {
       method: 'POST',
       headers: {
         'x-aionui-internal': '1',
+        ...(backendManager.localClientSecret ? { [LOCAL_CLIENT_SECRET_HEADER]: backendManager.localClientSecret } : {}),
       },
     }).catch((error) => {
       console.error('[AionUi] Failed to notify backend about system resume:', error);
@@ -318,6 +332,34 @@ function registerCronResumeBridge(backendPort: number): void {
   disposeCronResumeListener = () => {
     powerMonitor.removeListener('resume', onResume);
   };
+}
+
+let localBackendRequestAuthInstalled = false;
+
+function installLocalBackendRequestAuth(): void {
+  if (localBackendRequestAuthInstalled || !backendManager.localClientSecret) return;
+  localBackendRequestAuthInstalled = true;
+
+  // Chromium-owned requests such as img/iframe/EventSource cannot set custom
+  // headers in renderer code. Inject the secret only for this process's exact
+  // loopback backend port; other local services never receive it.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['http://127.0.0.1/*', 'ws://127.0.0.1/*'] },
+    (details, callback) => {
+      const trustedWebContentsId = mainWindow && !mainWindow.isDestroyed() ? mainWindow.webContents.id : undefined;
+      const matchesBackend = shouldAttachLocalBackendSecret(details, trustedWebContentsId, backendManager.port);
+
+      callback({
+        requestHeaders:
+          matchesBackend && backendManager.localClientSecret
+            ? {
+                ...details.requestHeaders,
+                [LOCAL_CLIENT_SECRET_HEADER]: backendManager.localClientSecret,
+              }
+            : details.requestHeaders,
+      });
+    }
+  );
 }
 
 /**
@@ -345,7 +387,13 @@ function exposeBackendPort(backendPort: number): void {
   // one-shot assistant migration hook below). Must land BEFORE any
   // ipcBridge.* invoke from the main process — the renderer side reads
   // window.__backendPort via preload, but main has no `window`.
-  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+  const globals = globalThis as typeof globalThis & {
+    __backendPort?: number;
+    __backendClientSecret?: string;
+  };
+  globals.__backendPort = backendPort;
+  globals.__backendClientSecret = backendManager.localClientSecret;
+  installLocalBackendRequestAuth();
 }
 
 function ensureAdminUserOnce(backendPort: number): Promise<void> {
@@ -353,7 +401,7 @@ function ensureAdminUserOnce(backendPort: number): Promise<void> {
     ensureAdminUserPromise = (async () => {
       try {
         const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
-        await ensureAdminUser(backendPort);
+        await ensureAdminUser(backendPort, backendManager.localClientSecret);
       } catch (err) {
         console.error('[WebUI] ensureAdminUser failed:', err);
       }
@@ -904,6 +952,7 @@ const handleAppReady = async (): Promise<void> => {
         },
         backend: {
           kind: 'useExistingBackend',
+          identityMode: 'webui',
           port: (() => {
             // Reuse the backend already spawned by backendManager.start() above.
             // Spawning a second backend here would race the first on SQLite.

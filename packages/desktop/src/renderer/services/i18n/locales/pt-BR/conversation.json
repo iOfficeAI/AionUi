@@ -76,7 +76,8 @@
     "deleting": "Excluindo...",
     "reorderPinned": "Arraste para reordenar a conversa fixada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversa bifurcada"
+    "forkedConversation": "Conversa bifurcada",
+    "share": "Compartilhar"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",

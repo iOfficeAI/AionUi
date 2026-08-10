@@ -77,6 +77,7 @@ export interface BackendStartupFailureInfo {
 declare global {
   interface Window {
     electronAPI?: ElectronBridgeAPI;
+    __backendClientSecret?: string;
     __initialLanguage?: string | null;
     __aionuiE2ETest?: boolean;
     __backendStartupFailed?: boolean;

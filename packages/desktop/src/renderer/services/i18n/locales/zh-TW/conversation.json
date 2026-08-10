@@ -76,7 +76,8 @@
     "deleting": "刪除中...",
     "reorderPinned": "拖動以調整置頂會話順序",
     "forkedFrom": "分叉自「{{name}}」",
-    "forkedConversation": "分叉對話"
+    "forkedConversation": "分叉對話",
+    "share": "共享"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",

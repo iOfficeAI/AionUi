@@ -5,10 +5,11 @@
  */
 
 import { useMemo } from 'react';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 
 export type UseConversationAssistantsResult = {

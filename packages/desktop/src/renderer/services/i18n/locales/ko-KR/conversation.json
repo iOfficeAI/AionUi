@@ -76,7 +76,8 @@
     "deleting": "삭제 중...",
     "reorderPinned": "드래그하여 고정된 대화 순서 변경",
     "forkedFrom": "“{{name}}”에서 분기됨",
-    "forkedConversation": "분기된 대화"
+    "forkedConversation": "분기된 대화",
+    "share": "공유"
   },
   "historySearch": {
     "tooltip": "메시지 검색",

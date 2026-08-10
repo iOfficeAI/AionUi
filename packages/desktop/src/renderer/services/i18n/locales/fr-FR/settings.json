@@ -454,7 +454,7 @@
   "installed": "Installé",
   "builtin": "Intégré",
   "channels": "Canaux",
-  "webui.description": "Utilisez AionUi comme votre \"Assistant distant 24/7\" - organisez des tâches depuis n'importe quel appareil distant, à tout moment, partout.",
+  "webui.description": "Le mode bureau garde son backend privé. Lancez le serveur Docker authentifié ou autonome pour l'accès par navigateur.",
   "webui.steps": "Étape 1. Activer WebUI ; Étape 2. Copier l'URL d'accès ; Étape 3. Ouvrir dans un navigateur distant",
   "webui.configuration": "Configuration WebUI",
   "webui.enable": "Activer WebUI",
@@ -462,7 +462,7 @@
   "webui.port": "Port",
   "webui.portDesc": "Port d'écoute du service WebUI",
   "webui.allowRemote": "Autoriser l'accès distant",
-  "webui.allowRemoteDesc": "Utiliser un logiciel/serveur distant pour un accès distant sécurisé",
+  "webui.allowRemoteDesc": "L'accès distant et multi-utilisateur est disponible via le serveur Docker ou autonome authentifié.",
   "webui.viewGuide": "Voir le guide",
   "webui.accessInfo": "URLs d'accès",
   "webui.localUrl": "URL locale",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "Le mot de passe n'est affiché qu'au premier démarrage et sera masqué ensuite",
   "webui.resetPasswordWarning": "Veuillez conserver le mot de passe réinitialisé en lieu sûr !",
-  "webui.featureRemoteDesc": "Activez WebUI pour que votre téléphone ou navigateur distant puisse accéder à AionUi.",
+  "webui.featureRemoteDesc": "L'hébergement dans le navigateur est désactivé dans le processus bureau. Docker ou le serveur autonome prend en charge les déploiements personnels et multi-utilisateurs.",
   "webui.featureChannelsTitle": "Contrôle de messagerie",
   "webui.featureChannelsDesc": "Connectez Telegram, Lark, DingTalk et WeChat pour interagir avec AionUi depuis les applications de messagerie.",
   "webui.goToChannels": "Aller aux Canaux",
@@ -1341,5 +1341,165 @@
     "clearConfirmContent": "Vous serez déconnecté de tous les sites du navigateur intégré. Cette action est irréversible.",
     "clearSuccess": "Données de navigation effacées",
     "clearFailed": "Échec de l'effacement des données de navigation"
+  },
+  "account": {
+    "navTitle": "Comptes",
+    "title": "Comptes et accès",
+    "description": "Gérez votre compte, les utilisateurs du site et l'activité de sécurité.",
+    "changePassword": "Modifier le mot de passe",
+    "tabs": {
+      "account": "Mon compte",
+      "users": "Utilisateurs",
+      "audit": "Audit",
+      "channels": "Canaux",
+      "collaboration": "Collaboration"
+    },
+    "roles": {
+      "admin": "Administrateur",
+      "member": "Membre"
+    },
+    "statuses": {
+      "active": "Actif",
+      "disabled": "Désactivé"
+    },
+    "userTypes": {
+      "local": "Compte local",
+      "aionpro": "Compte AionPro"
+    },
+    "errors": {
+      "failed": "L'opération sur le compte a échoué. Veuillez réessayer.",
+      "adminRequired": "Un accès administrateur est requis.",
+      "lastAdmin": "Le dernier administrateur actif ne peut pas être modifié ou désactivé.",
+      "userNotFound": "L'utilisateur n'existe plus.",
+      "usernameTaken": "Ce nom d'utilisateur est déjà utilisé.",
+      "passwordChangeRequired": "Modifiez votre mot de passe temporaire avant de continuer.",
+      "featureUnavailable": "La gestion des comptes n'est pas disponible avec cette version du backend. Mettez AionCore à jour.",
+      "rateLimited": "Trop de requêtes. Attendez puis actualisez."
+    },
+    "users": {
+      "title": "Utilisateurs du site",
+      "description": "Créez des comptes et contrôlez leur accès à cette instance AionUi.",
+      "add": "Ajouter un utilisateur",
+      "empty": "Aucun utilisateur trouvé",
+      "username": "Nom d'utilisateur",
+      "usernamePlaceholder": "Saisissez un nom d'utilisateur",
+      "usernameRequired": "Saisissez un nom d'utilisateur",
+      "usernameLength": "Le nom d'utilisateur doit comporter entre 3 et 32 caractères",
+      "usernameFormat": "Utilisez uniquement des lettres, chiffres, tirets bas ou traits d'union",
+      "role": "Rôle",
+      "passwordState": "Mot de passe",
+      "changeRequired": "Changement requis",
+      "passwordSet": "Défini",
+      "actions": "Actions",
+      "createTitle": "Créer un utilisateur",
+      "createSuccess": "Utilisateur créé",
+      "renameTitle": "Modifier le nom d'utilisateur",
+      "renameSuccess": "Nom d'utilisateur mis à jour",
+      "updateSuccess": "Utilisateur mis à jour",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "resetConfirm": "Générer un nouveau mot de passe temporaire pour {{username}} ? Ses sessions seront révoquées.",
+      "resetSuccess": "Mot de passe temporaire généré",
+      "revokeSessions": "Révoquer les sessions",
+      "revokeConfirm": "Déconnecter {{username}} de tous les appareils ?",
+      "revokeSuccess": "Sessions révoquées",
+      "temporaryPasswordTitle": "Mot de passe temporaire",
+      "temporaryPasswordNotice": "Copiez ce mot de passe maintenant. Il ne sera plus affiché et devra être changé après la connexion."
+    },
+    "audit": {
+      "title": "Audit de sécurité",
+      "description": "Consultez les modifications récentes des comptes et des accès.",
+      "empty": "Aucun événement d'audit",
+      "time": "Heure",
+      "actor": "Auteur",
+      "action": "Action",
+      "target": "Cible",
+      "details": "Détails",
+      "loadMore": "Charger plus",
+      "actions": {
+        "userCreated": "Utilisateur créé",
+        "usernameChanged": "Nom d'utilisateur modifié",
+        "roleChanged": "Rôle modifié",
+        "statusChanged": "État modifié",
+        "passwordReset": "Mot de passe réinitialisé",
+        "passwordChanged": "Mot de passe modifié",
+        "sessionsRevoked": "Sessions révoquées",
+        "bootstrapCredentialsSet": "Identifiants initiaux définis"
+      }
+    },
+    "collaboration": {
+      "title": "Collaboration",
+      "description": "Consultez les ressources partagées avec vous et gérez vos partages.",
+      "tabs": {
+        "received": "Partagé avec moi",
+        "granted": "Partagé par moi"
+      },
+      "emptyReceived": "Aucune ressource n'a encore été partagée avec vous",
+      "emptyGranted": "Vous n'avez encore partagé aucune ressource",
+      "revoke": "Révoquer",
+      "revokeConfirm": "Révoquer l'accès de {{username}} ?",
+      "revokeSuccess": "Partage révoqué",
+      "columns": {
+        "resource": "Ressource",
+        "permission": "Permission",
+        "owner": "Propriétaire",
+        "grantee": "Partagé avec",
+        "actions": "Actions"
+      },
+      "resourceTypes": {
+        "conversation": "Conversation",
+        "project": "Projet",
+        "provider": "Connexion"
+      },
+      "permissions": {
+        "view": "Lecture",
+        "edit": "Modification"
+      },
+      "grantById": {
+        "title": "Partager une ressource",
+        "description": "Ouvrez la boîte de dialogue de partage pour une conversation, un projet ou un fournisseur via son identifiant lorsqu'aucun menu contextuel n'est disponible.",
+        "resourceType": "Type",
+        "resourceId": "Identifiant de ressource",
+        "resourceIdPlaceholder": "Saisir l'identifiant",
+        "resourceIdRequired": "Saisissez un identifiant de ressource",
+        "open": "Partager"
+      },
+      "shareDialog": {
+        "title": "Partager {{name}}",
+        "description": "Choisissez un utilisateur et un niveau de permission. Les partages existants sont listés ci-dessous.",
+        "user": "Personne",
+        "userPlaceholder": "Sélectionner un membre",
+        "userRequired": "Sélectionnez une personne",
+        "noUsers": "Aucun autre utilisateur actif disponible",
+        "permission": "Permission",
+        "grant": "Accorder l'accès",
+        "grantSuccess": "Accès accordé",
+        "existing": "Personnes ayant accès",
+        "existingEmpty": "Pas encore partagé avec quelqu'un"
+      },
+      "errors": {
+        "failed": "L'opération de partage a échoué. Réessayez.",
+        "notFound": "Ce partage n'existe plus.",
+        "alreadyShared": "Cette ressource est déjà partagée avec cet utilisateur.",
+        "cannotShareSelf": "Vous ne pouvez pas partager une ressource avec vous-même.",
+        "invalidPermission": "Cette permission n'est pas valide.",
+        "invalidResource": "Cette ressource n'a pas pu être partagée.",
+        "forbidden": "Vous n'avez pas la permission de gérer ce partage.",
+        "featureUnavailable": "Le partage de ressources n'est pas disponible avec cette version du backend. Mettez à jour AionCore."
+      },
+      "shareConversation": "Partager une conversation",
+      "shareConversationHint": "Choisissez une de vos conversations, puis la personne autorisée.",
+      "pickConversation": "Sélectionner une conversation",
+      "shareWithUser": "Partager…",
+      "shareResource": "Partager une ressource",
+      "shareResourceHint": "Choisissez une conversation, une connexion (fournisseur) ou un projet, puis la personne autorisée.",
+      "pickResource": "Sélectionner un élément",
+      "projectFromChat": "Projet · {{name}}",
+      "emptyPicker": {
+        "conversation": "Aucune conversation",
+        "provider": "Aucune connexion — ajoutez-en sous Modèles",
+        "project": "Aucun projet lié"
+      }
+    },
+    "signOut": "Se déconnecter"
   }
 }

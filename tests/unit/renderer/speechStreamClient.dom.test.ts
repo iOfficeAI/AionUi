@@ -23,6 +23,7 @@ class MockWebSocket implements WebSocketLike {
   static instances: MockWebSocket[] = [];
 
   url: string;
+  protocols?: string | string[];
   readyState = 0; // CONNECTING
   binaryType: BinaryType = 'blob';
   sentText: string[] = [];
@@ -35,8 +36,9 @@ class MockWebSocket implements WebSocketLike {
   onclose: ((event: CloseEvent) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
 
-  constructor(url: string) {
+  constructor(url: string, protocols?: string | string[]) {
     this.url = url;
+    this.protocols = protocols;
     MockWebSocket.instances.push(this);
   }
 
@@ -111,15 +113,26 @@ const setBackendPort = (port: number | undefined): void => {
   }
 };
 
+const setBackendClientSecret = (secret: string | undefined): void => {
+  const w = window as Window & { __backendClientSecret?: string };
+  if (secret === undefined) {
+    delete w.__backendClientSecret;
+  } else {
+    w.__backendClientSecret = secret;
+  }
+};
+
 beforeEach(() => {
   vi.useFakeTimers();
   MockWebSocket.instances = [];
   setBackendPort(undefined);
+  setBackendClientSecret(undefined);
 });
 
 afterEach(() => {
   vi.useRealTimers();
   setBackendPort(undefined);
+  setBackendClientSecret(undefined);
   vi.restoreAllMocks();
 });
 
@@ -453,5 +466,17 @@ describe('URL derivation', () => {
     const callbacks = makeCallbacks();
     startSpeechStream({ callbacks, createSocket });
     expect(lastSocket().url).toBe('ws://127.0.0.1:14512/api/stt/stream');
+  });
+
+  it('authenticates the default Electron socket with the local subprotocol', () => {
+    const secret = 'e'.repeat(43);
+    setBackendPort(14512);
+    setBackendClientSecret(secret);
+    vi.stubGlobal('WebSocket', MockWebSocket);
+
+    const handle = startSpeechStream({ callbacks: makeCallbacks() });
+
+    expect(lastSocket().protocols).toBe(`aionui-local-v1.${secret}`);
+    handle.abort();
   });
 });

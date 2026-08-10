@@ -76,7 +76,8 @@
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
-    "forkedConversation": "گفتگوی منشعب"
+    "forkedConversation": "گفتگوی منشعب",
+    "share": "اشتراک‌گذاری"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

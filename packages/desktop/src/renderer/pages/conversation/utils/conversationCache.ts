@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { mutate } from 'swr';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 
 export async function getConversationOrNull(conversation_id: string): Promise<TChatConversation | null> {
   try {

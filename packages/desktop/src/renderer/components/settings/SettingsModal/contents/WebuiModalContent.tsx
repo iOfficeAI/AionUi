@@ -64,7 +64,6 @@ const QRCodeSVGLazy = React.lazy(async () => {
 });
 
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
-const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 
 /**
  * WebUI 设置内容组件
@@ -85,7 +84,6 @@ const WebuiModalContent: React.FC = () => {
   const [startLoading, setStartLoading] = useState(false);
   const port = WEBUI_DEFAULT_PORT;
   const [webuiEnabled, setWebuiEnabled] = useState(false);
-  const [allowRemotePreference, setAllowRemotePreference] = useState(false);
   const [cachedIP, setCachedIP] = useState<string | null>(null);
   const [cachedPassword, setCachedPassword] = useState<string | null>(null);
   // 标记密码是否可以明文显示（首次启动且未复制过）/ Flag for plaintext password display (first startup and not copied)
@@ -108,9 +106,6 @@ const WebuiModalContent: React.FC = () => {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const savedAllowRemote = configService.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY) ?? false;
-      setAllowRemotePreference(savedAllowRemote === true);
-
       // getStatus goes via IPC to the Electron main process which tracks the
       // WebUI lifecycle; backend does not know it's being wrapped.
       const statusData: IWebUIStatus | null = await webui.getStatus.invoke();
@@ -167,8 +162,10 @@ const WebuiModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Browser WebUI already is the host — Electron webui.getStatus IPC is unavailable.
+    if (!isDesktop) return;
     void loadStatus();
-  }, [loadStatus]);
+  }, [isDesktop, loadStatus]);
 
   // 监听状态变更事件 / Listen to status change events
   useEffect(() => {
@@ -226,14 +223,9 @@ const WebuiModalContent: React.FC = () => {
 
   // 获取显示的 URL / Get display URL
   const getDisplayUrl = useCallback(() => {
-    const currentIP = getLocalIP();
     const currentPort = status?.port || port;
-    const useRemote = status?.running ? status.allowRemote : allowRemotePreference;
-    if (useRemote && currentIP) {
-      return `http://${currentIP}:${currentPort}`;
-    }
     return `http://localhost:${currentPort}`;
-  }, [allowRemotePreference, getLocalIP, status?.allowRemote, status?.port, status?.running, port]);
+  }, [status?.port, port]);
 
   // 启动/停止 WebUI / Start/Stop WebUI
   const handleToggle = async (enabled: boolean) => {
@@ -254,7 +246,7 @@ const WebuiModalContent: React.FC = () => {
         // Await the real result — Promise.race with a 3s fallback used to hide
         // backend failures behind a fake "started" toast while the server was
         // still RESOLVING or had crashed, leaving webui.desktop.enabled unset.
-        const startResult = await webui.start.invoke({ port, allowRemote: allowRemotePreference });
+        const startResult = await webui.start.invoke({ port, allowRemote: false });
 
         const responseIP = startResult.lanIP || currentIP;
         const responsePassword = startResult.initialPassword;
@@ -269,9 +261,9 @@ const WebuiModalContent: React.FC = () => {
           ...(prev || { adminUsername: 'admin' }),
           running: true,
           port,
-          allowRemote: allowRemotePreference,
+          allowRemote: false,
           localUrl,
-          networkUrl: allowRemotePreference && responseIP ? `http://${responseIP}:${port}` : undefined,
+          networkUrl: undefined,
           lanIP: responseIP,
           initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
         }));
@@ -292,95 +284,6 @@ const WebuiModalContent: React.FC = () => {
       Message.error(t('settings.webui.operationFailed'));
     } finally {
       setStartLoading(false);
-    }
-  };
-
-  // 处理允许远程访问切换 / Handle allow remote toggle
-  // 需要重启服务器才能更改绑定地址 / Need to restart server to change binding address
-  const handleAllowRemoteChange = async (checked: boolean) => {
-    // 保存原始值用于回滚 / Save original value for rollback
-    const previousAllowRemote = allowRemotePreference;
-    setAllowRemotePreference(checked);
-
-    const wasRunning = status?.running;
-
-    // 如果服务器正在运行，需要重启以应用新的绑定设置
-    // If server is running, need to restart to apply new binding settings
-    if (wasRunning) {
-      setStartLoading(true);
-      try {
-        // 1. 先停止服务器 / First stop the server
-        try {
-          await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 1500))]);
-        } catch (err) {
-          console.error('WebUI stop error:', err);
-        }
-
-        // Await the real result — a 3s race fallback used to mask backend
-        // failures as success (see handleToggle).
-        const startResult = await webui.start.invoke({ port, allowRemote: checked });
-
-        const responseIP = startResult.lanIP;
-        const responsePassword = startResult.initialPassword;
-
-        if (responseIP) setCachedIP(responseIP);
-        if (responsePassword) setCachedPassword(responsePassword);
-
-        setStatus((prev) => ({
-          ...(prev || { adminUsername: 'admin' }),
-          running: true,
-          port,
-          allowRemote: checked,
-          localUrl: `http://localhost:${port}`,
-          networkUrl: checked && responseIP ? `http://${responseIP}:${port}` : undefined,
-          lanIP: responseIP,
-          initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
-        }));
-
-        await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
-        Message.success(t('settings.webui.restartSuccess'));
-      } catch (error) {
-        // 回滚 UI 状态 / Rollback UI state
-        setAllowRemotePreference(previousAllowRemote);
-        console.error('[WebuiModal] Restart error:', error);
-        Message.error(t('settings.webui.operationFailed'));
-      } finally {
-        setStartLoading(false);
-      }
-    } else {
-      // 服务器未运行，直接持久化 / Server not running, persist directly
-      try {
-        await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
-
-        // 获取 IP 用于显示 / Get IP for display
-        let newIP: string | undefined;
-        try {
-          const snapshot = await webui.getStatus.invoke();
-          if (snapshot?.lanIP) {
-            newIP = snapshot.lanIP;
-            setCachedIP(newIP);
-          }
-        } catch {
-          // ignore
-        }
-
-        const existingIP = newIP || cachedIP || status?.lanIP;
-        setStatus((prev) =>
-          prev
-            ? {
-                ...prev,
-                allowRemote: checked,
-                lanIP: existingIP || prev.lanIP,
-                networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
-              }
-            : null
-        );
-      } catch (error) {
-        // 回滚 UI 状态 / Rollback UI state
-        setAllowRemotePreference(previousAllowRemote);
-        console.error('[WebuiModal] Failed to persist allowRemote:', error);
-        Message.error(t('settings.webui.operationFailed'));
-      }
     }
   };
 
@@ -553,6 +456,7 @@ const WebuiModalContent: React.FC = () => {
   };
   const displayPassword = getDisplayPassword();
   const displayUsername = status?.adminUsername || 'admin';
+  const desktopWebUiAvailable = false;
 
   // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
   if (!isDesktop) {
@@ -579,21 +483,22 @@ const WebuiModalContent: React.FC = () => {
         {/* 描述说明 / Description */}
         <div className='space-y-6px'>
           <p className='m-0 text-13px text-t-secondary leading-relaxed'>{t('settings.webui.description')}</p>
-          <div className='flex flex-wrap gap-x-12px gap-y-6px'>
-            {[
-              t('settings.webui.enable', { defaultValue: 'Enable WebUI' }),
-              t('settings.webui.accessUrl', { defaultValue: 'Access URL' }),
-              t('settings.webui.allowRemote', { defaultValue: 'Allow Remote Access' }),
-            ].map((stepLabel, idx) => (
-              <div key={stepLabel} className='inline-flex items-center gap-6px'>
-                <span className='inline-flex items-center justify-center w-16px h-16px rd-50% text-10px font-600 bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))]'>
-                  {idx + 1}
-                </span>
-                <CheckOne theme='outline' size='12' className='text-[rgb(var(--primary-6))]' />
-                <span className='text-12px text-t-secondary'>{stepLabel}</span>
-              </div>
-            ))}
-          </div>
+          {desktopWebUiAvailable && (
+            <div className='flex flex-wrap gap-x-12px gap-y-6px'>
+              {[
+                t('settings.webui.enable', { defaultValue: 'Enable WebUI' }),
+                t('settings.webui.accessUrl', { defaultValue: 'Access URL' }),
+              ].map((stepLabel, idx) => (
+                <div key={stepLabel} className='inline-flex items-center gap-6px'>
+                  <span className='inline-flex items-center justify-center w-16px h-16px rd-50% text-10px font-600 bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))]'>
+                    {idx + 1}
+                  </span>
+                  <CheckOne theme='outline' size='12' className='text-[rgb(var(--primary-6))]' />
+                  <span className='text-12px text-t-secondary'>{stepLabel}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Messaging 强引导入口 / Messaging primary entry — disabled, kept for future use
@@ -630,26 +535,30 @@ const WebuiModalContent: React.FC = () => {
               ) : null
             }
           >
-            <Switch checked={webuiEnabled} loading={startLoading} onChange={handleToggle} />
+            <Switch checked={false} disabled loading={startLoading} onChange={handleToggle} />
           </PreferenceRow>
 
           {/* 访问地址（启用 WebUI 后即显示，不依赖后端 running 状态）/ Access URL (shown whenever WebUI is enabled, not tied to backend running state) */}
-          {webuiEnabled && (
+          {desktopWebUiAvailable && webuiEnabled && (
             <PreferenceRow label={t('settings.webui.accessUrl')}>
               <div className='flex items-center gap-8px min-w-0'>
-                <button
+                <Button
+                  type='text'
+                  size='mini'
                   className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0 truncate'
                   onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}
                 >
                   {getDisplayUrl()}
-                </button>
+                </Button>
                 <Tooltip content={t('common.copy')}>
-                  <button
+                  <Button
+                    type='text'
+                    size='mini'
                     className='p-4px text-t-tertiary hover:text-t-primary cursor-pointer bg-transparent border-none'
                     onClick={() => handleCopy(getDisplayUrl())}
                   >
                     <Copy size={16} />
-                  </button>
+                  </Button>
                 </Tooltip>
               </div>
             </PreferenceRow>
@@ -662,7 +571,9 @@ const WebuiModalContent: React.FC = () => {
               <span className='text-t-secondary'>
                 {t('settings.webui.allowRemoteDesc')}
                 {'  '}
-                <button
+                <Button
+                  type='text'
+                  size='mini'
                   className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px'
                   onClick={() =>
                     void talkToButler({
@@ -674,128 +585,134 @@ const WebuiModalContent: React.FC = () => {
                   }
                 >
                   {t('settings.webui.letButlerSetup', { defaultValue: 'Let the butler set it up' })}
-                </button>
+                </Button>
               </span>
             }
           >
-            <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
+            <Switch checked={false} disabled />
           </PreferenceRow>
         </div>
 
         {/* 登录信息卡片 / Login Info Card */}
-        <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
-          <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
+        {desktopWebUiAvailable && (
+          <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
+            <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
 
-          {/* 账号 / Account */}
-          <div className='flex items-center justify-between gap-12px py-12px'>
-            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.username')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
-              <span className='text-14px text-t-primary truncate'>{displayUsername}</span>
-              <Tooltip content={t('common.copy')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={() => handleCopy(displayUsername)}
-                >
-                  <Copy size={14} />
-                </Button>
-              </Tooltip>
-              <Tooltip content={t('settings.webui.editUsernameTooltip')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={handleResetUsername}
-                >
-                  <EditTwo size={14} />
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* 密码 / Password */}
-          <div className='flex items-center justify-between gap-12px py-12px'>
-            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.initialPassword')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
-              <span className='text-14px text-t-primary truncate'>{displayPassword}</span>
-              <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
-                <Button
-                  type='text'
-                  size='mini'
-                  className='rd-100px !px-6px inline-flex items-center !h-24px'
-                  onClick={handleResetPassword}
-                >
-                  <EditTwo size={14} />
-                </Button>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
-          {status?.running && status.allowRemote && (
-            <>
-              <div className='border-t border-line my-12px' />
-              <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
-              <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
-
-              <div className='flex flex-col items-center gap-12px'>
-                {/* 二维码显示区域 / QR Code display area */}
-                <div className='p-12px bg-fill-1 border border-line rd-10px'>
-                  {qrLoading ? (
-                    <div className='w-140px h-140px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                    </div>
-                  ) : qrUrl ? (
-                    <div className='p-8px bg-white rd-8px'>
-                      <Suspense
-                        fallback={
-                          <div className='w-140px h-140px flex items-center justify-center'>
-                            <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                          </div>
-                        }
-                      >
-                        <QRCodeSVGLazy value={qrUrl} size={140} level='M' />
-                      </Suspense>
-                    </div>
-                  ) : (
-                    <div className='w-140px h-140px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 过期时间、复制链接和刷新按钮 / Expiration time, copy link and refresh button */}
-                <div className='flex items-center gap-8px'>
-                  {qrExpiresAt && (
-                    <span className='text-12px text-t-tertiary'>
-                      {t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}
-                    </span>
-                  )}
-                  {qrUrl && (
-                    <Tooltip content={t('settings.webui.copyQrLink')}>
-                      <button
-                        className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
-                        onClick={() => handleCopy(qrUrl)}
-                      >
-                        <Copy size={16} />
-                      </button>
-                    </Tooltip>
-                  )}
-                  <Tooltip content={t('settings.webui.refreshQr')}>
-                    <button
-                      className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
-                      onClick={() => void generateQRCode()}
-                      disabled={qrLoading}
-                    >
-                      <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
-                    </button>
-                  </Tooltip>
-                </div>
+            {/* 账号 / Account */}
+            <div className='flex items-center justify-between gap-12px py-12px'>
+              <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.username')}:</span>
+              <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
+                <span className='text-14px text-t-primary truncate'>{displayUsername}</span>
+                <Tooltip content={t('common.copy')}>
+                  <Button
+                    type='text'
+                    size='mini'
+                    className='rd-100px !px-6px inline-flex items-center !h-24px'
+                    onClick={() => handleCopy(displayUsername)}
+                  >
+                    <Copy size={14} />
+                  </Button>
+                </Tooltip>
+                <Tooltip content={t('settings.webui.editUsernameTooltip')}>
+                  <Button
+                    type='text'
+                    size='mini'
+                    className='rd-100px !px-6px inline-flex items-center !h-24px'
+                    onClick={handleResetUsername}
+                  >
+                    <EditTwo size={14} />
+                  </Button>
+                </Tooltip>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+            {/* 密码 / Password */}
+            <div className='flex items-center justify-between gap-12px py-12px'>
+              <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.initialPassword')}:</span>
+              <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
+                <span className='text-14px text-t-primary truncate'>{displayPassword}</span>
+                <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
+                  <Button
+                    type='text'
+                    size='mini'
+                    className='rd-100px !px-6px inline-flex items-center !h-24px'
+                    onClick={handleResetPassword}
+                  >
+                    <EditTwo size={14} />
+                  </Button>
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
+            {status?.running && status.allowRemote && (
+              <>
+                <div className='border-t border-line my-12px' />
+                <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
+                <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
+
+                <div className='flex flex-col items-center gap-12px'>
+                  {/* 二维码显示区域 / QR Code display area */}
+                  <div className='p-12px bg-fill-1 border border-line rd-10px'>
+                    {qrLoading ? (
+                      <div className='w-140px h-140px flex items-center justify-center'>
+                        <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                      </div>
+                    ) : qrUrl ? (
+                      <div className='p-8px bg-white rd-8px'>
+                        <Suspense
+                          fallback={
+                            <div className='w-140px h-140px flex items-center justify-center'>
+                              <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                            </div>
+                          }
+                        >
+                          <QRCodeSVGLazy value={qrUrl} size={140} level='M' />
+                        </Suspense>
+                      </div>
+                    ) : (
+                      <div className='w-140px h-140px flex items-center justify-center'>
+                        <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 过期时间、复制链接和刷新按钮 / Expiration time, copy link and refresh button */}
+                  <div className='flex items-center gap-8px'>
+                    {qrExpiresAt && (
+                      <span className='text-12px text-t-tertiary'>
+                        {t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}
+                      </span>
+                    )}
+                    {qrUrl && (
+                      <Tooltip content={t('settings.webui.copyQrLink')}>
+                        <Button
+                          type='text'
+                          size='mini'
+                          className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                          onClick={() => handleCopy(qrUrl)}
+                        >
+                          <Copy size={16} />
+                        </Button>
+                      </Tooltip>
+                    )}
+                    <Tooltip content={t('settings.webui.refreshQr')}>
+                      <Button
+                        type='text'
+                        size='mini'
+                        className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                        onClick={() => void generateQRCode()}
+                        disabled={qrLoading}
+                      >
+                        <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </AionScrollArea>
   );

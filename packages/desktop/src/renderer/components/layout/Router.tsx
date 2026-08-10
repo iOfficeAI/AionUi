@@ -18,6 +18,7 @@ const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSet
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
+const ChangePasswordPage = React.lazy(() => import('@renderer/pages/login/ChangePasswordPage'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
@@ -40,7 +41,7 @@ const CapabilitiesRedirect: React.FC = () => {
 };
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
 
   if (status === 'checking') {
     return <AppLoader />;
@@ -50,19 +51,31 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
     return <Navigate to='/login' replace />;
   }
 
+  if (user?.must_change_password) {
+    return <Navigate to='/login/change-password' replace />;
+  }
+
   return React.cloneElement(layout);
 };
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
+  const authenticatedLandingPath = user?.must_change_password ? '/login/change-password' : '/guid';
 
   return (
     <HashRouter>
       <Routes>
         <Route
           path='/login'
-          element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
+          element={
+            status === 'authenticated' ? (
+              <Navigate to={authenticatedLandingPath} replace />
+            ) : (
+              withRouteFallback(LoginPage)
+            )
+          }
         />
+        <Route path='/login/change-password' element={withRouteFallback(ChangePasswordPage)} />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
           <Route path='/guid' element={withRouteFallback(Guid)} />
@@ -102,7 +115,10 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
         </Route>
-        <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
+        <Route
+          path='*'
+          element={<Navigate to={status === 'authenticated' ? authenticatedLandingPath : '/login'} replace />}
+        />
       </Routes>
     </HashRouter>
   );

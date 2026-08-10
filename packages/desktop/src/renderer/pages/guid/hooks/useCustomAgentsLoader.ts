@@ -6,8 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { mutateAccountCache as swrMutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { useEffect } from 'react';
-import useSWR, { mutate as swrMutate } from 'swr';
+import useSWR from 'swr';
 
 type UseCustomAgentsLoaderResult = {
   /**

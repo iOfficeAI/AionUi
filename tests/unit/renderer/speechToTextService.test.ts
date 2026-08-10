@@ -27,6 +27,7 @@ class FakeXMLHttpRequest {
   statusText = '';
   responseText = '';
   sentBody: unknown;
+  headers: Record<string, string> = {};
 
   private listeners: Record<string, XhrListener> = {};
 
@@ -37,6 +38,10 @@ class FakeXMLHttpRequest {
 
   addEventListener(name: string, listener: XhrListener) {
     this.listeners[name] = listener;
+  }
+
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
   }
 
   send(body: unknown) {
@@ -65,10 +70,23 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
   beforeEach(() => {
     FakeXMLHttpRequest.instances = [];
     vi.stubGlobal('XMLHttpRequest', FakeXMLHttpRequest);
+    delete (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
   });
 
   afterEach(() => {
+    delete (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
     vi.unstubAllGlobals();
+  });
+
+  it('authenticates a local desktop XHR with the per-launch secret', async () => {
+    const secret = 'f'.repeat(43);
+    (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret = secret;
+    const pending = transcribeAudioBlob(new Blob(['fake-audio'], { type: 'audio/webm' }));
+
+    const xhr = await waitForRequest();
+    expect(xhr.headers['x-aionui-local-secret']).toBe(secret);
+    xhr.respond(200, JSON.stringify({ success: true, data: { text: 'hello' } }));
+    await expect(pending).resolves.toMatchObject({ text: 'hello' });
   });
 
   it('sends multipart fields matching the backend contract (file/fileName/mimeType/languageHint)', async () => {

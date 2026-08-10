@@ -76,7 +76,8 @@
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
-    "forkedConversation": "Verzweigte Unterhaltung"
+    "forkedConversation": "Verzweigte Unterhaltung",
+    "share": "Teilen"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

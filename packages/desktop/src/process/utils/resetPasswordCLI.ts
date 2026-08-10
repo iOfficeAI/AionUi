@@ -47,9 +47,17 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     process.exit(1);
   }
   try {
+    const localClientSecret = (
+      globalThis as typeof globalThis & {
+        __backendClientSecret?: string;
+      }
+    ).__backendClientSecret;
     const res = await fetch(`http://127.0.0.1:${port}/api/webui/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(localClientSecret ? { 'x-aionui-local-secret': localClientSecret } : {}),
+      },
     });
     if (!res.ok) {
       const body = await res.text();

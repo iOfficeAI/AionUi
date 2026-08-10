@@ -28,11 +28,18 @@ function getBackendPort(): number | undefined {
   return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
 }
 
+function getLocalClientHeaders(): Record<string, string> | undefined {
+  const secret = (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
+  return secret ? { 'x-aionui-local-secret': secret } : undefined;
+}
+
 async function fetchAdminUsername(): Promise<string> {
   const port = getBackendPort();
   if (!port) return 'admin';
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/api/auth/internal/users/system`);
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/internal/users/system`, {
+      headers: getLocalClientHeaders(),
+    });
     if (!res.ok) return 'admin';
     const json = (await res.json()) as { data?: AdminUsernameResult | null };
     return json.data?.username ?? 'admin';
@@ -54,7 +61,9 @@ async function maybeSeedInitialPassword(): Promise<void> {
   if (!port) {
     throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
   }
-  const statusRes = await fetch(`http://127.0.0.1:${port}/api/auth/status`);
+  const statusRes = await fetch(`http://127.0.0.1:${port}/api/auth/status`, {
+    headers: getLocalClientHeaders(),
+  });
   if (!statusRes.ok) {
     throw new Error(`[WebUI] /api/auth/status returned ${statusRes.status}`);
   }
@@ -64,7 +73,10 @@ async function maybeSeedInitialPassword(): Promise<void> {
     setDesktopWebUIInitialPassword(undefined);
     return;
   }
-  const resetRes = await fetch(`http://127.0.0.1:${port}/api/webui/reset-password`, { method: 'POST' });
+  const resetRes = await fetch(`http://127.0.0.1:${port}/api/webui/reset-password`, {
+    method: 'POST',
+    headers: getLocalClientHeaders(),
+  });
   if (!resetRes.ok) {
     throw new Error(`[WebUI] /api/webui/reset-password returned ${resetRes.status}`);
   }

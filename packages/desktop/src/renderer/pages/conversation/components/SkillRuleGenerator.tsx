@@ -14,11 +14,11 @@ import {
 } from '@arco-design/web-react';
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { loadLatestConversationMessages } from '@/renderer/utils/chat/messagePagination';
 
 interface SkillRuleGeneratorProps {

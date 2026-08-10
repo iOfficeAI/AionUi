@@ -76,7 +76,8 @@
     "deleting": "Suppression...",
     "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée",
     "forkedFrom": "Bifurquée depuis « {{name}} »",
-    "forkedConversation": "Conversation bifurquée"
+    "forkedConversation": "Conversation bifurquée",
+    "share": "Partager"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",

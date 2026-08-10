@@ -21,7 +21,7 @@ import { formatCronRunConversationTitle, formatSchedule, formatNextRun } from '@
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
-import { mutate } from 'swr';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { emitter } from '@/renderer/utils/emitter';
 

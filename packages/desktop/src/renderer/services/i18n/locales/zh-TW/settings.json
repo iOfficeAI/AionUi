@@ -454,7 +454,7 @@
   "installed": "已安裝",
   "builtin": "內建",
   "channels": "頻道",
-  "webui.description": "把 AionUi 當作「7*24小時的遠程助手」，隨時隨地用遠程設備安排任務。",
+  "webui.description": "桌面模式會保持後端私有。需要瀏覽器存取時，請執行已驗證身分的 Docker 或獨立伺服器。",
   "webui.steps": "步驟 1. 開啟 WebUI 開關；步驟 2. 複製存取網址；步驟 3. 遠程瀏覽器開啟",
   "webui.configuration": "WebUI 配置",
   "webui.enable": "啟用 WebUI",
@@ -462,7 +462,7 @@
   "webui.port": "連接埠",
   "webui.portDesc": "WebUI 服務監聽連接埠",
   "webui.allowRemote": "允許遠端存取",
-  "webui.allowRemoteDesc": "使用遠端軟體/伺服器可安全遠端存取",
+  "webui.allowRemoteDesc": "遠端和多使用者存取可透過已驗證身分的 Docker 或獨立伺服器使用。",
   "webui.viewGuide": "查看方式",
   "webui.accessInfo": "存取網址",
   "webui.localUrl": "本機網址",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "密碼僅在首次啟動時顯示，之後將被隱藏",
   "webui.resetPasswordWarning": "請妥善保管重設後的密碼！",
-  "webui.featureRemoteDesc": "啟用 WebUI 後，你可以透過手機或遠端瀏覽器存取 AionUi。",
+  "webui.featureRemoteDesc": "桌面程序內已停用瀏覽器託管。Docker 或獨立伺服器支援個人及多使用者部署。",
   "webui.featureChannelsTitle": "Messaging Control",
   "webui.featureChannelsDesc": "連接 Telegram、Lark、釘釘、微信，在即時通訊軟體中與 AionUi 互動。",
   "webui.goToChannels": "前往 Channels",
@@ -1343,5 +1343,165 @@
     "clearConfirmContent": "應用內瀏覽器中所有網站的登入狀態都會被登出，且無法復原。",
     "clearSuccess": "瀏覽資料已清空",
     "clearFailed": "清空瀏覽資料失敗"
+  },
+  "account": {
+    "navTitle": "帳號",
+    "title": "帳號與存取權限",
+    "description": "管理您的帳號、站點使用者與安全活動。",
+    "changePassword": "變更密碼",
+    "tabs": {
+      "account": "我的帳號",
+      "users": "使用者",
+      "audit": "稽核",
+      "channels": "頻道",
+      "collaboration": "協作"
+    },
+    "roles": {
+      "admin": "管理員",
+      "member": "成員"
+    },
+    "statuses": {
+      "active": "啟用",
+      "disabled": "停用"
+    },
+    "userTypes": {
+      "local": "本機帳號",
+      "aionpro": "AionPro 帳號"
+    },
+    "errors": {
+      "failed": "帳號操作失敗，請再試一次。",
+      "adminRequired": "需要管理員權限。",
+      "lastAdmin": "無法變更或停用最後一位啟用中的管理員。",
+      "userNotFound": "此使用者已不存在。",
+      "usernameTaken": "此使用者名稱已被使用。",
+      "passwordChangeRequired": "請先變更臨時密碼。",
+      "featureUnavailable": "目前後端版本不支援帳號管理。請更新 AionCore 後使用。",
+      "rateLimited": "請求過於頻繁，請稍後重新整理。"
+    },
+    "users": {
+      "title": "站點使用者",
+      "description": "建立帳號並控制其對此 AionUi 執行個體的存取權限。",
+      "add": "新增使用者",
+      "empty": "找不到使用者",
+      "username": "使用者名稱",
+      "usernamePlaceholder": "輸入使用者名稱",
+      "usernameRequired": "請輸入使用者名稱",
+      "usernameLength": "使用者名稱必須為 3 到 32 個字元",
+      "usernameFormat": "僅能使用字母、數字、底線或連字號",
+      "role": "角色",
+      "passwordState": "密碼",
+      "changeRequired": "需要變更",
+      "passwordSet": "已設定",
+      "actions": "操作",
+      "createTitle": "建立使用者",
+      "createSuccess": "使用者已建立",
+      "renameTitle": "編輯使用者名稱",
+      "renameSuccess": "使用者名稱已更新",
+      "updateSuccess": "使用者已更新",
+      "resetPassword": "重設密碼",
+      "resetConfirm": "為 {{username}} 產生新的臨時密碼？其工作階段將被撤銷。",
+      "resetSuccess": "已產生臨時密碼",
+      "revokeSessions": "撤銷工作階段",
+      "revokeConfirm": "讓 {{username}} 從所有裝置登出？",
+      "revokeSuccess": "工作階段已撤銷",
+      "temporaryPasswordTitle": "臨時密碼",
+      "temporaryPasswordNotice": "請立即複製此密碼。它不會再次顯示，使用者登入後必須變更。"
+    },
+    "audit": {
+      "title": "安全稽核",
+      "description": "檢視近期的帳號與存取權限變更。",
+      "empty": "沒有稽核事件",
+      "time": "時間",
+      "actor": "操作者",
+      "action": "操作",
+      "target": "目標",
+      "details": "詳細資料",
+      "loadMore": "載入更多",
+      "actions": {
+        "userCreated": "建立使用者",
+        "usernameChanged": "變更使用者名稱",
+        "roleChanged": "變更角色",
+        "statusChanged": "變更狀態",
+        "passwordReset": "重設密碼",
+        "passwordChanged": "變更密碼",
+        "sessionsRevoked": "撤銷工作階段",
+        "bootstrapCredentialsSet": "設定初始憑證"
+      }
+    },
+    "collaboration": {
+      "title": "協作",
+      "description": "查看與你共享的資源，並管理你發起的共享。",
+      "tabs": {
+        "received": "共享給我",
+        "granted": "我共享的"
+      },
+      "emptyReceived": "還沒有資源共享給你",
+      "emptyGranted": "你還沒有共享任何資源",
+      "revoke": "撤銷",
+      "revokeConfirm": "撤銷 {{username}} 的存取權限？",
+      "revokeSuccess": "已撤銷共享",
+      "columns": {
+        "resource": "資源",
+        "permission": "權限",
+        "owner": "擁有者",
+        "grantee": "共享給",
+        "actions": "操作"
+      },
+      "resourceTypes": {
+        "conversation": "會話",
+        "project": "專案",
+        "provider": "連線"
+      },
+      "permissions": {
+        "view": "檢視",
+        "edit": "編輯"
+      },
+      "grantById": {
+        "title": "共享資源",
+        "description": "在沒有內容選單時，可透過資源 ID 開啟會話、專案或服務商的共享對話框。",
+        "resourceType": "類型",
+        "resourceId": "資源 ID",
+        "resourceIdPlaceholder": "輸入資源 ID",
+        "resourceIdRequired": "請輸入資源 ID",
+        "open": "共享"
+      },
+      "shareDialog": {
+        "title": "共享 {{name}}",
+        "description": "選擇使用者與權限層級。該資源的現有授權列在下方。",
+        "user": "使用者",
+        "userPlaceholder": "選擇成員",
+        "userRequired": "請選擇使用者",
+        "noUsers": "沒有其他可用的作用中使用者",
+        "permission": "權限",
+        "grant": "授予存取",
+        "grantSuccess": "已授予存取權限",
+        "existing": "已有存取權限的人",
+        "existingEmpty": "尚未與任何人共享"
+      },
+      "errors": {
+        "failed": "共享操作失敗，請重試。",
+        "notFound": "該共享已不存在。",
+        "alreadyShared": "該資源已共享給此使用者。",
+        "cannotShareSelf": "不能將資源共享給自己。",
+        "invalidPermission": "權限無效。",
+        "invalidResource": "無法共享該資源。",
+        "forbidden": "你沒有管理此共享的權限。",
+        "featureUnavailable": "目前後端版本不支援資源共享，請更新 AionCore。"
+      },
+      "shareConversation": "分享對話",
+      "shareConversationHint": "選擇你的一個對話，再選擇可存取的使用者。",
+      "pickConversation": "選擇對話",
+      "shareWithUser": "分享…",
+      "shareResource": "分享資源",
+      "shareResourceHint": "選擇對話、連線（模型供應商）或專案，再選擇可存取的使用者。",
+      "pickResource": "選擇項目",
+      "projectFromChat": "專案 · {{name}}",
+      "emptyPicker": {
+        "conversation": "尚無對話",
+        "provider": "尚無連線 — 請在模型設定中新增",
+        "project": "尚無關聯專案"
+      }
+    },
+    "signOut": "登出"
   }
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { getBaseUrl, getLocalClientSecret, LOCAL_CLIENT_SECRET_HEADER } from '@/common/adapter/httpBridge';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 
 /** Sentinel error message used when an upload is cancelled by the caller. */
@@ -48,6 +48,8 @@ export async function uploadFileViaHttp(
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${getBaseUrl()}/api/fs/upload`);
+    const localClientSecret = getLocalClientSecret();
+    if (localClientSecret) xhr.setRequestHeader(LOCAL_CLIENT_SECRET_HEADER, localClientSecret);
 
     // Wire AbortSignal → xhr.abort. Closing the XHR tears down the underlying
     // socket; the backend (axum/multer) treats the truncated multipart body as

@@ -5,16 +5,21 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
+import type { ShareResourceType } from '@/common/types/platform/share';
 import AionModal from '@/renderer/components/base/AionModal';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
+import ShareDialog from '@/renderer/pages/settings/WebuiSettings/ShareDialog';
+import { resolveProjectIdFromConversations } from '@/renderer/pages/settings/WebuiSettings/shareUi';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { Delete, MoreOne, Plus, Right } from '@icon-park/react';
+import { Delete, MoreOne, Plus, Right, Share } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -40,6 +45,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const navigate = useNavigate();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const { user } = useAuth();
+  // Share entry points only on multi-user browser WebUI with a signed-in account.
+  const canShare = !isElectronDesktop() && Boolean(user);
+  const [shareTarget, setShareTarget] = useState<{
+    resourceType: ShareResourceType;
+    resourceId: string;
+    resourceName?: string;
+  } | null>(null);
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   const {
@@ -152,6 +165,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [conversationNameById]
   );
 
+  const handleShareConversation = useCallback((conversation: TChatConversation) => {
+    setShareTarget({
+      resourceType: 'conversation',
+      resourceId: conversation.id,
+      resourceName: conversation.name,
+    });
+  }, []);
+
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
@@ -170,11 +191,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onEditStart: handleEditStart,
       onCreateCronTask: handleCreateCronTask,
       onDelete: handleDeleteClick,
+      onShare: canShare ? handleShareConversation : undefined,
       onTogglePin: handleTogglePin,
       getJobStatus,
       resolveConversationName,
     }),
     [
+      canShare,
       collapsed,
       tooltipEnabled,
       batchMode,
@@ -190,6 +213,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleEditStart,
       handleCreateCronTask,
       handleDeleteClick,
+      handleShareConversation,
       handleTogglePin,
       getJobStatus,
       resolveConversationName,
@@ -405,14 +429,31 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             {!collapsed && <SectionLabel sectionKey='projects' label={t('conversation.history.projectsSection')} />}
             {!collapsedSections.has('projects') &&
               projectGroups.map((group) => {
+                const projectId = resolveProjectIdFromConversations(group.conversations);
                 const projectMenu = (
                   <Menu
                     onClickMenuItem={(key) => {
+                      if (key === 'share' && projectId) {
+                        setShareTarget({
+                          resourceType: 'project',
+                          resourceId: projectId,
+                          resourceName: group.displayName,
+                        });
+                        return;
+                      }
                       if (key === 'remove') {
                         handleRemoveProject(group.displayName, group.conversations);
                       }
                     }}
                   >
+                    {canShare && projectId ? (
+                      <Menu.Item key='share'>
+                        <span className='flex items-center gap-8px'>
+                          <Share theme='outline' size='14' />
+                          {t('conversation.history.share')}
+                        </span>
+                      </Menu.Item>
+                    ) : null}
                     <Menu.Item key='remove' className='!text-[rgb(var(--danger-6))]'>
                       <span className='flex items-center gap-8px'>
                         <Delete theme='outline' size='14' />
@@ -513,6 +554,16 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           </div>
         )}
       </div>
+
+      {shareTarget ? (
+        <ShareDialog
+          visible
+          resourceType={shareTarget.resourceType}
+          resourceId={shareTarget.resourceId}
+          resourceName={shareTarget.resourceName}
+          onClose={() => setShareTarget(null)}
+        />
+      ) : null}
     </>
   );
 };

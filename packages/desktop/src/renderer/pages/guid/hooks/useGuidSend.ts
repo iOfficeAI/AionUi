@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import { mutateAccountCache as swrMutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -14,7 +15,6 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
-import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo } from '../types';
 

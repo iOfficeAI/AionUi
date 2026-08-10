@@ -12,7 +12,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Share, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -47,6 +47,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onCreateCronTask,
     onDelete,
     onExport,
+    onShare,
     onTogglePin,
     getJobStatus,
   } = props;
@@ -254,6 +255,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onExport?.(conversation);
                       return;
                     }
+                    if (key === 'share') {
+                      onShare?.(conversation);
+                      return;
+                    }
                     if (key === 'delete') {
                       onDelete(conversation.id);
                     }
@@ -277,6 +282,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.createCronTask')}</span>
                     </div>
                   </Menu.Item>
+                  {onShare && (
+                    <Menu.Item key='share'>
+                      <div className='flex items-center gap-8px'>
+                        <Share theme='outline' size='14' />
+                        <span>{t('conversation.history.share')}</span>
+                      </div>
+                    </Menu.Item>
+                  )}
                   {onExport && (
                     <Menu.Item key='export'>
                       <div className='flex items-center gap-8px'>

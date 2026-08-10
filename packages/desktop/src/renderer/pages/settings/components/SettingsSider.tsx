@@ -104,7 +104,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       webui: {
         id: 'webui',
-        label: t('settings.webui'),
+        label: isDesktop ? t('settings.webui') : t('settings.account.navTitle'),
         icon: isDesktop ? <Earth /> : <Communication />,
         path: 'webui',
       },
