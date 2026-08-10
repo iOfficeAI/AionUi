@@ -235,4 +235,86 @@ describe('MCP import flows', () => {
     expect(screen.getByText('settings.mcpImportAgentCodex')).toBeInTheDocument();
     expect(screen.getByTestId('select-value')).toHaveTextContent('claude');
   });
+
+  it('falls back to Claude Code and Codex when the backend scan fails', async () => {
+    getAgentMcpConfigsInvoke.mockRejectedValue(new Error('backend unreachable'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(<OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mcpImportAgentClaude')).toBeInTheDocument();
+    });
+    expect(screen.getByText('settings.mcpImportAgentCodex')).toBeInTheDocument();
+    expect(screen.getByTestId('select-value')).toHaveTextContent('claude');
+    expect(errorSpy).toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+  });
+
+  it('shows the raw backend name for sources without a localized display name', async () => {
+    getAgentMcpConfigsInvoke.mockResolvedValue([{ source: 'custom-agent', servers: [] }]);
+
+    render(<OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('custom-agent').length).toBeGreaterThan(0);
+    });
+    expect(screen.getByTestId('select-value')).toHaveTextContent('custom-agent');
+  });
+
+  it('does not scan for agent configs while the modal is hidden', async () => {
+    render(<OneClickImportModal visible={false} existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />);
+
+    expect(getAgentMcpConfigsInvoke).not.toHaveBeenCalled();
+  });
+
+  it('ignores backend results that arrive after the modal was closed', async () => {
+    let resolveConfigs: ((configs: unknown) => void) | undefined;
+    getAgentMcpConfigsInvoke.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveConfigs = resolve;
+        })
+    );
+
+    const { unmount } = render(
+      <OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />
+    );
+    await waitFor(() => {
+      expect(getAgentMcpConfigsInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    // Closing the modal runs the effect cleanup (cancelled = true) before the scan resolves.
+    unmount();
+    resolveConfigs?.([{ source: 'claude', servers: [] }]);
+    await Promise.resolve();
+
+    // The stale result is ignored: no new scan and no state update on an unmounted modal.
+    expect(getAgentMcpConfigsInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores backend failures that arrive after the modal was closed', async () => {
+    let rejectConfigs: ((reason: unknown) => void) | undefined;
+    getAgentMcpConfigsInvoke.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectConfigs = reject;
+        })
+    );
+
+    const { unmount } = render(
+      <OneClickImportModal visible existingServerNames={[]} onCancel={vi.fn()} onBatchImport={vi.fn()} />
+    );
+    await waitFor(() => {
+      expect(getAgentMcpConfigsInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    // The catch handler also bails out when the modal was closed before the scan failed.
+    unmount();
+    rejectConfigs?.(new Error('late failure'));
+    await Promise.resolve();
+
+    expect(getAgentMcpConfigsInvoke).toHaveBeenCalledTimes(1);
+  });
 });
