@@ -1002,7 +1002,17 @@
     "slackStep2": "发送任意消息或 @提及 以发起配对",
     "slackStep3": "配对请求将显示在下方。点击“批准”以授权该用户。",
     "slackStep4": "批准后，你就可以在 Slack 中与助手聊天了！",
-    "unknownUser": "未知用户"
+    "unknownUser": "未知用户",
+    "discordBotToken": "Bot Token",
+    "discordBotTokenDesc": "创建一个 Discord 应用，添加 Bot，开启 MESSAGE CONTENT intent（消息内容权限），然后复制 Bot Token。",
+    "discordPluginEnabled": "Discord 机器人已启用",
+    "discordPluginDisabled": "Discord 机器人已禁用",
+    "agentDescDiscord": "用于 Discord 对话",
+    "defaultModelDescDiscord": "用于 Discord 对话的模型",
+    "discordStep1": "打开 Discord，在频道中 @你的机器人，或给它发送私信",
+    "discordStep2": "发送任意消息或 @提及 以发起配对",
+    "discordStep3": "配对请求将显示在下方。点击“批准”以授权该用户。",
+    "discordStep4": "批准后，你就可以在 Discord 中与助手聊天了！"
   },
   "lark": {
     "appId": "App ID",

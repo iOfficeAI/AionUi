@@ -992,7 +992,17 @@
     "slackStep2": "메시지를 보내거나 @멘션하여 페어링을 시작하세요",
     "slackStep3": "페어링 요청이 아래에 표시됩니다. \"승인\"을 클릭하여 사용자를 인증하세요.",
     "slackStep4": "승인되면 Slack에서 어시스턴트와 채팅을 시작할 수 있습니다!",
-    "unknownUser": "알 수 없는 사용자"
+    "unknownUser": "알 수 없는 사용자",
+    "discordBotToken": "Bot 토큰",
+    "discordBotTokenDesc": "Discord 애플리케이션을 만들고 Bot을 추가한 뒤 MESSAGE CONTENT 인텐트를 활성화하고 Bot 토큰을 복사하세요.",
+    "discordPluginEnabled": "Discord 봇이 활성화되었습니다",
+    "discordPluginDisabled": "Discord 봇이 비활성화되었습니다",
+    "agentDescDiscord": "Discord 대화에 사용됩니다",
+    "defaultModelDescDiscord": "Discord 대화에 사용되는 모델",
+    "discordStep1": "Discord를 열고 채널에서 봇을 멘션하거나 DM을 보내세요",
+    "discordStep2": "메시지를 보내거나 @멘션하여 페어링을 시작하세요",
+    "discordStep3": "페어링 요청이 아래에 표시됩니다. \"승인\"을 클릭하여 사용자를 인증하세요.",
+    "discordStep4": "승인되면 Discord에서 어시스턴트와 채팅을 시작할 수 있습니다!"
   },
   "lark": {
     "appId": "App ID",

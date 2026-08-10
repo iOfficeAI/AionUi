@@ -994,7 +994,17 @@
     "slackStep2": "Sende eine beliebige Nachricht oder @-Erwähnung, um das Pairing zu starten",
     "slackStep3": "Eine Pairing-Anfrage erscheint unten. Klicke auf „Genehmigen\", um den Benutzer zu autorisieren.",
     "slackStep4": "Nach der Genehmigung kannst du in Slack mit dem Assistenten chatten!",
-    "unknownUser": "Unbekannter Benutzer"
+    "unknownUser": "Unbekannter Benutzer",
+    "discordBotToken": "Bot-Token",
+    "discordBotTokenDesc": "Erstelle eine Discord-Anwendung, füge einen Bot hinzu, aktiviere den MESSAGE-CONTENT-Intent und kopiere den Bot-Token.",
+    "discordPluginEnabled": "Discord-Bot aktiviert",
+    "discordPluginDisabled": "Discord-Bot deaktiviert",
+    "agentDescDiscord": "Wird für Discord-Unterhaltungen verwendet",
+    "defaultModelDescDiscord": "Für Discord-Unterhaltungen verwendetes Modell",
+    "discordStep1": "Öffne Discord und erwähne deinen Bot in einem Channel oder sende ihm eine DM",
+    "discordStep2": "Sende eine beliebige Nachricht oder @-Erwähnung, um das Pairing zu starten",
+    "discordStep3": "Eine Pairing-Anfrage erscheint unten. Klicke auf „Genehmigen\", um den Benutzer zu autorisieren.",
+    "discordStep4": "Nach der Genehmigung kannst du in Discord mit dem Assistenten chatten!"
   },
   "lark": {
     "appId": "App-ID",

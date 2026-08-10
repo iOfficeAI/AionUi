@@ -992,7 +992,17 @@
     "slackStep2": "任意のメッセージまたは @メンション を送信してペアリングを開始します",
     "slackStep3": "ペアリングリクエストが下に表示されます。「承認」をクリックしてユーザーを認可します。",
     "slackStep4": "承認後、Slack でアシスタントとチャットを開始できます！",
-    "unknownUser": "不明なユーザー"
+    "unknownUser": "不明なユーザー",
+    "discordBotToken": "Bot トークン",
+    "discordBotTokenDesc": "Discord アプリケーションを作成し、Bot を追加して、MESSAGE CONTENT インテントを有効にし、Bot トークンをコピーします。",
+    "discordPluginEnabled": "Discord ボットが有効になりました",
+    "discordPluginDisabled": "Discord ボットが無効になりました",
+    "agentDescDiscord": "Discord の会話に使用します",
+    "defaultModelDescDiscord": "Discord の会話に使用するモデル",
+    "discordStep1": "Discord を開き、チャンネルでボットにメンションするか、DM を送信します",
+    "discordStep2": "任意のメッセージまたは @メンション を送信してペアリングを開始します",
+    "discordStep3": "ペアリングリクエストが下に表示されます。「承認」をクリックしてユーザーを認可します。",
+    "discordStep4": "承認後、Discord でアシスタントとチャットを開始できます！"
   },
   "lark": {
     "appId": "App ID",

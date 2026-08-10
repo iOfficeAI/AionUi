@@ -1002,7 +1002,17 @@
     "slackStep2": "Send any message or @mention to initiate pairing",
     "slackStep3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
     "slackStep4": "Once approved, you can start chatting with the assistant in Slack!",
-    "unknownUser": "Unknown User"
+    "unknownUser": "Unknown User",
+    "discordBotToken": "Bot Token",
+    "discordBotTokenDesc": "Create a Discord application, add a Bot, enable the MESSAGE CONTENT intent, and copy the Bot Token.",
+    "discordPluginEnabled": "Discord bot enabled",
+    "discordPluginDisabled": "Discord bot disabled",
+    "agentDescDiscord": "Used for Discord conversations",
+    "defaultModelDescDiscord": "Model used for Discord conversations",
+    "discordStep1": "Open Discord and mention your bot in a channel, or send it a DM",
+    "discordStep2": "Send any message or @mention to initiate pairing",
+    "discordStep3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
+    "discordStep4": "Once approved, you can start chatting with the assistant in Discord!"
   },
   "lark": {
     "appId": "App ID",

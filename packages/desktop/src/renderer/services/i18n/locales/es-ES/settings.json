@@ -992,7 +992,17 @@
     "slackStep2": "Envía cualquier mensaje o @mención para iniciar el emparejamiento",
     "slackStep3": "Aparecerá una solicitud de emparejamiento abajo. Haz clic en «Aprobar» para autorizar al usuario.",
     "slackStep4": "Una vez aprobado, ¡puedes empezar a chatear con el asistente en Slack!",
-    "unknownUser": "Usuario desconocido"
+    "unknownUser": "Usuario desconocido",
+    "discordBotToken": "Token del bot",
+    "discordBotTokenDesc": "Crea una aplicación de Discord, añade un Bot, habilita el intent MESSAGE CONTENT y copia el Token del bot.",
+    "discordPluginEnabled": "Bot de Discord activado",
+    "discordPluginDisabled": "Bot de Discord desactivado",
+    "agentDescDiscord": "Se usa para conversaciones de Discord",
+    "defaultModelDescDiscord": "Modelo usado para las conversaciones de Discord",
+    "discordStep1": "Abre Discord y menciona a tu bot en un canal, o envíale un DM",
+    "discordStep2": "Envía cualquier mensaje o @mención para iniciar el emparejamiento",
+    "discordStep3": "Aparecerá una solicitud de emparejamiento abajo. Haz clic en «Aprobar» para autorizar al usuario.",
+    "discordStep4": "Una vez aprobado, ¡puedes empezar a chatear con el asistente en Discord!"
   },
   "lark": {
     "appId": "ID de aplicación",
