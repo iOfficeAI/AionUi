@@ -1,5 +1,50 @@
 # Changelog
 
+## [2.1.53](https://github.com/iOfficeAI/AionUi/compare/v2.1.52...v2.1.53) (2026-08-10)
+
+### Desktop
+
+#### Features
+
+- **channel:** add Slack channel configuration UI (#3935)
+- **explorer:** add copy relative/absolute path context-menu items (#3929)
+- **scm:** add collapsible sections and tree/list view to SCM panel (#3926)
+
+#### Bug Fixes
+
+- **assistants:** let the editor drive Antigravity (#3951)
+- **build:** merge React vendors into one chunk to fix white screen (#3938)
+- **chat:** copy button copies the whole AI turn, not just its last text segment (#3949)
+- **conversation:** render preview on narrow width for project chats (#3934)
+- **explorer:** re-subscribe a rejected fs subscribe instead of stranding it (#3954)
+- **packaging:** stop requiring bundled claude/codex, generalize drift copy (#3916)
+- **preview:** resolve project markdown relative images via fileRef (#3948)
+- **sendbox:** let a folder / pe root added to chat produce a chip (#3869)
+- **skills:** support skill file browsing in webui (#3946)
+
+#### Refactoring
+
+- **theme:** drop legacy theme migration (#3918)
+
+### Core ([v0.1.63](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.63))
+
+#### Features
+
+- **channel:** add Slack Socket Mode plugin (#806)
+- **fs:** add copy-absolute-path endpoint that writes the clipboard server-side (#803)
+- **scm:** one-level repository discovery for workspace roots (#800)
+
+#### Bug Fixes
+
+- **agent:** stop the idle scanner from killing agents with live background tasks (#811)
+- **project:** emit real-case absolute path to agents, not folded canonical (#809)
+
+#### Refactoring
+
+- **session:** run the user's own claude/codex, with one shared version-drift path (#799)
+
+---
+
 ## [2.1.52](https://github.com/iOfficeAI/AionUi/compare/v2.1.50...v2.1.52) (2026-08-07)
 
 ### Desktop
