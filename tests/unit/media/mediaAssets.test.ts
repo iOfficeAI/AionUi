@@ -228,7 +228,13 @@ describe('resolveLocalInputPath', () => {
     const ws = createWorkspace();
     createImageFile(ws, 'ref.png');
 
-    await expect(resolveLocalInputPath('@ref.png', ws)).resolves.toBe(join(ws, 'ref.png'));
+    // Compared against the realpath, not the literal join: the file exists,
+    // so resolveSafePath canonicalizes it (that's the containment check
+    // actually running), and CI temp dirs go through a symlink on macOS
+    // (/var -> /private/var) or short-name normalization on Windows —
+    // neither of which shows up in a plain path.join.
+    const expected = await fs.promises.realpath(join(ws, 'ref.png'));
+    await expect(resolveLocalInputPath('@ref.png', ws)).resolves.toBe(expected);
   });
 
   it('blocks a traversal attempt the same way processImageUri does', async () => {
