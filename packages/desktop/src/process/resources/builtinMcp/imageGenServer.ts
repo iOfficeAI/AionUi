@@ -7,22 +7,27 @@
 /**
  * Built-in MCP server for image generation.
  * Runs as a standalone stdio process spawned by the MCP client.
- * Reads provider config from environment variables.
+ * Reads provider config from environment variables and dispatches through the
+ * media generation layer (common/media), which resolves the model's API form
+ * (images API / chat multimodal) from the declarative catalog.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from './constants';
-import { executeImageGeneration } from '@/common/chat/imageGenCore';
+import { executeMediaGeneration } from '@/common/media';
+import { safeJsonParse } from '@/common/media/mediaAssets';
+import { IMAGE_GEN_ENV_KEYS } from '@/common/config/imageGenerationMcpEnv';
 import type { TProviderWithModel } from '@/common/config/storage';
 
 // Read provider config from environment variables
 function getProviderFromEnv(): TProviderWithModel | null {
-  const platform = process.env.AIONUI_IMG_PLATFORM;
-  const base_url = process.env.AIONUI_IMG_BASE_URL;
-  const api_key = process.env.AIONUI_IMG_API_KEY;
-  const model = process.env.AIONUI_IMG_MODEL;
+  const platform = process.env[IMAGE_GEN_ENV_KEYS.platform];
+  const base_url = process.env[IMAGE_GEN_ENV_KEYS.baseUrl];
+  const api_key = process.env[IMAGE_GEN_ENV_KEYS.apiKey];
+  const model = process.env[IMAGE_GEN_ENV_KEYS.model];
+  const providerName = process.env[IMAGE_GEN_ENV_KEYS.providerName];
 
   if (!platform || !model) {
     return null;
@@ -30,7 +35,10 @@ function getProviderFromEnv(): TProviderWithModel | null {
 
   return {
     id: BUILTIN_IMAGE_GEN_ID,
-    name: BUILTIN_IMAGE_GEN_NAME,
+    // Prefer the real provider name (catalog entries may match on it);
+    // fall back to the builtin server name for configs saved before the
+    // providerName env key existed.
+    name: providerName || BUILTIN_IMAGE_GEN_NAME,
     platform,
     base_url: base_url || '',
     api_key: api_key || '',
@@ -38,10 +46,17 @@ function getProviderFromEnv(): TProviderWithModel | null {
   };
 }
 
+function normalizeImageUris(imageUris: string[] | string | undefined): string[] {
+  if (!imageUris) return [];
+  if (Array.isArray(imageUris)) return imageUris;
+  const parsed = safeJsonParse<string[] | null>(imageUris, null);
+  return Array.isArray(parsed) ? parsed : [imageUris];
+}
+
 async function main() {
   const server = new McpServer({
     name: BUILTIN_IMAGE_GEN_NAME,
-    version: '1.0.0',
+    version: '1.1.0',
   });
 
   server.tool(
@@ -69,10 +84,11 @@ Input Support:
 - Multiple local file paths in array format: ["img1.jpg", "img2.png"]
 - Multiple HTTP/HTTPS image URLs in array format
 - Text prompts for generation or analysis
+- Optional generation parameters (size, count, quality, seed, negative prompt) — support depends on the configured model; unsupported parameters are ignored (never retry just to change them)
 
 Output:
-- Saves generated/processed images to workspace with timestamp naming
-- Returns image path and AI description/analysis
+- Saves generated/processed images to workspace with timestamp naming (all images when the model returns several)
+- Returns image path(s) and AI description/analysis
 
 IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the image_uris parameter as an array.`,
     {
@@ -87,8 +103,34 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
         .describe(
           'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. For single image, use array format: ["test.jpg"]. Relative paths are resolved against the current working directory.'
         ),
+      size: z
+        .string()
+        .optional()
+        .describe(
+          'Optional: Output size like "1024x1024" or "1792x1024". Only pass when the user asks for a specific size/orientation.'
+        ),
+      aspect_ratio: z
+        .string()
+        .optional()
+        .describe('Optional: Aspect ratio like "16:9". Alternative to size for models that take ratios.'),
+      n: z
+        .number()
+        .int()
+        .min(1)
+        .max(10)
+        .optional()
+        .describe('Optional: Number of images to generate (default 1). Clamped to what the model supports.'),
+      quality: z
+        .string()
+        .optional()
+        .describe('Optional: Quality tier such as "standard" | "hd" | "low" | "medium" | "high", model-dependent.'),
+      seed: z.number().int().optional().describe('Optional: Reproducibility seed, for models that support it.'),
+      negative_prompt: z
+        .string()
+        .optional()
+        .describe('Optional: What the image should NOT contain, for models that support negative prompts.'),
     },
-    async ({ prompt, image_uris }) => {
+    async ({ prompt, image_uris, size, aspect_ratio, n, quality, seed, negative_prompt }) => {
       const provider = getProviderFromEnv();
       if (!provider) {
         return {
@@ -108,7 +150,22 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
       // workspace path from the model (path traversal boundary).
       const workspaceDir = process.cwd();
 
-      const result = await executeImageGeneration({ prompt, image_uris }, provider, workspaceDir, proxy);
+      const result = await executeMediaGeneration({
+        kind: 'image',
+        prompt,
+        params: {
+          size,
+          aspectRatio: aspect_ratio,
+          n,
+          quality,
+          seed,
+          negativePrompt: negative_prompt,
+        },
+        inputUris: normalizeImageUris(image_uris),
+        provider,
+        workspaceDir,
+        proxy,
+      });
 
       if (!result.success) {
         return {

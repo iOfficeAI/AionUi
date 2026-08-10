@@ -28,6 +28,7 @@ describe('resolveImageGenerationMcpEnv', () => {
       [IMAGE_GEN_ENV_KEYS.baseUrl]: 'https://generativelanguage.googleapis.com',
       [IMAGE_GEN_ENV_KEYS.apiKey]: 'provider-key',
       [IMAGE_GEN_ENV_KEYS.model]: 'gemini-3-pro-image-preview',
+      [IMAGE_GEN_ENV_KEYS.providerName]: 'Gemini',
     });
   });
 

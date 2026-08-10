@@ -8,12 +8,12 @@ import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { processImageUri, saveGeneratedImage, executeImageGeneration } from '@/common/chat/imageGenCore';
+import { processImageUri, saveBase64MediaAsset } from '@/common/media/mediaAssets';
 
 let cleanupDirs: string[] = [];
 
 function createWorkspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'aionui-image-gen-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'aionui-media-test-'));
   cleanupDirs.push(dir);
   return dir;
 }
@@ -62,7 +62,7 @@ describe('processImageUri', () => {
 
   it('should resolve a relative path within the workspace', async () => {
     const ws = createWorkspace();
-    const imgPath = createImageFile(ws, 'test.png');
+    createImageFile(ws, 'test.png');
 
     const result = await processImageUri('test.png', ws);
 
@@ -173,14 +173,14 @@ describe('processImageUri', () => {
   });
 });
 
-describe('saveGeneratedImage', () => {
+describe('saveBase64MediaAsset', () => {
   it('should save an image to the workspace directory', async () => {
     const ws = createWorkspace();
 
-    const filePath = await saveGeneratedImage(DATA_URL_PNG, ws);
+    const asset = await saveBase64MediaAsset('image', DATA_URL_PNG, ws);
 
-    expect(filePath.startsWith(ws)).toBe(true);
-    expect(filePath).toMatch(/img-\d+\.png$/);
+    expect(asset.filePath.startsWith(ws)).toBe(true);
+    expect(asset.filePath).toMatch(/img-\d+\.png$/);
   });
 
   it('should resolve a workspace directory with trailing dot segments', async () => {
@@ -189,35 +189,8 @@ describe('saveGeneratedImage', () => {
     mkdirSync(subDir);
     const trickyDir = join(ws, 'sub', '..', 'sub', '.');
 
-    const filePath = await saveGeneratedImage(DATA_URL_PNG, trickyDir);
+    const asset = await saveBase64MediaAsset('image', DATA_URL_PNG, trickyDir);
 
-    expect(filePath.startsWith(pathResolve(ws))).toBe(true);
-  });
-});
-
-describe('executeImageGeneration', () => {
-  it('should return error for a non-existent workspace directory', async () => {
-    const result = await executeImageGeneration(
-      { prompt: 'a cat' },
-      { id: 'test', name: 'test', platform: 'openai', base_url: '', api_key: 'sk-test', use_model: 'dall-e-3' },
-      '/nonexistent/workspace'
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.text).toContain('not found');
-  });
-
-  it('should return error when workspace path is a file, not a directory', async () => {
-    const ws = createWorkspace();
-    const filePath = createImageFile(ws, 'not-a-dir.png');
-
-    const result = await executeImageGeneration(
-      { prompt: 'a cat' },
-      { id: 'test', name: 'test', platform: 'openai', base_url: '', api_key: 'sk-test', use_model: 'dall-e-3' },
-      filePath
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.text).toContain('not a directory');
+    expect(asset.filePath.startsWith(pathResolve(ws))).toBe(true);
   });
 });
