@@ -982,7 +982,25 @@
     "autoFollowCliModel": "Acompanhar automaticamente o modelo quando o CLI estiver em execução",
     "agentSwitched": "Assistente alterado com sucesso",
     "modelSwitched": "Modelo trocado com sucesso",
-    "name": "Assistente"
+    "name": "Assistente",
+    "slackBotToken": "Token do bot",
+    "slackBotTokenDesc": "Crie um app do Slack, instale-o no seu workspace e copie o Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Insira um token de bot (xoxb-)",
+    "slackBotTokenPrefix": "O token do bot deve começar com \"xoxb-\"",
+    "slackAppToken": "Token de nível de app",
+    "slackAppTokenDesc": "Ative o Socket Mode e gere um token de nível de app com o escopo connections:write (xapp-).",
+    "slackAppTokenRequired": "Insira um token de nível de app (xapp-)",
+    "slackAppTokenPrefix": "O token de nível de app deve começar com \"xapp-\"",
+    "slackTokensRequired": "Insira e teste seus tokens do Slack primeiro",
+    "slackPluginEnabled": "Bot do Slack ativado",
+    "slackPluginDisabled": "Bot do Slack desativado",
+    "agentDescSlack": "Usado para conversas no Slack",
+    "defaultModelDescSlack": "Modelo usado para conversas no Slack",
+    "slackStep1": "Abra o Slack e mencione seu bot em um canal, ou envie um DM",
+    "slackStep2": "Envie qualquer mensagem ou @menção para iniciar o pareamento",
+    "slackStep3": "Uma solicitação de pareamento aparecerá abaixo. Clique em \"Aprovar\" para autorizar o usuário.",
+    "slackStep4": "Após aprovado, você pode começar a conversar com o assistente no Slack!",
+    "unknownUser": "Usuário desconhecido"
   },
   "lark": {
     "appId": "ID do Aplicativo",
@@ -1168,8 +1186,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "O agente está acessível, mas requer login. Faça login pelo CLI ou adicione a chave de API necessária em Variáveis de Ambiente e tente o teste de conexão novamente.",
       "no_provider": "Nenhum provedor de modelo está configurado. Adicione e ative um provedor nas Configurações e tente o teste de conexão novamente.",
-      "version_drift_older": "A versão instalada do agy é anterior à verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar.",
-      "version_drift_newer": "A versão instalada do agy é mais recente que a verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
+      "version_drift_older": "A CLI instalada é anterior à versão verificada pelo AionUi; alguns recursos podem estar ausentes. Considere atualizá-la.",
+      "version_drift_newer": "A CLI instalada é posterior à versão verificada pelo AionUi. Deve continuar funcionando; relate qualquer comportamento estranho."
     },
     "boundAssistantsTitle": "Assistentes que usam este agente",
     "boundAssistantsCount": "{{count}} assistente(s)",

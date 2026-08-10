@@ -982,7 +982,25 @@
     "autoFollowCliModel": "Automatically follow the model when CLI is running",
     "agentSwitched": "Assistant switched successfully",
     "modelSwitched": "Model switched successfully",
-    "name": "Assistant"
+    "name": "Assistant",
+    "slackBotToken": "Bot Token",
+    "slackBotTokenDesc": "Create a Slack app, install it to your workspace, then copy the Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Please enter a Bot Token (xoxb-)",
+    "slackBotTokenPrefix": "Bot Token should start with \"xoxb-\"",
+    "slackAppToken": "App-Level Token",
+    "slackAppTokenDesc": "Enable Socket Mode and generate an App-Level Token with the connections:write scope (xapp-).",
+    "slackAppTokenRequired": "Please enter an App-Level Token (xapp-)",
+    "slackAppTokenPrefix": "App-Level Token should start with \"xapp-\"",
+    "slackTokensRequired": "Please enter and test your Slack tokens first",
+    "slackPluginEnabled": "Slack bot enabled",
+    "slackPluginDisabled": "Slack bot disabled",
+    "agentDescSlack": "Used for Slack conversations",
+    "defaultModelDescSlack": "Model used for Slack conversations",
+    "slackStep1": "Open Slack and mention your bot in a channel, or send it a DM",
+    "slackStep2": "Send any message or @mention to initiate pairing",
+    "slackStep3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
+    "slackStep4": "Once approved, you can start chatting with the assistant in Slack!",
+    "unknownUser": "Unknown User"
   },
   "lark": {
     "appId": "App ID",
@@ -1170,8 +1188,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
-      "version_drift_older": "The installed agy is older than the version this integration was verified against; some features may be missing. Consider upgrading agy.",
-      "version_drift_newer": "The installed agy is newer than the version this integration was verified against. It should still work; report anything that behaves oddly."
+      "version_drift_older": "The installed CLI is older than the version AionUi verified; some features may be missing. Consider upgrading it.",
+      "version_drift_newer": "The installed CLI is newer than the version AionUi verified. It should still work; report anything that behaves oddly."
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",

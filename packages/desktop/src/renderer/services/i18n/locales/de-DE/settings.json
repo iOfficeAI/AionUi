@@ -974,7 +974,25 @@
     "autoFollowCliModel": "Modell automatisch folgen, wenn CLI läuft",
     "agentSwitched": "Agent erfolgreich gewechselt",
     "modelSwitched": "Modell erfolgreich gewechselt",
-    "name": "Assistent"
+    "name": "Assistent",
+    "slackBotToken": "Bot-Token",
+    "slackBotTokenDesc": "Erstelle eine Slack-App, installiere sie in deinem Workspace und kopiere dann das Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Bitte gib ein Bot-Token (xoxb-) ein",
+    "slackBotTokenPrefix": "Das Bot-Token sollte mit „xoxb-\" beginnen",
+    "slackAppToken": "App-Level-Token",
+    "slackAppTokenDesc": "Aktiviere den Socket Mode und erstelle ein App-Level-Token mit dem Scope connections:write (xapp-).",
+    "slackAppTokenRequired": "Bitte gib ein App-Level-Token (xapp-) ein",
+    "slackAppTokenPrefix": "Das App-Level-Token sollte mit „xapp-\" beginnen",
+    "slackTokensRequired": "Bitte gib zuerst deine Slack-Tokens ein und teste sie",
+    "slackPluginEnabled": "Slack-Bot aktiviert",
+    "slackPluginDisabled": "Slack-Bot deaktiviert",
+    "agentDescSlack": "Wird für Slack-Unterhaltungen verwendet",
+    "defaultModelDescSlack": "Für Slack-Unterhaltungen verwendetes Modell",
+    "slackStep1": "Öffne Slack und erwähne deinen Bot in einem Channel oder sende ihm eine DM",
+    "slackStep2": "Sende eine beliebige Nachricht oder @-Erwähnung, um das Pairing zu starten",
+    "slackStep3": "Eine Pairing-Anfrage erscheint unten. Klicke auf „Genehmigen\", um den Benutzer zu autorisieren.",
+    "slackStep4": "Nach der Genehmigung kannst du in Slack mit dem Assistenten chatten!",
+    "unknownUser": "Unbekannter Benutzer"
   },
   "lark": {
     "appId": "App-ID",
@@ -1164,8 +1182,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
-      "version_drift_older": "Das installierte agy ist älter als die für diese Integration geprüfte Version; einzelne Funktionen fehlen möglicherweise. Ein Update wird empfohlen.",
-      "version_drift_newer": "Das installierte agy ist neuer als die für diese Integration geprüfte Version. Es sollte weiterhin funktionieren – melde bitte alles, was sich seltsam verhält."
+      "version_drift_older": "Die installierte CLI ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade wird empfohlen.",
+      "version_drift_newer": "Die installierte CLI ist neuer als die von AionUi verifizierte Version. Sie sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten."
     },
     "searchPlaceholder": "Agenten suchen...",
     "noSearchResults": "Keine passenden Agenten."

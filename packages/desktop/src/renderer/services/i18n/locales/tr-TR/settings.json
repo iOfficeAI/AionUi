@@ -970,7 +970,25 @@
     "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
     "agentSwitched": "Asistan basariyla degistirildi",
     "modelSwitched": "Model basariyla degistirildi",
-    "name": "Asistan"
+    "name": "Asistan",
+    "slackBotToken": "Bot Belirteci",
+    "slackBotTokenDesc": "Bir Slack uygulaması oluşturun, çalışma alanınıza kurun ve Bot User OAuth Token (xoxb-) değerini kopyalayın.",
+    "slackBotTokenRequired": "Lütfen bir Bot Belirteci (xoxb-) girin",
+    "slackBotTokenPrefix": "Bot Belirteci \"xoxb-\" ile başlamalıdır",
+    "slackAppToken": "Uygulama Düzeyi Belirteç",
+    "slackAppTokenDesc": "Socket Mode'u etkinleştirin ve connections:write kapsamına sahip bir Uygulama Düzeyi Belirteç (xapp-) oluşturun.",
+    "slackAppTokenRequired": "Lütfen bir Uygulama Düzeyi Belirteç (xapp-) girin",
+    "slackAppTokenPrefix": "Uygulama Düzeyi Belirteç \"xapp-\" ile başlamalıdır",
+    "slackTokensRequired": "Lütfen önce Slack belirteçlerinizi girip test edin",
+    "slackPluginEnabled": "Slack botu etkinleştirildi",
+    "slackPluginDisabled": "Slack botu devre dışı bırakıldı",
+    "agentDescSlack": "Slack konuşmaları için kullanılır",
+    "defaultModelDescSlack": "Slack konuşmaları için kullanılan model",
+    "slackStep1": "Slack'i açın ve bir kanalda botunuzu etiketleyin ya da ona DM gönderin",
+    "slackStep2": "Eşleştirmeyi başlatmak için herhangi bir mesaj veya @etiket gönderin",
+    "slackStep3": "Aşağıda bir eşleştirme isteği görünecek. Kullanıcıyı yetkilendirmek için \"Onayla\"ya tıklayın.",
+    "slackStep4": "Onaylandıktan sonra Slack'te asistanla sohbet etmeye başlayabilirsiniz!",
+    "unknownUser": "Bilinmeyen kullanıcı"
   },
   "lark": {
     "appId": "App ID",
@@ -1156,8 +1174,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "Aracıya erişilebilir ancak oturum açılması gerekiyor. CLI üzerinden giriş yapın veya gerekli API anahtarını Ortam Değişkenleri altına ekleyin, ardından bağlantı testini yeniden deneyin.",
       "no_provider": "Yapılandırılmış bir model sağlayıcısı yok. Ayarlar'da bir sağlayıcı ekleyip etkinleştirin, ardından bağlantı testini yeniden deneyin.",
-      "version_drift_older": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden eski; bazı özellikler eksik olabilir. Güncellemeniz önerilir.",
-      "version_drift_newer": "Kurulu agy sürümü, bu entegrasyonun doğrulandığı sürümden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
+      "version_drift_older": "Kurulu CLI, AionUi tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. Yükseltmeyi düşünün.",
+      "version_drift_newer": "Kurulu CLI, AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin."
     },
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",

@@ -972,7 +972,25 @@
     "autoFollowCliModel": "Seguir automáticamente el modelo cuando el CLI esté en ejecución",
     "agentSwitched": "Agente cambiado correctamente",
     "modelSwitched": "Modelo cambiado correctamente",
-    "name": "Asistente"
+    "name": "Asistente",
+    "slackBotToken": "Token del bot",
+    "slackBotTokenDesc": "Crea una app de Slack, instálala en tu espacio de trabajo y luego copia el Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Introduce un token de bot (xoxb-)",
+    "slackBotTokenPrefix": "El token del bot debe empezar por «xoxb-»",
+    "slackAppToken": "Token de nivel de app",
+    "slackAppTokenDesc": "Activa el modo Socket y genera un token de nivel de app con el ámbito connections:write (xapp-).",
+    "slackAppTokenRequired": "Introduce un token de nivel de app (xapp-)",
+    "slackAppTokenPrefix": "El token de nivel de app debe empezar por «xapp-»",
+    "slackTokensRequired": "Primero introduce y prueba tus tokens de Slack",
+    "slackPluginEnabled": "Bot de Slack activado",
+    "slackPluginDisabled": "Bot de Slack desactivado",
+    "agentDescSlack": "Se usa para conversaciones de Slack",
+    "defaultModelDescSlack": "Modelo usado para las conversaciones de Slack",
+    "slackStep1": "Abre Slack y menciona a tu bot en un canal, o envíale un DM",
+    "slackStep2": "Envía cualquier mensaje o @mención para iniciar el emparejamiento",
+    "slackStep3": "Aparecerá una solicitud de emparejamiento abajo. Haz clic en «Aprobar» para autorizar al usuario.",
+    "slackStep4": "Una vez aprobado, ¡puedes empezar a chatear con el asistente en Slack!",
+    "unknownUser": "Usuario desconocido"
   },
   "lark": {
     "appId": "ID de aplicación",
@@ -1158,8 +1176,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "The agent is reachable but requires sign-in. Log in via the CLI, or add the required API key under Environment Variables, then retry the connection test.",
       "no_provider": "No model provider is configured. Add and enable a provider in Settings, then retry the connection test.",
-      "version_drift_older": "La versión instalada de agy es anterior a la verificada para esta integración; puede que falten funciones. Se recomienda actualizar.",
-      "version_drift_newer": "La versión instalada de agy es posterior a la verificada para esta integración. Debería seguir funcionando; informa de cualquier comportamiento extraño."
+      "version_drift_older": "La CLI instalada es anterior a la versión verificada por AionUi; puede que falten funciones. Se recomienda actualizarla.",
+      "version_drift_newer": "La CLI instalada es posterior a la versión verificada por AionUi. Debería seguir funcionando; informa de cualquier comportamiento extraño."
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",

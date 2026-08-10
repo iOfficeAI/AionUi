@@ -296,11 +296,10 @@ function Test-ManagedClisContract {
     $validClis += $cli
   }
 
-  foreach ($requiredName in @('claude', 'codex')) {
-    if (-not $seen.ContainsKey($requiredName)) {
-      $Failures.Add((New-Failure 'publish_or_install_missing' $requiredName '' $ManagedRoot 'missing_required_cli')) | Out-Null
-    }
-  }
+  # No agent CLI is required to be bundled. claude/codex used to ship pinned
+  # inside managed-resources; they now run from the user's own install like agy
+  # always has, so `clis` is normally empty. Entries that ARE present (older
+  # bundles) still have to be well-formed, which the loop below enforces.
 
   foreach ($cli in $validClis) {
     Test-ManagedCliContract $Failures $ManagedRoot $cli

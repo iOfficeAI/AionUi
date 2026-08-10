@@ -982,7 +982,25 @@
     "autoFollowCliModel": "Suivre automatiquement le modèle quand le CLI est en cours d'exécution",
     "agentSwitched": "Agent changé avec succès",
     "modelSwitched": "Modèle changé avec succès",
-    "name": "Assistant"
+    "name": "Assistant",
+    "slackBotToken": "Jeton du bot",
+    "slackBotTokenDesc": "Créez une application Slack, installez-la dans votre espace de travail, puis copiez le Bot User OAuth Token (xoxb-).",
+    "slackBotTokenRequired": "Veuillez saisir un jeton de bot (xoxb-)",
+    "slackBotTokenPrefix": "Le jeton du bot doit commencer par « xoxb- »",
+    "slackAppToken": "Jeton de niveau application",
+    "slackAppTokenDesc": "Activez le mode Socket et générez un jeton de niveau application avec la portée connections:write (xapp-).",
+    "slackAppTokenRequired": "Veuillez saisir un jeton de niveau application (xapp-)",
+    "slackAppTokenPrefix": "Le jeton de niveau application doit commencer par « xapp- »",
+    "slackTokensRequired": "Veuillez d'abord saisir et tester vos jetons Slack",
+    "slackPluginEnabled": "Bot Slack activé",
+    "slackPluginDisabled": "Bot Slack désactivé",
+    "agentDescSlack": "Utilisé pour les conversations Slack",
+    "defaultModelDescSlack": "Modèle utilisé pour les conversations Slack",
+    "slackStep1": "Ouvrez Slack et mentionnez votre bot dans un canal, ou envoyez-lui un message privé",
+    "slackStep2": "Envoyez un message ou une @mention pour lancer l'appairage",
+    "slackStep3": "Une demande d'appairage apparaîtra ci-dessous. Cliquez sur « Approuver » pour autoriser l'utilisateur.",
+    "slackStep4": "Une fois approuvé, vous pouvez commencer à discuter avec l'assistant dans Slack !",
+    "unknownUser": "Utilisateur inconnu"
   },
   "lark": {
     "appId": "ID d'application",
@@ -1168,8 +1186,8 @@
       "managed_runtime_unavailable": "Réparez ou réinstallez {{resource}}, puis réessayez le test de connexion.",
       "auth_required": "L'agent est joignable mais nécessite une connexion. Connectez-vous via la CLI ou ajoutez la clé API requise sous Variables d'environnement, puis réessayez le test de connexion.",
       "no_provider": "Aucun fournisseur de modèles n'est configuré. Ajoutez et activez un fournisseur dans Paramètres, puis réessayez le test de connexion.",
-      "version_drift_older": "La version installée d'agy est antérieure à celle validée pour cette intégration ; certaines fonctionnalités peuvent manquer. Une mise à jour est conseillée.",
-      "version_drift_newer": "La version installée d'agy est postérieure à celle validée pour cette intégration. Elle devrait fonctionner ; signalez tout comportement anormal."
+      "version_drift_older": "La CLI installée est antérieure à la version validée par AionUi ; certaines fonctionnalités peuvent manquer. Une mise à jour est conseillée.",
+      "version_drift_newer": "La CLI installée est postérieure à la version validée par AionUi. Cela devrait fonctionner ; signalez tout comportement anormal."
     },
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",

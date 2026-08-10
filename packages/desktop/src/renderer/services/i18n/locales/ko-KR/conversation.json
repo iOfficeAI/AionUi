@@ -592,11 +592,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "이번 턴에서 {{count}}개의 단계가 실패했으며 적용되지 않았습니다. agy는 이런 턴도 성공으로 종료하므로, 답변이 아닌 실제 결과를 확인하세요."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "설치된 agy {{reported}}은(는) 이 통합이 검증한 {{verified}}보다 이전 버전이라 일부 기능이 없을 수 있습니다. agy 업그레이드를 권장합니다."
+      "CLI_VERSION_OLDER": {
+        "body": "설치된 {{cli}} 이(가) AionUi가 검증한 버전보다 낮아 일부 기능이 없을 수 있습니다. {{cli}} 업그레이드를 권장합니다. (설치됨 {{reported}} / AionUi 검증 {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "설치된 agy {{reported}}은(는) 이 통합이 검증한 {{verified}}보다 최신 버전입니다. 대개 정상 동작하지만, 이상이 있으면 알려주세요."
+      "CLI_VERSION_NEWER": {
+        "body": "설치된 {{cli}} 이(가) AionUi가 검증한 버전보다 높습니다. 대개 정상 동작하지만 이상이 있으면 알려주세요. (설치됨 {{reported}} / AionUi 검증 {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (누적 {{attempts}}번째 재시도, {{elapsed}} 경과 — 에이전트 제공자가 연결을 계속 끊고 있어 AionUi가 재연결을 기다리는 중입니다.)"
       }
     }
   },

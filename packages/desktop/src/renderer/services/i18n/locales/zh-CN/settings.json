@@ -982,7 +982,25 @@
     "autoFollowCliModel": "自动跟随CLI运行时的模型",
     "agentSwitched": "助手切换成功",
     "modelSwitched": "模型切换成功",
-    "name": "助手"
+    "name": "助手",
+    "slackBotToken": "Bot Token",
+    "slackBotTokenDesc": "创建 Slack 应用并安装到工作区，然后复制 Bot User OAuth Token（xoxb-）。",
+    "slackBotTokenRequired": "请输入 Bot Token（xoxb-）",
+    "slackBotTokenPrefix": "Bot Token 应以 “xoxb-” 开头",
+    "slackAppToken": "App-Level Token",
+    "slackAppTokenDesc": "开启 Socket Mode 并生成带有 connections:write 权限的 App-Level Token（xapp-）。",
+    "slackAppTokenRequired": "请输入 App-Level Token（xapp-）",
+    "slackAppTokenPrefix": "App-Level Token 应以 “xapp-” 开头",
+    "slackTokensRequired": "请先填写并测试你的 Slack Token",
+    "slackPluginEnabled": "Slack 机器人已启用",
+    "slackPluginDisabled": "Slack 机器人已禁用",
+    "agentDescSlack": "用于 Slack 对话",
+    "defaultModelDescSlack": "用于 Slack 对话的模型",
+    "slackStep1": "打开 Slack，在频道中 @你的机器人，或给它发送私信",
+    "slackStep2": "发送任意消息或 @提及 以发起配对",
+    "slackStep3": "配对请求将显示在下方。点击“批准”以授权该用户。",
+    "slackStep4": "批准后，你就可以在 Slack 中与助手聊天了！",
+    "unknownUser": "未知用户"
   },
   "lark": {
     "appId": "App ID",
@@ -1171,8 +1189,8 @@
       "managed_runtime_unavailable": "请修复或重新安装 {{resource}}，然后重新测试连接。",
       "auth_required": "Agent 可连接，但需要先登录。请在 CLI 中登录，或在「环境变量」中补充所需的 API 密钥，然后重新测试连接。",
       "no_provider": "尚未配置模型供应商。请在设置中添加并启用一个供应商，然后重新测试连接。",
-      "version_drift_older": "已安装的 agy 低于本集成验证过的版本，部分功能可能缺失，建议升级 agy。",
-      "version_drift_newer": "已安装的 agy 高于本集成验证过的版本。通常仍可正常使用；如遇异常行为请反馈。"
+      "version_drift_older": "已安装的 CLI 低于AionUi 验证过的版本，部分功能可能缺失。建议升级。",
+      "version_drift_newer": "已安装的 CLI 高于AionUi 验证过的版本。通常仍可正常使用；如遇异常行为请反馈。"
     },
     "boundAssistantsTitle": "绑定此 Agent 的助手",
     "boundAssistantsCount": "{{count}} 个助手",

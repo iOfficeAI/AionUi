@@ -594,11 +594,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} adım başarısız oldu ve etkili OLMADI. agy bu turları yine de başarılı olarak bitirir; bu yüzden yanıta değil gerçek sonuca bakın."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden eski; bazı özellikler eksik olabilir. agy'yi güncellemeniz önerilir."
+      "CLI_VERSION_OLDER": {
+        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. {{cli}} sürümünü yükseltmeyi düşünün. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
+      "CLI_VERSION_NEWER": {
+        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; AionUi bekliyor.)"
       }
     }
   },

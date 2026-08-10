@@ -972,7 +972,25 @@
     "modelSwitched": "モデルの切り替えに成功しました",
     "tokenLocked": "設定を変更する前に、Channel を閉じてすべての承認済みユーザーを削除してください",
     "tokenValid": "Token が有効です",
-    "name": "アシスタント"
+    "name": "アシスタント",
+    "slackBotToken": "Bot トークン",
+    "slackBotTokenDesc": "Slack アプリを作成してワークスペースにインストールし、Bot User OAuth Token（xoxb-）をコピーします。",
+    "slackBotTokenRequired": "Bot トークン（xoxb-）を入力してください",
+    "slackBotTokenPrefix": "Bot トークンは「xoxb-」で始まる必要があります",
+    "slackAppToken": "App レベルトークン",
+    "slackAppTokenDesc": "Socket Mode を有効にし、connections:write スコープ付きの App レベルトークン（xapp-）を生成します。",
+    "slackAppTokenRequired": "App レベルトークン（xapp-）を入力してください",
+    "slackAppTokenPrefix": "App レベルトークンは「xapp-」で始まる必要があります",
+    "slackTokensRequired": "先に Slack トークンを入力してテストしてください",
+    "slackPluginEnabled": "Slack ボットが有効になりました",
+    "slackPluginDisabled": "Slack ボットが無効になりました",
+    "agentDescSlack": "Slack の会話に使用します",
+    "defaultModelDescSlack": "Slack の会話に使用するモデル",
+    "slackStep1": "Slack を開き、チャンネルでボットにメンションするか、DM を送信します",
+    "slackStep2": "任意のメッセージまたは @メンション を送信してペアリングを開始します",
+    "slackStep3": "ペアリングリクエストが下に表示されます。「承認」をクリックしてユーザーを認可します。",
+    "slackStep4": "承認後、Slack でアシスタントとチャットを開始できます！",
+    "unknownUser": "不明なユーザー"
   },
   "lark": {
     "appId": "App ID",
@@ -1158,8 +1176,8 @@
       "managed_runtime_unavailable": "Repair or reinstall {{resource}}, then retry the connection test.",
       "auth_required": "エージェントに接続できますが、サインインが必要です。CLI でログインするか、「環境変数」に必要な API キーを追加してから、接続テストを再実行してください。",
       "no_provider": "モデルプロバイダーが設定されていません。設定でプロバイダーを追加して有効にしてから、接続テストを再実行してください。",
-      "version_drift_older": "インストールされている agy は、この統合が検証したバージョンより古いため、一部の機能が利用できない可能性があります。更新をご検討ください。",
-      "version_drift_newer": "インストールされている agy は、この統合が検証したバージョンより新しいものです。通常は問題なく動作しますが、異常があればご報告ください。"
+      "version_drift_older": "インストール済みの CLI は、AionUi が検証したバージョンより古いため、一部の機能が使えない可能性があります。更新を検討してください。",
+      "version_drift_newer": "インストール済みの CLI は、AionUi が検証したバージョンより新しいです。通常は動作しますが、不審な挙動があればご報告ください。"
     },
     "boundAssistantsTitle": "このエージェントを使用するアシスタント",
     "boundAssistantsCount": "{{count}} 個のアシスタント",
