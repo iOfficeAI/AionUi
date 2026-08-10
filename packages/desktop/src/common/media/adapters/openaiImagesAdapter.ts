@@ -26,9 +26,31 @@ import type { MediaAsset, MediaGenOutcome, MediaGenRequest, MediaProviderAdapter
 import * as fs from 'fs';
 import * as path from 'path';
 
-const API_TIMEOUT_MS = 180000; // 3 minutes — gpt-image-1 hi-quality can be slow
+const API_TIMEOUT_MS = 180000; // 3 minutes — high-quality gpt-image renders can be slow
 
 type ImageResultItem = { b64_json?: string; url?: string };
+
+/**
+ * Ensure the base URL carries an API version segment.
+ *
+ * Chat and images are not equally forgiving about this. Gateways commonly route
+ * `/chat/completions` with or without the version prefix, so a provider whose
+ * `base_url` omits `/v1` works fine for chat and the user has no reason to
+ * suspect anything — but the images path then resolves to `/images/generations`
+ * and the gateway's front-end proxy rejects it with a bare 405 that says
+ * nothing about the cause. (Reproduced against a real LiteLLM deployment:
+ * `/images/generations` → 405 from nginx, `/v1/images/generations` → served.)
+ *
+ * Anything that already ends in a version segment is left untouched, as are
+ * Azure-style deployment URLs, which have their own path shape.
+ */
+export function ensureVersionedImagesBaseUrl(baseUrl: string): string {
+  const trimmed = (baseUrl || '').replace(/\/+$/, '');
+  if (!trimmed) return trimmed;
+  if (/\/v\d+(beta)?$/i.test(trimmed)) return trimmed;
+  if (/\/openai\/deployments\//i.test(trimmed)) return trimmed;
+  return `${trimmed}/v1`;
+}
 
 export class OpenAiImagesAdapter implements MediaProviderAdapter {
   readonly form = 'A' as const;
@@ -44,6 +66,7 @@ export class OpenAiImagesAdapter implements MediaProviderAdapter {
       const client = await ClientFactory.createRotatingClient(provider, {
         proxy,
         rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+        baseConfig: { baseURL: ensureVersionedImagesBaseUrl(provider.base_url) },
       });
 
       if (!(client instanceof OpenAIRotatingClient)) {

@@ -53,17 +53,21 @@ export const BUILTIN_IMAGE_MODELS: MediaModelSpec[] = [
 
   // ===== Form A — OpenAI images API and compatible gateways =====
   {
-    id: 'openai-gpt-image-1',
+    // Whole gpt-image family, not just -1: gateways ship -2 and vendor-suffixed
+    // variants (`gpt-image-2-joymaker`), and pinning the generation number left
+    // working models unselectable.
+    id: 'openai-gpt-image',
     kind: 'image',
     form: 'A',
-    match: { model: /^gpt-image-1/i },
+    match: { model: /^gpt-image/i },
     params: {
       sizes: ['1024x1024', '1536x1024', '1024x1536', 'auto'],
       qualities: ['low', 'medium', 'high', 'auto'],
       maxN: 4,
       imageInput: true,
     },
-    defaults: { size: 'auto', quality: 'auto' },
+    // No size/quality defaults: gateway-hosted variants reject values the
+    // official model accepts, and omitting them lets the server choose.
   },
   {
     id: 'openai-dall-e-3',

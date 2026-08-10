@@ -11,7 +11,7 @@ import * as path from 'path';
 import type OpenAI from 'openai';
 import { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
 import { ClientFactory } from '@/common/api/ClientFactory';
-import { OpenAiImagesAdapter } from '@/common/media/adapters/openaiImagesAdapter';
+import { ensureVersionedImagesBaseUrl, OpenAiImagesAdapter } from '@/common/media/adapters/openaiImagesAdapter';
 import { resolveMediaModelSpec } from '@/common/media/catalog';
 import type { TProviderWithModel } from '@/common/config/storage';
 
@@ -36,6 +36,33 @@ function fakeClient(response: unknown): OpenAIRotatingClient {
     .mockResolvedValue(response);
   return client;
 }
+
+describe('ensureVersionedImagesBaseUrl', () => {
+  // Reproduced against a real LiteLLM gateway: a provider configured without
+  // /v1 works for chat but the images path 405s at the proxy, with an error
+  // that says nothing about the cause.
+  it('appends /v1 when the base url has no version segment', () => {
+    expect(ensureVersionedImagesBaseUrl('https://litellm-internal.example.com/')).toBe(
+      'https://litellm-internal.example.com/v1'
+    );
+    expect(ensureVersionedImagesBaseUrl('https://gw.example.com')).toBe('https://gw.example.com/v1');
+  });
+
+  it('leaves an existing version segment alone', () => {
+    expect(ensureVersionedImagesBaseUrl('https://api.openai.com/v1')).toBe('https://api.openai.com/v1');
+    expect(ensureVersionedImagesBaseUrl('https://api.openai.com/v1/')).toBe('https://api.openai.com/v1');
+    expect(ensureVersionedImagesBaseUrl('https://x.example.com/v1beta')).toBe('https://x.example.com/v1beta');
+  });
+
+  it('leaves Azure deployment urls alone', () => {
+    const azure = 'https://acct.openai.azure.com/openai/deployments/my-dep';
+    expect(ensureVersionedImagesBaseUrl(azure)).toBe(azure);
+  });
+
+  it('tolerates an empty base url', () => {
+    expect(ensureVersionedImagesBaseUrl('')).toBe('');
+  });
+});
 
 describe('OpenAiImagesAdapter', () => {
   let workspaceDir: string;

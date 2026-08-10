@@ -61,6 +61,17 @@ describe('media catalog resolution', () => {
       expect(spec?.params.imageInput).toBe(true);
     });
 
+    // Pinning the generation number left working gateway models unselectable,
+    // which silently sent them down the chat fallback instead of the images API.
+    it.each(['gpt-image-2', 'gpt-image-2-joymaker', 'gpt-image-3'])(
+      'matches the whole gpt-image family: %s',
+      (model) => {
+        const provider = { platform: 'custom', base_url: 'https://gateway.example.com/', name: 'gw' };
+        expect(resolveMediaModelSpec('image', provider, model)?.id).toBe('openai-gpt-image');
+        expect(isImageGenSupported(provider, model)).toBe(true);
+      }
+    );
+
     it('supports FLUX and SD models on gateways', () => {
       const provider = { platform: 'new-api', base_url: 'https://api.siliconflow.cn/v1', name: 'SiliconFlow' };
       expect(isImageGenSupported(provider, 'black-forest-labs/FLUX.1-schnell')).toBe(true);
