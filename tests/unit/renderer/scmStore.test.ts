@@ -273,6 +273,134 @@ describe('openScmProject', () => {
   });
 });
 
+describe('openScmProject transport retry (startup WS race)', () => {
+  it('retries a transport-disconnected open until the socket is ready', async () => {
+    vi.useFakeTimers();
+    try {
+      let attempts = 0;
+      h.port.listRepositories = async (_projectId) => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new RpcError({ code: RPC_DISCONNECTED, message: 'not connected', transport: true });
+        }
+        return { repositories: [repo({ head: { name: 'main' } })] };
+      };
+
+      void openScmProject('p1');
+      expect(getScmSnapshot().loadState).toBe('loading');
+
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(attempts).toBe(2);
+      expect(getScmSnapshot().loadState).toBe('ready');
+      expect(getScmSnapshot().repositories[0]?.head?.name).toBe('main');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does NOT retry a server-side rejection (terminal, not a readiness gap)', async () => {
+    vi.useFakeTimers();
+    try {
+      h.failList('backend down');
+      void openScmProject('p1');
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(getScmSnapshot().loadState).toBe('error');
+      expect(h.listCalls).toEqual(['p1']); // exactly one attempt
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does NOT retry a protocol-level RpcError (transport:false is not a readiness gap)', async () => {
+    vi.useFakeTimers();
+    try {
+      let attempts = 0;
+      h.port.listRepositories = async () => {
+        attempts += 1;
+        throw new RpcError({ code: -32000, message: 'rejected by server', transport: false });
+      };
+
+      void openScmProject('p1');
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(getScmSnapshot().loadState).toBe('error');
+      expect(attempts).toBe(1); // exactly one attempt
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears a pending retry timer when the project is closed', async () => {
+    vi.useFakeTimers();
+    try {
+      const listCalls: string[] = [];
+      h.port.listRepositories = async (projectId) => {
+        listCalls.push(projectId);
+        throw new RpcError({ code: RPC_DISCONNECTED, message: 'not connected', transport: true });
+      };
+
+      void openScmProject('p1');
+      // Flush the microtask so the first failure lands and schedules the retry.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(getScmSnapshot().loadState).toBe('loading');
+
+      // Closing the project cancels the pending retry (clears the timer).
+      closeScmProject();
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      expect(listCalls).toEqual(['p1']); // no retry ever fired
+      expect(getScmSnapshot().loadState).toBe('idle');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('gives up to error when the transport stays disconnected past the retry budget', async () => {
+    vi.useFakeTimers();
+    try {
+      h.port.listRepositories = async () => {
+        throw new RpcError({ code: RPC_DISCONNECTED, message: 'not connected', transport: true });
+      };
+
+      void openScmProject('p1');
+      await vi.advanceTimersByTimeAsync(500 * 45);
+
+      expect(getScmSnapshot().loadState).toBe('error');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels a pending retry when the project is switched away', async () => {
+    vi.useFakeTimers();
+    try {
+      const listCalls: string[] = [];
+      h.port.listRepositories = async (projectId) => {
+        listCalls.push(projectId);
+        throw new RpcError({ code: RPC_DISCONNECTED, message: 'not connected', transport: true });
+      };
+
+      void openScmProject('p1');
+
+      // A new open for a different project clears the pending p1 retry.
+      h.port.listRepositories = async (projectId) => {
+        listCalls.push(projectId);
+        return { repositories: [] };
+      };
+      await openScmProject('p2');
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(listCalls).toEqual(['p1', 'p2']); // p1 retry never fired
+      expect(getScmSnapshot().projectId).toBe('p2');
+      expect(getScmSnapshot().loadState).toBe('ready');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('seq guard (out-of-order refresh protection)', () => {
   beforeEach(async () => {
     h.setRepos([repo()]);

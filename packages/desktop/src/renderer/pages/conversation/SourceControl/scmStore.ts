@@ -343,9 +343,22 @@ const subscribeRepos = async (repoIds: string[]): Promise<void> => {
  * Same-project guard: the hosting container remounts on conversation switches,
  * which must NOT re-list and re-subscribe (that would drop the warm status and
  * flicker the panel). A repeated call for the already-open project is a no-op.
+ *
+ * Transport retry: the open can be requested while the WS singleton is still
+ * CONNECTING (e.g. the Changes tab opened right at startup, before the socket
+ * is OPEN). A frame dropped because the socket was not OPEN rejects with a
+ * transport error — that is a *not-yet-ready* condition, not a server
+ * rejection, so it is retried (bounded) instead of surfacing as a permanent
+ * `error`. Anything else is terminal.
  */
 export const openScmProject = async (id: string): Promise<void> => {
   if (projectId === id) return;
+  clearOpenRetry();
+  openRetryCount = 0;
+  await openProjectInternal(id);
+};
+
+const openProjectInternal = async (id: string): Promise<void> => {
   // Release the previous project's repos (switch project = release, per
   // source-control.md §生命周期).
   if (projectId !== null) releaseSubscriptions();
@@ -380,10 +393,43 @@ export const openScmProject = async (id: string): Promise<void> => {
     await subscribeRepos(repositories.map((r) => r.repo_id));
   } catch (e) {
     if (projectId !== id) return;
+    if (isTransportDisconnect(e) && openRetryCount < OPEN_RETRY_MAX) {
+      openRetryCount += 1;
+      scheduleOpenRetry(id);
+      return;
+    }
     loadState = 'error';
     error = e instanceof Error ? e.message : String(e);
     commit();
   }
+};
+
+/** How long to wait between transport-retry attempts of an open. */
+const OPEN_RETRY_DELAY_MS = 500;
+/** Cap on consecutive transport-level retries before giving up to `error`. */
+const OPEN_RETRY_MAX = 40;
+
+let openRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let openRetryCount = 0;
+
+const clearOpenRetry = (): void => {
+  if (openRetryTimer !== null) {
+    clearTimeout(openRetryTimer);
+    openRetryTimer = null;
+  }
+};
+
+/** True for transport-level rejections (socket not OPEN / dropped mid-flight). */
+const isTransportDisconnect = (e: unknown): boolean => e instanceof RpcError && e.transport === true;
+
+const scheduleOpenRetry = (id: string): void => {
+  // A retry is scheduled exactly once per failed attempt (the timer clears
+  // itself before re-running), so no double-schedule guard is needed here.
+  openRetryTimer = setTimeout(() => {
+    openRetryTimer = null;
+    if (projectId !== id) return; // project switched away while waiting
+    void openProjectInternal(id);
+  }, OPEN_RETRY_DELAY_MS);
 };
 
 /** Tell the backend to release every declared repo and forget the declarations. */
@@ -399,6 +445,8 @@ const releaseSubscriptions = (): void => {
  * going invisible keeps the subscription alive by design.
  */
 export const closeScmProject = (): void => {
+  clearOpenRetry();
+  openRetryCount = 0;
   releaseSubscriptions();
   projectId = null;
   repositories = [];
@@ -655,6 +703,8 @@ export const getScmInternalsForTest = (): { subscribed: string[]; appliedSeq: Re
 
 /** Test hook: reset all module state. */
 export const resetScmStoreForTest = (): void => {
+  clearOpenRetry();
+  openRetryCount = 0;
   port = null;
   projectId = null;
   repositories = [];

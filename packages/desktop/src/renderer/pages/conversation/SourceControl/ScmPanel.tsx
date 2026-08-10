@@ -33,6 +33,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePreviewContext } from '../Preview';
+import ScmBranchPill from '@/renderer/pages/conversation/components/ChatLayout/ScmBranchPill';
 import { discardAllTargets, ScmChangesView, stageAllTargets } from './ScmChangesView';
 import { ScmSection, ScmSectionDivider } from './ScmSection';
 import {
@@ -344,6 +345,7 @@ const ScmSectionStack: React.FC<{
           title={t('conversation.explorer.scm.sections.changes')}
           collapsed={changesCollapsed}
           onToggleCollapsed={() => setSectionCollapsed(SECTION_CHANGES, !changesCollapsed)}
+          badge={<ScmBranchPill headName={selectedRepo.head?.name} className='ml-4px' />}
           actions={changesActions}
         >
           {changesBody}
