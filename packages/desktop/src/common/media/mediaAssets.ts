@@ -90,7 +90,13 @@ export function getMediaMimeType(filePath: string): string {
   return MIME_TYPE_MAP[ext] || VIDEO_MIME_TYPE_MAP[ext] || MIME_TYPE_MAP[DEFAULT_IMAGE_EXTENSION];
 }
 
-export function getFileExtensionFromDataUrl(dataUrl: string): string {
+/**
+ * `fallbackKind` picks the right default when `dataUrl` isn't a `data:` URL at
+ * all (a raw base64 payload with no prefix, which Form C drivers can hand
+ * back for video results) — without it every unprefixed payload would default
+ * to `.png` regardless of what was actually generated.
+ */
+export function getFileExtensionFromDataUrl(dataUrl: string, fallbackKind: MediaKind = 'image'): string {
   const mimeTypeMatch = dataUrl.match(/^data:(image|video)\/([^;]+);base64,/);
   if (mimeTypeMatch) {
     const family = mimeTypeMatch[1];
@@ -100,7 +106,7 @@ export function getFileExtensionFromDataUrl(dataUrl: string): string {
     }
     return MIME_TO_EXT_MAP[subtype] || DEFAULT_IMAGE_EXTENSION;
   }
-  return DEFAULT_IMAGE_EXTENSION;
+  return fallbackKind === 'video' ? DEFAULT_VIDEO_EXTENSION : DEFAULT_IMAGE_EXTENSION;
 }
 
 // ===== Path boundary helpers =====
@@ -233,8 +239,7 @@ export async function saveBase64MediaAsset(
   workspaceDir: string,
   index = 0
 ): Promise<MediaAsset> {
-  const extension =
-    getFileExtensionFromDataUrl(base64Data) || (kind === 'video' ? DEFAULT_VIDEO_EXTENSION : DEFAULT_IMAGE_EXTENSION);
+  const extension = getFileExtensionFromDataUrl(base64Data, kind);
   const fileName = buildAssetFileName(kind, extension, index);
   const filePath = path.join(workspaceDir, fileName);
 

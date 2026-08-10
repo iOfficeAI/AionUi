@@ -221,14 +221,18 @@ describe('OpenAiImagesAdapter', () => {
     expect(outcome.error).toBe('rate limited');
   });
 
-  it('reports a cancelled result when the API call rejects after the signal was aborted', async () => {
+  it('reports a cancelled result when the signal is aborted mid-flight, during the API call', async () => {
     const controller = new AbortController();
     const client = Object.create(OpenAIRotatingClient.prototype) as OpenAIRotatingClient;
-    (client as unknown as { createImage: () => Promise<unknown> }).createImage = vi
-      .fn()
-      .mockRejectedValue(new Error('aborted mid-flight'));
+    // Not aborted when generate() starts (passes the upfront check); flips to
+    // aborted only once the in-flight call is about to reject — this is what
+    // actually exercises the catch block's own abort check, as opposed to
+    // the early-return at the top of generate().
+    (client as unknown as { createImage: () => Promise<unknown> }).createImage = vi.fn().mockImplementation(() => {
+      controller.abort();
+      return Promise.reject(new Error('aborted mid-flight'));
+    });
     vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
-    controller.abort();
 
     const outcome = await adapter.generate({
       kind: 'image',
@@ -242,5 +246,36 @@ describe('OpenAiImagesAdapter', () => {
     });
 
     expect(outcome).toMatchObject({ success: false, error: 'cancelled' });
+  });
+
+  it('reports empty-items when response entries carry neither base64 data nor a URL', async () => {
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(fakeClient({ created: 0, data: [{}] }));
+
+    const outcome = await runGenerate();
+
+    expect(outcome).toMatchObject({ success: false, error: 'empty-items' });
+  });
+
+  it('passes multiple edit reference files as an array to createImageEdit', async () => {
+    await fs.promises.writeFile(path.join(workspaceDir, 'a.png'), Buffer.from(TINY_PNG_B64, 'base64'));
+    await fs.promises.writeFile(path.join(workspaceDir, 'b.png'), Buffer.from(TINY_PNG_B64, 'base64'));
+    const client = fakeClient({ created: 0, data: [{ b64_json: TINY_PNG_B64 }] });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+    const editProvider: TProviderWithModel = { ...provider, use_model: 'dall-e-2' };
+
+    const outcome = await adapter.generate({
+      kind: 'image',
+      prompt: 'combine these',
+      params: {},
+      inputUris: ['a.png', 'b.png'],
+      provider: editProvider,
+      spec: resolveMediaModelSpec('image', editProvider, 'dall-e-2'),
+      workspaceDir,
+    });
+
+    expect(outcome.success).toBe(true);
+    const editCall = (client.createImageEdit as ReturnType<typeof vi.fn>).mock.calls[0][0] as { image: unknown };
+    expect(Array.isArray(editCall.image)).toBe(true);
+    expect((editCall.image as unknown[]).length).toBe(2);
   });
 });

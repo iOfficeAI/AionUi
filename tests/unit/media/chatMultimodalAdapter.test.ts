@@ -178,18 +178,59 @@ describe('ChatMultimodalAdapter', () => {
     expect(outcome).toMatchObject({ success: false, error: 'No response' });
   });
 
-  it('reports a cancelled result when the API call rejects after the signal was aborted', async () => {
+  it('reports a cancelled result when the signal is aborted mid-flight, during the API call', async () => {
     const controller = new AbortController();
-    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(
-      fakeFailingClient(new Error('aborted mid-flight'))
-    );
-    // The mocked client's createChatCompletion always rejects; simulate the
-    // caller having aborted right as that rejection surfaces.
-    controller.abort();
+    const client = Object.create(OpenAIRotatingClient.prototype) as OpenAIRotatingClient;
+    // Signal not aborted when generate() starts (passes the upfront check);
+    // it flips to aborted only once the in-flight call is about to reject —
+    // this is what actually exercises the catch block's own abort check,
+    // as opposed to the early-return at the top of generate().
+    (client as unknown as { createChatCompletion: () => Promise<unknown> }).createChatCompletion = vi
+      .fn()
+      .mockImplementation(() => {
+        controller.abort();
+        return Promise.reject(new Error('aborted mid-flight'));
+      });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
 
     const outcome = await runGenerate({ signal: controller.signal });
 
     expect(outcome).toMatchObject({ success: false, error: 'cancelled' });
+  });
+
+  it('sends successfully processed reference images to the API and reports partial failures for the rest', async () => {
+    const okPath = path.join(workspaceDir, 'ok.png');
+    await fs.promises.writeFile(okPath, Buffer.from(TINY_PNG_B64, 'base64'));
+    let sentMessages: unknown;
+    const client = Object.create(OpenAIRotatingClient.prototype) as OpenAIRotatingClient;
+    (client as unknown as { createChatCompletion: (params: unknown) => Promise<unknown> }).createChatCompletion = vi
+      .fn()
+      .mockImplementation((params: { messages: unknown }) => {
+        sentMessages = params.messages;
+        return Promise.resolve({ choices: [{ message: { content: 'edited', images: [] } }] });
+      });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(client);
+
+    const outcome = await runGenerate({ inputUris: ['ok.png', 'missing.png'] });
+
+    // One reference image failed but the other succeeded, so the call still
+    // goes out — with only the successfully processed image attached.
+    expect(outcome.success).toBe(true);
+    const content = (sentMessages as Array<{ content: Array<{ type: string }> }>)[0].content;
+    expect(content).toHaveLength(2); // the text part + exactly one successfully processed image
+    expect(content.some((part) => part.type === 'image_url')).toBe(true);
+  });
+
+  it('treats a returned image with no url as producing no assets, keeping the raw response text', async () => {
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue(
+      fakeClient({
+        choices: [{ message: { content: 'here', images: [{ type: 'image_url', image_url: { url: '' } }] } }],
+      })
+    );
+
+    const outcome = await runGenerate();
+
+    expect(outcome).toMatchObject({ success: true, assets: [], text: 'here' });
   });
 
   it('surfaces an unexpected API failure as a plain error result', async () => {

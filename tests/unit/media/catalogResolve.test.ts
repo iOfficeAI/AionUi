@@ -138,5 +138,60 @@ describe('media catalog resolution', () => {
       expect(params.n).toBe(1);
       expect(dropped).toEqual(expect.arrayContaining(['size', 'seed']));
     });
+
+    it('drops an out-of-vocabulary quality value but keeps a valid one', () => {
+      const spec = resolveMediaModelSpec('image', openaiProvider, 'dall-e-3');
+      expect(clipParamsToSpec({ quality: 'ultra' }, spec).dropped).toContain('quality');
+      expect(clipParamsToSpec({ quality: 'hd' }, spec).params.quality).toBe('hd');
+    });
+
+    it('keeps a valid aspect ratio and drops an out-of-vocabulary one (video)', () => {
+      const provider = { platform: 'openai', base_url: '', name: 'Kling' };
+      const spec = resolveMediaModelSpec('video', provider, 'kling-v1.5');
+      expect(spec).not.toBeNull();
+
+      expect(clipParamsToSpec({ aspectRatio: '16:9' }, spec).params.aspectRatio).toBe('16:9');
+      expect(clipParamsToSpec({ aspectRatio: '2.39:1' }, spec).dropped).toContain('aspectRatio');
+    });
+
+    it('keeps a valid duration/resolution/camera and drops out-of-vocabulary ones (video)', () => {
+      const provider = { platform: 'openai', base_url: '', name: 'Kling' };
+      const spec = resolveMediaModelSpec('video', provider, 'kling-v1.5');
+
+      const kept = clipParamsToSpec({ durationSeconds: 10, resolution: '1080p', camera: 'zoom' }, spec);
+      expect(kept.params).toMatchObject({ durationSeconds: 10, resolution: '1080p', camera: 'zoom' });
+      expect(kept.dropped).toEqual([]);
+
+      const invalid = clipParamsToSpec({ durationSeconds: 999, resolution: '8k', camera: 'orbit' }, spec);
+      expect(invalid.dropped).toEqual(expect.arrayContaining(['durationSeconds', 'resolution', 'camera']));
+    });
+
+    it('merges duration/resolution defaults underneath when the caller omits them (video)', () => {
+      const provider = { platform: 'openai', base_url: '', name: 'Kling' };
+      const spec = resolveMediaModelSpec('video', provider, 'kling-v1.5');
+
+      const { params } = clipParamsToSpec({}, spec);
+
+      expect(params.durationSeconds).toBe(5);
+      expect(params.resolution).toBe('720p');
+    });
+
+    it('merges an aspectRatio default only when neither size nor aspectRatio was already set', () => {
+      // The catalog has no entry that declares an aspectRatio default, so this
+      // exercises clipParamsToSpec directly against a fabricated spec — the
+      // function is generic over any MediaModelSpec, not just seeded catalog data.
+      const spec = {
+        id: 'test-aspect-default',
+        kind: 'video' as const,
+        form: 'C' as const,
+        match: { model: 'test-aspect-default' },
+        params: { aspectRatios: ['16:9', '9:16'] },
+        defaults: { aspectRatio: '16:9' },
+      };
+
+      expect(clipParamsToSpec({}, spec).params.aspectRatio).toBe('16:9');
+      // A caller-provided aspectRatio wins over the default.
+      expect(clipParamsToSpec({ aspectRatio: '9:16' }, spec).params.aspectRatio).toBe('9:16');
+    });
   });
 });

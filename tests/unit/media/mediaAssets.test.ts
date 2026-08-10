@@ -5,13 +5,20 @@
  */
 
 import { describe, expect, it, afterEach, vi } from 'vitest';
+import * as fs from 'node:fs';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   downloadUrlMediaAsset,
+  fileToBase64,
+  getFileExtensionFromDataUrl,
+  getImageMimeType,
+  getMediaMimeType,
+  isVideoFile,
   processImageUri,
   resolveLocalInputPath,
+  resolveSafePath,
   safeJsonParse,
   saveBase64MediaAsset,
 } from '@/common/media/mediaAssets';
@@ -199,6 +206,21 @@ describe('saveBase64MediaAsset', () => {
 
     expect(asset.filePath.startsWith(pathResolve(ws))).toBe(true);
   });
+
+  it('falls back to the video default extension for a raw (non-data-URL) payload', async () => {
+    const ws = createWorkspace();
+
+    const asset = await saveBase64MediaAsset('video', Buffer.from(PNG_1x1).toString('base64'), ws);
+
+    expect(asset.filePath).toMatch(/vid-\d+\.mp4$/);
+  });
+
+  it('wraps a write failure with a "Failed to save" error', async () => {
+    const ws = createWorkspace();
+    vi.spyOn(fs.promises, 'writeFile').mockRejectedValueOnce(new Error('disk full'));
+
+    await expect(saveBase64MediaAsset('image', DATA_URL_PNG, ws)).rejects.toThrow('Failed to save image: disk full');
+  });
 });
 
 describe('resolveLocalInputPath', () => {
@@ -282,5 +304,101 @@ describe('downloadUrlMediaAsset', () => {
     await expect(downloadUrlMediaAsset('image', 'https://cdn.example.com/gone', ws)).rejects.toThrow(
       'Failed to download generated image: HTTP 404'
     );
+  });
+
+  it('infers the extension from a video content-type header', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(Buffer.from(PNG_1x1), { status: 200, headers: { 'content-type': 'video/mp4' } })
+        )
+    );
+
+    const asset = await downloadUrlMediaAsset('video', 'https://cdn.example.com/result', ws);
+
+    expect(asset.filePath).toMatch(/\.mp4$/);
+  });
+
+  it('falls back to the video default extension when nothing else is available', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(Buffer.from(PNG_1x1), { status: 200, headers: {} })));
+
+    const asset = await downloadUrlMediaAsset('video', 'https://cdn.example.com/result', ws);
+
+    expect(asset.filePath).toMatch(/\.mp4$/);
+  });
+
+  it('wraps a write failure with a "Failed to save downloaded" error', async () => {
+    const ws = createWorkspace();
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(Buffer.from(PNG_1x1), { status: 200, headers: { 'content-type': 'image/png' } })
+        )
+    );
+    vi.spyOn(fs.promises, 'writeFile').mockRejectedValueOnce(new Error('disk full'));
+
+    await expect(downloadUrlMediaAsset('image', 'https://cdn.example.com/result', ws)).rejects.toThrow(
+      'Failed to save downloaded image: disk full'
+    );
+  });
+});
+
+describe('isVideoFile', () => {
+  it('recognizes known video extensions and rejects everything else', () => {
+    expect(isVideoFile('clip.mp4')).toBe(true);
+    expect(isVideoFile('clip.webm')).toBe(true);
+    expect(isVideoFile('photo.png')).toBe(false);
+  });
+});
+
+describe('getFileExtensionFromDataUrl', () => {
+  it('maps a video data URL to a video extension', () => {
+    expect(getFileExtensionFromDataUrl('data:video/webm;base64,AAAA')).toBe('.webm');
+  });
+
+  it('falls back to the default image extension for an unrecognized data URL', () => {
+    expect(getFileExtensionFromDataUrl('not-a-data-url')).toBe('.png');
+  });
+});
+
+describe('mime type helpers', () => {
+  it('getImageMimeType falls back to the default image mime for an unknown extension', () => {
+    expect(getImageMimeType('file.unknownext')).toBe('image/png');
+  });
+
+  it('getMediaMimeType resolves video extensions and falls back for unknown ones', () => {
+    expect(getMediaMimeType('clip.mp4')).toBe('video/mp4');
+    expect(getMediaMimeType('file.unknownext')).toBe('image/png');
+  });
+});
+
+describe('fileToBase64', () => {
+  it('wraps a non-ENOENT read failure as a generic read error', async () => {
+    const ws = createWorkspace();
+    const filePath = createImageFile(ws, 'locked.png');
+    vi.spyOn(fs.promises, 'readFile').mockRejectedValueOnce(new Error('EACCES: permission denied'));
+
+    await expect(fileToBase64(filePath)).rejects.toThrow('Failed to read image file: EACCES: permission denied');
+  });
+});
+
+describe('resolveSafePath', () => {
+  it('rethrows a realpath failure that is not ENOENT', async () => {
+    const ws = createWorkspace();
+    createImageFile(ws, 'test.png');
+    vi.spyOn(fs.promises, 'realpath').mockImplementation(async (target) => {
+      if (String(target) === ws) return ws;
+      const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+      err.code = 'EACCES';
+      throw err;
+    });
+
+    await expect(resolveSafePath(ws, 'test.png')).rejects.toThrow('EACCES: permission denied');
   });
 });
