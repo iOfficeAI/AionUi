@@ -72,6 +72,7 @@
     "removeProjectTitle": "Remover projeto",
     "removeProject": "Remover projeto",
     "removeProjectConfirm": "Remover o projeto \"{{name}}\"? Suas {{count}} conversa(s) também serão removidas.",
+    "removeProjectConfirmTeams": "Suas {{teams}} equipe(s) também serão removidas.",
     "newConversationInProject": "Novo chat neste projeto",
     "deleting": "Excluindo...",
     "reorderPinned": "Arraste para reordenar a conversa fixada",

@@ -72,6 +72,7 @@
     "removeProjectTitle": "Projeyi kaldır",
     "removeProject": "Projeyi kaldır",
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
+    "removeProjectConfirmTeams": "Projedeki {{teams}} takım da kaldırılacak.",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
     "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",

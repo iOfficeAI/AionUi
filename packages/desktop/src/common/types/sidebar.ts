@@ -93,3 +93,17 @@ export type OrderScene = 'pinned';
 
 /** Item kinds that can be ordered. */
 export type OrderItemType = 'conversation' | 'team';
+
+/**
+ * `DELETE /api/sidebar/project/{project_id}` result (BR-19 "所见即所删").
+ *
+ * Counts what was (or, with `dry_run`, would be) removed. `teams_deleted` and
+ * `conversations_deleted` are disjoint: standalone conversations classified into
+ * the project are counted in `conversations_deleted`, while team member
+ * conversations are removed via their team's cascade and counted only under
+ * `teams_deleted`.
+ */
+export type RemoveProjectResult = {
+  teams_deleted: number;
+  conversations_deleted: number;
+};

@@ -72,6 +72,7 @@
     "removeProjectTitle": "Projekt entfernen",
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
+    "removeProjectConfirmTeams": "Außerdem werden {{teams}} zugehörige(s) Team(s) entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",

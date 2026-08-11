@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import type { RemoveProjectResult } from '@/common/types/sidebar';
 import { requestConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -259,13 +260,38 @@ export const useConversationActions = ({
   const [removeProjectTarget, setRemoveProjectTarget] = useState<{
     name: string;
     conversations: TChatConversation[];
+    /**
+     * The backing standard project id when this is a real project group. Absent
+     * for dir pseudo-groups, which have no project record and fall back to
+     * per-conversation deletion.
+     */
+    projectId?: string;
+    /** Accurate delete preview from a `dry_run` call; absent until it resolves. */
+    preview?: RemoveProjectResult;
   } | null>(null);
   const [removeProjectLoading, setRemoveProjectLoading] = useState(false);
 
-  const handleRemoveProject = useCallback((projectName: string, conversations: TChatConversation[]) => {
-    if (conversations.length === 0) return;
-    setRemoveProjectTarget({ name: projectName, conversations });
-  }, []);
+  const handleRemoveProject = useCallback(
+    (projectName: string, conversations: TChatConversation[], projectId?: string) => {
+      // Dir pseudo-groups (no backing project) can only remove their loose
+      // conversations — skip when there is nothing to remove. A real project may
+      // hold only teams (no standalone conversations), so let it through.
+      if (!projectId && conversations.length === 0) return;
+      setRemoveProjectTarget({ name: projectName, conversations, projectId });
+      if (!projectId) return;
+      // Fetch an accurate preview (teams + path-merged items the current window
+      // may not show). Best-effort: on failure the dialog keeps the local count.
+      void ipcBridge.sidebar.removeProject
+        .invoke({ project_id: projectId, dry_run: true })
+        .then((preview) => {
+          setRemoveProjectTarget((prev) => (prev && prev.projectId === projectId ? { ...prev, preview } : prev));
+        })
+        .catch(() => {
+          /* keep fallback count */
+        });
+    },
+    []
+  );
 
   const handleRemoveProjectCancel = useCallback(() => {
     if (removeProjectLoading) return;
@@ -276,17 +302,27 @@ export const useConversationActions = ({
     if (!removeProjectTarget) return;
     setRemoveProjectLoading(true);
     try {
-      const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
-      const successCount = results.filter(Boolean).length;
-      emitter.emit('chat.history.refresh');
-      if (successCount > 0) {
-        Message.success(
-          t('conversation.history.batchDeleteSuccess', {
-            count: successCount,
-          })
-        );
+      if (removeProjectTarget.projectId) {
+        // Real project: one server-side transaction removes teams + standalone
+        // conversations + the project record ("所见即所删").
+        const result = await ipcBridge.sidebar.removeProject.invoke({ project_id: removeProjectTarget.projectId });
+        emitter.emit('chat.history.refresh');
+        const removed = result.teams_deleted + result.conversations_deleted;
+        if (removed > 0) {
+          Message.success(t('conversation.history.batchDeleteSuccess', { count: removed }));
+        } else {
+          Message.error(t('conversation.history.deleteFailed'));
+        }
       } else {
-        Message.error(t('conversation.history.deleteFailed'));
+        // Dir pseudo-group: delete its loose conversations one by one.
+        const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
+        const successCount = results.filter(Boolean).length;
+        emitter.emit('chat.history.refresh');
+        if (successCount > 0) {
+          Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
+        } else {
+          Message.error(t('conversation.history.deleteFailed'));
+        }
       }
       setRemoveProjectTarget(null);
     } catch (error) {

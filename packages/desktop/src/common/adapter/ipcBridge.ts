@@ -1312,6 +1312,14 @@ export const sidebar = {
     ),
     fromApiSidebarItems
   ),
+  // Remove a project and everything classified into its group (teams + standalone
+  // conversations), BR-19 "所见即所删". With `dry_run` nothing is deleted and the
+  // response reports the counts that *would* be removed (used for the confirm
+  // dialog). A missing / non-standard project maps to 404.
+  removeProject: httpDelete<
+    import('@/common/types/sidebar').RemoveProjectResult,
+    { project_id: string; dry_run?: boolean }
+  >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
 };
 
 // Ordering (pin / unpin). Pin truth = a `user_order` row existing; both calls are

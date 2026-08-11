@@ -72,6 +72,7 @@
     "removeProjectTitle": "Remove project",
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
+    "removeProjectConfirmTeams": "{{teams}} team(s) in it will be removed too.",
     "newConversationInProject": "New chat in this project",
     "deleting": "Deleting...",
     "reorderPinned": "Drag to reorder pinned conversation",

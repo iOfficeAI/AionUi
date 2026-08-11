@@ -72,6 +72,7 @@
     "removeProjectTitle": "Видалити проєкт",
     "removeProject": "Видалити проєкт",
     "removeProjectConfirm": "Видалити проєкт «{{name}}»? Також буде видалено {{count}} розмов у ньому.",
+    "removeProjectConfirmTeams": "Також буде видалено {{teams}} команд у ньому.",
     "newConversationInProject": "Нова розмова в цьому проєкті",
     "deleting": "Видалення...",
     "reorderPinned": "Перетягніть, щоб змінити порядок закріплених розмов",

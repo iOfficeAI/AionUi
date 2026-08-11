@@ -439,8 +439,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         <div className='text-14px leading-22px text-t-secondary'>
           {t('conversation.history.removeProjectConfirm', {
             name: removeProjectTarget?.name ?? '',
-            count: removeProjectTarget?.conversations.length ?? 0,
+            count:
+              removeProjectTarget?.preview?.conversations_deleted ?? removeProjectTarget?.conversations.length ?? 0,
           })}
+          {(removeProjectTarget?.preview?.teams_deleted ?? 0) > 0 &&
+            ` ${t('conversation.history.removeProjectConfirmTeams', {
+              teams: removeProjectTarget?.preview?.teams_deleted ?? 0,
+            })}`}
         </div>
       </AionModal>
 
@@ -514,7 +519,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   <Menu
                     onClickMenuItem={(key) => {
                       if (key === 'remove') {
-                        handleRemoveProject(group.displayName, group.conversations);
+                        // `project:<id>` → real project (server-side "所见即所删");
+                        // `dir:<key>` → pseudo-group with no backing project.
+                        const projectId = group.scopeToken?.startsWith('project:')
+                          ? group.scopeToken.slice('project:'.length)
+                          : undefined;
+                        handleRemoveProject(group.displayName, group.conversations, projectId);
                       }
                     }}
                   >
