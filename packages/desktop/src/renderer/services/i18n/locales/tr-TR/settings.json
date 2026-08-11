@@ -990,7 +990,17 @@
     "slackStep2": "Eşleştirmeyi başlatmak için herhangi bir mesaj veya @etiket gönderin",
     "slackStep3": "Aşağıda bir eşleştirme isteği görünecek. Kullanıcıyı yetkilendirmek için \"Onayla\"ya tıklayın.",
     "slackStep4": "Onaylandıktan sonra Slack'te asistanla sohbet etmeye başlayabilirsiniz!",
-    "unknownUser": "Bilinmeyen kullanıcı"
+    "unknownUser": "Bilinmeyen kullanıcı",
+    "discordBotToken": "Bot Token",
+    "discordBotTokenDesc": "Bir Discord uygulaması oluşturun, bir Bot ekleyin, MESSAGE CONTENT intent'ini etkinleştirin ve Bot Token'ını kopyalayın.",
+    "discordPluginEnabled": "Discord botu etkinleştirildi",
+    "discordPluginDisabled": "Discord botu devre dışı bırakıldı",
+    "agentDescDiscord": "Discord konuşmaları için kullanılır",
+    "defaultModelDescDiscord": "Discord konuşmaları için kullanılan model",
+    "discordStep1": "Discord'u açın ve bir kanalda botunuzu etiketleyin ya da ona özel mesaj gönderin",
+    "discordStep2": "Eşleştirmeyi başlatmak için herhangi bir mesaj gönderin veya @bahsedin",
+    "discordStep3": "Aşağıda bir eşleştirme isteği görünecek. Kullanıcıyı yetkilendirmek için \"Onayla\"ya tıklayın.",
+    "discordStep4": "Onaylandıktan sonra Discord'da asistanla sohbet etmeye başlayabilirsiniz!"
   },
   "lark": {
     "appId": "App ID",

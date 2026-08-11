@@ -1004,7 +1004,17 @@
     "slackStep2": "傳送任意訊息或 @提及 以發起配對",
     "slackStep3": "配對請求將顯示在下方。點擊「核准」以授權該使用者。",
     "slackStep4": "核准後，你就可以在 Slack 中與助手聊天了！",
-    "unknownUser": "未知使用者"
+    "unknownUser": "未知使用者",
+    "discordBotToken": "Bot Token",
+    "discordBotTokenDesc": "建立一個 Discord 應用程式，新增 Bot，開啟 MESSAGE CONTENT intent（訊息內容權限），然後複製 Bot Token。",
+    "discordPluginEnabled": "Discord 機器人已啟用",
+    "discordPluginDisabled": "Discord 機器人已停用",
+    "agentDescDiscord": "用於 Discord 對話",
+    "defaultModelDescDiscord": "用於 Discord 對話的模型",
+    "discordStep1": "開啟 Discord，在頻道中 @你的機器人，或傳送私訊給它",
+    "discordStep2": "傳送任意訊息或 @提及 以發起配對",
+    "discordStep3": "配對請求將顯示在下方。點擊「核准」以授權該使用者。",
+    "discordStep4": "核准後，你就可以在 Discord 中與助手聊天了！"
   },
   "lark": {
     "appId": "App ID",
