@@ -686,8 +686,6 @@ export type I18nKey =
   | 'conversation.history.removeProjectConfirm'
   | 'conversation.history.removeProjectConfirmTeams'
   | 'conversation.history.removeProjectListMore'
-  | 'conversation.history.removeProjectListPinned'
-  | 'conversation.history.removeProjectListUnpinned'
   | 'conversation.history.removeProjectTitle'
   | 'conversation.history.rename'
   | 'conversation.history.renameFailed'

@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import SiderItem from '@renderer/components/layout/Sider/SiderItem';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -447,34 +448,57 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               teams: removeProjectTarget?.preview?.teams_deleted ?? 0,
             })}`}
           {(() => {
-            // List *which* items go, not just how many. Pinned members are hoisted
-            // into the top pinned group, so a count alone doesn't tell the user who
-            // is where — the backend preview carries the names. Unpinned: at most 5
-            // (with a "+N more" tail). Pinned: all, since they were displaced away
-            // from this project group and are easy to overlook.
+            // List *which* units go, not just how many, laid out like the sidebar:
+            // a 置顶 section then a 项目 section, one icon+name row per unit. Pinned
+            // members are hoisted into the top pinned group, so a count alone doesn't
+            // tell the user who is where — the backend preview carries the names and
+            // pinned flags (the frontend can't reconstruct project membership). The
+            // per-unit icon is a generic per-kind mark (conversation / team); the
+            // preview doesn't carry the model logo. Unpinned: at most 5 rows (with a
+            // "+N more" tail). Pinned: all, since they were displaced away from this
+            // project group and are easy to overlook.
             const items = removeProjectTarget?.preview?.items;
             if (!items?.length) return null;
             const UNPINNED_CAP = 5;
-            const unpinned = items.filter((i) => !i.pinned).map((i) => i.name);
-            const pinned = items.filter((i) => i.pinned).map((i) => i.name);
+            const pinned = items.filter((i) => i.pinned);
+            const unpinned = items.filter((i) => !i.pinned);
             const shownUnpinned = unpinned.slice(0, UNPINNED_CAP);
             const extraUnpinned = unpinned.length - shownUnpinned.length;
+            const sectionLabelCls =
+              'px-12px h-24px flex items-center text-13px font-600 tracking-[0.03em] text-t-secondary';
+            const renderRow = (item: { name: string; pinned: boolean; kind: string }, idx: number) => (
+              <SiderItem
+                key={`${item.kind}-${idx}-${item.name}`}
+                icon={
+                  item.kind === 'team' ? (
+                    <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+                  ) : (
+                    <MessageOne theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+                  )
+                }
+                name={item.name}
+              />
+            );
             return (
-              <>
-                {unpinned.length > 0 && (
-                  <div className='mt-8px text-13px leading-20px text-t-tertiary'>
-                    {t('conversation.history.removeProjectListUnpinned', {
-                      names: shownUnpinned.join(', '),
-                    })}
-                    {extraUnpinned > 0 && t('conversation.history.removeProjectListMore', { count: extraUnpinned })}
-                  </div>
-                )}
+              <div className='mt-12px max-h-260px overflow-y-auto'>
                 {pinned.length > 0 && (
-                  <div className='mt-4px text-13px leading-20px text-t-tertiary'>
-                    {t('conversation.history.removeProjectListPinned', { names: pinned.join(', ') })}
+                  <div>
+                    <div className={sectionLabelCls}>{t('conversation.history.pinnedSection')}</div>
+                    {pinned.map(renderRow)}
                   </div>
                 )}
-              </>
+                {shownUnpinned.length > 0 && (
+                  <div className={pinned.length > 0 ? 'mt-8px' : undefined}>
+                    <div className={sectionLabelCls}>{t('conversation.history.projectsSection')}</div>
+                    {shownUnpinned.map(renderRow)}
+                    {extraUnpinned > 0 && (
+                      <div className='px-12px h-28px flex items-center text-13px text-t-tertiary'>
+                        {t('conversation.history.removeProjectListMore', { count: extraUnpinned })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })()}
         </div>
