@@ -40,6 +40,34 @@ describe('resolveRelativePath with workspace boundary', () => {
     );
   });
 
+  it('allows an absolute path inside the workspace', () => {
+    expect(resolveRelativePath('/home/user/workspace/index.html', '/home/user/workspace/img.png', WORKSPACE)).toBe(
+      '/home/user/workspace/img.png'
+    );
+  });
+
+  it('allows an absolute path equal to the workspace root', () => {
+    expect(resolveRelativePath('/home/user/workspace/index.html', '/home/user/workspace', WORKSPACE)).toBe(
+      '/home/user/workspace'
+    );
+  });
+
+  it('treats an empty workspace as no boundary', () => {
+    expect(resolveRelativePath('/home/user/workspace/index.html', '../../../../etc/passwd', '')).toBe('/etc/passwd');
+  });
+
+  it('treats a root workspace as no boundary', () => {
+    expect(resolveRelativePath('/home/user/workspace/index.html', '/etc/passwd', '/')).toBe('/etc/passwd');
+  });
+
+  it('rejects a target shorter than the workspace root', () => {
+    // '/home' is a prefix segment of the workspace but not deep enough — must not
+    // be treated as inside '/home/user/workspace'.
+    expect(() => resolveRelativePath('/home/user/workspace/index.html', '/home', WORKSPACE)).toThrow(
+      'Path traversal blocked'
+    );
+  });
+
   it('throws for a mixed-traversal path that escapes the workspace', () => {
     expect(() => resolveRelativePath('/home/user/workspace/index.html', 'sub/../../../etc/passwd', WORKSPACE)).toThrow(
       'Path traversal blocked'
