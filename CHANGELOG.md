@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.1.60](https://github.com/suoak/AionUi/compare/v2.1.59...v2.1.60) (2026-08-11)
+
+### Desktop
+
+#### Bug Fixes
+
+- **browser:** make the built-in browser MCP reliable, offline-ready, and clearly named (#43)
+- **tray:** initialize the selected language before creating the native tray menu (#44)
+- **models:** prefill the default CSBU API request address in the add-model form (#45)
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 优化应用内浏览器工具，统一名称并解决首次使用可能连接失败的问题。
+- 修复中文界面下托盘右键菜单仍显示英文的问题。
+- 添加模型时，默认选择 CSBU API 后会自动填写请求地址。
+
+<!-- internal-release-notes:end -->
+
+---
+
 ## [2.1.59](https://github.com/suoak/AionUi/compare/v2.1.58...v2.1.59) (2026-08-10)
 
 ### Desktop
