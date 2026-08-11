@@ -133,7 +133,16 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   const handleLoadMore: TreeProps['loadMore'] = (node) => {
     const n = node as unknown as { props?: { dataRef?: { key?: string }; _key?: string } };
     const key = n.props?.dataRef?.key ?? n.props?._key;
-    if (key) setExpandedKeys(Array.from(new Set([...view.expanded, String(key)])));
+    // Only add a key that is NOT already expanded. arco fires loadMore for any
+    // non-leaf node lacking a `children` array — which includes an already-expanded
+    // dir whose listing has not arrived yet (buildChildren returns undefined until
+    // the WS snapshot lands). Re-adding an already-expanded key would still build a
+    // fresh expanded set → commit → re-render → arco re-fires loadMore → an unbounded
+    // self-triggering loop ("Maximum update depth exceeded"). Skipping the no-op
+    // breaks the cycle: an expand only ever moves a key from absent to present.
+    if (key && !view.expanded.includes(String(key))) {
+      setExpandedKeys([...view.expanded, String(key)]);
+    }
     return Promise.resolve();
   };
 

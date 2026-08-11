@@ -15,6 +15,7 @@ import {
   select,
   setExpanded,
   setExpandedKeys,
+  subscribeExplorer,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const flush = async (): Promise<void> => {
@@ -807,5 +808,79 @@ describe('selection + misc edge paths', () => {
     applyMonitorNotification('fs/bogus', { target: { pe_id: 'pe1', relative_path: '' }, whatever: true });
 
     expect(getExplorerInternalsForTest()).toEqual(before);
+  });
+});
+
+describe('commit coalescing (render-storm bound)', () => {
+  it('a burst of no-op deltas (modified + duplicate add) triggers zero notifications and keeps the snapshot reference stable', async () => {
+    const h = makePort({ [peKey('pe1', '')]: [file('a.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+
+    let notifications = 0;
+    const unsub = subscribeExplorer(() => {
+      notifications++;
+    });
+    const snapBefore = getExplorerSnapshot();
+
+    // `modified` changes contents, not the listing → the projected tree is
+    // identical, so none of these should reach React.
+    for (let i = 0; i < 50; i++) {
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'modified', name: 'a.ts' }],
+      });
+    }
+    // Re-adding an entry already in the listing is likewise a no-op for the tree.
+    for (let i = 0; i < 50; i++) {
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'added', name: 'a.ts', kind: 'file' }],
+      });
+    }
+    await flush();
+
+    expect(notifications).toBe(0); // no visible change → no re-render
+    expect(getExplorerSnapshot()).toBe(snapBefore); // stable reference kept
+    unsub();
+  });
+
+  it('bounds notifications to the number of genuinely-changing deltas in a burst, not the notification volume', async () => {
+    const h = makePort({ [peKey('pe1', '')]: [file('a.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+
+    let notifications = 0;
+    const unsub = subscribeExplorer(() => {
+      notifications++;
+    });
+
+    // Three distinct adds, each padded with five no-op `modified` deltas. Only the
+    // three adds change the listing, so the render count follows the real changes
+    // (3), not the 18 delta notifications.
+    for (const name of ['b.ts', 'c.ts', 'd.ts']) {
+      for (let k = 0; k < 5; k++) {
+        applyMonitorNotification('fs/delta', {
+          target: { pe_id: 'pe1', relative_path: '' },
+          changes: [{ op: 'modified', name: 'a.ts' }],
+        });
+      }
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'added', name, kind: 'file' }],
+      });
+    }
+    await flush();
+
+    expect(notifications).toBe(3);
+    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))?.toSorted()).toEqual([
+      'a.ts',
+      'b.ts',
+      'c.ts',
+      'd.ts',
+    ]);
+    unsub();
   });
 });

@@ -134,12 +134,72 @@ const persistUi = (opts?: { guardEmptyOverwrite?: boolean }): void => {
 
 // ── snapshot + notify ────────────────────────────────────────────────────────
 
-const rebuildSnapshot = (): void => {
-  snapshot = { projectId, treeData: buildTreeData(cache, expanded, roots), selected, expanded: [...expanded] };
+/**
+ * Structural equality of two projected trees. Compares only the fields the arco
+ * `Tree` renders from (key / title / isLeaf / excluded, plus the root-only role /
+ * runtimeStatus) and recurses into children, distinguishing an ABSENT `children`
+ * (lazy, listing not yet arrived) from an EMPTY one (arrived, no entries). This
+ * lets `commit` bail out when a server push left the visible tree unchanged.
+ */
+const treeNodesEqual = (a: readonly TreeNode[], b: readonly TreeNode[]): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x.key !== y.key ||
+      x.title !== y.title ||
+      x.isLeaf !== y.isLeaf ||
+      x.excluded !== y.excluded ||
+      x.role !== y.role ||
+      x.runtimeStatus !== y.runtimeStatus
+    ) {
+      return false;
+    }
+    if (x.children === undefined || y.children === undefined) {
+      if (x.children !== y.children) return false; // one lazy, one loaded → differs
+    } else if (!treeNodesEqual(x.children, y.children)) {
+      return false;
+    }
+  }
+  return true;
 };
 
+/** Positional equality of two key lists (the expanded-key array). */
+const keyListEqual = (a: readonly PeKey[], b: readonly PeKey[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
+/** Whether two projected views are indistinguishable to a React consumer. */
+const viewsEqual = (a: ExplorerView, b: ExplorerView): boolean =>
+  a.projectId === b.projectId &&
+  a.selected === b.selected &&
+  keyListEqual(a.expanded, b.expanded) &&
+  treeNodesEqual(a.treeData, b.treeData);
+
+/**
+ * Rebuild the projected view and notify React — but only when the projection
+ * actually changed. A server push that leaves the visible tree identical (a burst
+ * of `modified` deltas, a re-added entry already in the listing, an overflow
+ * rescan with the same contents) keeps the previous snapshot reference and skips
+ * the notify, so it costs no re-render. This bounds the render load under
+ * high-frequency runtime deltas and keeps `getExplorerSnapshot`'s reference stable
+ * across no-op commits (a `useSyncExternalStore` requirement). User actions still
+ * commit synchronously — a real change always yields a new snapshot in the same
+ * tick, so nothing observes stale state.
+ */
 const commit = (): void => {
-  rebuildSnapshot();
+  const next: ExplorerView = {
+    projectId,
+    treeData: buildTreeData(cache, expanded, roots),
+    selected,
+    expanded: [...expanded],
+  };
+  if (viewsEqual(snapshot, next)) return;
+  snapshot = next;
   for (const listener of listeners) listener();
 };
 
