@@ -1322,8 +1322,8 @@ export const sidebar = {
   >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
 };
 
-// Ordering (pin / unpin). Pin truth = a `user_order` row existing; both calls are
-// idempotent and take no body. v1 only the `pinned` scene.
+// Ordering (pin / unpin / move). Pin truth = a `user_order` row existing; pin/unpin
+// are idempotent and take no body. v1 only the `pinned` scene.
 export const order = {
   pinned: {
     put: httpPut<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
@@ -1333,6 +1333,17 @@ export const order = {
     delete: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
       (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`
     ),
+    // Reposition a pinned item by drag-drop. `after = null` moves it to the top;
+    // otherwise it lands right after `after`. The server computes the order key
+    // (BR-26) — the client sends only anchors, never numeric orders. Stale-window
+    // anchors map to 404 (`moved` gone) / 400 (`after` gone) so the caller refetches.
+    move: httpPost<
+      void,
+      {
+        moved: { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string };
+        after: { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string } | null;
+      }
+    >('/api/order/pinned/move', (p) => ({ moved: p.moved, after: p.after })),
   },
 };
 
