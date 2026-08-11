@@ -82,7 +82,17 @@
     "loadMore": "더 보기",
     "newTeamInProject": "이 프로젝트에 새 팀",
     "projectCreateMenu": "만들기",
-    "collapseAllProjects": "모든 프로젝트 접기"
+    "collapseAllProjects": "모든 프로젝트 접기",
+    "customGroups": "사용자 지정 그룹",
+    "newGroup": "새 그룹",
+    "groupNamePlaceholder": "그룹 이름",
+    "renameGroup": "그룹 이름 변경",
+    "deleteGroup": "그룹 삭제",
+    "deleteGroupConfirm": "그룹 \"{{name}}\"을(를) 삭제할까요? 그룹의 대화와 팀은 삭제되지 않고 원래 섹션으로 돌아갑니다.",
+    "moveToGroup": "그룹으로 이동",
+    "removeFromGroup": "그룹에서 제거",
+    "groupDrag": "그룹 순서를 바꾸려면 드래그",
+    "reorderGroupItem": "그룹 내 항목 순서를 바꾸려면 드래그"
   },
   "historySearch": {
     "tooltip": "메시지 검색",

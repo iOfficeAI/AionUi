@@ -5,7 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { SidebarItem, SidebarTeamItem } from '@/common/types/sidebar';
+import type { SidebarCustomGroupItemKind, SidebarItem, SidebarTeamItem } from '@/common/types/sidebar';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
@@ -13,7 +13,7 @@ import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { Delete, MoreOne, Plus, Right, MessageOne, Peoples, FoldUpOne } from '@icon-park/react';
+import { Delete, Folder, FoldUpOne, MessageOne, MoreOne, Peoples, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,14 +23,17 @@ import SiderItem from '@renderer/components/layout/Sider/SiderItem';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
+import CustomGroupsSection from './CustomGroupsSection';
 import SortableConversationRow from './SortableConversationRow';
 import TeamRow from './TeamRow';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
+import { useCustomGroups } from './hooks/useCustomGroups';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useTeamRows } from './hooks/useTeamRows';
-import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+import type { ConversationRowProps, MoveToGroupMenuItem, TimelineItem, WorkspaceGroupedHistoryProps } from './types';
+import { makeMoveToGroupKey, parseGroupItemId } from './utils/customGroupHelpers';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -71,14 +74,65 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
   const { resolveTeamRow, renameModal: teamRenameModal } = useTeamRows({ pathname, onSessionClick });
 
+  // User-defined sidebar groups: conversations/teams organized into named,
+  // collapsible, drag-reorderable groups (persisted under `sidebar.customGroups`).
+  const customGroups = useCustomGroups();
+  const { groups: customGroupsList, moveItem: moveItemToGroup } = customGroups;
+
+  // "Move to group" submenu: one entry per group, plus "remove from group" when
+  // the item currently lives in a group. Keys are `moveToGroup:<groupId>` /
+  // `moveToGroup:` (remove), consumed by ConversationRow/TeamRow.
+  const buildMoveToGroupItems = useCallback(
+    (kind: SidebarCustomGroupItemKind, id: string): MoveToGroupMenuItem[] => {
+      const currentGroupId = customGroups.groupOfItem(kind, id);
+      const items: MoveToGroupMenuItem[] = customGroupsList.map((group) => ({
+        key: makeMoveToGroupKey(group.id),
+        icon: <Folder theme='outline' size='14' />,
+        label: group.name,
+      }));
+      if (currentGroupId) {
+        items.push({
+          key: makeMoveToGroupKey(null),
+          icon: <Folder theme='outline' size='14' />,
+          label: t('conversation.history.removeFromGroup'),
+        });
+      }
+      return items;
+    },
+    [customGroups, customGroupsList, t]
+  );
+
+  const handleMoveConversationToGroup = useCallback(
+    (conversation: TChatConversation, targetGroupId: string | null) => {
+      moveItemToGroup('conversation', conversation.id, targetGroupId);
+    },
+    [moveItemToGroup]
+  );
+
+  const handleMoveTeamToGroup = useCallback(
+    (teamId: string, targetGroupId: string | null) => {
+      moveItemToGroup('team', teamId, targetGroupId);
+    },
+    [moveItemToGroup]
+  );
+
   const renderTeamRow = useCallback(
-    (item: SidebarTeamItem, dimIcon = false) => {
+    (item: SidebarTeamItem, dimIcon = false, dragHandle?: React.ReactNode) => {
       const data = resolveTeamRow(item);
       return (
-        <TeamRow key={item.team_id} {...data} collapsed={collapsed} dimIcon={dimIcon} tooltipEnabled={tooltipEnabled} />
+        <TeamRow
+          key={item.team_id}
+          {...data}
+          collapsed={collapsed}
+          dimIcon={dimIcon}
+          tooltipEnabled={tooltipEnabled}
+          dragHandle={dragHandle}
+          moveToGroupItems={buildMoveToGroupItems('team', item.team_id)}
+          onMoveToGroup={(targetGroupId) => handleMoveTeamToGroup(item.team_id, targetGroupId)}
+        />
       );
     },
-    [resolveTeamRow, collapsed, tooltipEnabled]
+    [resolveTeamRow, collapsed, tooltipEnabled, buildMoveToGroupItems, handleMoveTeamToGroup]
   );
 
   const SectionLabel = useCallback(
@@ -217,6 +271,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onTogglePin: handleTogglePin,
       getJobStatus,
       resolveConversationName,
+      moveToGroupItems: buildMoveToGroupItems('conversation', conversation.id),
+      onMoveToGroup: (targetGroupId) => handleMoveConversationToGroup(conversation, targetGroupId),
     }),
     [
       collapsed,
@@ -237,6 +293,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleTogglePin,
       getJobStatus,
       resolveConversationName,
+      buildMoveToGroupItems,
+      handleMoveConversationToGroup,
     ]
   );
 
@@ -323,7 +381,119 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [pinnedRows, pinnedConversations]
   );
 
-  const hasAnyContent = pinnedRowItems.length > 0 || projectGroups.length > 0 || chatsSections.length > 0;
+  // Custom groups: items placed in a group (by kind) render only inside that
+  // group, so they are filtered out of the pinned/project/chats sections below.
+  const groupedItemIds = useMemo(() => {
+    const conversations = new Set<string>();
+    const teams = new Set<string>();
+    for (const group of customGroupsList) {
+      for (const itemId of group.itemIds) {
+        const parsed = parseGroupItemId(itemId);
+        if (!parsed) continue;
+        if (parsed.kind === 'conversation') conversations.add(parsed.id);
+        else teams.add(parsed.id);
+      }
+    }
+    return { conversations, teams };
+  }, [customGroupsList]);
+
+  const isGroupedSidebarItem = useCallback(
+    (item: SidebarItem) =>
+      item.type === 'conversation'
+        ? groupedItemIds.conversations.has(item.conversation.id)
+        : groupedItemIds.teams.has(item.team_id),
+    [groupedItemIds]
+  );
+
+  const visiblePinnedRowItems = useMemo(
+    () => pinnedRowItems.filter((item) => !isGroupedSidebarItem(item)),
+    [pinnedRowItems, isGroupedSidebarItem]
+  );
+
+  const visibleProjectGroups = useMemo(
+    () =>
+      projectGroups
+        .map((group) => ({
+          ...group,
+          rows: group.rows ? group.rows.filter((item) => !isGroupedSidebarItem(item)) : undefined,
+          conversations: group.conversations.filter((c) => !groupedItemIds.conversations.has(c.id)),
+        }))
+        .filter((group) => (group.rows ? group.rows.length > 0 : group.conversations.length > 0)),
+    [projectGroups, isGroupedSidebarItem, groupedItemIds]
+  );
+
+  const isGroupedTimelineItem = useCallback(
+    (item: TimelineItem) =>
+      item.type === 'conversation'
+        ? Boolean(item.conversation && groupedItemIds.conversations.has(item.conversation.id))
+        : item.type === 'team'
+          ? Boolean(item.team && groupedItemIds.teams.has(item.team.team_id))
+          : false,
+    [groupedItemIds]
+  );
+
+  const visibleChatsSections = useMemo(
+    () =>
+      chatsSections
+        .map((section) => ({ ...section, items: section.items.filter((item) => !isGroupedTimelineItem(item)) }))
+        .filter((section) => section.items.length > 0),
+    [chatsSections, isGroupedTimelineItem]
+  );
+
+  // Lookup maps over the *unfiltered* read model: grouped items no longer render
+  // in their default sections, so the custom groups section resolves them here.
+  const sidebarItemLookup = useMemo(() => {
+    const conversations = new Map<string, TChatConversation>();
+    const teams = new Map<string, SidebarTeamItem>();
+    const indexConversation = (c?: TChatConversation) => {
+      if (c) conversations.set(c.id, c);
+    };
+    const indexTeam = (team?: SidebarTeamItem) => {
+      if (team) teams.set(team.team_id, team);
+    };
+    for (const item of pinnedRowItems) {
+      if (item.type === 'conversation') indexConversation(item.conversation);
+      else indexTeam(item);
+    }
+    for (const group of projectGroups) {
+      for (const row of group.rows ??
+        group.conversations.map((c) => ({ type: 'conversation' as const, conversation: c }))) {
+        if (row.type === 'conversation') indexConversation(row.conversation);
+        else indexTeam(row);
+      }
+    }
+    for (const section of timelineSections) {
+      for (const item of section.items) {
+        if (item.type === 'conversation' && item.conversation) indexConversation(item.conversation);
+        else if (item.type === 'team' && item.team) indexTeam(item.team);
+      }
+    }
+    return { conversations, teams };
+  }, [pinnedRowItems, projectGroups, timelineSections]);
+
+  // Resolve a grouped item id (`conversation:<id>` / `team:<id>`) into its row.
+  // The drag handle overlay comes from the sortable wrapper inside the section.
+  const renderGroupItem = useCallback(
+    (itemId: string, dragHandle: React.ReactNode | null) => {
+      const parsed = parseGroupItemId(itemId);
+      if (!parsed) return null;
+      if (parsed.kind === 'conversation') {
+        const conversation = sidebarItemLookup.conversations.get(parsed.id);
+        if (!conversation) return null;
+        return <ConversationRow {...getConversationRowProps(conversation)} dragHandle={dragHandle ?? undefined} />;
+      }
+      const team = sidebarItemLookup.teams.get(parsed.id);
+      if (!team) return null;
+      return renderTeamRow(team, false, dragHandle ?? undefined);
+    },
+    [sidebarItemLookup, getConversationRowProps, renderTeamRow]
+  );
+
+  const hasAnyContent =
+    visiblePinnedRowItems.length > 0 ||
+    visibleProjectGroups.length > 0 ||
+    visibleChatsSections.length > 0 ||
+    customGroupsList.length > 0;
 
   return (
     <>
@@ -505,6 +675,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       </AionModal>
 
       <div>
+        {/* L1: Custom groups section — user-organized collections of conversations
+            and teams with drag-and-drop ordering (persisted client-side). */}
+        <CustomGroupsSection collapsed={collapsed} disabled={batchMode || isMobile} renderItem={renderGroupItem} />
+
         {/* L1: Pinned section */}
         <DndContext
           sensors={sensors}
@@ -512,13 +686,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           modifiers={[restrictToVerticalAxis]}
           onDragEnd={handleDragEnd}
         >
-          {pinnedRowItems.length > 0 && (
+          {visiblePinnedRowItems.length > 0 && (
             <div className='min-w-0'>
               {!collapsed && <SectionLabel sectionKey='pinned' label={t('conversation.history.pinnedSection')} />}
               {!collapsedSections.has('pinned') && (
                 <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
                   <div className='min-w-0'>
-                    {pinnedRowItems.map((item) => {
+                    {visiblePinnedRowItems.map((item) => {
                       // Team rows render inline (non-draggable in PR-A — drag is PR-D);
                       // dnd-kit tolerates non-sortable children inside the context.
                       if (item.type === 'team') return renderTeamRow(item);
@@ -538,7 +712,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </DndContext>
 
         {/* L1: Projects section — workspace folders, peer to conversations */}
-        {projectGroups.length > 0 && (
+        {visibleProjectGroups.length > 0 && (
           <div className='min-w-0'>
             {!collapsed && (
               <SectionLabel
@@ -546,7 +720,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 label={t('conversation.history.projectsSection')}
                 divider
                 trailing={
-                  projectGroups.some((group) => expandedWorkspaces.includes(group.workspace)) ? (
+                  visibleProjectGroups.some((group) => expandedWorkspaces.includes(group.workspace)) ? (
                     <Tooltip content={t('conversation.history.collapseAllProjects')} position='top'>
                       <span
                         role='button'
@@ -569,7 +743,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               />
             )}
             {!collapsedSections.has('projects') &&
-              projectGroups.map((group) => {
+              visibleProjectGroups.map((group) => {
                 const projectMenu = (
                   <Menu
                     onClickMenuItem={(key) => {
@@ -719,9 +893,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             />
           )}
           {!collapsedSections.has('conversations') &&
-            chatsSections.map((section) => (
+            visibleChatsSections.map((section) => (
               <div key={section.timeline} className='min-w-0'>
-                {!collapsed && chatsSections.length > 1 && (
+                {!collapsed && visibleChatsSections.length > 1 && (
                   <div className='flex items-center px-16px h-24px select-none'>
                     <span className='text-12px text-t-secondary font-[500] leading-none'>{section.timeline}</span>
                   </div>

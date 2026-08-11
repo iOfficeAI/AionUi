@@ -12,7 +12,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, Folder, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
+import { parseMoveToGroupKey } from './utils/customGroupHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -34,6 +35,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     menuVisible,
     dimIcon = false,
     dragHandle,
+    moveToGroupItems,
+    onMoveToGroup,
   } = props;
   const logos = useAgentLogos();
   const layout = useLayoutContext();
@@ -53,6 +56,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
+  // Hover overlay on the leading icon: a drag handle when the row is sortable
+  // (pinned or inside a custom group), otherwise a pushpin marker for pinned
+  // rows. Hidden in batch mode, on mobile, and while generating.
+  const showHoverOverlay = !batchMode && !isMobile && !isGenerating;
+  const showDragHandle = showHoverOverlay && Boolean(dragHandle);
   // Fork-lineage badge: present only on forked conversations (extra.fork is
   // server-minted by the fork API). Parent name resolves from the loaded
   // sidebar list; a deleted/unloaded parent degrades to the generic tip.
@@ -69,10 +77,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       return <CronJobIndicator status={cronStatus} size={16} className='flex-shrink-0' />;
     }
 
-    // When the row is pinned, hovering reveals an overlay on the leading icon —
-    // the drag handle when the row is sortable, otherwise a pushpin marker.
-    // We dim the resting icon on hover so the overlay reads cleanly.
-    const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
+    // When the row is pinned (or reorderable inside a custom group), hovering
+    // reveals an overlay on the leading icon — the drag handle when the row is
+    // sortable, otherwise a pushpin marker. We dim the resting icon on hover so
+    // the overlay reads cleanly.
+    const pinnedHoverFade = isPinned || showDragHandle ? 'group-hover:opacity-0 transition-opacity' : '';
     const composedClass = classNames(pinnedHoverFade);
 
     const leadingMark = resolveConversationLeadingMark(conversation, assistantInfo, logos);
@@ -176,19 +185,17 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         )}
         <span className='size-22px flex items-center justify-center shrink-0 relative'>
           {isGenerating && !batchMode ? <Spin size={16} /> : renderLeadingIcon()}
-          {/* Hover overlay on the leading icon: drag handle for sortable pinned rows, pushpin marker otherwise */}
-          {!batchMode &&
-            isPinned &&
-            !isMobile &&
-            !isGenerating &&
-            (dragHandle ?? (
-              <span
-                className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
-                style={{ lineHeight: 0 }}
-              >
-                <Pushpin theme='outline' size='14' />
-              </span>
-            ))}
+          {/* Hover overlay on the leading icon: drag handle for sortable rows (pinned/custom groups), pushpin marker otherwise */}
+          {showHoverOverlay &&
+            (dragHandle ??
+              (isPinned && (
+                <span
+                  className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+                  style={{ lineHeight: 0 }}
+                >
+                  <Pushpin theme='outline' size='14' />
+                </span>
+              )))}
         </span>
         <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden'>
           <Tooltip
@@ -264,6 +271,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               droplist={
                 <Menu
                   onClickMenuItem={(key) => {
+                    const moveTarget = parseMoveToGroupKey(key);
+                    if (moveTarget !== null) {
+                      onMoveToGroup?.(moveTarget);
+                      return;
+                    }
                     if (key === 'pin') {
                       onTogglePin(conversation);
                       return;
@@ -297,6 +309,26 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.rename')}</span>
                     </div>
                   </Menu.Item>
+                  {moveToGroupItems && moveToGroupItems.length > 0 && (
+                    <Menu.SubMenu
+                      key='moveToGroup'
+                      title={
+                        <div className='flex items-center gap-8px'>
+                          <Folder theme='outline' size='14' />
+                          <span>{t('conversation.history.moveToGroup')}</span>
+                        </div>
+                      }
+                    >
+                      {moveToGroupItems.map((item) => (
+                        <Menu.Item key={item.key}>
+                          <div className='flex items-center gap-8px'>
+                            {item.icon ?? <Folder theme='outline' size='14' />}
+                            <span>{item.label}</span>
+                          </div>
+                        </Menu.Item>
+                      ))}
+                    </Menu.SubMenu>
+                  )}
                   <Menu.Item key='createCronTask'>
                     <div className='flex items-center gap-8px'>
                       <Timer theme='outline' size='14' />

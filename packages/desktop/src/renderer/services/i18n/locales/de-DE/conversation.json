@@ -82,7 +82,17 @@
     "loadMore": "Mehr laden",
     "newTeamInProject": "Neues Team in diesem Projekt",
     "projectCreateMenu": "Erstellen",
-    "collapseAllProjects": "Alle Projekte einklappen"
+    "collapseAllProjects": "Alle Projekte einklappen",
+    "customGroups": "Benutzerdefinierte Gruppen",
+    "newGroup": "Neue Gruppe",
+    "groupNamePlaceholder": "Gruppenname",
+    "renameGroup": "Gruppe umbenennen",
+    "deleteGroup": "Gruppe löschen",
+    "deleteGroupConfirm": "Gruppe „{{name}}\" löschen? Die enthaltenen Unterhaltungen und Teams werden nicht gelöscht – sie kehren in ihre ursprünglichen Abschnitte zurück.",
+    "moveToGroup": "In Gruppe verschieben",
+    "removeFromGroup": "Aus Gruppe entfernen",
+    "groupDrag": "Ziehen, um die Gruppe zu sortieren",
+    "reorderGroupItem": "Ziehen, um das Element in der Gruppe zu sortieren"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

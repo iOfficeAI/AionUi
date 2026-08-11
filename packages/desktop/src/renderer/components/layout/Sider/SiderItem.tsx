@@ -17,6 +17,14 @@ export type SiderMenuItem = {
   danger?: boolean;
 };
 
+/** Optional submenu (e.g. "Move to group") appended to the row's dropdown. */
+export type SiderItemSubmenu = {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  items: SiderMenuItem[];
+};
+
 /**
  * Inline hover pin/unpin toggle, mirroring `ConversationRow`'s. Optional so the
  * other `SiderItem` consumers (settings sider, team tabs) get no pin affordance.
@@ -38,6 +46,10 @@ export type SiderItemProps = {
   dimIcon?: boolean;
   menuItems?: SiderMenuItem[];
   onMenuAction?: (key: string) => void;
+  /** Submenu appended to the dropdown (e.g. "Move to group"). */
+  submenu?: SiderItemSubmenu;
+  /** Hover-reveal drag handle overlaying the leading icon (sortable rows). */
+  dragHandle?: React.ReactNode;
   pinAction?: SiderItemPinAction;
   onClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -51,6 +63,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
   dimIcon,
   menuItems,
   onMenuAction,
+  submenu,
+  dragHandle,
   pinAction,
   onClick,
   onContextMenu,
@@ -84,23 +98,24 @@ const SiderItem: React.FC<SiderItemProps> = ({
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
-        {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
+        {/* Leading icon — pushpin or drag handle overlays this slot on hover when pinned/sortable */}
         <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>
           <span
             className={classNames('flex items-center justify-center', {
-              'group-hover:opacity-0 transition-opacity': hasActions && pinned && !pinAction,
+              'group-hover:opacity-0 transition-opacity': dragHandle || (hasActions && pinned && !pinAction),
             })}
           >
             {icon}
           </span>
-          {hasActions && pinned && !pinAction && (
-            <span
-              className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
-              style={{ lineHeight: 0 }}
-            >
-              <Pushpin theme='outline' size='14' />
-            </span>
-          )}
+          {dragHandle ??
+            (hasActions && pinned && !pinAction && (
+              <span
+                className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+                style={{ lineHeight: 0 }}
+              >
+                <Pushpin theme='outline' size='14' />
+              </span>
+            ))}
         </span>
 
         {/* Name with truncation — reserve room for the hover three-dot menu */}
@@ -162,6 +177,30 @@ const SiderItem: React.FC<SiderItemProps> = ({
                         </div>
                       </Menu.Item>
                     ))}
+                    {submenu && submenu.items.length > 0 && (
+                      <Menu.SubMenu
+                        key={submenu.key}
+                        title={
+                          <div className='flex items-center gap-8px'>
+                            {submenu.icon}
+                            <span>{submenu.label}</span>
+                          </div>
+                        }
+                      >
+                        {submenu.items.map((item) => (
+                          <Menu.Item key={item.key}>
+                            <div
+                              className={classNames('flex items-center gap-8px', {
+                                'text-[rgb(var(--warning-6))]': item.danger,
+                              })}
+                            >
+                              {item.icon}
+                              <span>{item.label}</span>
+                            </div>
+                          </Menu.Item>
+                        ))}
+                      </Menu.SubMenu>
+                    )}
                   </Menu>
                 }
                 trigger='click'

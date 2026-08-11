@@ -82,7 +82,17 @@
     "loadMore": "Carregar mais",
     "newTeamInProject": "Nova equipe neste projeto",
     "projectCreateMenu": "Criar",
-    "collapseAllProjects": "Recolher todos os projetos"
+    "collapseAllProjects": "Recolher todos os projetos",
+    "customGroups": "Grupos personalizados",
+    "newGroup": "Novo grupo",
+    "groupNamePlaceholder": "Nome do grupo",
+    "renameGroup": "Renomear grupo",
+    "deleteGroup": "Excluir grupo",
+    "deleteGroupConfirm": "Excluir o grupo \"{{name}}\"? As conversas e equipes não serão excluídas — elas voltam às suas seções originais.",
+    "moveToGroup": "Mover para o grupo",
+    "removeFromGroup": "Remover do grupo",
+    "groupDrag": "Arraste para reordenar o grupo",
+    "reorderGroupItem": "Arraste para reordenar o item no grupo"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",

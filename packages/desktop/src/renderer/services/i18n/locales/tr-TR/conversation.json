@@ -82,7 +82,17 @@
     "loadMore": "Daha fazla yükle",
     "newTeamInProject": "Bu projede yeni ekip",
     "projectCreateMenu": "Oluştur",
-    "collapseAllProjects": "Tüm projeleri daralt"
+    "collapseAllProjects": "Tüm projeleri daralt",
+    "customGroups": "Özel gruplar",
+    "newGroup": "Yeni grup",
+    "groupNamePlaceholder": "Grup adı",
+    "renameGroup": "Grubu yeniden adlandır",
+    "deleteGroup": "Grubu sil",
+    "deleteGroupConfirm": "\"{{name}}\" grubu silinsin mi? Grup içindeki konuşmalar ve ekipler silinmez, orijinal bölümlerine geri döner.",
+    "moveToGroup": "Gruba taşı",
+    "removeFromGroup": "Gruptan çıkar",
+    "groupDrag": "Grubu yeniden sıralamak için sürükleyin",
+    "reorderGroupItem": "Gruptaki öğeyi yeniden sıralamak için sürükleyin"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",

@@ -1,3 +1,4 @@
+import type { SidebarCustomGroup } from '@/common/types/sidebar';
 import type { Theme } from '@/common/theme/types';
 
 export type ConfigKeyMap = {
@@ -16,6 +17,8 @@ export type ConfigKeyMap = {
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */
   'assistants.enabledOrder': string[] | undefined;
+  /** User-defined custom sidebar groups (folders) with their ordered items. */
+  'sidebar.customGroups': SidebarCustomGroup[] | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;

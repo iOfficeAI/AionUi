@@ -82,7 +82,17 @@
     "loadMore": "بارگیری بیشتر",
     "newTeamInProject": "تیم جدید در این پروژه",
     "projectCreateMenu": "ایجاد",
-    "collapseAllProjects": "جمع کردن همه پروژه‌ها"
+    "collapseAllProjects": "جمع کردن همه پروژه‌ها",
+    "customGroups": "گروه‌های سفارشی",
+    "newGroup": "گروه جدید",
+    "groupNamePlaceholder": "نام گروه",
+    "renameGroup": "تغییر نام گروه",
+    "deleteGroup": "حذف گروه",
+    "deleteGroupConfirm": "گروه «{{name}}» حذف شود؟ گفتگوها و تیم‌ها حذف نمی‌شوند و به بخش‌های اصلی خود بازمی‌گردند.",
+    "moveToGroup": "انتقال به گروه",
+    "removeFromGroup": "حذف از گروه",
+    "groupDrag": "برای مرتب‌سازی گروه بکشید",
+    "reorderGroupItem": "برای مرتب‌سازی مورد در گروه بکشید"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
