@@ -793,6 +793,8 @@
   "includePrereleaseUpdates": "Включити попередні/dev збірки",
   "saveModelConfigFailed": "Не вдалося зберегти конфігурацію моделі",
   "healthCheck": "Перевірка здоров'я",
+  "checkAllHealth": "Перевірити всі",
+  "healthCheckAllSummary": "Перевірку здоров'я завершено: {{available}} доступно, {{unavailable}} недоступно",
   "clearStatus": "Очистити статус",
   "healthStatusCleared": "Статус здоров'я очищено",
   "latency": "Затримка",

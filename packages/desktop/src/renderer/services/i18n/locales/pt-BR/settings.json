@@ -854,6 +854,8 @@
   "includePrereleaseUpdates": "Incluir versões de pré-lançamento/dev",
   "saveModelConfigFailed": "Falha ao salvar a configuração do modelo",
   "healthCheck": "Verificação de Saúde",
+  "checkAllHealth": "Verificar todos",
+  "healthCheckAllSummary": "Verificação de saúde concluída: {{available}} disponíveis, {{unavailable}} indisponíveis",
   "clearStatus": "Limpar status",
   "healthStatusCleared": "Status de saúde limpo",
   "latency": "Latência",

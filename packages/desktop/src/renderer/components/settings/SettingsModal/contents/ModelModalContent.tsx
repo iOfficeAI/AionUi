@@ -202,7 +202,9 @@ const ModelModalContent: React.FC = () => {
   };
 
   // Execute provider/model health check without creating a conversation.
-  const performHealthCheck = async (platform: IProvider, modelName: string) => {
+  // Returns true when the check passed (healthy). When showToast is false,
+  // per-model toasts are suppressed (used by the batch "check all" action).
+  const runHealthCheck = async (platform: IProvider, modelName: string, showToast: boolean): Promise<boolean> => {
     const loadingKey = `${platform.id}-${modelName}`;
     setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
@@ -231,31 +233,39 @@ const ModelModalContent: React.FC = () => {
 
         await ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health });
         await mutate();
-        if (success) {
-          Message.success({
-            content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
-            duration: 3000,
-          });
-        } else {
-          Message.error({
-            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
-            duration: 5000,
-          });
+        if (showToast) {
+          if (success) {
+            Message.success({
+              content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
+              duration: 3000,
+            });
+          } else {
+            Message.error({
+              content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
+              duration: 5000,
+            });
+          }
         }
+        return success;
       } catch (saveError) {
         console.error('Failed to save health check result:', saveError);
-        Message.error({
-          content: t('settings.saveModelConfigFailed'),
-          duration: 3000,
-        });
+        if (showToast) {
+          Message.error({
+            content: t('settings.saveModelConfigFailed'),
+            duration: 3000,
+          });
+        }
+        return false;
       }
     } catch (error: unknown) {
       const latency = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      Message.error({
-        content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
-        duration: 5000,
-      });
+      if (showToast) {
+        Message.error({
+          content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
+          duration: 5000,
+        });
+      }
 
       try {
         // 先获取最新的数据，确保不会覆盖其他并发的更新
@@ -274,8 +284,48 @@ const ModelModalContent: React.FC = () => {
       } catch (saveError) {
         console.error('Failed to save health check result:', saveError);
       }
+      return false;
     } finally {
       setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: false }));
+    }
+  };
+
+  // 单个模型健康检测（保留每个模型独立的提示）
+  const performHealthCheck = (platform: IProvider, modelName: string) => {
+    void runHealthCheck(platform, modelName, true);
+  };
+
+  // 一键全量健康检测：对所有已配置模型依次检测，单个失败不中断，完成后汇总
+  const [healthCheckAllLoading, setHealthCheckAllLoading] = useState(false);
+
+  const performHealthCheckAll = async () => {
+    if (!data) return;
+    const tasks: Array<{ platform: IProvider; model: string }> = [];
+    for (const platform of data) {
+      for (const model of platform.models ?? []) {
+        tasks.push({ platform, model });
+      }
+    }
+    if (tasks.length === 0) {
+      message.info(t('settings.noConfiguredModels', { defaultValue: 'No configured models yet.' }));
+      return;
+    }
+
+    setHealthCheckAllLoading(true);
+    let available = 0;
+    let unavailable = 0;
+    try {
+      for (const { platform, model } of tasks) {
+        const success = await runHealthCheck(platform, model, false);
+        if (success) {
+          available += 1;
+        } else {
+          unavailable += 1;
+        }
+      }
+      message.success(t('settings.healthCheckAllSummary', { available, unavailable }));
+    } finally {
+      setHealthCheckAllLoading(false);
     }
   };
 
@@ -338,6 +388,15 @@ const ModelModalContent: React.FC = () => {
 
   const headerActions = (
     <>
+      <Button
+        type='text'
+        size='small'
+        loading={healthCheckAllLoading}
+        onClick={() => void performHealthCheckAll()}
+        className='!text-t-secondary hover:!text-t-primary'
+      >
+        {t('settings.checkAllHealth')}
+      </Button>
       <Button type='text' size='small' onClick={clearAllHealthData} className='!text-t-secondary hover:!text-t-primary'>
         {t('settings.clearStatus')}
       </Button>

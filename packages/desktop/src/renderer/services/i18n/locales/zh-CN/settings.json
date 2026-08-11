@@ -854,6 +854,8 @@
   "includePrereleaseUpdates": "包含预发布/dev 版本",
   "saveModelConfigFailed": "保存模型配置失败",
   "healthCheck": "健康检测",
+  "checkAllHealth": "全部检测",
+  "healthCheckAllSummary": "健康检测完成：{{available}} 个可用，{{unavailable}} 个不可用",
   "clearStatus": "清除状态",
   "healthStatusCleared": "健康状态已清除",
   "latency": "延迟",
