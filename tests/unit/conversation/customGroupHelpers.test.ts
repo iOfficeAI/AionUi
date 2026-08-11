@@ -45,6 +45,8 @@ describe('customGroupHelpers - item id encoding', () => {
     expect(parseGroupItemId('bogus:abc')).toBeNull();
     expect(parseGroupItemId('conversation:')).toBeNull();
     expect(parseGroupItemId('')).toBeNull();
+    // Separator at the very start (empty kind) is also rejected.
+    expect(parseGroupItemId(':abc')).toBeNull();
   });
 });
 
