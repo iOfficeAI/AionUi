@@ -76,7 +76,11 @@
     "deleting": "Видалення...",
     "reorderPinned": "Перетягніть, щоб змінити порядок закріплених розмов",
     "forkedFrom": "Відгалуження від «{{name}}»",
-    "forkedConversation": "Відгалужена розмова"
+    "forkedConversation": "Відгалужена розмова",
+    "loadMore": "Завантажити більше",
+    "newTeamInProject": "Нова команда в цьому проєкті",
+    "projectCreateMenu": "Створити",
+    "collapseAllProjects": "Згорнути всі проєкти"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",

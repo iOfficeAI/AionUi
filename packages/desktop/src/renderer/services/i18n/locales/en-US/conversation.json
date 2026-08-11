@@ -76,7 +76,11 @@
     "deleting": "Deleting...",
     "reorderPinned": "Drag to reorder pinned conversation",
     "forkedFrom": "Forked from “{{name}}”",
-    "forkedConversation": "Forked conversation"
+    "forkedConversation": "Forked conversation",
+    "loadMore": "Load more",
+    "newTeamInProject": "New team in this project",
+    "projectCreateMenu": "Create",
+    "collapseAllProjects": "Collapse all projects"
   },
   "historySearch": {
     "tooltip": "Search messages",

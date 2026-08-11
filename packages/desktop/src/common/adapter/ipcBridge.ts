@@ -115,6 +115,7 @@ import {
   wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
+import { fromApiSidebar, fromApiSidebarItems } from './sidebarMapper';
 import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
   fromBackendAssistant,
@@ -1279,6 +1280,52 @@ export const database = {
     ),
     fromApiSearchResult
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Sidebar read model (grouped + paginated left panel)
+// ---------------------------------------------------------------------------
+export const sidebar = {
+  // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
+  // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
+  get: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[] }>((p) => {
+      const params = new URLSearchParams();
+      if (p.limit) params.set('limit', String(p.limit));
+      for (const w of p.win ?? []) params.append('win', w);
+      const qs = params.toString();
+      return `/api/sidebar${qs ? `?${qs}` : ''}`;
+    }),
+    fromApiSidebar
+  ),
+  // One more window of a single group (the "+10" paging). `scope` is the group token,
+  // `cursor` the keyset cursor from the previous page.
+  items: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarItemsResponse, { scope: string; cursor?: string; limit?: number }>(
+      (p) => {
+        const params = new URLSearchParams();
+        params.set('scope', p.scope);
+        if (p.cursor) params.set('cursor', p.cursor);
+        if (p.limit) params.set('limit', String(p.limit));
+        return `/api/sidebar/items?${params.toString()}`;
+      }
+    ),
+    fromApiSidebarItems
+  ),
+};
+
+// Ordering (pin / unpin). Pin truth = a `user_order` row existing; both calls are
+// idempotent and take no body. v1 only the `pinned` scene.
+export const order = {
+  pinned: {
+    put: httpPut<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`,
+      () => undefined
+    ),
+    delete: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`
+    ),
+  },
 };
 
 // Preview panel

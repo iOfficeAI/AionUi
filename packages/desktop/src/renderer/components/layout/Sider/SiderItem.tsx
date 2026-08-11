@@ -22,6 +22,8 @@ export type SiderItemProps = {
   name: string;
   selected?: boolean;
   pinned?: boolean;
+  /** Indent the row content to align with rows nested inside a project folder (matches `ConversationRow`'s `dimIcon`). */
+  dimIcon?: boolean;
   menuItems?: SiderMenuItem[];
   onMenuAction?: (key: string) => void;
   onClick?: () => void;
@@ -33,6 +35,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
   name,
   selected,
   pinned,
+  dimIcon,
   menuItems,
   onMenuAction,
   onClick,
@@ -56,7 +59,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
     >
       <div
         className={classNames(
-          'h-34px rd-8px flex items-center gap-8px pl-10px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
+          'h-34px rd-8px flex items-center gap-8px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
+          dimIcon ? 'pl-34px' : 'pl-10px',
           {
             'hover:bg-fill-3': !selected,
             '!bg-fill-3': selected,

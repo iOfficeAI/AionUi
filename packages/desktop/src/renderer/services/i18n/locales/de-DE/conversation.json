@@ -76,7 +76,11 @@
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
-    "forkedConversation": "Verzweigte Unterhaltung"
+    "forkedConversation": "Verzweigte Unterhaltung",
+    "loadMore": "Mehr laden",
+    "newTeamInProject": "Neues Team in diesem Projekt",
+    "projectCreateMenu": "Erstellen",
+    "collapseAllProjects": "Alle Projekte einklappen"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

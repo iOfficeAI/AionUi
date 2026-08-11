@@ -76,7 +76,11 @@
     "deleting": "削除中...",
     "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
     "forkedFrom": "「{{name}}」から分岐",
-    "forkedConversation": "分岐した会話"
+    "forkedConversation": "分岐した会話",
+    "loadMore": "さらに読み込む",
+    "newTeamInProject": "このプロジェクトに新しいチーム",
+    "projectCreateMenu": "作成",
+    "collapseAllProjects": "すべてのプロジェクトを折りたたむ"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",

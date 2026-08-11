@@ -76,7 +76,11 @@
     "deleting": "Удаление...",
     "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед",
     "forkedFrom": "Ответвление от «{{name}}»",
-    "forkedConversation": "Ответвлённая беседа"
+    "forkedConversation": "Ответвлённая беседа",
+    "loadMore": "Загрузить ещё",
+    "newTeamInProject": "Новая команда в этом проекте",
+    "projectCreateMenu": "Создать",
+    "collapseAllProjects": "Свернуть все проекты"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

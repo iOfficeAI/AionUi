@@ -234,6 +234,32 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               event.stopPropagation();
             }}
           >
+            {/* Inline pin toggle: hover-revealed on every row (pinned rows show
+                the "unpin" affordance). Kept in sync with the menu's pin item. */}
+            <Tooltip
+              content={isPinned ? t('conversation.history.unpin') : t('conversation.history.pin')}
+              position='top'
+              mini
+            >
+              <span
+                data-testid={`conversation-row-pin-${conversation.id}`}
+                className={classNames(
+                  'flex-center cursor-pointer transition-colors size-20px rd-4px sider-action-btn mr-2px',
+                  isPinned ? 'text-[rgb(var(--primary-6))]' : 'text-t-secondary hover:text-t-primary'
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onTogglePin(conversation);
+                }}
+              >
+                <Pushpin
+                  theme={isPinned ? 'filled' : 'outline'}
+                  size='14'
+                  fill='currentColor'
+                  className='block leading-none'
+                />
+              </span>
+            </Tooltip>
             <Dropdown
               droplist={
                 <Menu

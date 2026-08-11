@@ -76,7 +76,11 @@
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
-    "forkedConversation": "گفتگوی منشعب"
+    "forkedConversation": "گفتگوی منشعب",
+    "loadMore": "بارگیری بیشتر",
+    "newTeamInProject": "تیم جدید در این پروژه",
+    "projectCreateMenu": "ایجاد",
+    "collapseAllProjects": "جمع کردن همه پروژه‌ها"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

@@ -76,7 +76,11 @@
     "deleting": "删除中...",
     "reorderPinned": "拖动以调整置顶会话顺序",
     "forkedFrom": "分叉自「{{name}}」",
-    "forkedConversation": "分叉会话"
+    "forkedConversation": "分叉会话",
+    "loadMore": "加载更多",
+    "newTeamInProject": "在此项目中新建团队",
+    "projectCreateMenu": "新建",
+    "collapseAllProjects": "收起全部项目"
   },
   "historySearch": {
     "tooltip": "检索会话",

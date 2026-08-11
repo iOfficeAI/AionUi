@@ -76,7 +76,11 @@
     "deleting": "Eliminando...",
     "reorderPinned": "Arrastra para reordenar la conversación fijada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversación bifurcada"
+    "forkedConversation": "Conversación bifurcada",
+    "loadMore": "Cargar más",
+    "newTeamInProject": "Nuevo equipo en este proyecto",
+    "projectCreateMenu": "Crear",
+    "collapseAllProjects": "Contraer todos los proyectos"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",

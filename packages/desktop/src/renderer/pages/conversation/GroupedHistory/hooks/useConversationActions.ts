@@ -198,25 +198,19 @@ export const useConversationActions = ({
 
   const handleTogglePin = useCallback(
     async (conversation: TChatConversation) => {
+      // Pin truth lives in the backend `user_order` table (a row's existence),
+      // not `extra.pinned`. Toggling = insert/delete that row; both calls are
+      // idempotent and take no body. The sidebar refresh re-reads the derived
+      // `pinned` flag and re-groups server-side.
       const pinned = isConversationPinned(conversation);
 
       try {
-        const success = await ipcBridge.conversation.update.invoke({
-          id: conversation.id,
-          updates: {
-            extra: {
-              pinned: !pinned,
-              pinned_at: pinned ? undefined : Date.now(),
-            } as Partial<TChatConversation['extra']>,
-          } as Partial<TChatConversation>,
-          merge_extra: true,
-        });
-
-        if (success) {
-          emitter.emit('chat.history.refresh');
+        if (pinned) {
+          await ipcBridge.order.pinned.delete.invoke({ item_type: 'conversation', item_id: conversation.id });
         } else {
-          Message.error(t('conversation.history.pinFailed'));
+          await ipcBridge.order.pinned.put.invoke({ item_type: 'conversation', item_id: conversation.id });
         }
+        emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('Failed to toggle pin conversation:', error);
         Message.error(t('conversation.history.pinFailed'));

@@ -76,7 +76,11 @@
     "deleting": "삭제 중...",
     "reorderPinned": "드래그하여 고정된 대화 순서 변경",
     "forkedFrom": "“{{name}}”에서 분기됨",
-    "forkedConversation": "분기된 대화"
+    "forkedConversation": "분기된 대화",
+    "loadMore": "더 보기",
+    "newTeamInProject": "이 프로젝트에 새 팀",
+    "projectCreateMenu": "만들기",
+    "collapseAllProjects": "모든 프로젝트 접기"
   },
   "historySearch": {
     "tooltip": "메시지 검색",
