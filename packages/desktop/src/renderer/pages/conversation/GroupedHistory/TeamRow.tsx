@@ -6,7 +6,7 @@
 
 import { iconColors } from '@renderer/styles/colors';
 import { getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import { DeleteOne, EditOne, Peoples, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Inbox, Peoples, Pushpin } from '@icon-park/react';
 import { Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -30,6 +30,7 @@ export type TeamRowProps = {
   onPin: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onArchive: () => void;
 };
 
 /**
@@ -53,6 +54,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
   onPin,
   onRename,
   onDelete,
+  onArchive,
 }) => {
   const { t } = useTranslation();
   const badge = badgeCount > 99 ? '99+' : badgeCount;
@@ -107,6 +109,11 @@ const TeamRow: React.FC<TeamRowProps> = ({
       label: t('team.sider.rename'),
     },
     {
+      key: 'archive',
+      icon: <Inbox theme='outline' size='14' />,
+      label: t('team.sider.archive'),
+    },
+    {
       key: 'delete',
       icon: <DeleteOne theme='outline' size='14' />,
       label: t('team.sider.delete'),
@@ -140,6 +147,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
         onMenuAction={(key) => {
           if (key === 'pin') onPin();
           else if (key === 'rename') onRename();
+          else if (key === 'archive') onArchive();
           else if (key === 'delete') onDelete();
         }}
         pinAction={{

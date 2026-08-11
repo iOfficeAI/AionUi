@@ -82,7 +82,13 @@
     "loadMore": "Carregar mais",
     "newTeamInProject": "Nova equipe neste projeto",
     "projectCreateMenu": "Criar",
-    "collapseAllProjects": "Recolher todos os projetos"
+    "collapseAllProjects": "Recolher todos os projetos",
+    "archive": "Arquivar",
+    "unarchive": "Desarquivar",
+    "archiveSuccess": "Arquivado",
+    "archiveFailed": "Falha ao arquivar",
+    "unarchiveSuccess": "Restaurado",
+    "unarchiveFailed": "Falha ao restaurar"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",

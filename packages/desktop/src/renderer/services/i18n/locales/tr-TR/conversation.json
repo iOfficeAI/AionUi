@@ -82,7 +82,13 @@
     "loadMore": "Daha fazla yükle",
     "newTeamInProject": "Bu projede yeni ekip",
     "projectCreateMenu": "Oluştur",
-    "collapseAllProjects": "Tüm projeleri daralt"
+    "collapseAllProjects": "Tüm projeleri daralt",
+    "archive": "Arşivle",
+    "unarchive": "Arşivden çıkar",
+    "archiveSuccess": "Arşivlendi",
+    "archiveFailed": "Arşivleme başarısız",
+    "unarchiveSuccess": "Geri yüklendi",
+    "unarchiveFailed": "Geri yükleme başarısız"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",

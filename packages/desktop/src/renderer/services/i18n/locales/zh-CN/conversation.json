@@ -82,7 +82,13 @@
     "loadMore": "加载更多",
     "newTeamInProject": "在此项目中新建团队",
     "projectCreateMenu": "新建",
-    "collapseAllProjects": "收起全部项目"
+    "collapseAllProjects": "收起全部项目",
+    "archive": "归档",
+    "unarchive": "取消归档",
+    "archiveSuccess": "已归档",
+    "archiveFailed": "归档失败",
+    "unarchiveSuccess": "已恢复",
+    "unarchiveFailed": "恢复失败"
   },
   "historySearch": {
     "tooltip": "检索会话",

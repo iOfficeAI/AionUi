@@ -30,6 +30,7 @@ export type TeamRowData = {
   onPin: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onArchive: () => void;
 };
 
 type UseTeamRowsArgs = {
@@ -85,6 +86,23 @@ export const useTeamRows = ({ pathname, onSessionClick }: UseTeamRowsArgs) => {
       } catch (error) {
         console.error('Failed to toggle pin team:', error);
         Message.error(t('team.sider.pin'));
+      }
+    },
+    [t]
+  );
+
+  // Archiving a team moves it (and its member conversations, backend cascade)
+  // into the archived slice and unpins it (D6). The active sidebar read no
+  // longer returns it, so the refresh drops the row from the active list.
+  const handleArchiveTeam = useCallback(
+    async (team_id: string) => {
+      try {
+        await ipcBridge.sidebar.archive.invoke({ item_type: 'team', item_id: team_id });
+        emitter.emit('chat.history.refresh');
+        Message.success(t('team.sider.archiveSuccess'));
+      } catch (error) {
+        console.error('Failed to archive team:', error);
+        Message.error(t('team.sider.archiveFailed'));
       }
     },
     [t]
@@ -152,8 +170,18 @@ export const useTeamRows = ({ pathname, onSessionClick }: UseTeamRowsArgs) => {
       onPin: () => void handleTogglePin(item.team_id, item.pinned),
       onRename: () => openRename(item.team_id, item.name),
       onDelete: () => handleDelete(item.team_id),
+      onArchive: () => void handleArchiveTeam(item.team_id),
     }),
-    [pathname, teamBadgeCounts, isTeamRunning, handleTeamClick, handleTogglePin, openRename, handleDelete]
+    [
+      pathname,
+      teamBadgeCounts,
+      isTeamRunning,
+      handleTeamClick,
+      handleTogglePin,
+      openRename,
+      handleDelete,
+      handleArchiveTeam,
+    ]
   );
 
   const renameModal = useMemo(

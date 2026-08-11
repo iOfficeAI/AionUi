@@ -220,6 +220,24 @@ export const useConversationActions = ({
     [t]
   );
 
+  const handleArchive = useCallback(
+    async (conversation: TChatConversation) => {
+      // Archiving moves the conversation into the archived slice (backend also
+      // unpins it, D6). The non-`?archived` sidebar read no longer returns it,
+      // so the refresh makes the row drop out of the active list on its own.
+      setDropdownVisibleId(null);
+      try {
+        await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: conversation.id });
+        emitter.emit('chat.history.refresh');
+        Message.success(t('conversation.history.archiveSuccess'));
+      } catch (error) {
+        console.error('Failed to archive conversation:', error);
+        Message.error(t('conversation.history.archiveFailed'));
+      }
+    },
+    [t]
+  );
+
   const handleMenuVisibleChange = useCallback((conversation_id: string, visible: boolean) => {
     setDropdownVisibleId(visible ? conversation_id : null);
   }, []);
@@ -346,6 +364,7 @@ export const useConversationActions = ({
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
+    handleArchive,
     handleMenuVisibleChange,
     handleOpenMenu,
     handleCreateCronTask,

@@ -82,7 +82,13 @@
     "loadMore": "بارگیری بیشتر",
     "newTeamInProject": "تیم جدید در این پروژه",
     "projectCreateMenu": "ایجاد",
-    "collapseAllProjects": "جمع کردن همه پروژه‌ها"
+    "collapseAllProjects": "جمع کردن همه پروژه‌ها",
+    "archive": "بایگانی",
+    "unarchive": "خروج از بایگانی",
+    "archiveSuccess": "بایگانی شد",
+    "archiveFailed": "بایگانی ناموفق بود",
+    "unarchiveSuccess": "بازیابی شد",
+    "unarchiveFailed": "بازیابی ناموفق بود"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

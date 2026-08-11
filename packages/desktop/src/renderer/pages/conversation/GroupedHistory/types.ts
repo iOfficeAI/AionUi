@@ -94,6 +94,7 @@ export type ConversationRowProps = {
   onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
+  onArchive: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
   /** Resolve a loaded conversation's name by id (fork-lineage badge tooltip). */
   resolveConversationName?: (conversation_id: string) => string | undefined;

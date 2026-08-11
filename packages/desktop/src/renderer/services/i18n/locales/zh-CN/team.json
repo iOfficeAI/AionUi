@@ -15,7 +15,13 @@
     "renameOk": "保存",
     "renameCancel": "取消",
     "renameSuccess": "团队已重命名",
-    "deleteSuccess": "团队已删除"
+    "deleteSuccess": "团队已删除",
+    "archive": "归档",
+    "unarchive": "取消归档",
+    "archiveSuccess": "已归档",
+    "archiveFailed": "归档失败",
+    "unarchiveSuccess": "已恢复",
+    "unarchiveFailed": "恢复失败"
   },
   "newAgent": "新助手",
   "noMessages": "暂无消息。",

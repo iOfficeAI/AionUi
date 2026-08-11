@@ -1343,5 +1343,20 @@
     "clearConfirmContent": "앱 내 브라우저의 모든 사이트에서 로그아웃됩니다. 되돌릴 수 없습니다.",
     "clearSuccess": "인터넷 사용 정보를 삭제했습니다",
     "clearFailed": "인터넷 사용 정보 삭제에 실패했습니다"
+  },
+  "archived": {
+    "navLabel": "보관함",
+    "title": "보관함",
+    "description": "보관한 대화와 팀입니다. 사이드바로 복원하거나 보관함을 비워 영구적으로 삭제할 수 있습니다.",
+    "empty": "보관된 항목이 없습니다",
+    "clearAll": "보관함 비우기",
+    "clearConfirmTitle": "보관함을 비우시겠습니까?",
+    "clearConfirmContent": "보관된 모든 대화와 팀이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "clearSuccess": "보관함을 비웠습니다",
+    "clearFailed": "보관함 비우기 실패",
+    "restore": "복원",
+    "restoreSuccess": "복원했습니다",
+    "restoreFailed": "복원하지 못했습니다",
+    "teamMemberCount": "멤버 {{count}}명"
   }
 }

@@ -1343,5 +1343,20 @@
     "clearConfirmContent": "アプリ内ブラウザーのすべてのサイトからサインアウトされます。この操作は取り消せません。",
     "clearSuccess": "閲覧データを消去しました",
     "clearFailed": "閲覧データの消去に失敗しました"
+  },
+  "archived": {
+    "navLabel": "アーカイブ",
+    "title": "アーカイブ",
+    "description": "アーカイブした会話とチームです。サイドバーに復元するか、アーカイブを空にして完全に削除できます。",
+    "empty": "アーカイブはありません",
+    "clearAll": "アーカイブを空にする",
+    "clearConfirmTitle": "アーカイブを空にしますか？",
+    "clearConfirmContent": "アーカイブされたすべての会話とチームが完全に削除されます。この操作は取り消せません。",
+    "clearSuccess": "アーカイブを空にしました",
+    "clearFailed": "アーカイブの削除に失敗しました",
+    "restore": "復元",
+    "restoreSuccess": "復元しました",
+    "restoreFailed": "復元に失敗しました",
+    "teamMemberCount": "メンバー {{count}} 人"
   }
 }

@@ -15,7 +15,13 @@
     "renameOk": "Зберегти",
     "renameCancel": "Скасувати",
     "renameSuccess": "Команду перейменовано",
-    "deleteSuccess": "Команду видалено"
+    "deleteSuccess": "Команду видалено",
+    "archive": "Архівувати",
+    "unarchive": "Розархівувати",
+    "archiveSuccess": "Заархівовано",
+    "archiveFailed": "Не вдалося заархівувати",
+    "unarchiveSuccess": "Відновлено",
+    "unarchiveFailed": "Не вдалося відновити"
   },
   "newAgent": "Новий асистент",
   "noMessages": "Повідомлень ще немає.",
