@@ -59,7 +59,7 @@ const TEXT_READ_TIMEOUT_MS = 5000;
  * render at all (it shows an explanation plus the escape hatch). They carry no
  * editable content, so no size gate applies either.
  */
-const CONTENT_FREE_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
+export const CONTENT_FREE_TYPES = new Set<PreviewContentType>(['pdf', 'word', 'excel', 'ppt', 'unsupported']);
 
 /**
  * Normalize a stored/entered MB limit into a usable one.
