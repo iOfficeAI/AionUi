@@ -82,7 +82,17 @@
     "loadMore": "Load more",
     "newTeamInProject": "New team in this project",
     "projectCreateMenu": "Create",
-    "collapseAllProjects": "Collapse all projects"
+    "collapseAllProjects": "Collapse all projects",
+    "customGroups": "Groups",
+    "newGroup": "New group",
+    "groupNamePlaceholder": "Group name",
+    "renameGroup": "Rename group",
+    "deleteGroup": "Delete group",
+    "deleteGroupConfirm": "Delete group \"{{name}}\"? Its conversations and teams will not be deleted — they return to their original sections.",
+    "moveToGroup": "Move to group",
+    "removeFromGroup": "Remove from group",
+    "groupDrag": "Drag to reorder group",
+    "reorderGroupItem": "Drag to reorder item in group"
   },
   "historySearch": {
     "tooltip": "Search messages",

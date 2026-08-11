@@ -6,14 +6,16 @@
 
 import { iconColors } from '@renderer/styles/colors';
 import { getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import { DeleteOne, EditOne, Peoples, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Folder, Peoples, Pushpin } from '@icon-park/react';
 import { Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import SiderItem from '@renderer/components/layout/Sider/SiderItem';
-import type { SiderMenuItem } from '@renderer/components/layout/Sider/SiderItem';
+import type { SiderItemSubmenu, SiderMenuItem } from '@renderer/components/layout/Sider/SiderItem';
+import type { MoveToGroupMenuItem } from '@renderer/pages/conversation/GroupedHistory/types';
+import { parseMoveToGroupKey } from '@renderer/pages/conversation/GroupedHistory/utils/customGroupHelpers';
 
 export type TeamRowProps = {
   team_id: string;
@@ -26,6 +28,12 @@ export type TeamRowProps = {
   /** Indent to align with conversation rows nested in the same project group. */
   dimIcon?: boolean;
   tooltipEnabled?: boolean;
+  /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable rows. */
+  dragHandle?: React.ReactNode;
+  /** "Move to group" submenu entries (`moveToGroup:<id>` | `moveToGroup:` for remove); hidden when empty. */
+  moveToGroupItems?: MoveToGroupMenuItem[];
+  /** Fired when a "Move to group" submenu entry is picked; null means remove from group. */
+  onMoveToGroup?: (targetGroupId: string | null) => void;
   onClick: () => void;
   onPin: () => void;
   onRename: () => void;
@@ -49,6 +57,9 @@ const TeamRow: React.FC<TeamRowProps> = ({
   collapsed,
   dimIcon,
   tooltipEnabled = false,
+  dragHandle,
+  moveToGroupItems,
+  onMoveToGroup,
   onClick,
   onPin,
   onRename,
@@ -114,6 +125,20 @@ const TeamRow: React.FC<TeamRowProps> = ({
     },
   ];
 
+  const submenu: SiderItemSubmenu | undefined =
+    moveToGroupItems && moveToGroupItems.length > 0
+      ? {
+          key: 'moveToGroup',
+          label: t('conversation.history.moveToGroup'),
+          icon: <Folder theme='outline' size='14' />,
+          items: moveToGroupItems.map((item) => ({
+            key: item.key,
+            icon: item.icon ?? <Folder theme='outline' size='14' />,
+            label: item.label,
+          })),
+        }
+      : undefined;
+
   return (
     <div className='relative group'>
       <SiderItem
@@ -137,10 +162,15 @@ const TeamRow: React.FC<TeamRowProps> = ({
         pinned={pinned && !isRunning}
         dimIcon={dimIcon}
         menuItems={menuItems}
+        submenu={submenu}
+        dragHandle={dragHandle}
         onMenuAction={(key) => {
           if (key === 'pin') onPin();
           else if (key === 'rename') onRename();
           else if (key === 'delete') onDelete();
+          else if (parseMoveToGroupKey(key) !== null) {
+            onMoveToGroup?.(parseMoveToGroupKey(key));
+          }
         }}
         pinAction={{
           pinned,

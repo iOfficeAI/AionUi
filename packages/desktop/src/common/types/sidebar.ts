@@ -88,6 +88,28 @@ export type SidebarItemsResponse = {
   next_cursor?: string;
 };
 
+/**
+ * A user-defined sidebar group (custom folder), persisted via the
+ * `sidebar.customGroups` config key.
+ *
+ * Items are referenced by `makeGroupItemId(kind, id)`-style ids
+ * (`conversation:<uuid>` / `team:<uuid>`) so a group can hold a mix of
+ * conversations and teams without type ambiguity, and a reorder only ever
+ * shuffles opaque strings.
+ */
+export type SidebarCustomGroup = {
+  /** Stable id; never regenerated on rename (drag-and-drop keys depend on it). */
+  id: string;
+  name: string;
+  /** User-collapsed state; groups remember collapse across restarts. */
+  collapsed?: boolean;
+  /** Ordered item ids, exactly as entered by the user (newest added last). */
+  itemIds: string[];
+};
+
+/** Item kind stored inside a custom group's `itemIds`. */
+export type SidebarCustomGroupItemKind = OrderItemType;
+
 /** Closed ordering scenes. v1 only pins. */
 export type OrderScene = 'pinned';
 

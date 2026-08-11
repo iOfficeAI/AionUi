@@ -75,6 +75,13 @@ export type ExportTask =
   | { mode: 'batch'; conversation_ids: string[] }
   | null;
 
+/** One entry of the "move to group" submenu; `moveToGroup:<groupId>` | `moveToGroup:` (remove). */
+export type MoveToGroupMenuItem = {
+  key: string;
+  icon?: ReactNode;
+  label: string;
+};
+
 export type ConversationRowProps = {
   conversation: TChatConversation;
   isGenerating: boolean;
@@ -101,6 +108,10 @@ export type ConversationRowProps = {
   dimIcon?: boolean;
   /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable (pinned) rows. */
   dragHandle?: ReactNode;
+  /** "Move to group" submenu entries (`moveToGroup:<id>` | `moveToGroup:` for remove); hidden when empty. */
+  moveToGroupItems?: MoveToGroupMenuItem[];
+  /** Fired when a "Move to group" submenu entry is picked; null means remove from group. */
+  onMoveToGroup?: (targetGroupId: string | null) => void;
 };
 
 export type WorkspaceGroupedHistoryProps = {

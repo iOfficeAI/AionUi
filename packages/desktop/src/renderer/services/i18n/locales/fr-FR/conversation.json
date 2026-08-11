@@ -82,7 +82,17 @@
     "loadMore": "Charger plus",
     "newTeamInProject": "Nouvelle équipe dans ce projet",
     "projectCreateMenu": "Créer",
-    "collapseAllProjects": "Réduire tous les projets"
+    "collapseAllProjects": "Réduire tous les projets",
+    "customGroups": "Groupes personnalisés",
+    "newGroup": "Nouveau groupe",
+    "groupNamePlaceholder": "Nom du groupe",
+    "renameGroup": "Renommer le groupe",
+    "deleteGroup": "Supprimer le groupe",
+    "deleteGroupConfirm": "Supprimer le groupe « {{name}} » ? Les conversations et équipes ne seront pas supprimées — elles reviennent dans leur section d'origine.",
+    "moveToGroup": "Déplacer vers un groupe",
+    "removeFromGroup": "Retirer du groupe",
+    "groupDrag": "Faites glisser pour réorganiser le groupe",
+    "reorderGroupItem": "Faites glisser pour réorganiser l'élément dans le groupe"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",

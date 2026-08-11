@@ -82,7 +82,17 @@
     "loadMore": "Завантажити більше",
     "newTeamInProject": "Нова команда в цьому проєкті",
     "projectCreateMenu": "Створити",
-    "collapseAllProjects": "Згорнути всі проєкти"
+    "collapseAllProjects": "Згорнути всі проєкти",
+    "customGroups": "Власні групи",
+    "newGroup": "Нова група",
+    "groupNamePlaceholder": "Назва групи",
+    "renameGroup": "Перейменувати групу",
+    "deleteGroup": "Видалити групу",
+    "deleteGroupConfirm": "Видалити групу «{{name}}»? Розмови та команди не буде видалено — вони повернуться у свої початкові розділи.",
+    "moveToGroup": "Перемістити до групи",
+    "removeFromGroup": "Прибрати з групи",
+    "groupDrag": "Перетягніть, щоб змінити порядок групи",
+    "reorderGroupItem": "Перетягніть, щоб змінити порядок елемента в групі"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",

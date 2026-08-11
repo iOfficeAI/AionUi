@@ -82,7 +82,17 @@
     "loadMore": "載入更多",
     "newTeamInProject": "在此專案中新建團隊",
     "projectCreateMenu": "新建",
-    "collapseAllProjects": "收合全部專案"
+    "collapseAllProjects": "收合全部專案",
+    "customGroups": "自訂分組",
+    "newGroup": "新建分組",
+    "groupNamePlaceholder": "分組名稱",
+    "renameGroup": "重新命名分組",
+    "deleteGroup": "刪除分組",
+    "deleteGroupConfirm": "刪除分組「{{name}}」？組內對話和團隊不會被刪除，將返回原分區。",
+    "moveToGroup": "移至分組",
+    "removeFromGroup": "移出分組",
+    "groupDrag": "拖動以調整分組順序",
+    "reorderGroupItem": "拖動以調整組內項目順序"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",
