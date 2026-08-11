@@ -9,6 +9,7 @@ import { isAgentKind } from '@/common/types/detectedAgent';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
 import { readCodexConfiguredModel } from '@process/agent/codex/appserver/codexCliConfig';
+import { createCodexReasoningEffortConfigOption } from '@/common/types/codex/codexConfigOptions';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
@@ -284,7 +285,10 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         mainLog('[Codex native]', 'probeModelInfo completed', summarizeAcpModelInfo(modelInfo));
         return {
           success: true,
-          data: { modelInfo, configOptions: [] },
+          data: {
+            modelInfo,
+            configOptions: [createCodexReasoningEffortConfigOption({ modelInfo })],
+          },
         };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

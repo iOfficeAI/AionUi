@@ -74,6 +74,36 @@ describe('CodexModelService', () => {
     });
   });
 
+  it('preserves model-specific reasoning capabilities from app-server', async () => {
+    const { service } = createService({
+      data: [
+        {
+          id: 'gpt-5.6-sol',
+          displayName: 'GPT-5.6 Sol',
+          defaultReasoningEffort: 'low',
+          supportedReasoningEfforts: [
+            { reasoningEffort: 'low' },
+            { reasoningEffort: 'xhigh' },
+            { reasoningEffort: 'max' },
+            { reasoningEffort: 'max' },
+            { description: 'missing effort' },
+          ],
+          isDefault: true,
+        },
+      ],
+    });
+
+    await expect(service.refresh()).resolves.toMatchObject({
+      availableModels: [
+        {
+          id: 'gpt-5.6-sol',
+          supportedReasoningEfforts: ['low', 'xhigh', 'max'],
+          defaultReasoningEffort: 'low',
+        },
+      ],
+    });
+  });
+
   it('falls back to the default or first returned model when no current model is selected', async () => {
     const { service } = createService({
       models: [

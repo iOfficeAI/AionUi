@@ -493,6 +493,21 @@ const GuidPage: React.FC = () => {
     />
   );
 
+  const effectiveCachedConfigOptions = useMemo(() => {
+    const selectedValues = {
+      ...agentSelection.selectedAcpConfigOptions,
+      ...agentSelection.pendingConfigOptions,
+    };
+    return agentSelection.cachedConfigOptions.map((option) => {
+      const selectedValue = selectedValues[option.id];
+      return selectedValue ? { ...option, currentValue: selectedValue, selectedValue } : option;
+    });
+  }, [
+    agentSelection.cachedConfigOptions,
+    agentSelection.pendingConfigOptions,
+    agentSelection.selectedAcpConfigOptions,
+  ]);
+
   // Build the action row
   const actionRowNode = (
     <GuidActionRow
@@ -516,7 +531,9 @@ const GuidPage: React.FC = () => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
       configOptionsBackend={agentSelection.currentEffectiveAgentInfo.agentType}
-      cachedConfigOptions={agentSelection.cachedConfigOptions}
+      cachedConfigOptions={effectiveCachedConfigOptions}
+      currentAcpModelInfo={agentSelection.currentAcpCachedModelInfo}
+      selectedAcpModelId={agentSelection.selectedAcpModel}
       onConfigOptionSelect={agentSelection.setPendingConfigOption}
       builtinAutoSkills={builtinAutoSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}

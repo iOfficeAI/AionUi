@@ -12,8 +12,7 @@ import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { ipcBridge } from '@/common';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import {
-  createChatgptReasoningEffortConfigOption,
-  isChatgptReasoningEffortValue,
+  createCodexReasoningEffortConfigOption,
   normalizeCodexConfigOptionValues,
 } from '@/common/types/codex/codexConfigOptions';
 import { uuid } from '@/common/utils';
@@ -28,12 +27,13 @@ import {
   writeCodexSandboxMode,
 } from '@process/task/codexConfig';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
+import { mainWarn } from '@process/utils/mainLogger';
 import { CodexAppServerClient } from './CodexAppServerClient';
 import { readCodexConfiguredModel } from './codexCliConfig';
 import { appendCodexFileReferences } from '../handlers/CodexFileOperationHandler';
 import { CodexModelService } from './CodexModelService';
 import { CodexPermissionResolver } from './CodexPermissionResolver';
-import { CodexThreadSession } from './CodexThreadSession';
+import { CodexThreadSession, isCodexModelUnavailableError } from './CodexThreadSession';
 import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 
 export type CodexNativeAgentManagerData = {
@@ -53,6 +53,8 @@ export type CodexNativeAgentManagerData = {
   enabledSkills?: string[];
   presetContext?: string;
   yoloMode?: boolean;
+  codexInvalidModelId?: string;
+  codexInvalidModelError?: string;
 };
 
 const DEFAULT_CODEX_MODE = 'default';
@@ -101,8 +103,11 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   private activeSendToken: symbol | undefined;
   private currentMode: string;
   private currentReasoningEffort: string;
+  private reasoningEffortConfigured: boolean;
   private readonly initialModelId: string | undefined;
   private readonly shouldPersistInitialModel: boolean;
+  private invalidModelId: string | undefined;
+  private invalidModelError: string | undefined;
 
   constructor(data: CodexNativeAgentManagerData) {
     super('codex', data, new IpcAgentEventEmitter(), false);
@@ -118,6 +123,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     const initialModelId = data.codexModel || data.currentModelId || readCodexConfiguredModel();
     this.initialModelId = initialModelId;
     this.shouldPersistInitialModel = Boolean(initialModelId && !data.codexModel && !data.currentModelId);
+    this.invalidModelId = data.codexInvalidModelId;
+    this.invalidModelError = data.codexInvalidModelError;
     if (initialModelId) {
       this.options.codexModel = initialModelId;
       this.options.currentModelId = initialModelId;
@@ -128,7 +135,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       ...data.pendingConfigOptions,
     });
     const configuredEffort = configOptionValues[CODEX_REASONING_EFFORT_CONFIG_ID];
-    this.currentReasoningEffort = isChatgptReasoningEffortValue(configuredEffort) ? configuredEffort : 'medium';
+    this.reasoningEffortConfigured = Boolean(configuredEffort?.trim());
+    this.currentReasoningEffort = configuredEffort?.trim() || 'medium';
     const runtimeConfig = this.resolveRuntimeConfig(this.currentMode);
     this.modelService = new CodexModelService(this.client, initialModelId);
     this.permissionResolver = new CodexPermissionResolver({
@@ -184,6 +192,10 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     this.status = 'running';
     cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
+      const currentModelId = this.getCurrentModelId();
+      if (currentModelId && currentModelId === this.invalidModelId) {
+        throw new Error(this.invalidModelError || `Codex model ${currentModelId} is unavailable`);
+      }
       await this.ensureStarted();
       const msgId = data.msg_id || uuid();
       if (data.content) {
@@ -217,12 +229,22 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       if (this.activeSendToken !== sendToken) {
         return;
       }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const currentModelId = this.getCurrentModelId();
+      if (currentModelId && isCodexModelUnavailableError(error)) {
+        await this.markModelUnavailable(currentModelId, errorMessage);
+      }
+      mainWarn('[Codex native]', 'sendMessage failed', {
+        conversationId: this.conversation_id,
+        model: currentModelId,
+        error: errorMessage,
+      });
       this.emitAndPersistMessage(
         {
           type: 'error',
           conversation_id: this.conversation_id,
           msg_id: data.msg_id || uuid(),
-          data: error instanceof Error ? error.message : String(error),
+          data: errorMessage,
         },
         true
       );
@@ -266,7 +288,9 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       return this.modelService.getModelInfo();
     }
     await this.client.start();
-    return this.refreshModelInfo();
+    const modelInfo = await this.refreshModelInfo();
+    this.emitModelInfo(modelInfo);
+    return modelInfo;
   }
 
   private async refreshModelInfo(): Promise<AcpModelInfo> {
@@ -276,6 +300,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     if (!this.modelInfoPromise) {
       this.modelInfoPromise = (async () => {
         const modelInfo = await this.modelService.refresh();
+        await this.reconcileReasoningEffort(modelInfo);
         this.modelInfoLoaded = true;
         return modelInfo;
       })();
@@ -293,7 +318,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
   async setModel(modelId: string): Promise<AcpModelInfo> {
     const currentModelInfo = this.modelService.getModelInfo();
-    if (currentModelInfo?.currentModelId === modelId) {
+    const clearsRejectedModel = this.invalidModelId !== undefined;
+    if (currentModelInfo?.currentModelId === modelId && !clearsRejectedModel) {
       return currentModelInfo;
     }
     if (this.activeSendToken || this.status === 'running') {
@@ -302,9 +328,19 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
     this.options.codexModel = modelId;
     this.options.currentModelId = modelId;
-    await this.persistConversationExtra({ codexModel: modelId, currentModelId: modelId });
+    this.invalidModelId = undefined;
+    this.invalidModelError = undefined;
+    await this.persistConversationExtra({ codexModel: modelId, currentModelId: modelId }, [
+      'codexInvalidModelId',
+      'codexInvalidModelError',
+    ]);
+    if (currentModelInfo?.currentModelId === modelId) {
+      this.session.updateRuntimeConfig({ model: modelId });
+      return currentModelInfo;
+    }
     const modelInfo = this.modelService.selectModel(modelId);
     this.session.updateRuntimeConfig({ model: modelId });
+    await this.reconcileReasoningEffort(modelInfo);
     this.emitModelInfo(modelInfo);
     return modelInfo;
   }
@@ -334,13 +370,20 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   }
 
   getConfigOptions(): AcpSessionConfigOption[] {
-    return [createChatgptReasoningEffortConfigOption(this.currentReasoningEffort)];
+    return [
+      createCodexReasoningEffortConfigOption({
+        modelInfo: this.modelService.getModelInfo(),
+        selectedModelId: this.getCurrentModelId(),
+        currentValue: this.currentReasoningEffort,
+      }),
+    ];
   }
 
   async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
     const normalized = normalizeCodexConfigOptionValues({ [configId]: value });
     const effort = normalized[CODEX_REASONING_EFFORT_CONFIG_ID];
-    if (!isChatgptReasoningEffortValue(effort)) {
+    const supportedEfforts = this.getConfigOptions()[0]?.options?.map((choice) => choice.value) || [];
+    if (!effort || !supportedEfforts.includes(effort)) {
       throw new Error(`Unsupported Codex config option: ${configId}`);
     }
     if (this.activeSendToken || this.status === 'running') {
@@ -348,6 +391,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     }
 
     this.currentReasoningEffort = effort;
+    this.reasoningEffortConfigured = true;
     this.options.configOptionValues = {
       ...this.options.configOptionValues,
       [CODEX_REASONING_EFFORT_CONFIG_ID]: effort,
@@ -448,13 +492,64 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     };
   }
 
-  private async persistConversationExtra(extra: Record<string, unknown>): Promise<void> {
+  private getCurrentModelId(): string | undefined {
+    return (
+      this.options.codexModel ||
+      this.options.currentModelId ||
+      this.modelService.getModelInfo()?.currentModelId ||
+      this.initialModelId
+    );
+  }
+
+  private async reconcileReasoningEffort(modelInfo: AcpModelInfo): Promise<void> {
+    const currentModelId = this.getCurrentModelId();
+    const currentModel = modelInfo.availableModels.find((model) => model.id === currentModelId);
+    if (!currentModel?.supportedReasoningEfforts?.length) return;
+
+    const configOption = createCodexReasoningEffortConfigOption({
+      modelInfo,
+      selectedModelId: currentModelId,
+      currentValue: this.reasoningEffortConfigured ? this.currentReasoningEffort : undefined,
+    });
+    const nextEffort = configOption.currentValue;
+    this.reasoningEffortConfigured = true;
+    if (!nextEffort || nextEffort === this.currentReasoningEffort) return;
+
+    this.currentReasoningEffort = nextEffort;
+    this.options.configOptionValues = {
+      ...this.options.configOptionValues,
+      [CODEX_REASONING_EFFORT_CONFIG_ID]: nextEffort,
+    };
+    this.session.updateRuntimeConfig({ reasoningEffort: nextEffort });
+    await this.persistConversationExtra({
+      configOptionValues: this.options.configOptionValues,
+      cachedConfigOptions: [configOption],
+    });
+  }
+
+  private async markModelUnavailable(modelId: string, errorMessage: string): Promise<void> {
+    this.invalidModelId = modelId;
+    this.invalidModelError = errorMessage;
+    await this.persistConversationExtra({
+      codexInvalidModelId: modelId,
+      codexInvalidModelError: errorMessage,
+    });
+  }
+
+  private async persistConversationExtra(extra: Record<string, unknown>, removeKeys: string[] = []): Promise<void> {
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (!result.success || !result.data) return;
+      const nextExtra: Record<string, unknown> = {
+        ...(result.data.extra as Record<string, unknown>),
+        ...extra,
+      };
+      for (const key of removeKeys) {
+        delete nextExtra[key];
+      }
       db.updateConversation(this.conversation_id, {
-        extra: { ...result.data.extra, ...extra },
+        extra: nextExtra,
       });
     } catch {
       // Unit tests and early startup can run without an initialized DB; the live app persists when available.

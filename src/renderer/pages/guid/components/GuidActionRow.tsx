@@ -9,7 +9,7 @@ import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -52,6 +52,8 @@ type GuidActionRowProps = {
   // Config options (ACP)
   configOptionsBackend?: AcpBackend;
   cachedConfigOptions?: AcpSessionConfigOption[];
+  currentAcpModelInfo?: AcpModelInfo | null;
+  selectedAcpModelId?: string;
   onConfigOptionSelect?: (configId: string, value: string) => void;
 
   // Skills management
@@ -86,6 +88,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onAgentSwitch,
   configOptionsBackend,
   cachedConfigOptions,
+  currentAcpModelInfo,
+  selectedAcpModelId,
   onConfigOptionSelect,
   builtinAutoSkills,
   disabledBuiltinSkills,
@@ -311,6 +315,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             buttonClassName='guid-config-btn'
             initialConfigOptions={cachedConfigOptions}
             fallbackCurrentModel={currentModel}
+            modelInfo={currentAcpModelInfo}
+            selectedModelId={selectedAcpModelId}
             leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
             onOptionSelect={onConfigOptionSelect}
           />

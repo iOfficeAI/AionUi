@@ -44,7 +44,16 @@ function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | n
 
   return (a.availableModels ?? []).every((model, index) => {
     const other = b.availableModels?.[index];
-    return other && other.id === model.id && other.label === model.label;
+    return (
+      other &&
+      other.id === model.id &&
+      other.label === model.label &&
+      other.defaultReasoningEffort === model.defaultReasoningEffort &&
+      (other.supportedReasoningEfforts?.length ?? 0) === (model.supportedReasoningEfforts?.length ?? 0) &&
+      (model.supportedReasoningEfforts ?? []).every(
+        (effort, effortIndex) => other.supportedReasoningEfforts?.[effortIndex] === effort
+      )
+    );
   });
 }
 

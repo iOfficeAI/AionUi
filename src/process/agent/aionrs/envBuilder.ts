@@ -101,13 +101,14 @@ export function logSpawnDiagnostics(args: string[], env: Record<string, string>,
   console.log('[AionrsAgent] spawn config', JSON.stringify(buildSpawnDiagnostics(args, env, projectConfig)));
 }
 
-/**
- * Strip trailing `/v1` (with optional trailing slash) from a base URL.
- * aionrs appends `/v1/chat/completions` internally, so passing a URL
- * that already ends with `/v1` would produce a double `/v1/v1/…` path.
- */
+/** Strip the version suffix expected to be added by aionrs' Anthropic provider. */
 function stripTrailingV1(url: string): string {
   return url.replace(/\/v1\/?$/, '');
+}
+
+/** Preserve path prefixes and API versions while avoiding a double separator. */
+function stripTrailingSlashes(url: string): string {
+  return url.replace(/\/+$/, '');
 }
 
 export function buildProxyEnvironment(proxyUrl: string, noProxy = DEFAULT_NO_PROXY): Record<string, string> {
@@ -200,8 +201,8 @@ export function buildSpawnConfig(
   // Set auth credentials and base URL via CLI args and env vars.
   // aionrs reads: --api-key / API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
   //               --base-url / BASE_URL (NOT OPENAI_BASE_URL)
-  // aionrs appends `/v1/chat/completions` to base_url, so URLs that already
-  // end with `/v1` (e.g. DashScope) must be stripped to avoid double `/v1`.
+  // aionrs appends provider-specific paths to base_url. Its Anthropic provider
+  // adds `/v1/messages`, while its OpenAI provider adds `/chat/completions`.
   switch (provider) {
     case 'anthropic':
       if (model.apiKey) env.ANTHROPIC_API_KEY = model.apiKey;
@@ -211,7 +212,7 @@ export function buildSpawnConfig(
     case 'openai': {
       if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
       const baseUrl = model.baseUrl || '';
-      if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
+      if (baseUrl) args.push('--base-url', stripTrailingSlashes(baseUrl));
       break;
     }
 

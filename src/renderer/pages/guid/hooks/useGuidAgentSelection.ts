@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import {
+  createCodexReasoningEffortConfigOption,
   getDefaultAcpConfigOptions,
   normalizeCodexConfigOptions,
   normalizeCodexConfigOptionValues,
@@ -151,18 +152,35 @@ export const useGuidAgentSelection = ({
   }, []);
 
   // Wrap setSelectedAcpModel to also save preferred model to the agent's config
-  const setSelectedAcpModel = useCallback((modelId: React.SetStateAction<string | null>) => {
-    _setSelectedAcpModel((prev) => {
-      const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
-      const agentKey = selectedAgentRef.current;
-      hasUserSelectedAcpModelRef.current = Boolean(newModelId);
-      selectedAcpModelBackendRef.current = agentKey;
-      if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
-        void savePreferredModelId(agentKey, newModelId);
-      }
-      return newModelId;
-    });
-  }, []);
+  const setSelectedAcpModel = useCallback(
+    (modelId: React.SetStateAction<string | null>) => {
+      _setSelectedAcpModel((prev) => {
+        const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
+        const agentKey = selectedAgentRef.current;
+        hasUserSelectedAcpModelRef.current = Boolean(newModelId);
+        selectedAcpModelBackendRef.current = agentKey;
+        if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
+          void savePreferredModelId(agentKey, newModelId);
+        }
+        if (agentKey === 'codex' && newModelId) {
+          setPendingConfigOptions((pending) => {
+            const cachedReasoningOption = cachedConfigOptions.find((option) => option.id === 'reasoning_effort');
+            const reasoningOption = createCodexReasoningEffortConfigOption({
+              modelInfo: acpCachedModels.codex,
+              selectedModelId: newModelId,
+              currentValue:
+                pending.reasoning_effort || cachedReasoningOption?.currentValue || cachedReasoningOption?.selectedValue,
+            });
+            return reasoningOption.currentValue
+              ? { ...pending, reasoning_effort: reasoningOption.currentValue }
+              : pending;
+          });
+        }
+        return newModelId;
+      });
+    },
+    [acpCachedModels.codex, cachedConfigOptions]
+  );
 
   const setSelectedAcpConfigOption = useCallback((configId: string, value: string) => {
     setSelectedAcpConfigOptions((prev) => {

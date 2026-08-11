@@ -76,46 +76,26 @@ const testDoubles = vi.hoisted(() => {
 
   class FakeCodexModelService {
     selectedModelId: string | undefined;
+    modelInfo: {
+      currentModelId: string;
+      currentModelLabel: string;
+      availableModels: Array<{
+        id: string;
+        label: string;
+        supportedReasoningEfforts?: string[];
+        defaultReasoningEffort?: string;
+      }>;
+      canSwitch: boolean;
+      source: 'models';
+      sourceDetail: 'codex-stream';
+    };
 
     constructor(_client: unknown, selectedModelId?: string) {
       this.selectedModelId = selectedModelId;
-      state.modelServiceInstances.push(this);
-    }
-
-    refresh = vi.fn(async () => {
-      const modelInfo =
-        state.modelInfos.shift() ||
-        ({
-          currentModelId: this.selectedModelId || 'gpt-5.2-codex',
-          currentModelLabel: this.selectedModelId || 'gpt-5.2-codex',
-          availableModels: [
-            { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
-            { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
-          ],
-          canSwitch: true,
-          source: 'models',
-          sourceDetail: 'codex-stream',
-        } as const);
-      return modelInfo;
-    });
-
-    getModelInfo = vi.fn(() => ({
-      currentModelId: this.selectedModelId || 'gpt-5.2-codex',
-      currentModelLabel: this.selectedModelId || 'gpt-5.2-codex',
-      availableModels: [
-        { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
-        { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
-      ],
-      canSwitch: true,
-      source: 'models',
-      sourceDetail: 'codex-stream',
-    }));
-
-    selectModel = vi.fn((modelId: string) => {
-      this.selectedModelId = modelId;
-      return {
-        currentModelId: modelId,
-        currentModelLabel: modelId,
+      const currentModelId = selectedModelId || 'gpt-5.2-codex';
+      this.modelInfo = {
+        currentModelId,
+        currentModelLabel: currentModelId,
         availableModels: [
           { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
           { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
@@ -124,6 +104,28 @@ const testDoubles = vi.hoisted(() => {
         source: 'models',
         sourceDetail: 'codex-stream',
       };
+      state.modelServiceInstances.push(this);
+    }
+
+    refresh = vi.fn(async () => {
+      const nextModelInfo = state.modelInfos.shift();
+      if (nextModelInfo) {
+        this.modelInfo = nextModelInfo as typeof this.modelInfo;
+        this.selectedModelId = this.modelInfo.currentModelId;
+      }
+      return this.modelInfo;
+    });
+
+    getModelInfo = vi.fn(() => this.modelInfo);
+
+    selectModel = vi.fn((modelId: string) => {
+      this.selectedModelId = modelId;
+      this.modelInfo = {
+        ...this.modelInfo,
+        currentModelId: modelId,
+        currentModelLabel: modelId,
+      };
+      return this.modelInfo;
     });
   }
 
@@ -192,6 +194,11 @@ vi.mock('@/process/agent/codex/appserver/CodexAppServerClient', () => ({
 
 vi.mock('@/process/agent/codex/appserver/CodexThreadSession', () => ({
   CodexThreadSession: testDoubles.FakeCodexThreadSession,
+  isCodexModelUnavailableError: (error: unknown) =>
+    typeof error === 'object' &&
+    error !== null &&
+    'kind' in error &&
+    (error as { kind?: unknown }).kind === 'model_unavailable',
 }));
 
 vi.mock('@/process/agent/codex/appserver/CodexModelService', () => ({
@@ -417,6 +424,77 @@ describe('CodexNativeAgentManager', () => {
     manager.kill();
   });
 
+  it('exposes Max after loading model-specific Codex reasoning capabilities', async () => {
+    testDoubles.state.modelInfos.push({
+      currentModelId: 'gpt-5.6-sol',
+      currentModelLabel: 'GPT-5.6 Sol',
+      availableModels: [
+        {
+          id: 'gpt-5.6-sol',
+          label: 'GPT-5.6 Sol',
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
+          defaultReasoningEffort: 'low',
+        },
+      ],
+      canSwitch: false,
+      source: 'models',
+      sourceDetail: 'codex-stream',
+    });
+    const manager = createManager('conversation-max-capability');
+
+    await manager.loadModelInfo();
+
+    expect(manager.getConfigOptions()[0]).toMatchObject({
+      currentValue: 'low',
+      options: expect.arrayContaining([
+        { value: 'max', name: 'Max' },
+        { value: 'ultra', name: 'Ultra' },
+      ]),
+    });
+
+    await expect(manager.setConfigOption('reasoning_effort', 'max')).resolves.toEqual([
+      expect.objectContaining({ currentValue: 'max' }),
+    ]);
+
+    manager.kill();
+  });
+
+  it('falls back to the next model default when Max is unsupported after a model switch', async () => {
+    testDoubles.state.modelInfos.push({
+      currentModelId: 'gpt-5.6-sol',
+      currentModelLabel: 'GPT-5.6 Sol',
+      availableModels: [
+        {
+          id: 'gpt-5.6-sol',
+          label: 'GPT-5.6 Sol',
+          supportedReasoningEfforts: ['low', 'medium', 'xhigh', 'max'],
+          defaultReasoningEffort: 'low',
+        },
+        {
+          id: 'gpt-5.5',
+          label: 'GPT-5.5',
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+          defaultReasoningEffort: 'medium',
+        },
+      ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'codex-stream',
+    });
+    const manager = createManager('conversation-max-model-switch');
+
+    await manager.loadModelInfo();
+    await manager.setConfigOption('reasoning_effort', 'max');
+    await manager.setModel('gpt-5.5');
+
+    expect(manager.getConfigOptions()[0]).toMatchObject({
+      currentValue: 'medium',
+      options: expect.not.arrayContaining([expect.objectContaining({ value: 'max' })]),
+    });
+
+    manager.kill();
+  });
+
   it('persists the configured model when resuming a legacy conversation without model fields', async () => {
     testDoubles.readCodexConfiguredModel.mockReturnValue('gpt-5.6-sol');
     testDoubles.dbGetConversation.mockReturnValue({
@@ -487,6 +565,64 @@ describe('CodexNativeAgentManager', () => {
       currentModelLabel: 'gpt-5.3-codex',
     });
     expect(manager.getModelInfo()).toMatchObject({ currentModelId: 'gpt-5.3-codex' });
+
+    manager.kill();
+  });
+
+  it('blocks repeated sends with a provider-rejected model until the user selects a model again', async () => {
+    testDoubles.dbGetConversation.mockReturnValue({
+      success: true,
+      data: { extra: { codexModel: 'provider-model', currentModelId: 'provider-model' } },
+    });
+    const manager = new CodexNativeAgentManager({
+      conversation_id: 'conversation-invalid-model',
+      workspace: process.cwd(),
+      appServerCommand: process.execPath,
+      codexModel: 'provider-model',
+      currentModelId: 'provider-model',
+      sessionMode: 'default',
+    });
+
+    const firstSend = manager.sendMessage({ content: 'first', msg_id: 'message-1' });
+    await waitForTurnStart();
+    const failure = Object.assign(new Error('Model "provider-model" is not supported by the configured account'), {
+      kind: 'model_unavailable',
+    });
+    testDoubles.state.turnGates[0].reject(failure);
+    await expect(firstSend).rejects.toThrow('not supported');
+
+    await expect(manager.sendMessage({ content: 'second', msg_id: 'message-2' })).rejects.toThrow('not supported');
+    expect((testDoubles.state.sessions[0] as FakeSession).startTurn).toHaveBeenCalledTimes(1);
+
+    await manager.setModel('provider-model');
+    const lastPersistedExtra = testDoubles.dbUpdateConversation.mock.calls.at(-1)?.[1]?.extra;
+    expect(lastPersistedExtra).not.toHaveProperty('codexInvalidModelId');
+    expect(lastPersistedExtra).not.toHaveProperty('codexInvalidModelError');
+    const retry = manager.sendMessage({ content: 'retry', msg_id: 'message-3' });
+    await waitForTurnStart(2);
+    testDoubles.state.turnGates[1].resolve();
+    await retry;
+
+    manager.kill();
+  });
+
+  it('restores the rejected-model guard when a conversation is reopened', async () => {
+    const manager = new CodexNativeAgentManager({
+      conversation_id: 'conversation-persisted-invalid-model',
+      workspace: process.cwd(),
+      appServerCommand: process.execPath,
+      codexModel: 'provider-model',
+      currentModelId: 'provider-model',
+      codexInvalidModelId: 'provider-model',
+      codexInvalidModelError: 'Provider rejected provider-model',
+      sessionMode: 'default',
+    });
+
+    await expect(manager.sendMessage({ content: 'hello', msg_id: 'message-1' })).rejects.toThrow(
+      'Provider rejected provider-model'
+    );
+    expect((testDoubles.state.clients[0] as FakeClient).start).not.toHaveBeenCalled();
+    expect((testDoubles.state.sessions[0] as FakeSession).startTurn).not.toHaveBeenCalled();
 
     manager.kill();
   });

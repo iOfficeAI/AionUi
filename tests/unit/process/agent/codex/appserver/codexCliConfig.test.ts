@@ -10,13 +10,9 @@ describe('codexCliConfig', () => {
     const configPath = join(dir, 'config.toml');
     writeFileSync(
       configPath,
-      [
-        'model_provider = "sub2api"',
-        'model = "gpt-5.6-sol"',
-        '',
-        '[model_providers.sub2api]',
-        'name = "sub2api"',
-      ].join('\n')
+      ['model_provider = "sub2api"', 'model = "gpt-5.6-sol"', '', '[model_providers.sub2api]', 'name = "sub2api"'].join(
+        '\n'
+      )
     );
 
     expect(readCodexConfiguredModel(configPath)).toBe('gpt-5.6-sol');

@@ -371,6 +371,10 @@ export type TChatConversation =
           lastTokenUsage?: TokenUsageData;
           /** Native Codex model context window from thread/tokenUsage/updated */
           lastContextLimit?: number;
+          /** Provider-rejected Codex model blocked until the user explicitly selects a model again */
+          codexInvalidModelId?: string;
+          /** Final provider error associated with the rejected Codex model */
+          codexInvalidModelError?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
           /** Cron job ID that spawned this conversation */

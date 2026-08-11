@@ -249,7 +249,12 @@ describe('acpConversationBridge', () => {
       currentModelId: 'gpt-5.6-sol',
       currentModelLabel: 'GPT-5.6-Sol',
       availableModels: [
-        { id: 'gpt-5.6-sol', label: 'GPT-5.6-Sol' },
+        {
+          id: 'gpt-5.6-sol',
+          label: 'GPT-5.6-Sol',
+          supportedReasoningEfforts: ['low', 'medium', 'xhigh', 'max'],
+          defaultReasoningEffort: 'low',
+        },
         { id: 'gpt-5.6-terra', label: 'GPT-5.6-Terra' },
         { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna' },
       ],
@@ -279,7 +284,19 @@ describe('acpConversationBridge', () => {
       currentModelId: 'gpt-5.5',
     });
     expect(vi.mocked(AcpConnection)).not.toHaveBeenCalled();
-    expect(result).toEqual({ success: true, data: { modelInfo, configOptions: [] } });
+    expect(result).toEqual({
+      success: true,
+      data: {
+        modelInfo,
+        configOptions: [
+          expect.objectContaining({
+            id: 'reasoning_effort',
+            currentValue: 'low',
+            options: expect.arrayContaining([{ value: 'max', name: 'Max' }]),
+          }),
+        ],
+      },
+    });
   });
 
   it('getModelInfo returns persisted native Codex model info when the task was rebuilt away', async () => {

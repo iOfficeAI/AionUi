@@ -7,8 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
+import type { AcpBackend, AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import {
+  createCodexReasoningEffortConfigOption,
+  getDefaultAcpConfigOptions,
+  normalizeCodexConfigOptions,
+} from '@/common/types/codex/codexConfigOptions';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
@@ -18,10 +22,25 @@ import MarqueePillLabel from './MarqueePillLabel';
 function resolveInitialConfigOptions(
   options: unknown[] | undefined,
   backend?: string,
-  fallbackCurrentModel?: TProviderWithModel
+  fallbackCurrentModel?: TProviderWithModel,
+  modelInfo?: AcpModelInfo | null,
+  selectedModelId?: string
 ): AcpSessionConfigOption[] {
-  if (Array.isArray(options) && options.length > 0) {
-    return options as AcpSessionConfigOption[];
+  const normalizedOptions = Array.isArray(options)
+    ? normalizeCodexConfigOptions(options as AcpSessionConfigOption[])
+    : [];
+  if (backend === 'codex' && modelInfo) {
+    const reasoningOption = normalizedOptions.find((option) => option.id === 'reasoning_effort');
+    return [
+      createCodexReasoningEffortConfigOption({
+        modelInfo,
+        selectedModelId,
+        currentValue: reasoningOption?.currentValue || reasoningOption?.selectedValue,
+      }),
+    ];
+  }
+  if (normalizedOptions.length > 0) {
+    return normalizedOptions;
   }
   return getDefaultAcpConfigOptions(backend as AcpBackend | 'custom' | undefined, fallbackCurrentModel);
 }
@@ -46,6 +65,10 @@ const AcpConfigSelector: React.FC<{
   initialConfigOptions?: unknown[];
   /** Current provider/model used for backend-specific default options before cache is ready */
   fallbackCurrentModel?: TProviderWithModel;
+  /** Live model capabilities used to derive model-specific Codex options */
+  modelInfo?: AcpModelInfo | null;
+  /** Locally selected model before a conversation exists */
+  selectedModelId?: string;
   /** Local/custom callback when user selects an option */
   onOptionSelect?: (configId: string, value: string) => void | boolean | Promise<void | boolean>;
 }> = ({
@@ -56,11 +79,13 @@ const AcpConfigSelector: React.FC<{
   leadingIcon,
   initialConfigOptions,
   fallbackCurrentModel,
+  modelInfo,
+  selectedModelId,
   onOptionSelect,
 }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(() =>
-    resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel)
+    resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel, modelInfo, selectedModelId)
   );
   const shouldSyncWithAcpConversation = Boolean(backend && conversationId && !onOptionSelect);
 
@@ -104,8 +129,10 @@ const AcpConfigSelector: React.FC<{
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
-    setConfigOptions(resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel));
-  }, [backend, fallbackCurrentModel, initialConfigOptions]);
+    setConfigOptions(
+      resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel, modelInfo, selectedModelId)
+    );
+  }, [backend, fallbackCurrentModel, initialConfigOptions, modelInfo, selectedModelId]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {

@@ -446,6 +446,59 @@ describe('CodexThreadSession', () => {
     await turnPromise;
   });
 
+  it('rejects a failed turn with the final structured provider error', async () => {
+    const notifications = createNotificationHarness();
+    const failures = createFailureHarness();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ thread: { id: 'thread-1' } })
+      .mockResolvedValueOnce({ turn: { id: 'turn-1' } });
+    const session = new CodexThreadSession({
+      client: {
+        request,
+        onNotification: notifications.onNotification,
+        onFailure: failures.onFailure,
+        onServerRequest: vi.fn(),
+      },
+      options: {
+        conversationId: 'conversation-1',
+        workspace: '/workspace',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: 'workspace-write',
+        model: 'provider-model',
+      },
+      emitMessage: vi.fn(),
+      emitConfirmation: vi.fn(),
+      persistConversationExtra: vi.fn(),
+    });
+
+    await session.start();
+    const turnPromise = session.startTurn({ content: 'hello', msgId: 'user-1' });
+    await new Promise((resolve) => setImmediate(resolve));
+    notifications.emitNotification({
+      jsonrpc: '2.0',
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: {
+          id: 'turn-1',
+          status: 'failed',
+          error: {
+            message: 'Model "provider-model" is not supported by the configured account',
+            codexErrorInfo: { responseStreamDisconnected: { httpStatusCode: 404 } },
+            additionalDetails: 'request id: request-1',
+          },
+        },
+      },
+    });
+
+    await expect(turnPromise).rejects.toMatchObject({
+      message: expect.stringContaining('request id: request-1'),
+      kind: 'model_unavailable',
+      httpStatusCode: 404,
+    });
+  });
+
   it('resumes an existing thread and interrupts the active turn', async () => {
     const notifications = createNotificationHarness();
     const failures = createFailureHarness();

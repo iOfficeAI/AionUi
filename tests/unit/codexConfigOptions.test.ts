@@ -5,6 +5,7 @@
  */
 
 import {
+  createCodexReasoningEffortConfigOption,
   getDefaultAcpConfigOptions,
   normalizeCodexConfigOptions,
   normalizeCodexConfigOptionValues,
@@ -32,6 +33,62 @@ describe('codex config options defaults', () => {
 
   it('does not expose fallback config options for other backends', () => {
     expect(getDefaultAcpConfigOptions('claude')).toEqual([]);
+  });
+
+  it('uses the selected Codex model reasoning capabilities', () => {
+    expect(
+      createCodexReasoningEffortConfigOption({
+        modelInfo: {
+          currentModelId: 'gpt-5.6-sol',
+          currentModelLabel: 'GPT-5.6 Sol',
+          availableModels: [
+            {
+              id: 'gpt-5.6-sol',
+              label: 'GPT-5.6 Sol',
+              supportedReasoningEfforts: ['low', 'medium', 'xhigh', 'max', 'ultra'],
+              defaultReasoningEffort: 'low',
+            },
+          ],
+          canSwitch: false,
+          source: 'models',
+        },
+        currentValue: 'max',
+      })
+    ).toMatchObject({
+      currentValue: 'max',
+      options: [
+        { value: 'low', name: 'Low' },
+        { value: 'medium', name: 'Medium' },
+        { value: 'xhigh', name: 'Xhigh' },
+        { value: 'max', name: 'Max' },
+        { value: 'ultra', name: 'Ultra' },
+      ],
+    });
+  });
+
+  it('falls back to the model default when the selected effort is unsupported', () => {
+    expect(
+      createCodexReasoningEffortConfigOption({
+        modelInfo: {
+          currentModelId: 'gpt-5.5',
+          currentModelLabel: 'GPT-5.5',
+          availableModels: [
+            {
+              id: 'gpt-5.5',
+              label: 'GPT-5.5',
+              supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+              defaultReasoningEffort: 'medium',
+            },
+          ],
+          canSwitch: false,
+          source: 'models',
+        },
+        currentValue: 'max',
+      })
+    ).toMatchObject({
+      currentValue: 'medium',
+      options: expect.not.arrayContaining([expect.objectContaining({ value: 'max' })]),
+    });
   });
 
   it('normalizes legacy codex reasoning option ids from existing caches', () => {

@@ -230,7 +230,7 @@ describe('CodexEventTranslator native tool events', () => {
     );
   });
 
-  it('maps app-server error notifications to plain persisted error messages', () => {
+  it('defers terminal app-server errors to the final turn completion event', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
     const events = translator.translate({
@@ -249,18 +249,28 @@ describe('CodexEventTranslator native tool events', () => {
       },
     });
 
-    expect(events).toEqual([
-      expect.objectContaining({
-        kind: 'message',
-        persist: true,
-        message: expect.objectContaining({
-          type: 'error',
-          conversation_id: 'conversation-1',
-          msg_id: 'turn-1-error',
-          data: 'The gpt-5.5 model requires a newer version of Codex.',
-        }),
-      }),
-    ]);
+    expect(events).toEqual([]);
+  });
+
+  it('hides transient app-server errors while Codex is retrying the turn', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'error',
+      params: {
+        error: {
+          message: 'Concurrency limit exceeded for user, please retry later',
+          codexErrorInfo: { responseStreamDisconnected: { httpStatusCode: 429 } },
+          additionalDetails: null,
+        },
+        willRetry: true,
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+      },
+    });
+
+    expect(events).toEqual([]);
   });
 
   it('ignores app-server internal status notifications instead of showing raw JSON cards', () => {

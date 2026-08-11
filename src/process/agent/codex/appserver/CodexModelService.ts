@@ -19,12 +19,18 @@ type CodexModelRecord = {
   display_name?: unknown;
   isDefault?: unknown;
   is_default?: unknown;
+  supportedReasoningEfforts?: unknown;
+  supported_reasoning_efforts?: unknown;
+  defaultReasoningEffort?: unknown;
+  default_reasoning_effort?: unknown;
 };
 
 type NormalizedModel = {
   id: string;
   label: string;
   isDefault: boolean;
+  supportedReasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
 };
 
 function createFallbackModelInfo(modelId?: string): AcpModelInfo {
@@ -44,6 +50,21 @@ function readString(value: unknown): string | undefined {
 
 function readBoolean(value: unknown): boolean {
   return value === true;
+}
+
+function readReasoningEfforts(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const efforts = value.flatMap((item) => {
+    if (typeof item === 'string') return item.trim() ? [item] : [];
+    if (!item || typeof item !== 'object') return [];
+
+    const record = item as Record<string, unknown>;
+    const effort = readString(record.reasoningEffort) || readString(record.reasoning_effort);
+    return effort ? [effort] : [];
+  });
+  const uniqueEfforts = Array.from(new Set(efforts));
+  return uniqueEfforts.length > 0 ? uniqueEfforts : undefined;
 }
 
 function readModelArray(result: unknown): unknown[] {
@@ -75,6 +96,10 @@ function normalizeModel(record: unknown): NormalizedModel | null {
     id,
     label,
     isDefault: readBoolean(model.isDefault) || readBoolean(model.is_default),
+    supportedReasoningEfforts: readReasoningEfforts(
+      model.supportedReasoningEfforts ?? model.supported_reasoning_efforts
+    ),
+    defaultReasoningEffort: readString(model.defaultReasoningEffort) || readString(model.default_reasoning_effort),
   };
 }
 
@@ -109,7 +134,12 @@ export class CodexModelService {
     this.modelInfo = {
       currentModelId: selectedModel?.id || null,
       currentModelLabel: selectedModel?.label || null,
-      availableModels: availableModels.map((model) => ({ id: model.id, label: model.label })),
+      availableModels: availableModels.map((model) => ({
+        id: model.id,
+        label: model.label,
+        ...(model.supportedReasoningEfforts && { supportedReasoningEfforts: model.supportedReasoningEfforts }),
+        ...(model.defaultReasoningEffort && { defaultReasoningEffort: model.defaultReasoningEffort }),
+      })),
       canSwitch: availableModels.length > 1,
       source: 'models',
       sourceDetail: 'codex-stream',

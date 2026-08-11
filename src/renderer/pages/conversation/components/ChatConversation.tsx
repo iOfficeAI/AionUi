@@ -399,8 +399,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       return;
     }
 
-    const shouldPreferConfiguredChatgptModel =
-      conversation.model.platform === 'chatgpt' && Boolean(configuredModelId);
+    const shouldPreferConfiguredChatgptModel = conversation.model.platform === 'chatgpt' && Boolean(configuredModelId);
     if (shouldPreferConfiguredChatgptModel && configuredModelId === selectedModelId) {
       modelNormalizationRef.current = null;
       return;

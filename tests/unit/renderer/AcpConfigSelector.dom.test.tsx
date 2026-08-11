@@ -106,6 +106,39 @@ describe('AcpConfigSelector', () => {
     expect(button).toHaveTextContent('Medium');
   });
 
+  it('updates local Codex reasoning options for the selected model capabilities', () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.6-sol',
+      currentModelLabel: 'GPT-5.6 Sol',
+      availableModels: [
+        {
+          id: 'gpt-5.6-sol',
+          label: 'GPT-5.6 Sol',
+          supportedReasoningEfforts: ['low', 'medium', 'xhigh', 'max'],
+          defaultReasoningEffort: 'low',
+        },
+        {
+          id: 'gpt-5.5',
+          label: 'GPT-5.5',
+          supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+          defaultReasoningEffort: 'medium',
+        },
+      ],
+      canSwitch: true,
+      source: 'models' as const,
+    };
+    const { rerender } = render(
+      <AcpConfigSelector backend='codex' modelInfo={modelInfo} selectedModelId='gpt-5.6-sol' />
+    );
+
+    expect(screen.getByText('Max')).toBeInTheDocument();
+
+    rerender(<AcpConfigSelector backend='codex' modelInfo={modelInfo} selectedModelId='gpt-5.5' />);
+
+    expect(screen.queryByText('Max')).not.toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveTextContent('Medium');
+  });
+
   it('shows the default aionrs ChatGPT reasoning selector before cached Guid options load', () => {
     render(
       <AcpConfigSelector

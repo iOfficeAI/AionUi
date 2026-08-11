@@ -136,7 +136,9 @@ export class CodexEventTranslator {
         return [this.message('acp_context_usage', { used: tokenUsage.used, size: tokenUsage.size }, false)];
       }
       case 'error':
-        return [this.errorEvent(notification)];
+        // Retry notifications are progress, not terminal failures. The final
+        // turn/completed event is the single source of truth for turn errors.
+        return [];
       case 'thread/status/changed':
       case 'mcpServer/startupStatus/updated':
         return [];
@@ -464,12 +466,6 @@ export class CodexEventTranslator {
     const existing = this.agentToolByToolCallId.get(toolCallId);
     return existing ? { agentCallId: existing.callId, threadId: existing.threadId } : {};
   }
-
-  private errorEvent(notification: CodexJsonRpcNotification): CodexTranslatedEvent {
-    const params = asRecord(notification.params);
-    const turnId = readString(params?.turnId);
-    return this.message('error', extractErrorMessage(params), true, turnId ? `${turnId}-error` : uuid());
-  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -662,25 +658,6 @@ function describeNativeTool(params: Record<string, unknown> | undefined, fallbac
     readString(params?.query) ||
     fallback
   );
-}
-
-function extractErrorMessage(params: Record<string, unknown> | undefined): string {
-  const error = asRecord(params?.error);
-  const message = readString(error?.message);
-  if (!message) return 'Codex request failed';
-
-  return extractNestedJsonErrorMessage(message) || message;
-}
-
-function extractNestedJsonErrorMessage(message: string): string | undefined {
-  try {
-    const parsed = JSON.parse(message) as unknown;
-    const record = asRecord(parsed);
-    const nestedError = asRecord(record?.error);
-    return readString(nestedError?.message) || readString(record?.message);
-  } catch {
-    return undefined;
-  }
 }
 
 function durationFromMs(durationMs: number): { secs: number; nanos: number } {

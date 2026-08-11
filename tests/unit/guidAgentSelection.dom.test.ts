@@ -477,6 +477,61 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     ]);
   });
 
+  it('falls back from Max when the newly selected Codex model does not support it', async () => {
+    ipcMock.probeModelInfo.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          source: 'models',
+          sourceDetail: 'codex-stream',
+          currentModelId: 'gpt-5.6-sol',
+          currentModelLabel: 'GPT-5.6 Sol',
+          availableModels: [
+            {
+              id: 'gpt-5.6-sol',
+              label: 'GPT-5.6 Sol',
+              supportedReasoningEfforts: ['low', 'medium', 'xhigh', 'max'],
+              defaultReasoningEffort: 'low',
+            },
+            {
+              id: 'gpt-5.5',
+              label: 'GPT-5.5',
+              supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
+              defaultReasoningEffort: 'medium',
+            },
+          ],
+          canSwitch: true,
+        },
+        configOptions: [
+          {
+            id: 'reasoning_effort',
+            name: 'Reasoning effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'low',
+            options: [
+              { value: 'low', name: 'Low' },
+              { value: 'medium', name: 'Medium' },
+              { value: 'xhigh', name: 'Xhigh' },
+              { value: 'max', name: 'Max' },
+            ],
+          },
+        ],
+      },
+    });
+    setupMocks({ cachedModels: {}, acpConfig: {} });
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => expect(result.current.availableAgents).toBeDefined());
+    act(() => result.current.setSelectedAgentKey('codex'));
+    await waitFor(() => expect(result.current.selectedAcpModel).toBe('gpt-5.6-sol'));
+
+    act(() => result.current.setPendingConfigOption('reasoning_effort', 'max'));
+    act(() => result.current.setSelectedAcpModel('gpt-5.5'));
+
+    await waitFor(() => expect(result.current.pendingConfigOptions.reasoning_effort).toBe('medium'));
+  });
+
   it('uses default codex config options when codex has no cached option list', async () => {
     setupMocks({ cachedModels: {}, cachedConfigOptions: {}, acpConfig: {} });
 
