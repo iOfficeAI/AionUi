@@ -539,6 +539,15 @@ describe('model capability selectors', () => {
     });
   });
 
+  it('prefills the CSBU API endpoint when the default add-model form opens', async () => {
+    render(
+      <AddPlatformModal modalProps={{ visible: true }} modalCtrl={{ close: mocks.close }} onSubmit={mocks.onSubmit} />
+    );
+
+    const endpointInput = await screen.findByPlaceholderText('https://your-newapi-instance.com');
+    expect(endpointInput).toHaveValue('http://10.51.135.15:8180/');
+  });
+
   it('keeps API mode hidden on the Gemini provider form', async () => {
     mocks.singleModelValue = true;
     render(

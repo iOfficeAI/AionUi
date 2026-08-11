@@ -334,7 +334,9 @@ const AddPlatformModal = ModalHOC<{
         if (deepLinkData.base_url) form.setFieldValue('base_url', deepLinkData.base_url);
         if (deepLinkData.api_key) form.setFieldValue('api_key', deepLinkData.api_key);
       } else {
+        const defaultPlatform = getPlatformByValue(DEFAULT_PLATFORM_VALUE);
         form.setFieldValue('platform', DEFAULT_PLATFORM_VALUE);
+        form.setFieldValue('base_url', defaultPlatform?.base_url ?? '');
       }
     }
   }, [modalProps.visible, deepLinkData]);
