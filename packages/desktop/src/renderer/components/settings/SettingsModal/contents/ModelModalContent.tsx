@@ -299,7 +299,7 @@ const ModelModalContent: React.FC = () => {
   const [healthCheckAllLoading, setHealthCheckAllLoading] = useState(false);
 
   const performHealthCheckAll = async () => {
-    if (!data) return;
+    if (!data || healthCheckAllLoading) return;
     const tasks: Array<{ platform: IProvider; model: string }> = [];
     for (const platform of data) {
       for (const model of platform.models ?? []) {

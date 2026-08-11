@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IProvider } from '@/common/config/storage';
 
 const mocks = vi.hoisted(() => ({
+  arcoMessageError: vi.fn(),
+  arcoMessageSuccess: vi.fn(),
   checkProviderHealth: vi.fn(),
   close: vi.fn(),
   createProvider: vi.fn(),
@@ -20,6 +22,10 @@ const mocks = vi.hoisted(() => ({
     { label: 'Claude Sonnet 4', value: 'claude-sonnet-4' },
   ],
   listProviders: vi.fn(),
+  messageError: vi.fn(),
+  messageInfo: vi.fn(),
+  messageSuccess: vi.fn(),
+  messageWarning: vi.fn(),
   modelListAsArray: false,
   modelListUnavailable: false,
   mutate: vi.fn(),
@@ -241,14 +247,14 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
     }),
     Divider: () => <hr />,
     Message: {
-      error: vi.fn(),
-      success: vi.fn(),
+      error: mocks.arcoMessageError,
+      success: mocks.arcoMessageSuccess,
       useMessage: () => [
         {
-          error: vi.fn(),
-          info: vi.fn(),
-          success: vi.fn(),
-          warning: vi.fn(),
+          error: mocks.messageError,
+          info: mocks.messageInfo,
+          success: mocks.messageSuccess,
+          warning: mocks.messageWarning,
         },
         null,
       ],
@@ -668,6 +674,7 @@ describe('configured model list', () => {
     mocks.checkProviderHealth.mockClear();
     mocks.updateProvider.mockClear();
     mocks.listProviders.mockClear();
+    mocks.messageSuccess.mockClear();
     mocks.checkProviderHealth.mockResolvedValue({ elapsed_ms: 12, status: 'healthy' });
     mocks.listProviders.mockResolvedValue([configuredProvider]);
 
@@ -679,6 +686,8 @@ describe('configured model list', () => {
       expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(4);
       expect(mocks.updateProvider).toHaveBeenCalledTimes(4);
     });
+
+    expect(mocks.messageSuccess).toHaveBeenCalledWith('settings.healthCheckAllSummary');
 
     expect(mocks.checkProviderHealth).toHaveBeenNthCalledWith(1, {
       model: 'gpt-responses',
@@ -709,6 +718,7 @@ describe('configured model list', () => {
     mocks.checkProviderHealth.mockClear();
     mocks.updateProvider.mockClear();
     mocks.listProviders.mockClear();
+    mocks.messageSuccess.mockClear();
     mocks.checkProviderHealth.mockImplementation(({ model }: { model: string }) =>
       Promise.resolve(
         model === 'gpt-chat'
@@ -727,6 +737,8 @@ describe('configured model list', () => {
       expect(mocks.updateProvider).toHaveBeenCalledTimes(4);
     });
 
+    expect(mocks.messageSuccess).toHaveBeenCalledWith('settings.healthCheckAllSummary');
+
     const written: Record<string, string> = {};
     for (const [args] of mocks.updateProvider.mock.calls) {
       for (const [model, health] of Object.entries(args.model_health ?? {})) {
@@ -741,5 +753,150 @@ describe('configured model list', () => {
       'gpt-chat': 'unhealthy',
       'gpt-responses': 'healthy',
     });
+  });
+
+  it('shows a success toast when checking a single model health', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageSuccess.mockClear();
+    mocks.checkProviderHealth.mockResolvedValue({ elapsed_ms: 12, status: 'healthy' });
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'health' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.arcoMessageSuccess).toHaveBeenCalled();
+    });
+    expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(1);
+    expect(mocks.checkProviderHealth).toHaveBeenCalledWith({
+      model: 'gpt-responses',
+      provider_id: 'provider-1',
+    });
+  });
+
+  it('shows an error toast when a single model health check reports unhealthy', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageError.mockClear();
+    mocks.checkProviderHealth.mockResolvedValue({ elapsed_ms: 5, message: 'boom', status: 'unhealthy' });
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'health' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.arcoMessageError).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('boom') })
+      );
+    });
+    expect(mocks.updateProvider).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'provider-1',
+        model_health: expect.objectContaining({
+          'gpt-responses': expect.objectContaining({ error: 'boom', status: 'unhealthy' }),
+        }),
+      })
+    );
+  });
+
+  it('marks a model unhealthy and shows an error toast when a single health check rejects', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageError.mockClear();
+    mocks.checkProviderHealth.mockRejectedValue(new Error('network down'));
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'health' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.updateProvider).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.arcoMessageError).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('network down') })
+    );
+    expect(mocks.updateProvider).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'provider-1',
+        model_health: expect.objectContaining({
+          'gpt-responses': expect.objectContaining({ error: 'network down', status: 'unhealthy' }),
+        }),
+      })
+    );
+  });
+
+  it('shows a save-failed toast when persisting a health result fails', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageError.mockClear();
+    mocks.checkProviderHealth.mockResolvedValue({ elapsed_ms: 12, status: 'healthy' });
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+    mocks.updateProvider.mockRejectedValue(new Error('save failed'));
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'health' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.arcoMessageError).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'settings.saveModelConfigFailed' })
+      );
+    });
+  });
+
+  it('shows an info message when no models are configured', async () => {
+    mocks.messageInfo.mockClear();
+    mocks.providers.splice(0, mocks.providers.length, { ...configuredProvider, models: [] });
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.checkAllHealth' }));
+
+    await waitFor(() => {
+      expect(mocks.messageInfo).toHaveBeenCalledWith('settings.noConfiguredModels');
+    });
+  });
+
+  it('skips the batch check when provider data is not loaded', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.providers = undefined as unknown as IProvider[];
+    try {
+      render(<ModelModalContent />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'settings.checkAllHealth' }));
+
+      expect(mocks.checkProviderHealth).not.toHaveBeenCalled();
+    } finally {
+      mocks.providers = [configuredProvider];
+    }
+  });
+
+  it('ignores repeated clicks while a batch check is running', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.checkProviderHealth.mockImplementation(() => new Promise(() => {}));
+
+    render(<ModelModalContent />);
+
+    const button = screen.getByRole('button', { name: 'settings.checkAllHealth' });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(button);
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(1);
   });
 });
