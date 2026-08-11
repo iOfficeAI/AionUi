@@ -1303,6 +1303,8 @@ export type I18nKey =
   | 'preview.refresh.officeNotWired'
   | 'preview.refresh.tooltip'
   | 'preview.refresh.unavailable'
+  | 'preview.save.clean'
+  | 'preview.save.tooltip'
   | 'preview.saveAndClose'
   | 'preview.saveConflict'
   | 'preview.source'

@@ -146,6 +146,10 @@
   },
   "saveConflict": "Kaydedilemedi: bu dosya siz açtıktan sonra diskte değişti. Diğer değişiklikleri görmek için yeniden yükleyin — düzenlemeleriniz kaydedilmemiş olarak duruyor.",
   "persistQuotaExceeded": "Yerel depolama dolu, bu proje için açık sekmeler artık hatırlanamıyor. Bazı sekmeleri kapatın veya site verilerini temizleyin.",
+  "save": {
+    "tooltip": "Değişiklikleri kaydet (Ctrl/Cmd+S)",
+    "clean": "Kaydedilmemiş değişiklik yok"
+  },
   "refresh": {
     "label": "Yenile",
     "tooltip": "Diskten yeniden yükle",

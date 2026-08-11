@@ -146,6 +146,10 @@
   },
   "saveConflict": "No se pudo guardar: este archivo cambió en el disco después de que lo abrieras. Vuelve a cargarlo para ver los otros cambios; tus ediciones siguen aquí, sin guardar.",
   "persistQuotaExceeded": "El almacenamiento local está lleno, así que ya no se pueden recordar las pestañas abiertas de este proyecto. Cierra algunas pestañas o borra los datos del sitio.",
+  "save": {
+    "tooltip": "Guardar cambios (Ctrl/Cmd+S)",
+    "clean": "No hay cambios sin guardar"
+  },
   "refresh": {
     "label": "Actualizar",
     "tooltip": "Volver a cargar desde el disco",
