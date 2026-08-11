@@ -142,6 +142,13 @@ const TeamRow: React.FC<TeamRowProps> = ({
           else if (key === 'rename') onRename();
           else if (key === 'delete') onDelete();
         }}
+        pinAction={{
+          pinned,
+          onToggle: onPin,
+          pinLabel: t('team.sider.pin'),
+          unpinLabel: t('team.sider.unpin'),
+          testId: `team-row-pin-${team_id}`,
+        }}
         onClick={onClick}
       />
       {badgeCount > 0 && (

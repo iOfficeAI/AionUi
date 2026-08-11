@@ -446,6 +446,37 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             ` ${t('conversation.history.removeProjectConfirmTeams', {
               teams: removeProjectTarget?.preview?.teams_deleted ?? 0,
             })}`}
+          {(() => {
+            // List *which* items go, not just how many. Pinned members are hoisted
+            // into the top pinned group, so a count alone doesn't tell the user who
+            // is where — the backend preview carries the names. Unpinned: at most 5
+            // (with a "+N more" tail). Pinned: all, since they were displaced away
+            // from this project group and are easy to overlook.
+            const items = removeProjectTarget?.preview?.items;
+            if (!items?.length) return null;
+            const UNPINNED_CAP = 5;
+            const unpinned = items.filter((i) => !i.pinned).map((i) => i.name);
+            const pinned = items.filter((i) => i.pinned).map((i) => i.name);
+            const shownUnpinned = unpinned.slice(0, UNPINNED_CAP);
+            const extraUnpinned = unpinned.length - shownUnpinned.length;
+            return (
+              <>
+                {unpinned.length > 0 && (
+                  <div className='mt-8px text-13px leading-20px text-t-tertiary'>
+                    {t('conversation.history.removeProjectListUnpinned', {
+                      names: shownUnpinned.join(', '),
+                    })}
+                    {extraUnpinned > 0 && t('conversation.history.removeProjectListMore', { count: extraUnpinned })}
+                  </div>
+                )}
+                {pinned.length > 0 && (
+                  <div className='mt-4px text-13px leading-20px text-t-tertiary'>
+                    {t('conversation.history.removeProjectListPinned', { names: pinned.join(', ') })}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </AionModal>
 

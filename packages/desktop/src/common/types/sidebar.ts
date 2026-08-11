@@ -106,4 +106,19 @@ export type OrderItemType = 'conversation' | 'team';
 export type RemoveProjectResult = {
   teams_deleted: number;
   conversations_deleted: number;
+  /**
+   * The named units in the delete set, present only on a `dry_run` preview so the
+   * confirm dialog can list *which* items go — not just how many. Pinned members
+   * are hoisted into the top pinned group (B1 double-render), so the frontend
+   * cannot reconstruct project membership itself; the names ride this list.
+   */
+  items?: RemoveProjectItem[];
+};
+
+/** One named unit in a {@link RemoveProjectResult} preview. */
+export type RemoveProjectItem = {
+  name: string;
+  /** Whether the unit is currently pinned (hoisted into the top pinned group). */
+  pinned: boolean;
+  kind: OrderItemType;
 };
