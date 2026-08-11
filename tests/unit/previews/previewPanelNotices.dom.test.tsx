@@ -21,6 +21,7 @@
 // mock.
 
 import React from 'react';
+import { Message } from '@arco-design/web-react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import enPreview from '@/renderer/services/i18n/locales/en-US/preview.json';
@@ -41,6 +42,13 @@ vi.mock('react-i18next', () => ({
 // Opening a text tab mounts a CodeMirror editor, which reads the theme context.
 vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
+}));
+
+// Excel rendering has its own worker/status lifecycle and is outside these
+// download tests. Keeping it mounted can leave async viewer work running after
+// the panel behavior under test has completed.
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/ExcelViewer', () => ({
+  default: () => null,
 }));
 
 vi.mock('@/common', () => ({
@@ -275,6 +283,59 @@ describe('preview download behavior', () => {
       await waitFor(() => expect(screen.getByText('Failed to download')).toBeInTheDocument());
       expect(downloadedBlobs).toHaveLength(0);
       expect(downloadedNames).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'reports a failure when the backing stream refuses the download',
+    async () => {
+      const messageError = vi.fn();
+      vi.spyOn(Message, 'useMessage').mockReturnValue([
+        { error: messageError } as unknown as ReturnType<typeof Message.useMessage>[0],
+        null,
+      ]);
+      mocks.fetch.mockResolvedValue(new Response(null, { status: 404 }));
+      const { rerender } = render(<Harness showPanel={false} />);
+      openExcelTab();
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(messageError).toHaveBeenCalledWith('Failed to download');
+      expect(downloadedBlobs).toHaveLength(0);
+      expect(downloadedNames).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'refuses a content-free download when the tab has no safe file reference',
+    async () => {
+      const messageError = vi.fn();
+      vi.spyOn(Message, 'useMessage').mockReturnValue([
+        { error: messageError } as unknown as ReturnType<typeof Message.useMessage>[0],
+        null,
+      ]);
+      const { rerender } = render(<Harness showPanel={false} />);
+      act(() => {
+        ctx.openPreview('', 'excel', {
+          title: 'detached.xlsx',
+          file_name: 'detached.xlsx',
+          editable: false,
+        });
+      });
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+
+      expect(messageError).toHaveBeenCalledWith('Failed to download');
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(downloadedBlobs).toHaveLength(0);
     },
     TIMEOUT_MS
   );
