@@ -247,7 +247,10 @@ async function launchApp(timeoutMs: number, withMemory: boolean): Promise<Electr
   if (!fs.existsSync(mainEntry)) {
     console.log('[bench:startup] Building production bundle (electron-vite build)...');
     const { execSync } = require('child_process');
-    execSync('npx electron-vite build', { cwd: projectRoot, stdio: 'inherit' });
+    execSync('npx electron-vite build --config packages/desktop/electron.vite.config.ts', {
+      cwd: projectRoot,
+      stdio: 'inherit',
+    });
   }
 
   const launchArgs = withMemory ? [mainEntry, '--js-flags=--expose-gc'] : [mainEntry];
