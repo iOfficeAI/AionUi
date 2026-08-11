@@ -899,4 +899,57 @@ describe('configured model list', () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(1);
   });
+
+  it('skips the batch loop when a provider omits its models list', async () => {
+    mocks.messageInfo.mockClear();
+    mocks.providers.splice(0, mocks.providers.length, { ...configuredProvider, models: undefined });
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.checkAllHealth' }));
+
+    await waitFor(() => {
+      expect(mocks.messageInfo).toHaveBeenCalledWith('settings.noConfiguredModels');
+    });
+  });
+
+  it('handles a failing batch check without per-model error toasts', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageError.mockClear();
+    mocks.checkProviderHealth.mockRejectedValue(new Error('network down'));
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.checkAllHealth' }));
+
+    await waitFor(() => {
+      expect(mocks.updateProvider).toHaveBeenCalledTimes(4);
+    });
+    // Batch mode suppresses per-model toasts and only reports the summary.
+    expect(mocks.arcoMessageError).not.toHaveBeenCalled();
+    expect(mocks.messageSuccess).toHaveBeenCalledWith('settings.healthCheckAllSummary');
+  });
+
+  it('handles a save failure during batch check without per-model error toasts', async () => {
+    mocks.checkProviderHealth.mockClear();
+    mocks.updateProvider.mockClear();
+    mocks.listProviders.mockClear();
+    mocks.arcoMessageError.mockClear();
+    mocks.checkProviderHealth.mockResolvedValue({ elapsed_ms: 12, status: 'healthy' });
+    mocks.listProviders.mockResolvedValue([configuredProvider]);
+    mocks.updateProvider.mockRejectedValue(new Error('save failed'));
+
+    render(<ModelModalContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.checkAllHealth' }));
+
+    await waitFor(() => {
+      expect(mocks.checkProviderHealth).toHaveBeenCalledTimes(4);
+    });
+    expect(mocks.arcoMessageError).not.toHaveBeenCalled();
+    expect(mocks.messageSuccess).toHaveBeenCalledWith('settings.healthCheckAllSummary');
+  });
 });
