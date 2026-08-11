@@ -1004,6 +1004,21 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
+    // Native menus must be translated before the tray is created. Creating the tray first
+    // exposes the English fallback menu and relies on a later asynchronous rebuild, which
+    // can lose a race and leave Windows showing English until the next language change.
+    try {
+      const savedLanguage = await readStoredLanguage();
+      await setInitialLanguage(savedLanguage);
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
+    }
+
+    // Listen for language changes after the initial language is ready.
+    onLanguageChanged(() => {
+      void refreshTrayMenu();
+    });
+
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
@@ -1060,22 +1075,6 @@ const handleAppReady = async (): Promise<void> => {
         })();
       }, 3000);
     }
-
-    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
-    // Read language setting and initialize main process i18n, then refresh tray menu
-    try {
-      const savedLanguage = await readStoredLanguage();
-      await setInitialLanguage(savedLanguage);
-      // After language is set, refresh tray menu if it exists
-      await refreshTrayMenu();
-    } catch (error) {
-      console.error('[index] Failed to initialize i18n language:', error);
-    }
-
-    // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
-    onLanguageChanged(() => {
-      void refreshTrayMenu();
-    });
 
     if (!isE2ETestMode) {
       // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking

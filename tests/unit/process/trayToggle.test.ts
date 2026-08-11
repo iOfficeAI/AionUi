@@ -5,6 +5,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { shouldShowFromTray } from '@/process/utils/tray';
 import { readCloseToTraySetting } from '@/process/utils/closeToTraySetting';
 
@@ -66,5 +68,16 @@ describe('close-to-tray default', () => {
     settingMocks.httpRequest.mockRejectedValue(new Error('backend unavailable'));
 
     await expect(readCloseToTraySetting()).resolves.toBe(true);
+  });
+});
+
+describe('tray menu language at startup', () => {
+  it('initializes native translations before creating the tray menu', () => {
+    const source = readFileSync(resolve(__dirname, '../../../packages/desktop/src/index.ts'), 'utf8');
+    const initializeLanguageIndex = source.indexOf('await setInitialLanguage(savedLanguage)');
+    const createTrayIndex = source.indexOf('createOrUpdateTray();', initializeLanguageIndex);
+
+    expect(initializeLanguageIndex).toBeGreaterThan(-1);
+    expect(createTrayIndex).toBeGreaterThan(initializeLanguageIndex);
   });
 });
