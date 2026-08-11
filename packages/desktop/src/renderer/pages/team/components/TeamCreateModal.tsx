@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
@@ -30,9 +30,11 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onCreated: (team: TTeam) => void;
+  /** Prefill the workspace folder (e.g. when opened from a project's "+" menu). */
+  initialWorkspace?: string;
 };
 
-const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated, initialWorkspace }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const layout = useLayoutContext();
@@ -46,6 +48,12 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+
+  // Seed the workspace from the caller each time the modal opens (the modal is
+  // kept mounted, so useState's initializer would not re-run on reopen).
+  useEffect(() => {
+    if (visible) setWorkspace(initialWorkspace ?? '');
+  }, [visible, initialWorkspace]);
 
   const hasOneLeader = useMemo(
     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),

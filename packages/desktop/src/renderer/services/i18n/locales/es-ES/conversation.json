@@ -72,11 +72,17 @@
     "removeProjectTitle": "Quitar proyecto",
     "removeProject": "Quitar proyecto",
     "removeProjectConfirm": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversación(es) también se quitarán.",
+    "removeProjectConfirmTeams": "También se quitarán {{teams}} equipo(s) del proyecto.",
+    "removeProjectListMore": "+{{count}} más",
     "newConversationInProject": "Nuevo chat en este proyecto",
     "deleting": "Eliminando...",
     "reorderPinned": "Arrastra para reordenar la conversación fijada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversación bifurcada"
+    "forkedConversation": "Conversación bifurcada",
+    "loadMore": "Cargar más",
+    "newTeamInProject": "Nuevo equipo en este proyecto",
+    "projectCreateMenu": "Crear",
+    "collapseAllProjects": "Contraer todos los proyectos"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",
