@@ -6,8 +6,8 @@
 
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../../../common/storage';
-import { ProcessConfig } from '../../../initStorage';
+import type { IMcpServer } from '@/common/config/storage';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 /**
  * AionUi 本地 MCP 代理实现
@@ -63,7 +63,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
    * 安装 MCP 服务器到 AionUi 配置
    * 实际上是将配置合并到 ProcessConfig 的统一配置中
    */
-  async installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
+  async installMcpServers(mcpServers: IMcpServer[], _cliPath?: string): Promise<McpOperationResult> {
     try {
       // 读取当前配置
       const currentConfig = (await ProcessConfig.get('mcp.config')) || [];
@@ -113,7 +113,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
    * AionuiMcpAgent 只负责读取配置（detectMcpServers）和添加配置（installMcpServers），
    * 不应该在 remove 流程中修改配置，避免与前端的配置管理产生冲突
    */
-  removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
+  removeMcpServer(mcpServerName: string, _cliPath?: string): Promise<McpOperationResult> {
     console.log(`[AionuiMcpAgent] Skip removing '${mcpServerName}' - config managed by renderer`);
     return Promise.resolve({ success: true });
   }

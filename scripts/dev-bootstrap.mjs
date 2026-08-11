@@ -52,7 +52,9 @@ function getPidsListeningOnPort(port) {
 function getProcessName(pid) {
   try {
     if (isWindows()) {
-      const output = run(`powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).ProcessName"`);
+      const output = run(
+        `powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).ProcessName"`
+      );
       return output.trim();
     }
     const output = run(`ps -p ${pid} -o comm=`);
@@ -65,7 +67,9 @@ function getProcessName(pid) {
 function listLikelyConflictingProcesses() {
   try {
     if (isWindows()) {
-      const output = run('powershell -NoProfile -Command "Get-Process | Where-Object { $_.ProcessName -in @(\'electron\',\'AionUi\',\'node\',\'bun\') } | Select-Object ProcessName,Id | ConvertTo-Json -Compress"');
+      const output = run(
+        "powershell -NoProfile -Command \"Get-Process | Where-Object { $_.ProcessName -in @('electron','AionUi','node','bun') } | Select-Object ProcessName,Id | ConvertTo-Json -Compress\""
+      );
       const parsed = output ? JSON.parse(output) : [];
       return Array.isArray(parsed) ? parsed : [parsed];
     }
@@ -148,7 +152,9 @@ function doctor() {
 
 function launch(scriptName, withExtensions) {
   if (!scriptName) {
-    throw new Error('Missing script name. Usage: node scripts/dev-bootstrap.mjs launch <start|webui|cli> [--extensions]');
+    throw new Error(
+      'Missing script name. Usage: node scripts/dev-bootstrap.mjs launch <start|webui|cli> [--extensions]'
+    );
   }
 
   const killedByName = cleanupByName();

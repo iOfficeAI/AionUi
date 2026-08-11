@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態",
+    "console_error": "ACP authentication error details:",
+    "failed_confirm": "ACP {{backend}} 身份驗證失敗：\n\n{{error}}\n\n是否立即前往設定頁面進行配置？"
+  },
+  "sendbox": {
+    "placeholder": "發送訊息到 {{backend}}..."
+  },
+  "status": {
+    "agentFallback": "Agent",
+    "connecting": "正在連線至 {{agent}}...",
+    "connected": "已連線至 {{agent}}",
+    "authenticated": "已通過 {{agent}} 身份驗證",
+    "session_active": "{{agent}} 工作階段進行中",
+    "error": "連線錯誤",
+    "unknown": "未知狀態"
+  },
+  "activity": {
+    "recovering": "正在恢復執行狀態...",
+    "waiting": "正在等待 {{agent}} 回應...",
+    "thinking": "{{agent}} 正在思考...",
+    "streaming": "{{agent}} 正在輸出...",
+    "permission": "等待權限確認...",
+    "tool": "正在執行工具...",
+    "toolWithName": "正在執行工具：{{tool}}"
+  },
+  "config": {
+    "reasoning_effort": "推理深度",
+    "default": "預設"
+  }
+}

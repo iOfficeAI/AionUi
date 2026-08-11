@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getLastDirectoryName, getWorkspaceDisplayName, isTemporaryWorkspace } from '@/renderer/utils/workspace';
+import {
+  getLastDirectoryName,
+  getWorkspaceDisplayName,
+  isTemporaryWorkspace,
+} from '@/renderer/utils/workspace/workspace';
 
 describe('workspace utils', () => {
   it('shows only the last directory for Unix-style workspace paths', () => {

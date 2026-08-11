@@ -170,7 +170,14 @@
   const deepMerge = (base, override) => {
     const result = { ...base };
     for (const [key, value] of Object.entries(override || {})) {
-      if (value && typeof value === 'object' && !Array.isArray(value) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        result[key] &&
+        typeof result[key] === 'object' &&
+        !Array.isArray(result[key])
+      ) {
         result[key] = deepMerge(result[key], value);
       } else {
         result[key] = value;
@@ -194,7 +201,9 @@
   const t = (key, params) => {
     const value = deepGet(state.translations, key);
     const template = typeof value === 'string' ? value : key;
-    return template.replace(/\{(\w+)\}/g, (_, name) => String(params && Object.prototype.hasOwnProperty.call(params, name) ? params[name] : `{${name}}`));
+    return template.replace(/\{(\w+)\}/g, (_, name) =>
+      String(params && Object.prototype.hasOwnProperty.call(params, name) ? params[name] : `{${name}}`)
+    );
   };
 
   const setText = (elementId, key, params) => {
@@ -250,7 +259,11 @@
     }
 
     const bridgeResult = envelope.data;
-    if (bridgeResult && typeof bridgeResult === 'object' && Object.prototype.hasOwnProperty.call(bridgeResult, 'success')) {
+    if (
+      bridgeResult &&
+      typeof bridgeResult === 'object' &&
+      Object.prototype.hasOwnProperty.call(bridgeResult, 'success')
+    ) {
       if (!bridgeResult.success) {
         throw new Error(bridgeResult.msg || bridgeResult.error || `Request failed for ${action}`);
       }
@@ -322,18 +335,27 @@
       timestamp: snapshot.timestamp,
       route: snapshot.route,
       reason: snapshot.reason,
-      sessionId: snapshot.session && snapshot.session.sessionId ? snapshot.session.sessionId : snapshot.sessionId || null,
+      sessionId:
+        snapshot.session && snapshot.session.sessionId ? snapshot.session.sessionId : snapshot.sessionId || null,
       rssBytes: snapshot.process && snapshot.process.memoryUsage ? snapshot.process.memoryUsage.rss : undefined,
-      heapUsedBytes: snapshot.process && snapshot.process.memoryUsage ? snapshot.process.memoryUsage.heapUsed : undefined,
-      totalTasks: snapshot.runtime && snapshot.runtime.workerManage ? snapshot.runtime.workerManage.totalTasks : undefined,
-      messageCacheSize: snapshot.runtime && snapshot.runtime.messageCache ? snapshot.runtime.messageCache.size : undefined,
-      inFlightCount: snapshot.runtime && snapshot.runtime.turnCompletion ? snapshot.runtime.turnCompletion.inFlightCount : undefined,
+      heapUsedBytes:
+        snapshot.process && snapshot.process.memoryUsage ? snapshot.process.memoryUsage.heapUsed : undefined,
+      totalTasks:
+        snapshot.runtime && snapshot.runtime.workerManage ? snapshot.runtime.workerManage.totalTasks : undefined,
+      messageCacheSize:
+        snapshot.runtime && snapshot.runtime.messageCache ? snapshot.runtime.messageCache.size : undefined,
+      inFlightCount:
+        snapshot.runtime && snapshot.runtime.turnCompletion ? snapshot.runtime.turnCompletion.inFlightCount : undefined,
       state: snapshot.session ? snapshot.session.state : null,
     };
   };
 
   const getDisplayedCapture = () => {
-    return state.history[state.history.length - 1] || state.lastCapture || (state.liveSnapshot ? { snapshot: state.liveSnapshot } : null);
+    return (
+      state.history[state.history.length - 1] ||
+      state.lastCapture ||
+      (state.liveSnapshot ? { snapshot: state.liveSnapshot } : null)
+    );
   };
 
   const buildSparklinePoints = (values) => {
@@ -404,7 +426,8 @@
 
     cards.forEach((card) => {
       const points = buildSparklinePoints(card.values);
-      const delta = typeof card.latest === 'number' && typeof card.previous === 'number' ? card.latest - card.previous : null;
+      const delta =
+        typeof card.latest === 'number' && typeof card.previous === 'number' ? card.latest - card.previous : null;
       const deltaText = delta === null ? t('common.emptyState') : `${delta > 0 ? '+' : ''}${card.formatter(delta)}`;
       const deltaColor = delta === null ? '#526071' : delta > 0 ? '#dc2626' : delta < 0 ? '#16a34a' : '#526071';
 
@@ -439,7 +462,7 @@
 
     summaries
       .slice()
-      .reverse()
+      .toReversed()
       .forEach((item) => {
         const entry = document.createElement('article');
         entry.className = 'timeline-item';
@@ -459,10 +482,22 @@
   };
 
   const renderActivityGrid = (snapshot) => {
-    const sessions = snapshot && snapshot.runtime && snapshot.runtime.activeSessions && Array.isArray(snapshot.runtime.activeSessions.sessions) ? snapshot.runtime.activeSessions.sessions : [];
+    const sessions =
+      snapshot &&
+      snapshot.runtime &&
+      snapshot.runtime.activeSessions &&
+      Array.isArray(snapshot.runtime.activeSessions.sessions)
+        ? snapshot.runtime.activeSessions.sessions
+        : [];
 
     elements.activityCount.textContent = t('activity.count', {
-      count: snapshot && snapshot.runtime && snapshot.runtime.activeSessions && typeof snapshot.runtime.activeSessions.count === 'number' ? snapshot.runtime.activeSessions.count : sessions.length,
+      count:
+        snapshot &&
+        snapshot.runtime &&
+        snapshot.runtime.activeSessions &&
+        typeof snapshot.runtime.activeSessions.count === 'number'
+          ? snapshot.runtime.activeSessions.count
+          : sessions.length,
     });
 
     elements.activityGrid.innerHTML = '';
@@ -476,7 +511,12 @@
       const article = document.createElement('article');
       article.className = 'activity-card';
 
-      const lastMessageSummary = session.lastMessage && session.lastMessage.content !== undefined && session.lastMessage.content !== null ? (typeof session.lastMessage.content === 'string' ? session.lastMessage.content : JSON.stringify(session.lastMessage.content)) : t('activity.none');
+      const lastMessageSummary =
+        session.lastMessage && session.lastMessage.content !== undefined && session.lastMessage.content !== null
+          ? typeof session.lastMessage.content === 'string'
+            ? session.lastMessage.content
+            : JSON.stringify(session.lastMessage.content)
+          : t('activity.none');
 
       article.innerHTML = `
         <header class="activity-card-head">
@@ -573,10 +613,18 @@
       .filter(Boolean)
       .slice(-MAX_WINDOW);
 
-    elements.summaryRss.textContent = displayedSummary ? formatMemoryMb(displayedSummary.rssBytes) : t('common.emptyState');
-    elements.summaryHeap.textContent = displayedSummary ? formatMemoryMb(displayedSummary.heapUsedBytes) : t('common.emptyState');
-    elements.summaryTasks.textContent = displayedSummary ? formatCount(displayedSummary.totalTasks) : t('common.emptyState');
-    elements.summaryCache.textContent = displayedSummary ? formatCount(displayedSummary.messageCacheSize) : t('common.emptyState');
+    elements.summaryRss.textContent = displayedSummary
+      ? formatMemoryMb(displayedSummary.rssBytes)
+      : t('common.emptyState');
+    elements.summaryHeap.textContent = displayedSummary
+      ? formatMemoryMb(displayedSummary.heapUsedBytes)
+      : t('common.emptyState');
+    elements.summaryTasks.textContent = displayedSummary
+      ? formatCount(displayedSummary.totalTasks)
+      : t('common.emptyState');
+    elements.summaryCache.textContent = displayedSummary
+      ? formatCount(displayedSummary.messageCacheSize)
+      : t('common.emptyState');
     renderActivityGrid(state.liveSnapshot || (displayedCapture && displayedCapture.snapshot));
     elements.trendWindow.textContent = t('trend.window', { current: historySummaries.length, max: MAX_WINDOW });
 
@@ -732,7 +780,8 @@
     if (!data || data.type !== 'aion:init') return;
 
     state.locale = typeof data.locale === 'string' ? data.locale : state.locale;
-    const settingsTranslations = data.translations && typeof data.translations === 'object' ? data.translations.settings || {} : {};
+    const settingsTranslations =
+      data.translations && typeof data.translations === 'object' ? data.translations.settings || {} : {};
     state.translations = deepMerge(defaultTranslations, settingsTranslations);
     applyStaticTranslations();
     render();

@@ -16,7 +16,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { downloadFileFromPath, downloadTextContent } from '../../src/renderer/utils/download';
+import { downloadFileFromPath, downloadTextContent } from '../../src/renderer/utils/file/download';
 import { ipcBridge } from '@/common';
 
 const mockGetImageBase64 = ipcBridge.fs.getImageBase64.invoke as ReturnType<typeof vi.fn>;

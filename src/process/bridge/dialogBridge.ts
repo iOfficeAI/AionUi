@@ -5,7 +5,7 @@
  */
 
 import { BrowserWindow, dialog } from 'electron';
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 
 export function initDialogBridge(): void {
   ipcBridge.dialog.showOpen.provider((options) => {

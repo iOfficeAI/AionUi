@@ -4,25 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { getDatabase } from '@process/database';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import type { AgentBackend } from '@/common/types/acpTypes';
+import { getDatabase } from '@process/services/database';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
+import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
   workspace?: string;
-  backend?: AcpBackendAll;
+  backend?: AgentBackend;
   agentName?: string;
   /** Gateway configuration */
   gateway?: {
@@ -46,7 +47,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private options: OpenClawAgentManagerData;
 
   constructor(data: OpenClawAgentManagerData) {
-    super('openclaw-gateway', data, new IpcAgentEventEmitter());
+    super('openclaw-gateway', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
     this.options = data;
@@ -89,6 +90,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
   private handleStreamEvent(message: IResponseMessage): void {
     const msg = { ...message, conversation_id: this.conversation_id };
+    cronBusyGuard.touchActivity(this.conversation_id);
 
     // Mark as finished when content is output (visible to user)
     // OpenClaw uses: content, agent_status, acp_tool_call, plan
@@ -113,6 +115,10 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     ipcBridge.openclawConversation.responseStream.emit(msg);
     // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
     ipcBridge.conversation.responseStream.emit(msg);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
 
     // Emit to Channel global event bus (Telegram/Lark streaming)
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -123,9 +129,15 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
     // Handle permission requests
     if (msg.type === 'acp_permission') {
+      cronBusyGuard.touchActivity(this.conversation_id);
       const permissionData = msg.data as {
         sessionId: string;
-        toolCall: { toolCallId: string; title?: string; kind?: string; rawInput?: Record<string, unknown> };
+        toolCall: {
+          toolCallId: string;
+          title?: string;
+          kind?: string;
+          rawInput?: Record<string, unknown>;
+        };
         options: Array<{ optionId: string; name: string; kind: string }>;
       };
 
@@ -147,12 +159,19 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
     // Handle finish event
     if (msg.type === 'finish') {
+      this.status = 'finished';
       cronBusyGuard.setProcessing(this.conversation_id, false);
+    } else {
+      cronBusyGuard.touchActivity(this.conversation_id);
     }
 
     // Emit signal events to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
     ipcBridge.conversation.responseStream.emit(msg);
+    // Only emit terminal events to team bus for agent lifecycle management
+    if (msg.type === 'finish' || msg.type === 'error') {
+      teamEventBus.emit('responseStream', msg);
+    }
 
     // Forward signals to Channel global event bus
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -170,9 +189,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
    * Persist the resolved session key to the database for resume support.
    * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
    */
-  private saveSessionKey(sessionKey: string): void {
+  private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'openclaw-gateway') {
         const conversation = result.data;
@@ -180,7 +199,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[OpenClawAgentManager] Failed to save session key:', error);

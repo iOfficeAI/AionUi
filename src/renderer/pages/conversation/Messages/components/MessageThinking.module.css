@@ -1,0 +1,56 @@
+.container {
+  width: 100%;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-border-2);
+  margin: 4px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-3);
+  font-style: italic;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.header:hover {
+  color: var(--color-text-2);
+}
+
+.arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.arrowExpanded {
+  transform: rotate(90deg);
+}
+
+.body {
+  color: var(--color-text-3);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 4px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.collapsed {
+  display: none;
+}
+
+.summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

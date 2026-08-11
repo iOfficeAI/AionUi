@@ -6,7 +6,13 @@
 
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '@/common/storage';
+import type { IMcpServer } from '@/common/config/storage';
+import {
+  BUILTIN_IMAGE_GEN_LEGACY_NAMES,
+  BUILTIN_IMAGE_GEN_NAME,
+  isBuiltinImageGenName,
+  isBuiltinImageGenTransport,
+} from '@process/resources/builtinMcp/constants';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec } from '@process/utils/safeExec';
 
@@ -14,6 +20,21 @@ import { safeExec } from '@process/utils/safeExec';
 const getExecEnv = () => ({
   env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
 });
+
+export function buildClaudeStdioAddArgs(server: IMcpServer): string[] {
+  if (server.transport.type !== 'stdio') {
+    throw new Error('Claude stdio args require a stdio transport');
+  }
+
+  const args = ['mcp', 'add', '-s', 'user'];
+
+  for (const [key, value] of Object.entries(server.transport.env || {})) {
+    args.push(`--env=${key}=${value}`);
+  }
+
+  args.push(server.name, '--', server.transport.command, ...(server.transport.args || []));
+  return args;
+}
 
 /**
  * Claude Code MCP代理实现
@@ -67,6 +88,10 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             const commandParts = commandStr.trim().split(/\s+/);
             const command = commandParts[0];
             const args = commandParts.slice(1);
+            const displayName =
+              isBuiltinImageGenName(name.trim()) || isBuiltinImageGenTransport({ command, args })
+                ? BUILTIN_IMAGE_GEN_NAME
+                : name.trim();
 
             // 解析状态：Connected, Disconnected, Failed to connect, 等
             const isConnected =
@@ -95,7 +120,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
 
             mcpServers.push({
               id: `claude_${name.trim()}`,
-              name: name.trim(),
+              name: displayName,
               transport: transportObj,
               tools: tools,
               enabled: true,
@@ -106,7 +131,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
               originalJson: JSON.stringify(
                 {
                   mcpServers: {
-                    [name.trim()]: {
+                    [displayName]: {
                       command: command,
                       args: args,
                       description: `Detected from Claude CLI`,
@@ -136,38 +161,13 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
   /**
    * 安装MCP服务器到Claude Code agent
    */
-  installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
+  installMcpServers(mcpServers: IMcpServer[], cliPath?: string): Promise<McpOperationResult> {
     const installOperation = async () => {
       try {
         for (const server of mcpServers) {
           if (server.transport.type === 'stdio') {
-            // 使用Claude Code CLI添加MCP服务器到user scope（全局配置）
-            // AionUi是全局工具，MCP配置应该对所有项目可用
-            // 格式: claude mcp add -s user <name> <command> -- [args...] [env_options]
-            // Quote env values to protect URLs and special characters from shell interpretation
-            const envArgs = Object.entries(server.transport.env || {})
-              .map(([key, value]) => `-e "${key}=${value}"`)
-              .join(' ');
-
-            let command = `claude mcp add -s user "${server.name}" "${server.transport.command}"`;
-
-            // 如果有参数或环境变量，使用 -- 分隔符
-            if (server.transport.args?.length || Object.keys(server.transport.env || {}).length) {
-              command += ' --';
-              if (server.transport.args?.length) {
-                // 对每个参数进行适当的引用，防止包含特殊字符的参数被误解析
-                const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
-                command += ` ${quotedArgs}`;
-              }
-            }
-
-            // 环境变量在 -- 之后添加
-            if (envArgs) {
-              command += ` ${envArgs}`;
-            }
-
             try {
-              await safeExec(command, {
+              await this.execCli(cliPath, 'claude', buildClaudeStdioAddArgs(server), {
                 timeout: 5000,
                 ...getExecEnv(),
               });
@@ -185,17 +185,17 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             // Claude CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
             // 格式: claude mcp add -s user --transport <type> <name> <url> [--header ...]
             const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
-            let command = `claude mcp add -s user --transport ${transportFlag} "${server.name}" "${server.transport.url}"`;
+            const args = ['mcp', 'add', '-s', 'user', '--transport', transportFlag, server.name, server.transport.url];
 
             // 添加 headers
             if (server.transport.headers) {
               for (const [key, value] of Object.entries(server.transport.headers)) {
-                command += ` --header "${key}: ${value}"`;
+                args.push('--header', `${key}: ${value}`);
               }
             }
 
             try {
-              await safeExec(command, {
+              await this.execCli(cliPath, 'claude', args, {
                 timeout: 5000,
                 ...getExecEnv(),
               });
@@ -218,40 +218,43 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
   /**
    * 从Claude Code agent删除MCP服务器
    */
-  removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
+  removeMcpServer(mcpServerName: string, _cliPath?: string): Promise<McpOperationResult> {
     const removeOperation = async () => {
       try {
         // 使用Claude CLI命令删除MCP服务器（尝试不同作用域）
         // 按顺序尝试: user (AionUi默认) -> local -> project
         // user scope优先，因为AionUi安装时使用user scope
         const scopes = ['user', 'local', 'project'] as const;
+        const candidateNames = Array.from(
+          new Set(
+            isBuiltinImageGenName(mcpServerName)
+              ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES]
+              : [mcpServerName]
+          )
+        );
 
         for (const scope of scopes) {
-          try {
-            const removeCommand = `claude mcp remove -s ${scope} "${mcpServerName}"`;
-            const result = await safeExec(removeCommand, {
-              timeout: 5000,
-              ...getExecEnv(),
-            });
+          for (const candidateName of candidateNames) {
+            try {
+              const removeCommand = `claude mcp remove -s ${scope} "${candidateName}"`;
+              const result = await safeExec(removeCommand, {
+                timeout: 5000,
+                ...getExecEnv(),
+              });
 
-            // 检查是否成功删除
-            if (result.stdout && result.stdout.includes('removed')) {
-              console.log(`[ClaudeMcpAgent] Removed MCP server from ${scope} scope: ${mcpServerName}`);
-              return { success: true };
+              if (result.stdout && result.stdout.includes('removed')) {
+                console.log(`[ClaudeMcpAgent] Removed MCP server from ${scope} scope: ${candidateName}`);
+                return { success: true };
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+
+              if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+                continue;
+              }
+
+              console.warn(`[ClaudeMcpAgent] Failed to remove from ${scope} scope:`, errorMessage);
             }
-
-            // 如果没有"removed"消息但也没有错误，可能服务器不存在于该作用域
-            // 继续尝试下一个作用域
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-
-            // 如果是"未找到"错误，继续尝试下一个作用域
-            if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
-              continue;
-            }
-
-            // 其他错误，记录但继续尝试
-            console.warn(`[ClaudeMcpAgent] Failed to remove from ${scope} scope:`, errorMessage);
           }
         }
 

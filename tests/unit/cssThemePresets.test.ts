@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const PRESETS_DIR = path.resolve(__dirname, '../../src/renderer/pages/settings/CssThemeSettings/presets');
+const PRESETS_DIR = path.resolve(__dirname, '../../src/renderer/pages/settings/DisplaySettings/presets');
 
 const BACKGROUND_BLOCK_START = '/* AionUi Theme Background Start */';
 const BACKGROUND_BLOCK_END = '/* AionUi Theme Background End */';
@@ -148,6 +148,11 @@ describe('CssThemeSettings preset structure', () => {
     'retro-windows',
     'retroma-y2k',
     'retroma-obsidian-book',
+    'retroma-obsidian-book-2',
+    'retroma-obsidian-book-2-1-dark',
+    'retroma-nocturne-parchment',
+    'discourse-horizon',
+    'glittering-input-field',
   ];
 
   it.each(expectedThemes)('should have CSS file for theme: %s', (theme) => {

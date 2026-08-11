@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import {
   type ProtocolDetectionRequest,
@@ -22,10 +22,13 @@ import {
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
-import { ipcBridge } from '../../common';
-import { ProcessConfig } from '../initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import { ipcBridge } from '@/common';
+import { ProcessConfig } from '@process/utils/initStorage';
+import { ExtensionRegistry } from '@process/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
+import { getCopilotAuthHeaders, getCopilotModelsUrl } from '@process/agent/aionrs/copilotAuth';
+import { fetchChatgptModels } from '@process/agent/aionrs/chatgptAuth';
+import { fetchWithOptionalProxy } from '@process/agent/aionrs/fetchWithProxy';
 
 /**
  * OpenAI 兼容 API 的常见路径格式
@@ -73,10 +76,97 @@ function getBedrockModelDisplayName(modelId: string): string {
   return BEDROCK_MODEL_NAMES[modelId] || modelId;
 }
 
+function isCopilotPlatform(platform?: string): boolean {
+  return platform === 'copilot';
+}
+
+function isChatgptPlatform(platform?: string): boolean {
+  return platform === 'chatgpt';
+}
+
+async function createOpenAIClient(config: ConstructorParameters<typeof OpenAI>[0], proxy?: string): Promise<OpenAI> {
+  const trimmedProxy = proxy?.trim();
+  if (!trimmedProxy) {
+    return new OpenAI(config);
+  }
+
+  const { ProxyAgent } = await import('undici');
+  return new OpenAI({
+    ...config,
+    fetchOptions: {
+      ...config.fetchOptions,
+      dispatcher: new ProxyAgent(trimmedProxy),
+    },
+  });
+}
+
+/**
+ * Get all model providers with extension contributions merged in.
+ * Shared between IPC bridge (renderer) and process-layer callers.
+ */
+export async function getMergedModelProviders(): Promise<IProvider[]> {
+  try {
+    const data = await ProcessConfig.get('model.config');
+    const sourceList = Array.isArray(data) ? data : [];
+
+    const normalizedProviders = sourceList.map((value) => {
+      const provider = value as unknown as Record<string, unknown>;
+      if ('selectedModel' in provider && !('useModel' in provider)) {
+        return {
+          ...provider,
+          useModel: provider.selectedModel,
+          id: provider.id || uuid(),
+          capabilities: provider.capabilities || [],
+          contextLimit: provider.contextLimit,
+        } as unknown as IProvider;
+      }
+
+      return {
+        ...provider,
+        id: provider.id || uuid(),
+        useModel: provider.useModel || provider.selectedModel || '',
+      } as unknown as IProvider;
+    });
+
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const extensionProviders = registry.getModelProviders();
+      if (!extensionProviders || extensionProviders.length === 0) {
+        return normalizedProviders;
+      }
+
+      const extensionIds = new Set(extensionProviders.map((provider) => provider.id));
+      const userProviders = normalizedProviders.filter((provider) => !extensionIds.has(provider.id));
+
+      const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
+        const existing = normalizedProviders.find((item) => item.id === provider.id);
+        return {
+          ...existing,
+          id: provider.id,
+          platform: provider.platform,
+          name: provider.name,
+          baseUrl: existing?.baseUrl || provider.baseUrl || '',
+          apiKey: existing?.apiKey || '',
+          model: Array.isArray(existing?.model) && existing.model.length > 0 ? existing.model : provider.models,
+          enabled: existing?.enabled ?? true,
+        } as IProvider;
+      });
+
+      return [...userProviders, ...mergedExtensionProviders];
+    } catch (error) {
+      console.warn('[ModelBridge] Failed to merge extension model providers:', error);
+      return normalizedProviders;
+    }
+  } catch {
+    return [];
+  }
+}
+
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({
     base_url,
     api_key,
+    proxy,
     try_fix,
     platform,
     bedrockConfig,
@@ -87,9 +177,9 @@ export function initModelBridge(): void {
   }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
     // If multiple keys (comma or newline separated), use only the first one
-    let actualApiKey = api_key;
-    if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {
-      actualApiKey = api_key.split(/[,\n]/)[0].trim();
+    let actualApiKey = api_key?.trim();
+    if (actualApiKey && (actualApiKey.includes(',') || actualApiKey.includes('\n'))) {
+      actualApiKey = actualApiKey.split(/[,\n]/)[0].trim();
     }
 
     // 如果是 Vertex AI 平台，直接返回 Vertex AI 支持的模型列表
@@ -100,6 +190,66 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: vertexAIModels } };
     }
 
+    if (isCopilotPlatform(platform)) {
+      try {
+        const response = await fetchWithOptionalProxy(
+          getCopilotModelsUrl(base_url),
+          {
+            headers: await getCopilotAuthHeaders(actualApiKey, proxy),
+          },
+          proxy
+        );
+
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(body || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = (await response.json()) as {
+          data?: Array<{ id: string; name?: string }>;
+        };
+
+        if (!Array.isArray(data.data) || data.data.length === 0) {
+          throw new Error('Invalid response format');
+        }
+
+        return {
+          success: true,
+          data: {
+            mode: data.data.map((model) => ({
+              id: model.id,
+              name: model.name || model.id,
+            })),
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+
+    if (isChatgptPlatform(platform)) {
+      try {
+        const models = await fetchChatgptModels(proxy);
+        return {
+          success: true,
+          data: {
+            mode: models.map((model) => ({
+              id: model.id,
+              name: model.name,
+            })),
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+
     // 如果是 MiniMax 平台，直接返回 MiniMax 支持的模型列表
     // MiniMax does not provide /v1/models endpoint (verified 2026-02), return hardcoded list
     // For MiniMax platform, return the supported model list directly
@@ -107,6 +257,8 @@ export function initModelBridge(): void {
       console.log('Using MiniMax model list (text models only)');
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.7',
+        'MiniMax-M2.5',
         'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
         'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
         'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
@@ -134,15 +286,19 @@ export function initModelBridge(): void {
       if (actualApiKey) {
         try {
           const probeUrl = `${base_url.replace(/\/+$/, '')}/chat/completions`;
-          const probeResponse = await fetch(probeUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
-            body: JSON.stringify({
-              model: codingPlanModels[0],
-              messages: [{ role: 'user', content: 'hi' }],
-              max_tokens: 1,
-            }),
-          });
+          const probeResponse = await fetchWithOptionalProxy(
+            probeUrl,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
+              body: JSON.stringify({
+                model: codingPlanModels[0],
+                messages: [{ role: 'user', content: 'hi' }],
+                max_tokens: 1,
+              }),
+            },
+            proxy
+          );
           if (probeResponse.status === 401) {
             const errorData = await probeResponse.json().catch(() => ({}));
             const errorMsg = errorData?.error?.message || errorData?.message || 'Invalid API key or token expired';
@@ -162,12 +318,16 @@ export function initModelBridge(): void {
       try {
         const anthropicUrl = base_url ? `${base_url}/v1/models` : 'https://api.anthropic.com/v1/models';
 
-        const response = await fetch(anthropicUrl, {
-          headers: {
-            'x-api-key': actualApiKey,
-            'anthropic-version': '2023-06-01',
+        const response = await fetchWithOptionalProxy(
+          anthropicUrl,
+          {
+            headers: {
+              'x-api-key': actualApiKey,
+              'anthropic-version': '2023-06-01',
+            },
           },
-        });
+          proxy
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -202,21 +362,29 @@ export function initModelBridge(): void {
     // new-api 暴露标准的 /v1/models 端点，直接走 OpenAI 路径
     // new-api exposes standard /v1/models endpoint, use OpenAI path directly
     if (isNewApiPlatform(platform)) {
+      // Validate API key before creating OpenAI client to avoid unhandled 'Missing credentials' error
+      if (!actualApiKey) {
+        return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+      }
+
       // 确保 base_url 带有 /v1 后缀 / Ensure base_url has /v1 suffix
       let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
       if (openaiBaseUrl && !openaiBaseUrl.endsWith('/v1')) {
         openaiBaseUrl = `${openaiBaseUrl}/v1`;
       }
 
-      const openai = new OpenAI({
-        baseURL: openaiBaseUrl,
-        apiKey: actualApiKey,
-        defaultHeaders: {
-          'User-Agent': 'AionUI/1.0',
-        },
-      });
-
       try {
+        const openai = await createOpenAIClient(
+          {
+            baseURL: openaiBaseUrl,
+            apiKey: actualApiKey,
+            defaultHeaders: {
+              'User-Agent': 'AionUI/1.0',
+            },
+          },
+          proxy
+        );
+
         const res = await openai.models.list();
         if (res.data?.length === 0) {
           throw new Error('Invalid response: empty data');
@@ -323,7 +491,7 @@ export function initModelBridge(): void {
         const geminiBaseUrl = geminiBaseUrlRaw.replace(/\/(v1beta|v1)$/, '');
         const geminiUrl = `${geminiBaseUrl}/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
 
-        const response = await fetch(geminiUrl);
+        const response = await fetchWithOptionalProxy(geminiUrl, {}, proxy);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -355,17 +523,25 @@ export function initModelBridge(): void {
       }
     }
 
-    const openai = new OpenAI({
-      baseURL: base_url,
-      apiKey: actualApiKey,
-      // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
-      // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
-      defaultHeaders: {
-        'User-Agent': 'AionUI/1.0',
-      },
-    });
+    // Validate API key before creating OpenAI client to avoid unhandled 'Missing credentials' error
+    if (!actualApiKey) {
+      return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+    }
 
     try {
+      const openai = await createOpenAIClient(
+        {
+          baseURL: base_url,
+          apiKey: actualApiKey,
+          // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
+          // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
+          defaultHeaders: {
+            'User-Agent': 'AionUI/1.0',
+          },
+        },
+        proxy
+      );
+
       const res = await openai.models.list();
       // 检查返回的数据是否有效，LM Studio 获取失败时仍会返回空数据
       // Check if response data is valid, LM Studio returns empty data on failure
@@ -398,7 +574,12 @@ export function initModelBridge(): void {
 
       // 用户输入的 URL 已经请求失败，按优先级尝试多种可能的 URL 格式
       // User's URL request failed, try multiple possible URL formats with priority
-      const url = new URL(base_url);
+      let url: URL;
+      try {
+        url = new URL(base_url);
+      } catch {
+        return { success: false, msg: `Invalid URL: ${base_url}` };
+      }
       const pathname = url.pathname.replace(/\/+$/, ''); // 移除末尾斜杠 / Remove trailing slashes
       const base = `${url.protocol}//${url.host}`;
 
@@ -528,7 +709,7 @@ export function initModelBridge(): void {
           const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
             const existing = normalizedProviders.find((item) => item.id === provider.id);
             return {
-              ...(existing || {}),
+              ...existing,
               id: provider.id,
               platform: provider.platform,
               name: provider.name,

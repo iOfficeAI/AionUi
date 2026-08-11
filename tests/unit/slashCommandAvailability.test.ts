@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSlashCommandListEnabled } from '@/common/slash/availability';
+import { isSlashCommandListEnabled } from '@/common/chat/slash/availability';
 
 describe('isSlashCommandListEnabled', () => {
   it('returns true for non-codex conversations', () => {

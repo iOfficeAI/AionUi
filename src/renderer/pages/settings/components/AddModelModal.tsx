@@ -1,11 +1,15 @@
-import type { IProvider } from '@/common/storage';
-import ModalHOC from '@/renderer/utils/ModalHOC';
+import type { IProvider } from '@/common/config/storage';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Select } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useModeModeList from '../../../hooks/useModeModeList';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS, detectNewApiProtocol } from '@/renderer/config/modelPlatforms';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
+import {
+  isNewApiPlatform,
+  NEW_API_PROTOCOL_OPTIONS,
+  detectNewApiProtocol,
+} from '@/renderer/utils/model/modelPlatforms';
 
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(
   ({ modalProps, data, onSubmit, modalCtrl }) => {
@@ -13,7 +17,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     const [model, setModel] = useState('');
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
-    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);
+    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey, data?.proxy);
     const existingModels = data?.model || [];
     const optionsList = useMemo(() => {
       // 处理新的数据格式，可能包含 fix_base_url
@@ -29,7 +33,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
       // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
       if (isNewApi) {
-        updatedData.modelProtocols = { ...(data?.modelProtocols || {}), [model]: modelProtocol };
+        updatedData.modelProtocols = { ...data?.modelProtocols, [model]: modelProtocol };
       }
 
       onSubmit(updatedData);
@@ -42,7 +46,12 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         onCancel={modalCtrl.close}
         header={{ title: t('settings.addModel'), showClose: true }}
         style={{ maxHeight: '90vh' }}
-        contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px', overflow: 'auto' }}
+        contentStyle={{
+          background: 'var(--dialog-fill-0)',
+          borderRadius: 16,
+          padding: '20px 24px',
+          overflow: 'auto',
+        }}
         onOk={handleConfirm}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}

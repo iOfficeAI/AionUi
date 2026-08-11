@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "{{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nLütfen yerel CLI aracı kimlik doğrulama durumunuzu kontrol edin",
+    "console_error": "ACP kimlik doğrulama hatası detayları:",
+    "failed_confirm": "ACP {{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nŞimdi yapılandırmak için ayarlar sayfasına gitmek ister misiniz?"
+  },
+  "sendbox": {
+    "placeholder": "{{backend}}'a mesaj gönder..."
+  },
+  "status": {
+    "agentFallback": "Ajan",
+    "connecting": "{{agent}} ajanına bağlanılıyor...",
+    "connected": "{{agent}} ajanına bağlanıldı",
+    "authenticated": "{{agent}} ile kimlik doğrulandı",
+    "session_active": "{{agent}} ile oturum aktif",
+    "error": "Bağlantı hatası",
+    "unknown": "Bilinmeyen durum"
+  },
+  "activity": {
+    "recovering": "Etkin çalışma geri yükleniyor...",
+    "waiting": "{{agent}} yanıtı bekleniyor...",
+    "thinking": "{{agent}} düşünüyor...",
+    "streaming": "{{agent}} yanıtlıyor...",
+    "permission": "İzin onayı bekleniyor...",
+    "tool": "Araç çalıştırılıyor...",
+    "toolWithName": "Araç çalıştırılıyor: {{tool}}"
+  },
+  "config": {
+    "reasoning_effort": "Akıl Yürütme Çabası",
+    "default": "Varsayılan"
+  }
+}

@@ -1,0 +1,75 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .sleep-body {
+        transform-origin: 11px 15px;
+        animation: sleep-breathe 4s ease-in-out infinite;
+      }
+      .sleeping-shadow {
+        transform-origin: 11px 17.5px;
+        animation: sleeping-shadow-pulse 4s ease-in-out infinite;
+      }
+      .sleep-z1 { animation: sleep-zzz1 5s ease-in-out infinite; animation-delay: 0s; opacity: 0; }
+      .sleep-z2 { animation: sleep-zzz2 5s ease-in-out infinite; animation-delay: 1.6s; opacity: 0; }
+      .sleep-z3 { animation: sleep-zzz3 5s ease-in-out infinite; animation-delay: 3.2s; opacity: 0; }
+      @keyframes sleep-breathe {
+        0%,100% { transform: scaleY(1) scaleX(1); }
+        40%,60% { transform: scaleY(1.14) scaleX(0.94); }
+      }
+      @keyframes sleeping-shadow-pulse {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        40%,60% { transform: scaleX(1.08); opacity: 0.28; }
+      }
+      @keyframes sleep-zzz1 {
+        0%   { opacity:0; transform: translate(14px,4px) scale(0.5); }
+        15%  { opacity:0.9; }
+        80%  { opacity:0.5; }
+        100% { opacity:0; transform: translate(18px,-4px) scale(0.9); }
+      }
+      @keyframes sleep-zzz2 {
+        0%   { opacity:0; transform: translate(16px,2px) scale(0.4); }
+        15%  { opacity:0.85; }
+        80%  { opacity:0.45; }
+        100% { opacity:0; transform: translate(21px,-6px) scale(0.8); }
+      }
+      @keyframes sleep-zzz3 {
+        0%   { opacity:0; transform: translate(12px,6px) scale(0.35); }
+        15%  { opacity:0.8; }
+        80%  { opacity:0.4; }
+        100% { opacity:0; transform: translate(16px,-2px) scale(0.7); }
+      }
+    </style>
+    <!-- pixel Z shape -->
+    <g id="sleep-pz">
+      <rect x="0" y="0" width="3" height="0.7"/>
+      <rect x="1.6" y="0.7" width="0.8" height="0.8"/>
+      <rect x="0.7" y="1.5" width="0.8" height="0.8"/>
+      <rect x="0" y="2.3" width="3" height="0.7"/>
+    </g>
+  </defs>
+  <!-- floating zzz -->
+  <use href="#sleep-pz" class="sleep-z1" fill="#8891b8"/>
+  <use href="#sleep-pz" class="sleep-z2" fill="#a0a8c8"/>
+  <use href="#sleep-pz" class="sleep-z3" fill="#c0c8e0"/>
+
+  <!-- shadow -->
+  <ellipse class="sleeping-shadow" cx="11" cy="17.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+
+  <g class="sleep-body">
+    <!-- 左手（大灰色，偏下） -->
+    <rect x="2" y="14" width="3" height="3" rx="1.5" fill="#97A0C5" fill-opacity="0.7"/>
+    <!-- 压扁的身体（宽扁椭圆） -->
+    <rect x="3" y="7" width="16" height="10" rx="5" fill="#97A0C5"/>
+    <!-- 帽子（正三角，不歪） -->
+    <path d="M14.2041 6.84961L7.7959 6.84961L11 1.2998L14.2041 6.84961Z" fill="#FF5B24" stroke="#FF5B24" stroke-width="0.3"/>
+      <rect x="10" y="3" width="1" height="1" fill="#e8714a"/>
+    <!-- 底座 -->
+    <rect x="2" y="17" width="18" height="1" rx="0.3" fill="#D9D9D9"/>
+    <!-- 右手（浅色，偏右下） -->
+    <path d="M16.3402 14.3464C17.0804 13.6028 18.2833 13.6 19.0269 14.3402C19.7705 15.0804 19.7733 16.2833 19.0331 17.0269C18.2929 17.7705 17.0901 17.7733 16.3464 17.0331C15.6028 16.2929 15.6 15.0901 16.3402 14.3464Z" fill="#B9C3EB"/>
+    <!-- 闭眼横线 -->
+    <path d="M8 11H11" stroke="black" stroke-linecap="round"/>
+    <!-- 安详微笑 -->
+    <path d="M7 13C8.85289 15.1176 12.1471 15.1176 14 13" stroke="black" stroke-linecap="round"/>
+  </g>
+</svg>

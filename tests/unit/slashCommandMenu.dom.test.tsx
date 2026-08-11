@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import SlashCommandMenu from '../../src/renderer/components/SlashCommandMenu';
+import SlashCommandMenu from '../../src/renderer/components/chat/SlashCommandMenu';
 
 describe('SlashCommandMenu', () => {
   it('renders loading text from props and exposes aria-busy', () => {

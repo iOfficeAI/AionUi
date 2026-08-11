@@ -4,13 +4,319 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/storage';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { TProviderWithModel } from '@/common/storage';
-import { resolveLocaleKey } from '@/common/utils';
-import { loadPresetAssistantResources } from '@/renderer/shared/agents/presetAssistantResources';
-import type { AvailableAgent } from '@/renderer/shared/agents/types';
-import type { AcpBackend, AcpBackendAll } from '@/types/acpTypes';
+import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
+import { normalizeCodexConfigOptions, normalizeCodexConfigOptionValues } from '@/common/types/codex/codexConfigOptions';
+import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
+import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
+import {
+  buildAgentConversationParams,
+  getConversationTypeForBackend,
+} from '@/common/utils/buildAgentConversationParams';
+import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import { getAgentModes } from '@/renderer/utils/model/agentModes';
+
+type ModePreference = {
+  preferredMode?: string;
+  yoloMode?: boolean;
+};
+
+const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
+  claude: 'bypassPermissions',
+  codex: 'yolo',
+  gemini: 'yolo',
+  iflow: 'yolo',
+  qwen: 'yolo',
+};
+
+async function resolvePreferredMode(backend: string): Promise<string | undefined> {
+  const modeOptions = getAgentModes(backend);
+  if (modeOptions.length === 0) {
+    return undefined;
+  }
+
+  let preference: ModePreference | undefined;
+
+  if (backend === 'gemini') {
+    preference = await ConfigStorage.get('gemini.config');
+  } else if (backend === 'aionrs') {
+    preference = await ConfigStorage.get('aionrs.config');
+  } else {
+    const acpConfig = await ConfigStorage.get('acp.config');
+    preference = acpConfig?.[backend as AcpBackend];
+  }
+
+  if (preference?.preferredMode && modeOptions.some((option) => option.value === preference.preferredMode)) {
+    return preference.preferredMode;
+  }
+
+  const legacyMode = LEGACY_YOLO_MODE_MAP[backend];
+  if (preference?.yoloMode && legacyMode && modeOptions.some((option) => option.value === legacyMode)) {
+    return legacyMode;
+  }
+
+  return undefined;
+}
+
+async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
+  if (backend === 'codex') {
+    return undefined;
+  }
+
+  const acpConfig = await ConfigStorage.get('acp.config');
+  const backendConfig = acpConfig?.[backend as AcpBackend] as { preferredModelId?: string } | undefined;
+  const preferredModelId = backendConfig?.preferredModelId;
+  if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
+    return preferredModelId;
+  }
+
+  const cachedModels = await ConfigStorage.get('acp.cachedModels');
+  const cachedModelId = cachedModels?.[backend]?.currentModelId;
+  if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
+    return cachedModelId;
+  }
+
+  return undefined;
+}
+
+type AcpConfigSelection = {
+  cachedConfigOptions?: AcpSessionConfigOption[];
+  configOptionValues?: Record<string, string>;
+};
+
+type ConversationAcpConfigExtra = {
+  workspace?: string;
+  backend?: string;
+  configOptionValues?: Record<string, string>;
+  cachedConfigOptions?: AcpSessionConfigOption[];
+};
+
+type ConversationAionrsConfigExtra = {
+  workspace?: string;
+  sessionMode?: string;
+  reasoningEffort?: string;
+};
+
+function isDetectedAgentKind(kind: unknown): kind is DetectedAgentKind {
+  return (
+    kind === 'gemini' ||
+    kind === 'acp' ||
+    kind === 'remote' ||
+    kind === 'aionrs' ||
+    kind === 'openclaw-gateway' ||
+    kind === 'nanobot' ||
+    kind === 'codex'
+  );
+}
+
+function getConversationAcpBackend(conversation: TChatConversation): string | undefined {
+  if (conversation.type === 'codex') {
+    return 'codex';
+  }
+  if (conversation.type !== 'acp') {
+    return undefined;
+  }
+  const extra = conversation.extra as ConversationAcpConfigExtra | undefined;
+  return extra?.backend;
+}
+
+function cloneConfigOptions(options: AcpSessionConfigOption[]): AcpSessionConfigOption[] {
+  return options.map((option) => ({
+    ...option,
+    options: option.options?.map((choice) => ({ ...choice })),
+  }));
+}
+
+function extractConfigOptionValues(options?: AcpSessionConfigOption[]): Record<string, string> {
+  if (!Array.isArray(options)) {
+    return {};
+  }
+  return options.reduce<Record<string, string>>((acc, option) => {
+    const value = option.currentValue ?? option.selectedValue;
+    if (option.id && value !== undefined && value !== null) {
+      acc[option.id] = String(value);
+    }
+    return acc;
+  }, {});
+}
+
+export function applyWorkspaceConversationConfigDefaults(
+  params: ICreateConversationParams,
+  sourceConversation: TChatConversation | null | undefined,
+  backend: string
+): ICreateConversationParams {
+  if (!sourceConversation) {
+    return params;
+  }
+
+  if (params.type === 'aionrs') {
+    if (backend !== 'aionrs' || sourceConversation.type !== 'aionrs') {
+      return params;
+    }
+
+    const sourceExtra = sourceConversation.extra as ConversationAionrsConfigExtra | undefined;
+    const targetWorkspace = params.extra?.workspace;
+    if (!targetWorkspace || sourceExtra?.workspace !== targetWorkspace) {
+      return params;
+    }
+
+    if (!sourceExtra.sessionMode && !sourceExtra.reasoningEffort) {
+      return params;
+    }
+
+    return {
+      ...params,
+      extra: {
+        ...params.extra,
+        ...(sourceExtra.sessionMode ? { sessionMode: sourceExtra.sessionMode } : {}),
+        ...(sourceExtra.reasoningEffort ? { reasoningEffort: sourceExtra.reasoningEffort } : {}),
+      },
+    };
+  }
+
+  if (params.type !== 'acp' && params.type !== 'codex') {
+    return params;
+  }
+
+  const sourceExtra = sourceConversation.extra as ConversationAcpConfigExtra | undefined;
+  const targetWorkspace = params.extra?.workspace;
+  if (!targetWorkspace || sourceExtra?.workspace !== targetWorkspace) {
+    return params;
+  }
+
+  if (getConversationAcpBackend(sourceConversation) !== backend) {
+    return params;
+  }
+
+  const cachedConfigOptions = Array.isArray(sourceExtra.cachedConfigOptions)
+    ? cloneConfigOptions(sourceExtra.cachedConfigOptions)
+    : undefined;
+  const configOptionValues = {
+    ...sourceExtra.configOptionValues,
+    ...extractConfigOptionValues(cachedConfigOptions),
+  };
+  const hasConfigOptionValues = Object.keys(configOptionValues).length > 0;
+
+  if (!cachedConfigOptions?.length && !hasConfigOptionValues) {
+    return params;
+  }
+
+  return {
+    ...params,
+    extra: {
+      ...params.extra,
+      ...(cachedConfigOptions?.length ? { cachedConfigOptions } : {}),
+      ...(hasConfigOptionValues ? { configOptionValues } : {}),
+      pendingConfigOptions: undefined,
+    },
+  };
+}
+
+async function resolvePreferredAcpConfigSelection(backend: string): Promise<AcpConfigSelection> {
+  const [acpConfig, cachedConfigOptions] = await Promise.all([
+    ConfigStorage.get('acp.config'),
+    ConfigStorage.get('acp.cachedConfigOptions'),
+  ]);
+  const preferredConfigOptions = acpConfig?.[backend as AcpBackend]?.preferredConfigOptions;
+  const normalizedPreferredConfigOptions =
+    backend === 'codex' ? normalizeCodexConfigOptionValues(preferredConfigOptions) : preferredConfigOptions;
+  const cachedOptions = cachedConfigOptions?.[backend as AcpBackend];
+  const normalizedCachedOptions =
+    backend === 'codex' && Array.isArray(cachedOptions) ? normalizeCodexConfigOptions(cachedOptions) : cachedOptions;
+
+  const nextCachedConfigOptions =
+    Array.isArray(normalizedCachedOptions) && normalizedCachedOptions.length > 0
+      ? Object.keys(normalizedPreferredConfigOptions || {}).length > 0
+        ? normalizedCachedOptions.map((option) => {
+            const nextValue = normalizedPreferredConfigOptions?.[option.id];
+            return nextValue ? { ...option, currentValue: nextValue, selectedValue: nextValue } : option;
+          })
+        : normalizedCachedOptions
+      : undefined;
+
+  return {
+    cachedConfigOptions: nextCachedConfigOptions,
+    configOptionValues:
+      normalizedPreferredConfigOptions && Object.keys(normalizedPreferredConfigOptions).length > 0
+        ? normalizedPreferredConfigOptions
+        : undefined,
+  };
+}
+
+async function resolvePreferredAionrsConfigSelection(): Promise<Partial<ICreateConversationParams['extra']>> {
+  const config = await ConfigStorage.get('aionrs.config');
+  const reasoningEffort = config?.preferredConfigOptions?.reasoning_effort;
+  return reasoningEffort ? { reasoningEffort } : {};
+}
+
+async function resolveDetectedAgentForBackend(
+  backend: string
+): Promise<Pick<AvailableAgent, 'kind' | 'cliPath'> | undefined> {
+  try {
+    const response = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    if (!response.success) {
+      return undefined;
+    }
+    const agent = response.data?.find((item) => item.backend === backend);
+    if (!agent) {
+      return undefined;
+    }
+    return {
+      kind: isDetectedAgentKind(agent.kind) ? agent.kind : undefined,
+      cliPath: agent.cliPath,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Get a model from configured providers that is compatible with aionrs.
+ * aionrs supports all platforms via OpenAI-compatible protocol.
+ * Throws if no compatible provider is configured.
+ */
+export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
+  const providers = await ipcBridge.mode.getModelConfig.invoke();
+  const savedModel = await ConfigStorage.get('aionrs.defaultModel');
+
+  if (!providers || providers.length === 0) {
+    throw new Error('No model provider configured');
+  }
+
+  let provider = providers.find((p) => p.enabled !== false && savedModel?.id === p.id);
+  if (!provider) {
+    provider = providers.find((p) => p.enabled !== false);
+  }
+  if (!provider) {
+    throw new Error('No enabled model provider for Aion CLI');
+  }
+
+  const savedUseModel = savedModel?.id === provider.id ? savedModel.useModel : undefined;
+  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const useModel = resolveAvailableModel(savedUseModel, provider.model) || enabledModel || provider.model[0];
+
+  return {
+    id: provider.id,
+    platform: provider.platform,
+    name: provider.name,
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKey,
+    proxy: provider.proxy,
+    requestIntervalMs: provider.requestIntervalMs,
+    useModel,
+    capabilities: provider.capabilities,
+    contextLimit: provider.contextLimit,
+    modelProtocols: provider.modelProtocols,
+    bedrockConfig: provider.bedrockConfig,
+    enabled: provider.enabled,
+    modelEnabled: provider.modelEnabled,
+    modelHealth: provider.modelHealth,
+  };
+}
 
 /**
  * Get the default Gemini model configuration from user settings.
@@ -18,7 +324,7 @@ import type { AcpBackend, AcpBackendAll } from '@/types/acpTypes';
  * [BUG-3 fix]: callers must call this inside a try block
  */
 export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
+  const providers = await ipcBridge.mode.getModelConfig.invoke();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
@@ -37,6 +343,8 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     name: enabledProvider.name,
     baseUrl: enabledProvider.baseUrl,
     apiKey: enabledProvider.apiKey,
+    proxy: enabledProvider.proxy,
+    requestIntervalMs: enabledProvider.requestIntervalMs,
     useModel: enabledModel || enabledProvider.model[0],
     capabilities: enabledProvider.capabilities,
     contextLimit: enabledProvider.contextLimit,
@@ -49,36 +357,22 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
 }
 
 /**
- * Determine the conversation type from a CLI agent's backend.
- * codex uses ACP path (type: 'acp' + extra.backend = 'codex').
+ * Resolve the Gemini model to use, falling back to a placeholder for Google Auth if needed.
  */
-export function getConversationTypeForBackend(backend: string): ICreateConversationParams['type'] {
-  switch (backend) {
-    case 'gemini':
-      return 'gemini';
-    case 'openclaw-gateway':
-    case 'openclaw':
-      return 'openclaw-gateway';
-    case 'nanobot':
-      return 'nanobot';
-    default:
-      // claude, qwen, codex, iflow, goose, auggie, kimi, opencode, copilot, qoder, codebuddy, droid, vibe, etc.
-      // Note: codex now uses ACP path; legacy 'codex' type is not used for new conversations.
-      return 'acp';
+async function resolveGeminiModel(): Promise<TProviderWithModel> {
+  try {
+    return await getDefaultGeminiModel();
+  } catch (e) {
+    // Fallback to placeholder if no model configured (supports Google Auth users)
+    return {
+      id: 'gemini-placeholder',
+      name: 'Gemini',
+      useModel: 'default',
+      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
+      baseUrl: '',
+      apiKey: '',
+    };
   }
-}
-
-/**
- * Determine the conversation type from a preset assistant's presetAgentType.
- * ACP-routed types include claude, codebuddy, opencode, qwen, codex.
- */
-export function getConversationTypeForPreset(presetAgentType: string): ICreateConversationParams['type'] {
-  const ACP_ROUTED_TYPES = ['claude', 'codebuddy', 'opencode', 'qwen', 'codex'];
-  if (ACP_ROUTED_TYPES.includes(presetAgentType)) {
-    return 'acp';
-  }
-  // Default: gemini
-  return 'gemini';
 }
 
 /**
@@ -90,37 +384,36 @@ export async function buildCliAgentParams(
   agent: AvailableAgent,
   workspace: string
 ): Promise<ICreateConversationParams> {
-  const { backend, name: agentName, cliPath } = agent;
+  const type = getConversationTypeForBackend(agent.backend, agent.kind);
+  const preferredMode = await resolvePreferredMode(agent.backend);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
+  const preferredAcpConfigSelection =
+    type === 'acp' ? await resolvePreferredAcpConfigSelection(agent.backend) : undefined;
+  const preferredAionrsConfigSelection = type === 'aionrs' ? await resolvePreferredAionrsConfigSelection() : undefined;
 
-  const type = getConversationTypeForBackend(backend);
-
-  const extra: ICreateConversationParams['extra'] = {
-    workspace,
-    customWorkspace: true,
-  };
-
-  if (type === 'acp' || type === 'openclaw-gateway') {
-    extra.backend = backend as AcpBackendAll;
-    extra.agentName = agentName;
-    if (cliPath) extra.cliPath = cliPath;
+  let model: TProviderWithModel;
+  if (type === 'gemini') {
+    model = await resolveGeminiModel();
+  } else if (type === 'aionrs') {
+    // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
+    model = await getDefaultAionrsModel();
+  } else {
+    model = {} as TProviderWithModel;
   }
 
-  // Gemini type uses a placeholder model (matching Guid page behavior in useGuidSend).
-  // The Guid page uses currentModel || placeholderModel, so Gemini does NOT require
-  // a configured model provider - it works with Google auth instead.
-  const model: TProviderWithModel =
-    type === 'gemini'
-      ? {
-          id: 'gemini-placeholder',
-          name: 'Gemini',
-          useModel: 'default',
-          platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-          baseUrl: '',
-          apiKey: '',
-        }
-      : ({} as TProviderWithModel);
-
-  return { type, model, name: agentName, extra };
+  return buildAgentConversationParams({
+    backend: agent.backend,
+    agentKind: agent.kind,
+    name: agent.name,
+    agentName: agent.name,
+    workspace,
+    cliPath: agent.cliPath,
+    customAgentId: agent.customAgentId,
+    model,
+    sessionMode: preferredMode,
+    currentModelId: preferredAcpModelId,
+    extra: preferredAionrsConfigSelection || preferredAcpConfigSelection,
+  });
 }
 
 /**
@@ -135,6 +428,9 @@ export async function buildPresetAssistantParams(
   language: string
 ): Promise<ICreateConversationParams> {
   const { customAgentId, presetAgentType = 'gemini' } = agent;
+  const detectedAgent = agent.kind ? undefined : await resolveDetectedAgentForBackend(presetAgentType);
+  const agentKind = agent.kind || detectedAgent?.kind;
+  const cliPath = agent.cliPath || detectedAgent?.cliPath;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
@@ -144,27 +440,30 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const type = getConversationTypeForPreset(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType, agentKind);
+  const preferredMode = await resolvePreferredMode(presetAgentType);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
+  const preferredAcpConfigSelection =
+    type === 'acp' ? await resolvePreferredAcpConfigSelection(presetAgentType) : undefined;
+  const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
-  const extra: ICreateConversationParams['extra'] = {
+  return buildAgentConversationParams({
+    backend: agent.backend,
+    agentKind,
+    name: agent.name,
+    agentName: agent.name,
     workspace,
-    customWorkspace: true,
-    enabledSkills,
-    presetAssistantId: customAgentId,
-  };
-
-  if (type === 'gemini') {
-    // gemini uses presetRules field
-    extra.presetRules = presetContext;
-  } else {
-    // acp uses presetContext field
-    extra.presetContext = presetContext;
-    if (type === 'acp') {
-      extra.backend = presetAgentType as AcpBackend;
-    }
-  }
-
-  const model = type === 'gemini' ? await getDefaultGeminiModel() : ({} as TProviderWithModel);
-
-  return { type, model, name: agent.name, extra };
+    cliPath,
+    customAgentId,
+    isPreset: true,
+    presetAgentType,
+    presetResources: {
+      rules: presetContext,
+      enabledSkills,
+    },
+    model,
+    sessionMode: preferredMode,
+    currentModelId: preferredAcpModelId,
+    extra: preferredAcpConfigSelection,
+  });
 }

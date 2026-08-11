@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ConfigStorage } from '@/common/storage';
-import { acpConversation, mcpService } from '@/common/ipcBridge';
-import type { IMcpServer } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
+import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import type { IMcpServer } from '@/common/config/storage';
 
 /**
  * MCP Agent安装状态管理Hook
@@ -72,11 +72,11 @@ export const useMcpAgentStatus = () => {
       });
 
       // 在保存检测结果前，过滤掉已被禁用的服务器，防止覆盖用户的删除操作
-      const currentEnabledServers = servers.filter((s) => s.enabled).map((s) => s.name);
+      const currentEnabledServers = new Set(servers.filter((s) => s.enabled).map((s) => s.name));
       const filteredInstallStatus: Record<string, string[]> = {};
 
       for (const [serverName, agents] of Object.entries(installStatus)) {
-        if (currentEnabledServers.includes(serverName)) {
+        if (currentEnabledServers.has(serverName)) {
           filteredInstallStatus[serverName] = agents;
         }
       }

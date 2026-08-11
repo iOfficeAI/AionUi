@@ -205,4 +205,59 @@ describe('CallbackService.sendCallback', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[1]?.body).toContain('"message":"legacy-string"');
   });
+
+  it('treats JSON errcode responses as callback failures even when HTTP status is 200', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: {
+        get: vi.fn(() => 'application/json'),
+      },
+      text: vi.fn(async () => '{"errcode":40008,"errmsg":"invalid message type"}'),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await CallbackService.sendCallback(
+      {
+        ...baseConfig,
+        jsFilterEnabled: false,
+      },
+      {
+        sessionId: 'session-1',
+      }
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Callback API rejected request with errcode 40008: invalid message type',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes response body details when the callback endpoint returns a non-2xx status', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      text: vi.fn(async () => '{"code":19024,"msg":"Key Words Not Found"}'),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await CallbackService.sendCallback(
+      {
+        ...baseConfig,
+        jsFilterEnabled: false,
+      },
+      {
+        sessionId: 'session-1',
+      }
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: 'HTTP 400: Bad Request - code 19024: Key Words Not Found',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

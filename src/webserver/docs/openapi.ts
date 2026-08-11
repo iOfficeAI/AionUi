@@ -58,7 +58,8 @@ export function buildOpenApiSpec(): Record<string, any> {
             },
             model: {
               type: 'object',
-              description: 'Model object used by AionUi. Required for gemini conversations; optional for ACP/CLI-based conversations.',
+              description:
+                'Model object used by AionUi. Required for gemini conversations; optional for ACP/CLI-based conversations.',
               additionalProperties: true,
               example: {
                 id: 'default-provider',
@@ -106,7 +107,7 @@ export function buildOpenApiSpec(): Record<string, any> {
                 type: 'string',
               },
               example: {
-                model_reasoning_effort: 'high',
+                reasoning_effort: 'high',
               },
             },
             codexModel: {
@@ -167,7 +168,15 @@ export function buildOpenApiSpec(): Record<string, any> {
             },
             state: {
               type: 'string',
-              enum: ['ai_generating', 'ai_waiting_input', 'ai_waiting_confirmation', 'initializing', 'stopped', 'error', 'unknown'],
+              enum: [
+                'ai_generating',
+                'ai_waiting_input',
+                'ai_waiting_confirmation',
+                'initializing',
+                'stopped',
+                'error',
+                'unknown',
+              ],
               example: 'ai_generating',
               description: 'Detailed runtime state',
             },
@@ -182,7 +191,8 @@ export function buildOpenApiSpec(): Record<string, any> {
             isWorking: {
               type: 'boolean',
               example: true,
-              description: 'Whether the model is still actively working, excluding waiting-for-confirmation and idle states.',
+              description:
+                'Whether the model is still actively working, excluding waiting-for-confirmation and idle states.',
             },
             runtime: {
               type: 'object',
@@ -215,7 +225,11 @@ export function buildOpenApiSpec(): Record<string, any> {
                   conversationId: { type: 'string', example: 'conv_1741000000000' },
                   name: { type: 'string', example: 'Daily coding session' },
                   type: { type: 'string', example: 'codex' },
-                  cli: { type: 'string', example: 'qwen', description: 'ACP backend/CLI type when the conversation type is `acp`.' },
+                  cli: {
+                    type: 'string',
+                    example: 'qwen',
+                    description: 'ACP backend/CLI type when the conversation type is `acp`.',
+                  },
                   source: { type: 'string', example: 'api' },
                   status: {
                     type: 'string',
@@ -224,7 +238,15 @@ export function buildOpenApiSpec(): Record<string, any> {
                   },
                   state: {
                     type: 'string',
-                    enum: ['ai_generating', 'ai_waiting_input', 'ai_waiting_confirmation', 'initializing', 'stopped', 'error', 'unknown'],
+                    enum: [
+                      'ai_generating',
+                      'ai_waiting_input',
+                      'ai_waiting_confirmation',
+                      'initializing',
+                      'stopped',
+                      'error',
+                      'unknown',
+                    ],
                     example: 'ai_generating',
                   },
                   category: {
@@ -250,7 +272,18 @@ export function buildOpenApiSpec(): Record<string, any> {
                   updatedAt: { type: 'integer', example: 1741000001000 },
                   createdAt: { type: 'integer', example: 1741000000000 },
                 },
-                required: ['sessionId', 'conversationId', 'type', 'status', 'state', 'category', 'detail', 'canSendMessage', 'isWorking', 'runtime'],
+                required: [
+                  'sessionId',
+                  'conversationId',
+                  'type',
+                  'status',
+                  'state',
+                  'category',
+                  'detail',
+                  'canSendMessage',
+                  'isWorking',
+                  'runtime',
+                ],
               },
             },
           },
@@ -292,7 +325,20 @@ export function buildOpenApiSpec(): Record<string, any> {
             createdAt: { type: 'integer', example: 1741000001000 },
             updatedAt: { type: 'integer', example: 1741000001000 },
           },
-          required: ['id', 'conversationId', 'backend', 'replyIndex', 'inputTokens', 'outputTokens', 'cachedReadTokens', 'cachedWriteTokens', 'thoughtTokens', 'totalTokens', 'createdAt', 'updatedAt'],
+          required: [
+            'id',
+            'conversationId',
+            'backend',
+            'replyIndex',
+            'inputTokens',
+            'outputTokens',
+            'cachedReadTokens',
+            'cachedWriteTokens',
+            'thoughtTokens',
+            'totalTokens',
+            'createdAt',
+            'updatedAt',
+          ],
         },
         ConversationTokenUsageSummary: {
           type: 'object',
@@ -384,7 +430,18 @@ export function buildOpenApiSpec(): Record<string, any> {
             pageSize: { type: 'integer', example: 50 },
             hasMore: { type: 'boolean', example: false },
           },
-          required: ['success', 'sessionId', 'conversationType', 'range', 'summary', 'replies', 'total', 'page', 'pageSize', 'hasMore'],
+          required: [
+            'success',
+            'sessionId',
+            'conversationType',
+            'range',
+            'summary',
+            'replies',
+            'total',
+            'page',
+            'pageSize',
+            'hasMore',
+          ],
         },
         ConversationUsageSummaryListResponse: {
           type: 'object',
@@ -487,8 +544,14 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            400: {
+              description: 'Bad request',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
+            401: {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -514,7 +577,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            404: { description: 'Conversation not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: {
+              description: 'Conversation not found',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -530,7 +596,7 @@ export function buildOpenApiSpec(): Record<string, any> {
               required: false,
               schema: { type: 'string', enum: ['generating', 'waiting', 'stopped', 'error', 'active', 'all'] },
               description:
-                'Filter preset. `generating` returns sessions actively working; `waiting` returns sessions waiting for input or confirmation; `stopped` returns explicitly stopped sessions; `error` returns sessions whose last response ended in error; `active` returns runtime-alive sessions; `all` disables preset filtering. When `status` or `state` is provided without `scope`, the API uses `all` so explicit status filters are not pre-filtered away.',
+                'Filter preset. `generating` returns sessions actively working; `waiting` returns sessions waiting for input or confirmation; `stopped` returns explicitly stopped sessions; `error` returns sessions whose last response ended in error; `active` returns sessions whose CLI/runtime task is still attached, even when they are idle and waiting for the next message; `all` disables preset filtering. When `status` or `state` is provided without `scope`, the API uses `all` so explicit status filters are not pre-filtered away.',
             },
             {
               name: 'status',
@@ -584,7 +650,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            401: {
+              description: 'Unauthorized',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -657,7 +726,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            409: { description: 'AI busy', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            409: {
+              description: 'AI busy',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -746,7 +818,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            404: { description: 'Conversation not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: {
+              description: 'Conversation not found',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -787,7 +862,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            400: {
+              description: 'Bad request',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },
@@ -821,7 +899,10 @@ export function buildOpenApiSpec(): Record<string, any> {
                 },
               },
             },
-            400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            400: {
+              description: 'Bad request',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } },
+            },
           },
         },
       },

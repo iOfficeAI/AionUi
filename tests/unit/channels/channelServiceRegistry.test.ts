@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { ChannelServiceRegistry } from '@/channels/core/ChannelServiceRegistry';
+import { ChannelServiceRegistry } from '@process/channels/core/ChannelServiceRegistry';
 
 describe('ChannelServiceRegistry', () => {
   it('resolves services with channel-first priority by default', () => {

@@ -6,7 +6,7 @@
 
 // src/process/task/IAgentEventEmitter.ts
 
-import type { IConfirmation } from '@/common/chatLib';
+import type { IConfirmation } from '@/common/chat/chatLib';
 
 /** Discriminated union of all events an agent can emit to the renderer */
 export type AgentMessageEvent =

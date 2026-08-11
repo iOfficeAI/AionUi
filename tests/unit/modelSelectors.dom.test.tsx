@@ -7,7 +7,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import AcpModelSelector from '../../src/renderer/components/AcpModelSelector';
+import AcpModelSelector from '../../src/renderer/components/agent/AcpModelSelector';
 import GuidAcpConfigSelector from '../../src/renderer/pages/guid/components/GuidAcpConfigSelector';
 import GuidModelSelector from '../../src/renderer/pages/guid/components/GuidModelSelector';
 
@@ -32,7 +32,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/common/storage', () => ({
+vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
     get: vi.fn().mockResolvedValue({}),
   },
@@ -44,19 +44,19 @@ vi.mock('@/renderer/context/LayoutContext', () => ({
   }),
 }));
 
-vi.mock('@/renderer/pages/conversation/preview', () => ({
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({
     isOpen: false,
   }),
 }));
 
-vi.mock('@/renderer/theme/colors', () => ({
+vi.mock('@/renderer/styles/colors', () => ({
   iconColors: {
     secondary: '#999999',
   },
 }));
 
-vi.mock('@/renderer/utils/agentUiDisplay', () => ({
+vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getModelDisplayLabel: ({ selectedLabel, fallbackLabel }: { selectedLabel?: string; fallbackLabel: string }) =>
     selectedLabel || fallbackLabel,
 }));
@@ -248,9 +248,10 @@ describe('model selector popup safety', () => {
             type: 'select',
             currentValue: 'medium',
             options: [
+              { value: 'low', name: 'Low' },
               { value: 'medium', name: 'Medium' },
               { value: 'high', name: 'High' },
-              { value: 'xhigh', name: 'Maximum' },
+              { value: 'xhigh', name: 'Xhigh' },
             ],
           },
         ]}
@@ -260,5 +261,32 @@ describe('model selector popup safety', () => {
     );
 
     expect(screen.getByRole('button')).toHaveTextContent('High');
+  });
+
+  it('renders Guid ACP config selector for aionrs ChatGPT reasoning levels', () => {
+    render(
+      <GuidAcpConfigSelector
+        backend='aionrs'
+        configOptions={[
+          {
+            id: 'reasoning_effort',
+            name: 'Reasoning effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'medium',
+            options: [
+              { value: 'low', name: 'Low' },
+              { value: 'medium', name: 'Medium' },
+              { value: 'high', name: 'High' },
+              { value: 'xhigh', name: 'Xhigh' },
+            ],
+          },
+        ]}
+        selectedValues={{ reasoning_effort: 'xhigh' }}
+        onSelectOption={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button')).toHaveTextContent('Xhigh');
   });
 });

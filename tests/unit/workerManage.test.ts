@@ -13,30 +13,35 @@ const forgetSession = vi.fn();
 const workerTaskManagerGetTask = vi.fn();
 const workerTaskManagerGetOrBuildTask = vi.fn();
 
-vi.mock('../../src/process/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessChat: {
     get: vi.fn(async () => []),
   },
 }));
 
-vi.mock('../../src/process/database/export', () => ({
-  getDatabase: vi.fn(() => ({
+vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(() =>
+    Promise.resolve({
+      getConversation,
+    })
+  ),
+  getDatabaseSync: vi.fn(() => ({
     getConversation,
   })),
 }));
 
-vi.mock('../../src/process/message', () => ({
+vi.mock('@process/utils/message', () => ({
   releaseConversationMessageCache,
 }));
 
-vi.mock('../../src/process/services/cron/CronBusyGuard', () => ({
+vi.mock('@process/services/cron/CronBusyGuard', () => ({
   cronBusyGuard: {
     isProcessing: vi.fn(() => false),
     remove: removeBusyState,
   },
 }));
 
-vi.mock('../../src/process/services/ConversationTurnCompletionService', () => ({
+vi.mock('@process/services/ConversationTurnCompletionService', () => ({
   ConversationTurnCompletionService: {
     getInstance: () => ({
       forgetSession,
@@ -44,31 +49,31 @@ vi.mock('../../src/process/services/ConversationTurnCompletionService', () => ({
   },
 }));
 
-vi.mock('../../src/process/task/workerTaskManagerSingleton', () => ({
+vi.mock('@process/task/workerTaskManagerSingleton', () => ({
   workerTaskManager: {
     getTask: workerTaskManagerGetTask,
     getOrBuildTask: workerTaskManagerGetOrBuildTask,
   },
 }));
 
-vi.mock('../../src/process/task/AcpAgentManager', () => ({
+vi.mock('@process/task/AcpAgentManager', () => ({
   default: class AcpAgentManager {},
 }));
 
-vi.mock('../../src/process/task/GeminiAgentManager', () => ({
+vi.mock('@process/task/GeminiAgentManager', () => ({
   GeminiAgentManager: class GeminiAgentManager {},
 }));
 
-vi.mock('../../src/process/task/NanoBotAgentManager', () => ({
+vi.mock('@process/task/NanoBotAgentManager', () => ({
   default: class NanoBotAgentManager {},
 }));
 
-vi.mock('../../src/process/task/OpenClawAgentManager', () => ({
+vi.mock('@process/task/OpenClawAgentManager', () => ({
   default: class OpenClawAgentManager {},
 }));
 
-vi.mock('../../src/agent/codex', () => ({
-  CodexAgentManager: class CodexAgentManager {},
+vi.mock('@process/task/CodexAgentManager', () => ({
+  default: class CodexAgentManager {},
 }));
 
 describe('WorkerManage.kill', () => {

@@ -1,0 +1,29 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .drag-all { transform-origin:11px 13px; animation:drag-stretch .4s ease-in-out infinite alternate; }
+    .drag-hat { transform-origin:12px 5px; animation:drag-hat-wobble .35s ease-in-out infinite alternate; }
+    .drag-shadow { transform-origin:11px 22px; animation:drag-shadow .4s ease-in-out infinite alternate; }
+    @keyframes drag-stretch { from{transform:translateY(-2px) scaleY(1.12) scaleX(.92)} to{transform:translateY(1px) scaleY(.9) scaleX(1.05)} }
+    @keyframes drag-hat-wobble { from{transform:rotate(-18deg) translateY(-2px)} to{transform:rotate(5deg) translateY(0)} }
+    @keyframes drag-shadow { from{transform:scaleX(.5);opacity:.12} to{transform:scaleX(1.15);opacity:.3} }
+  </style></defs>
+  <ellipse class="drag-shadow" cx="11" cy="22" rx="5" ry="0.6" fill="#c0c0c0"/>
+  <g class="drag-all">
+    <!-- 左手（小，偏下） -->
+    <rect x="2" y="13" width="3" height="3" rx="1.5" fill="#BECAFF"/>
+    <!-- 身体（稍长） -->
+    <rect x="5" y="7" width="12" height="13" rx="6" fill="#97A0C5"/>
+    <!-- 帽子（歪到右上，快掉的感觉） -->
+    <g class="drag-hat">
+      <path d="M14.5148 7.50564L8.32217 5.85753L12.8458 1.31847L14.5148 7.50564Z" fill="#FF5B24" stroke="#FF5B24" stroke-width="0.3"/>
+      <rect x="11" y="4" width="1" height="1" fill="#e8714a"/>
+    </g>
+    <!-- >< 箭头眼（折线样式，参照设计稿） -->
+    <!-- > 右箭头 -->
+    <path d="M13.7 13.5L12 12.3L13.7 11" stroke="black" stroke-width="0.7" stroke-linecap="round" fill="none"/>
+    <!-- < 左箭头 -->
+    <path d="M8 11L9.7 12.3L8 13.5" stroke="black" stroke-width="0.7" stroke-linecap="round" fill="none"/>
+    <!-- 右手（大圆，右侧） -->
+    <path d="M16.0582 10.0631C16.6426 9.47597 17.5924 9.47377 18.1795 10.0582C18.7667 10.6426 18.7689 11.5924 18.1844 12.1795C17.6 12.7667 16.6502 12.7689 16.0631 12.1844C15.476 11.6 15.4738 10.6502 16.0582 10.0631Z" fill="#BECAFF"/>
+  </g>
+</svg>

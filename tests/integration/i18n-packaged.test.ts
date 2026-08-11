@@ -123,7 +123,9 @@ describe('Packaged i18n build integrity', () => {
   }
 
   const appAsarPath = resolvedEnvAsar || resolveDefaultAppAsarPath();
-  const runOrSkip = appAsarPath ? it : it.skip;
+  const rendererDir = path.resolve(__dirname, '../../out/renderer');
+  const hasRendererDir = fs.existsSync(rendererDir);
+  const runOrSkip = appAsarPath && hasRendererDir ? it : it.skip;
 
   runOrSkip('should include all renderer build files in app.asar', () => {
     const expectedFiles = getExpectedRendererFiles();

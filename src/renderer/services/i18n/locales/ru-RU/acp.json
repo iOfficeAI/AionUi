@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "Ошибка аутентификации {{backend}}:\n\n{{error}}\n\nПроверьте статус аутентификации локального CLI-инструмента",
+    "console_error": "Детали ошибки аутентификации ACP:",
+    "failed_confirm": "Ошибка аутентификации ACP {{backend}}:\n\n{{error}}\n\nПерейти на страницу настроек для конфигурации?"
+  },
+  "sendbox": {
+    "placeholder": "Отправить сообщение {{backend}}..."
+  },
+  "status": {
+    "agentFallback": "Агент",
+    "connecting": "Подключение к {{agent}}...",
+    "connected": "Подключено к {{agent}}",
+    "authenticated": "Аутентифицировано с {{agent}}",
+    "session_active": "Активная сессия с {{agent}}",
+    "error": "Ошибка подключения",
+    "unknown": "Неизвестный статус"
+  },
+  "activity": {
+    "recovering": "Восстановление активного запуска...",
+    "waiting": "Ожидание ответа {{agent}}...",
+    "thinking": "{{agent}} размышляет...",
+    "streaming": "{{agent}} отвечает...",
+    "permission": "Ожидание подтверждения разрешения...",
+    "tool": "Выполняется инструмент...",
+    "toolWithName": "Выполняется инструмент: {{tool}}"
+  },
+  "config": {
+    "reasoning_effort": "Усилия на рассуждение",
+    "default": "По умолчанию"
+  }
+}

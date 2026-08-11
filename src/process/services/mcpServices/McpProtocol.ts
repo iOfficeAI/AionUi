@@ -4,22 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
-import { promises as fs } from 'fs';
-import { safeExec } from '@process/utils/safeExec';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { JSONRPC_VERSION } from '@/types/acpTypes';
-import type { IMcpServer } from '@/common/storage';
+import { getPlatformServices } from '@/common/platform';
+import { safeExec, safeExecFile } from '@process/utils/safeExec';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
+import { JSONRPC_VERSION } from '@/common/types/acpTypes';
+import type { IMcpServer } from '@/common/config/storage';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { getEnhancedEnv, getNpxCacheDir, resolveNpxPath } from '@/process/utils/shellEnv';
+import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
  */
-export type McpSource = AcpBackendAll | 'aionui';
+export type McpSource = AcpBackendAll | 'gemini' | 'aionui' | 'aionrs';
 
 /**
  * MCP操作结果接口
@@ -34,7 +33,7 @@ export interface McpOperationResult {
  */
 export interface McpConnectionTestResult {
   success: boolean;
-  tools?: Array<{ name: string; description?: string }>;
+  tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
   error?: string;
   needsAuth?: boolean; // 是否需要 OAuth 认证
   authMethod?: 'oauth' | 'basic'; // 认证方法
@@ -77,14 +76,14 @@ export interface IMcpProtocol {
    * @param mcpServers 要安装的MCP服务器列表
    * @returns 操作结果
    */
-  installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult>;
+  installMcpServers(mcpServers: IMcpServer[], cliPath?: string): Promise<McpOperationResult>;
 
   /**
    * 从agent删除MCP服务器
    * @param mcpServerName 要删除的MCP服务器名称
    * @returns 操作结果
    */
-  removeMcpServer(mcpServerName: string): Promise<McpOperationResult>;
+  removeMcpServer(mcpServerName: string, cliPath?: string): Promise<McpOperationResult>;
 
   /**
    * 测试MCP服务器连接
@@ -145,14 +144,41 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
   abstract detectMcpServers(cliPath?: string): Promise<IMcpServer[]>;
 
-  abstract installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult>;
+  abstract installMcpServers(mcpServers: IMcpServer[], cliPath?: string): Promise<McpOperationResult>;
 
-  abstract removeMcpServer(mcpServerName: string): Promise<McpOperationResult>;
+  abstract removeMcpServer(mcpServerName: string, cliPath?: string): Promise<McpOperationResult>;
 
   abstract getSupportedTransports(): string[];
 
   getBackendType(): McpSource {
     return this.backend;
+  }
+
+  protected execCli(
+    cliPath: string | undefined,
+    fallbackCommand: string,
+    args: string[],
+    options: {
+      timeout?: number;
+      env?: NodeJS.ProcessEnv;
+    } = {}
+  ): Promise<{ stdout: string; stderr: string }> {
+    const resolvedCliPath = cliPath?.trim() || fallbackCommand;
+
+    if (process.platform !== 'win32') {
+      return safeExecFile(resolvedCliPath, args, options);
+    }
+
+    const commandLine = [resolvedCliPath, ...args].map((arg) => this.quoteWindowsCmdArg(arg)).join(' ');
+    return safeExec(`chcp 65001 >nul && ${commandLine}`, options);
+  }
+
+  private quoteWindowsCmdArg(arg: string): string {
+    if (arg.length === 0) {
+      return '""';
+    }
+
+    return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg;
   }
 
   /**
@@ -174,10 +200,16 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         case 'streamable_http':
           return this.testStreamableHttpConnection(transport);
         default:
-          return Promise.resolve({ success: false, error: 'Unsupported transport type' });
+          return Promise.resolve({
+            success: false,
+            error: 'Unsupported transport type',
+          });
       }
     } catch (error) {
-      return Promise.resolve({ success: false, error: error instanceof Error ? error.message : String(error) });
+      return Promise.resolve({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -200,13 +232,20 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       // Use enhanced env (includes shell PATH) instead of bare process.env
       // so CLI tools installed via nvm/fnm/volta are discoverable in packaged mode
-      const enhancedEnv = { ...getEnhancedEnv(transport.env), TERM: 'dumb', NO_COLOR: '1' };
-      // Resolve bare 'npx' to a modern npx to avoid old standalone npx (pre npm 7)
+      const enhancedEnv = {
+        ...getEnhancedEnv(transport.env),
+        TERM: 'dumb',
+        NO_COLOR: '1',
+      };
       const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
+      const args =
+        transport.command === 'npx'
+          ? ['x', '--bun', ...normalizeNpxArgsForBundledBun(transport.args || [])]
+          : (transport.args ?? []);
 
       const stdioTransport = new StdioClientTransport({
         command,
-        args: transport.args || [],
+        args,
         env: enhancedEnv,
         // Prevent child process stderr from inheriting parent's TTY.
         // Default 'inherit' causes `zsh: suspended (tty output)` when the
@@ -218,8 +257,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {
@@ -232,10 +271,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       await mcpClient.connect(stdioTransport);
       const result = await mcpClient.listTools();
 
-      const tools = result.tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-      }));
+      const tools = result.tools.map((tool) =>
+        Object.assign({ name: tool.name, description: tool.description }, tool._meta ? { _meta: tool._meta } : {})
+      );
 
       return { success: true, tools };
     } catch (error) {
@@ -255,7 +293,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         if (isNpx) {
           return {
             success: false,
-            error: `npx command not found. Please install Node.js (v18+) from https://nodejs.org and restart the app.`,
+            error:
+              'Bundled bun runtime is unavailable. Please reinstall AionUi or use a direct stdio command instead of npx.',
           };
         }
         return {
@@ -269,26 +308,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorCode === 'EACCES' || errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
         return {
           success: false,
-          error: `Permission denied when running "${transport.command}". Please check file permissions or try reinstalling Node.js.`,
+          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall AionUi.`,
         };
-      }
-
-      // 检测 npm 缓存问题并自动修复
-      if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
-        try {
-          // 清理 npm 缓存并重试
-          await Promise.race([
-            safeExec('npm cache clean --force').then(() => fs.rm(getNpxCacheDir(), { recursive: true, force: true })),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000)),
-          ]);
-
-          return await this.testStdioConnection(transport, retryCount + 1);
-        } catch (cleanupError) {
-          return {
-            success: false,
-            error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force`,
-          };
-        }
       }
 
       // Detect timeout errors
@@ -359,8 +380,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {
@@ -417,9 +438,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     headers?: Record<string, string>;
   }): Promise<McpConnectionTestResult> {
     try {
-      // app imported statically
-
-      const initResponse = await fetch(transport.url, {
+      // Quick probe: check if the server requires authentication before
+      // handing off to the SDK (which doesn't surface 401 details).
+      const probeResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -432,20 +453,17 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           id: 1,
           params: {
             protocolVersion: '2024-11-05',
-            capabilities: {
-              tools: {},
-            },
+            capabilities: { tools: {} },
             clientInfo: {
-              name: app.getName(),
-              version: app.getVersion(),
+              name: getPlatformServices().paths.getName(),
+              version: getPlatformServices().paths.getVersion(),
             },
           },
         }),
       });
 
-      // 检查是否需要认证
-      if (initResponse.status === 401) {
-        const wwwAuthenticate = initResponse.headers.get('WWW-Authenticate');
+      if (probeResponse.status === 401) {
+        const wwwAuthenticate = probeResponse.headers.get('WWW-Authenticate');
         if (wwwAuthenticate) {
           return {
             success: false,
@@ -455,56 +473,28 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
             error: 'Authentication required',
           };
         }
+        return {
+          success: false,
+          error: `HTTP ${probeResponse.status}: ${probeResponse.statusText}`,
+        };
       }
 
-      if (!initResponse.ok) {
-        return { success: false, error: `HTTP ${initResponse.status}: ${initResponse.statusText}` };
+      if (!probeResponse.ok) {
+        return {
+          success: false,
+          error: `HTTP ${probeResponse.status}: ${probeResponse.statusText}`,
+        };
       }
 
-      // If server responds with SSE, delegate to StreamableHTTPClientTransport
-      const contentType = initResponse.headers.get('Content-Type') || '';
-      if (contentType.includes('text/event-stream')) {
-        return this.testStreamableHttpConnection(transport);
-      }
-
-      const initResult = await initResponse.json();
-      if (initResult.error) {
-        return { success: false, error: initResult.error.message || 'Initialize failed' };
-      }
-
-      const toolsResponse = await fetch(transport.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...transport.headers,
-        },
-        body: JSON.stringify({
-          jsonrpc: JSONRPC_VERSION,
-          method: 'tools/list',
-          id: 2,
-          params: {},
-        }),
-      });
-
-      if (!toolsResponse.ok) {
-        return { success: true, tools: [], error: `Could not fetch tools: HTTP ${toolsResponse.status}` };
-      }
-
-      const toolsResult = await toolsResponse.json();
-      if (toolsResult.error) {
-        return { success: true, tools: [], error: toolsResult.error.message || 'Tools list failed' };
-      }
-
-      const tools = toolsResult.result?.tools || [];
-      return {
-        success: true,
-        tools: tools.map((tool: { name: string; description?: string }) => ({
-          name: tool.name,
-          description: tool.description,
-        })),
-      };
+      // Auth OK — close the probe body and delegate to StreamableHTTPClientTransport
+      // which handles session-id, SSE, and all protocol details correctly.
+      await probeResponse.body?.cancel().catch(() => {});
+      return this.testStreamableHttpConnection(transport);
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
@@ -531,8 +521,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {
@@ -545,10 +535,9 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       await mcpClient.connect(streamableHttpTransport);
       const result = await mcpClient.listTools();
 
-      const tools = result.tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-      }));
+      const tools = result.tools.map((tool) =>
+        Object.assign({ name: tool.name, description: tool.description }, tool._meta ? { _meta: tool._meta } : {})
+      );
 
       return { success: true, tools };
     } catch (error) {

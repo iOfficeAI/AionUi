@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { cronService } from '@process/services/cron/CronService';
+import type { AgentBackend } from '@/common/types/acpTypes';
+import { getCronService } from '@process/services/cron/cronServiceAccess';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
 import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
 
@@ -39,7 +39,7 @@ export interface ProcessResult {
  */
 export async function processAgentResponse(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   message: TMessage
 ): Promise<ProcessResult> {
   const systemResponses: string[] = [];
@@ -169,7 +169,7 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
  */
 export async function processCronInMessage(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   message: TMessage,
   emitSystemResponse: (response: string) => void
 ): Promise<void> {
@@ -185,14 +185,25 @@ export async function processCronInMessage(
   }
 }
 
+function requireCronService() {
+  // Resolve lazily so task manager modules can import this middleware without
+  // triggering the cron singleton during startup module evaluation.
+  const cronService = getCronService();
+  if (!cronService) {
+    throw new Error('CronService is not initialized');
+  }
+  return cronService;
+}
+
 /**
  * Handle detected cron commands
  */
 async function handleCronCommands(
   conversationId: string,
-  agentType: AcpBackendAll,
+  agentType: AgentBackend,
   commands: CronCommand[]
 ): Promise<string[]> {
+  const cronService = requireCronService();
   const responses: string[] = [];
 
   for (const cmd of commands) {
@@ -220,7 +231,8 @@ async function handleCronCommands(
           } else {
             const jobList = jobs
               .map((j) => {
-                const scheduleStr = j.schedule.kind === 'cron' ? j.schedule.expr : j.schedule.kind;
+                const scheduleStr =
+                  j.schedule.description || (j.schedule.kind === 'cron' ? j.schedule.expr : j.schedule.kind);
                 const status = j.enabled ? '✓' : '✗';
                 return `- [${status}] ${j.name} (${scheduleStr}) - ID: ${j.id}`;
               })

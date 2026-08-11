@@ -16,7 +16,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { DocumentConversionTarget } from '@/common/types/conversion';
+import type { DocumentConversionRequest, DocumentConversionTarget } from '@/common/types/conversion';
 import path from 'path';
 import { conversionService } from '../services/conversionService';
 
@@ -71,7 +71,7 @@ const ensureExtension = (filePath: string, allowed: Set<string>) => {
  * - PowerPoint → JSON
  */
 export function initDocumentBridge(): void {
-  ipcBridge.document.convert.provider(async ({ filePath, to }) => {
+  ipcBridge.document.convert.provider(async ({ filePath, to }: DocumentConversionRequest) => {
     switch (to) {
       case 'markdown': {
         // Word 文档转 Markdown / Word document to Markdown

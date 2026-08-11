@@ -18,7 +18,7 @@ interface ConversationState {
  */
 type IdleCallback = () => void;
 
-class CronBusyGuard {
+export class CronBusyGuard {
   private states = new Map<string, ConversationState>();
   private idleCallbacks = new Map<string, IdleCallback[]>();
 

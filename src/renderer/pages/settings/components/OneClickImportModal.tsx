@@ -1,10 +1,10 @@
-import type { IMcpServer, IMcpTool } from '@/common/storage';
-import { acpConversation, mcpService } from '@/common/ipcBridge';
+import type { IMcpServer, IMcpTool } from '@/common/config/storage';
+import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import { Button, Select, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import AionSteps from '@/renderer/components/base/AionSteps';
 import AionModal from '@/renderer/components/base/AionModal';
 
@@ -280,7 +280,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       contentStyle={{
         borderRadius: 16,
         padding: '24px',
-        background: 'var(--bg-1)',
+        background: 'var(--dialog-fill-0)',
         overflow: 'hidden',
         height: 420 - 96,
       }}

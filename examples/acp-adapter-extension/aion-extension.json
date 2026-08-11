@@ -17,9 +17,7 @@
         "connectionType": "cli",
         "cliCommand": "codebuddy",
         "defaultCliPath": "npx @tencent-ai/codebuddy-code",
-        "acpArgs": [
-          "--acp"
-        ],
+        "acpArgs": ["--acp"],
         "icon": "assets/codebuddy.svg",
         "authRequired": true,
         "supportsStreaming": false

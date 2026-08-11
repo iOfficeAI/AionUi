@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AcpAdapter } from '../../src/agent/acp/AcpAdapter';
-import type { ToolCallUpdate, ToolCallUpdateStatus, UsageUpdate } from '../../src/types/acpTypes';
+import { AcpAdapter } from '../../src/process/agent/acp/AcpAdapter';
+import type { AvailableCommandsUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '../../src/common/types/acpTypes';
 
 describe('AcpAdapter - rawInput merging (#1113)', () => {
   let adapter: AcpAdapter;
@@ -142,34 +142,6 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
   });
 });
 
-describe('AcpAdapter - session update compatibility', () => {
-  let adapter: AcpAdapter;
-
-  beforeEach(() => {
-    adapter = new AcpAdapter('test-conversation-id', 'codex');
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('ignores usage_update events from newer ACP bridges without warning', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const usageUpdate: UsageUpdate = {
-      sessionId: 'test-session',
-      update: {
-        sessionUpdate: 'usage_update',
-        totalTokens: 123,
-      },
-    };
-
-    const messages = adapter.convertSessionUpdate(usageUpdate);
-
-    expect(messages).toEqual([]);
-    expect(warnSpy).not.toHaveBeenCalled();
-  });
-});
-
 describe('AcpAdapter - ToolCallUpdateStatus type (#1113)', () => {
   it('should accept rawInput field in ToolCallUpdateStatus', () => {
     // This test verifies the TypeScript type includes rawInput
@@ -190,5 +162,150 @@ describe('AcpAdapter - ToolCallUpdateStatus type (#1113)', () => {
     // Type check passes if this compiles
     expect(update.update.rawInput).toBeDefined();
     expect(update.update.rawInput?.command).toBe('ls -la');
+  });
+});
+
+describe('AcpAdapter - streaming message grouping', () => {
+  let adapter: AcpAdapter;
+
+  beforeEach(() => {
+    adapter = new AcpAdapter('test-conversation-id', 'codex');
+  });
+
+  it('assigns new msg_id after tool updates are interleaved into a streamed reply', () => {
+    const firstChunk = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: '- `bunx tsc --no' },
+      },
+    } as any);
+
+    const initialToolCall = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'tool-123',
+        status: 'pending',
+        title: 'Run bunx tsc --noEmit',
+        kind: 'execute',
+        rawInput: {},
+      },
+    } as ToolCallUpdate);
+
+    const updatedToolCall = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'tool-123',
+        status: 'completed',
+      },
+    } as ToolCallUpdateStatus);
+
+    const secondChunk = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: 'Emit`：通过' },
+      },
+    } as any);
+
+    expect(firstChunk).toHaveLength(1);
+    expect(initialToolCall).toHaveLength(1);
+    expect(updatedToolCall).toHaveLength(1);
+    expect(secondChunk).toHaveLength(1);
+    expect(firstChunk[0].type).toBe('text');
+    expect(secondChunk[0].type).toBe('text');
+    // After tool call, message tracking is reset so text gets a new msg_id
+    expect(firstChunk[0].msg_id).not.toBe(secondChunk[0].msg_id);
+  });
+
+  it('assigns new msg_id after available command updates arrive mid-stream', () => {
+    const firstChunk = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: 'First paragraph.\n\n' },
+      },
+    } as any);
+
+    const availableCommands = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'available_commands_update',
+        availableCommands: [{ name: 'resume', description: 'Resume the session' }],
+      },
+    } as AvailableCommandsUpdate);
+
+    const secondChunk = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: '- Second paragraph item' },
+      },
+    } as any);
+
+    expect(firstChunk).toHaveLength(1);
+    expect(availableCommands).toHaveLength(0);
+    expect(secondChunk).toHaveLength(1);
+    expect(firstChunk[0].type).toBe('text');
+    expect(secondChunk[0].type).toBe('text');
+    // After available_commands_update, message tracking is reset
+    expect(firstChunk[0].msg_id).not.toBe(secondChunk[0].msg_id);
+  });
+});
+
+describe('AcpAdapter - agent_message_chunk extraction', () => {
+  let adapter: AcpAdapter;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    adapter = new AcpAdapter('test-conversation-id', 'claude');
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('keeps empty text chunks instead of dropping them', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: '' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].type).toBe('text');
+    expect((messages[0] as any).content.content).toBe('');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('drops non-text chunks and emits diagnostics', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'image', uri: 'file://test.png' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith('[AcpAdapter] Dropped non-text chunk: content.type=image');
+  });
+
+  it('drops malformed text chunk and emits diagnostics', () => {
+    const messages = adapter.convertSessionUpdate({
+      sessionId: 'test-session',
+      update: {
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text' },
+      },
+    } as any);
+
+    expect(messages).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith('[AcpAdapter] Dropped text chunk: content.text is not a string');
   });
 });

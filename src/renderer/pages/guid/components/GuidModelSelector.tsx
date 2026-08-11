@@ -5,13 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { iconColors } from '@/renderer/theme/colors';
-import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
+import { iconColors } from '@/renderer/styles/colors';
+import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Brain, Plus } from '@icon-park/react';
+import { Brain, Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -102,6 +103,14 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       fallbackLabel: defaultModelLabel,
     });
   }, [acpSelectedLabel, currentAcpCachedModelInfo?.currentModelId, defaultModelLabel, selectedAcpModel]);
+  const acpSourceLabel = React.useMemo(
+    () => getAcpModelSourceLabel(currentAcpCachedModelInfo),
+    [currentAcpCachedModelInfo]
+  );
+  const acpButtonDisplayLabel = React.useMemo(
+    () => formatAcpModelDisplayLabel(acpButtonLabel, acpSourceLabel),
+    [acpButtonLabel, acpSourceLabel]
+  );
 
   React.useEffect(() => {
     setDropdownVisible(false);
@@ -260,6 +269,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{geminiButtonLabel}</span>
+            <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
           </span>
         </Button>
       </Dropdown>
@@ -313,7 +323,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-              <span>{acpButtonLabel}</span>
+              <span>{acpButtonDisplayLabel}</span>
+              <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>
         </Dropdown>
@@ -336,7 +347,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{acpButtonLabel}</span>
+            <span>{acpButtonDisplayLabel}</span>
           </span>
         </Button>
       </Tooltip>

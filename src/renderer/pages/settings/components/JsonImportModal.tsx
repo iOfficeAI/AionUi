@@ -1,10 +1,10 @@
-import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/storage';
+import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/config/storage';
 import { Alert, Button } from '@arco-design/web-react';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
 
 interface JsonImportModalProps {
@@ -19,6 +19,8 @@ interface ValidationResult {
   isValid: boolean;
   errorMessage?: string;
 }
+
+type JsonServerConfig = Record<string, any>;
 
 const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport }) => {
   const { t } = useTranslation();
@@ -89,7 +91,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
    * Parse transport config from JSON server config.
    * Supports both "type" field (standard) and "transport" field (Gemini CLI format).
    */
-  const parseTransport = (serverConfig: Record<string, any>): IMcpServerTransport => {
+  const parseTransport = (serverConfig: JsonServerConfig): IMcpServerTransport => {
     if (serverConfig.command) {
       return {
         type: 'stdio',
@@ -112,14 +114,83 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     return { type: 'http', url: serverConfig.url, headers: serverConfig.headers };
   };
 
-  const handleSubmit = () => {
-    // 语法校验已经通过了（按钮禁用逻辑保证），直接解析
-    const config = JSON.parse(jsonInput);
-    const mcpServers = config.mcpServers || config;
+  const normalizeArrayServer = (serverItem: unknown): { name: string; config: JsonServerConfig } => {
+    if (!serverItem || typeof serverItem !== 'object' || Array.isArray(serverItem)) {
+      throw new Error(t('settings.mcpJsonFormatError'));
+    }
 
-    if (Array.isArray(mcpServers)) {
-      // TODO: 支持数组格式的导入
-      console.warn('Array format not supported yet');
+    const rawServer = serverItem as JsonServerConfig;
+    if (typeof rawServer.name !== 'string' || !rawServer.name.trim()) {
+      throw new Error(t('settings.mcpJsonFormatError'));
+    }
+
+    const { name, ...restConfig } = rawServer;
+    const transportConfig = restConfig.transport;
+    if (transportConfig && typeof transportConfig === 'object' && !Array.isArray(transportConfig)) {
+      const typedTransport = transportConfig as JsonServerConfig;
+      if (typedTransport.type === 'stdio') {
+        return {
+          name,
+          config: {
+            ...restConfig,
+            command: typedTransport.command,
+            args: typedTransport.args,
+            env: typedTransport.env,
+            transport: undefined,
+          },
+        };
+      }
+
+      return {
+        name,
+        config: {
+          ...restConfig,
+          type: typedTransport.type,
+          url: typedTransport.url,
+          headers: typedTransport.headers,
+          transport: undefined,
+        },
+      };
+    }
+
+    return { name, config: restConfig };
+  };
+
+  const normalizeMcpServers = (config: JsonServerConfig): Record<string, JsonServerConfig> => {
+    const rawServers = config.mcpServers ?? config;
+
+    if (Array.isArray(rawServers)) {
+      return rawServers.reduce<Record<string, JsonServerConfig>>((accumulator, serverItem) => {
+        const { name, config: normalizedConfig } = normalizeArrayServer(serverItem);
+        accumulator[name] = normalizedConfig;
+        return accumulator;
+      }, {});
+    }
+
+    if (!rawServers || typeof rawServers !== 'object') {
+      throw new Error(t('settings.mcpJsonFormatError'));
+    }
+
+    return rawServers as Record<string, JsonServerConfig>;
+  };
+
+  const handleSubmit = () => {
+    // Re-validate at submit time to guard against race between useEffect validation and click
+    let config: Record<string, any>;
+    try {
+      config = JSON.parse(jsonInput);
+    } catch {
+      setValidation({ isValid: false, errorMessage: 'Invalid JSON format' });
+      return;
+    }
+    let mcpServers: Record<string, JsonServerConfig>;
+    try {
+      mcpServers = normalizeMcpServers(config);
+    } catch (error) {
+      setValidation({
+        isValid: false,
+        errorMessage: error instanceof Error ? error.message : t('settings.mcpJsonFormatError'),
+      });
       return;
     }
 
@@ -178,7 +249,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       contentStyle={{
         borderRadius: 16,
         padding: '24px',
-        background: 'var(--bg-1)',
+        background: 'var(--dialog-fill-0)',
         overflow: 'auto',
         height: 420 - 80,
       }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
@@ -266,7 +337,9 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
 
           {/* JSON 格式错误提示 */}
           {!validation.isValid && jsonInput.trim() && (
-            <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>
+            <div className='mt-2 text-sm text-red-600'>
+              {validation.errorMessage || t('settings.mcpJsonFormatError') || 'JSON format error'}
+            </div>
           )}
         </div>
 

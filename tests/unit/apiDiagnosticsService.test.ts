@@ -10,6 +10,10 @@ import os from 'os';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getReadOnlyConversationStatusSnapshot = vi.fn(() => null);
+const getUserConversationsMock = vi.fn(() => ({
+  total: 0,
+  data: [],
+}));
 
 vi.mock('@process/WorkerManage', () => ({
   default: {
@@ -42,18 +46,19 @@ vi.mock('@process/services/ConversationTurnCompletionService', () => ({
   getReadOnlyConversationStatusSnapshot,
 }));
 
-vi.mock('@process/message', () => ({
+vi.mock('@process/utils/message', () => ({
   getConversationMessageCacheStats: vi.fn(() => ({
     size: 0,
     conversations: [],
   })),
 }));
 
-vi.mock('@process/database', () => ({
-  getDatabase: vi.fn(() => ({
-    getUserConversations: vi.fn(() => ({
-      total: 0,
-    })),
+vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(async () => ({
+    getUserConversations: getUserConversationsMock,
+  })),
+  getDatabaseSync: vi.fn(() => ({
+    getUserConversations: getUserConversationsMock,
   })),
 }));
 
@@ -61,6 +66,11 @@ describe('ApiDiagnosticsService', () => {
   beforeEach(() => {
     getReadOnlyConversationStatusSnapshot.mockReset();
     getReadOnlyConversationStatusSnapshot.mockReturnValue(null);
+    getUserConversationsMock.mockReset();
+    getUserConversationsMock.mockReturnValue({
+      total: 0,
+      data: [],
+    });
   });
 
   it('applies runtime config updates and normalizes values', async () => {
@@ -206,6 +216,35 @@ describe('ApiDiagnosticsService', () => {
         sampleIntervalMs: 15000,
       });
     });
+  });
+
+  it('archives invalid persisted config JSON and falls back to defaults', async () => {
+    const { ApiDiagnosticsService } = await import('../../src/process/services/ApiDiagnosticsService');
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-api-diagnostics-invalid-'));
+    const configFilePath = path.join(tempDir, 'api-diagnostics-config.json');
+    fs.writeFileSync(configFilePath, '{"enabled": tru', 'utf8');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const service = new ApiDiagnosticsService({
+      configFilePath,
+      enabled: false,
+      outputDir: 'logs/diagnostics',
+      sampleIntervalMs: 60000,
+    });
+
+    expect(fs.existsSync(configFilePath)).toBe(false);
+    const archivedFiles = fs
+      .readdirSync(tempDir)
+      .filter((file) => file.startsWith('api-diagnostics-config.json.corrupt-'));
+    expect(archivedFiles).toHaveLength(1);
+    expect(service.getConfig()).toEqual({
+      enabled: false,
+      outputDir: path.resolve('logs/diagnostics'),
+      sampleIntervalMs: 60000,
+    });
+
+    warnSpy.mockRestore();
   });
 
   it('summarizes large last-message payloads in diagnostics snapshots', async () => {

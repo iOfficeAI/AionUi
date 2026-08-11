@@ -5,14 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import {
   NavigationInterceptor,
   NAVIGATION_TOOLS,
   type PreviewOpenData,
   type NavigationToolData,
   type NavigationToolName,
-} from '@/common/navigation';
+} from '@/common/chat/navigation';
 
 // Re-export from NavigationInterceptor for backward compatibility
 export { NAVIGATION_TOOLS, type NavigationToolName, type PreviewOpenData, type NavigationToolData };

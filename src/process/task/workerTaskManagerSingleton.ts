@@ -11,11 +11,14 @@
 
 import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
-import { CodexAgentManager } from '@/agent/codex';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
+import RemoteAgentManager from './RemoteAgentManager';
+import { AionrsManager } from './AionrsManager';
+import CodexNativeAgentManager from '@process/agent/codex/appserver/CodexNativeAgentManager';
 
 const agentFactory = new AgentFactory();
 
@@ -34,16 +37,18 @@ agentFactory.register('acp', (conv, opts) => {
     ...c.extra,
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
+    // Only gemini ACP conversations use conversation.model as a backend-aligned model
+    // fallback. Other ACP backends persist their own CLI model IDs in extra.currentModelId.
+    currentModelId: c.extra?.currentModelId ?? (c.extra?.backend === 'gemini' ? c.model?.useModel : undefined),
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 agentFactory.register('codex', (conv, opts) => {
   const c = conv as any;
-  return new CodexAgentManager({
+  return new CodexNativeAgentManager({
     ...c.extra,
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
-    sessionMode: c.extra.sessionMode,
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,4 +70,24 @@ agentFactory.register('nanobot', (conv, opts) => {
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 
-export const workerTaskManager = new WorkerTaskManager(agentFactory);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+agentFactory.register('remote', (conv, opts) => {
+  const c = conv as any;
+  return new RemoteAgentManager({
+    ...c.extra,
+    conversation_id: c.id,
+    yoloMode: opts?.yoloMode,
+  }) as unknown as ReturnType<typeof agentFactory.create>;
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+agentFactory.register('aionrs', (conv, opts) => {
+  const c = conv as any;
+  return new AionrsManager(
+    { ...c.extra, conversation_id: c.id, yoloMode: opts?.yoloMode },
+    c.model
+  ) as unknown as ReturnType<typeof agentFactory.create>;
+});
+
+const conversationRepo = new SqliteConversationRepository();
+export const workerTaskManager = new WorkerTaskManager(agentFactory, conversationRepo);

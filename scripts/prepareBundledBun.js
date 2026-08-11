@@ -43,6 +43,13 @@ function getRuntimeVersion() {
   return configured && configured.trim() ? configured.trim() : 'latest';
 }
 
+function normalizeVersion(version) {
+  if (!version) return null;
+  const trimmed = String(version).trim();
+  if (!trimmed) return null;
+  return trimmed.startsWith('bun-v') ? trimmed.slice(5) : trimmed.startsWith('v') ? trimmed.slice(1) : trimmed;
+}
+
 function getCacheRootDir() {
   const custom = process.env.AIONUI_BUN_CACHE_DIR;
   if (custom && custom.trim()) {
@@ -81,12 +88,28 @@ function getPlatformAsset(platform, arch) {
   return `bun-${normalizedPlatform}-${normalizedArch}.zip`;
 }
 
+function resolveTargetArch(platform) {
+  const candidates = [process.env.ELECTRON_BUILDER_ARCH, process.env.npm_config_target_arch, process.arch];
+
+  for (const candidate of candidates) {
+    if (candidate && getPlatformAsset(platform, candidate)) {
+      return candidate;
+    }
+  }
+
+  return process.arch;
+}
+
 function getDownloadUrl(assetName, version) {
   if (version === 'latest') {
     return `https://github.com/oven-sh/bun/releases/latest/download/${assetName}`;
   }
 
-  const normalized = version.startsWith('bun-v') ? version : version.startsWith('v') ? `bun-${version}` : `bun-v${version}`;
+  const normalized = version.startsWith('bun-v')
+    ? version
+    : version.startsWith('v')
+      ? `bun-${version}`
+      : `bun-v${version}`;
   return `https://github.com/oven-sh/bun/releases/download/${normalized}/${assetName}`;
 }
 
@@ -162,8 +185,7 @@ function ensureExecutableMode(filePath) {
   if (process.platform === 'win32') return;
   try {
     fs.chmodSync(filePath, 0o755);
-  } catch {
-  }
+  } catch {}
 }
 
 function getCacheMetaPath(cacheRuntimeDir) {
@@ -186,12 +208,7 @@ function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version) {
   const meta = readCacheMeta(cacheRuntimeDir);
   if (!meta) return false;
 
-  return (
-    meta.platform === platform &&
-    meta.arch === arch &&
-    meta.version === version &&
-    meta.sourceType === 'download'
-  );
+  return meta.platform === platform && meta.arch === arch && meta.version === version && meta.sourceType === 'download';
 }
 
 function writeManifest(outputDir, manifest) {
@@ -211,6 +228,107 @@ function copyRuntimeFromDirectory(sourceDir, targetDir, platform) {
   }
 
   return copied;
+}
+
+function removeStaleRuntimeDirectories(rootDir, currentRuntimeKey) {
+  if (!fs.existsSync(rootDir)) {
+    return;
+  }
+
+  const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === currentRuntimeKey) {
+      continue;
+    }
+
+    removeDirectorySafe(path.join(rootDir, entry.name));
+  }
+}
+
+function resolveInstalledBunBinary(runtimeKey, runtimeVersion) {
+  const hostRuntimeKey = `${process.platform}-${process.arch}`;
+  if (runtimeKey !== hostRuntimeKey) {
+    return null;
+  }
+
+  try {
+    const locator = process.platform === 'win32' ? 'where' : 'which';
+    const located = execFileSync(locator, ['bun'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    })
+      .trim()
+      .split(/\r?\n/)
+      .find(Boolean);
+
+    if (!located) {
+      return null;
+    }
+
+    const bunPath = fs.realpathSync(located);
+    const bunVersion = execFileSync(bunPath, ['--version'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    }).trim();
+
+    const normalizedInstalledVersion = normalizeVersion(bunVersion);
+    const normalizedRequestedVersion = normalizeVersion(runtimeVersion);
+    if (
+      normalizedInstalledVersion &&
+      normalizedRequestedVersion &&
+      normalizedRequestedVersion !== 'latest' &&
+      normalizedInstalledVersion !== normalizedRequestedVersion
+    ) {
+      return null;
+    }
+
+    return {
+      bunPath,
+      bunVersion: normalizedInstalledVersion || bunVersion,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function seedCacheFromInstalledBun(cacheRuntimeDir, platform, arch, version, runtimeKey) {
+  const installedBun = resolveInstalledBunBinary(runtimeKey, version);
+  if (!installedBun) {
+    return null;
+  }
+
+  removeDirectorySafe(cacheRuntimeDir);
+  ensureDirectory(cacheRuntimeDir);
+
+  const binaryName = getRequiredRuntimeFiles(platform)[0];
+  copyFileSafe(installedBun.bunPath, path.join(cacheRuntimeDir, binaryName));
+  ensureExecutableMode(path.join(cacheRuntimeDir, binaryName));
+
+  const cacheMeta = {
+    platform,
+    arch,
+    version,
+    sourceType: 'download',
+    source: {
+      url: 'local://installed-bun',
+      asset: path.basename(installedBun.bunPath),
+      bunVersion: installedBun.bunVersion,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  writeCacheMeta(cacheRuntimeDir, cacheMeta);
+
+  return {
+    sourceType: 'cache',
+    source: {
+      dir: cacheRuntimeDir,
+      origin: cacheMeta.source,
+    },
+    files: getRequiredRuntimeFiles(platform),
+    cacheMeta,
+  };
 }
 
 function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
@@ -266,14 +384,20 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
 function prepareBundledBun() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
-  const arch = process.arch;
+  // Support cross-compilation: ELECTRON_BUILDER_ARCH > npm_config_target_arch > process.arch
+  const arch = resolveTargetArch(platform);
   const runtimeKey = `${platform}-${arch}`;
   const runtimeVersion = getRuntimeVersion();
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', runtimeKey);
+  console.log(`Preparing bundled bun for ${runtimeKey} (version: ${runtimeVersion})`);
+
+  const bundledRootDir = path.join(projectRoot, 'resources', 'bundled-bun');
+  const targetDir = path.join(bundledRootDir, runtimeKey);
   const cacheRootDir = getCacheRootDir();
   const cacheRuntimeDir = path.join(cacheRootDir, runtimeVersion, runtimeKey);
 
+  ensureDirectory(bundledRootDir);
+  removeStaleRuntimeDirectories(bundledRootDir, runtimeKey);
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
   ensureDirectory(cacheRuntimeDir);
@@ -293,15 +417,25 @@ function prepareBundledBun() {
         files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
       };
     } else {
-      // Strict policy: packaging should only read from cache.
-      // If cache is missing/invalid, refresh cache via network download first.
-      const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
-      cacheMeta = downloadResult.cacheMeta;
-      prepareResult = {
-        sourceType: downloadResult.sourceType,
-        source: downloadResult.source,
-        files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
-      };
+      const localSeedResult = seedCacheFromInstalledBun(cacheRuntimeDir, platform, arch, runtimeVersion, runtimeKey);
+      if (localSeedResult) {
+        cacheMeta = localSeedResult.cacheMeta;
+        prepareResult = {
+          sourceType: localSeedResult.sourceType,
+          source: localSeedResult.source,
+          files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+        };
+      } else {
+        // Strict policy: packaging should only read from cache.
+        // If cache is missing/invalid, refresh cache via network download first.
+        const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
+        cacheMeta = downloadResult.cacheMeta;
+        prepareResult = {
+          sourceType: downloadResult.sourceType,
+          source: downloadResult.source,
+          files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+        };
+      }
     }
 
     const manifest = {

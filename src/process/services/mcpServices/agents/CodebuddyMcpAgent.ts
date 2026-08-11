@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { IMcpServer } from '../../../../common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import { safeExecFile } from '@process/utils/safeExec';
@@ -176,7 +176,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
   /**
    * Install MCP servers via `codebuddy mcp add` CLI
    */
-  installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
+  installMcpServers(mcpServers: IMcpServer[], _cliPath?: string): Promise<McpOperationResult> {
     const installOperation = async () => {
       try {
         for (const server of mcpServers) {
@@ -234,7 +234,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
   /**
    * Remove MCP server via `codebuddy mcp remove` CLI
    */
-  removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
+  removeMcpServer(mcpServerName: string, _cliPath?: string): Promise<McpOperationResult> {
     const removeOperation = async () => {
       try {
         const scopes = ['user', 'local', 'project'] as const;

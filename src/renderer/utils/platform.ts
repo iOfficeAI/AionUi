@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
+
 /**
  * Platform detection utilities
  * 平台检测工具函数
@@ -117,7 +119,6 @@ export const openExternalUrl = async (url: string): Promise<void> => {
   if (!url) return;
 
   if (isElectronDesktop()) {
-    const { ipcBridge } = await import('@/common');
     await ipcBridge.shell.openExternal.invoke(url);
   } else {
     window.open(url, '_blank', 'noopener,noreferrer');

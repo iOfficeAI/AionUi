@@ -153,6 +153,10 @@ export default defineConfig({
     ['bg-fill-0', { 'background-color': 'var(--fill-0)' }],
     ['bg-fill-white-to-black', { 'background-color': 'var(--fill-white-to-black)' }],
     ['border-special', { 'border-color': 'var(--border-special)' }],
+
+    // Wiggle animation for attention indicators (e.g. pending permission badge)
+    // Shakes briefly then pauses — 3s cycle, active in first ~20%
+    ['animate-wiggle', { animation: 'wiggle 3s ease-in-out infinite' }],
   ],
   // Preflights - Global base styles 全局基础样式
   preflights: [
@@ -161,6 +165,13 @@ export default defineConfig({
         * {
           /* Set default text color to follow theme 所有元素默认使用主题文字颜色 */
           color: inherit;
+        }
+        @keyframes wiggle {
+          0%, 20%, 100% { transform: rotate(0deg); }
+          4% { transform: rotate(8deg); }
+          8% { transform: rotate(-8deg); }
+          12% { transform: rotate(6deg); }
+          16% { transform: rotate(-4deg); }
         }
       `,
     },

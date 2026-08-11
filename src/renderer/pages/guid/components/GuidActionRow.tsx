@@ -5,16 +5,19 @@
  */
 
 import { ipcBridge } from '@/common';
-import AgentModeSelector from '@/renderer/components/AgentModeSelector';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { getCleanFileNames, FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
-import { iconColors } from '@/renderer/theme/colors';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import type { TProviderWithModel } from '@/common/config/storage';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
-import PresetAgentTag from './PresetAgentTag';
-import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
+import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
+import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -27,7 +30,7 @@ type GuidActionRowProps = {
 
   // Model selector node (rendered by parent)
   modelSelectorNode: React.ReactNode;
-  acpConfigSelectorNode?: React.ReactNode;
+  currentModel?: TProviderWithModel;
 
   // Agent mode
   selectedAgent: AcpBackend | 'custom';
@@ -41,10 +44,27 @@ type GuidActionRowProps = {
   customAgents: AcpBackendConfig[];
   localeKey: string;
   onClosePresetTag: () => void;
+  agentLogo?: string | null;
+  agentSwitcherItems?: AgentSwitcherItem[];
+  onAgentSwitch?: (key: string) => void;
+  hidePresetTag?: boolean;
+
+  // Config options (ACP)
+  configOptionsBackend?: AcpBackend;
+  cachedConfigOptions?: AcpSessionConfigOption[];
+  currentAcpModelInfo?: AcpModelInfo | null;
+  selectedAcpModelId?: string;
+  onConfigOptionSelect?: (configId: string, value: string) => void;
+
+  // Skills management
+  builtinAutoSkills: Array<{ name: string; description: string }>;
+  disabledBuiltinSkills: string[];
+  onToggleBuiltinSkill: (name: string) => void;
 
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
+  speechInputNode?: React.ReactNode;
   onSend: () => void;
 };
 
@@ -53,7 +73,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onFilesUploaded,
   onSelectWorkspace,
   modelSelectorNode,
-  acpConfigSelectorNode,
+  currentModel,
   selectedAgent,
   effectiveModeAgent,
   selectedMode,
@@ -63,17 +83,27 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   customAgents,
   localeKey,
   onClosePresetTag,
+  agentLogo,
+  agentSwitcherItems,
+  onAgentSwitch,
+  configOptionsBackend,
+  cachedConfigOptions,
+  currentAcpModelInfo,
+  selectedAcpModelId,
+  onConfigOptionSelect,
+  builtinAutoSkills,
+  disabledBuiltinSkills,
+  onToggleBuiltinSkill,
+  hidePresetTag = false,
   loading,
   isButtonDisabled,
+  speechInputNode,
   onSend,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
-  const isMobile = Boolean(layout?.isMobile);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
-  const modeOptions = getAgentModes(modeBackend);
-  const currentModeOption = modeOptions.find((mode) => mode.value === selectedMode);
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
@@ -92,12 +122,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           onFilesUploaded(processed.map((f) => f.path));
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : '';
-        if (msg === 'FILE_TOO_LARGE') {
-          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
-        } else {
-          Message.error(t('common.fileAttach.failed'));
-        }
+        Message.error(t('common.fileAttach.failed'));
       } finally {
         setUploading(false);
       }
@@ -110,13 +135,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
     t(`agentMode.${mode.value}`, { defaultValue: mode.label });
 
-  const permissionLabel = currentModeOption
-    ? isMobile
-      ? getModeDisplayLabel(currentModeOption)
-      : `${t('agentMode.permission')} · ${getModeDisplayLabel(currentModeOption)}`
-    : t('agentMode.permission');
-
   const isWebUI = !isElectronDesktop();
+
+  const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
 
   const menuContent = (
     <Menu
@@ -133,11 +154,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             .catch((error) => {
               console.error('Failed to open file dialog:', error);
             });
-        } else if (key === 'device') {
-          fileInputRef.current?.click();
         } else if (key === 'workspace') {
           ipcBridge.dialog.showOpen
-            .invoke({ properties: ['openDirectory'] })
+            .invoke({ properties: ['openDirectory', 'createDirectory'] })
             .then((dirs) => {
               if (dirs && dirs[0]) {
                 onSelectWorkspace(dirs[0]);
@@ -146,6 +165,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             .catch((error) => {
               console.error('Failed to open directory dialog:', error);
             });
+        } else if (key === 'device') {
+          fileInputRef.current?.click();
         }
       }}
     >
@@ -163,6 +184,12 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               <span>{t('common.fileAttach.myDevice')}</span>
             </div>
           </Menu.Item>
+          <Menu.Item key='workspace'>
+            <div className='flex items-center gap-8px'>
+              <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <span>{t('conversation.welcome.specifyWorkspace')}</span>
+            </div>
+          </Menu.Item>
         </>
       ) : (
         <Menu.Item key='file'>
@@ -172,12 +199,37 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           </div>
         </Menu.Item>
       )}
-      <Menu.Item key='workspace'>
-        <div className='flex items-center gap-8px'>
-          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-          <span>{t('conversation.welcome.specifyWorkspace')}</span>
-        </div>
-      </Menu.Item>
+      {builtinAutoSkills.length > 0 && (
+        <Menu.SubMenu
+          key='skills'
+          title={
+            <div className='flex items-center gap-8px'>
+              <Lightning theme='filled' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+              <span>
+                {t('settings.autoInjectedSkills')} ({activeSkillCount}/{builtinAutoSkills.length})
+              </span>
+            </div>
+          }
+        >
+          {builtinAutoSkills.map((skill) => (
+            <Menu.Item
+              key={`skill-${skill.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBuiltinSkill(skill.name);
+              }}
+            >
+              <Checkbox
+                checked={!disabledBuiltinSkills.includes(skill.name)}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                onChange={() => onToggleBuiltinSkill(skill.name)}
+              >
+                <span className='text-13px'>{skill.name}</span>
+              </Checkbox>
+            </Menu.Item>
+          ))}
+        </Menu.SubMenu>
+      )}
     </Menu>
   );
 
@@ -216,11 +268,35 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           )}
         </div>
 
+        {!isWebUI && (
+          <Button
+            className='sendbox-model-btn'
+            shape='round'
+            size='small'
+            onClick={() => {
+              ipcBridge.dialog.showOpen
+                .invoke({ properties: ['openDirectory', 'createDirectory'] })
+                .then((dirs) => {
+                  if (dirs && dirs[0]) {
+                    onSelectWorkspace(dirs[0]);
+                  }
+                })
+                .catch((error) => {
+                  console.error('Failed to open directory dialog:', error);
+                });
+            }}
+          >
+            <span className='flex items-center gap-6px leading-none'>
+              <FolderOpen theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0, flexShrink: 0 }} />
+              <span>{t('conversation.welcome.specifyWorkspace')}</span>
+            </span>
+          </Button>
+        )}
+
         <div
           className={`${styles.actionConfigGroup} ${configOptionCount > 1 ? styles.actionConfigGroupWithDivider : ''}`}
         >
           {modelSelectorNode}
-          {acpConfigSelectorNode}
 
           {showModeSwitch && (
             <AgentModeSelector
@@ -228,23 +304,40 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               compact
               initialMode={selectedMode}
               onModeSelect={onModeSelect}
-              compactLabelOverride={permissionLabel}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={getModeDisplayLabel}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
             />
           )}
+          <AcpConfigSelector
+            backend={configOptionsBackend}
+            buttonClassName='guid-config-btn'
+            initialConfigOptions={cachedConfigOptions}
+            fallbackCurrentModel={currentModel}
+            modelInfo={currentAcpModelInfo}
+            selectedModelId={selectedAcpModelId}
+            leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
+            onOptionSelect={onConfigOptionSelect}
+          />
         </div>
 
-        {isPresetAgent && selectedAgentInfo && (
-          <PresetAgentTag
-            agentInfo={selectedAgentInfo}
-            customAgents={customAgents}
-            localeKey={localeKey}
-            onClose={onClosePresetTag}
-          />
+        {!hidePresetTag && isPresetAgent && selectedAgentInfo && (
+          <div className={styles.actionPresetAgent}>
+            <PresetAgentTag
+              agentInfo={selectedAgentInfo}
+              customAgents={customAgents}
+              localeKey={localeKey}
+              onClose={onClosePresetTag}
+              agentLogo={agentLogo}
+              agentSwitcherItems={agentSwitcherItems}
+              onAgentSwitch={onAgentSwitch}
+            />
+          </div>
         )}
       </div>
       <div className={styles.actionSubmit}>
+        {speechInputNode}
         <Button
           shape='circle'
           type='primary'

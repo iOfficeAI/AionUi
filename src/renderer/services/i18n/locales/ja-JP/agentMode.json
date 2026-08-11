@@ -1,0 +1,19 @@
+{
+  "plan": "プランモード",
+  "default": "デフォルト",
+  "acceptEdits": "編集を自動承認",
+  "autoEdit": "自動編集",
+  "auto_edit": "自動編集",
+  "yolo": "全自動",
+  "yoloNoSandbox": "全自動（サンドボックスなし）",
+  "auto": "自動",
+  "dontAsk": "事前承認のみ",
+  "bypass": "チェックをバイパス",
+  "bypassPermissions": "全自動",
+  "smart": "スマート",
+  "build": "ビルドモード",
+  "permission": "権限",
+  "switchMode": "モード切替",
+  "switchSuccess": "モードを切り替えました",
+  "switchFailed": "モードの切り替えに失敗しました"
+}

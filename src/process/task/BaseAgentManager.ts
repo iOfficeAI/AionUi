@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ForkTask } from '@/worker/fork/ForkTask';
+import { ForkTask } from '@process/worker/fork/ForkTask';
 import path from 'path';
-import type { IConfirmation } from '../../common/chatLib';
+import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AgentType, AgentStatus } from './agentTypes';
 import type { IAgentEventEmitter } from './IAgentEventEmitter';
 import type { IAgentManager } from './IAgentManager';
@@ -26,6 +26,10 @@ class BaseAgentManager<Data, ConfirmationOption = unknown>
   conversation_id: string = '';
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
   status: AgentStatus | undefined;
+  protected _lastActivityAt: number = Date.now();
+  get lastActivityAt(): number {
+    return this._lastActivityAt;
+  }
 
   /**
    * Whether this agent is in yolo mode (auto-approve)
@@ -34,11 +38,15 @@ class BaseAgentManager<Data, ConfirmationOption = unknown>
 
   protected readonly emitter: IAgentEventEmitter;
 
-  constructor(type: AgentType, data: Data, emitter: IAgentEventEmitter) {
-    super(path.resolve(__dirname, type + '.js'), {
-      type: type,
-      data: data,
-    });
+  constructor(type: AgentType, data: Data, emitter: IAgentEventEmitter, enableFork = true) {
+    super(
+      path.resolve(__dirname, type + '.js'),
+      {
+        type: type,
+        data: data,
+      },
+      enableFork
+    );
     this.type = type;
     this.emitter = emitter;
 
@@ -102,10 +110,14 @@ class BaseAgentManager<Data, ConfirmationOption = unknown>
   }
 
   stop() {
-    return this.postMessagePromise('stop.stream', {});
+    this.confirmations = [];
+    return this.postMessagePromise('stop.stream', {}).catch(() => {
+      // Worker process may have already exited — stopping a dead process is a no-op
+    });
   }
 
   sendMessage(data: any) {
+    this._lastActivityAt = Date.now();
     return this.postMessagePromise('send.message', data);
   }
 

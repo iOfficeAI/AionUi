@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Desktop Pet",
+  "enable": "Enable Desktop Pet",
+  "size": "Pet Size",
+  "sizeSmall": "Small ({{px}}px)",
+  "sizeMedium": "Medium ({{px}}px)",
+  "sizeLarge": "Large ({{px}}px)",
+  "dnd": "Do Not Disturb",
+  "dndDescription": "Pet stays idle, ignores AI events",
+  "confirmBubble": "Show authorizations on the pet",
+  "confirmBubbleDescription": "When off, AI tool authorizations stay in the main chat window",
+  "pat": "Pat",
+  "resetPosition": "Reset Position",
+  "hide": "Hide",
+  "showHide": "Show/Hide",
+  "desktopOnly": "Desktop Pet is only available in the desktop application. It cannot be used in WebUI browser mode."
+}

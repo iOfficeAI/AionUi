@@ -1,0 +1,19 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .poke-l-body { transform-origin:11px 12px; animation:poke-l-tilt .6s cubic-bezier(.34,1.56,.64,1) forwards; }
+    .poke-l-shadow { transform-origin:11px 22.5px; }
+    @keyframes poke-l-tilt { 0%{transform:rotate(0) translateX(0)} 40%{transform:rotate(12deg) translateX(2px)} 100%{transform:rotate(8deg) translateX(1.5px)} }
+  </style></defs>
+  <ellipse class="poke-l-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0" opacity="0.35"/>
+  <g class="poke-l-body">
+    <rect x="2" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 3.5 10.5)"/>
+    <rect x="17" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 18.5 10.5)"/>
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+      <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+    <!-- 眼睛偏右看 -->
+    <rect x="11.5" y="10" width="2" height="2" fill="#111827"/>
+    <!-- 嘟嘴偏右 -->
+    <path d="M10 14 Q12.5 16 14 14" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

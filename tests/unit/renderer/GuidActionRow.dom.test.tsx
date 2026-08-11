@@ -1,0 +1,154 @@
+import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock('@arco-design/web-react', () => ({
+  Button: ({
+    children,
+    icon,
+    loading: _loading,
+    ...props
+  }: React.ComponentProps<'button'> & { icon?: React.ReactNode; loading?: boolean }) => (
+    <button {...props}>{icon ?? children}</button>
+  ),
+  Dropdown: ({ children, droplist }: React.PropsWithChildren<{ droplist?: React.ReactNode }>) => (
+    <>
+      {children}
+      {droplist}
+    </>
+  ),
+  Menu: Object.assign(({ children }: React.PropsWithChildren) => <div>{children}</div>, {
+    Item: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+  }),
+  Message: {
+    error: vi.fn(),
+  },
+  Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}));
+
+vi.mock('@icon-park/react', () => ({
+  ArrowUp: () => <span>ArrowUp</span>,
+  Brain: () => <span>Brain</span>,
+  FolderOpen: () => <span>FolderOpen</span>,
+  Plus: () => <span>Plus</span>,
+  Shield: () => <span>Shield</span>,
+  UploadOne: () => <span>UploadOne</span>,
+}));
+
+vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
+  default: () => <div>AgentModeSelector</div>,
+}));
+
+vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
+  default: () => <div>ReasoningSelector</div>,
+}));
+
+vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
+  useLayoutContext: () => ({
+    isMobile: false,
+  }),
+}));
+
+vi.mock('@/renderer/services/FileService', () => ({
+  FileService: {
+    processDroppedFiles: vi.fn(),
+  },
+  getCleanFileNames: (files: string[]) => files,
+}));
+
+vi.mock('@/renderer/styles/colors', () => ({
+  iconColors: {
+    primary: '#000',
+    secondary: '#666',
+  },
+}));
+
+const mockIsElectronDesktop = vi.fn(() => true);
+vi.mock('@/renderer/utils/platform', () => ({
+  isElectronDesktop: () => mockIsElectronDesktop(),
+}));
+
+vi.mock('@/renderer/utils/model/agentModes', () => ({
+  getAgentModes: () => [{ label: 'Default', value: 'default' }],
+  supportsModeSwitch: () => false,
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    dialog: {
+      showOpen: {
+        invoke: vi.fn(),
+      },
+    },
+  },
+}));
+
+import { fireEvent } from '@testing-library/react';
+import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
+import { FileService } from '@/renderer/services/FileService';
+
+describe('GuidActionRow', () => {
+  const defaultProps = {
+    files: [],
+    onFilesUploaded: vi.fn(),
+    onSelectWorkspace: vi.fn(),
+    modelSelectorNode: <div>ModelSelector</div>,
+    acpConfigSelectorNode: <div>ReasoningSelector</div>,
+    selectedAgent: 'gemini',
+    selectedMode: 'default',
+    onModeSelect: vi.fn(),
+    isPresetAgent: false,
+    selectedAgentInfo: undefined,
+    customAgents: [],
+    localeKey: 'en-US',
+    onClosePresetTag: vi.fn(),
+    loading: false,
+    isButtonDisabled: false,
+    speechInputNode: <button aria-label='speech-input'>Mic</button>,
+    builtinAutoSkills: [],
+    disabledBuiltinSkills: [],
+    onToggleBuiltinSkill: vi.fn(),
+    onSend: vi.fn(),
+  };
+
+  it('renders the speech input control next to the send button', () => {
+    render(<GuidActionRow {...defaultProps} />);
+    expect(screen.getByLabelText('speech-input')).toBeInTheDocument();
+    expect(screen.getByText('ArrowUp')).toBeInTheDocument();
+  });
+
+  it('renders the provided ACP config selector only once', () => {
+    render(<GuidActionRow {...defaultProps} />);
+
+    expect(screen.getAllByText('ReasoningSelector')).toHaveLength(1);
+  });
+
+  it('shows generic error toast when file upload fails', async () => {
+    mockIsElectronDesktop.mockReturnValueOnce(false); // WebUI mode so file input is rendered
+    const { Message } = await import('@arco-design/web-react');
+    vi.mocked(FileService.processDroppedFiles).mockRejectedValueOnce(new Error('Upload failed'));
+
+    render(<GuidActionRow {...defaultProps} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    const file = new File(['content'], 'test.txt', { type: 'text/plain' });
+    Object.defineProperty(fileInput, 'files', { value: [file], configurable: true });
+    await fireEvent.change(fileInput);
+
+    expect(Message.error).toHaveBeenCalledWith('common.fileAttach.failed');
+  });
+
+  it('shows workspace selection in the WebUI attach menu', () => {
+    mockIsElectronDesktop.mockReturnValueOnce(false);
+
+    render(<GuidActionRow {...defaultProps} />);
+
+    expect(screen.getByText('conversation.welcome.specifyWorkspace')).toBeInTheDocument();
+  });
+});

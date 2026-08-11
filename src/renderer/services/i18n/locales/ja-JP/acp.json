@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください",
+    "console_error": "ACP認証エラー詳細:",
+    "failed_confirm": "ACP {{backend}} 認証が失敗しました：\n\n{{error}}\n\n設定ページで設定しますか？"
+  },
+  "sendbox": {
+    "placeholder": "{{backend}}にメッセージを送信..."
+  },
+  "status": {
+    "agentFallback": "エージェント",
+    "connecting": "{{agent}} に接続中...",
+    "connected": "{{agent}} に接続しました",
+    "authenticated": "{{agent}} 認証が完了しました",
+    "session_active": "{{agent}} セッション実行中",
+    "error": "接続エラー",
+    "unknown": "不明な状態"
+  },
+  "activity": {
+    "recovering": "実行状態を復元中...",
+    "waiting": "{{agent}} の応答を待機中...",
+    "thinking": "{{agent}} が思考中...",
+    "streaming": "{{agent}} が応答中...",
+    "permission": "権限確認を待機中...",
+    "tool": "ツールを実行中...",
+    "toolWithName": "ツールを実行中: {{tool}}"
+  },
+  "config": {
+    "reasoning_effort": "推論の深さ",
+    "default": "デフォルト"
+  }
+}

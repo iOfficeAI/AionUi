@@ -1,224 +1,707 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { cronService } from '../../src/process/services/cron/CronService';
-import { cronStore } from '../../src/process/services/cron/CronStore';
-import { getDatabase } from '../../src/process/database';
-import { ipcBridge } from '../../src/common';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({
-  powerSaveBlocker: {
-    start: vi.fn(),
-    stop: vi.fn(),
-  },
   app: {
-    setName: vi.fn(),
-    getPath: vi.fn(() => '/test/path'),
+    isPackaged: false,
+    getPath: vi.fn(() => '/mock/userData'),
+    getAppPath: vi.fn(() => '/mock/appPath'),
+  },
+  ipcMain: { handle: vi.fn(), on: vi.fn(), removeHandler: vi.fn() },
+  powerMonitor: { on: vi.fn() },
+}));
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    power: {
+      preventSleep: vi.fn(() => 1),
+      allowSleep: vi.fn(),
+    },
+  }),
+}));
+vi.mock('croner', () => ({
+  Cron: vi.fn(() => ({ stop: vi.fn(), nextRun: vi.fn(() => null) })),
+}));
+vi.mock('@process/services/i18n', () => ({
+  default: { t: vi.fn((key: string) => key) },
+  i18nReady: Promise.resolve(),
+}));
+vi.mock('@process/utils/message', () => ({ addMessage: vi.fn() }));
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: { responseStream: { emit: vi.fn() } },
   },
 }));
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: { get: vi.fn(async () => false) },
+  getCronSkillsDir: vi.fn(() => '/mock/cronSkills'),
+}));
+vi.mock('@/process/services/cron/cronSkillFile', () => ({
+  writeCronSkillFile: vi.fn(async () => '/mock/cronSkills/job-id/SKILL.md'),
+  deleteCronSkillFile: vi.fn(async () => {}),
+}));
 
-// Mock dependencies
-vi.mock('../../src/process/services/cron/CronStore', () => ({
-  cronStore: {
-    listByConversation: vi.fn(),
-    listEnabled: vi.fn(() => []),
-    listAll: vi.fn(() => []),
+import { CronService } from '../../src/process/services/cron/CronService';
+import type { ICronRepository } from '../../src/process/services/cron/ICronRepository';
+import type { ICronEventEmitter } from '../../src/process/services/cron/ICronEventEmitter';
+import type { ICronJobExecutor } from '../../src/process/services/cron/ICronJobExecutor';
+import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
+import type { CronJob } from '../../src/process/services/cron/CronStore';
+
+function makeRepo(overrides?: Partial<ICronRepository>): ICronRepository {
+  return {
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    getById: vi.fn(),
-  },
-}));
+    getById: vi.fn(() => null),
+    listAll: vi.fn(() => []),
+    listEnabled: vi.fn(() => []),
+    listByConversation: vi.fn(() => []),
+    deleteByConversation: vi.fn(() => 0),
+    ...overrides,
+  };
+}
 
-vi.mock('../../src/process/database', () => ({
-  getDatabase: vi.fn(() => ({
+function makeStatefulRepo(initialJob: CronJob): { repo: ICronRepository; read: () => CronJob } {
+  let storedJob = initialJob;
+
+  return {
+    repo: makeRepo({
+      getById: vi.fn((jobId: string) => (jobId === storedJob.id ? storedJob : null)),
+      update: vi.fn((jobId: string, updates: Partial<CronJob>) => {
+        if (jobId !== storedJob.id) {
+          return;
+        }
+
+        storedJob = {
+          ...storedJob,
+          ...updates,
+          schedule: updates.schedule ?? storedJob.schedule,
+          target: updates.target ?? storedJob.target,
+          metadata: {
+            ...storedJob.metadata,
+            ...updates.metadata,
+          },
+          state: {
+            ...storedJob.state,
+            ...updates.state,
+          },
+        };
+      }),
+    }),
+    read: () => storedJob,
+  };
+}
+
+function makeEmitter(overrides?: Partial<ICronEventEmitter>): ICronEventEmitter {
+  return {
+    emitJobCreated: vi.fn(),
+    emitJobUpdated: vi.fn(),
+    emitJobRemoved: vi.fn(),
+    emitJobExecuted: vi.fn(),
+    showNotification: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
+function makeExecutor(overrides?: Partial<ICronJobExecutor>): ICronJobExecutor {
+  return {
+    isConversationBusy: vi.fn(() => false),
+    executeJob: vi.fn(async () => {}),
+    prepareConversation: vi.fn(async () => 'conv-1'),
+    onceIdle: vi.fn(),
+    setProcessing: vi.fn(),
+    ...overrides,
+  };
+}
+
+function makeConversationRepo(overrides?: Partial<IConversationRepository>): IConversationRepository {
+  return {
+    getConversation: vi.fn(() => undefined),
+    createConversation: vi.fn(),
     updateConversation: vi.fn(),
-    getConversation: vi.fn(() => ({ success: true, data: {} })),
-  })),
-}));
+    deleteConversation: vi.fn(),
+    getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    insertMessage: vi.fn(),
+    getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    listAllConversations: vi.fn(() => []),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    getConversationsByCronJob: vi.fn(async () => []),
+    ...overrides,
+  };
+}
 
-vi.mock('../../src/common', () => ({
-  ipcBridge: {
-    cron: {
-      onJobCreated: { emit: vi.fn() },
-      onJobUpdated: { emit: vi.fn() },
-      onJobRemoved: { emit: vi.fn() },
+function makeJob(overrides?: Partial<CronJob>): CronJob {
+  return {
+    id: 'job-1',
+    name: 'test-job',
+    enabled: true,
+    schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
+    target: { payload: { kind: 'message', text: 'hello' } },
+    metadata: {
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+      createdAt: 1000,
+      updatedAt: 1000,
     },
-  },
-}));
-
-vi.mock('../../src/common/utils', () => ({
-  uuid: vi.fn(() => 'test-uuid'),
-}));
+    state: { runCount: 0, retryCount: 0, maxRetries: 3 },
+    ...overrides,
+  };
+}
 
 describe('CronService', () => {
+  let repo: ICronRepository;
+  let emitter: ICronEventEmitter;
+  let executor: ICronJobExecutor;
+  let conversationRepo: IConversationRepository;
+  let service: CronService;
+
   beforeEach(() => {
+    vi.useFakeTimers();
+    repo = makeRepo();
+    emitter = makeEmitter();
+    executor = makeExecutor();
+    conversationRepo = makeConversationRepo();
+    service = new CronService(repo, emitter, executor, conversationRepo);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
-  describe('init', () => {
-    it('should remove orphan jobs whose conversation no longer exists', async () => {
-      const orphanJob = {
-        id: 'cron_orphan',
-        name: 'Orphan Job',
-        enabled: true,
-        schedule: { kind: 'every', everyMs: 60000, description: 'Every minute' } as any,
-        target: { payload: { kind: 'message' as const, text: 'Hello' } },
-        metadata: {
-          conversationId: 'conv-deleted',
-          conversationTitle: 'Deleted Conversation',
-          agentType: 'gemini' as any,
-          createdBy: 'user' as any,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+  // --- init ---
+
+  it('starts timers for all enabled jobs at correct intervals', async () => {
+    const job = makeJob();
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.listEnabled).toHaveBeenCalled();
+    // startTimer (every kind) syncs nextRunAtMs via repo.update
+    expect(repo.update).toHaveBeenCalledWith(job.id, expect.objectContaining({ state: expect.any(Object) }));
+  });
+
+  it('calculates the next run for workday intervals by skipping weekends', async () => {
+    vi.setSystemTime(new Date('2026-04-18T10:00:00.000Z'));
+    const job = makeJob({
+      id: 'workday-job',
+      schedule: {
+        kind: 'interval',
+        intervalValue: 1,
+        intervalUnit: 'workday',
+        startAtMs: Date.parse('2026-04-17T09:00:00.000Z'),
+        description: 'Workday x1 / 2026-04-17 09:00',
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'workday-job',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          nextRunAtMs: Date.parse('2026-04-20T09:00:00.000Z'),
+        }),
+      })
+    );
+  });
+
+  it('removes orphan jobs whose conversation no longer exists in repo', async () => {
+    const job = makeJob({ id: 'orphan' });
+    vi.mocked(repo.listAll).mockReturnValue([job]);
+    vi.mocked(repo.listEnabled).mockReturnValue([]);
+    vi.mocked(conversationRepo.getConversation).mockReturnValue(undefined);
+
+    await service.init();
+
+    expect(repo.delete).toHaveBeenCalledWith('orphan');
+    expect(emitter.emitJobRemoved).toHaveBeenCalledWith('orphan');
+  });
+
+  it('does not remove jobs when their conversation exists', async () => {
+    const job = makeJob({ id: 'valid' });
+    vi.mocked(repo.listAll).mockReturnValue([job]);
+    vi.mocked(repo.listEnabled).mockReturnValue([]);
+    vi.mocked(conversationRepo.getConversation).mockReturnValue({
+      id: 'conv-1',
+    } as ReturnType<IConversationRepository['getConversation']>);
+
+    await service.init();
+
+    expect(repo.delete).not.toHaveBeenCalled();
+    expect(emitter.emitJobRemoved).not.toHaveBeenCalled();
+  });
+
+  // --- addJob ---
+
+  it('addJob inserts into repo and emits jobCreated', async () => {
+    vi.mocked(repo.listByConversation).mockReturnValue([]);
+
+    const job = await service.addJob({
+      name: 'my-job',
+      description: 'my description',
+      schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+      prompt: 'hello',
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+    });
+
+    expect(repo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'my-job',
+        description: 'my description',
+        target: expect.objectContaining({ payload: { kind: 'message', text: 'hello' } }),
+      })
+    );
+    expect(emitter.emitJobCreated).toHaveBeenCalledWith(expect.objectContaining({ name: 'my-job' }));
+    expect(job.name).toBe('my-job');
+    expect(job.description).toBe('my description');
+  });
+
+  it('addJob tags conversation with cronJobId', async () => {
+    vi.mocked(repo.listByConversation).mockReturnValue([]);
+    vi.mocked(conversationRepo.getConversation).mockReturnValue({
+      id: 'conv-1',
+      extra: {},
+    } as ReturnType<IConversationRepository['getConversation']>);
+
+    await service.addJob({
+      name: 'my-job',
+      description: 'my description',
+      schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+      prompt: 'hello',
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+    });
+
+    expect(conversationRepo.updateConversation).toHaveBeenCalledWith(
+      'conv-1',
+      expect.objectContaining({
+        extra: expect.objectContaining({ cronJobId: expect.any(String) }),
+      })
+    );
+  });
+
+  it('addJob stores executionMode when provided', async () => {
+    vi.mocked(repo.listByConversation).mockReturnValue([]);
+
+    await service.addJob({
+      name: 'new-conv-job',
+      schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+      prompt: 'hello',
+      conversationId: 'conv-1',
+      agentType: 'gemini',
+      createdBy: 'user',
+      executionMode: 'new_conversation',
+    });
+
+    expect(repo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ executionMode: 'new_conversation' }),
+      })
+    );
+  });
+
+  it('updateJob preserves edited description', async () => {
+    const existing = makeJob({ description: 'Old description' });
+    const updated = makeJob({ description: 'New description' });
+    vi.mocked(repo.getById).mockReturnValueOnce(existing).mockReturnValueOnce(updated);
+
+    const result = await service.updateJob(existing.id, { description: 'New description' });
+
+    expect(repo.update).toHaveBeenCalledWith(existing.id, expect.objectContaining({ description: 'New description' }));
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(expect.objectContaining({ description: 'New description' }));
+    expect(result.description).toBe('New description');
+  });
+
+  it('addJob throws when conversation already has a scheduled job', async () => {
+    const existing = makeJob({ name: 'existing-job', id: 'existing-id' });
+    vi.mocked(repo.listByConversation).mockReturnValue([existing]);
+
+    await expect(
+      service.addJob({
+        name: 'new-job',
+        schedule: { kind: 'every', everyMs: 10000, description: 'test' },
+        prompt: 'hello',
+        conversationId: 'conv-1',
+        agentType: 'gemini',
+        createdBy: 'user',
+      })
+    ).rejects.toThrow();
+  });
+
+  // --- updateJob ---
+
+  it('updateJob restarts timer when enabled flips from false to true', async () => {
+    const disabledJob = makeJob({ id: 'j1', enabled: false });
+    const updatedJob = makeJob({ id: 'j1', enabled: true });
+    vi.mocked(repo.getById).mockReturnValueOnce(disabledJob).mockReturnValueOnce(updatedJob);
+
+    await service.updateJob('j1', { enabled: true });
+
+    // startTimer was called for the re-enabled job → emitter.emitJobUpdated
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(updatedJob);
+  });
+
+  it('updateJob throws when job does not exist', async () => {
+    vi.mocked(repo.getById).mockReturnValue(null);
+
+    await expect(service.updateJob('missing', {})).rejects.toThrow('Job not found: missing');
+  });
+
+  // --- removeJob ---
+
+  it('removeJob stops timer and emits jobRemoved', async () => {
+    await service.removeJob('job-1');
+
+    expect(repo.delete).toHaveBeenCalledWith('job-1');
+    expect(emitter.emitJobRemoved).toHaveBeenCalledWith('job-1');
+  });
+
+  it('removeJob cleans up SKILL.md file', async () => {
+    const { deleteCronSkillFile } = await import('@/process/services/cron/cronSkillFile');
+    await service.removeJob('job-1');
+
+    expect(deleteCronSkillFile).toHaveBeenCalledWith('job-1');
+  });
+
+  // --- executeJob (via startTimer interval) ---
+
+  it('executeJob calls executor.executeJob, updates job state, and emits completion', async () => {
+    const job = makeJob({ id: 'j1' });
+    const updatedJob = makeJob({
+      id: 'j1',
+      state: { runCount: 1, retryCount: 0, maxRetries: 3 },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(updatedJob);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(false);
+    vi.mocked(executor.executeJob).mockResolvedValue(undefined);
+
+    await service.init();
+    // Advance exactly one interval period to fire the timer once.
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
+    expect(repo.update).toHaveBeenCalledWith(
+      'j1',
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'ok' }),
+      })
+    );
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(updatedJob);
+  });
+
+  it('executeJob records error status when executor throws', async () => {
+    const job = makeJob({ id: 'j1' });
+    const updatedJob = makeJob({ id: 'j1' });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(updatedJob);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(false);
+    vi.mocked(executor.executeJob).mockRejectedValue(new Error('task not found'));
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'j1',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          lastStatus: 'error',
+          lastError: 'task not found',
+        }),
+      })
+    );
+  });
+
+  it('runJobNow preserves nextRunAtMs while updating execution state', async () => {
+    vi.setSystemTime(new Date('2026-03-25T08:00:00Z'));
+
+    const initialNextRunAtMs = Date.now() + 60000;
+    const statefulRepo = makeStatefulRepo(
+      makeJob({
+        state: {
+          runCount: 0,
+          retryCount: 0,
+          maxRetries: 3,
+          nextRunAtMs: initialNextRunAtMs,
         },
-        state: { runCount: 0, retryCount: 0, maxRetries: 3 },
-      };
+      })
+    );
 
-      vi.mocked(cronStore.listAll).mockReturnValue([orphanJob]);
-      vi.mocked(cronStore.listEnabled).mockReturnValue([]);
-      vi.mocked(getDatabase).mockReturnValue({
-        updateConversation: vi.fn(),
-        getConversation: vi.fn(() => ({ success: false, data: undefined })),
-      } as any);
+    repo = statefulRepo.repo;
+    emitter = makeEmitter();
+    executor = makeExecutor({ executeJob: vi.fn(async () => {}) });
+    conversationRepo = makeConversationRepo();
+    service = new CronService(repo, emitter, executor, conversationRepo);
 
-      // Reset initialized state by accessing private field via type cast
-      (cronService as any).initialized = false;
-      await cronService.init();
+    const updated = await service.runJobNow('job-1');
+    const storedJob = statefulRepo.read();
 
-      expect(cronStore.delete).toHaveBeenCalledWith(orphanJob.id);
-      expect(ipcBridge.cron.onJobRemoved.emit).toHaveBeenCalledWith({ jobId: orphanJob.id });
-    });
-
-    it('should not remove jobs whose conversation exists', async () => {
-      const validJob = {
-        id: 'cron_valid',
-        name: 'Valid Job',
-        enabled: true,
-        schedule: { kind: 'every', everyMs: 60000, description: 'Every minute' } as any,
-        target: { payload: { kind: 'message' as const, text: 'Hello' } },
-        metadata: {
-          conversationId: 'conv-exists',
-          conversationTitle: 'Existing Conversation',
-          agentType: 'gemini' as any,
-          createdBy: 'user' as any,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        state: { runCount: 0, retryCount: 0, maxRetries: 3 },
-      };
-
-      vi.mocked(cronStore.listAll).mockReturnValue([validJob]);
-      vi.mocked(cronStore.listEnabled).mockReturnValue([validJob]);
-      vi.mocked(getDatabase).mockReturnValue({
-        updateConversation: vi.fn(),
-        getConversation: vi.fn(() => ({ success: true, data: { id: 'conv-exists' } })),
-      } as any);
-
-      (cronService as any).initialized = false;
-      await cronService.init();
-
-      expect(cronStore.delete).not.toHaveBeenCalled();
-    });
+    expect(executor.executeJob).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'job-1' }),
+      expect.any(Function),
+      undefined
+    );
+    expect(storedJob.state.nextRunAtMs).toBe(initialNextRunAtMs);
+    expect(storedJob.state.lastStatus).toBe('ok');
+    expect(storedJob.state.runCount).toBe(1);
+    expect(storedJob.state.lastRunAtMs).toBe(Date.now());
+    expect(updated.state.nextRunAtMs).toBe(initialNextRunAtMs);
   });
 
-  describe('addJob', () => {
-    it('should emit onJobCreated event when adding a job', async () => {
-      vi.mocked(cronStore.listByConversation).mockReturnValue([]);
-
-      const params = {
-        name: 'Test Task',
-        schedule: { kind: 'every', everyMs: 60000, description: 'Every minute' } as any,
-        message: 'Hello',
-        conversationId: 'conv-123',
-        agentType: 'gemini' as any,
-        createdBy: 'user' as any,
-      };
-
-      const job = await cronService.addJob(params);
-
-      expect(cronStore.insert).toHaveBeenCalled();
-      expect(ipcBridge.cron.onJobCreated.emit).toHaveBeenCalledWith(job);
+  it('executeJob skips and stops retrying when conversation is busy beyond maxRetries', async () => {
+    const job = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 1 },
     });
+    const skippedJob = makeJob({ id: 'j1' });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(skippedJob);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(true);
+
+    await service.init();
+    // First interval fires: retry count = 1, not > maxRetries(1) → schedules 30s retry timer
+    await vi.advanceTimersByTimeAsync(60000);
+    // Retry timer fires: retry count = 2 > maxRetries(1) → skip
+    await vi.advanceTimersByTimeAsync(30000);
+
+    expect(executor.executeJob).not.toHaveBeenCalled();
+    expect(repo.update).toHaveBeenCalledWith(
+      'j1',
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'skipped' }),
+      })
+    );
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(skippedJob);
   });
 
-  describe('removeJob', () => {
-    it('should emit onJobRemoved event when removing a job', async () => {
-      const jobId = 'cron_test-uuid';
-
-      await cronService.removeJob(jobId);
-
-      expect(cronStore.delete).toHaveBeenCalledWith(jobId);
-      expect(ipcBridge.cron.onJobRemoved.emit).toHaveBeenCalledWith({ jobId });
+  it('executeJob schedules a retry timer when conversation is busy within retry limit', async () => {
+    const job = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(true);
+
+    await service.init();
+    // First interval fires — busy, retry count = 1 (within limit), schedules retry
+    // Advance only the interval (60 s), not the retry timer (30 s)
+    await vi.advanceTimersByTimeAsync(60000);
+
+    // Executor must not have been called — still waiting for retry
+    expect(executor.executeJob).not.toHaveBeenCalled();
   });
 
-  describe('updateJob', () => {
-    it('should update metadata.conversationId when migrating a job', async () => {
-      const jobId = 'cron_test-uuid';
-      const existingJob = {
-        id: jobId,
-        name: 'Test Job',
+  it('queues a scheduled new-conversation run until the previous run finishes when queue mode is enabled', async () => {
+    const idleCallbacks: Array<() => Promise<void>> = [];
+    const job = makeJob({
+      id: 'queued-job',
+      target: {
+        payload: { kind: 'message', text: 'queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+    vi.mocked(conversationRepo.getConversationsByCronJob).mockResolvedValue([
+      {
+        id: 'previous-run',
+        name: 'Previous run',
+        type: 'codex',
+        status: 'running',
+        extra: { cronJobId: 'queued-job' },
+      } as Awaited<ReturnType<IConversationRepository['getConversationsByCronJob']>>[number],
+    ]);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(false);
+    vi.mocked(executor.onceIdle).mockImplementation((_conversationId, callback) => {
+      idleCallbacks.push(callback);
+    });
+    vi.mocked(executor.executeJob).mockResolvedValue('next-run');
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(executor.executeJob).not.toHaveBeenCalled();
+    expect(executor.onceIdle).toHaveBeenCalledWith('previous-run', expect.any(Function));
+
+    await idleCallbacks[0]();
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(1);
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
+  });
+
+  it('serializes separate queue-mode jobs so only one scheduled task runs at a time', async () => {
+    const idleCallbacks = new Map<string, Array<() => Promise<void>>>();
+    const jobA = makeJob({
+      id: 'queued-job-a',
+      name: 'Queued Job A',
+      target: {
+        payload: { kind: 'message', text: 'first queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+      metadata: {
+        conversationId: 'seed-conv-a',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    });
+    const jobB = makeJob({
+      id: 'queued-job-b',
+      name: 'Queued Job B',
+      target: {
+        payload: { kind: 'message', text: 'second queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+      metadata: {
+        conversationId: 'seed-conv-b',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([jobA, jobB]);
+    vi.mocked(repo.getById).mockImplementation((jobId: string) => {
+      if (jobId === jobA.id) return jobA;
+      if (jobId === jobB.id) return jobB;
+      return null;
+    });
+    vi.mocked(executor.onceIdle).mockImplementation((conversationId, callback) => {
+      idleCallbacks.set(conversationId, [...(idleCallbacks.get(conversationId) ?? []), callback]);
+    });
+    vi.mocked(executor.executeJob).mockImplementation(async (job, onAcquired) => {
+      const runConversationId = `${job.id}-run`;
+      onAcquired?.(runConversationId);
+      return runConversationId;
+    });
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(1);
+    expect(executor.executeJob).toHaveBeenCalledWith(jobA, expect.any(Function), undefined);
+    expect(repo.update).toHaveBeenCalledWith(
+      jobB.id,
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'queued' }),
+      })
+    );
+
+    for (const callback of idleCallbacks.get('queued-job-a-run') ?? []) {
+      await callback();
+    }
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(2);
+    expect(executor.executeJob).toHaveBeenNthCalledWith(2, jobB, expect.any(Function), undefined);
+  });
+
+  it('starts every timers from schedule.startAtMs before switching to the fixed interval', async () => {
+    vi.setSystemTime(new Date('2026-03-25T08:00:00Z'));
+
+    const firstRunAtMs = Date.now() + 30000;
+    const job = makeJob({
+      schedule: {
+        kind: 'every',
+        everyMs: 60000,
+        startAtMs: firstRunAtMs,
+        description: 'every minute',
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+    vi.mocked(executor.executeJob).mockResolvedValue(undefined);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      job.id,
+      expect.objectContaining({
+        state: expect.objectContaining({ nextRunAtMs: firstRunAtMs }),
+      })
+    );
+
+    await vi.advanceTimersByTimeAsync(29000);
+    expect(executor.executeJob).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(executor.executeJob).toHaveBeenCalledTimes(1);
+  });
+
+  // --- handleSystemResume ---
+
+  it('handleSystemResume inserts missed-job messages for jobs that fired while system was asleep', async () => {
+    vi.mocked(repo.listEnabled).mockReturnValue([]);
+    await service.init();
+
+    const pastTime = Date.now() - 1000;
+    const job = makeJob({
+      id: 'j1',
+      state: {
+        runCount: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        nextRunAtMs: pastTime,
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+
+    await service.handleSystemResume();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'j1',
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'missed' }),
+      })
+    );
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(job);
+    const { addMessage } = await import('@process/utils/message');
+    expect(addMessage).toHaveBeenCalledWith('conv-1', expect.objectContaining({ type: 'tips' }));
+  });
+
+  it('handleSystemResume does nothing when service is not yet initialized', async () => {
+    await service.handleSystemResume();
+
+    // listEnabled should only be called during init, not during uninitialized handleSystemResume
+    expect(repo.listEnabled).not.toHaveBeenCalled();
+  });
+
+  // --- startTimer invalid cron expression ---
+
+  it('startTimer disables job and records error when cron expression is invalid', async () => {
+    const { Cron } = await import('croner');
+    vi.mocked(Cron).mockImplementationOnce(() => {
+      throw new TypeError('CronPattern: configuration entry 2 (NaN) contains illegal characters.');
+    });
+
+    const job = makeJob({
+      id: 'bad-cron',
+      schedule: { kind: 'cron', expr: 'NaN NaN * * *', description: 'invalid' },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'bad-cron',
+      expect.objectContaining({
         enabled: false,
-        schedule: { kind: 'every', everyMs: 60000, description: 'Every minute' } as any,
-        target: { payload: { kind: 'message' as const, text: 'Hello' } },
-        metadata: {
-          conversationId: 'conv-old',
-          conversationTitle: 'Old Conversation',
-          agentType: 'gemini' as any,
-          createdBy: 'user' as any,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        state: { runCount: 0, retryCount: 0, maxRetries: 3 },
-      };
-
-      const updatedJob = {
-        ...existingJob,
-        metadata: { ...existingJob.metadata, conversationId: 'conv-new', conversationTitle: 'New Conversation' },
-      };
-
-      // First call returns existing, subsequent calls return updated
-      vi.mocked(cronStore.getById).mockReturnValueOnce(existingJob).mockReturnValue(updatedJob);
-
-      const updates = {
-        metadata: {
-          ...existingJob.metadata,
-          conversationId: 'conv-new',
-          conversationTitle: 'New Conversation',
-        },
-      };
-
-      const result = await cronService.updateJob(jobId, updates);
-
-      expect(cronStore.update).toHaveBeenCalledWith(jobId, updates);
-      expect(ipcBridge.cron.onJobUpdated.emit).toHaveBeenCalled();
-      expect(result.metadata.conversationId).toBe('conv-new');
-    });
-
-    it('should emit onJobUpdated after updating a job (no duplicate from caller needed)', async () => {
-      const jobId = 'cron_test-uuid';
-      const existingJob = {
-        id: jobId,
-        name: 'Test Job',
-        enabled: false,
-        schedule: { kind: 'every', everyMs: 60000, description: 'Every minute' } as any,
-        target: { payload: { kind: 'message' as const, text: 'Hello' } },
-        metadata: {
-          conversationId: 'conv-123',
-          conversationTitle: 'Test',
-          agentType: 'gemini' as any,
-          createdBy: 'user' as any,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        state: { runCount: 0, retryCount: 0, maxRetries: 3 },
-      };
-
-      vi.mocked(cronStore.getById).mockReturnValue(existingJob);
-
-      await cronService.updateJob(jobId, { name: 'Updated Name' });
-
-      // updateJob internally emits onJobUpdated — caller should not emit again
-      expect(ipcBridge.cron.onJobUpdated.emit).toHaveBeenCalled();
-    });
+        state: expect.objectContaining({
+          lastStatus: 'error',
+          lastError: 'Invalid cron expression: NaN NaN * * *',
+        }),
+      })
+    );
+    expect(emitter.emitJobUpdated).toHaveBeenCalledWith(expect.objectContaining({ id: 'bad-cron', enabled: false }));
   });
 });

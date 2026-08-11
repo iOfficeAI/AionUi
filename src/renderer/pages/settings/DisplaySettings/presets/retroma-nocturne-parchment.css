@@ -1,0 +1,266 @@
+/* Retroma Nocturne Parchment
+ * Dark-only reading theme with warm parchment surfaces and restrained contrast.
+ */
+
+:root {
+  --color-primary: #9a87c8;
+  --primary: #9a87c8;
+  --brand: #c7af84;
+  --brand-light: #3b3126;
+  --brand-hover: #dcc59a;
+
+  --aou-1: #201a14;
+  --aou-2: #2a221a;
+  --aou-3: #3a2f24;
+  --aou-4: #524334;
+  --aou-5: #74614b;
+  --aou-6: #9a8465;
+  --aou-7: #b69b73;
+  --aou-8: #d1b48b;
+  --aou-9: #e6ceb0;
+  --aou-10: #f4e7d4;
+
+  --bg-base: #120f0c;
+  --bg-1: #1a1511;
+  --bg-2: #241d17;
+  --bg-3: #30261e;
+  --bg-4: #443629;
+  --bg-5: #5d4b39;
+  --bg-6: #7a644d;
+  --bg-8: #a08364;
+  --bg-9: #c5ab8a;
+  --bg-10: #ead8c2;
+  --color-bg-1: #1a1511;
+  --color-bg-2: #241d17;
+  --color-bg-3: #30261e;
+  --color-bg-4: #443629;
+
+  --text-primary: #efe2cf;
+  --text-secondary: #c5b29a;
+  --text-disabled: #7f6b58;
+  --text-0: #f3e9d9;
+  --text-white: #f3e9d9;
+  --color-text-1: #efe2cf;
+  --color-text-2: #c5b29a;
+  --color-text-3: #9a836d;
+  --color-text-4: #665342;
+
+  --border-base: #5f4d38;
+  --border-light: #433527;
+  --border-special: #7a6247;
+  --color-border: #5f4d38;
+  --color-border-1: #5f4d38;
+  --color-border-2: #433527;
+
+  --fill: #1a1511;
+  --color-fill: #1a1511;
+  --fill-0: rgba(243, 233, 217, 0.06);
+  --fill-white-to-black: #120f0c;
+  --dialog-fill-0: #2a2119;
+  --inverse: #f3e9d9;
+
+  --success: #8daa8b;
+  --warning: #d0a15f;
+  --danger: #c57a6d;
+  --info: #9a87c8;
+
+  --message-user-bg: #3f3135;
+  --message-tips-bg: #2b231d;
+  --workspace-btn-bg: #2a221a;
+  --color-guid-agent-bar: #2a221a;
+
+  --hl-chip-bg: #d0bea2;
+  --hl-chip-text: #3b2f23;
+  --hl-chip-border: #aa9272;
+}
+
+body {
+  font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', 'Source Han Serif', serif;
+  letter-spacing: 0.012em;
+}
+
+body,
+#root,
+.arco-layout,
+.arco-layout-content,
+.layout-content {
+  background:
+    radial-gradient(circle at top left, rgba(217, 188, 140, 0.05), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(154, 135, 200, 0.04), transparent 28%),
+    linear-gradient(180deg, #1a1511 0%, #120f0c 100%) !important;
+  color: var(--text-primary);
+}
+
+.layout-sider,
+#root .layout-sider,
+#root .arco-layout-sider.layout-sider {
+  background: linear-gradient(180deg, rgba(31, 25, 20, 0.98) 0%, rgba(24, 19, 15, 0.98) 100%) !important;
+  border-right: 1px solid rgba(95, 77, 56, 0.84) !important;
+  box-shadow:
+    inset -1px 0 0 rgba(243, 233, 217, 0.03),
+    12px 0 30px rgba(0, 0, 0, 0.14) !important;
+}
+
+.layout-sider-header {
+  border-bottom: 1px solid rgba(95, 77, 56, 0.7) !important;
+}
+
+.chat-history__section,
+.settings-sider__section {
+  color: #ccb79b !important;
+  letter-spacing: 0.035em;
+}
+
+.chat-history__item,
+.settings-sider__item {
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease !important;
+}
+
+.chat-history__item:hover,
+.settings-sider__item:hover {
+  background: linear-gradient(180deg, rgba(55, 44, 34, 0.9) 0%, rgba(45, 36, 28, 0.9) 100%) !important;
+  border-color: rgba(102, 83, 60, 0.7) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.03),
+    0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.chat-history__item--active,
+.chat-history__item[aria-selected='true'],
+.chat-history__item[class~='!bg-active'],
+.settings-sider__item[class~='!bg-aou-2'] {
+  background: linear-gradient(
+    90deg,
+    rgba(82, 67, 72, 0.96) 0%,
+    rgba(67, 56, 60, 0.96) 58%,
+    rgba(56, 47, 50, 0.96) 100%
+  ) !important;
+  border-color: rgba(146, 122, 92, 0.74) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.05),
+    0 12px 24px rgba(0, 0, 0, 0.14) !important;
+}
+
+.message-item.user .message-bubble {
+  background: linear-gradient(180deg, rgba(68, 53, 59, 0.98) 0%, rgba(56, 43, 48, 0.98) 100%) !important;
+  border: 1px solid rgba(136, 112, 88, 0.68) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.05),
+    0 12px 26px rgba(0, 0, 0, 0.18) !important;
+}
+
+.message-item.ai .message-bubble,
+.message-item.assistant .message-bubble {
+  background: linear-gradient(180deg, rgba(44, 36, 29, 0.98) 0%, rgba(35, 28, 22, 0.98) 100%) !important;
+  border: 1px solid rgba(99, 81, 60, 0.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.04),
+    0 14px 28px rgba(0, 0, 0, 0.2) !important;
+}
+
+.message-content,
+.markdown-body,
+.markdown-shadow-body,
+[class*='markdown'] {
+  color: var(--text-primary) !important;
+}
+
+.message-content a,
+.markdown-body a,
+.markdown-shadow-body a,
+[class*='markdown'] a {
+  color: #d7c19f !important;
+  -webkit-text-fill-color: #d7c19f !important;
+  text-decoration-color: rgba(215, 193, 159, 0.55) !important;
+}
+
+.message-content pre,
+.markdown-body pre,
+.markdown-shadow-body pre,
+[class*='markdown'] pre {
+  background: linear-gradient(180deg, rgba(36, 31, 25, 0.98) 0%, rgba(28, 24, 19, 0.98) 100%) !important;
+  border: 1px solid rgba(102, 83, 61, 0.9) !important;
+  border-radius: 8px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.04),
+    0 8px 22px rgba(0, 0, 0, 0.24) !important;
+}
+
+.message-content code:not(pre code),
+.markdown-body code:not(pre code),
+.markdown-shadow-body code:not(pre code),
+[class*='markdown'] code:not(pre code) {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  border: 1px solid var(--hl-chip-border) !important;
+  border-radius: 4px !important;
+  padding: 1px 5px !important;
+  font-size: 0.88em !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+}
+
+.message-content strong,
+.markdown-body strong,
+.markdown-shadow-body strong,
+[class*='markdown'] strong {
+  background: transparent !important;
+  color: inherit !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.message-content mark,
+.markdown-body mark,
+.markdown-shadow-body mark,
+[class*='markdown'] mark {
+  background: rgba(206, 188, 152, 0.24) !important;
+  color: inherit !important;
+  border: none !important;
+  border-radius: 3px !important;
+  padding: 0 0.16em !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.sendbox-panel,
+.guid-input-card-shell,
+.arco-modal,
+.arco-drawer-content,
+.arco-card,
+.arco-popover-content,
+.arco-dropdown-menu,
+.arco-select-popup {
+  background: linear-gradient(180deg, rgba(40, 33, 27, 0.98) 0%, rgba(31, 26, 21, 0.98) 100%) !important;
+  border-color: rgba(101, 84, 63, 0.84) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 233, 217, 0.04),
+    0 18px 40px rgba(0, 0, 0, 0.26) !important;
+}
+
+.arco-input-wrapper,
+.arco-textarea-wrapper,
+.arco-input-inner-wrapper,
+.arco-select-view {
+  background: linear-gradient(180deg, rgba(42, 36, 29, 0.98) 0%, rgba(34, 29, 23, 0.98) 100%) !important;
+  border-color: rgba(96, 82, 61, 0.88) !important;
+  box-shadow: inset 0 1px 0 rgba(243, 233, 217, 0.04) !important;
+}
+
+::selection {
+  background: rgba(204, 182, 142, 0.28) !important;
+  color: #f6eedf !important;
+}
+
+[data-theme='dark'] {
+  --color-primary: #9a87c8;
+  --bg-1: #1a1511;
+}

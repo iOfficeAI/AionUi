@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import AcpAgentManager from './task/AcpAgentManager';
-import { CodexAgentManager } from '@/agent/codex';
+import CodexAgentManager from './task/CodexAgentManager';
 import NanoBotAgentManager from './task/NanoBotAgentManager';
 import OpenClawAgentManager from './task/OpenClawAgentManager';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
-import { ProcessChat } from './initStorage';
+import { ProcessChat } from '@process/utils/initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
-import { getDatabase } from './database/export';
-import { releaseConversationMessageCache } from './message';
+import { getDatabase, getDatabaseSync } from '@process/services/database';
+import { releaseConversationMessageCache } from '@process/utils/message';
 import { cronBusyGuard } from './services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from './services/ConversationTurnCompletionService';
 import { workerTaskManager } from './task/workerTaskManagerSingleton';
@@ -76,7 +76,12 @@ const destroyTask = async (id: string, task: AgentBaseTask<unknown>) => {
 };
 
 const isPrunableConversation = (id: string): boolean => {
-  const db = getDatabase();
+  let db;
+  try {
+    db = getDatabaseSync();
+  } catch {
+    return false;
+  }
   const result = db.getConversation(id);
   if (!result.success || !result.data) {
     return false;
@@ -153,6 +158,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
     case 'acp': {
       const task = new AcpAgentManager({
         ...conversation.extra,
+        backend: conversation.extra.backend as import('@/common/types/acpTypes').AcpBackendAll,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
         yoloMode: options?.yoloMode,
@@ -221,7 +227,7 @@ const getTaskByIdRollbackBuild = async (
   }
 
   // Try to load from database first
-  const db = getDatabase();
+  const db = await getDatabase();
   const dbResult = db.getConversation(id);
   console.log(`[WorkerManage] Database lookup result: success=${dbResult.success}, hasData=${!!dbResult.data}`);
 
@@ -356,7 +362,7 @@ const pruneIdleTasks = (now: number = Date.now()) => {
   const removableIndexes = taskList
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => !shouldKeepTask(entry, now))
-    .sort((left, right) => right.index - left.index)
+    .toSorted((left, right) => right.index - left.index)
     .map(({ index }) => index);
 
   removableIndexes.forEach((index) => {
@@ -373,12 +379,12 @@ const pruneIdleTasks = (now: number = Date.now()) => {
   const overflowCandidates = taskList
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => entry.task.status === 'finished' && isPrunableConversation(entry.id))
-    .sort((left, right) => left.entry.lastUsedAt - right.entry.lastUsedAt);
+    .toSorted((left, right) => left.entry.lastUsedAt - right.entry.lastUsedAt);
 
   const overflowCount = taskList.length - MAX_CACHED_TASKS;
   overflowCandidates
     .slice(0, overflowCount)
-    .sort((left, right) => right.index - left.index)
+    .toSorted((left, right) => right.index - left.index)
     .forEach(({ index }) => {
       const [removed] = taskList.splice(index, 1);
       if (removed) {

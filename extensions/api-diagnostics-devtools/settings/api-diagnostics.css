@@ -22,7 +22,10 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 26%), radial-gradient(circle at top left, rgba(217, 119, 6, 0.12), transparent 24%), linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 26%),
+    radial-gradient(circle at top left, rgba(217, 119, 6, 0.12), transparent 24%),
+    linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
 }
 
 .shell {

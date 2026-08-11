@@ -9,8 +9,9 @@
  */
 export type CronCommand =
   | { kind: 'create'; name: string; schedule: string; scheduleDescription: string; message: string }
-  | { kind: 'list' }
-  | { kind: 'delete'; jobId: string };
+  | { kind: 'update'; jobId: string; name: string; schedule: string; scheduleDescription: string; message: string }
+  | { kind: 'delete'; jobId: string }
+  | { kind: 'list' };
 
 /**
  * Remove markdown code blocks from content to avoid detecting commands in examples
@@ -19,6 +20,11 @@ export type CronCommand =
 function stripCodeBlocks(content: string): string {
   // Remove fenced code blocks (```...```)
   return content.replace(/```[\s\S]*?```/g, '');
+}
+
+function isPlaceholderJobId(jobId: string): boolean {
+  const normalized = jobId.trim().toLowerCase();
+  return normalized === 'task-id' || normalized === 'xxx' || normalized === '任务id';
 }
 
 /**
@@ -72,18 +78,27 @@ export function detectCronCommands(content: string): CronCommand[] {
     }
   }
 
+  // Detect [CRON_UPDATE: jobId]...[/CRON_UPDATE]
+  const updateMatches = cleanContent.matchAll(/\[CRON_UPDATE:\s*([^\]]+)\]\s*\n?([\s\S]*?)\[\/CRON_UPDATE\]/gi);
+  for (const match of updateMatches) {
+    const jobId = match[1].trim();
+    const body = match[2];
+    const parsed = parseCronCreateBody(body);
+    if (parsed && jobId) {
+      commands.push({ kind: 'update', jobId, ...parsed });
+    }
+  }
+
   // Detect [CRON_LIST]
   if (/\[CRON_LIST\]/i.test(cleanContent)) {
     commands.push({ kind: 'list' });
   }
 
-  // Detect [CRON_DELETE: xxx] - but ignore placeholder values like "任务ID", "task-id", etc.
+  // Detect [CRON_DELETE: job-id]
   const deleteMatches = cleanContent.matchAll(/\[CRON_DELETE:\s*([^\]]+)\]/gi);
   for (const match of deleteMatches) {
-    const jobId = match[1].trim();
-    // Skip placeholder values that are clearly not real job IDs
-    const placeholders = ['任务id', 'task-id', 'taskid', 'job-id', 'jobid', 'xxx', 'id'];
-    if (jobId && !placeholders.includes(jobId.toLowerCase())) {
+    const jobId = match[1]?.trim();
+    if (jobId && !isPlaceholderJobId(jobId)) {
       commands.push({ kind: 'delete', jobId });
     }
   }
@@ -145,7 +160,7 @@ export function hasCronCommands(content: string): boolean {
   if (!content || typeof content !== 'string') {
     return false;
   }
-  return /\[CRON_(?:CREATE|LIST|DELETE)/i.test(content);
+  return /\[CRON_(?:CREATE|UPDATE|LIST|DELETE)/i.test(content);
 }
 
 /**
@@ -159,8 +174,9 @@ export function stripCronCommands(content: string): string {
 
   return content
     .replace(/\[CRON_CREATE\][\s\S]*?\[\/CRON_CREATE\]/gi, '')
+    .replace(/\[CRON_UPDATE:[^\]]*\][\s\S]*?\[\/CRON_UPDATE\]/gi, '')
     .replace(/\[CRON_LIST\]/gi, '')
-    .replace(/\[CRON_DELETE:[^\]]+\]/gi, '')
+    .replace(/\[CRON_DELETE:[^\]]*\]/gi, '')
     .replace(/\n{3,}/g, '\n\n') // Collapse multiple newlines
     .trim();
 }

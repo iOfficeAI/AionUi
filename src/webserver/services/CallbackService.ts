@@ -5,7 +5,7 @@
  */
 
 import { DEFAULT_JS_FILTER_SCRIPT } from '@/common/apiCallback';
-import type { IApiConfig } from '@/common/storage';
+import type { IApiConfig } from '@/common/config/storage';
 import { Script, createContext } from 'vm';
 
 type CallbackTemplateVariables = Record<string, unknown> & {
@@ -24,6 +24,16 @@ type CallbackJsFilterObjectResult = {
 type CallbackJsFilterResult = {
   content: string;
   textLimit: number;
+};
+
+type CallbackApiJsonResponse = {
+  errcode?: unknown;
+  errmsg?: unknown;
+  code?: unknown;
+  msg?: unknown;
+  message?: unknown;
+  StatusCode?: unknown;
+  StatusMessage?: unknown;
 };
 
 /**
@@ -47,11 +57,27 @@ export class CallbackService {
 
     for (const [key, value] of Object.entries(variables)) {
       const placeholder = `{{${key}}}`;
-      const replacement = typeof value === 'string' ? value : JSON.stringify(value);
-      result = result.replaceAll(placeholder, replacement);
+      if (typeof value === 'string') {
+        result = this.replaceStringVariable(result, placeholder, value);
+        continue;
+      }
+
+      const replacement = JSON.stringify(value ?? null);
+      result = this.replaceLiteral(result, placeholder, replacement);
     }
 
     return result;
+  }
+
+  private static replaceStringVariable(template: string, placeholder: string, value: string): string {
+    const escapedValue = JSON.stringify(value);
+    const quotedPlaceholder = `"${placeholder}"`;
+    const withQuotedReplacement = this.replaceLiteral(template, quotedPlaceholder, escapedValue);
+    return this.replaceLiteral(withQuotedReplacement, placeholder, escapedValue);
+  }
+
+  private static replaceLiteral(template: string, searchValue: string, replacement: string): string {
+    return template.split(searchValue).join(replacement);
   }
 
   static createTemplateVariables(config: IApiConfig, variables: CallbackTemplateVariables): Record<string, unknown> {
@@ -195,6 +221,95 @@ jsFilter(input);
     return chunks.length > 0 ? chunks : [content];
   }
 
+  private static async validateCallbackResponse(
+    response: Response,
+    chunkIndex: number,
+    chunkCount: number
+  ): Promise<string | null> {
+    if (!response.ok) {
+      const responseDetail = await this.extractErrorResponseDetail(response);
+      const baseError = `HTTP ${response.status}: ${response.statusText}`;
+      return chunkCount > 1
+        ? `${baseError}${responseDetail ? ` - ${responseDetail}` : ''} (chunk ${chunkIndex}/${chunkCount})`
+        : `${baseError}${responseDetail ? ` - ${responseDetail}` : ''}`;
+    }
+
+    const contentType = response.headers?.get('content-type')?.toLowerCase() ?? '';
+    if (!contentType.includes('application/json')) {
+      return null;
+    }
+
+    let responseText = '';
+    try {
+      responseText = await response.text();
+    } catch {
+      return null;
+    }
+
+    if (!responseText.trim()) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(responseText) as CallbackApiJsonResponse;
+      const errcode =
+        typeof parsed.errcode === 'number'
+          ? parsed.errcode
+          : typeof parsed.errcode === 'string'
+            ? Number(parsed.errcode)
+            : 0;
+
+      if (Number.isFinite(errcode) && errcode !== 0) {
+        const errmsg = typeof parsed.errmsg === 'string' && parsed.errmsg.trim() ? parsed.errmsg.trim() : 'Unknown';
+        return chunkCount > 1
+          ? `Callback API rejected request with errcode ${errcode}: ${errmsg} (chunk ${chunkIndex}/${chunkCount})`
+          : `Callback API rejected request with errcode ${errcode}: ${errmsg}`;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private static async extractErrorResponseDetail(response: Response): Promise<string | null> {
+    let responseText = '';
+    try {
+      responseText = await response.text();
+    } catch {
+      return null;
+    }
+
+    const trimmed = responseText.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed) as CallbackApiJsonResponse;
+      const codeCandidates = [parsed.errcode, parsed.code, parsed.StatusCode];
+      const messageCandidates = [parsed.errmsg, parsed.msg, parsed.message, parsed.StatusMessage];
+
+      const code = codeCandidates.find((value) => typeof value === 'number' || typeof value === 'string');
+      const message = messageCandidates.find((value) => typeof value === 'string' && value.trim());
+
+      if (typeof code === 'number' || typeof code === 'string') {
+        if (typeof message === 'string' && message.trim()) {
+          return `code ${String(code)}: ${message.trim()}`;
+        }
+        return `code ${String(code)}`;
+      }
+
+      if (typeof message === 'string' && message.trim()) {
+        return message.trim();
+      }
+    } catch {
+      // Fall back to raw body below when response is not JSON.
+    }
+
+    return trimmed.length > 300 ? `${trimmed.slice(0, 300)}...` : trimmed;
+  }
+
   /**
    * Send HTTP callback request
    * 发送 HTTP 回调请求
@@ -234,11 +349,8 @@ jsFilter(input);
           signal: AbortSignal.timeout(30000),
         });
 
-        if (!response.ok) {
-          const errorMsg =
-            chunks.length > 1
-              ? `HTTP ${response.status}: ${response.statusText} (chunk ${index + 1}/${chunks.length})`
-              : `HTTP ${response.status}: ${response.statusText}`;
+        const errorMsg = await this.validateCallbackResponse(response, index + 1, chunks.length);
+        if (errorMsg) {
           console.error(`[CallbackService] Callback failed -`, errorMsg);
           return { success: false, error: errorMsg };
         }

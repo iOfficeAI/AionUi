@@ -11,6 +11,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// Mock react-router-dom
+const mockSetSearchParams = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+}));
+
 // Mock @arco-design/web-react
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
@@ -51,6 +57,8 @@ vi.mock('@icon-park/react', () => {
     Delete: () => <span data-testid='icon-delete' />,
     FolderOpen: () => <span data-testid='icon-folder' />,
     Info: () => <span data-testid='icon-info' />,
+    Lightning: () => <span data-testid='icon-lightning' />,
+    Puzzle: () => <span data-testid='icon-puzzle' />,
     Search: () => <span data-testid='icon-search' />,
     Plus: () => <span data-testid='icon-plus' />,
     Refresh: () => <span data-testid='icon-refresh' />,
@@ -69,6 +77,7 @@ const mockImportSkillWithSymlink = vi.fn();
 const mockDeleteSkill = vi.fn();
 const mockExportSkillWithSymlink = vi.fn();
 const mockAddCustomExternalPath = vi.fn();
+const mockListBuiltinAutoSkills = vi.fn();
 const mockShowOpen = vi.fn();
 
 vi.mock('@/common', () => {
@@ -82,6 +91,7 @@ vi.mock('@/common', () => {
         deleteSkill: { invoke: (...args: any[]) => mockDeleteSkill(...args) },
         exportSkillWithSymlink: { invoke: (...args: any[]) => mockExportSkillWithSymlink(...args) },
         addCustomExternalPath: { invoke: (...args: any[]) => mockAddCustomExternalPath(...args) },
+        listBuiltinAutoSkills: { invoke: (...args: any[]) => mockListBuiltinAutoSkills(...args) },
       },
       dialog: {
         showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -105,8 +115,8 @@ describe('SkillsHubSettings Component', () => {
 
     // Default mock responses
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
-      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
+      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false, source: 'builtin' },
     ]);
 
     mockDetectAndCountExternalSkills.mockResolvedValue({
@@ -128,6 +138,8 @@ describe('SkillsHubSettings Component', () => {
       userSkillsDir: '/user/skills',
       builtinSkillsDir: '/builtin/skills',
     });
+
+    mockListBuiltinAutoSkills.mockResolvedValue([]);
   });
 
   it('should render main sections and load skills', async () => {
@@ -140,8 +152,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Check headers
-    expect(screen.getByText('发现外部技能')).toBeInTheDocument();
-    expect(screen.getByText('我的技能')).toBeInTheDocument();
+    expect(screen.getByText('Discovered External Skills')).toBeInTheDocument();
+    expect(screen.getByText('My Skills')).toBeInTheDocument();
 
     // Check external skills render
     expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
@@ -150,8 +162,8 @@ describe('SkillsHubSettings Component', () => {
     // Check my skills render
     expect(screen.getByText('MySkill1')).toBeInTheDocument();
     expect(screen.getByText('Builtin1')).toBeInTheDocument();
-    expect(screen.getByText('自定义')).toBeInTheDocument();
-    expect(screen.getByText('内置')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
+    expect(screen.getByText('Built-in')).toBeInTheDocument();
 
     // Check paths are rendered
     expect(screen.getByText('/user/skills')).toBeInTheDocument();
@@ -196,8 +208,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Find import button for the external skill
-    // ExtSkill1 and ExtSkill2 - first 导入 button
-    const importButtons = screen.getAllByText('导入');
+    // ExtSkill1 and ExtSkill2 - first Import button
+    const importButtons = screen.getAllByText('Import');
     expect(importButtons.length).toBeGreaterThan(0);
 
     fireEvent.click(importButtons[0]);
@@ -210,7 +222,7 @@ describe('SkillsHubSettings Component', () => {
   it('should call delete endpoint when deleting custom skill', async () => {
     // Modify mock to only return the custom skill
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
     ]);
 
     const { Modal } = await import('@arco-design/web-react');
@@ -243,7 +255,7 @@ describe('SkillsHubSettings Component', () => {
     render(<SkillsHubSettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('发现外部技能')).toBeInTheDocument();
+      expect(screen.getByText('Discovered External Skills')).toBeInTheDocument();
     });
 
     // Click Add button (has title "Add" mocked effectively)
@@ -256,8 +268,8 @@ describe('SkillsHubSettings Component', () => {
     });
 
     // Add name and path
-    const nameInput = screen.getByPlaceholderText('例：我的自定义技能');
-    const pathInput = screen.getByPlaceholderText('例：C:\\Users\\me\\.mytools\\skills');
+    const nameInput = screen.getByPlaceholderText('e.g. My Custom Skills');
+    const pathInput = screen.getByPlaceholderText('e.g. C:\\Users\\me\\.mytools\\skills');
 
     fireEvent.change(nameInput, { target: { value: 'NewPath' } });
     fireEvent.change(pathInput, { target: { value: '/foo/bar' } });
@@ -275,6 +287,6 @@ describe('SkillsHubSettings Component', () => {
 
   it('should render usage tips correctly', () => {
     render(<SkillsHubSettings />);
-    expect(screen.getByText('使用贴士：')).toBeInTheDocument();
+    expect(screen.getByText('Usage Tip:')).toBeInTheDocument();
   });
 });

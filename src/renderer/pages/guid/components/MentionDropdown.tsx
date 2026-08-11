@@ -6,8 +6,8 @@
 
 import type { MentionOption } from '../types';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { Menu } from '@arco-design/web-react';
-import { Robot } from '@icon-park/react';
+import { Dropdown, Menu } from '@arco-design/web-react';
+import { Down, Robot } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -66,3 +66,45 @@ const MentionDropdown: React.FC<MentionDropdownProps> = ({ menuRef, options, sel
 };
 
 export default MentionDropdown;
+
+// MentionSelectorBadge component
+type MentionSelectorBadgeProps = {
+  visible: boolean;
+  open: boolean;
+  onOpenChange: (visible: boolean) => void;
+  agentLabel: string;
+  mentionMenu: React.ReactNode;
+  onResetQuery: () => void;
+};
+
+export const MentionSelectorBadge: React.FC<MentionSelectorBadgeProps> = ({
+  visible,
+  open,
+  onOpenChange,
+  agentLabel,
+  mentionMenu,
+  onResetQuery,
+}) => {
+  if (!visible) return null;
+
+  return (
+    <div className='flex items-center gap-8px mb-8px'>
+      <Dropdown
+        trigger='click'
+        popupVisible={open}
+        onVisibleChange={(v) => {
+          onOpenChange(v);
+          if (v) {
+            onResetQuery();
+          }
+        }}
+        droplist={mentionMenu}
+      >
+        <div className='flex items-center gap-6px bg-fill-2 px-10px py-4px rd-16px cursor-pointer select-none'>
+          <span className='text-14px font-medium text-t-primary'>@{agentLabel}</span>
+          <Down theme='outline' size={12} />
+        </div>
+      </Dropdown>
+    </div>
+  );
+};

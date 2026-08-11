@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mcpService } from '@/common/ipcBridge';
-import type { IMcpServer } from '@/common/storage';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
 /**
@@ -72,7 +72,11 @@ export const useMcpConnection = (
             // 更新服务器状态为已连接，并保存获取到的工具信息
             // 连接成功时不修改 enabled 字段，让用户决定是否安装
             await updateServerStatus('connected', {
-              tools: result.tools?.map((tool) => ({ name: tool.name, description: tool.description })),
+              tools: result.tools?.map((tool) => ({
+                name: tool.name,
+                description: tool.description,
+                ...(tool._meta ? { _meta: tool._meta } : {}),
+              })),
               lastConnected: Date.now(),
             });
             await globalMessageQueue.add(() => {

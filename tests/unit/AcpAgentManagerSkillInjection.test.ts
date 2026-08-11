@@ -1,0 +1,363 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Track calls to prepareFirstMessageWithSkillsIndex
+const { mockPrepareFirstMessage, mockAgentSendMessage, mockAcpAgentV2 } = vi.hoisted(() => {
+  const mockPrepareFirstMessage = vi.fn(async (content: string) => ({
+    content: `[injected] ${content}`,
+    loadedSkills: [],
+  }));
+  const mockAgentSendMessage = vi.fn(async () => ({ success: true }));
+  const mockAcpAgentV2 = vi.fn().mockImplementation(function () {
+    return {
+      start: vi.fn(async () => {}),
+      sendMessage: mockAgentSendMessage,
+      getModelInfo: vi.fn(() => null),
+      getConfigOptions: vi.fn(() => []),
+      setMode: vi.fn(async () => {}),
+      setModelByConfigOption: vi.fn(async () => {}),
+      getSessionState: vi.fn(() => null),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      on: vi.fn().mockReturnThis(),
+    };
+  });
+  return { mockPrepareFirstMessage, mockAgentSendMessage, mockAcpAgentV2 };
+});
+
+// --- Module mocks ---
+
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    paths: { isPackaged: () => false, getAppPath: () => null },
+    worker: {
+      fork: vi.fn(() => ({
+        on: vi.fn().mockReturnThis(),
+        postMessage: vi.fn(),
+        kill: vi.fn(),
+      })),
+    },
+  }),
+}));
+
+vi.mock('@process/utils/shellEnv', () => ({
+  getEnhancedEnv: vi.fn(() => ({})),
+  loadFullShellEnvironment: vi.fn(async () => ({})),
+}));
+
+vi.mock('@/common/types/acpTypes', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common/types/acpTypes')>();
+  return {
+    ...actual,
+    hasNativeSkillSupport: vi.fn((backend: string | undefined) => {
+      const supported = [
+        'gemini',
+        'claude',
+        'codebuddy',
+        'codex',
+        'qwen',
+        'iflow',
+        'goose',
+        'droid',
+        'kimi',
+        'vibe',
+        'cursor',
+      ];
+      return !!backend && supported.includes(backend);
+    }),
+  };
+});
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    acpConversation: { responseStream: { emit: vi.fn() } },
+    conversation: {
+      confirmation: {
+        add: { emit: vi.fn() },
+        update: { emit: vi.fn() },
+        remove: { emit: vi.fn() },
+      },
+      responseStream: { emit: vi.fn() },
+    },
+  },
+}));
+
+vi.mock('@process/channels/agent/ChannelEventBus', () => ({
+  channelEventBus: { emitAgentMessage: vi.fn() },
+}));
+
+vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(async () => ({ updateConversation: vi.fn() })),
+}));
+
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            cliPath: '/Users/test/.nvm/versions/node/v22.22.0/bin/codex',
+          },
+        };
+      }
+      if (key === 'acp.cachedInitializeResult') {
+        // Provide cached init results so shouldInjectTeamGuideMcp returns true for claude/gemini
+        return {
+          claude: {
+            protocolVersion: 1,
+            capabilities: {
+              loadSession: false,
+              promptCapabilities: { image: false, audio: false, embeddedContext: false },
+              mcpCapabilities: { stdio: true, http: false, sse: false },
+              sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+              _meta: {},
+            },
+            agentInfo: null,
+            authMethods: [],
+          },
+        };
+      }
+      return null;
+    }),
+    set: vi.fn(async () => {}),
+  },
+}));
+
+vi.mock('@process/utils/message', () => ({
+  addMessage: vi.fn(),
+  addOrUpdateMessage: vi.fn(),
+  nextTickToLocalFinish: vi.fn(),
+}));
+
+vi.mock('@process/utils/previewUtils', () => ({
+  handlePreviewOpenEvent: vi.fn(),
+}));
+
+vi.mock('@process/services/cron/CronBusyGuard', () => ({
+  cronBusyGuard: { setProcessing: vi.fn() },
+}));
+
+vi.mock('@process/services/ConversationTurnCompletionService', () => ({
+  ConversationTurnCompletionService: {
+    getInstance: vi.fn(() => ({
+      notifyPotentialCompletion: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('@process/utils/mainLogger', () => ({
+  mainLog: vi.fn(),
+  mainWarn: vi.fn(),
+  mainError: vi.fn(),
+}));
+
+vi.mock('@process/extensions', () => ({
+  ExtensionRegistry: { getInstance: () => ({ getAcpAdapters: () => [] }) },
+}));
+
+vi.mock('@/common/utils', () => ({
+  parseError: vi.fn((e: unknown) => String(e)),
+  uuid: vi.fn(() => 'mock-uuid'),
+}));
+
+vi.mock('@process/task/MessageMiddleware', () => ({
+  extractTextFromMessage: vi.fn(),
+  processCronInMessage: vi.fn(),
+}));
+
+vi.mock('@process/task/ThinkTagDetector', () => ({
+  stripThinkTags: vi.fn((s: string) => s),
+  extractAndStripThinkTags: vi.fn((s: string) => ({ thinking: '', content: s })),
+}));
+
+vi.mock('@process/task/CronCommandDetector', () => ({
+  hasCronCommands: vi.fn(() => false),
+}));
+
+// Mock hasNativeSkillSupport to use real logic for known backends
+vi.mock('@process/utils/initAgent', () => ({
+  hasNativeSkillSupport: vi.fn((backend: string | undefined) => {
+    const supported = [
+      'gemini',
+      'claude',
+      'codebuddy',
+      'codex',
+      'qwen',
+      'iflow',
+      'goose',
+      'droid',
+      'kimi',
+      'vibe',
+      'cursor',
+    ];
+    return !!backend && supported.includes(backend);
+  }),
+  resolveBuiltinCliPath: vi.fn(async (backend: string | undefined, cliPath?: string) => {
+    if (backend === 'codex' && cliPath === 'codex') {
+      return '/Users/test/.nvm/versions/node/v22.22.0/bin/codex';
+    }
+    return cliPath;
+  }),
+  setupAssistantWorkspace: vi.fn(),
+}));
+
+vi.mock('@process/task/agentUtils', () => ({
+  prepareFirstMessageWithSkillsIndex: mockPrepareFirstMessage,
+  buildSystemInstructions: vi.fn(async () => undefined),
+}));
+
+vi.mock('@process/acp/compat', () => ({
+  AcpAgentV2: mockAcpAgentV2,
+}));
+
+import AcpAgentManager from '@process/task/AcpAgentManager';
+
+function createManager(
+  overrides: {
+    backend?: string;
+    cliPath?: string;
+    customWorkspace?: boolean;
+    presetContext?: string;
+    enabledSkills?: string[];
+  } = {}
+) {
+  const data = {
+    conversation_id: 'test-conv',
+    backend: overrides.backend ?? 'claude',
+    cliPath: overrides.cliPath,
+    workspace: '/tmp/test-workspace',
+    customWorkspace: overrides.customWorkspace,
+    presetContext: overrides.presetContext,
+    enabledSkills: overrides.enabledSkills,
+  };
+  // @ts-expect-error - backend type narrowing
+  const manager = new AcpAgentManager(data);
+  return manager;
+}
+
+async function sendFirstMessage(manager: InstanceType<typeof AcpAgentManager>, content = 'Hello') {
+  // Stub initAgent to set up a mock agent without actual process bootstrapping
+  const mockAgent = {
+    sendMessage: mockAgentSendMessage,
+    getModelInfo: vi.fn(() => null),
+    on: vi.fn().mockReturnThis(),
+  };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- accessing private fields for test setup
+  (manager as unknown as Record<string, unknown>).agent = mockAgent;
+  (manager as unknown as Record<string, unknown>).bootstrap = Promise.resolve(mockAgent);
+
+  // Override initAgent to just return the already-bootstrapped agent
+  vi.spyOn(manager, 'initAgent').mockResolvedValue(mockAgent as never);
+
+  return manager.sendMessage({ content, msg_id: 'msg-1' });
+}
+
+describe('AcpAgentManager — first-message skill injection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('uses native skills (no prompt injection) for supported backend without customWorkspace', async () => {
+    const manager = createManager({
+      backend: 'claude',
+      customWorkspace: false,
+      presetContext: 'You are helpful.',
+      enabledSkills: ['pptx'],
+    });
+
+    await sendFirstMessage(manager);
+
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
+    // Should have injected presetContext directly into content
+    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('You are helpful.');
+    expect(sentContent).toContain('[User Request]');
+  });
+
+  it('falls back to prompt injection for supported backend WITH customWorkspace', async () => {
+    const manager = createManager({
+      backend: 'claude',
+      customWorkspace: true,
+      presetContext: 'You are helpful.',
+      enabledSkills: ['pptx'],
+    });
+
+    await sendFirstMessage(manager);
+
+    expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
+      presetContext: 'You are helpful.',
+      enabledSkills: ['pptx'],
+      enableTeamGuide: true,
+      backend: 'claude',
+    });
+  });
+
+  it('falls back to prompt injection for unsupported backend regardless of customWorkspace', async () => {
+    const manager = createManager({
+      backend: 'opencode',
+      customWorkspace: false,
+      presetContext: 'Some rules',
+      enabledSkills: ['pdf'],
+    });
+
+    await sendFirstMessage(manager);
+
+    expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
+      presetContext: 'Some rules',
+      enabledSkills: ['pdf'],
+      enableTeamGuide: false,
+      backend: 'opencode',
+    });
+  });
+
+  it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
+    const manager = createManager({
+      backend: 'claude',
+      customWorkspace: false,
+    });
+
+    await sendFirstMessage(manager, 'Test message');
+
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
+    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
+    // claude is whitelisted for team guide → content should include team guide prompt
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
+  });
+
+  it('injects team guide for gemini backend (always team-capable)', async () => {
+    const manager = createManager({
+      backend: 'gemini',
+      customWorkspace: false,
+    });
+
+    await sendFirstMessage(manager, 'Test message');
+
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
+    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
+    // gemini is always team-capable (non-ACP) → team guide should be injected
+    expect(sentContent).toContain('[Assistant Rules');
+    expect(sentContent).toContain('Team Mode');
+    expect(sentContent).toContain('[User Request]');
+    expect(sentContent).toContain('Test message');
+  });
+
+  it('preserves the configured builtin cliPath over persisted codex config on resume', async () => {
+    const manager = createManager({
+      backend: 'codex',
+      cliPath: 'codex',
+      customWorkspace: true,
+    });
+
+    await manager.initAgent();
+
+    const { AcpAgentV2 } = await import('@process/acp/compat');
+    expect(vi.mocked(AcpAgentV2)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cliPath: 'codex',
+      })
+    );
+  });
+});

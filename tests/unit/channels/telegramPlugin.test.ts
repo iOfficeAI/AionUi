@@ -85,7 +85,7 @@ async function loadPluginClass() {
     };
   });
 
-  const mod = await import('@/channels/plugins/telegram/TelegramPlugin');
+  const mod = await import('@process/channels/plugins/telegram/TelegramPlugin');
   return mod.TelegramPlugin;
 }
 

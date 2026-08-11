@@ -8,12 +8,12 @@ import { goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle, ARC
 
 test.describe('Extension: MCP Servers', () => {
   test('MCP tools page loads', async ({ page }) => {
-    await goToSettings(page, 'tools');
+    await goToSettings(page, 'capabilities');
     await expectBodyContainsAny(page, ['MCP', 'mcp', 'Server', 'server', '工具', '配置', '添加', 'Add']);
   });
 
   test('extension MCP servers registered (page functional)', async ({ page }) => {
-    await goToSettings(page, 'tools');
+    await goToSettings(page, 'capabilities');
     await waitForSettle(page);
 
     const body = await page.locator('body').textContent();
@@ -22,7 +22,7 @@ test.describe('Extension: MCP Servers', () => {
   });
 
   test('MCP server toggles are visible', async ({ page }) => {
-    await goToSettings(page, 'tools');
+    await goToSettings(page, 'capabilities');
     await waitForSettle(page);
 
     const switches = page.locator(ARCO_SWITCH);
@@ -33,7 +33,7 @@ test.describe('Extension: MCP Servers', () => {
 
   test('screenshot: MCP tools with extensions', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
-    await goToSettings(page, 'tools');
+    await goToSettings(page, 'capabilities');
     await waitForSettle(page);
     await takeScreenshot(page, 'ext-mcp-servers');
   });

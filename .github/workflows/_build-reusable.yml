@@ -26,6 +26,9 @@ on:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  # aionrs binary version to bundle (used by scripts/prepareAionrs.js)
+  AIONRS_VERSION: 'latest'
 
 jobs:
   code-quality:
@@ -50,7 +53,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: bun run postinstall || true
@@ -134,7 +137,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: bun install --no-frozen-lockfile
+          command: bun install --frozen-lockfile
 
       - name: Run postinstall
         run: bun run postinstall || true
@@ -225,7 +228,7 @@ jobs:
           fi
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'linux'
+        if: startsWith(matrix.platform, 'linux')
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
@@ -457,7 +460,7 @@ jobs:
       # Linux: Standard build without special error handling
       # Linux: 标准构建，无特殊错误处理
       - name: Build with electron-builder (Linux)
-        if: matrix.platform == 'linux'
+        if: startsWith(matrix.platform, 'linux')
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 60

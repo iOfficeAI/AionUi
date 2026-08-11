@@ -7,14 +7,25 @@
 import EventEmitter from 'eventemitter3';
 import type { DependencyList } from 'react';
 import { useEffect } from 'react';
-import type { FileOrFolderItem } from '@/renderer/types/files';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import type { PreviewContentType } from '@/common/types/preview';
 
+export type ReplyQuote = {
+  messageId: string;
+  content: string;
+  position: 'left' | 'right' | 'center' | 'pop';
+};
+
 interface EventTypes {
+  'conversation.streaming': [{ conversationId: string; isStreaming: boolean }];
   'gemini.selected.file': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.append': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.clear': void;
   'gemini.workspace.refresh': void;
+  'aionrs.selected.file': [Array<string | FileOrFolderItem>];
+  'aionrs.selected.file.append': [Array<string | FileOrFolderItem>];
+  'aionrs.selected.file.clear': void;
+  'aionrs.workspace.refresh': void;
   'acp.selected.file': [Array<string | FileOrFolderItem>];
   'acp.selected.file.append': [Array<string | FileOrFolderItem>];
   'acp.selected.file.clear': void;
@@ -31,6 +42,10 @@ interface EventTypes {
   'nanobot.selected.file.append': [Array<string | FileOrFolderItem>];
   'nanobot.selected.file.clear': void;
   'nanobot.workspace.refresh': void;
+  'remote.selected.file': [Array<string | FileOrFolderItem>];
+  'remote.selected.file.append': [Array<string | FileOrFolderItem>];
+  'remote.selected.file.clear': void;
+  'remote.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId
@@ -40,6 +55,8 @@ interface EventTypes {
   ];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
+  'sendbox.reply': [ReplyQuote]; // reply/quote a message
+  'sendbox.reply.clear': void; // clear reply quote
   'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
   'staroffice.install.finished': [{ conversationId: string }];
 }

@@ -1,0 +1,9 @@
+{
+  "displayName": "Session Management",
+  "description": "Manage conversations from a bundled settings extension without changing core settings i18n.",
+  "settingsTabs": {
+    "session-management": {
+      "name": "Session Management"
+    }
+  }
+}

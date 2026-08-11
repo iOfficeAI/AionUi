@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { CodexToolHandlers } from '../../src/agent/codex/handlers/CodexToolHandlers';
+import { CodexToolHandlers } from '../../src/process/agent/codex/handlers/CodexToolHandlers';
 
 describe('CodexToolHandlers', () => {
   it('matches MCP begin/end events and clears pending confirmations', () => {

@@ -1,0 +1,19 @@
+{
+  "plan": "계획 모드",
+  "default": "기본값",
+  "acceptEdits": "편집을 자동 수락",
+  "autoEdit": "자동 편집",
+  "auto_edit": "자동 편집",
+  "yolo": "전체 자동",
+  "yoloNoSandbox": "전체 자동(샌드박스 없음)",
+  "auto": "자동",
+  "dontAsk": "사전 승인만",
+  "bypass": "검사 우회",
+  "bypassPermissions": "전체 자동",
+  "smart": "스마트",
+  "build": "빌드 모드",
+  "permission": "권한",
+  "switchMode": "모드 전환",
+  "switchSuccess": "모드가 성공적으로 전환되었습니다",
+  "switchFailed": "모드 전환에 실패했습니다"
+}

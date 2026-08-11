@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ConfigStorage } from '@/common/storage';
-import type { IMcpServer } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 
 /**

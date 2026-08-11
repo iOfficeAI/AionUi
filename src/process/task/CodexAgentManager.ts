@@ -4,34 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
-import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
-import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
-import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { CodexAgent } from '@process/agent/codex/core/CodexAgent';
+import type { NetworkError } from '@process/agent/codex/connection/CodexConnection';
+import { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
+import { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
+import { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';
-import { isCodexAutoApproveMode } from '@/common/codex/codexModes';
-import { transformMessage } from '@/common/chatLib';
-import type { CodexAgentManagerData } from '@/common/codex/types';
-import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
-import type { AcpModelInfo } from '@/types/acpTypes';
-import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
-import { mapPermissionDecision } from '@/common/codex/utils';
-import { AIONUI_FILES_MARKER } from '@/common/constants';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { CodexAgentManagerData } from '@/common/types/codex/types';
+import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/types/codex/codexModels';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { PERMISSION_DECISION_MAP } from '@/common/types/codex/types/permissionTypes';
+import { mapPermissionDecision } from '@/common/types/codex/utils';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { getDatabase } from '@process/database';
-import { ProcessConfig } from '@process/initStorage';
+import { getDatabase } from '@process/services/database';
+import { ProcessConfig } from '@process/utils/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import i18n from '@process/i18n';
+import i18n from '@process/services/i18n';
 import {
   getCodexSandboxModeForSessionMode as resolveCodexSandboxMode,
   writeCodexSandboxMode,
@@ -42,17 +42,16 @@ import {
   getConfiguredAppClientVersion,
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
-} from '../../common/utils/appConfig';
+} from '@/common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 /**
- * @deprecated Legacy Codex agent manager. New Codex conversations are created
- * through ACP protocol and handled by {@link AcpAgentManager}.
- * This class is only kept for backward compatibility with existing sessions
- * that were created before the ACP migration.
+ * @deprecated Compatibility manager for historical Codex MCP sessions.
+ * New Codex conversations use CodexNativeAgentManager through codex app-server.
+ * This class is kept only so older MCP-backed sessions can still be opened.
  */
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   agent!: CodexAgent; // Initialized in bootstrap promise
@@ -274,7 +273,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
             type: 'user_content',
             conversation_id: this.conversation_id,
             msg_id: data.msg_id,
-            data: { content: userMessage.content.content, cronMeta: data.cronMeta },
+            data: {
+              content: userMessage.content.content,
+              cronMeta: data.cronMeta,
+            },
           };
           ipcBridge.codexConversation.responseStream.emit(userResponseMessage);
         }
@@ -289,10 +291,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
         // 注入智能助手的预设规则和 skills 索引（如果有）
         // Inject preset context and skills INDEX from smart assistant (if available)
-        processedContent = await prepareFirstMessageWithSkillsIndex(processedContent, {
+        const prepared = await prepareFirstMessageWithSkillsIndex(processedContent, {
           presetContext: this.options.presetContext,
           enabledSkills: this.options.enabledSkills,
         });
+        processedContent = prepared.content;
 
         const result = await this.agent.newSession(this.workspace, processedContent, this.selectedModel || undefined);
 
@@ -396,9 +399,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     return { success: true, data: { mode: this.currentMode } };
   }
 
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'codex') {
         const conversation = result.data;
@@ -406,7 +409,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[CodexAgentManager] Failed to save session mode:', error);
@@ -501,7 +506,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     switch (error.type) {
       case 'cloudflare_blocked':
-        userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
+        userMessage = i18n.t('codex.network.cloudflare_blocked_title', {
+          service: 'Codex',
+        });
         recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', {
           returnObjects: true,
         }) as string[];
@@ -521,7 +528,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       default:
         userMessage = i18n.t('codex.network.unknown_error_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
+        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', {
+          returnObjects: true,
+        }) as string[];
     }
 
     const detailedMessage = `${userMessage}\n\n${i18n.t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${i18n.t('codex.network.technical_info')}\n- ${i18n.t('codex.network.error_type')}：${error.type}\n- ${i18n.t('codex.network.retry_count')}：${error.retryCount}\n- ${i18n.t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;

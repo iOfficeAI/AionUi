@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getSkillsDir, loadSkillsContent } from '@process/initStorage';
-import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
+import { getSkillsDir, getBuiltinSkillsCopyDir, loadSkillsContent } from '@process/utils/initStorage';
+import { AcpSkillManager, buildSkillsIndexText, type SkillIndex } from './AcpSkillManager';
+import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
+import { resolveLeaderAssistantLabel } from '@process/team/prompts/teamGuideAssistant.ts';
 
 /**
  * 首次消息处理配置
@@ -16,6 +18,18 @@ export interface FirstMessageConfig {
   presetContext?: string;
   /** 启用的 skills 列表 / Enabled skills list */
   enabledSkills?: string[];
+  /** 排除的内置自动注入 skills / Builtin auto-injected skills to exclude */
+  excludeBuiltinSkills?: string[];
+  /** Inject Team mode guidance prompt when agent has aion_create_team capability */
+  enableTeamGuide?: boolean;
+  /** Agent backend type (e.g. 'claude', 'codex') — used to populate team guide prompt */
+  backend?: string;
+  /**
+   * Preset assistant id backing this conversation (e.g. 'builtin-word-creator').
+   * When set, the team guide prompt shows the assistant's display name on the
+   * Leader row instead of the raw backend key.
+   */
+  presetAssistantId?: string;
 }
 
 /**
@@ -39,6 +53,12 @@ export async function buildSystemInstructions(config: FirstMessageConfig): Promi
     if (skillsContent) {
       instructions.push(skillsContent);
     }
+  }
+
+  // Inject Team Guide prompt when agent has team guide capability
+  if (config.enableTeamGuide) {
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
   }
 
   if (instructions.length === 0) {
@@ -83,10 +103,14 @@ export async function prepareFirstMessage(content: string, config: FirstMessageC
  *
  * @param content - 原始消息内容 / Original message content
  * @param config - 首次消息配置 / First message configuration
- * @returns 注入系统指令后的消息内容 / Message content with system instructions injected
+ * @returns 注入系统指令后的消息内容和实际加载的 skills 列表 / Message content with injected instructions and loaded skills list
  */
-export async function prepareFirstMessageWithSkillsIndex(content: string, config: FirstMessageConfig): Promise<string> {
+export async function prepareFirstMessageWithSkillsIndex(
+  content: string,
+  config: FirstMessageConfig
+): Promise<{ content: string; loadedSkills: SkillIndex[] }> {
   const instructions: string[] = [];
+  let loadedSkills: SkillIndex[] = [];
 
   // 1. 添加预设规则 / Add preset rules
   if (config.presetContext) {
@@ -98,16 +122,20 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
   // 使用单例模式避免重复文件系统扫描 / Use singleton to avoid repeated filesystem scans
   const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
   // discoverSkills 会自动先加载内置 skills / discoverSkills auto-loads builtin skills first
-  await skillManager.discoverSkills(config.enabledSkills);
+  await skillManager.discoverSkills(config.enabledSkills, config.excludeBuiltinSkills);
 
   // 只有当有任何 skills 时才注入 / Only inject if there are any skills
   if (skillManager.hasAnySkills()) {
-    const skillsIndex = skillManager.getSkillsIndex();
+    const excludeSet = new Set(config.excludeBuiltinSkills ?? []);
+    // Filter out excluded builtin skills — the singleton cache may not reflect excludeBuiltinSkills
+    const skillsIndex = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
+    loadedSkills = skillsIndex;
     if (skillsIndex.length > 0) {
       // getSkillsDir() already returns CLI-safe path (symlink on macOS)
       // getSkillsDir() 已返回 CLI 安全路径（macOS 上使用符号链接）
       const skillsDir = getSkillsDir();
-      const builtinSkillsDir = skillsDir + '/_builtin';
+      const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
+      const builtinSkillsDir = builtinSkillsCopyDir + '/_builtin';
       const indexText = buildSkillsIndexText(skillsIndex);
 
       // 告诉 Agent skills 文件的位置，让它按需读取
@@ -115,27 +143,37 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
       const skillsInstruction = `${indexText}
 
 [Skills Location]
-Skills are stored in two locations:
+Skills are stored in three locations:
 - Builtin skills (auto-enabled): ${builtinSkillsDir}/{skill-name}/SKILL.md
-- Optional skills: ${skillsDir}/{skill-name}/SKILL.md
+- Bundled skills: ${builtinSkillsCopyDir}/{skill-name}/SKILL.md
+- User custom skills: ${skillsDir}/{skill-name}/SKILL.md
 
 Each skill has a SKILL.md file containing detailed instructions.
 To use a skill, read its SKILL.md file when needed.
 
 For example:
 - Builtin "cron" skill: ${builtinSkillsDir}/cron/SKILL.md
-- Optional "pptx" skill: ${skillsDir}/pptx/SKILL.md`;
+- Bundled "pptx" skill: ${builtinSkillsCopyDir}/pptx/SKILL.md`;
 
       instructions.push(skillsInstruction);
     }
   }
 
+  // 3. Inject Team Guide prompt when agent has team guide capability
+  if (config.enableTeamGuide) {
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
+  }
+
   if (instructions.length === 0) {
-    return content;
+    return { content, loadedSkills };
   }
 
   const systemInstructions = instructions.join('\n\n');
-  return `[Assistant Rules - You MUST follow these instructions]\n${systemInstructions}\n\n[User Request]\n${content}`;
+  return {
+    content: `[Assistant Rules - You MUST follow these instructions]\n${systemInstructions}\n\n[User Request]\n${content}`,
+    loadedSkills,
+  };
 }
 
 /**
@@ -164,14 +202,21 @@ export async function buildSystemInstructionsWithSkillsIndex(config: FirstMessag
   // 加载 skills 索引（包括内置 skills + 可选 skills）
   // Load skills INDEX (including builtin skills + optional skills)
   const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
-  await skillManager.discoverSkills(config.enabledSkills);
+  await skillManager.discoverSkills(config.enabledSkills, config.excludeBuiltinSkills);
 
   if (skillManager.hasAnySkills()) {
-    const skillsIndex = skillManager.getSkillsIndex();
+    const excludeSet = new Set(config.excludeBuiltinSkills ?? []);
+    const skillsIndex = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
     if (skillsIndex.length > 0) {
       const indexText = buildSkillsIndexText(skillsIndex);
       instructions.push(indexText);
     }
+  }
+
+  // Inject Team Guide prompt when agent has team guide capability
+  if (config.enableTeamGuide) {
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
   }
 
   if (instructions.length === 0) {

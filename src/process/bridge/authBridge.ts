@@ -12,14 +12,31 @@ import {
   loginWithOauth,
   Storage,
 } from '@office-ai/aioncli-core';
-import { ipcBridge } from '../../common';
-import * as fs from 'node:fs';
+import { ipcBridge } from '@/common';
+import { promises as fsAsync } from 'node:fs';
+import {
+  getCopilotAuthStatus,
+  logoutCopilot,
+  startCopilotLogin,
+  waitForCopilotLogin,
+} from '@process/agent/aionrs/copilotAuth';
+import {
+  getChatgptAuthStatus,
+  getChatgptQuotaStatus,
+  logoutChatgpt,
+  startChatgptLogin,
+  waitForChatgptLogin,
+} from '@process/agent/aionrs/chatgptAuth';
 
 export function initAuthBridge(): void {
   ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
     try {
       const credsPath = Storage.getOAuthCredsPath();
-      if (!fs.existsSync(credsPath)) {
+
+      // Check credential file existence without blocking the main process
+      try {
+        await fsAsync.access(credsPath);
+      } catch {
         // 凭证文件不存在时直接返回，避免触发底层 ENOENT 日志
         // Return early when credential file is missing to avoid noisy ENOENT logs
         return { success: false };
@@ -40,7 +57,7 @@ export function initAuthBridge(): void {
         // Credentials file exists but getOauthInfoWithCache failed, token may need refresh
         // 读取凭证文件检查是否有 refresh_token
         // Read credentials file to check for refresh_token
-        const credsContent = fs.readFileSync(credsPath, 'utf-8');
+        const credsContent = await fsAsync.readFile(credsPath, 'utf-8');
         const creds = JSON.parse(credsContent);
         if (creds.refresh_token) {
           // 有 refresh_token，凭证有效但可能需要在使用时刷新
@@ -127,5 +144,100 @@ export function initAuthBridge(): void {
 
   ipcBridge.googleAuth.logout.provider(async () => {
     return await clearCachedCredentialFile();
+  });
+
+  ipcBridge.copilotAuth.status.provider(async () => {
+    try {
+      return {
+        success: true,
+        data: await getCopilotAuthStatus(),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.startLogin.provider(async ({ proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await startCopilotLogin(proxy),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.waitForLogin.provider(async ({ loginId }) => {
+    try {
+      return {
+        success: true,
+        data: await waitForCopilotLogin(loginId),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.copilotAuth.logout.provider(async () => {
+    try {
+      await logoutCopilot();
+      return { success: true };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.status.provider(async () => {
+    try {
+      return {
+        success: true,
+        data: await getChatgptAuthStatus(),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.quotaStatus.provider(async ({ model, proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await getChatgptQuotaStatus({ model, proxy }),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.startLogin.provider(async ({ proxy }) => {
+    try {
+      return {
+        success: true,
+        data: await startChatgptLogin(proxy),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.waitForLogin.provider(async ({ loginId }) => {
+    try {
+      return {
+        success: true,
+        data: await waitForChatgptLogin(loginId),
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.chatgptAuth.logout.provider(async ({ proxy }) => {
+    try {
+      await logoutChatgpt(proxy);
+      return { success: true };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
   });
 }

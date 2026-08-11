@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionLoader } from '../../../src/extensions/ExtensionLoader';
+import { ExtensionLoader } from '../../../src/process/extensions/ExtensionLoader';
 
 vi.mock('electron', () => ({
   app: {
@@ -99,7 +99,7 @@ describe('extensions/ExtensionLoader', () => {
     createExtension(envDir, 'env-only', 'env-only');
 
     const loaded = await new ExtensionLoader().loadAll();
-    const loadedNames = loaded.map((extension) => extension.manifest.name).sort();
+    const loadedNames = loaded.map((extension) => extension.manifest.name).toSorted();
 
     expect(loadedNames).toEqual(['env-only']);
   });

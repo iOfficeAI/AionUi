@@ -1,0 +1,49 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .jg-body { transform-origin:11px 13px; animation:jg-lean .8s ease-in-out infinite; }
+    .jg-ba { animation:jg-casc 2.4s ease-in-out infinite; animation-delay:0s; }
+    .jg-bb { animation:jg-casc 2.4s ease-in-out infinite; animation-delay:-.8s; }
+    .jg-bc { animation:jg-casc 2.4s ease-in-out infinite; animation-delay:-1.6s; }
+    .jg-shadow { transform-origin:11px 22px; animation:jg-shadow .8s ease-in-out infinite; }
+    @keyframes jg-casc {
+      0%  {transform:translate(3px,18px) scale(1.1)}
+      15% {transform:translate(5px,6px) scale(.9)}
+      30% {transform:translate(8px,-4px) scale(.75)}
+      50% {transform:translate(11px,-10px) scale(.6)}
+      70% {transform:translate(15px,-2px) scale(.8)}
+      85% {transform:translate(18px,10px) scale(1)}
+      100%{transform:translate(19px,18px) scale(1.1)}
+    }
+    @keyframes jg-lean { 0%{transform:rotate(-4deg) scaleX(1.02)} 50%{transform:rotate(4deg) translateY(-1px) scaleX(.98)} 100%{transform:rotate(-4deg) scaleX(1.02)} }
+    @keyframes jg-shadow { 0%,100%{transform:scaleX(1);opacity:.3} 50%{transform:scaleX(.9);opacity:.2} }
+  </style></defs>
+
+  <!-- 底座 -->
+  <rect x="7" y="21" width="8" height="1" rx="0.3" fill="#D9D9D9"/>
+  <ellipse class="jg-shadow" cx="11" cy="22" rx="6" ry="0.6" fill="#c0c0c0"/>
+
+  <!-- 三彩球（cascade 轨迹，错开 0.8s） -->
+  <!-- 绿球 -->
+  <circle class="jg-ba" cx="0" cy="0" r="1.8" fill="#0FDC00"/>
+  <!-- 黄球 -->
+  <circle class="jg-bb" cx="0" cy="0" r="1.8" fill="#FEBE06"/>
+
+  <g class="jg-body">
+    <!-- 左手（大，偏下） -->
+    <rect x="2" y="12" width="3" height="3" rx="1.5" fill="#97A0C5" fill-opacity="0.7"/>
+    <!-- 身体 -->
+    <rect x="5" y="7" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <!-- 帽子（歪到右上） -->
+    <path d="M15.3438 9.33833L9.28918 7.49817L13.5373 4.40143L15.3438 9.33833Z" fill="#FF5B24" stroke="#FF5B24" stroke-width="0.3"/>
+      <rect x="12" y="6" width="1" height="1" fill="#e8714a"/>
+    <!-- 眼睛（单圆眼） -->
+    <rect x="10" y="11" width="2" height="2" rx="1" fill="black"/>
+    <!-- 弧线笑嘴 -->
+    <path d="M9 14C9.95144 15.4272 12.0486 15.4272 13 14" stroke="black" stroke-linecap="round"/>
+    <!-- 右手（小，右侧） -->
+    <path d="M17.0582 13.0631C17.6426 12.476 18.5924 12.4738 19.1795 13.0582C19.7667 13.6426 19.7689 14.5924 19.1844 15.1795C18.6 15.7667 17.6502 15.7689 17.0631 15.1844C16.476 14.6 16.4738 13.6502 17.0582 13.0631Z" fill="#B6BDD6"/>
+  </g>
+
+  <!-- 粉红球（最上层） -->
+  <circle class="jg-bc" cx="0" cy="0" r="1.8" fill="#FE4F4F"/>
+</svg>

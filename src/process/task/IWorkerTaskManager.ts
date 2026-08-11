@@ -6,7 +6,7 @@
 
 // src/process/task/IWorkerTaskManager.ts
 
-import type { IAgentManager } from './IAgentManager';
+import type { AgentKillReason, IAgentManager } from './IAgentManager';
 import type { BuildConversationOptions, AgentType } from './agentTypes';
 
 export interface IWorkerTaskManager {
@@ -14,7 +14,7 @@ export interface IWorkerTaskManager {
   getOrBuildTask(id: string, options?: BuildConversationOptions): Promise<IAgentManager>;
   addTask(id: string, task: IAgentManager): void;
   removeTask(id: string): IAgentManager | undefined;
-  kill(id: string): void;
-  clear(): void;
+  kill(id: string, reason?: AgentKillReason): void;
+  clear(): Promise<void>;
   listTasks(): Array<{ id: string; type: AgentType }>;
 }

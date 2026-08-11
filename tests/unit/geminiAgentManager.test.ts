@@ -11,8 +11,14 @@ const getConversationMessages = vi.fn();
 const notifyPotentialCompletion = vi.fn();
 const hasCronCommands = vi.fn(() => false);
 const extractTextFromMessage = vi.fn(() => 'done');
+const cronBusyGuardSetProcessing = vi.fn();
+const cronBusyGuardTouchActivity = vi.fn();
+const buildDatabaseMock = () => ({
+  getConversationMessages,
+  updateConversation: vi.fn(),
+});
 
-vi.mock('@/channels/agent/ChannelEventBus', () => ({
+vi.mock('@process/channels/agent/ChannelEventBus', () => ({
   channelEventBus: {
     emitAgentMessage: vi.fn(),
   },
@@ -35,7 +41,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/common/chatLib', () => ({
+vi.mock('@/common/chat/chatLib', () => ({
   transformMessage: vi.fn(() => null),
 }));
 
@@ -58,7 +64,7 @@ vi.mock('@office-ai/aioncli-core', () => ({
   },
 }));
 
-vi.mock('@/extensions', () => ({
+vi.mock('@process/extensions', () => ({
   ExtensionRegistry: {
     getInstance: vi.fn(() => ({
       getMcpServers: vi.fn(() => []),
@@ -66,7 +72,7 @@ vi.mock('@/extensions', () => ({
   },
 }));
 
-vi.mock('@/process/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(),
     set: vi.fn(),
@@ -90,14 +96,12 @@ vi.mock('../../src/process/task/AcpSkillManager', () => ({
   },
 }));
 
-vi.mock('@process/database', () => ({
-  getDatabase: vi.fn(() => ({
-    getConversationMessages,
-    updateConversation: vi.fn(),
-  })),
+vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(() => Promise.resolve(buildDatabaseMock())),
+  getDatabaseSync: vi.fn(() => buildDatabaseMock()),
 }));
 
-vi.mock('../../src/process/message', () => ({
+vi.mock('@process/utils/message', () => ({
   addMessage: vi.fn(),
   addOrUpdateMessage: vi.fn(),
   flushConversationMessages,
@@ -106,7 +110,8 @@ vi.mock('../../src/process/message', () => ({
 
 vi.mock('@process/services/cron/CronBusyGuard', () => ({
   cronBusyGuard: {
-    setProcessing: vi.fn(),
+    setProcessing: cronBusyGuardSetProcessing,
+    touchActivity: cronBusyGuardTouchActivity,
   },
 }));
 
@@ -118,7 +123,7 @@ vi.mock('@process/services/ConversationTurnCompletionService', () => ({
   },
 }));
 
-vi.mock('../../src/process/utils/previewUtils', () => ({
+vi.mock('@process/utils/previewUtils', () => ({
   handlePreviewOpenEvent: vi.fn(() => false),
 }));
 
@@ -158,7 +163,7 @@ vi.mock('../../src/process/task/BaseAgentManager', () => ({
   },
 }));
 
-vi.mock('../../src/process/utils/mainLogger', () => ({
+vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),
   mainError: vi.fn(),
@@ -175,13 +180,16 @@ vi.mock('../../src/process/task/MessageMiddleware', () => ({
 
 vi.mock('../../src/process/task/ThinkTagDetector', () => ({
   stripThinkTags: vi.fn((content: string) => content),
+  extractAndStripThinkTags: vi.fn((content: string) => ({ thinking: '', content })),
 }));
 
-vi.mock('../../src/agent/gemini/GeminiApprovalStore', () => ({
-  GeminiApprovalStore: class MockGeminiApprovalStore {},
+vi.mock('@process/agent/gemini/GeminiApprovalStore', () => ({
+  GeminiApprovalStore: class MockGeminiApprovalStore {
+    readonly isMock = true;
+  },
 }));
 
-vi.mock('../../src/agent/gemini/cli/tools/tools', () => ({
+vi.mock('@process/agent/gemini/cli/tools/tools', () => ({
   ToolConfirmationOutcome: {
     ProceedOnce: 'proceed_once',
     ProceedAlways: 'proceed_always',
@@ -193,6 +201,7 @@ vi.mock('../../src/agent/gemini/cli/tools/tools', () => ({
 
 describe('GeminiAgentManager turn completion', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     flushConversationMessages.mockClear();
     getConversationMessages.mockReset();
     notifyPotentialCompletion.mockClear();
@@ -200,10 +209,13 @@ describe('GeminiAgentManager turn completion', () => {
     hasCronCommands.mockReturnValue(false);
     extractTextFromMessage.mockReset();
     extractTextFromMessage.mockReturnValue('done');
+    cronBusyGuardSetProcessing.mockReset();
+    cronBusyGuardTouchActivity.mockReset();
     vi.resetModules();
   });
 
-  it('runs the first completion check immediately on finish', async () => {
+  it('runs the first completion check after the first retry delay', async () => {
+    vi.useFakeTimers();
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const manager = Object.create(GeminiAgentManager.prototype) as {
       checkCronCommandsOnFinish: ReturnType<typeof vi.fn>;
@@ -212,12 +224,12 @@ describe('GeminiAgentManager turn completion', () => {
 
     manager.checkCronCommandsOnFinish = vi.fn(async () => true);
     manager.checkCronWithRetry(0);
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1000);
 
     expect(manager.checkCronCommandsOnFinish).toHaveBeenCalledTimes(1);
   });
 
-  it('flushes pending assistant output before notifying completion', async () => {
+  it('finds assistant output created after the finish timestamp', async () => {
     const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
     const manager = Object.create(GeminiAgentManager.prototype) as {
       conversation_id: string;
@@ -244,10 +256,75 @@ describe('GeminiAgentManager turn completion', () => {
       ],
     });
 
-    const found = await manager.checkCronCommandsOnFinish(Date.now());
+    const found = await manager.checkCronCommandsOnFinish(0);
 
     expect(found).toBe(true);
-    expect(flushConversationMessages).toHaveBeenCalledWith('session-1');
-    expect(notifyPotentialCompletion).toHaveBeenCalledWith('session-1');
+    expect(extractTextFromMessage).toHaveBeenCalledWith(expect.objectContaining({ msg_id: 'assistant-1' }));
+  });
+
+  it('marks the conversation busy while sending to the Gemini worker', async () => {
+    const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
+    const manager = Object.create(GeminiAgentManager.prototype) as {
+      conversation_id: string;
+      bootstrap: Promise<void>;
+      refreshWorkerIfMcpChanged: () => Promise<void>;
+      sendMessage: (data: { input: string; msg_id: string }) => Promise<unknown>;
+    };
+
+    manager.conversation_id = 'session-1';
+    manager.bootstrap = Promise.resolve();
+    manager.refreshWorkerIfMcpChanged = vi.fn(async () => {});
+
+    await manager.sendMessage({
+      input: 'hello',
+      msg_id: 'user-1',
+    });
+
+    expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', true);
+    expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', false);
+  });
+
+  it('marks the turn finished and schedules cron checks when the Gemini stream finishes', async () => {
+    const { GeminiAgentManager } = await import('../../src/process/task/GeminiAgentManager');
+    const handlers = new Map<string, (data: Record<string, unknown>) => void>();
+    const manager = Object.create(GeminiAgentManager.prototype) as {
+      conversation_id: string;
+      status?: string;
+      on: (event: string, handler: (data: Record<string, unknown>) => void) => void;
+      filterThinkTagsFromMessage: (data: unknown) => unknown;
+      persistCurrentTurnTokenUsage: () => void;
+      checkCronWithRetry: (attempt: number) => void;
+      handleConformationMessage: () => void;
+      init: () => void;
+    };
+
+    manager.conversation_id = 'session-1';
+    manager.on = vi.fn((event, handler) => {
+      handlers.set(event, handler);
+    });
+    manager.filterThinkTagsFromMessage = vi.fn((data) => data);
+    manager.persistCurrentTurnTokenUsage = vi.fn();
+    manager.checkCronWithRetry = vi.fn();
+    manager.handleConformationMessage = vi.fn();
+
+    manager.init();
+
+    const onGeminiMessage = handlers.get('gemini.message');
+    expect(onGeminiMessage).toBeTypeOf('function');
+
+    onGeminiMessage?.({
+      type: 'content',
+      data: 'chunk',
+      msg_id: 'assistant-1',
+    });
+
+    onGeminiMessage?.({
+      type: 'finish',
+      data: '',
+      msg_id: 'assistant-1',
+    });
+
+    expect(manager.status).toBe('finished');
+    expect(manager.checkCronWithRetry).toHaveBeenCalledWith(0);
   });
 });

@@ -6,7 +6,7 @@
 
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../../../common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec } from '@process/utils/safeExec';
 
@@ -14,6 +14,31 @@ import { safeExec } from '@process/utils/safeExec';
 const getExecEnv = () => ({
   env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
 });
+
+export function buildGeminiAddArgs(server: IMcpServer): string[] | null {
+  const args = ['mcp', 'add', '-s', 'user'];
+
+  if (server.transport.type === 'stdio') {
+    for (const [key, value] of Object.entries(server.transport.env || {})) {
+      args.push('-e', `${key}=${value}`);
+    }
+
+    args.push(server.name, server.transport.command, ...(server.transport.args || []));
+    return args;
+  }
+
+  if (
+    server.transport.type === 'sse' ||
+    server.transport.type === 'http' ||
+    server.transport.type === 'streamable_http'
+  ) {
+    const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
+    args.push('--transport', transportFlag, server.name, server.transport.url);
+    return args;
+  }
+
+  return null;
+}
 
 /**
  * Google Gemini CLI MCP代理实现
@@ -181,52 +206,20 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
   /**
    * 安装 MCP 服务器到 Google Gemini CLI
    */
-  installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
+  installMcpServers(mcpServers: IMcpServer[], cliPath?: string): Promise<McpOperationResult> {
     const installOperation = async () => {
       try {
         for (const server of mcpServers) {
-          if (server.transport.type === 'stdio') {
-            // 使用 Gemini CLI 添加 MCP 服务器
-            // 格式: gemini mcp add <name> <command> [args...]
-            let command = `gemini mcp add "${server.name}" "${server.transport.command}"`;
-            if (server.transport.args?.length) {
-              // Quote each arg to protect URLs and special characters from shell interpretation
-              const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
-              command += ` ${quotedArgs}`;
-            }
+          const args = buildGeminiAddArgs(server);
+          if (!args) {
+            continue;
+          }
 
-            // 添加 scope 参数（user 或 project）
-            command += ' -s user';
-
-            try {
-              await safeExec(command, { timeout: 5000, ...getExecEnv() });
-              console.log(`[GeminiMcpAgent] Added MCP server: ${server.name}`);
-            } catch (error) {
-              console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
-              // 继续处理其他服务器
-            }
-          } else if (
-            server.transport.type === 'sse' ||
-            server.transport.type === 'http' ||
-            server.transport.type === 'streamable_http'
-          ) {
-            // 处理 SSE/HTTP/Streamable HTTP 传输类型
-            // Gemini CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
-            const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
-            let command = `gemini mcp add "${server.name}" "${server.transport.url}"`;
-
-            // 添加 transport 类型
-            command += ` --transport ${transportFlag}`;
-
-            // 添加 scope 参数
-            command += ' -s user';
-
-            try {
-              await safeExec(command, { timeout: 5000, ...getExecEnv() });
-              console.log(`[GeminiMcpAgent] Added MCP server: ${server.name}`);
-            } catch (error) {
-              console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
-            }
+          try {
+            await this.execCli(cliPath, 'gemini', args, { timeout: 5000, ...getExecEnv() });
+            console.log(`[GeminiMcpAgent] Added MCP server: ${server.name}`);
+          } catch (error) {
+            console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
           }
         }
         return { success: true };
@@ -242,7 +235,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
   /**
    * 从 Google Gemini CLI 删除 MCP 服务器
    */
-  removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
+  removeMcpServer(mcpServerName: string, _cliPath?: string): Promise<McpOperationResult> {
     const removeOperation = async () => {
       try {
         // 使用 Gemini CLI 命令删除 MCP 服务器

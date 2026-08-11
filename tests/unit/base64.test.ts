@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { base64ToBlob, BINARY_MIME_MAP } from '../../src/renderer/utils/base64';
+import { base64ToBlob, BINARY_MIME_MAP } from '../../src/renderer/utils/file/base64';
 
 describe('base64ToBlob', () => {
   it('decodes a simple text data URL into a Blob with the given MIME type', () => {

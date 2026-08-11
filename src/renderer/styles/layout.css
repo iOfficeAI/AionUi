@@ -1,0 +1,230 @@
+/* Layout-level styles: sidebar, sider animations, message positioning */
+
+/* Layout sider base styles */
+.layout-sider {
+  overflow-x: hidden;
+  box-shadow: none !important;
+  border-right: 1px solid var(--border-base);
+}
+
+/* Arco Layout inner container needs flex layout so Header + Content + Footer
+   stack vertically and Content fills the remaining space (avoids a fixed
+   calc() that breaks when header height changes). */
+.layout-sider > .arco-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+.layout-sider-header {
+  flex-shrink: 0 !important;
+}
+
+.layout-sider-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.layout-sider.collapsed .arco-layout-sider-children,
+.layout-sider.arco-layout-sider-collapsed .arco-layout-sider-children {
+  overflow-x: hidden;
+}
+
+/* Disable transition during drag for smooth dragging */
+.layout-sider--dragging {
+  transition: none !important;
+}
+
+/* Sidebar item transitions (shared by chat-history and settings-sider) */
+.chat-history__item,
+.settings-sider__item {
+  transition:
+    padding 0.2s ease,
+    margin 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.chat-history__item-name,
+.chat-history__item-editor,
+.settings-sider__item-label {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  transform-origin: left center;
+}
+
+.chat-history__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.settings-sider__item-label {
+  display: block;
+}
+
+.chat-history__placeholder,
+.chat-history__section {
+  transition:
+    opacity 0.3s ease,
+    max-height 0.3s ease,
+    margin 0.3s ease,
+    padding 0.3s ease;
+}
+
+.chat-history__placeholder {
+  max-height: 140px;
+}
+
+.chat-history__section {
+  max-height: 60px; /* Increase height for zoom scaling to prevent text clipping */
+}
+
+.chat-history--collapsed .chat-history__placeholder,
+.chat-history--collapsed .chat-history__section {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.chat-history--collapsed .chat-history__item-name,
+.chat-history--collapsed .chat-history__item-editor {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.settings-sider--collapsed .settings-sider__item-label {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-history,
+  .chat-history__item,
+  .chat-history__item-name,
+  .chat-history__item-editor,
+  .settings-sider,
+  .settings-sider__item,
+  .settings-sider__item-label,
+  .chat-history__placeholder,
+  .chat-history__section {
+    transition: none;
+  }
+}
+
+/* Message component positioning - center in conversation area (exclude left sider) */
+/* Use padding-left offset while keeping inner message centered */
+.arco-message-wrapper {
+  left: 0 !important;
+  width: 100% !important;
+  padding-left: 266px;
+  box-sizing: border-box;
+  z-index: 10001 !important;
+}
+
+/* Default background for select and input components */
+.arco-select-view,
+.arco-select-addbefore,
+.arco-input,
+.arco-input-inner-wrapper,
+.arco-input-group-addafter,
+.arco-input-group-addbefore {
+  background-color: var(--fill-0) !important;
+}
+
+/* Grouped inputs should share one surface across the field and its add-ons. */
+.arco-input-inner-wrapper > .arco-input,
+.arco-input-group-addafter .arco-input,
+.arco-input-group-addbefore .arco-input,
+.arco-input-inner-wrapper .arco-input-group-prefix,
+.arco-input-inner-wrapper .arco-input-group-suffix,
+.arco-select-suffix,
+.arco-input-group-addafter .arco-select .arco-select-view,
+.arco-input-group-addbefore .arco-select .arco-select-view {
+  background-color: transparent !important;
+}
+
+/* Mobile sidebar positioning */
+/* Use dvh for better mobile browser support (iOS Chrome/Safari) */
+@media (max-width: 767px) {
+  .sider-tooltip-popup {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  .layout-sider {
+    /* Fixed positioning from top */
+    top: 0 !important;
+    /* dvh automatically accounts for browser chrome on mobile */
+    height: 100vh !important;
+    height: 100dvh !important;
+    /* Use flex layout to manage internal space */
+    display: flex !important;
+    flex-direction: column !important;
+    /* Use padding for safe areas instead of height adjustment */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box !important;
+  }
+
+  .layout-sider-header--mobile {
+    min-height: 72px !important;
+    padding-top: 14px !important;
+    padding-bottom: 12px !important;
+    gap: 14px !important;
+  }
+
+  /* Mobile-only: clip overflow instead of allowing scroll */
+  .layout-sider-content {
+    overflow: hidden !important;
+  }
+
+  /* Footer stays at bottom with extra padding as fallback */
+  .sider-footer {
+    flex-shrink: 0 !important;
+    /* Extra padding as fallback for iOS Chrome */
+    padding-bottom: 20px;
+  }
+
+  .sider-action-btn-mobile {
+    height: 44px !important;
+    gap: 12px !important;
+    padding-inline: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .sider-action-icon-btn-mobile {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+  }
+
+  .sider-footer-btn-mobile {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Mobile: remove left padding for message wrapper */
+  .arco-message-wrapper {
+    padding-left: 0;
+  }
+
+  /* Sidebar conversation title + secondary timeline text */
+  .chat-history__item-name {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-history__section {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+}

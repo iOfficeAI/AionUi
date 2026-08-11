@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isCodexNoSandboxMode } from '@/common/codex/codexModes';
+import { isCodexNoSandboxMode } from '@/common/types/codex/codexModes';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { homedir } from 'os';
-import { dirname, join } from 'path';
+import { dirname, posix, win32 } from 'path';
 
 export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
 export type SupportedCodexSandboxMode = 'workspace-write' | 'danger-full-access';
@@ -17,6 +17,11 @@ export interface CodexSandboxConfigState {
   exists: boolean;
   sandboxMode?: CodexSandboxMode;
 }
+
+const isWindowsStylePath = (value: string): boolean => /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\');
+
+const getCodexPathApi = (baseDirectory: string) =>
+  process.platform === 'win32' || isWindowsStylePath(baseDirectory) ? win32 : posix;
 
 export function normalizeCodexSandboxMode(sandboxMode?: CodexSandboxMode | null): SupportedCodexSandboxMode {
   return sandboxMode === 'danger-full-access' ? 'danger-full-access' : 'workspace-write';
@@ -36,10 +41,11 @@ export function getCodexSandboxModeForSessionMode(
 export function getCodexConfigPath(): string {
   const codexHome = process.env.CODEX_HOME?.trim();
   if (codexHome) {
-    return join(codexHome, 'config.toml');
+    return getCodexPathApi(codexHome).join(codexHome, 'config.toml');
   }
 
-  return join(homedir(), '.codex', 'config.toml');
+  const homeDirectory = homedir();
+  return getCodexPathApi(homeDirectory).join(homeDirectory, '.codex', 'config.toml');
 }
 
 export async function readCodexSandboxConfig(): Promise<CodexSandboxConfigState> {

@@ -6,8 +6,8 @@
 
 // src/process/services/IConversationService.ts
 
-import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/storage';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/config/storage';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import type { AgentType } from '@process/task/agentTypes';
 
 export interface CreateConversationParams {
@@ -21,13 +21,15 @@ export interface CreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackendAll;
+    backend?: AgentBackend;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;
     contextFileName?: string;
     presetRules?: string;
     enabledSkills?: string[];
+    extraSkillPaths?: string[];
+    excludeBuiltinSkills?: string[];
     presetAssistantId?: string;
     sessionMode?: string;
     isHealthCheck?: boolean;
@@ -47,4 +49,8 @@ export interface IConversationService {
   updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void>;
   getConversation(id: string): Promise<TChatConversation | undefined>;
   createWithMigration(params: MigrateConversationParams): Promise<TChatConversation>;
+  /** Returns all conversations without pagination. */
+  listAllConversations(): Promise<TChatConversation[]>;
+  /** List conversations spawned by a specific cron job. */
+  getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]>;
 }

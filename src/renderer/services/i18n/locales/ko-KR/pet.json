@@ -1,0 +1,17 @@
+{
+  "desktopPet": "데스크톱 펫",
+  "enable": "데스크톱 펫 활성화",
+  "size": "펫 크기",
+  "sizeSmall": "소 ({{px}}px)",
+  "sizeMedium": "중 ({{px}}px)",
+  "sizeLarge": "대 ({{px}}px)",
+  "dnd": "방해 금지",
+  "dndDescription": "펫이 유휴 상태를 유지하고 AI 이벤트를 무시합니다",
+  "confirmBubble": "펫 창에 권한 요청 표시",
+  "confirmBubbleDescription": "끄면 AI 도구 권한 요청이 메인 채팅 창에만 표시됩니다",
+  "pat": "쓰다듬기",
+  "resetPosition": "위치 초기화",
+  "hide": "숨기기",
+  "showHide": "표시/숨기기",
+  "desktopOnly": "데스크톱 펫은 데스크톱 애플리케이션에서만 사용할 수 있습니다. WebUI 브라우저 모드에서는 사용할 수 없습니다."
+}

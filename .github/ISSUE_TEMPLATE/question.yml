@@ -1,7 +1,7 @@
 name: ❓ Question
 description: Ask a question about AionUi
-title: "[Question]: "
-labels: ["question"]
+title: '[Question]: '
+labels: ['question']
 body:
   - type: textarea
     id: question

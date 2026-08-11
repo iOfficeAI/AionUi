@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { mcpService } from '@/common/ipcBridge';
-import type { IMcpServer } from '@/common/storage';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import type { IMcpServer } from '@/common/config/storage';
 
 export interface McpOAuthStatus {
   isAuthenticated: boolean;

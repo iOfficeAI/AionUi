@@ -5,41 +5,70 @@
  */
 
 import { ipcBridge } from '@/common';
+import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-
-/** Max upload size in MB — keep in sync with server-side MAX_UPLOAD_SIZE in apiRoutes.ts */
-export const MAX_UPLOAD_SIZE_MB = 30;
-const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 /**
  * Upload a file to the server via HTTP multipart (WebUI mode).
  * Conversation-bound uploads go to the workspace uploads directory; pre-conversation uploads go to temp storage.
+ *
+ * @param onProgress Optional callback receiving upload percentage (0-100).
  */
-export async function uploadFileViaHttp(file: File, conversationId?: string): Promise<string> {
-  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-    throw new Error('FILE_TOO_LARGE');
-  }
+export async function uploadFileViaHttp(
+  file: File,
+  conversationId?: string,
+  onProgress?: (percent: number) => void
+): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   if (conversationId) {
     formData.append('conversationId', conversationId);
   }
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    credentials: 'include',
-    body: formData,
-  });
-  if (!response.ok) {
-    if (response.status === 413) {
-      throw new Error('FILE_TOO_LARGE');
+
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+    xhr.withCredentials = true;
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
     }
-    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-  }
-  const result = (await response.json()) as { success: boolean; data?: { path: string } };
-  if (!result.success || !result.data) {
-    throw new Error('Upload failed: server returned unsuccessful response');
-  }
-  return result.data.path;
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 413) {
+        reject(new Error('FILE_TOO_LARGE'));
+        return;
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+        return;
+      }
+      try {
+        const result = JSON.parse(xhr.responseText) as { success: boolean; data?: { path: string } };
+        if (!result.success || !result.data) {
+          reject(new Error('Upload failed: server returned unsuccessful response'));
+        } else {
+          resolve(result.data.path);
+        }
+      } catch {
+        reject(new Error('Upload failed: invalid server response'));
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('Upload failed: network error'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload aborted'));
+    });
+
+    xhr.send(formData);
+  });
 }
 // Simple formatBytes implementation moved from deleted updateConfig
 function formatBytes(bytes: number, decimals = 2): string {
@@ -122,7 +151,7 @@ export function getFileExtension(fileName: string): string {
   return lastDotIndex > -1 ? fileName.substring(lastDotIndex).toLowerCase() : '';
 }
 
-import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import { AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
 
 // 清理AionUI时间戳后缀，返回原始文件名
 export function cleanAionUITimestamp(fileName: string): string {
@@ -223,7 +252,11 @@ class FileServiceClass {
    * Process files from drag and drop events, creating temporary files for files without valid paths.
    * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
    */
-  async processDroppedFiles(files: FileList, conversationId?: string): Promise<FileMetadata[]> {
+  async processDroppedFiles(
+    files: FileList,
+    conversationId?: string,
+    source: UploadSource = 'sendbox'
+  ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -238,15 +271,20 @@ class FileServiceClass {
         try {
           if (!isElectronDesktop()) {
             // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
-            filePath = await uploadFileViaHttp(file, conversationId || '');
+            const tracker = trackUpload(file.size, source);
+            try {
+              filePath = await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+            } finally {
+              tracker.finish();
+            }
           } else {
-            // Electron: use IPC to create temp file
+            // Electron: use IPC to create upload file (respects saveToWorkspace setting)
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
-            if (tempPath) {
-              await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
-              filePath = tempPath;
+            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ fileName: file.name, conversationId });
+            if (uploadPath) {
+              await ipcBridge.fs.writeFile.invoke({ path: uploadPath, data: uint8Array });
+              filePath = uploadPath;
             }
           }
         } catch (error) {

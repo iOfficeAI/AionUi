@@ -34,6 +34,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+node_modules
 jspm_packages/
 
 # Lock files for other package managers (project uses bun.lock)
@@ -104,8 +105,6 @@ out/
 **/.claude/settings.json
 .qwen/
 .qwen/*/
-.iflow/
-.iflow/*/
 .specify/scripts/
 .gemini/
 .gemini/*/
@@ -192,6 +191,27 @@ lint-results.txt
 .worktrees/
 .aionui\diagnostics\api
 .aionui/diagnostics/api/
-
+.aionui/diagnostics/api-diagnostics-config.json
+# Local runtime error logs
+.aionui/error/
+# Packaged Bun runtime is generated during build and should never be committed
+resources/bundled-bun/
 # Superpowers brainstorm tool (runtime files, session data)
 .superpowers/
+docs/superpowers/
+resources/bundled-bun
+resources/bundled-aionrs
+resources/hub
+
+# Server build output
+dist-server/
+.omc/
+.superset/
+.claude/teams/
+iterations/
+graphify-out/
+.graphify_python
+
+.snow/
+.codex
+.aionrs/sessions/*

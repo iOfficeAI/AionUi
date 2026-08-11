@@ -1,0 +1,613 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+import { startMonitor } from '@process/channels/plugins/weixin/WeixinMonitor';
+import type { MonitorOptions } from '@process/channels/plugins/weixin/WeixinMonitor';
+
+const TEST_DIR = path.join(os.tmpdir(), `aionui-weixin-monitor-${process.pid}`);
+
+function makeOpts(overrides: Partial<MonitorOptions> = {}): MonitorOptions {
+  const controller = new AbortController();
+  return {
+    baseUrl: 'https://test.example.com',
+    token: 'tok_test',
+    accountId: 'acc_test',
+    dataDir: TEST_DIR,
+    agent: { chat: vi.fn().mockResolvedValue({ text: 'reply' }) },
+    abortSignal: controller.signal,
+    log: () => {},
+    ...overrides,
+  };
+}
+
+function mockFetchOnce(getUpdatesBody: unknown, onSend?: (body: unknown) => void): AbortController {
+  const controller = new AbortController();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+      if ((url as string).includes('getupdates')) {
+        // Abort synchronously to avoid microtask starvation (setTimeout(0) never fires
+        // because the async loop keeps generating microtasks before the event loop yields).
+        controller.abort();
+        return { ok: true, json: async () => getUpdatesBody } as Response;
+      }
+      if ((url as string).includes('sendmessage')) {
+        if (onSend && init?.body) onSend(JSON.parse(init.body));
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    })
+  );
+  return controller;
+}
+
+function asArrayBuffer(buf: Buffer): ArrayBuffer {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+beforeEach(() => {
+  fs.mkdirSync(TEST_DIR, { recursive: true });
+});
+
+afterEach(() => {
+  fs.rmSync(TEST_DIR, { recursive: true, force: true });
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('WeixinMonitor — text message delivery', () => {
+  it('calls agent.chat with conversationId and text, then sends reply', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'Hello back!' });
+    let sentBody: unknown;
+    const controller = mockFetchOnce(
+      {
+        ret: 0,
+        msgs: [
+          {
+            from_user_id: 'user_123',
+            context_token: 'ctx_abc',
+            item_list: [{ type: 1, text_item: { text: 'Hi there' } }],
+          },
+        ],
+        get_updates_buf: 'buf_v2',
+      },
+      (body) => {
+        sentBody = body;
+      }
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    expect(agentChat).toHaveBeenCalledWith({ conversationId: 'user_123', text: 'Hi there' });
+
+    expect(sentBody).toBeDefined();
+    const body = sentBody as {
+      msg: { to_user_id: string; item_list: Array<{ type: number; text_item: { text: string } }> };
+    };
+    expect(body.msg.to_user_id).toBe('user_123');
+    expect(body.msg.item_list[0].text_item.text).toBe('Hello back!');
+  });
+
+  it('uses voice_item.text as inbound text and merges it with text messages', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'Voice handled' });
+    const controller = mockFetchOnce({
+      ret: 0,
+      msgs: [
+        {
+          from_user_id: 'user_voice',
+          item_list: [
+            { type: 1, text_item: { text: '先看这个' } },
+            { type: 3, voice_item: { text: '这是语音转文字' } },
+          ],
+        },
+      ],
+      get_updates_buf: '',
+    });
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    expect(agentChat).toHaveBeenCalledWith({
+      conversationId: 'user_voice',
+      text: '先看这个\n\n这是语音转文字',
+    });
+  });
+
+  it('does not call agent.chat for non-text items (image type=2)', async () => {
+    const agentChat = vi.fn();
+    const controller = mockFetchOnce({
+      ret: 0,
+      msgs: [{ from_user_id: 'user_123', item_list: [{ type: 2 }] }],
+      get_updates_buf: '',
+    });
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).not.toHaveBeenCalled();
+  });
+
+  it('does not call agent.chat for voice items without transcription text', async () => {
+    const agentChat = vi.fn();
+    const controller = mockFetchOnce({
+      ret: 0,
+      msgs: [{ from_user_id: 'user_123', item_list: [{ type: 3, voice_item: {} }] }],
+      get_updates_buf: '',
+    });
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    expect(agentChat).not.toHaveBeenCalled();
+  });
+
+  it('uploads and sends media actions returned by agent.chat before trailing text', async () => {
+    const agentChat = vi.fn().mockResolvedValue({
+      text: 'All done',
+      mediaActions: [{ type: 'image', path: path.join(TEST_DIR, 'chart.png'), caption: 'Chart ready' }],
+    });
+    fs.writeFileSync(path.join(TEST_DIR, 'chart.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d]));
+
+    const sendBodies: unknown[] = [];
+    const controller = new AbortController();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({
+              ret: 0,
+              msgs: [
+                {
+                  from_user_id: 'user_media_send',
+                  context_token: 'ctx_media_send',
+                  item_list: [{ type: 1, text_item: { text: 'send it' } }],
+                },
+              ],
+              get_updates_buf: '',
+            }),
+          } as Response;
+        }
+        if ((url as string).includes('getuploadurl')) {
+          return {
+            ok: true,
+            json: async () => ({ upload_full_url: 'https://novac2c.cdn.weixin.qq.com/c2c/upload/direct-token' }),
+          } as Response;
+        }
+        if ((url as string).includes('novac2c.cdn.weixin.qq.com/c2c/upload')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: {
+              get: (key: string) => (key === 'x-encrypted-param' ? 'download-token' : null),
+            },
+          } as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          if (init?.body) sendBodies.push(JSON.parse(init.body));
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(agentChat).toHaveBeenCalledWith({
+      conversationId: 'user_media_send',
+      text: 'send it',
+      attachments: undefined,
+    });
+    expect(sendBodies).toHaveLength(3);
+
+    const captionBody = sendBodies[0] as { msg: { item_list: Array<{ text_item: { text: string } }> } };
+    expect(captionBody.msg.item_list[0]?.text_item.text).toBe('Chart ready');
+
+    const mediaBody = sendBodies[1] as { msg: { item_list: Array<{ type: number; image_item?: unknown }> } };
+    expect(mediaBody.msg.item_list[0]?.type).toBe(2);
+    expect(mediaBody.msg.item_list[0]?.image_item).toBeDefined();
+
+    const textBody = sendBodies[2] as { msg: { item_list: Array<{ text_item: { text: string } }> } };
+    expect(textBody.msg.item_list[0]?.text_item.text).toBe('All done');
+  });
+
+  it('checks file size before reading media actions into memory', async () => {
+    const mediaPath = path.join(TEST_DIR, 'too-large.bin');
+    const agentChat = vi.fn().mockResolvedValue({
+      text: 'Done',
+      mediaActions: [{ type: 'file', path: mediaPath, fileName: 'too-large.bin' }],
+    });
+    const fetchCalls: string[] = [];
+    const controller = new AbortController();
+
+    fs.writeFileSync(mediaPath, 'tiny');
+    const originalStatSync = fs.statSync;
+    const readSpy = vi.spyOn(fs, 'readFileSync');
+    const statSpy = vi.spyOn(fs, 'statSync');
+    statSpy.mockImplementation((targetPath, options) => {
+      if (targetPath === mediaPath) {
+        return {
+          isFile: () => true,
+          size: 201 * 1024 * 1024,
+        } as fs.Stats;
+      }
+      return originalStatSync(targetPath, options as { bigint?: false | undefined });
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        fetchCalls.push(url);
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({
+              ret: 0,
+              msgs: [
+                {
+                  from_user_id: 'user_large_media',
+                  context_token: 'ctx_large_media',
+                  item_list: [{ type: 1, text_item: { text: 'send the file' } }],
+                },
+              ],
+              get_updates_buf: '',
+            }),
+          } as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(fetchCalls.some((url) => url.includes('getuploadurl'))).toBe(false);
+    expect(readSpy.mock.calls.some((call) => call[0] === mediaPath)).toBe(false);
+  });
+
+  it('downloads media attachments, saves them locally, and passes them to agent.chat', async () => {
+    const agentChat = vi.fn().mockResolvedValue({ text: 'Received attachments' });
+    let sentBody: unknown;
+    const controller = new AbortController();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({
+              ret: 0,
+              msgs: [
+                {
+                  from_user_id: 'user_media',
+                  context_token: 'ctx_media',
+                  msg_id: 'msg_media',
+                  item_list: [
+                    { type: 1, text_item: { text: 'Please inspect' } },
+                    {
+                      type: 2,
+                      image_item: {
+                        media: { encrypt_query_param: 'img-token' },
+                        file_name: 'photo',
+                      },
+                    },
+                    {
+                      type: 4,
+                      file_item: {
+                        media: { encrypt_query_param: 'pdf-token' },
+                        file_name: 'report.pdf',
+                      },
+                    },
+                  ],
+                },
+              ],
+              get_updates_buf: '',
+            }),
+          } as Response;
+        }
+        if ((url as string).includes('encrypted_query_param=img-token')) {
+          return {
+            ok: true,
+            arrayBuffer: async () => asArrayBuffer(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d])),
+          } as Response;
+        }
+        if ((url as string).includes('encrypted_query_param=pdf-token')) {
+          return {
+            ok: true,
+            arrayBuffer: async () => asArrayBuffer(Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d])),
+          } as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          if (init?.body) sentBody = JSON.parse(init.body);
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(agentChat).toHaveBeenCalledOnce();
+    const call = agentChat.mock.calls[0]?.[0] as {
+      conversationId: string;
+      text: string;
+      attachments?: Array<{ path: string; kind: string; name: string }>;
+    };
+    expect(call.conversationId).toBe('user_media');
+    expect(call.text).toBe('Please inspect');
+    expect(call.attachments).toHaveLength(2);
+    expect(call.attachments?.map((att) => ({ kind: att.kind, name: att.name }))).toEqual([
+      { kind: 'image', name: 'photo' },
+      { kind: 'file', name: 'report.pdf' },
+    ]);
+    for (const attachment of call.attachments ?? []) {
+      expect(fs.existsSync(attachment.path)).toBe(true);
+    }
+    expect(call.attachments?.[0]?.path).toMatch(/msg_media-0-photo\.png$/);
+    expect(call.attachments?.[1]?.path).toMatch(/msg_media-1-report\.pdf\.pdf$/);
+
+    expect(sentBody).toBeDefined();
+  });
+
+  it('skips agent.chat when all attachment downloads fail and there is no text', async () => {
+    const agentChat = vi.fn();
+    const controller = new AbortController();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if ((url as string).includes('getupdates')) {
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({
+              ret: 0,
+              msgs: [
+                {
+                  from_user_id: 'user_media',
+                  msg_id: 'msg_media',
+                  item_list: [
+                    {
+                      type: 2,
+                      image_item: {
+                        media: { encrypt_query_param: 'img-token' },
+                        file_name: 'photo',
+                      },
+                    },
+                  ],
+                },
+              ],
+              get_updates_buf: '',
+            }),
+          } as Response;
+        }
+        if ((url as string).includes('encrypted_query_param=img-token')) {
+          return { ok: false, status: 502, arrayBuffer: async () => asArrayBuffer(Buffer.alloc(0)) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(agentChat).not.toHaveBeenCalled();
+  });
+});
+
+describe('WeixinMonitor — buf persistence', () => {
+  it('writes get_updates_buf to disk after a successful response', async () => {
+    const controller = mockFetchOnce({ ret: 0, msgs: [], get_updates_buf: 'saved_buf_xyz' });
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    const bufFile = path.join(TEST_DIR, 'weixin-monitor', 'acc_test.buf');
+    expect(fs.existsSync(bufFile)).toBe(true);
+    expect(fs.readFileSync(bufFile, 'utf-8')).toBe('saved_buf_xyz');
+  });
+
+  it('does not write buf when get_updates_buf is empty string', async () => {
+    const controller = mockFetchOnce({ ret: 0, msgs: [], get_updates_buf: '' });
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    const bufFile = path.join(TEST_DIR, 'weixin-monitor', 'acc_test.buf');
+    expect(fs.existsSync(bufFile)).toBe(false);
+  });
+});
+
+describe('WeixinMonitor — retry / backoff', () => {
+  it('retries after 2s on fetch error, backs off 30s after 3 consecutive failures', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let callCount = 0;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount > 10) controller.abort();
+        throw new Error('Network error');
+      })
+    );
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(callCount).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(callCount).toBe(2);
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(callCount).toBe(3);
+
+    // Still in 30s backoff — no 4th call yet
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(callCount).toBe(3);
+
+    // After full 30s backoff → 4th call
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(callCount).toBe(4);
+
+    controller.abort();
+    vi.useRealTimers();
+  });
+});
+
+describe('WeixinMonitor — abort', () => {
+  it('stops cleanly when abortSignal fires before fetch resolves', async () => {
+    const controller = new AbortController();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise<Response>((_, reject) => {
+            controller.signal.addEventListener('abort', () => reject(new Error('aborted')), {
+              once: true,
+            });
+          })
+      )
+    );
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+
+    controller.abort();
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WeixinMonitor — typing indicator integration', () => {
+  /**
+   * Stubs fetch for all four endpoints and returns a shared `callOrder` array.
+   * Both fetch events and agent.chat invocations can be pushed into callOrder
+   * to verify cross-boundary ordering.
+   *
+   * Two-round approach: round 1 returns the test messages WITHOUT aborting so
+   * TypingManager.startTyping runs before stopped=true; round 2 aborts to stop
+   * the monitor loop. This avoids the race where a synchronous abort inside the
+   * fetch mock fires the TypingManager abort-listener before startTyping is called.
+   */
+  function makeTypingFetch(opts: { msgs?: unknown[]; callOrder: string[] }): AbortController {
+    const controller = new AbortController();
+    let getupdatesRound = 0;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init: { body?: string }) => {
+        if ((url as string).includes('getupdates')) {
+          getupdatesRound++;
+          if (getupdatesRound === 1) {
+            // First round: return test messages, do NOT abort yet.
+            // The monitor processes the messages (typing + agent.chat + sendmessage)
+            // before looping back for a second getupdates call.
+            return {
+              ok: true,
+              json: async () => ({ ret: 0, msgs: opts.msgs ?? [], get_updates_buf: '' }),
+            } as Response;
+          }
+          // Second round: abort to stop the monitor loop.
+          controller.abort();
+          return {
+            ok: true,
+            json: async () => ({ ret: 0, msgs: [], get_updates_buf: '' }),
+          } as Response;
+        }
+        if ((url as string).includes('getconfig')) {
+          opts.callOrder.push('getconfig');
+          return {
+            ok: true,
+            text: async () => JSON.stringify({ ret: 0, typing_ticket: 'tk_monitor' }),
+          } as Response;
+        }
+        if ((url as string).includes('sendtyping')) {
+          const body = init?.body ? (JSON.parse(init.body) as { status?: number }) : {};
+          opts.callOrder.push(body.status === 2 ? 'sendtyping:CANCEL' : 'sendtyping:TYPING');
+          return { ok: true, text: async () => '{}' } as Response;
+        }
+        if ((url as string).includes('sendmessage')) {
+          opts.callOrder.push('sendmessage');
+          return { ok: true, json: async () => ({}) } as Response;
+        }
+        return { ok: true, json: async () => ({}) } as Response;
+      })
+    );
+
+    return controller;
+  }
+
+  const TEST_MSG = {
+    from_user_id: 'user_t1',
+    context_token: 'ctx_t1',
+    item_list: [{ type: 1, text_item: { text: 'hello' } }],
+  };
+
+  it('sends TYPING before agent.chat is called', async () => {
+    const callOrder: string[] = [];
+    const agentChat = vi.fn().mockImplementation(async () => {
+      callOrder.push('agent.chat');
+      return { text: 'reply' };
+    });
+
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    const typingIdx = callOrder.indexOf('sendtyping:TYPING');
+    const agentIdx = callOrder.indexOf('agent.chat');
+    expect(typingIdx).toBeGreaterThanOrEqual(0);
+    expect(agentIdx).toBeGreaterThan(typingIdx);
+  });
+
+  it('sends CANCEL after agent.chat resolves, before sendmessage', async () => {
+    const callOrder: string[] = [];
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+
+    startMonitor(makeOpts({ abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    const cancelIdx = callOrder.indexOf('sendtyping:CANCEL');
+    const sendIdx = callOrder.indexOf('sendmessage');
+    expect(cancelIdx).toBeGreaterThanOrEqual(0);
+    expect(sendIdx).toBeGreaterThan(cancelIdx);
+  });
+
+  it('sends CANCEL when agent.chat throws', async () => {
+    const callOrder: string[] = [];
+    const agentChat = vi.fn().mockRejectedValue(new Error('agent exploded'));
+    const controller = makeTypingFetch({ msgs: [TEST_MSG], callOrder });
+
+    startMonitor(makeOpts({ agent: { chat: agentChat }, abortSignal: controller.signal }));
+    await new Promise((r) => setTimeout(r, 80));
+
+    expect(callOrder).toContain('sendtyping:CANCEL');
+    expect(callOrder).not.toContain('sendmessage');
+  });
+});

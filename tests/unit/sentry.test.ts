@@ -6,6 +6,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { shouldInitializeSentry } from '../../src/common/config/sentry';
+
 const sentryMainInit = vi.fn();
 const sentryRendererInit = vi.fn();
 
@@ -50,6 +52,55 @@ describe('Sentry initialization', () => {
     Sentry.init();
 
     expect(sentryRendererInit).toHaveBeenCalledWith();
+  });
+});
+
+describe('Sentry runtime guard', () => {
+  it('does not initialize in development unless explicitly enabled', () => {
+    expect(
+      shouldInitializeSentry({
+        dsn: 'https://test@sentry.io/123',
+        isE2ETestMode: false,
+        isPackaged: false,
+      })
+    ).toBe(false);
+
+    expect(
+      shouldInitializeSentry({
+        dsn: 'https://test@sentry.io/123',
+        enableInDevelopment: true,
+        isE2ETestMode: false,
+        isPackaged: false,
+      })
+    ).toBe(true);
+  });
+
+  it('requires a DSN and stays disabled in E2E mode', () => {
+    expect(
+      shouldInitializeSentry({
+        dsn: '',
+        isE2ETestMode: false,
+        isPackaged: true,
+      })
+    ).toBe(false);
+
+    expect(
+      shouldInitializeSentry({
+        dsn: 'https://test@sentry.io/123',
+        isE2ETestMode: true,
+        isPackaged: true,
+      })
+    ).toBe(false);
+  });
+
+  it('initializes packaged builds when a DSN is configured', () => {
+    expect(
+      shouldInitializeSentry({
+        dsn: 'https://test@sentry.io/123',
+        isE2ETestMode: false,
+        isPackaged: true,
+      })
+    ).toBe(true);
   });
 });
 

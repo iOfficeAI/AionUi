@@ -1,0 +1,352 @@
+.conversation-search-modal {
+  --conversation-search-mask-bg: rgba(15, 23, 42, 0.1);
+  --conversation-search-panel-bg: rgba(255, 255, 255, 0.72);
+  --conversation-search-panel-inner-bg: rgba(255, 255, 255, 0.82);
+  --conversation-search-panel-border: rgba(229, 230, 235, 0.92);
+  --conversation-search-panel-shadow: 0 14px 34px rgba(29, 33, 41, 0.14);
+  --conversation-search-panel-outline: rgba(255, 255, 255, 0.64);
+  --conversation-search-surface-bg: rgba(247, 248, 250, 0.92);
+  --conversation-search-input-bg: rgba(255, 255, 255, 0.94);
+  --conversation-search-input-border: rgba(196, 201, 209, 0.78);
+  --conversation-search-input-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 14px rgba(15, 23, 42, 0.05);
+  --conversation-search-divider: rgba(229, 230, 235, 0.72);
+  --conversation-search-hover-bg: rgba(243, 244, 246, 0.74);
+  --conversation-search-highlight-fg: #2563eb;
+}
+
+.conversation-search-trigger-full {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+.conversation-search-trigger-full:hover {
+  background: var(--color-fill-3) !important;
+}
+
+.conversation-search-trigger-full:active {
+  background: var(--color-fill-4) !important;
+}
+
+.conversation-search-trigger-full:focus,
+.conversation-search-trigger-full:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, rgb(var(--primary-6)) 24%, transparent) !important;
+}
+
+[data-theme='dark'] .conversation-search-modal,
+body[arco-theme='dark'] .conversation-search-modal {
+  --conversation-search-mask-bg: color-mix(in srgb, var(--color-bg-5) 58%, transparent);
+  --conversation-search-panel-bg: color-mix(in srgb, var(--color-bg-2) 76%, transparent);
+  --conversation-search-panel-inner-bg: color-mix(in srgb, var(--color-bg-3) 82%, transparent);
+  --conversation-search-panel-border: var(--color-border-2);
+  --conversation-search-panel-shadow: 0 20px 44px rgba(0, 0, 0, 0.38);
+  --conversation-search-panel-outline: color-mix(in srgb, var(--color-border-3) 56%, transparent);
+  --conversation-search-surface-bg: color-mix(in srgb, var(--color-fill-2) 88%, transparent);
+  --conversation-search-input-bg: color-mix(in srgb, var(--color-fill-2) 92%, transparent);
+  --conversation-search-input-border: var(--color-border-2);
+  --conversation-search-input-shadow: 0 1px 2px rgba(0, 0, 0, 0.22), 0 8px 18px rgba(0, 0, 0, 0.18);
+  --conversation-search-divider: var(--color-border-2);
+  --conversation-search-hover-bg: var(--color-fill-2);
+  --conversation-search-highlight-fg: #93c5fd;
+}
+
+.conversation-search-modal.aionui-modal .arco-modal,
+.conversation-search-modal.aionui-modal .arco-modal-content,
+.conversation-search-modal.aionui-modal .arco-modal-header,
+.conversation-search-modal.aionui-modal .arco-modal-body,
+.conversation-search-modal.aionui-modal .arco-modal-footer,
+.conversation-search-modal .aionui-modal-wrapper,
+.conversation-search-modal .aionui-modal-body-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.conversation-search-modal.aionui-modal .arco-modal-content,
+.conversation-search-modal .arco-modal-content {
+  position: relative;
+  background: var(--conversation-search-panel-bg) !important;
+  border: 1px solid var(--conversation-search-panel-border) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--conversation-search-panel-shadow) !important;
+  outline: 1px solid var(--conversation-search-panel-outline);
+  outline-offset: -1px;
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.conversation-search-modal .aionui-modal-body-content {
+  padding: 0 !important;
+}
+
+.conversation-search-modal__panel {
+  background: var(--conversation-search-panel-inner-bg) !important;
+  backdrop-filter: blur(2px) saturate(106%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%);
+  border: none;
+  box-shadow: none;
+  padding: 24px 24px 22px;
+}
+
+.conversation-search-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 2px 14px;
+  border-bottom: none;
+}
+
+.conversation-search-modal__header-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.conversation-search-modal__title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--text-primary);
+}
+
+.conversation-search-modal__result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.conversation-search-modal__result-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.conversation-search-modal__description {
+  margin-top: 2px;
+}
+
+.conversation-search-modal__close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.conversation-search-modal__close-btn:hover {
+  background: var(--fill-0);
+  color: var(--text-primary);
+}
+
+.conversation-search-modal__input-wrap {
+  width: 100%;
+  margin: 4px 0 14px;
+}
+
+.conversation-search-modal__searchbar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--conversation-search-input-bg) !important;
+  border: 1px solid var(--conversation-search-input-border) !important;
+  box-shadow: none !important;
+  border-radius: 10px;
+  padding: 0 10px 0 12px;
+}
+
+.conversation-search-modal__searchbar:focus-within {
+  border-color: rgba(var(--primary-6), 0.58) !important;
+  box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.12) !important;
+}
+
+.conversation-search-modal__search-icon {
+  color: var(--text-secondary);
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.conversation-search-modal__search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.conversation-search-modal__search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.conversation-search-modal__clear-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.conversation-search-modal__clear-btn:hover {
+  background: var(--fill-2);
+  color: var(--text-primary);
+}
+
+.conversation-search-modal__clear-btn:focus-visible {
+  outline: 2px solid rgba(var(--primary-6), 0.42);
+  outline-offset: 1px;
+}
+
+.conversation-search-modal__clear-btn svg {
+  display: block;
+}
+
+.conversation-search-modal__search-input:focus,
+.conversation-search-modal__search-input:focus-visible {
+  outline: none !important;
+}
+
+.conversation-search-modal__results {
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.conversation-search-modal__state {
+  min-height: 168px;
+  border: 1px dashed var(--conversation-search-divider);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--conversation-search-surface-bg) 76%, transparent);
+  box-shadow: none;
+}
+
+.conversation-search-modal__state-content {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.conversation-search-modal__recent-wrap {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.conversation-search-modal__recent-chip {
+  max-width: 220px;
+  border: 1px solid color-mix(in srgb, var(--conversation-search-input-border) 86%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--conversation-search-input-bg) 88%, var(--conversation-search-surface-bg));
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.conversation-search-modal__recent-chip:hover {
+  color: var(--conversation-search-highlight-fg);
+  border-color: rgba(var(--primary-6), 0.48);
+  background: color-mix(in srgb, var(--conversation-search-input-bg) 74%, rgba(var(--primary-6), 0.18));
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(var(--primary-6), 0.1),
+    0 3px 8px rgba(15, 23, 42, 0.1);
+}
+
+.conversation-search-modal__recent-chip:active {
+  transform: translateY(0);
+  box-shadow:
+    0 0 0 1px rgba(var(--primary-6), 0.16),
+    0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+.conversation-search-modal__result {
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--conversation-search-divider);
+}
+
+.conversation-search-modal__snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.conversation-search-modal__result:hover,
+.conversation-search-modal__result:focus {
+  background: var(--conversation-search-hover-bg);
+}
+
+.conversation-search-modal__result:last-child {
+  border-bottom: none;
+}
+
+.conversation-search-modal__highlight {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--conversation-search-highlight-fg);
+  font-weight: 700;
+  line-height: inherit;
+  box-shadow: none;
+}

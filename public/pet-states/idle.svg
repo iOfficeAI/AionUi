@@ -1,0 +1,63 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .idle-body {
+        transform-origin: 11px 18px;
+        animation: idle-breathe 3.2s ease-in-out infinite, idle-sway 6s ease-in-out infinite;
+      }
+      .idle-eye {
+        transform-origin: 11px 11px;
+        animation: idle-blink 4s ease-in-out infinite;
+      }
+      .idle-shadow {
+        transform-origin: 11px 22.5px;
+        animation: idle-shadow-pulse 3.2s ease-in-out infinite;
+      }
+      @keyframes idle-breathe {
+        0%,100% { transform: scaleY(1) translateY(0); }
+        50%     { transform: scaleY(0.97) translateY(0.3px); }
+      }
+      @keyframes idle-sway {
+        0%,100% { transform: rotate(0deg); }
+        25%     { transform: rotate(1.2deg); }
+        75%     { transform: rotate(-1.2deg); }
+      }
+      @keyframes idle-blink {
+        0%,8%,100% { transform: scaleY(1); }
+        4%          { transform: scaleY(0.08); }
+      }
+      @keyframes idle-shadow-pulse {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        50%     { transform: scaleX(0.96); opacity: 0.28; }
+      }
+    </style>
+  </defs>
+  <!-- shadow -->
+  <ellipse class="idle-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+  <!-- .idle-track — cursor-tracking wrapper; JS writes its SVG transform
+       attribute here. Separate from .idle-body so the CSS breathe+sway
+       animations keep running underneath without fighting the JS transform. -->
+  <g class="idle-track">
+    <!-- main body group -->
+    <g class="idle-body">
+      <!-- arms — relaxed diamonds -->
+      <rect x="2" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 3.5 10.5)"/>
+      <rect x="17" y="9" width="3" height="3" rx="0.5" fill="#8891b8" opacity="0.7" transform="rotate(45 18.5 10.5)"/>
+      <!-- body -->
+      <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+      <!-- hat -->
+      <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+      <!-- hat highlight -->
+      <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+      <!-- eye (CSS blink) — .idle-pupil is the inner wrapper JS writes to for
+           eye tracking, so the blink animation on .idle-eye stays isolated. -->
+      <g class="idle-eye">
+        <g class="idle-pupil">
+          <rect x="10" y="10" width="2" height="2" fill="#111827"/>
+        </g>
+      </g>
+      <!-- smile -->
+      <path d="M8 13.5 Q11 16.5 14 13.5" stroke="#111827" stroke-width="1" stroke-linecap="round" fill="none"/>
+    </g>
+  </g>
+</svg>

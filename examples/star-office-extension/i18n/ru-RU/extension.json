@@ -1,0 +1,15 @@
+{
+  "displayName": "Расширение Star Office",
+  "description": "Визуализация активности в стиле Star Office для всех агентов.",
+  "settingsTabs": {
+    "star-office": {
+      "name": "Star Office"
+    },
+    "aionui-home": {
+      "name": "Домашняя AionUi"
+    },
+    "aionui-issues": {
+      "name": "Задачи AionUi"
+    }
+  }
+}

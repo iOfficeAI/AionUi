@@ -4,79 +4,68 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import fs from 'fs/promises';
+import type { Dirent } from 'fs';
 import path from 'path';
 import os from 'os';
 import https from 'node:https';
 import http from 'node:http';
-import { app } from 'electron';
 import JSZip from 'jszip';
-import { ipcBridge } from '../../common';
-import { getSystemDir, getAssistantsDir } from '../initStorage';
-import { readDirectoryRecursive } from '../utils';
+import { ipcBridge } from '@/common';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
+import {
+  getSystemDir,
+  getAssistantsDir,
+  getAutoSkillsDir,
+  getSkillsDir,
+  getBuiltinSkillsCopyDir,
+  ProcessConfig,
+} from '@process/utils/initStorage';
+import { readDirectoryRecursive } from '@process/utils';
+import { getDatabase } from '@process/services/database';
+import { AcpSkillManager } from '@process/task/AcpSkillManager';
+import type { IWorkspaceFlatFile } from '@/common/adapter/ipcBridge';
 
 // ============================================================================
 // Helper functions for builtin resource directory resolution
 // 内置资源目录解析辅助函数
 // ============================================================================
 
-type ResourceType = 'rules' | 'skills';
+type ResourceType = 'rules' | 'skills' | 'assistant';
 
 /**
- * Find the builtin resource directory (rules or skills)
- * 查找内置资源目录（rules 或 skills）
- *
- * When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
- * 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
+ * Resolve builtin resource directory without Electron.
+ * In development and standalone server mode: searches relative to process.cwd().
+ * Returns first existing candidate, falling back to first candidate path.
  */
-async function findBuiltinResourceDir(resourceType: ResourceType): Promise<string> {
-  if (app.isPackaged) {
-    const appPath = app.getAppPath();
-    // asarUnpack extracts files to app.asar.unpacked directory
-    // asarUnpack 会将文件解压到 app.asar.unpacked 目录
-    const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
-    const candidates = [
-      path.join(unpackedPath, resourceType), // Unpacked location (preferred)
-      path.join(appPath, resourceType), // Fallback to asar path
-    ];
-    for (const candidate of candidates) {
-      try {
-        await fs.access(candidate);
-        return candidate;
-      } catch {
-        // Try next path
-      }
-    }
-    console.warn(`[fsBridge] Could not find builtin ${resourceType} directory, tried:`, candidates);
-    return candidates[0]; // Default to unpacked path
-  }
-  // Development: try multiple paths
-  const appPath = app.getAppPath();
-  const candidates = [
-    path.join(appPath, resourceType),
-    path.join(appPath, '..', resourceType),
-    path.join(appPath, '..', '..', resourceType),
-    path.join(appPath, '..', '..', '..', resourceType),
-  ];
+async function findBuiltinResourceDirNode(resourceType: ResourceType): Promise<string> {
+  const base = process.cwd();
+  const sourceDir =
+    resourceType === 'skills' || resourceType === 'assistant' ? `src/process/resources/${resourceType}` : resourceType;
+  const runtimeDir = resourceType;
+  const candidates = Array.from(
+    new Set(
+      [
+        path.join(base, sourceDir),
+        path.join(base, '..', sourceDir),
+        path.join(base, 'dist-server', runtimeDir),
+        path.join(base, '..', 'dist-server', runtimeDir),
+        path.join(__dirname, runtimeDir),
+        path.join(__dirname, '..', runtimeDir),
+        path.join(base, runtimeDir),
+      ].map((candidate) => path.resolve(candidate))
+    )
+  );
   for (const candidate of candidates) {
     try {
       await fs.access(candidate);
       return candidate;
     } catch {
-      // Try next path
+      // Try next
     }
   }
-  return candidates[0]; // Default fallback
-}
-
-/**
- * Get user config skills directory
- * 获取用户配置 skills 目录
- */
-function getUserSkillsDir(): string {
-  const userDataPath = app.getPath('userData');
-  return path.join(userDataPath, 'config', 'skills');
+  return candidates[0];
 }
 
 function parseSkillFrontMatter(content: string, fallbackName: string): { name: string; description: string } {
@@ -146,7 +135,7 @@ async function readBuiltinResource(resourceType: ResourceType, fileName: string)
   if (!safeFileName.endsWith('.md')) {
     throw new Error('Only .md files are allowed');
   }
-  const dir = await findBuiltinResourceDir(resourceType);
+  const dir = await findBuiltinResourceDirNode(resourceType);
   return fs.readFile(path.join(dir, safeFileName), 'utf-8');
 }
 
@@ -174,7 +163,7 @@ async function readAssistantResource(
   }
 
   // 2. Fallback to builtin directory
-  const builtinDir = await findBuiltinResourceDir(resourceType);
+  const builtinDir = await findBuiltinResourceDirNode(resourceType);
   for (const loc of locales) {
     const fileName = fileNamePattern(assistantId, loc);
     try {
@@ -183,6 +172,29 @@ async function readAssistantResource(
       return content;
     } catch {
       // Try next locale
+    }
+  }
+
+  // 3. Builtin preset resources are stored by preset directory in source/package
+  // (src/process/resources/assistant/<preset>/<file>.md), not as flat cache files.
+  if (assistantId.startsWith('builtin-') && (resourceType === 'rules' || resourceType === 'skills')) {
+    const presetId = assistantId.replace('builtin-', '');
+    const preset = ASSISTANT_PRESETS.find((item) => item.id === presetId);
+    const files = resourceType === 'rules' ? preset?.ruleFiles : preset?.skillFiles;
+    if (preset && files) {
+      const assistantResourcesDir = await findBuiltinResourceDirNode('assistant');
+      const presetResourceDir = preset.resourceDir ? path.basename(preset.resourceDir) : '';
+      for (const loc of locales) {
+        const fileName = files[loc] || files['en-US'];
+        if (!fileName) continue;
+        try {
+          const content = await fs.readFile(path.join(assistantResourcesDir, presetResourceDir, fileName), 'utf-8');
+          console.log(`[fsBridge] Read bundled preset ${resourceType} for ${assistantId}: ${fileName}`);
+          return content;
+        } catch {
+          // Try next locale
+        }
+      }
     }
   }
 
@@ -238,12 +250,149 @@ async function deleteAssistantResource(resourceType: ResourceType, filePattern: 
 const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
 const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
 
+const workspaceFileListCache = new Map<string, IWorkspaceFlatFile[]>();
+const workspaceFileListInFlight = new Map<string, Promise<IWorkspaceFlatFile[]>>();
+const workspaceFileListGeneration = new Map<string, number>();
+
+function isPathWithinRoot(root: string, targetPath: string): boolean {
+  const relativePath = path.relative(root, targetPath);
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
+function normalizeWorkspaceRelativePath(root: string, fullPath: string): string {
+  return path.relative(root, fullPath).split(path.sep).join('/');
+}
+
+function invalidateWorkspaceFileListCacheByPath(changedPath: string): void {
+  const normalizedPath = path.resolve(changedPath);
+  const roots = new Set([...workspaceFileListCache.keys(), ...workspaceFileListInFlight.keys()]);
+
+  for (const root of roots) {
+    if (!isPathWithinRoot(root, normalizedPath)) {
+      continue;
+    }
+
+    workspaceFileListCache.delete(root);
+    workspaceFileListInFlight.delete(root);
+    workspaceFileListGeneration.set(root, (workspaceFileListGeneration.get(root) ?? 0) + 1);
+  }
+}
+
+const MAX_WORKSPACE_FILES = 20_000;
+
+async function listWorkspaceFilesRecursive(root: string): Promise<IWorkspaceFlatFile[]> {
+  const normalizedRoot = path.resolve(root);
+  const entries: IWorkspaceFlatFile[] = [];
+
+  const walk = async (currentDir: string): Promise<void> => {
+    if (entries.length >= MAX_WORKSPACE_FILES) {
+      return;
+    }
+
+    let dirEntries: Dirent[];
+    try {
+      dirEntries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of dirEntries) {
+      if (entries.length >= MAX_WORKSPACE_FILES) {
+        break;
+      }
+
+      if (entry.name === 'node_modules') {
+        continue;
+      }
+
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        // Intentionally skip symlinks to avoid circular reference risks
+        continue;
+      }
+
+      entries.push({
+        name: entry.name,
+        fullPath,
+        relativePath: normalizeWorkspaceRelativePath(normalizedRoot, fullPath),
+      });
+    }
+  };
+
+  await walk(normalizedRoot);
+  entries.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+  return entries;
+}
+
+async function getCachedWorkspaceFiles(root: string): Promise<IWorkspaceFlatFile[]> {
+  const normalizedRoot = path.resolve(root);
+
+  try {
+    const stats = await fs.stat(normalizedRoot);
+    if (!stats.isDirectory()) {
+      workspaceFileListCache.delete(normalizedRoot);
+      workspaceFileListInFlight.delete(normalizedRoot);
+      return [];
+    }
+  } catch {
+    workspaceFileListCache.delete(normalizedRoot);
+    workspaceFileListInFlight.delete(normalizedRoot);
+    return [];
+  }
+
+  const cached = workspaceFileListCache.get(normalizedRoot);
+  if (cached) {
+    return cached;
+  }
+
+  const inFlight = workspaceFileListInFlight.get(normalizedRoot);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const requestGeneration = workspaceFileListGeneration.get(normalizedRoot) ?? 0;
+  const request = listWorkspaceFilesRecursive(normalizedRoot)
+    .then((files) => {
+      if ((workspaceFileListGeneration.get(normalizedRoot) ?? 0) === requestGeneration) {
+        workspaceFileListCache.set(normalizedRoot, files);
+      }
+      return files;
+    })
+    .finally(() => {
+      if (workspaceFileListInFlight.get(normalizedRoot) === request) {
+        workspaceFileListInFlight.delete(normalizedRoot);
+      }
+    });
+
+  workspaceFileListInFlight.set(normalizedRoot, request);
+  return request;
+}
+
 export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
 
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
-    const tree = await readDirectoryRecursive(dir);
-    return tree ? [tree] : [];
+    try {
+      const tree = await readDirectoryRecursive(dir);
+      return tree ? [tree] : [];
+    } catch (error) {
+      console.error('[fsBridge] Failed to read directory:', dir, error);
+      return [];
+    }
+  });
+
+  ipcBridge.fs.listWorkspaceFiles.provider(async ({ root }) => {
+    try {
+      return await getCachedWorkspaceFiles(root);
+    } catch (error) {
+      console.error('[fsBridge] Failed to list workspace files:', root, error);
+      return [];
+    }
   });
 
   ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
@@ -277,7 +426,12 @@ export function initFsBridge(): void {
     redirectCount = 0
   ): Promise<{ buffer: Buffer; contentType?: string }> => {
     const allowedProtocols = new Set(['http:', 'https:']);
-    const parsedUrl = new URL(targetUrl);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch {
+      return Promise.reject(new Error(`Invalid URL: ${targetUrl}`));
+    }
     if (!allowedProtocols.has(parsedUrl.protocol)) {
       return Promise.reject(new Error('Unsupported protocol'));
     }
@@ -306,7 +460,13 @@ export function initFsBridge(): void {
             const { statusCode = 0, headers } = response;
 
             if (statusCode >= 300 && statusCode < 400 && headers.location && redirectCount < 5) {
-              const redirectUrl = new URL(headers.location, targetUrl).toString();
+              let redirectUrl: string;
+              try {
+                redirectUrl = new URL(headers.location, targetUrl).toString();
+              } catch {
+                reject(new Error(`Invalid redirect URL: ${headers.location}`));
+                return;
+              }
               response.resume();
               resolve(downloadRemoteBuffer(redirectUrl, redirectCount + 1));
               return;
@@ -332,7 +492,10 @@ export function initFsBridge(): void {
             });
 
             response.on('end', () => {
-              resolve({ buffer: Buffer.concat(chunks), contentType: headers['content-type'] });
+              resolve({
+                buffer: Buffer.concat(chunks),
+                contentType: headers['content-type'],
+              });
             });
             response.on('error', (error) => reject(error));
           }
@@ -351,9 +514,14 @@ export function initFsBridge(): void {
 
   // 通过桥接层拉取远程图片并转成 base64 / Fetch remote image via bridge and return base64
   ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
-    const { buffer, contentType } = await downloadRemoteBuffer(url);
-    const base64 = buffer.toString('base64');
-    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    try {
+      const { buffer, contentType } = await downloadRemoteBuffer(url);
+      const base64 = buffer.toString('base64');
+      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    } catch (error) {
+      console.warn('[fsBridge] Failed to fetch remote image:', (error as Error).message);
+      return '';
+    }
   });
 
   // 创建临时文件 / Create temporary file on disk
@@ -393,12 +561,100 @@ export function initFsBridge(): void {
     }
   });
 
+  // 创建上传文件 / Create upload file based on user preference
+  // 根据"上传文件保存到工作区"设置决定文件保存位置
+  ipcBridge.fs.createUploadFile.provider(async ({ fileName, conversationId }) => {
+    try {
+      // 检查用户偏好：保存到工作区还是缓存目录
+      // Check user preference: save to workspace or cache directory
+      const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
+
+      let uploadDir: string;
+      if (conversationId && saveToWorkspace) {
+        // 保存到工作区 / Save to workspace
+        try {
+          const db = await getDatabase();
+          const result = db.getConversation(conversationId);
+          const conversationWorkspace = result.data?.extra?.workspace;
+
+          if (!result.success || !conversationWorkspace) {
+            throw new Error('Conversation workspace not found');
+          }
+
+          const resolvedWorkspace = path.resolve(conversationWorkspace);
+          uploadDir = path.join(resolvedWorkspace, 'uploads');
+          await fs.mkdir(uploadDir, { recursive: true });
+        } catch (error) {
+          // 如果无法获取工作区，回退到缓存目录
+          // Fallback to cache directory if workspace cannot be resolved
+          console.warn('[fsBridge] Failed to resolve workspace, using cache directory:', error);
+          const { cacheDir } = getSystemDir();
+          const tempDir = path.join(cacheDir, 'temp');
+          await fs.mkdir(tempDir, { recursive: true });
+          uploadDir = tempDir;
+        }
+      } else {
+        // 保存到缓存目录 / Save to cache directory
+        const { cacheDir } = getSystemDir();
+        const tempDir = path.join(cacheDir, 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        uploadDir = tempDir;
+      }
+
+      // 使用原文件名，必要时清理非法字符 / Keep original name but sanitize illegal characters
+      const safeFileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+      let filePath = path.join(uploadDir, safeFileName);
+
+      // 如果冲突则追加时间戳后缀 / Append timestamp when duplicate exists
+      const fileExists = await fs
+        .access(filePath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (fileExists) {
+        const timestamp = Date.now();
+        const ext = path.extname(safeFileName);
+        const name = path.basename(safeFileName, ext);
+        const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+        filePath = path.join(uploadDir, newFileName);
+      }
+
+      // Defense in depth: ensure path stays within uploadDir
+      const resolvedFilePath = path.resolve(filePath);
+      const resolvedUploadDir = path.resolve(uploadDir);
+      if (!resolvedFilePath.startsWith(resolvedUploadDir + path.sep)) {
+        throw new Error('Invalid file name');
+      }
+
+      // 创建空文件作为占位 / Create empty placeholder file
+      await fs.writeFile(filePath, Buffer.alloc(0));
+
+      return filePath;
+    } catch (error) {
+      console.error('Failed to create upload file:', error);
+      throw error;
+    }
+  });
+
   // 读取文件内容（UTF-8编码）/ Read file content (UTF-8 encoding)
+  // V8 string length limit is ~512MB; guard against RangeError on oversized files
+  const MAX_READ_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
+
   ipcBridge.fs.readFile.provider(async ({ path: filePath }) => {
     try {
+      const stat = await fs.stat(filePath);
+      if (stat.size > MAX_READ_FILE_SIZE) {
+        console.warn(`[fsBridge] File too large to read as text (${stat.size} bytes): ${filePath}`);
+        return null;
+      }
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      // Return null for missing or locked files (e.g., cleaned-up temp workspaces, Windows file locks)
+      if (code === 'ENOENT' || code === 'EBUSY') {
+        return null;
+      }
       console.error('Failed to read file:', error);
       throw error;
     }
@@ -412,6 +668,10 @@ export function initFsBridge(): void {
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' || code === 'EBUSY') {
+        return null;
+      }
       console.error('Failed to read file buffer:', error);
       throw error;
     }
@@ -444,6 +704,7 @@ export function initFsBridge(): void {
           console.error('[fsBridge] ❌ Failed to emit file stream update:', emitError);
         }
 
+        invalidateWorkspaceFileListCacheByPath(filePath);
         return true;
       }
 
@@ -472,6 +733,7 @@ export function initFsBridge(): void {
       }
 
       await fs.writeFile(filePath, bufferData);
+      invalidateWorkspaceFileListCacheByPath(filePath);
       return true;
     } catch (error) {
       console.error('Failed to write file:', error);
@@ -528,7 +790,9 @@ export function initFsBridge(): void {
               if (isCanceled()) {
                 abortController.abort();
               }
-              const fileBuffer = await fs.readFile(file.sourcePath, { signal: abortController.signal });
+              const fileBuffer = await fs.readFile(file.sourcePath, {
+                signal: abortController.signal,
+              });
               if (isCanceled()) {
                 throw new Error('Zip export canceled');
               }
@@ -559,7 +823,7 @@ export function initFsBridge(): void {
           const isTypedArrayLike = keys.length > 0 && keys.every((key) => /^\d+$/.test(key));
           if (isTypedArrayLike) {
             const values = keys
-              .sort((a, b) => Number(a) - Number(b))
+              .toSorted((a, b) => Number(a) - Number(b))
               .map((key) => {
                 const value = objectLike[key];
                 return typeof value === 'number' ? value : Number(value ?? 0);
@@ -586,6 +850,8 @@ export function initFsBridge(): void {
       if (isCanceled()) {
         throw new Error('Zip export canceled');
       }
+      // Ensure parent directory exists before writing (may be deleted by OneDrive sync, etc.)
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, zipBuffer);
       return true;
     } catch (error) {
@@ -614,8 +880,16 @@ export function initFsBridge(): void {
         lastModified: stats.mtime.getTime(),
       };
     } catch (error) {
-      console.error('Failed to get file metadata:', error);
-      throw error;
+      // Return empty metadata instead of throwing to avoid unhandled rejection
+      // (bridge provider callbacks have no .catch handler)
+      console.error('[fsBridge] Failed to get file metadata:', filePath, error);
+      return {
+        name: path.basename(filePath),
+        path: filePath,
+        size: -1,
+        type: '',
+        lastModified: 0,
+      };
     }
   });
 
@@ -676,6 +950,9 @@ export function initFsBridge(): void {
       // 只要存在失败文件就视作部分失败，并返回提示信息 / Mark operation as non-success if anything failed and provide hint text
       const success = failedFiles.length === 0;
       const msg = success ? undefined : 'Some files failed to copy';
+      if (copiedFiles.length > 0) {
+        invalidateWorkspaceFileListCacheByPath(workspace);
+      }
 
       return {
         success,
@@ -697,6 +974,7 @@ export function initFsBridge(): void {
       const stats = await fs.lstat(targetPath);
       if (stats.isDirectory()) {
         await fs.rm(targetPath, { recursive: true, force: true });
+        invalidateWorkspaceFileListCacheByPath(targetPath);
       } else {
         await fs.unlink(targetPath);
 
@@ -717,11 +995,16 @@ export function initFsBridge(): void {
         } catch (emitError) {
           console.error('[fsBridge] Failed to emit file stream delete:', emitError);
         }
+
+        invalidateWorkspaceFileListCacheByPath(targetPath);
       }
       return { success: true };
     } catch (error) {
       console.error('Failed to remove entry:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   });
 
@@ -747,10 +1030,15 @@ export function initFsBridge(): void {
       }
 
       await fs.rename(targetPath, newPath);
+      invalidateWorkspaceFileListCacheByPath(targetPath);
+      invalidateWorkspaceFileListCacheByPath(newPath);
       return { success: true, data: { newPath } };
     } catch (error) {
       console.error('Failed to rename entry:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   });
 
@@ -760,7 +1048,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -770,7 +1058,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
       console.error('Failed to read builtin skill:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -817,7 +1105,13 @@ export function initFsBridge(): void {
   // 获取可用 skills 列表 / List available skills from both builtin and user directories
   ipcBridge.fs.listAvailableSkills.provider(async () => {
     try {
-      const skills: Array<{ name: string; description: string; location: string; isCustom: boolean }> = [];
+      const skills: Array<{
+        name: string;
+        description: string;
+        location: string;
+        isCustom: boolean;
+        source: 'builtin' | 'custom' | 'extension';
+      }> = [];
 
       // 辅助函数：从目录读取 skills
       const readSkillsFromDir = async (skillsDir: string, isCustomDir: boolean) => {
@@ -848,6 +1142,7 @@ export function initFsBridge(): void {
                     description: descMatch ? descMatch[1].trim() : '',
                     location: skillMdPath,
                     isCustom: isCustomDir,
+                    source: isCustomDir ? 'custom' : 'builtin',
                   });
                 }
               }
@@ -860,44 +1155,94 @@ export function initFsBridge(): void {
         }
       };
 
-      // 读取内置 skills (isCustom: false)
-      const builtinSkillsDir = await findBuiltinResourceDir('skills');
+      // Read builtin skills from the dedicated builtin-skills/ directory (isCustom: false)
+      const builtinSkillsDir = getBuiltinSkillsCopyDir();
       const builtinCountBefore = skills.length;
       await readSkillsFromDir(builtinSkillsDir, false);
       const builtinCount = skills.length - builtinCountBefore;
 
+      // If the managed copy is missing or stale during startup, also read the bundled source/package directory.
+      const bundledBuiltinSkillsDir = await findBuiltinResourceDirNode('skills');
+      const bundledBuiltinCountBefore = skills.length;
+      if (path.resolve(bundledBuiltinSkillsDir) !== path.resolve(builtinSkillsDir)) {
+        await readSkillsFromDir(bundledBuiltinSkillsDir, false);
+      }
+      const bundledBuiltinCount = skills.length - bundledBuiltinCountBefore;
+
       // 读取用户自定义 skills (isCustom: true)
-      const userSkillsDir = getUserSkillsDir();
+      const userSkillsDir = getSkillsDir();
       const userCountBefore = skills.length;
       await readSkillsFromDir(userSkillsDir, true);
       const userCount = skills.length - userCountBefore;
 
-      // 去重：如果 custom skill 和 builtin skill 同名，只保留 builtin
-      // Deduplicate: if custom and builtin skills have same name, keep only builtin
-      const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
+      // Deduplicate: if a custom skill has the same name as a builtin, keep builtin
+      const skillMap = new Map<
+        string,
+        {
+          name: string;
+          description: string;
+          location: string;
+          isCustom: boolean;
+          source: 'builtin' | 'custom' | 'extension';
+        }
+      >();
       for (const skill of skills) {
         const existing = skillMap.get(skill.name);
-        // 如果已存在且当前是 builtin，或者不存在，则添加/更新
-        // Add/update if: already exists and current is builtin, or doesn't exist yet
         if (!existing || !skill.isCustom) {
           skillMap.set(skill.name, skill);
         }
       }
-      const deduplicatedSkills = Array.from(skillMap.values());
+      const result = Array.from(skillMap.values());
 
       console.log(
-        `[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`
-      );
-      console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
-      console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
-      console.log(
-        `  - Skills breakdown:`,
-        deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', ')
+        `[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, bundled=${bundledBuiltinCount}, custom=${userCount}`
       );
 
-      return deduplicatedSkills;
+      return result;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
+      return [];
+    }
+  });
+
+  // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
+  ipcBridge.fs.listBuiltinAutoSkills.provider(async () => {
+    try {
+      const skills: Array<{ name: string; description: string }> = [];
+
+      const readAutoSkillsFromDir = async (skillsDir: string) => {
+        try {
+          await fs.access(skillsDir);
+          const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+
+          for (const entry of entries) {
+            if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+
+            const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+
+            try {
+              const content = await fs.readFile(skillMdPath, 'utf-8');
+              skills.push(parseSkillFrontMatter(content, entry.name));
+            } catch {
+              // Skill directory without SKILL.md, skip
+            }
+          }
+        } catch {
+          // Directory doesn't exist, skip
+        }
+      };
+
+      const autoSkillsDir = getAutoSkillsDir();
+      await readAutoSkillsFromDir(autoSkillsDir);
+
+      const bundledAutoSkillsDir = path.join(await findBuiltinResourceDirNode('skills'), '_builtin');
+      if (path.resolve(bundledAutoSkillsDir) !== path.resolve(autoSkillsDir)) {
+        await readAutoSkillsFromDir(bundledAutoSkillsDir);
+      }
+
+      return Array.from(new Map(skills.map((skill) => [skill.name, skill])).values());
+    } catch (error) {
+      console.error('[fsBridge] Failed to list builtin auto skills:', error);
       return [];
     }
   });
@@ -967,21 +1312,34 @@ export function initFsBridge(): void {
 
       // 读取 SKILL.md 获取 skill 名称 / Read SKILL.md to get skill name
       const content = await fs.readFile(skillMdPath, 'utf-8');
-      const userSkillsDir = getUserSkillsDir();
-      const { skillName, targetDir } = resolveManagedSkillTarget(
-        userSkillsDir,
-        parseSkillFrontMatter(content, path.basename(skillPath)).name
-      );
+      const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+      let skillName = path.basename(skillPath); // 默认使用目录名 / Default to directory name
 
-      // 检查是否已存在同名 skill（同时检查内置和用户目录）/ Check if skill already exists in both builtin and user directories
-      const builtinSkillsDir = await findBuiltinResourceDir('skills');
-      const builtinTargetDir = path.join(builtinSkillsDir, skillName);
+      if (frontMatterMatch) {
+        const yaml = frontMatterMatch[1];
+        const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+        if (nameMatch) {
+          skillName = nameMatch[1].trim();
+        }
+      }
+
+      // 获取用户 skills 目录 / Get user skills directory
+      const userSkillsDir = getSkillsDir();
+      const { skillName: normalizedSkillName, targetDir } = resolveManagedSkillTarget(userSkillsDir, skillName);
+      skillName = normalizedSkillName;
+
+      // Check if skill already exists in both builtin and user directories
+      const builtinTargetDir = path.join(getBuiltinSkillsCopyDir(), skillName);
 
       try {
         await fs.access(targetDir);
+        // Skill already exists in user directory, treat as success (skip copy)
+        // 用户目录已存在同名 skill，视为成功（跳过复制）
+        console.log(`[fsBridge] Skill "${skillName}" already exists in user skills, skipping import`);
         return {
-          success: false,
-          msg: `Skill "${skillName}" already exists in user skills`,
+          success: true,
+          data: { skillName },
+          msg: `Skill "${skillName}" already exists`,
         };
       } catch {
         // User skill doesn't exist
@@ -1099,11 +1457,20 @@ export function initFsBridge(): void {
     try {
       const homedir = os.homedir();
       const candidates = [
-        { name: 'Global Agents', path: path.join(homedir, '.agents', 'skills') },
+        {
+          name: 'Global Agents',
+          path: path.join(homedir, '.agents', 'skills'),
+        },
         { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills') },
         { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills') },
-        { name: 'OpenCode', path: path.join(homedir, '.config', 'opencode', 'skills') },
-        { name: 'OpenCode (Alt)', path: path.join(homedir, '.opencode', 'skills') },
+        {
+          name: 'OpenCode',
+          path: path.join(homedir, '.config', 'opencode', 'skills'),
+        },
+        {
+          name: 'OpenCode (Alt)',
+          path: path.join(homedir, '.opencode', 'skills'),
+        },
       ];
 
       const detected: Array<{ name: string; path: string }> = [];
@@ -1163,7 +1530,10 @@ export function initFsBridge(): void {
       await saveCustomExternalPaths(existing);
       return { success: true, msg: 'Custom path added' };
     } catch (error) {
-      return { success: false, msg: `Failed to add path: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        success: false,
+        msg: `Failed to add path: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
 
@@ -1184,19 +1554,44 @@ export function initFsBridge(): void {
   ipcBridge.fs.detectAndCountExternalSkills.provider(async () => {
     try {
       const homedir = os.homedir();
+      const userSkillsDir = getSkillsDir();
       const builtinCandidates = [
-        { name: 'Global Agents', path: path.join(homedir, '.agents', 'skills'), source: 'global-agents' },
-        { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills'), source: 'gemini' },
-        { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills'), source: 'claude' },
-        { name: 'OpenCode', path: path.join(homedir, '.config', 'opencode', 'skills'), source: 'opencode' },
-        { name: 'OpenCode (Alt)', path: path.join(homedir, '.opencode', 'skills'), source: 'opencode-alt' },
+        {
+          name: 'Global Agents',
+          path: path.join(homedir, '.agents', 'skills'),
+          source: 'global-agents',
+        },
+        {
+          name: 'Gemini CLI',
+          path: path.join(homedir, '.gemini', 'skills'),
+          source: 'gemini',
+        },
+        {
+          name: 'Claude Code',
+          path: path.join(homedir, '.claude', 'skills'),
+          source: 'claude',
+        },
+        {
+          name: 'OpenCode',
+          path: path.join(homedir, '.config', 'opencode', 'skills'),
+          source: 'opencode',
+        },
+        {
+          name: 'OpenCode (Alt)',
+          path: path.join(homedir, '.opencode', 'skills'),
+          source: 'opencode-alt',
+        },
       ];
 
       // Load custom paths and merge
       const customPaths = await loadCustomExternalPaths();
       const candidates = [
         ...builtinCandidates,
-        ...customPaths.map((cp) => ({ name: cp.name, path: cp.path, source: `custom-${cp.path}` })),
+        ...customPaths.map((cp) => ({
+          name: cp.name,
+          path: cp.path,
+          source: `custom-${cp.path}`,
+        })),
       ];
 
       const results: Array<{
@@ -1209,8 +1604,14 @@ export function initFsBridge(): void {
       for (const candidate of candidates) {
         try {
           await fs.access(candidate.path);
-          const entries = await fs.readdir(candidate.path, { withFileTypes: true });
-          const skills: Array<{ name: string; description: string; path: string }> = [];
+          const entries = await fs.readdir(candidate.path, {
+            withFileTypes: true,
+          });
+          const skills: Array<{
+            name: string;
+            description: string;
+            path: string;
+          }> = [];
 
           for (const entry of entries) {
             if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
@@ -1228,7 +1629,11 @@ export function initFsBridge(): void {
                   const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
                   const skillName = nameMatch ? nameMatch[1].trim() : fallbackName;
 
-                  return { name: skillName, description: descMatch ? descMatch[1].trim() : '', path: dir };
+                  return {
+                    name: skillName,
+                    description: descMatch ? descMatch[1].trim() : '',
+                    path: dir,
+                  };
                 }
               } catch {
                 // No SKILL.md or parse error
@@ -1247,7 +1652,9 @@ export function initFsBridge(): void {
             const nestedSkillsDir = path.join(skillDir, 'skills');
             try {
               await fs.access(nestedSkillsDir);
-              const nestedEntries = await fs.readdir(nestedSkillsDir, { withFileTypes: true });
+              const nestedEntries = await fs.readdir(nestedSkillsDir, {
+                withFileTypes: true,
+              });
               for (const nestedEntry of nestedEntries) {
                 if (!nestedEntry.isDirectory() && !nestedEntry.isSymbolicLink()) continue;
                 const nestedDir = path.join(nestedSkillsDir, nestedEntry.name);
@@ -1262,7 +1669,12 @@ export function initFsBridge(): void {
           }
 
           if (skills.length > 0) {
-            results.push({ name: candidate.name, path: candidate.path, source: candidate.source, skills });
+            results.push({
+              name: candidate.name,
+              path: candidate.path,
+              source: candidate.source,
+              skills,
+            });
           }
         } catch {
           // Path doesn't exist
@@ -1290,15 +1702,23 @@ export function initFsBridge(): void {
       try {
         await fs.access(skillMdPath);
       } catch {
-        return { success: false, msg: 'SKILL.md file not found in the selected directory' };
+        return {
+          success: false,
+          msg: 'SKILL.md file not found in the selected directory',
+        };
       }
 
       const content = await fs.readFile(skillMdPath, 'utf-8');
-      const userSkillsDir = getUserSkillsDir();
-      const { skillName, targetDir } = resolveManagedSkillTarget(
-        userSkillsDir,
-        parseSkillFrontMatter(content, path.basename(skillPath)).name
-      );
+      const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+      let skillName = path.basename(skillPath);
+      if (frontMatterMatch) {
+        const nameMatch = frontMatterMatch[1].match(/^name:\s*(.+)$/m);
+        if (nameMatch) skillName = nameMatch[1].trim();
+      }
+
+      const userSkillsDir = getSkillsDir();
+      const { skillName: normalizedSkillName, targetDir } = resolveManagedSkillTarget(userSkillsDir, skillName);
+      skillName = normalizedSkillName;
 
       await fs.mkdir(userSkillsDir, { recursive: true });
 
@@ -1311,7 +1731,11 @@ export function initFsBridge(): void {
 
       await fs.symlink(skillPath, targetDir, 'junction');
       console.log(`[fsBridge] Created symlink for skill "${skillName}" at ${targetDir}`);
-      return { success: true, data: { skillName }, msg: `Skill "${skillName}" imported successfully` };
+      return {
+        success: true,
+        data: { skillName },
+        msg: `Skill "${skillName}" imported successfully`,
+      };
     } catch (error) {
       console.error('[fsBridge] Failed to import skill with symlink:', error);
       return {
@@ -1324,13 +1748,16 @@ export function initFsBridge(): void {
   // 删除自定义 skill / Delete a user custom skill
   ipcBridge.fs.deleteSkill.provider(async ({ skillName }) => {
     try {
-      const userSkillsDir = getUserSkillsDir();
+      const userSkillsDir = getSkillsDir();
       const skillDir = path.join(userSkillsDir, skillName);
 
       const resolvedSkillDir = path.resolve(skillDir);
       const resolvedSkillsDir = path.resolve(userSkillsDir);
       if (!resolvedSkillDir.startsWith(resolvedSkillsDir + path.sep)) {
-        return { success: false, msg: 'Invalid skill path (security check failed)' };
+        return {
+          success: false,
+          msg: 'Invalid skill path (security check failed)',
+        };
       }
 
       try {
@@ -1358,12 +1785,10 @@ export function initFsBridge(): void {
   });
 
   // 获取技能存储路径 / Get skill storage paths
-  ipcBridge.fs.getSkillPaths.provider(async () => {
-    return {
-      userSkillsDir: getUserSkillsDir(),
-      builtinSkillsDir: await findBuiltinResourceDir('skills'),
-    };
-  });
+  ipcBridge.fs.getSkillPaths.provider(async () => ({
+    userSkillsDir: getSkillsDir(),
+    builtinSkillsDir: getBuiltinSkillsCopyDir(),
+  }));
 
   // 将 skill 同步导出到外部目录 / Export skill to external directory via symlink
   ipcBridge.fs.exportSkillWithSymlink.provider(async ({ skillPath, targetDir }) => {
@@ -1377,7 +1802,10 @@ export function initFsBridge(): void {
       // 检查目标路径是否已存在 / Check if target path already exists
       try {
         await fs.access(targetPath);
-        return { success: false, msg: `Target already exists: ${targetPath}` };
+        return {
+          success: false,
+          msg: `Target already exists: ${targetPath}`,
+        };
       } catch {
         // Path does not exist, proceed
       }
@@ -1399,8 +1827,7 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
       // Copy the bundled SKILL.md (concise entry-point version)
@@ -1409,7 +1836,6 @@ export function initFsBridge(): void {
       await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill enabled' };
@@ -1425,12 +1851,10 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill disabled' };
@@ -1454,8 +1878,7 @@ export function initFsBridge(): void {
  */
 async function readBundledSkillsMarketMd(): Promise<string> {
   try {
-    const bundledDir = await findBuiltinResourceDir('skills');
-    const fallbackPath = path.join(bundledDir, '_builtin', 'aionui-skills', 'SKILL.md');
+    const fallbackPath = path.join(getBuiltinSkillsCopyDir(), 'aionui-skills', 'SKILL.md');
     return await fs.readFile(fallbackPath, 'utf-8');
   } catch (error) {
     console.warn('[fsBridge] Failed to read bundled aionui-skills SKILL.md:', error);

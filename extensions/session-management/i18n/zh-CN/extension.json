@@ -1,0 +1,9 @@
+{
+  "displayName": "会话管理",
+  "description": "通过内置扩展管理会话，避免改动核心设置页和核心国际化文件。",
+  "settingsTabs": {
+    "session-management": {
+      "name": "会话管理"
+    }
+  }
+}

@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const prepareBundledBun = require('./prepareBundledBun');
+const prepareAionrs = require('./prepareAionrs');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -139,12 +140,7 @@ function getExactVersion(spec) {
 function getAionCliOpenTelemetryRepairs() {
   const packageDir = path.resolve(__dirname, '../node_modules/@office-ai/aioncli-core');
   const nodeModulesDir = path.join(packageDir, 'node_modules');
-  const sdkMetricsPackageJsonPath = path.join(
-    nodeModulesDir,
-    '@opentelemetry',
-    'sdk-metrics',
-    'package.json'
-  );
+  const sdkMetricsPackageJsonPath = path.join(nodeModulesDir, '@opentelemetry', 'sdk-metrics', 'package.json');
 
   if (!fs.existsSync(sdkMetricsPackageJsonPath)) {
     return { packageDir, repairs: [] };
@@ -174,38 +170,31 @@ function repairAionCliOpenTelemetryDeps() {
     return;
   }
 
-  console.log(
-    `🔧 Repairing nested OpenTelemetry deps for @office-ai/aioncli-core: ${repairs.join(', ')}`
-  );
+  console.log(`🔧 Repairing nested OpenTelemetry deps for @office-ai/aioncli-core: ${repairs.join(', ')}`);
 
   const installArgs = ['install', '--no-save', '--ignore-scripts', '--no-package-lock', ...repairs];
-  const result = process.platform === 'win32'
-    ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'npm.cmd', ...installArgs], {
-        cwd: packageDir,
-        stdio: 'inherit',
-      })
-    : spawnSync('npm', installArgs, {
-        cwd: packageDir,
-        stdio: 'inherit',
-      });
+  const result =
+    process.platform === 'win32'
+      ? spawnSync('cmd.exe', ['/d', '/s', '/c', 'npm.cmd', ...installArgs], {
+          cwd: packageDir,
+          stdio: 'inherit',
+        })
+      : spawnSync('npm', installArgs, {
+          cwd: packageDir,
+          stdio: 'inherit',
+        });
 
   if (result.error) {
-    throw new Error(
-      `Failed to launch nested OpenTelemetry repair command: ${result.error.message}`
-    );
+    throw new Error(`Failed to launch nested OpenTelemetry repair command: ${result.error.message}`);
   }
 
   if (result.status !== 0) {
-    throw new Error(
-      `Failed to repair nested OpenTelemetry dependencies (exit code ${result.status})`
-    );
+    throw new Error(`Failed to repair nested OpenTelemetry dependencies (exit code ${result.status})`);
   }
 
   const verification = getAionCliOpenTelemetryRepairs();
   if (verification.repairs.length > 0) {
-    throw new Error(
-      `Nested OpenTelemetry dependency repair incomplete: ${verification.repairs.join(', ')}`
-    );
+    throw new Error(`Nested OpenTelemetry dependency repair incomplete: ${verification.repairs.join(', ')}`);
   }
 }
 
@@ -214,8 +203,7 @@ function viteBuildExists() {
   const mainDir = path.join(outDir, 'main');
   const rendererDir = path.join(outDir, 'renderer');
 
-  return fs.existsSync(path.join(mainDir, 'index.js')) &&
-         fs.existsSync(path.join(rendererDir, 'index.html'));
+  return fs.existsSync(path.join(mainDir, 'index.js')) && fs.existsSync(path.join(rendererDir, 'index.html'));
 }
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
@@ -238,9 +226,14 @@ function cleanupDiskImages() {
   try {
     // Detach all mounted disk images that may block subsequent DMG creation:
     // hdiutil info → grep device paths → force detach each
-    const result = spawnSync('sh', ['-c',
-      'hdiutil info 2>/dev/null | grep /dev/disk | awk \'{print $1}\' | xargs -I {} hdiutil detach {} -force 2>/dev/null'
-    ], { stdio: 'ignore' });
+    const result = spawnSync(
+      'sh',
+      [
+        '-c',
+        "hdiutil info 2>/dev/null | grep /dev/disk | awk '{print $1}' | xargs -I {} hdiutil detach {} -force 2>/dev/null",
+      ],
+      { stdio: 'ignore' }
+    );
     if (result.status !== 0) {
       console.log(`   ℹ️  Disk image cleanup exit code: ${result.status}`);
     }
@@ -257,7 +250,7 @@ function findAppDir(outDir) {
   for (const dir of candidates) {
     const fullPath = path.join(outDir, dir);
     if (fs.existsSync(fullPath)) {
-      const hasApp = fs.readdirSync(fullPath).some(f => f.endsWith('.app'));
+      const hasApp = fs.readdirSync(fullPath).some((f) => f.endsWith('.app'));
       if (hasApp) return fullPath;
     }
   }
@@ -267,7 +260,7 @@ function findAppDir(outDir) {
 // Check if DMG exists in output directory
 function dmgExists(outDir) {
   try {
-    return fs.readdirSync(outDir).some(f => f.endsWith('.dmg'));
+    return fs.readdirSync(outDir).some((f) => f.endsWith('.dmg'));
   } catch {
     return false;
   }
@@ -276,7 +269,12 @@ function dmgExists(outDir) {
 function tryRemoveDir(targetDir) {
   if (!fs.existsSync(targetDir)) return true;
   try {
-    fs.rmSync(targetDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+    fs.rmSync(targetDir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 300,
+    });
     return true;
   } catch (error) {
     console.log(`❌ Failed to remove ${targetDir}: ${error.message}`);
@@ -287,7 +285,9 @@ function tryRemoveDir(targetDir) {
 function isProcessRunningWindows(imageName) {
   if (process.platform !== 'win32') return false;
   try {
-    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, { stdio: ['ignore', 'pipe', 'ignore'] });
+    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
     return result.toString().toLowerCase().includes(imageName.toLowerCase());
   } catch {
     return false;
@@ -299,29 +299,25 @@ function killWindowsProcesses(imageNames) {
   for (const name of imageNames) {
     try {
       execSync(`taskkill /F /IM ${name}`, { stdio: 'ignore' });
-    } catch {
-    }
+    } catch {}
   }
 }
 
 function formatExecError(error) {
-  return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()]
-    .filter(Boolean)
-    .join('\n')
-    .trim();
+  return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()].filter(Boolean).join('\n').trim();
 }
 
 // Create DMG using electron-builder --prepackaged with .app path
 // This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
 function createDmgWithPrepackaged(appDir, targetArch) {
-  const appName = fs.readdirSync(appDir).find(f => f.endsWith('.app'));
+  const appName = fs.readdirSync(appDir).find((f) => f.endsWith('.app'));
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
-  execSync(
-    `bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
-    { stdio: 'inherit', shell: process.platform === 'win32' }
-  );
+  execSync(`bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 }
 
 function buildWithDmgRetry(cmd, targetArch) {
@@ -400,8 +396,23 @@ const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
 const forceBuild = args.includes('--force');
 
+function applyResolvedArchEnv(targetArch) {
+  if (!archList.includes(targetArch)) {
+    return;
+  }
+
+  const previousTargetArch = process.env.npm_config_target_arch;
+  if (previousTargetArch && previousTargetArch !== targetArch) {
+    console.log(`Normalizing target arch env for packaging hooks: ${previousTargetArch} -> ${targetArch}`);
+  }
+
+  process.env.ELECTRON_BUILDER_ARCH = targetArch;
+  process.env.npm_config_arch = targetArch;
+  process.env.npm_config_target_arch = targetArch;
+}
+
 const builderArgs = args
-  .filter(arg => {
+  .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
     if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force') return false;
@@ -442,12 +453,12 @@ let multiArch = false;
 
 // Check if multiple architectures are specified (support both --x64 and x64 formats)
 const rawArchArgs = args
-  .filter(arg => {
+  .filter((arg) => {
     if (archList.includes(arg)) return true;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return true;
     return false;
   })
-  .map(arg => arg.startsWith('--') ? arg.slice(2) : arg);
+  .map((arg) => (arg.startsWith('--') ? arg.slice(2) : arg));
 
 // Remove duplicates to avoid treating "x64 --x64" as multiple architectures
 const archArgs = [...new Set(rawArchArgs)];
@@ -466,9 +477,11 @@ if (archArgs.length > 1) {
 
   const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
   targetArch = configArch || buildMachineArch;
+  applyResolvedArchEnv(targetArch);
 } else {
   // Explicit architecture or default to build machine
   targetArch = archArgs[0] || buildMachineArch;
+  applyResolvedArchEnv(targetArch);
 }
 
 console.log(`🔨 Building for architecture: ${targetArch}`);
@@ -500,7 +513,7 @@ try {
       env: {
         ...process.env,
         ELECTRON_BUILDER_ARCH: targetArch,
-      }
+      },
     });
 
     // Save hash after successful build
@@ -508,6 +521,18 @@ try {
   } else {
     console.log('📦 Using cached Vite build output');
   }
+
+  // Re-bundle builtin MCP server as a fully self-contained CJS bundle so it can
+  // be executed by an external `node` process (no Electron ASAR support available).
+  // electron-vite's externalizeDepsPlugin leaves npm packages as require() calls
+  // which the standalone node process cannot resolve from inside app.asar.unpacked.
+  // Uses a dedicated script (build-mcp-servers.js) to avoid shell-quoting issues
+  // with special characters in esbuild --define values.
+  console.log('📦 Bundling builtin MCP servers (self-contained)...');
+  execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"`, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 
   // 3. Verify electron-vite output
   const outDir = path.resolve(__dirname, '../out');
@@ -538,7 +563,17 @@ try {
 
   // 5. Prepare bundled bun/bunx binaries (for packaged runtime usage)
   // This only affects packaging assets; runtime integration will be added in a future PR.
-  prepareBundledBun();
+  const bundledBunResult = prepareBundledBun();
+  if (!bundledBunResult?.prepared) {
+    throw new Error(
+      `Failed to prepare bundled bun runtime${bundledBunResult?.reason ? `: ${bundledBunResult.reason}` : ''}`
+    );
+  }
+
+  // 5b. Prepare hub resources (index.json + extension zips for offline fallback)
+  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  // 5b. Prepare aionrs binary (Rust CLI for agent integration)
+  prepareAionrs();
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
@@ -554,7 +589,9 @@ try {
   if (!process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL) {
     process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7';
   }
-  console.log(`📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL} (${isCI ? 'CI build' : 'local build'})`);
+  console.log(
+    `📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL} (${isCI ? 'CI build' : 'local build'})`
+  );
 
   // 根据模式添加架构标志
   // Add arch flags based on mode
@@ -562,7 +599,7 @@ try {
   if (multiArch) {
     // 多架构模式：将所有架构标志传递给 electron-builder
     // Multi-arch mode: pass all arch flags to electron-builder
-    archFlag = archArgs.map(arch => `--${arch}`).join(' ');
+    archFlag = archArgs.map((arch) => `--${arch}`).join(' ');
     console.log(`🚀 Packaging for multiple architectures: ${archArgs.join(', ')}...`);
   } else {
     // 单架构模式：使用确定的目标架构
@@ -643,10 +680,8 @@ try {
   } catch (error) {
     const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
     const firstError = formatExecError(error);
-    const canRetryWithoutExecutableEdit = process.platform === 'win32'
-      && isWindowsBuild
-      && process.env.CI !== 'true'
-      && fs.existsSync(winExePath);
+    const canRetryWithoutExecutableEdit =
+      process.platform === 'win32' && isWindowsBuild && process.env.CI !== 'true' && fs.existsSync(winExePath);
 
     if (!canRetryWithoutExecutableEdit) {
       throw error;
@@ -655,7 +690,13 @@ try {
     console.log('⚠️  Windows local build failed after AionUi.exe was produced.');
     if (firstError) {
       console.log('   First failure summary:');
-      console.log(firstError.split(/\r?\n/).slice(0, 6).map((line) => `   ${line}`).join('\n'));
+      console.log(
+        firstError
+          .split(/\r?\n/)
+          .slice(0, 6)
+          .map((line) => `   ${line}`)
+          .join('\n')
+      );
     }
     console.log('   Retrying local build with win.signAndEditExecutable=false...');
     console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
@@ -666,13 +707,15 @@ try {
       buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`, targetArch);
     } catch (retryError) {
       const retryFailure = formatExecError(retryError);
-      throw new Error([
-        'Windows local retry with win.signAndEditExecutable=false also failed.',
-        'First failure:',
-        firstError || String(error),
-        'Retry failure:',
-        retryFailure || String(retryError),
-      ].join('\n'));
+      throw new Error(
+        [
+          'Windows local retry with win.signAndEditExecutable=false also failed.',
+          'First failure:',
+          firstError || String(error),
+          'Retry failure:',
+          retryFailure || String(retryError),
+        ].join('\n')
+      );
     }
   }
 

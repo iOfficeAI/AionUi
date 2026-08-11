@@ -57,10 +57,10 @@ function getCommandPrefix(platform, useVx = true) {
  */
 function normalizeArch(arch) {
   const archMap = {
-    'x64': 'x64',
-    'arm64': 'arm64',
-    'ia32': 'ia32',
-    'armv7l': 'arm',
+    x64: 'x64',
+    arm64: 'arm64',
+    ia32: 'ia32',
+    armv7l: 'arm',
   };
   return archMap[arch] || arch;
 }
@@ -79,6 +79,27 @@ function getModulesToRebuild(platform) {
   }
   // macOS: only rebuild better-sqlite3, skip node-pty
   return ['better-sqlite3'];
+}
+
+/**
+ * Decide whether packaged native modules must be rebuilt for the target app.
+ *
+ * Cross-architecture builds always need rebuilds. Same-architecture macOS and
+ * Windows builds also need rebuilds because the installed addon may target the
+ * host Node.js ABI, while the packaged app runs under Electron's Node ABI.
+ */
+function shouldRebuildNativeModules({ platform, buildArch, targetArch, forceRebuild = false }) {
+  if (forceRebuild) {
+    return true;
+  }
+
+  const normalizedBuildArch = normalizeArch(buildArch);
+  const normalizedTargetArch = normalizeArch(targetArch);
+  if (normalizedBuildArch !== normalizedTargetArch) {
+    return true;
+  }
+
+  return platform === 'darwin' || platform === 'win32' || platform === 'windows';
 }
 
 /**
@@ -245,7 +266,9 @@ function rebuildSingleModule(options) {
         '--force',
       ];
 
-      const fullCmd = cmdPrefix ? `${cmdPrefix} ${bunxCmd} ${prebuildArgs.join(' ')}` : `${bunxCmd} ${prebuildArgs.join(' ')}`;
+      const fullCmd = cmdPrefix
+        ? `${cmdPrefix} ${bunxCmd} ${prebuildArgs.join(' ')}`
+        : `${bunxCmd} ${prebuildArgs.join(' ')}`;
       console.log(`     Running: ${fullCmd}`);
 
       if (useShell) {
@@ -296,7 +319,9 @@ function rebuildSingleModule(options) {
       `--arch=${targetArch}`,
     ];
 
-    const fullCmd = cmdPrefix ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}` : `${bunxCmd} ${rebuildArgs.join(' ')}`;
+    const fullCmd = cmdPrefix
+      ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}`
+      : `${bunxCmd} ${rebuildArgs.join(' ')}`;
     console.log(`     Running: ${fullCmd}`);
 
     if (useShell) {
@@ -352,9 +377,7 @@ function findNodeFiles(dir, maxDepth = 3, currentDepth = 0) {
  */
 function verifyModuleBinary(moduleRoot, moduleName) {
   const binaryPathsToCheck = {
-    'better-sqlite3': [
-      path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
-    ],
+    'better-sqlite3': [path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node')],
     'node-pty': [
       path.join(moduleRoot, 'build', 'Release', 'pty.node'),
       path.join(moduleRoot, 'build', 'Release', 'conpty.node'),
@@ -377,7 +400,7 @@ function verifyModuleBinary(moduleRoot, moduleName) {
   const foundFiles = findNodeFiles(moduleRoot);
   if (foundFiles.length > 0) {
     console.log(`     Debug: Found .node files:`);
-    foundFiles.forEach(f => console.log(`       - ${f}`));
+    foundFiles.forEach((f) => console.log(`       - ${f}`));
     return true;
   }
 
@@ -393,6 +416,7 @@ module.exports = {
   rebuildSingleModule,
   verifyModuleBinary,
   canCrossCompileFromSource,
+  shouldRebuildNativeModules,
   isVxAvailable,
   getBunxCommand,
   getCommandPrefix,

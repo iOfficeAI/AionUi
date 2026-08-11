@@ -5,12 +5,15 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IConversationTurnCompletedEvent } from '@/common/ipcBridge';
-import type { TChatConversation } from '@/common/storage';
-import { getDatabase } from '@process/database';
+import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
+import { getDatabaseSync } from '@process/services/database';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { conversationLiveStateService } from '@process/services/ConversationLiveStateService';
 import { getConversationRuntimeTask } from '@process/services/ConversationRuntimeService';
-import { flushConversationMessages } from '@process/message';
+import { showNotification } from '@process/bridge/notificationBridge';
+import i18n, { i18nReady } from '@process/services/i18n';
+import { flushConversationMessages } from '@process/utils/message';
 
 export type ConversationStatusValue = 'pending' | 'running' | 'finished';
 export type ConversationRuntimeState =
@@ -63,6 +66,14 @@ const RETRY_COUNT = 20;
 const RETRY_DELAY_MS = 100;
 const EMITTED_KEY_TTL_MS = 60 * 60 * 1000;
 const STALE_PROCESSING_AFTER_MS = 2 * 60 * 1000;
+
+const hasScheduledTaskMarker = (conversation: TChatConversation): boolean => {
+  return typeof conversation.extra?.cronJobId === 'string' && conversation.extra.cronJobId.length > 0;
+};
+
+const getConversationNotificationTitle = (conversation: TChatConversation): string => {
+  return conversation.name?.trim() || i18n.t('cron.notification.taskComplete');
+};
 
 const isErrorMessage = (message: StatusMessage | null): boolean => {
   if (!message) return false;
@@ -174,6 +185,7 @@ export const deriveConversationRuntimeStatus = (
 
   const hasTask = !!task;
   const taskStatus = task?.status;
+  const isGeneratingLikeUi = conversationLiveStateService.isGeneratingLikeUi(sessionId);
   const rawIsProcessing = cronBusyGuard.isProcessing(sessionId);
   const lastActiveAt = cronBusyGuard.getLastActiveAt(sessionId);
   const pendingConfirmations = typeof task?.getConfirmations === 'function' ? task.getConfirmations().length : 0;
@@ -195,6 +207,16 @@ export const deriveConversationRuntimeStatus = (
     lastActiveAt,
     processingStale,
   };
+
+  if (isGeneratingLikeUi) {
+    return {
+      status: 'running' as ConversationStatusValue,
+      state: 'ai_generating' as ConversationRuntimeState,
+      detail: 'AI is generating response',
+      canSendMessage: false,
+      runtime,
+    };
+  }
 
   if (isErrorMessage(lastMessage)) {
     return {
@@ -269,7 +291,7 @@ export const getConversationStatusSnapshot = (
   sessionId: string,
   options: ConversationStatusSnapshotOptions = {}
 ): ConversationStatusSnapshot | null => {
-  const db = getDatabase();
+  const db = getDatabaseSync();
   const convResult = db.getConversation(sessionId);
   if (!convResult.success || !convResult.data) {
     return null;
@@ -299,10 +321,13 @@ const sleep = (ms: number): Promise<void> =>
     setTimeout(resolve, ms);
   });
 
+export type ConversationTurnCompletedListener = (event: IConversationTurnCompletedEvent) => Promise<void> | void;
+
 export class ConversationTurnCompletionService {
   private static instance: ConversationTurnCompletionService | null = null;
   private readonly emittedKeys = new Map<string, { key: string; timestamp: number }>();
   private readonly inFlight = new Map<string, Promise<void>>();
+  private readonly listeners = new Set<ConversationTurnCompletedListener>();
 
   static getInstance(): ConversationTurnCompletionService {
     if (!this.instance) {
@@ -330,6 +355,13 @@ export class ConversationTurnCompletionService {
   forgetSession(sessionId: string): void {
     this.emittedKeys.delete(sessionId);
     this.inFlight.delete(sessionId);
+  }
+
+  onTurnCompleted(listener: ConversationTurnCompletedListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   getDebugState(): {
@@ -369,7 +401,8 @@ export class ConversationTurnCompletionService {
 
         this.pruneEmittedKeys();
         this.emittedKeys.set(sessionId, { key: emittedKey, timestamp: Date.now() });
-        ipcBridge.conversation.turnCompleted.emit(event);
+        this.emitTurnCompleted(event);
+        await this.showCompletionNotification(snapshot.conversation, event);
         return;
       }
 
@@ -403,6 +436,9 @@ export class ConversationTurnCompletionService {
       throw new Error('Conversation turn completion event requires lastMessage');
     }
 
+    const liveState = conversationLiveStateService.getSessionState(snapshot.sessionId);
+    const deliveredAt = Date.now();
+
     return {
       sessionId: snapshot.sessionId,
       status: snapshot.status,
@@ -412,8 +448,48 @@ export class ConversationTurnCompletionService {
       runtime: snapshot.runtime,
       workspace: extractWorkspaceFromConversation(snapshot.conversation),
       model: extractModelInfoFromConversation(snapshot.conversation),
+      turnPhase: 'delivered',
+      completionSource: liveState?.completionSource,
+      turnTimings: {
+        ...liveState?.turnTimings,
+        deliveredAt,
+      },
       lastMessage: formattedLastMessage,
     };
+  }
+
+  private emitTurnCompleted(event: IConversationTurnCompletedEvent): void {
+    ipcBridge.conversation.turnCompleted.emit(event);
+
+    for (const listener of this.listeners) {
+      try {
+        void Promise.resolve(listener(event)).catch((error) => {
+          console.error('[ConversationTurnCompletionService] turnCompleted listener failed:', error);
+        });
+      } catch (error) {
+        console.error('[ConversationTurnCompletionService] turnCompleted listener failed:', error);
+      }
+    }
+  }
+
+  private async showCompletionNotification(
+    conversation: TChatConversation,
+    event: IConversationTurnCompletedEvent
+  ): Promise<void> {
+    if (hasScheduledTaskMarker(conversation)) {
+      return;
+    }
+
+    try {
+      await i18nReady;
+      await showNotification({
+        title: getConversationNotificationTitle(conversation),
+        body: i18n.t('cron.notification.taskDone'),
+        conversationId: event.sessionId,
+      });
+    } catch (error) {
+      console.error('[ConversationTurnCompletionService] completion notification failed:', error);
+    }
   }
 
   private pruneEmittedKeys(now: number = Date.now()): void {

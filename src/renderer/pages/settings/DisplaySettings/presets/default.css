@@ -1,0 +1,178 @@
+/* Default Theme - AOU Purple Theme / 默认主题 */
+/* 此主题展示了系统默认的颜色变量，您可以基于此进行自定义 */
+/* This theme shows the system default color variables, you can customize based on this */
+
+:root {
+  /* Primary Colors - 主色调 */
+  --color-primary: #165dff;
+  --primary: #165dff;
+  --color-primary-light-1: #4080ff;
+  --color-primary-light-2: #6aa1ff;
+  --color-primary-light-3: #94bfff;
+  --color-primary-dark-1: #0e42d2;
+  --primary-rgb: 22, 93, 255;
+
+  /* Brand Colors - 品牌色 */
+  --brand: #7583b2;
+  --brand-light: #eff0f6;
+  --brand-hover: #b5bcd6;
+  --color-brand-fill: #7583b2;
+  --color-brand-bg: #eff0f6;
+
+  /* AOU Brand Colors - AOU 品牌色板 */
+  --aou-1: #eff0f6;
+  --aou-2: #e5e7f0;
+  --aou-3: #d1d5e5;
+  --aou-4: #b5bcd6;
+  --aou-5: #97a0c5;
+  --aou-6: #7583b2;
+  --aou-7: #596590;
+  --aou-8: #3f4868;
+  --aou-9: #262c41;
+  --aou-10: #0d101c;
+
+  /* Background Colors - 背景色 */
+  --color-bg-1: #f9fafb;
+  --bg-1: #f9fafb;
+  --color-bg-2: #f2f3f5;
+  --bg-2: #f2f3f5;
+  --color-bg-3: #e5e6eb;
+  --bg-3: #e5e6eb;
+  --color-bg-4: #c9cdd4;
+  --bg-4: #c9cdd4;
+  --bg-base: #ffffff;
+  --bg-5: #adb4c1;
+  --bg-6: #86909c;
+  --bg-8: #4e5969;
+  --bg-9: #1d2129;
+  --bg-10: #0c0e12;
+
+  /* Interactive State Colors - 交互状态色 */
+  --bg-hover: #f3f4f6;
+  --bg-active: #e5e6eb;
+
+  /* Fill Colors - 填充色 */
+  --fill: #f7f8fa;
+  --color-fill: #f7f8fa;
+  --fill-0: #ffffff;
+  --fill-white-to-black: #ffffff;
+  --dialog-fill-0: #ffffff;
+  --inverse: #ffffff;
+
+  /* Text Colors - 文字色 */
+  --color-text-1: #1d2129;
+  --text-primary: #1d2129;
+  --color-text-2: #4e5969;
+  --text-secondary: #86909c;
+  --color-text-3: #86909c;
+  --text-disabled: #c9cdd4;
+  --text-0: #000000;
+  --text-white: #ffffff;
+
+  /* Border Colors - 边框色 */
+  --color-border: #e5e6eb;
+  --color-border-1: #e5e6eb;
+  --color-border-2: #f2f3f5;
+  --border-base: #e5e6eb;
+  --border-light: #f2f3f5;
+  --border-special: var(--bg-3);
+
+  /* Semantic Colors - 语义色 */
+  --success: #00b42a;
+  --warning: #ff7d00;
+  --danger: #f53f3f;
+  --info: #165dff;
+
+  /* Message & UI Component Colors - 消息和组件色 */
+  --message-user-bg: #e9efff;
+  --message-tips-bg: #f0f4ff;
+  --workspace-btn-bg: #eff0f1;
+}
+
+/* Dark Mode Overrides - 深色模式覆盖 */
+[data-theme='dark'] {
+  /* Primary Colors - Dark Mode */
+  --color-primary: #4d9fff;
+  --primary: #4d9fff;
+  --color-primary-light-1: #6aa8ff;
+  --color-primary-light-2: #87b7ff;
+  --color-primary-light-3: #a4c6ff;
+  --color-primary-dark-1: #306acc;
+  --primary-rgb: 77, 159, 255;
+
+  /* Brand Colors - Dark Mode */
+  --brand: #a1aacb;
+  --brand-light: #3d4150;
+  --brand-hover: #6a749b;
+  --color-brand-fill: #a1aacb;
+  --color-brand-bg: #3d4150;
+
+  /* AOU Brand Colors - Dark Mode */
+  --aou-1: #2a2a2a;
+  --aou-2: #3d4150;
+  --aou-3: #525a77;
+  --aou-4: #6a749b;
+  --aou-5: #838fba;
+  --aou-6: #a1aacb;
+  --aou-7: #b5bcd6;
+  --aou-8: #d1d5e5;
+  --aou-9: #e5e7f0;
+  --aou-10: #eff0f6;
+
+  /* Background Colors - Dark Mode */
+  --color-bg-1: #1a1a1a;
+  --bg-1: #1a1a1a;
+  --color-bg-2: #262626;
+  --bg-2: #262626;
+  --color-bg-3: #333333;
+  --bg-3: #333333;
+  --color-bg-4: #404040;
+  --bg-4: #404040;
+  --bg-base: #0e0e0e;
+  --bg-5: #4d4d4d;
+  --bg-6: #5a5a5a;
+  --bg-8: #737373;
+  --bg-9: #a6a6a6;
+  --bg-10: #d9d9d9;
+
+  /* Interactive State Colors - Dark Mode */
+  --bg-hover: #1f1f1f;
+  --bg-active: #2d2d2d;
+
+  /* Fill Colors - Dark Mode */
+  --fill: #1a1a1a;
+  --color-fill: #1a1a1a;
+  --fill-0: rgba(255, 255, 255, 0.08);
+  --fill-white-to-black: #000000;
+  --dialog-fill-0: #333333;
+  --inverse: #ffffff;
+
+  /* Text Colors - Dark Mode */
+  --color-text-1: #e5e5e5;
+  --text-primary: #e5e5e5;
+  --color-text-2: #a6a6a6;
+  --text-secondary: #a6a6a6;
+  --color-text-3: #737373;
+  --text-disabled: #737373;
+  --text-0: #ffffff;
+  --text-white: #ffffff;
+
+  /* Border Colors - Dark Mode */
+  --color-border: #333333;
+  --color-border-1: #333333;
+  --color-border-2: #262626;
+  --border-base: #333333;
+  --border-light: #262626;
+  --border-special: #60677e;
+
+  /* Semantic Colors - Dark Mode */
+  --success: #23c343;
+  --warning: #ff9a2e;
+  --danger: #f76560;
+  --info: #4d9fff;
+
+  /* Message & UI Component Colors - Dark Mode */
+  --message-user-bg: #1e2a3a;
+  --message-tips-bg: #1a2333;
+  --workspace-btn-bg: #1f1f1f;
+}

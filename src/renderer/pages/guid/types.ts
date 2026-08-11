@@ -4,21 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendConfig, AcpModelInfo, PresetAgentType } from '@/types/acpTypes';
+import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 
 /**
  * Available agent entry returned by the backend.
+ * `backend` is typed as `string` because the IPC layer returns plain strings
+ * and the superset includes non-ACP values like `'remote'` and `'aionrs'`.
  */
 export type AvailableAgent = {
-  backend: AcpBackend;
+  backend: string;
+  kind?: DetectedAgentKind;
   name: string;
   cliPath?: string;
   customAgentId?: string;
   isPreset?: boolean;
   context?: string;
   avatar?: string;
-  // Allow extension-contributed adapter IDs (e.g. 'ext-buddy') in addition to built-in PresetAgentType values
-  presetAgentType?: PresetAgentType | string;
+  presetAgentType?: string;
   isExtension?: boolean;
   extensionName?: string;
 };
@@ -38,16 +41,17 @@ export type MentionOption = {
 
 /**
  * Effective agent type info used for UI display and send logic.
- * agentType and originalType are widened to string to support extension-contributed adapter IDs.
  */
 export type EffectiveAgentInfo = {
-  agentType: PresetAgentType | string;
+  agentType: string;
   isFallback: boolean;
-  originalType: PresetAgentType | string;
+  originalType: string;
   isAvailable: boolean;
 };
 
 /**
  * Re-export commonly used ACP types for convenience.
+ * `AcpBackend` is re-exported as `string` to match the widened `AvailableAgent.backend`.
  */
-export type { AcpBackend, AcpBackendConfig, AcpModelInfo, PresetAgentType };
+export type AcpBackend = string;
+export type { AcpBackendConfig, AcpModelInfo };

@@ -1,9 +1,20 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import { execSync } from 'child_process';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+// Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
+function buildMcpServersPlugin() {
+  return {
+    name: 'vite-plugin-build-mcp-servers',
+    closeBundle() {
+      execSync(`node "${resolve('scripts/build-mcp-servers.js')}"`, { stdio: 'inherit' });
+    },
+  };
+}
 
 // Icon Park transform plugin (replaces webpack icon-park-loader)
 function iconParkPlugin() {
@@ -39,8 +50,8 @@ const mainAliases = {
   '@common': resolve('src/common'),
   '@renderer': resolve('src/renderer'),
   '@process': resolve('src/process'),
-  '@worker': resolve('src/worker'),
-  '@xterm/headless': resolve('src/shims/xterm-headless.ts'),
+  '@worker': resolve('src/process/worker'),
+  '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {
@@ -53,6 +64,11 @@ export default defineConfig(({ mode }) => {
     authToken: process.env.SENTRY_AUTH_TOKEN,
     sourcemaps: {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
+      rewriteSources: (source: string) => {
+        // Normalize Windows backslashes and strip leading relative prefixes
+        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+      },
     },
   };
 
@@ -62,24 +78,41 @@ export default defineConfig(({ mode }) => {
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
         externalizeDepsPlugin({ exclude: ['fix-path'] }),
+        ...(isDevelopment
+          ? [
+              {
+                name: 'dev-build-mcp-servers',
+                closeBundle() {
+                  execSync(`node "${resolve(__dirname, 'scripts/build-mcp-servers.js')}"`, {
+                    stdio: 'inherit',
+                  });
+                },
+              },
+            ]
+          : []),
         ...(!isDevelopment
           ? [
               viteStaticCopy({
                 structured: false,
+                // electron-vite builds main process as SSR; viteStaticCopy defaults
+                // to environment: "client" and silently skips non-client environments.
+                environment: 'ssr',
                 targets: [
-                  { src: 'skills/**', dest: 'skills' },
-                  { src: 'rules/**', dest: 'rules' },
-                  { src: 'assistant/**', dest: 'assistant' },
-                  { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
+                  // Use single * glob to copy top-level items (directories) with their contents intact.
+                  // Using ** would flatten all nested files into the dest root.
+                  { src: 'src/process/resources/skills/*', dest: 'skills' },
+                  { src: 'src/process/resources/assistant/*', dest: 'assistant' },
+                  { src: 'src/renderer/assets/logos/*', dest: 'static/images' },
                 ],
               }),
             ]
           : []),
         ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
+        ...(isDevelopment ? [buildMcpServersPlugin()] : []),
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {
-        sourcemap: enableSentrySourceMaps ? 'hidden' : false,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         reportCompressedSize: false,
         rollupOptions: {
           input: {
@@ -87,20 +120,22 @@ export default defineConfig(({ mode }) => {
             // Worker entry files are output alongside index.js in out/main/.
             // BaseAgentManager.resolveWorkerDir() handles the case where code
             // splitting places it in a chunks/ subdirectory.
-            gemini: resolve('src/worker/gemini.ts'),
-            acp: resolve('src/worker/acp.ts'),
-            codex: resolve('src/worker/codex.ts'),
-            'openclaw-gateway': resolve('src/worker/openclaw-gateway.ts'),
-            nanobot: resolve('src/worker/nanobot.ts'),
+            gemini: resolve('src/process/worker/gemini.ts'),
+            lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
+            // Built-in MCP server entry points (compiled by scripts/build-mcp-servers.js via esbuild,
+            // not vite — esbuild bundles all deps for self-contained execution by external node processes)
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
+            if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
             warn(warning);
           },
         },
       },
       define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
+        'process.env.AIONUI_SENTRY_DEV': JSON.stringify(process.env.AIONUI_SENTRY_DEV ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
       },
     },
@@ -114,23 +149,31 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: false,
         reportCompressedSize: false,
-        rollupOptions: { input: { index: resolve('src/preload.ts') } },
+        rollupOptions: {
+          input: {
+            index: resolve('src/preload/main.ts'),
+            petPreload: resolve('src/preload/petPreload.ts'),
+            petHitPreload: resolve('src/preload/petHitPreload.ts'),
+            petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
+          },
+        },
       },
     },
 
     renderer: {
       base: './',
+      publicDir: resolve('public'),
+      appType: 'mpa',
       server: {
-        // Keep renderer HTTP port deterministic for Electron runtime URL injection.
-        // If 5173 is unavailable, fail fast instead of auto-switching to 5174+,
-        // which causes renderer resource requests to target the wrong origin.
+        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Vite auto-increments to the next available port.
+        // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
-        strictPort: true,
-        // Explicit HMR config so Vite client connects directly to the Vite dev server,
-        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload)
+        // Explicit HMR host so Vite client connects directly to the Vite dev server,
+        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload).
+        // Port is omitted so it automatically matches the server port.
         hmr: {
           host: 'localhost',
-          port: 5173,
         },
       },
       resolve: {
@@ -139,7 +182,7 @@ export default defineConfig(({ mode }) => {
           '@common': resolve('src/common'),
           '@renderer': resolve('src/renderer'),
           '@process': resolve('src/process'),
-          '@worker': resolve('src/worker'),
+          '@worker': resolve('src/process/worker'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
@@ -156,11 +199,21 @@ export default defineConfig(({ mode }) => {
         sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         minify: !isDevelopment,
         reportCompressedSize: false,
-        chunkSizeWarningLimit: 1500,
+        chunkSizeWarningLimit: 2000,
         cssCodeSplit: true,
         rollupOptions: {
-          input: { index: resolve('src/renderer/index.html') },
+          input: {
+            index: resolve('src/renderer/index.html'),
+            pet: resolve('src/renderer/pet/pet.html'),
+            'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
+            'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
+          },
           external: ['node:crypto', 'crypto'],
+          onwarn(warning, warn) {
+            if (warning.code === 'EVAL') return;
+            if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+            warn(warning);
+          },
           output: {
             manualChunks(id: string) {
               if (!id.includes('node_modules')) return undefined;
@@ -198,7 +251,11 @@ export default defineConfig(({ mode }) => {
         },
       },
       define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
+        'process.env.AIONUI_E2E_TEST': JSON.stringify(process.env.AIONUI_E2E_TEST ?? ''),
+        'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
+        'process.env.AIONUI_SENTRY_DEV': JSON.stringify(process.env.AIONUI_SENTRY_DEV ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
         global: 'globalThis',
       },

@@ -4,20 +4,57 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
-import { AcpConnection } from '@/agent/acp/AcpConnection';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
-import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
-import AcpAgentManager from '@/process/task/AcpAgentManager';
-import CodexAgentManager from '@/process/task/CodexAgentManager';
-import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import { isAgentKind } from '@/common/types/detectedAgent';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { readCodexConfiguredModel } from '@process/agent/codex/appserver/codexCliConfig';
+import { createCodexReasoningEffortConfigOption } from '@/common/types/codex/codexConfigOptions';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import AcpAgentManager from '@process/task/AcpAgentManager';
+import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
+import { AionrsManager } from '@process/task/AionrsManager';
+import CodexNativeAgentManager, {
+  resolveCodexCliCommand,
+} from '@process/agent/codex/appserver/CodexNativeAgentManager';
+import { probeCodexModelInfo } from '@process/agent/codex/appserver/CodexModelProbe';
 import { mcpService } from '@/process/services/mcpServices/McpService';
-import { mainLog, mainWarn } from '@/process/utils/mainLogger';
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
+import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
+import { noopProtocolHandlers } from '@process/acp/types';
+import { mainLog, mainWarn } from '@process/utils/mainLogger';
 import * as os from 'os';
+import { getDatabase } from '@process/services/database';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 
-export function initAcpConversationBridge(): void {
+function createPersistedCodexModelInfo(modelId: string): AcpModelInfo {
+  return {
+    currentModelId: modelId,
+    currentModelLabel: modelId,
+    availableModels: [{ id: modelId, label: modelId }],
+    canSwitch: false,
+    source: 'models',
+    sourceDetail: 'codex-stream',
+  };
+}
+
+async function getPersistedCodexModelInfo(conversationId: string): Promise<AcpModelInfo | null> {
+  try {
+    const db = await getDatabase();
+    const result = db.getConversation(conversationId);
+    if (!result.success || !result.data) return null;
+
+    const conversation = result.data as { type?: string; extra?: Record<string, unknown> };
+    if (conversation.type !== 'codex' && conversation.extra?.codexNative !== true) return null;
+
+    const modelId = conversation.extra?.currentModelId || conversation.extra?.codexModel || readCodexConfiguredModel();
+    return typeof modelId === 'string' && modelId ? createPersistedCodexModelInfo(modelId) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({
@@ -29,12 +66,11 @@ export function initAcpConversationBridge(): void {
     });
   });
 
-  // 保留旧的detectCliPath接口用于向后兼容，但使用新检测器的结果
   ipcBridge.acpConversation.detectCliPath.provider(({ backend }) => {
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((a) => a.backend === backend);
+    const agents = agentRegistry.getDetectedAgents();
+    const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
 
-    if (agent?.cliPath) {
+    if (agent && isAgentKind(agent, 'acp') && agent.cliPath) {
       return Promise.resolve({ success: true, data: { path: agent.cliPath } });
     }
 
@@ -44,48 +80,59 @@ export function initAcpConversationBridge(): void {
     });
   });
 
-  // 新的ACP检测接口 - 基于全局标记位
-  // Enrich with MCP transport support info so the frontend can show accurate counts
+  // Get all detected execution engines, enriched with MCP transport support info.
   ipcBridge.acpConversation.getAvailableAgents.provider(() => {
     try {
-      const agents = acpDetector.getDetectedAgents();
+      const agents = agentRegistry.getDetectedAgents();
       const enriched = agents.map((agent) => ({
         ...agent,
         supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
       }));
-      return Promise.resolve({ success: true, data: enriched });
+
+      // Map to the IPC bridge response shape explicitly
+      const data = enriched.map((agent) => ({
+        backend: agent.backend,
+        name: agent.name,
+        kind: agent.kind,
+        cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
+        supportedTransports: agent.supportedTransports,
+        isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
+        extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
+        isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
+        customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
+      }));
+      return Promise.resolve({ success: true as const, data });
     } catch (error) {
       return Promise.resolve({
-        success: false,
+        success: false as const,
         msg: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
 
-  // Refresh custom agents detection - called when custom agents config changes
+  // Refresh custom ACP agents after the user adds/edits/deletes one in Settings.
   ipcBridge.acpConversation.refreshCustomAgents.provider(async () => {
-    try {
-      await acpDetector.refreshCustomAgents();
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+    await agentRegistry.refreshCustomAgents();
+    return { success: true };
+  });
+
+  // Test custom agent connection - validates CLI exists and ACP handshake works
+  ipcBridge.acpConversation.testCustomAgent.provider(async (params) => {
+    const { testCustomAgentConnection } = await import('./testCustomAgentConnection');
+    return testCustomAgentConnection(params);
   });
 
   // Check agent health by sending a real test message
-  // This is the most reliable way to verify an agent can actually respond
   ipcBridge.acpConversation.checkAgentHealth.provider(async ({ backend }) => {
     const startTime = Date.now();
 
     // Step 1: Check if CLI is installed
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((a) => a.backend === backend);
+    const agents = agentRegistry.getDetectedAgents();
+    const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
+    const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
 
     // Skip CLI check for claude/codebuddy (uses npx) and codex (has its own detection)
-    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
+    if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
@@ -94,97 +141,45 @@ export function initAcpConversationBridge(): void {
     }
 
     const tempDir = os.tmpdir();
+    const cliPath = acpAgent?.cliPath;
+    const acpArgs = acpAgent?.acpArgs;
 
-    // Step 2: Handle Codex separately - it uses MCP protocol, not ACP
-    if (backend === 'codex') {
-      const codexConnection = new CodexConnection();
-      try {
-        // Start Codex MCP server
-        await codexConnection.start(agent?.cliPath || 'codex', tempDir);
-
-        // Wait for server to be ready and ping it
-        await codexConnection.waitForServerReady(15000);
-        const pingResult = await codexConnection.ping(5000);
-
-        if (!pingResult) {
-          throw new Error('Codex server not responding to ping');
-        }
-
-        const latency = Date.now() - startTime;
-        void codexConnection.stop();
-
-        return {
-          success: true,
-          data: { available: true, latency },
-        };
-      } catch (error) {
-        try {
-          void codexConnection.stop();
-        } catch {
-          // Ignore stop errors
-        }
-
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        const lowerError = errorMsg.toLowerCase();
-
-        if (
-          lowerError.includes('auth') ||
-          lowerError.includes('login') ||
-          lowerError.includes('api key') ||
-          lowerError.includes('not found') ||
-          lowerError.includes('command not found')
-        ) {
-          return {
-            success: false,
-            msg: `codex not available`,
-            data: { available: false, error: errorMsg },
-          };
-        }
-
-        return {
-          success: false,
-          msg: `codex health check failed: ${errorMsg}`,
-          data: { available: false, error: errorMsg },
-        };
-      }
-    }
-
-    // Step 3: For ACP-based agents (claude, gemini, qwen, etc.)
-    const connection = new AcpConnection();
+    // Step 2: For ACP-based agents (claude, codex, gemini, qwen, etc.)
+    const factory = new LegacyConnectorFactory();
+    const client = factory.create(
+      {
+        agentBackend: backend,
+        agentSource: 'builtin',
+        agentId: `health-check-${backend}`,
+        cwd: tempDir,
+        command: cliPath,
+        args: acpArgs,
+      },
+      noopProtocolHandlers
+    );
 
     try {
-      // Connect to the agent
-      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
+      await client.start();
+      const session = await client.createSession({ cwd: tempDir });
+      await client.prompt(session.sessionId, [{ type: 'text', text: 'hi' }]);
 
-      // Create a new session
-      await connection.newSession(tempDir);
-
-      // Send a minimal test message - just need to verify we can communicate
-      // Using a simple prompt that should get a quick response
-      await connection.sendPrompt('hi');
-
-      // If we get here, the agent responded successfully
       const latency = Date.now() - startTime;
-
-      // Clean up
-      await connection.disconnect();
+      await client.close();
 
       return {
         success: true,
         data: { available: true, latency },
       };
     } catch (error) {
-      // Clean up on error
       try {
-        await connection.disconnect();
+        await client.close();
       } catch {
-        // Ignore disconnect errors
+        // Ignore close errors
       }
 
       const errorMsg = error instanceof Error ? error.message : String(error);
       const lowerError = errorMsg.toLowerCase();
 
-      // Check for authentication-related errors
       if (
         lowerError.includes('auth') ||
         lowerError.includes('login') ||
@@ -208,36 +203,104 @@ export function initAcpConversationBridge(): void {
     }
   });
 
-  // Get current session mode for ACP/Gemini agents
-  // 获取 ACP/Gemini 代理的当前会话模式
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+      !(
+        task instanceof AcpAgentManager ||
+        task instanceof GeminiAgentManager ||
+        task instanceof AionrsManager ||
+        task instanceof CodexNativeAgentManager
+      )
     ) {
-      return Promise.resolve({ success: true, data: { mode: 'default', initialized: false } });
+      return Promise.resolve({
+        success: true,
+        data: { mode: 'default', initialized: false },
+      });
     }
     return Promise.resolve({ success: true, data: task.getMode() });
   });
 
-  // Get model info for ACP/Codex agents
-  // 获取 ACP/Codex 代理的模型信息
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
-  ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
+  ipcBridge.acpConversation.getCapabilities.provider(async ({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
-    if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
-      return Promise.resolve({ success: true, data: { modelInfo: null } });
+    if (!task || !(task instanceof AionrsManager)) {
+      return {
+        success: true,
+        data: { capabilities: null, initialized: false },
+      };
     }
-    return Promise.resolve({ success: true, data: { modelInfo: task.getModelInfo() } });
+
+    try {
+      await task.waitUntilReady();
+      return {
+        success: true,
+        data: {
+          capabilities: task.getCapabilities(),
+          initialized: true,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcBridge.acpConversation.getModelInfo.provider(async ({ conversationId }) => {
+    let task = workerTaskManager.getTask(conversationId);
+    if (task instanceof CodexNativeAgentManager) {
+      return {
+        success: true,
+        data: { modelInfo: await task.loadModelInfo() },
+      };
+    }
+    if (!task || !(task instanceof AcpAgentManager)) {
+      const persistedModelInfo = await getPersistedCodexModelInfo(conversationId);
+      return { success: true, data: { modelInfo: persistedModelInfo } };
+    }
+    return {
+      success: true,
+      data: { modelInfo: task.getModelInfo() },
+    };
   });
 
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
-    const agents = acpDetector.getDetectedAgents();
-    const agent = agents.find((item) => item.backend === backend);
+    const agents = agentRegistry.getDetectedAgents();
+    const detectedAgent = agents.find((item) => item.backend === backend);
+    const tempDir = os.tmpdir();
 
-    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
+    if (backend === 'codex') {
+      try {
+        const cliPath =
+          detectedAgent && (isAgentKind(detectedAgent, 'codex') || isAgentKind(detectedAgent, 'acp'))
+            ? detectedAgent.cliPath
+            : undefined;
+        const modelInfo = await probeCodexModelInfo({
+          command: resolveCodexCliCommand(cliPath),
+          cwd: tempDir,
+          currentModelId: readCodexConfiguredModel(),
+        });
+        mainLog('[Codex native]', 'probeModelInfo completed', summarizeAcpModelInfo(modelInfo));
+        return {
+          success: true,
+          data: {
+            modelInfo,
+            configOptions: [createCodexReasoningEffortConfigOption({ modelInfo })],
+          },
+        };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        mainWarn('[Codex native]', 'probeModelInfo failed', errorMsg);
+        return { success: false, msg: errorMsg };
+      }
+    }
+
+    const agent = detectedAgent && isAgentKind(detectedAgent, 'acp') ? detectedAgent : undefined;
+    const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;
+
+    if (!acpAgent?.cliPath && backend !== 'claude' && backend !== 'codebuddy') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
@@ -245,25 +308,16 @@ export function initAcpConversationBridge(): void {
     }
 
     const connection = new AcpConnection();
-    const tempDir = os.tmpdir();
 
     try {
-      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
+      await connection.connect(backend, acpAgent?.cliPath, tempDir, acpAgent?.acpArgs);
       await connection.newSession(tempDir);
 
-      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
-      if (backend === 'codex') {
-        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
-        mainLog('[ACP codex]', 'probeModelInfo completed', {
-          initializeAgentInfo: initializeResult?.agentInfo || null,
-          modelInfo: summarizeAcpModelInfo(modelInfo),
-        });
-      }
-
+      const visibleModelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
       return {
         success: true,
         data: {
-          modelInfo,
+          modelInfo: visibleModelInfo,
           configOptions:
             connection
               .getConfigOptions()
@@ -272,9 +326,6 @@ export function initAcpConversationBridge(): void {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      if (backend === 'codex') {
-        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
-      }
       return { success: false, msg: errorMsg };
     } finally {
       try {
@@ -291,17 +342,32 @@ export function initAcpConversationBridge(): void {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
-        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+        if (task instanceof CodexNativeAgentManager) {
+          const previousModelId = task.getModelInfo()?.currentModelId || null;
+          const modelInfo = await task.setModel(modelId);
+          if (previousModelId !== modelInfo.currentModelId) {
+            workerTaskManager.kill(conversationId);
+          }
+          return {
+            success: true,
+            data: { modelInfo },
+          };
+        }
+        return {
+          success: false,
+          msg: 'Conversation not found or model switching is not supported',
+        };
       }
-      return { success: true, data: { modelInfo: await task.setModel(modelId) } };
+      return {
+        success: true,
+        data: { modelInfo: await task.setModel(modelId) },
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       return { success: false, msg: errorMsg };
     }
   });
 
-  // Set session mode for ACP/Gemini agents (claude, qwen, gemini, etc.)
-  // 设置 ACP/Gemini 代理的会话模式（claude、qwen、gemini 等）
   ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
@@ -309,9 +375,17 @@ export function initAcpConversationBridge(): void {
         return { success: false, msg: 'Conversation not found' };
       }
       if (
-        !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+        !(
+          task instanceof AcpAgentManager ||
+          task instanceof GeminiAgentManager ||
+          task instanceof AionrsManager ||
+          task instanceof CodexNativeAgentManager
+        )
       ) {
-        return { success: false, msg: 'Mode switching not supported for this agent type' };
+        return {
+          success: false,
+          msg: 'Mode switching not supported for this agent type',
+        };
       }
       return await task.setMode(mode);
     } catch (error) {
@@ -320,24 +394,35 @@ export function initAcpConversationBridge(): void {
     }
   });
 
-  // Get non-model config options for ACP agents (e.g., reasoning effort)
-  // 获取 ACP 代理的非模型配置选项（如推理级别）
-  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
+    if (task instanceof CodexNativeAgentManager) {
+      return Promise.resolve({
+        success: true,
+        data: { configOptions: task.getConfigOptions() },
+      });
+    }
     if (!task || !(task instanceof AcpAgentManager)) {
       return Promise.resolve({ success: true, data: { configOptions: [] } });
     }
-    return Promise.resolve({ success: true, data: { configOptions: task.getConfigOptions() } });
+    return Promise.resolve({
+      success: true,
+      data: { configOptions: task.getConfigOptions() },
+    });
   });
 
-  // Set a config option value for ACP agents (e.g., reasoning effort)
-  // 设置 ACP 代理的配置选项值（如推理级别）
   ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
+      if (task instanceof CodexNativeAgentManager) {
+        const configOptions = await task.setConfigOption(configId, value);
+        return { success: true, data: { configOptions } };
+      }
       if (!task || !(task instanceof AcpAgentManager)) {
-        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+        return {
+          success: false,
+          msg: 'Conversation not found or not an ACP agent',
+        };
       }
       const configOptions = await task.setConfigOption(configId, value);
       return { success: true, data: { configOptions } };

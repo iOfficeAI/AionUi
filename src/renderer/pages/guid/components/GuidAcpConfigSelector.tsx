@@ -4,13 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpSessionConfigOption } from '@/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-
-const CONFIG_OPTION_SUPPORTED_BACKENDS: AcpBackend[] = ['codex'];
 
 type GuidAcpConfigSelectorProps = {
   backend?: AcpBackend;
@@ -20,16 +18,12 @@ type GuidAcpConfigSelectorProps = {
 };
 
 const GuidAcpConfigSelector: React.FC<GuidAcpConfigSelectorProps> = ({
-  backend,
+  backend: _backend,
   configOptions,
   selectedValues,
   onSelectOption,
 }) => {
   const { t } = useTranslation();
-
-  if (!backend || !CONFIG_OPTION_SUPPORTED_BACKENDS.includes(backend)) {
-    return null;
-  }
 
   const selectOptions = configOptions.filter(
     (option) =>

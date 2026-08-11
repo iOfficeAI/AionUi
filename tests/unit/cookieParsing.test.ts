@@ -2,23 +2,23 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { IncomingMessage } from 'http';
 
 // Mock AuthService before importing TokenMiddleware
-vi.mock('../../src/webserver/auth/service/AuthService', () => ({
+vi.mock('../../src/process/webserver/auth/service/AuthService', () => ({
   AuthService: {
     verifyToken: vi.fn(),
     verifyWebSocketToken: vi.fn(),
   },
 }));
 
-vi.mock('../../src/webserver/auth/repository/UserRepository', () => ({
+vi.mock('../../src/process/webserver/auth/repository/UserRepository', () => ({
   UserRepository: { findById: vi.fn() },
 }));
 
 describe('extractWebSocketToken – cookie parsing with special characters', () => {
-  let TokenMiddleware: typeof import('../../src/webserver/auth/middleware/TokenMiddleware').TokenMiddleware;
+  let TokenMiddleware: typeof import('../../src/process/webserver/auth/middleware/TokenMiddleware').TokenMiddleware;
 
   beforeEach(async () => {
     vi.resetModules();
-    const mod = await import('../../src/webserver/auth/middleware/TokenMiddleware');
+    const mod = await import('../../src/process/webserver/auth/middleware/TokenMiddleware');
     TokenMiddleware = mod.TokenMiddleware;
   });
 

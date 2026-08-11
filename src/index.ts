@@ -4,47 +4,64 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as Sentry from '@sentry/electron/main';
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before
+// ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
+import { cdpPort, verifyCdpReady } from './process/utils/configureChromium';
+import type * as SentryMain from '@sentry/electron/main';
 
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
-
-import './utils/configureConsoleLog';
-// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
-import { cdpPort, verifyCdpReady } from './utils/configureChromium';
+import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
-import { initMainAdapterWithWindow } from './adapter/main';
+import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
-import { AION_ASSET_PROTOCOL } from '@/extensions';
+import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
-import { ProcessConfig } from './process/initStorage';
+import { createAutoUpdateStatusBroadcast } from './process/bridge/updateBridge';
+import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { initializeAcpDetector } from './process/bridge';
-import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
+import {
+  initializeAcpDetector,
+  registerWindowMaximizeListeners,
+  disposeAllTeamSessions,
+  disposeAllSnapshots,
+} from '@process/bridge';
+import './process/bridge/feedbackBridge';
+import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
+import { stopAllOfficeWatchSessions } from '@process/bridge/officeWatchBridge';
+import { stopAllWatchSessions } from '@process/bridge/pptPreviewBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
-import { setInitialLanguage } from '@process/i18n';
+import { getWebServerInstance, setWebServerInstance } from '@process/bridge/webuiBridge';
+import { autoUpdaterService } from '@process/services/autoUpdaterService';
+import { getCronService } from '@process/services/cron/cronServiceAccess';
+import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
-import { setupApplicationMenu } from './utils/appMenu';
-import { startWebServer } from './webserver';
-import { applyZoomToWindow } from './process/utils/zoom';
-import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/deepLink';
+import { setupApplicationMenu } from './process/utils/appMenu';
+import { startWebServer } from './process/webserver';
+import { cleanupWebAdapter } from './process/webserver/adapter';
+import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
+import { isTruthyEnvFlag, shouldInitializeSentry } from './common/config/sentry';
+import {
+  clearPendingDeepLinkUrl,
+  getPendingDeepLinkUrl,
+  handleDeepLinkUrl,
+  PROTOCOL_SCHEME,
+} from './process/utils/deepLink';
 import {
   bindMainWindowReferences,
-  showAndFocusMainWindow,
+  showOrCreateMainWindowOnAppActivate,
   showOrCreateMainWindow,
-} from './process/mainWindowLifecycle';
+} from './process/utils/mainWindowLifecycle';
+import { shouldInitializeAutoUpdater, shouldRunAutomaticStartupUpdateCheck } from './process/utils/autoUpdateStartup';
 import {
   loadUserWebUIConfig,
-  parseBooleanEnv,
   resolveRemoteAccess,
   resolveWebUIPort,
   restoreDesktopWebUIFromPreferences,
-} from './process/webuiConfig';
+} from './process/utils/webuiConfig';
 import {
   createOrUpdateTray,
   destroyTray,
@@ -53,7 +70,7 @@ import {
   refreshTrayMenu,
   setCloseToTrayEnabled,
   setIsQuitting,
-} from './process/tray';
+} from './process/utils/tray';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -62,12 +79,39 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
 const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
+const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = isE2ETestMode ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+let sentryMain: typeof SentryMain | undefined;
+let sentryMainReady: Promise<void> | undefined;
+
+async function initializeSentryMain(): Promise<void> {
+  const dsn = process.env.SENTRY_DSN;
+  if (
+    !shouldInitializeSentry({
+      dsn,
+      enableInDevelopment: isTruthyEnvFlag(process.env.AIONUI_SENTRY_DEV),
+      isE2ETestMode,
+      isPackaged: app.isPackaged,
+    })
+  ) {
+    return;
+  }
+
+  try {
+    sentryMain = await import('@sentry/electron/main');
+    sentryMain.init({ dsn });
+  } catch (error) {
+    console.warn('[Sentry] Failed to initialize:', error);
+  }
+}
+
 if (!gotTheLock) {
   console.warn('[AionUi] Another instance is already running; current process will exit.');
   app.quit();
 } else {
+  sentryMainReady = initializeSentryMain();
+
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
     const deepLinkUrl =
@@ -80,6 +124,9 @@ if (!gotTheLock) {
     if (isWebUIMode || isResetPasswordMode) {
       return;
     }
+
+    // Skip window creation if app hasn't finished initializing
+    if (!appReadyDone) return;
 
     if (app.isReady()) {
       showOrCreateMainWindow({
@@ -119,8 +166,9 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
 }
 
 // Log environment diagnostics once at startup (persisted via electron-log).
-// Helps debug PATH / cygpath issues on Windows (#1157).
-logEnvironmentDiagnostics();
+// Phase 1 prints sync info immediately; Phase 2 resolves CLI tools in the
+// background — fire-and-forget so it never blocks the startup path (#1157).
+void logEnvironmentDiagnostics();
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
@@ -174,17 +222,23 @@ const getSwitchValue = (flag: string): string | undefined => {
 };
 const hasCommand = (cmd: string) => process.argv.includes(cmd);
 
-const isWebUIMode = hasSwitch('webui') || parseBooleanEnv(process.env.AIONUI_WEBUI) === true;
-const isRemoteMode = hasSwitch('remote') || parseBooleanEnv(process.env.AIONUI_REMOTE_MODE) === true;
-const isResetPasswordMode = hasCommand('--resetpass') || parseBooleanEnv(process.env.AIONUI_RESETPASS) === true;
+const isWebUIMode = hasSwitch('webui');
+const isRemoteMode = hasSwitch('remote');
+const isResetPasswordMode = hasCommand('--resetpass');
 const isVersionMode = hasCommand('--version') || hasCommand('-v');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
 
+// Guard against premature window creation (e.g. macOS 'activate' firing during init).
+// The activate event fires on first launch before handleAppReady finishes initializeProcess(),
+// causing the renderer to load and compete with initStorage on the serial configFile queue,
+// which blocks startup for 100-265 seconds.
+let appReadyDone = false;
+
 let mainWindow: BrowserWindow;
 
-const createWindow = (): void => {
+const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
   // Get primary display size
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -224,7 +278,12 @@ const createWindow = (): void => {
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
-          trafficLightPosition: { x: 10, y: 10 },
+          // Align traffic-light vertical center with the titlebar button centers.
+          // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
+          // Empirically y=13 places the traffic lights on the same horizontal line
+          // as the sidebar / back / forward icons.
+          // NOTE: requires a full app restart to take effect (BrowserWindow option).
+          trafficLightPosition: { x: 10, y: 13 },
         }
       : { frame: false }),
     webPreferences: {
@@ -237,52 +296,53 @@ const createWindow = (): void => {
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
   // combined with 'did-finish-load' as belt-and-suspenders approach.
-  const showWindow = () => {
-    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      console.log('[AionUi] Showing main window');
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  };
-  mainWindow.once('ready-to-show', () => {
-    console.log('[AionUi] Window ready-to-show');
-    showWindow();
-  });
-  // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('[AionUi] Renderer did-finish-load');
-    showWindow();
-  });
-  // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
-  setTimeout(showWindow, 5000);
+  if (showOnReady) {
+    const showWindow = () => {
+      if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+        console.log('[AionUi] Showing main window');
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    };
+    mainWindow.once('ready-to-show', () => {
+      console.log('[AionUi] Window ready-to-show');
+      showWindow();
+    });
+    // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[AionUi] Renderer did-finish-load');
+      showWindow();
+    });
+    // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
+    setTimeout(showWindow, 5000);
+  } else if (process.platform === 'darwin' && app.dock) {
+    void app.dock.hide();
+  }
 
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
   setupApplicationMenu();
 
-  void applyZoomToWindow(mainWindow);
+  setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
-  // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
-  // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
-  const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
-  const disableAutoUpdater =
-    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
-  if (!disableAutoUpdater) {
-    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
-      .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
-        // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
-        const statusBroadcast = createAutoUpdateStatusBroadcast();
-        autoUpdaterService.initialize(statusBroadcast);
-        // Check for updates after 3 seconds delay
-        // 3秒后检查更新
+  // Initialize auto-updater for manual checks, but do not perform unsolicited
+  // startup checks unless explicitly enabled.
+  if (shouldInitializeAutoUpdater(process.env)) {
+    try {
+      // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
+      const statusBroadcast = createAutoUpdateStatusBroadcast();
+      autoUpdaterService.initialize(statusBroadcast);
+      if (shouldRunAutomaticStartupUpdateCheck(process.env)) {
         setTimeout(() => {
           void autoUpdaterService.checkForUpdatesAndNotify();
         }, 3000);
-      })
-      .catch((error) => {
-        console.error('[App] Failed to initialize autoUpdaterService:', error);
-      });
+      } else {
+        console.log('[AionUi] Automatic startup update check disabled');
+      }
+    } catch (error) {
+      console.error('[App] Failed to initialize autoUpdaterService:', error);
+    }
   } else {
     console.log('[AionUi] Auto-updater disabled via env/CI guard');
   }
@@ -312,6 +372,23 @@ const createWindow = (): void => {
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[AionUi] render-process-gone:', details);
+
+    // Reload the renderer to recover from the crash.
+    // The isDestroyed() guard in adapter/main.ts prevents further sends
+    // to the dead webContents while the reload is in progress.
+    if (!mainWindow.isDestroyed()) {
+      console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
+
+      if (!app.isPackaged && rendererUrl) {
+        mainWindow.loadURL(rendererUrl).catch((error) => {
+          console.error('[AionUi] Recovery loadURL failed:', error.message || error);
+        });
+      } else {
+        mainWindow.loadFile(fallbackFile).catch((error) => {
+          console.error('[AionUi] Recovery loadFile failed:', error.message || error);
+        });
+      }
+    }
   });
 
   mainWindow.webContents.on('unresponsive', () => {
@@ -322,13 +399,8 @@ const createWindow = (): void => {
     console.log('[AionUi] Main window closed');
   });
 
-  // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
-  // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
-  // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
-  const disableDevToolsByEnv = process.env.AIONUI_DISABLE_DEVTOOLS === '1' || process.env.AIONUI_E2E_TEST === '1';
-  if (!app.isPackaged && !disableDevToolsByEnv) {
-    mainWindow.webContents.openDevTools();
-  }
+  // DevTools is no longer auto-opened at startup.
+  // Use the DevTools toggle in Settings > System (dev mode only) to open it.
 
   // Listen to DevTools state changes and notify Renderer
   mainWindow.webContents.on('devtools-opened', () => {
@@ -342,6 +414,7 @@ const createWindow = (): void => {
   // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
   // Close interception: hide window instead of closing when "close to tray" is enabled
   mainWindow.on('close', (event) => {
+    if (mainWindow.isDestroyed()) return;
     if (getCloseToTrayEnabled() && !getIsQuitting()) {
       event.preventDefault();
       mainWindow.hide();
@@ -350,7 +423,19 @@ const createWindow = (): void => {
 };
 
 const handleAppReady = async (): Promise<void> => {
-  console.log('[AionUi] app.whenReady resolved');
+  const t0 = performance.now();
+  const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
+  mark('start');
+
+  if (!app.isPackaged) {
+    try {
+      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
+      await installExtension(REACT_DEVELOPER_TOOLS);
+      console.log('[DevTools] React Developer Tools installed');
+    } catch (e) {
+      console.warn('[DevTools] Failed to install React DevTools:', e);
+    }
+  }
 
   // CLI mode: print app version and exit immediately (used by CI smoke tests)
   if (isVersionMode) {
@@ -391,29 +476,37 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
+  void sentryMainReady?.then(() => {
+    sentryMain?.setUser({ id: getOrCreateAnalyticsId() });
+  });
+
   try {
     await initializeProcess();
+    mark('initializeProcess');
   } catch (error) {
     console.error('Failed to initialize process:', error);
     app.exit(1);
     return;
   }
 
+  try {
+    initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
+    mark('initializeZoomFactor');
+  } catch (error) {
+    console.error('[AionUi] Failed to restore zoom factor:', error);
+    initializeZoomFactor(undefined);
+  }
+
   if (isResetPasswordMode) {
     // Handle password reset without creating window
     try {
-      // Get username argument, filtering out flags (--xxx)
-      // 获取用户名参数，过滤掉标志（--xxx）
-      const resetPasswordIndex = process.argv.indexOf('--resetpass');
-      const argsAfterCommand = process.argv.slice(resetPasswordIndex + 1);
-      const username = argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
+      const { resetPasswordCLI, resolveResetPasswordUsername } = await import('./process/utils/resetPasswordCLI');
+      const username = resolveResetPasswordUsername(process.argv);
 
-      // Import resetpass logic
-      const { resetPasswordCLI } = await import('./utils/resetPasswordCLI');
       await resetPasswordCLI(username);
 
       app.quit();
-    } catch (error) {
+    } catch {
       app.exit(1);
     }
   } else if (isWebUIMode) {
@@ -423,7 +516,13 @@ const handleAppReady = async (): Promise<void> => {
     }
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
-    await startWebServer(resolvedPort, allowRemote);
+    try {
+      await startWebServer(resolvedPort, allowRemote);
+    } catch (err) {
+      console.error(`[WebUI] Failed to start server on port ${resolvedPort}:`, err);
+      app.exit(1);
+      return;
+    }
 
     // Keep the process alive in WebUI mode by preventing default quit behavior.
     // On Linux headless (systemd), Electron may attempt to quit when no windows exist.
@@ -436,24 +535,6 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    // Initialize ACP detector BEFORE creating the window to prevent a race
-    // condition where the renderer fetches getAvailableAgents before detection
-    // finishes, caching an empty result via SWR.
-    await initializeAcpDetector();
-
-    createWindow();
-
-    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
-    // Read language setting and initialize main process i18n, then refresh tray menu
-    try {
-      const savedLanguage = await ProcessConfig.get('language');
-      await setInitialLanguage(savedLanguage);
-      // After language is set, refresh tray menu if it exists
-      await refreshTrayMenu();
-    } catch (error) {
-      console.error('[index] Failed to initialize i18n language:', error);
-    }
-
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
@@ -477,6 +558,49 @@ const handleAppReady = async (): Promise<void> => {
           destroyTray();
         }
       });
+    }
+
+    const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
+
+    createWindow({ showOnReady: showMainWindowOnReady });
+    appReadyDone = true;
+    mark('createWindow');
+
+    // Initialize desktop pet (delayed to not block main window)
+    setTimeout(() => {
+      void (async () => {
+        try {
+          const petEnabled = await ProcessConfig.get('pet.enabled');
+          if (petEnabled === true) {
+            // Read pet sub-settings before creating the pet so flags are honored
+            // on the first createPetWindow() call (which is sync).
+            const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
+            const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
+            setPetConfirmEnabled(confirmEnabled);
+            createPetWindow();
+          }
+        } catch (error) {
+          console.error('[Pet] Failed to initialize:', error);
+        }
+      })();
+    }, 3000);
+
+    // Run ACP detection in parallel with renderer loading.
+    // By the time React mounts and calls getAvailableAgents (~300ms+),
+    // detection (~700ms) is usually already done.
+    initializeAcpDetector()
+      .then(() => mark('initializeAcpDetector'))
+      .catch((error) => console.error('[ACP] Detection failed:', error));
+
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // After language is set, refresh tray menu if it exists
+      await refreshTrayMenu();
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
     }
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
@@ -538,14 +662,18 @@ const handleAppReady = async (): Promise<void> => {
 
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
   powerMonitor.on('resume', () => {
-    console.log('[App] System resumed from sleep, triggering cron recovery');
-    import('@process/services/cron/CronService')
-      .then(({ cronService }) => {
-        void cronService.handleSystemResume();
-      })
-      .catch((error) => {
-        console.error('[App] Failed to handle system resume for cron:', error);
-      });
+    try {
+      console.log('[App] System resumed from sleep, triggering cron recovery');
+    } catch {
+      // Console write may fail with EIO when PTY is broken after sleep
+    }
+    const cronService = getCronService();
+    if (!cronService) {
+      return;
+    }
+    void cronService.handleSystemResume().catch(() => {
+      // Cron recovery is best-effort after system resume
+    });
   });
 };
 
@@ -573,8 +701,9 @@ app.on('open-url', (event, url) => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((_error) => {
+  .catch((error) => {
     // App initialization failed
+    console.error('[AionUi] App initialization failed:', error);
     app.quit();
   });
 
@@ -595,15 +724,25 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
+  // Skip if handleAppReady hasn't finished — it will create the window itself.
+  if (!appReadyDone) return;
   if (!isWebUIMode && app.isReady()) {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
-      showAndFocusMainWindow(mainWindow);
-      if (process.platform === 'darwin' && app.dock) {
-        void app.dock.show();
-      }
-    } else {
-      createWindow();
+    const hasVisibleAuxiliaryWindow = BrowserWindow.getAllWindows().some(
+      (window) => window !== mainWindow && !window.isDestroyed() && window.isVisible()
+    );
+    showOrCreateMainWindowOnAppActivate({
+      mainWindow,
+      createWindow,
+      hasVisibleAuxiliaryWindow,
+    });
+    if (
+      process.platform === 'darwin' &&
+      app.dock &&
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      mainWindow.isVisible()
+    ) {
+      void app.dock.show();
     }
   }
 });
@@ -613,20 +752,72 @@ app.on('before-quit', async () => {
   setIsQuitting(true);
   isExplicitQuit = true;
   destroyTray();
-  // 在应用退出前清理工作进程
-  workerTaskManager.clear();
 
-  // Shutdown Channel subsystem
-  try {
-    const { getChannelManager } = await import('@/channels');
-    await getChannelManager().shutdown();
-  } catch (error) {
-    console.error('[App] Failed to shutdown ChannelManager:', error);
-  }
+  const cleanup = async () => {
+    // Kill all agent worker processes
+    await workerTaskManager.clear();
+
+    // Destroy desktop pet windows
+    try {
+      const { destroyPetWindow } = await import('./process/pet/petManager');
+      destroyPetWindow();
+    } catch {
+      /* pet not initialized */
+    }
+
+    // Stop all active team sessions (TCP servers + child processes)
+    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+
+    // Clear workspace snapshot state before shutdown.
+    await disposeAllSnapshots().catch((err) => console.error('[App] Failed to dispose workspace snapshots:', err));
+
+    // Shutdown Channel subsystem
+    try {
+      const { getChannelManager } = await import('@process/channels');
+      await getChannelManager().shutdown();
+    } catch (error) {
+      console.error('[App] Failed to shutdown ChannelManager:', error);
+    }
+
+    // Stop Web Server (Express + WebSocket)
+    try {
+      const instance = getWebServerInstance();
+      if (instance) {
+        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
+        cleanupWebAdapter();
+        setWebServerInstance(null);
+      }
+    } catch {
+      /* server not started */
+    }
+
+    // Stop Office Watch processes (Word / Excel / PPT preview)
+    try {
+      stopAllOfficeWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+    try {
+      stopAllWatchSessions();
+    } catch {
+      /* not initialized */
+    }
+  };
+
+  // Master timeout: force quit if cleanup hangs
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
+      resolve();
+    }, 10000);
+  });
+
+  await Promise.race([cleanup(), timeout]);
 });
 
 app.on('will-quit', () => {
-  console.log('[AionUi] will-quit');
+  console.log('[AionUi] will-quit — all cleanup should be complete');
 });
 
 app.on('quit', (_event, exitCode) => {

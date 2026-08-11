@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
@@ -26,17 +28,29 @@ import { initModelBridge } from './modelBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
 import { initShellBridge } from './shellBridge';
 import { initStarOfficeBridge } from './starOfficeBridge';
+import { initSpeechToTextBridge } from './speechToTextBridge';
 import { initTaskBridge } from './taskBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
+import { initPptPreviewBridge } from './pptPreviewBridge';
+import { initOfficeWatchBridge } from './officeWatchBridge';
 import { initExtensionsBridge } from './extensionsBridge';
+import { initWeixinLoginBridge } from './weixinLoginBridge';
+import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
+import { initRemoteAgentBridge } from './remoteAgentBridge';
+import { initHubBridge } from './hubBridge';
+import { initTeamBridge } from './teamBridge';
+import type { TeamSessionService } from '@process/team/TeamSessionService';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
+  conversationRepo: IConversationRepository;
   workerTaskManager: IWorkerTaskManager;
+  channelRepo: IChannelRepository;
+  teamSessionService: TeamSessionService;
 }
 
 /**
@@ -47,29 +61,37 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
-  initConversationBridge(deps.conversationService, deps.workerTaskManager);
-  initApplicationBridge();
-  initGeminiConversationBridge();
+  initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService);
+  initApplicationBridge(deps.workerTaskManager);
+  initGeminiConversationBridge(deps.workerTaskManager);
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
   initGeminiBridge();
   initBedrockBridge();
-  initAcpConversationBridge();
+  initAcpConversationBridge(deps.workerTaskManager);
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
-  initDatabaseBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
+  initPptPreviewBridge();
+  initOfficeWatchBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
-  initChannelBridge();
+  initChannelBridge(deps.channelRepo);
+  initDatabaseBridge(deps.conversationRepo);
+  initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
-  initTaskBridge();
-  initExtensionsBridge();
+  initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
+  initSpeechToTextBridge();
+  initWeixinLoginBridge();
+  initWorkspaceSnapshotBridge();
+  initRemoteAgentBridge();
+  initHubBridge();
+  initTeamBridge(deps.teamSessionService);
 }
 
 /**
@@ -77,7 +99,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
  */
 export async function initializeAcpDetector(): Promise<void> {
   try {
-    await acpDetector.initialize();
+    await agentRegistry.initialize();
   } catch (error) {
     console.error('[ACP] Failed to initialize detector:', error);
   }
@@ -103,16 +125,24 @@ export {
   initMcpBridge,
   initModelBridge,
   initNotificationBridge,
+  initOfficeWatchBridge,
+  initPptPreviewBridge,
   initPreviewHistoryBridge,
   initShellBridge,
+  initSpeechToTextBridge,
   initStarOfficeBridge,
   initSystemSettingsBridge,
   initTaskBridge,
   initUpdateBridge,
   initWebuiBridge,
+  initRemoteAgentBridge,
+  initHubBridge,
+  initTeamBridge,
   initWindowControlsBridge,
+  initWeixinLoginBridge,
+  initWorkspaceSnapshotBridge,
 };
-export { setMainWindow } from './notificationBridge';
-
+export { disposeAllSnapshots } from './workspaceSnapshotBridge';
+export { disposeAllTeamSessions } from './teamBridge';
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

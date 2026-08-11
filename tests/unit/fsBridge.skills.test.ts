@@ -58,7 +58,9 @@ describe('fsBridge skills functionality', () => {
               }
               throw new Error(`EISDIR: illegal operation on a directory, read '${fp}'`);
             }
-            throw new Error(`ENOENT: no such file or directory, open '${fp}'`);
+            const err = new Error(`ENOENT: no such file or directory, open '${fp}'`) as NodeJS.ErrnoException;
+            err.code = 'ENOENT';
+            throw err;
           }),
           writeFile: vi.fn(async (filePath: string, content: string) => {
             const fp = resolvePath(filePath);
@@ -109,7 +111,11 @@ describe('fsBridge skills functionality', () => {
           }),
           stat: vi.fn(async (filePath: string) => {
             const fp = resolvePath(filePath);
-            if (!(fp in mockFsStore)) throw new Error(`ENOENT: stat '${fp}'`);
+            if (!(fp in mockFsStore)) {
+              const err = new Error(`ENOENT: no such file or directory, stat '${fp}'`) as NodeJS.ErrnoException;
+              err.code = 'ENOENT';
+              throw err;
+            }
             return {
               isDirectory: () => !!mockFsStore[fp]?.isDirectory,
               isFile: () => !mockFsStore[fp]?.isDirectory,
@@ -137,8 +143,17 @@ describe('fsBridge skills functionality', () => {
       };
     });
 
+    // Mock jszip
+    vi.doMock('jszip', () => {
+      class MockJSZip {
+        file = vi.fn();
+        generateAsync = vi.fn(async () => Buffer.from('fake-zip-content'));
+      }
+      return { default: MockJSZip };
+    });
+
     // Mock initStorage
-    vi.doMock('@/process/initStorage', () => ({
+    vi.doMock('@process/utils/initStorage', () => ({
       getSystemDir: vi.fn(() => ({
         cacheDir: '/mock/cache',
         workDir: '/mock/work',
@@ -146,6 +161,9 @@ describe('fsBridge skills functionality', () => {
         arch: 'x64',
       })),
       getAssistantsDir: vi.fn(() => '/mock/userData/assistants'),
+      getSkillsDir: vi.fn(() => '/mock/userData/config/skills'),
+      getBuiltinSkillsCopyDir: vi.fn(() => path.resolve('/mock/userData/builtin-skills')),
+      getAutoSkillsDir: vi.fn(() => path.resolve('/mock/userData/builtin-skills/_builtin')),
       ProcessEnv: { set: vi.fn() },
     }));
 
@@ -170,11 +188,13 @@ describe('fsBridge skills functionality', () => {
         ipcBridge: {
           fs: {
             getFilesByDir: createCommandMock('get-file-by-dir'),
+            listWorkspaceFiles: createCommandMock('list-workspace-files'),
             getImageBase64: createCommandMock('get-image-base64'),
             fetchRemoteImage: createCommandMock('fetch-remote-image'),
             readFile: createCommandMock('read-file'),
             readFileBuffer: createCommandMock('read-file-buffer'),
             createTempFile: createCommandMock('create-temp-file'),
+            createUploadFile: createCommandMock('create-upload-file'),
             writeFile: createCommandMock('write-file'),
             createZip: createCommandMock('create-zip-file'),
             cancelZip: createCommandMock('cancel-zip-file'),
@@ -206,6 +226,7 @@ describe('fsBridge skills functionality', () => {
             removeCustomExternalPath: createCommandMock('remove-custom-external-path'),
             enableSkillsMarket: createCommandMock('enable-skills-market'),
             disableSkillsMarket: createCommandMock('disable-skills-market'),
+            listBuiltinAutoSkills: createCommandMock('list-builtin-auto-skills'),
           },
           fileStream: {
             contentUpdate: { emit: vi.fn() },
@@ -222,7 +243,7 @@ describe('fsBridge skills functionality', () => {
 
   // Helper macro to fetch the actual implemented provider endpoint
   const getProvider = async (channel: string) => {
-    const mod = await import('@/process/bridge/fsBridge');
+    const mod = await import('@process/bridge/fsBridge');
     mod.initFsBridge();
     const ipcMod = await import('@/common');
     // Type assertion hack, accessing the internal registered function logic
@@ -246,10 +267,33 @@ describe('fsBridge skills functionality', () => {
     throw new Error(`Provider ${channel} not found in registered mocks`);
   };
 
+  describe('readFile ENOENT handling (Fixes ELECTRON-6W)', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFile');
+      const result = await handler({ path: '/nonexistent/gemini-temp-123/README.md' });
+      expect(result).toBeNull();
+    });
+
+    it('still throws for non-ENOENT errors (e.g., EISDIR)', async () => {
+      // Create a directory entry so readFile throws EISDIR
+      mockFsStore[path.resolve('/mock/some-dir')] = { isDirectory: true };
+      const handler = await getProvider('readFile');
+      await expect(handler({ path: '/mock/some-dir' })).rejects.toThrow('EISDIR');
+    });
+  });
+
+  describe('readFileBuffer ENOENT handling', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFileBuffer');
+      const result = await handler({ path: '/nonexistent/temp-workspace/file.bin' });
+      expect(result).toBeNull();
+    });
+  });
+
   describe('listAvailableSkills', () => {
     it('should correctly parse SKILL.md and distinguish builtin vs custom', async () => {
       // Setup filesystem mock state
-      const builtinBase = path.resolve('/mock/appPath/skills');
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
       const userBase = path.resolve('/mock/userData/config/skills');
 
       const yamlFrontmatterBuiltin = `---\nname: BuiltinTest\ndescription: 'A builtin test skill'\n---\n# Markdown content`;
@@ -291,6 +335,119 @@ describe('fsBridge skills functionality', () => {
       const custom = result.find((s: any) => s.name === 'CustomTest');
       expect(custom).toBeDefined();
       expect(custom.isCustom).toBe(true);
+    });
+
+    it('falls back to bundled builtin skills when copied builtin skills are unavailable', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
+      const bundledBase = path.resolve(process.cwd(), 'src/process/resources/skills');
+      const bundledSkill = `---\nname: officecli-pptx\ndescription: "Bundled PPTX skill"\n---\n# Markdown content`;
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[bundledBase] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-pptx')] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-pptx', 'SKILL.md')] = {
+        content: bundledSkill,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listAvailableSkills');
+      const result = await handler();
+
+      expect(result).toEqual([
+        {
+          name: 'officecli-pptx',
+          description: 'Bundled PPTX skill',
+          location: path.join(bundledBase, 'officecli-pptx', 'SKILL.md'),
+          isCustom: false,
+          source: 'builtin',
+        },
+      ]);
+    });
+
+    it('falls back to dist-server builtin skills in standalone server builds', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
+      const bundledBase = path.resolve(process.cwd(), 'dist-server/skills');
+      const bundledSkill = `---\nname: officecli-docx\ndescription: "Standalone DOCX skill"\n---\n# Markdown content`;
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[bundledBase] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-docx')] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-docx', 'SKILL.md')] = {
+        content: bundledSkill,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listAvailableSkills');
+      const result = await handler();
+
+      expect(result).toEqual([
+        {
+          name: 'officecli-docx',
+          description: 'Standalone DOCX skill',
+          location: path.join(bundledBase, 'officecli-docx', 'SKILL.md'),
+          isCustom: false,
+          source: 'builtin',
+        },
+      ]);
+    });
+  });
+
+  describe('listBuiltinAutoSkills', () => {
+    it('registers provider and parses auto-injected builtin skills', async () => {
+      const autoBase = path.resolve('/mock/userData/builtin-skills/_builtin');
+      const yamlFrontmatter = `---\nname: office-cli\ndescription: "Auto injected office skill"\n---\n# Markdown content`;
+
+      mockFsStore[autoBase] = { isDirectory: true };
+      mockFsStore[path.join(autoBase, 'office-cli')] = { isDirectory: true };
+      mockFsStore[path.join(autoBase, 'office-cli', 'SKILL.md')] = {
+        content: yamlFrontmatter,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listBuiltinAutoSkills');
+      const result = await handler();
+
+      expect(result).toEqual([{ name: 'office-cli', description: 'Auto injected office skill' }]);
+    });
+  });
+
+  describe('readAssistantRule builtin fallback', () => {
+    it('reads preset rule files from bundled assistant resources when copied files are missing', async () => {
+      const bundledAssistantDir = path.resolve(process.cwd(), 'src/process/resources/assistant');
+      const pptCreatorDir = path.join(bundledAssistantDir, 'ppt-creator');
+      const ruleContent = '# PPT Creator Rules';
+
+      mockFsStore['/mock/userData/assistants'] = { isDirectory: true };
+      mockFsStore[bundledAssistantDir] = { isDirectory: true };
+      mockFsStore[pptCreatorDir] = { isDirectory: true };
+      mockFsStore[path.join(pptCreatorDir, 'ppt-creator.md')] = {
+        content: ruleContent,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('readAssistantRule');
+      const result = await handler({ assistantId: 'builtin-ppt-creator', locale: 'en-US' });
+
+      expect(result).toBe(ruleContent);
+    });
+
+    it('reads preset rule files from dist-server assistant resources in standalone server builds', async () => {
+      const bundledAssistantDir = path.resolve(process.cwd(), 'dist-server/assistant');
+      const wordCreatorDir = path.join(bundledAssistantDir, 'word-creator');
+      const ruleContent = '# Word Creator Rules';
+
+      mockFsStore['/mock/userData/assistants'] = { isDirectory: true };
+      mockFsStore[bundledAssistantDir] = { isDirectory: true };
+      mockFsStore[wordCreatorDir] = { isDirectory: true };
+      mockFsStore[path.join(wordCreatorDir, 'word-creator.md')] = {
+        content: ruleContent,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('readAssistantRule');
+      const result = await handler({ assistantId: 'builtin-word-creator', locale: 'en-US' });
+
+      expect(result).toBe(ruleContent);
     });
   });
 
@@ -523,6 +680,55 @@ describe('fsBridge skills functionality', () => {
 
       expect(result.success).toBe(false);
       expect(result.msg).toContain('security check failed');
+    });
+  });
+
+  describe('createZip ensures parent directory exists (Fixes ELECTRON-66)', () => {
+    it('creates parent directory before writing zip file', async () => {
+      const handler = await getProvider('createZip');
+      const exportDir = path.resolve('/mock/export/subdir');
+      const zipPath = path.join(exportDir, 'batch-export-test.zip');
+
+      const result = await handler({
+        path: zipPath,
+        files: [{ name: 'test.txt', content: 'hello' }],
+        requestId: 'test-req-1',
+      });
+
+      expect(result).toBe(true);
+      // Verify parent directory was created
+      expect(mockFsStore[exportDir]).toBeDefined();
+    });
+  });
+
+  describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
+    it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinRule');
+      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('readBuiltinSkill ENOENT handling', () => {
+    it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinSkill');
+      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('fetchRemoteImage — error handling', () => {
+    it('returns empty string for disallowed host instead of throwing', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      // URL with a host not in the allowlist triggers Promise.reject inside downloadRemoteBuffer
+      const result = await handler({ url: 'https://evil.com/malicious.png' });
+      expect(result).toBe('');
+    });
+
+    it('returns empty string for unsupported protocol', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      const result = await handler({ url: 'ftp://github.com/image.png' });
+      expect(result).toBe('');
     });
   });
 

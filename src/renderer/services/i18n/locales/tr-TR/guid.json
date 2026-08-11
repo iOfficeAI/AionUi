@@ -1,0 +1,21 @@
+{
+  "agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
+  "noAgentAvailable": "Kullanılabilir bir Ana Ajan yok. Lütfen Google'a giriş yapın veya Claude/Codex CLI kurun. Ayarlara gitmek ister misiniz?",
+  "noAgentAvailableShort": "No Main Agent available. Click to configure.",
+  "agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
+  "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
+  "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
+  "promptExamplesHint": "Try example prompts:",
+  "agentSwitcherLabel": "Agent",
+  "switchedToAgent": "{{agent}} olarak değiştirildi",
+  "scanning": {
+    "initialMessage": "Current Agent is unavailable, detecting other available agents...",
+    "scanningMessage": "Scanning local available agents...",
+    "connectingMessage": "Connected successfully, please wait...",
+    "establishingConnection": "Establishing connection...",
+    "statusQueued": "Queued",
+    "statusTesting": "Testing latency...",
+    "statusUnreachable": "Unreachable",
+    "statusAvailable": "Available"
+  }
+}

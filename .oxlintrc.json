@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-explicit-any": "off",
+    "no-await-in-loop": "off",
+    "no-empty-pattern": "warn",
+    "no-constant-condition": "warn",
+    "consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+    "oxc/no-async-endpoint-handlers": "off",
+    "consistent-function-scoping": "off",
+    "no-map-spread": "off",
+    "no-new": "off",
+    "no-shadow": "off",
+    "no-extraneous-class": "off",
+    "no-useless-constructor": "off",
+    "prefer-add-event-listener": "off",
+    "prefer-array-find": "off",
+    "require-post-message-target-origin": "off",
+    "no-floating-promises": "error",
+    "await-thenable": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.js"],
+      "rules": {
+        "no-floating-promises": "off",
+        "await-thenable": "off"
+      }
+    },
+    {
+      "files": ["forge.config.ts", "vitest.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+      "rules": {
+        "no-floating-promises": "off",
+        "await-thenable": "off"
+      }
+    },
+    {
+      "files": ["**/gemini/cli/**/*.ts"],
+      "rules": {
+        "no-floating-promises": "off",
+        "await-thenable": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    ".webpack/",
+    "out/",
+    "*.min.js",
+    "*.min.css",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "*.log",
+    "public/",
+    "resources/",
+    "docs/",
+    "config/webpack/",
+    "scripts/",
+    "src/agent/gemini/cli/",
+    "mobile/"
+  ]
+}

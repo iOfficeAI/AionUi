@@ -1,45 +1,45 @@
-import type { IProvider } from '@/common/storage';
-import ModalHOC from '@/renderer/utils/ModalHOC';
-import { Form, Input, Message, Select } from '@arco-design/web-react';
-import React, { useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import AionModal from '@/renderer/components/base/AionModal';
-import { LinkCloud } from '@icon-park/react';
+import type { IProvider } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
-import useModeModeList from '../../../hooks/useModeModeList';
+import AionModal from '@/renderer/components/base/AionModal';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
+import { isAionrsOnlyPlatform } from '@/renderer/utils/model/modelPlatforms';
+import { Button, Form, Input, InputNumber, Message, Select, Tag } from '@arco-design/web-react';
+import { LinkCloud } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-// Provider Logo imports
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import OpenAILogo from '@/renderer/assets/logos/openai.svg';
-import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
-import BedrockLogo from '@/renderer/assets/logos/bedrock.svg';
-import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
-import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import ZhipuLogo from '@/renderer/assets/logos/zhipu.svg';
-import XaiLogo from '@/renderer/assets/logos/xai.svg';
-import VolcengineLogo from '@/renderer/assets/logos/volcengine.svg';
-import BaiduLogo from '@/renderer/assets/logos/baidu.svg';
-import TencentLogo from '@/renderer/assets/logos/tencent.svg';
-import LingyiLogo from '@/renderer/assets/logos/lingyiwanwu.svg';
-import PoeLogo from '@/renderer/assets/logos/poe.svg';
-import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
-import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
-import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
-import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
-import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
+import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
+import OpenAILogo from '@/renderer/assets/logos/ai-major/openai.svg';
+import AnthropicLogo from '@/renderer/assets/logos/ai-major/anthropic.svg';
+import BedrockLogo from '@/renderer/assets/logos/ai-cloud/bedrock.svg';
+import DeepSeekLogo from '@/renderer/assets/logos/ai-major/deepseek.svg';
+import OpenRouterLogo from '@/renderer/assets/logos/ai-cloud/openrouter.svg';
+import SiliconFlowLogo from '@/renderer/assets/logos/ai-cloud/siliconflow.png';
+import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
+import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
+import ZhipuLogo from '@/renderer/assets/logos/ai-china/zhipu.svg';
+import XaiLogo from '@/renderer/assets/logos/ai-major/xai.svg';
+import VolcengineLogo from '@/renderer/assets/logos/ai-china/volcengine.svg';
+import BaiduLogo from '@/renderer/assets/logos/ai-china/baidu.svg';
+import TencentLogo from '@/renderer/assets/logos/ai-china/tencent.svg';
+import LingyiLogo from '@/renderer/assets/logos/ai-china/lingyiwanwu.svg';
+import PoeLogo from '@/renderer/assets/logos/ai-cloud/poe.svg';
+import ModelScopeLogo from '@/renderer/assets/logos/ai-cloud/modelscope.svg';
+import InfiniAILogo from '@/renderer/assets/logos/ai-cloud/infiniai.svg';
+import CtyunLogo from '@/renderer/assets/logos/ai-cloud/ctyun.svg';
+import StepFunLogo from '@/renderer/assets/logos/ai-china/stepfun.svg';
+import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
+import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
 
-/**
- * 供应商配置（包含名称、URL、Logo）
- * Provider config (includes name, URL, logo)
- */
 const PROVIDER_CONFIGS = [
   { name: 'Gemini', url: '', logo: GeminiLogo, platform: 'gemini' },
   { name: 'Gemini (Vertex AI)', url: '', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
   { name: 'New API', url: '', logo: NewApiLogo, platform: 'new-api' },
+  { name: 'GitHub Copilot', url: 'https://api.githubcopilot.com', logo: GitHubLogo, platform: 'copilot' },
+  { name: 'ChatGPT', url: 'https://chatgpt.com', logo: OpenAILogo, platform: 'chatgpt' },
   { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
+  { name: 'Ollama', url: 'https://ollama.com/v1', logo: null },
   { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
   { name: 'AWS Bedrock', url: '', logo: BedrockLogo, platform: 'bedrock' },
   { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
@@ -62,40 +62,30 @@ const PROVIDER_CONFIGS = [
   { name: 'StepFun', url: 'https://api.stepfun.com/v1', logo: StepFunLogo },
 ];
 
-/**
- * 根据名称或 URL 获取供应商 Logo
- * Get provider logo by name or URL
- */
 const getProviderLogo = (name?: string, baseUrl?: string, platform?: string): string | null => {
   if (!name && !baseUrl && !platform) return null;
 
-  // 优先按 platform 匹配（Gemini 系列）
   if (platform) {
-    const byPlatform = PROVIDER_CONFIGS.find((p) => p.platform === platform);
+    const byPlatform = PROVIDER_CONFIGS.find((item) => item.platform === platform);
     if (byPlatform) return byPlatform.logo;
   }
 
-  // 按名称精确匹配
-  const byName = PROVIDER_CONFIGS.find((p) => p.name === name);
+  const byName = PROVIDER_CONFIGS.find((item) => item.name === name);
   if (byName) return byName.logo;
 
-  // 按名称模糊匹配（忽略大小写）
-  const byNameLower = PROVIDER_CONFIGS.find((p) => p.name.toLowerCase() === name?.toLowerCase());
+  const byNameLower = PROVIDER_CONFIGS.find((item) => item.name.toLowerCase() === name?.toLowerCase());
   if (byNameLower) return byNameLower.logo;
 
-  // 按 URL 匹配
   if (baseUrl) {
-    const byUrl = PROVIDER_CONFIGS.find((p) => p.url && baseUrl.includes(p.url.replace('https://', '').split('/')[0]));
+    const byUrl = PROVIDER_CONFIGS.find(
+      (item) => item.url && baseUrl.includes(item.url.replace('https://', '').split('/')[0])
+    );
     if (byUrl) return byUrl.logo;
   }
 
   return null;
 };
 
-/**
- * 供应商 Logo 组件
- * Provider Logo Component
- */
 const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number }> = ({ logo, name, size = 20 }) => {
   if (logo) {
     return <img src={logo} alt={name} className='object-contain shrink-0' style={{ width: size, height: size }} />;
@@ -103,40 +93,173 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
   return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
 };
 
+const normalizeRequestIntervalMs = (value: unknown): number => {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return 0;
+  }
+  return Math.floor(numericValue);
+};
+
+type AionrsLoginStatus = {
+  authenticated: boolean;
+  authPath: string;
+  expiresAt?: string;
+  lastRefresh?: string;
+};
+
+type AionrsLoginInfo = {
+  userCode?: string;
+  verificationUri?: string;
+  expiresAt?: string;
+};
+
+function getOptionalLoginField(data: unknown, key: keyof AionrsLoginInfo): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const value = (data as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getAionrsLoginBridge(platform: string | undefined) {
+  if (platform === 'copilot') return ipcBridge.copilotAuth;
+  if (platform === 'chatgpt') return ipcBridge.chatgptAuth;
+  return null;
+}
+
+function getAionrsLoginKey(platform: string | undefined): 'copilot' | 'chatgpt' | null {
+  if (platform === 'copilot' || platform === 'chatgpt') return platform;
+  return null;
+}
+
 const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(
   ({ modalProps, modalCtrl, ...props }) => {
     const { t } = useTranslation();
     const { data } = props;
     const [form] = Form.useForm();
     const [message, messageContext] = Message.useMessage();
-
-    // Watch bedrockAuthMethod only for UI conditional rendering (not for auto-refresh)
     const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
     const isBedrock = data?.platform === 'bedrock';
+    const loginPlatformKey = getAionrsLoginKey(data?.platform);
+    const loginAuthBridge = getAionrsLoginBridge(data?.platform);
+    const isAionrsLoginPlatform = isAionrsOnlyPlatform(data?.platform);
+    const canEditBaseUrl = !isBedrock && !isAionrsLoginPlatform && data?.platform !== 'gemini-vertex-ai';
+    const modelListApiKey = isAionrsLoginPlatform ? '' : data?.apiKey;
+    const proxyValue = Form.useWatch('proxy', form);
 
-    // 获取供应商 Logo / Get provider logo
-    const providerLogo = useMemo(() => {
-      return getProviderLogo(data?.name, data?.baseUrl, data?.platform);
-    }, [data?.name, data?.baseUrl, data?.platform]);
+    const [loginAuthStatus, setLoginAuthStatus] = useState<AionrsLoginStatus | null>(null);
+    const [loginInfo, setLoginInfo] = useState<AionrsLoginInfo | null>(null);
+    const [loginAuthLoading, setLoginAuthLoading] = useState(false);
+    const [waitingLogin, setWaitingLogin] = useState(false);
 
-    // For Bedrock, don't pass bedrockConfig to avoid auto-refresh on input changes
-    // We'll build it dynamically in onFocus
-    const modelListState = useModeModeList(data?.platform || 'gemini', data?.baseUrl, data?.apiKey, true, undefined);
+    const providerLogo = useMemo(
+      () => getProviderLogo(data?.name, data?.baseUrl, data?.platform),
+      [data?.baseUrl, data?.name, data?.platform]
+    );
+
+    const modelListState = useModeModeList(
+      data?.platform || 'gemini',
+      data?.baseUrl,
+      modelListApiKey,
+      proxyValue,
+      true,
+      undefined
+    );
+
+    const refreshLoginStatus = useCallback(async () => {
+      if (!loginAuthBridge) {
+        setLoginAuthStatus(null);
+        return;
+      }
+
+      const result = await loginAuthBridge.status.invoke();
+      if (result.success && result.data) {
+        setLoginAuthStatus(result.data);
+        return;
+      }
+      setLoginAuthStatus(null);
+    }, [loginAuthBridge]);
+
+    const handleLoginPlatformLogin = useCallback(async () => {
+      if (!loginAuthBridge || !loginPlatformKey) return;
+
+      setLoginAuthLoading(true);
+      try {
+        const result = await loginAuthBridge.startLogin.invoke({ proxy: proxyValue });
+        if (!result.success || !result.data) {
+          message.error(result.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+          return;
+        }
+
+        setLoginInfo({
+          userCode: getOptionalLoginField(result.data, 'userCode'),
+          verificationUri: getOptionalLoginField(result.data, 'verificationUri'),
+          expiresAt: getOptionalLoginField(result.data, 'expiresAt'),
+        });
+        setWaitingLogin(true);
+        message.info(t(`settings.${loginPlatformKey}LoginStarted`));
+
+        void loginAuthBridge.waitForLogin
+          .invoke({ loginId: result.data.loginId })
+          .then(async (waitResult) => {
+            if (!waitResult.success) {
+              message.error(waitResult.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+              return;
+            }
+
+            setLoginInfo(null);
+            await refreshLoginStatus();
+            void modelListState.mutate();
+            message.success(t(`settings.${loginPlatformKey}LoginSuccess`));
+          })
+          .finally(() => {
+            setWaitingLogin(false);
+          });
+      } finally {
+        setLoginAuthLoading(false);
+      }
+    }, [loginAuthBridge, loginPlatformKey, message, modelListState, proxyValue, refreshLoginStatus, t]);
+
+    const handleLoginPlatformLogout = useCallback(async () => {
+      if (!loginAuthBridge || !loginPlatformKey) return;
+
+      setLoginAuthLoading(true);
+      try {
+        const result = await loginAuthBridge.logout.invoke({ proxy: proxyValue });
+        if (!result.success) {
+          message.error(result.msg || t(`settings.${loginPlatformKey}LoginFailed`));
+          return;
+        }
+
+        setLoginInfo(null);
+        setWaitingLogin(false);
+        await refreshLoginStatus();
+        message.success(t(`settings.${loginPlatformKey}LogoutSuccess`));
+      } finally {
+        setLoginAuthLoading(false);
+      }
+    }, [loginAuthBridge, loginPlatformKey, message, proxyValue, refreshLoginStatus, t]);
 
     useEffect(() => {
-      if (data) {
-        form.setFieldsValue({
-          ...data,
-          model:
-            data.model && data.model.length > 0 ? (data.model.length === 1 ? data.model[0] : data.model) : undefined,
-          bedrockAuthMethod: data.bedrockConfig?.authMethod || 'accessKey',
-          bedrockRegion: data.bedrockConfig?.region || 'us-east-1',
-          bedrockAccessKeyId: data.bedrockConfig?.accessKeyId || '',
-          bedrockSecretAccessKey: data.bedrockConfig?.secretAccessKey || '',
-          bedrockProfile: data.bedrockConfig?.profile || '',
-        });
-      }
+      if (!data) return;
+      form.setFieldsValue({
+        ...data,
+        apiKey: isAionrsOnlyPlatform(data.platform) ? '' : data.apiKey,
+        requestIntervalMs: data.requestIntervalMs ?? 0,
+        model: data.model && data.model.length > 0 ? (data.model.length === 1 ? data.model[0] : data.model) : undefined,
+        bedrockAuthMethod: data.bedrockConfig?.authMethod || 'accessKey',
+        bedrockRegion: data.bedrockConfig?.region || 'us-east-1',
+        bedrockAccessKeyId: data.bedrockConfig?.accessKeyId || '',
+        bedrockSecretAccessKey: data.bedrockConfig?.secretAccessKey || '',
+        bedrockProfile: data.bedrockConfig?.profile || '',
+      });
+      setLoginInfo(null);
+      setWaitingLogin(false);
     }, [data, form]);
+
+    useEffect(() => {
+      if (!modalProps.visible || !loginPlatformKey) return;
+      void refreshLoginStatus();
+    }, [loginPlatformKey, modalProps.visible, refreshLoginStatus]);
 
     return (
       <AionModal
@@ -144,34 +267,44 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         onCancel={modalCtrl.close}
         header={{ title: t('settings.editModel'), showClose: true }}
         style={{ minHeight: '400px', maxHeight: '90vh', borderRadius: 16 }}
-        contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }}
+        contentStyle={{
+          background: 'var(--dialog-fill-0)',
+          borderRadius: 16,
+          padding: '20px 24px 16px',
+          overflow: 'auto',
+        }}
         onOk={async () => {
-          const values = await form.validate();
-          const updatedProvider: IProvider = {
-            ...(data || {}),
-            ...values,
-            // Ensure model is always an array
-            model: Array.isArray(values.model) ? values.model : [values.model],
-          };
-
-          // Add Bedrock configuration if platform is Bedrock
-          if (isBedrock) {
-            updatedProvider.bedrockConfig = {
-              authMethod: values.bedrockAuthMethod,
-              region: values.bedrockRegion,
-              ...(values.bedrockAuthMethod === 'accessKey'
-                ? {
-                    accessKeyId: values.bedrockAccessKeyId,
-                    secretAccessKey: values.bedrockSecretAccessKey,
-                  }
-                : {
-                    profile: values.bedrockProfile,
-                  }),
+          try {
+            const values = await form.validate();
+            const updatedProvider: IProvider = {
+              ...data,
+              ...values,
+              apiKey: isBedrock || isAionrsLoginPlatform ? '' : values.apiKey,
+              proxy: typeof values.proxy === 'string' && values.proxy.trim() ? values.proxy.trim() : undefined,
+              requestIntervalMs: normalizeRequestIntervalMs(values.requestIntervalMs),
+              model: Array.isArray(values.model) ? values.model : [values.model],
             };
-          }
 
-          props.onChange(updatedProvider);
-          modalCtrl.close();
+            if (isBedrock) {
+              updatedProvider.bedrockConfig = {
+                authMethod: values.bedrockAuthMethod,
+                region: values.bedrockRegion,
+                ...(values.bedrockAuthMethod === 'accessKey'
+                  ? {
+                      accessKeyId: values.bedrockAccessKeyId,
+                      secretAccessKey: values.bedrockSecretAccessKey,
+                    }
+                  : {
+                      profile: values.bedrockProfile,
+                    }),
+              };
+            }
+
+            props.onChange(updatedProvider);
+            modalCtrl.close();
+          } catch {
+            // Validation failed. Arco Form will highlight invalid fields.
+          }
         }}
         okText={t('common.save')}
         cancelText={t('common.cancel')}
@@ -179,7 +312,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         {messageContext}
         <div className='py-20px'>
           <Form form={form} layout='vertical'>
-            {/* 模型供应商名称（可编辑，带 Logo）/ Model Provider name (editable, with Logo) */}
             <Form.Item
               label={
                 <div className='flex items-center gap-6px'>
@@ -194,30 +326,102 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               <Input placeholder={t('settings.modelProvider')} />
             </Form.Item>
 
-            {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
             <Form.Item
               hidden={isBedrock}
               label={t('settings.baseUrl')}
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'baseUrl'}
-              disabled
+              disabled={!canEditBaseUrl}
             >
               <Input></Input>
             </Form.Item>
 
             <Form.Item
-              hidden={isBedrock}
+              hidden={isBedrock || isAionrsLoginPlatform}
               label={t('settings.apiKey')}
-              required={!isBedrock}
-              rules={[{ required: !isBedrock }]}
+              required={!isBedrock && !isAionrsLoginPlatform}
+              rules={[{ required: !isBedrock && !isAionrsLoginPlatform }]}
               field={'apiKey'}
-              extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
+              extra={<div className='text-11px text-t-secondary mt-2'>{t('settings.multiApiKeyEditTip')}</div>}
             >
               <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
             </Form.Item>
 
-            {/* AWS Bedrock Authentication Method */}
+            <Form.Item
+              hidden={isBedrock}
+              label={t('settings.proxyConfig')}
+              field={'proxy'}
+              rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}
+            >
+              <Input placeholder={t('settings.proxyHttpOnly')} />
+            </Form.Item>
+
+            <Form.Item
+              label={t('settings.requestIntervalMs')}
+              field={'requestIntervalMs'}
+              extra={t('settings.requestIntervalMsTip')}
+            >
+              <InputNumber min={0} step={100} precision={0} style={{ width: '100%' }} placeholder='0' />
+            </Form.Item>
+
+            {isAionrsLoginPlatform && loginPlatformKey && (
+              <div className='mb-12px rd-12px bg-aou-1 p-12px flex flex-col gap-10px'>
+                <div className='flex items-center justify-between gap-12px'>
+                  <div className='flex items-center gap-8px'>
+                    <span className='text-13px font-medium'>{t(`settings.${loginPlatformKey}AuthTitle`)}</span>
+                    <Tag size='small' color='arcoblue'>
+                      {t('settings.aionrsOnly')}
+                    </Tag>
+                    <Tag color={waitingLogin ? 'orange' : loginAuthStatus?.authenticated ? 'green' : 'gray'}>
+                      {waitingLogin
+                        ? t(`settings.${loginPlatformKey}LoginPending`)
+                        : loginAuthStatus?.authenticated
+                          ? t(`settings.${loginPlatformKey}AuthLoggedIn`)
+                          : t(`settings.${loginPlatformKey}AuthLoggedOut`)}
+                    </Tag>
+                  </div>
+                  {loginAuthStatus?.authenticated ? (
+                    <Button loading={loginAuthLoading} size='small' onClick={() => void handleLoginPlatformLogout()}>
+                      {t(`settings.${loginPlatformKey}Logout`)}
+                    </Button>
+                  ) : (
+                    <Button
+                      type='primary'
+                      loading={loginAuthLoading || waitingLogin}
+                      size='small'
+                      onClick={() => void handleLoginPlatformLogin()}
+                    >
+                      {t(`settings.${loginPlatformKey}Login`)}
+                    </Button>
+                  )}
+                </div>
+
+                <div className='text-12px text-t-secondary leading-5'>
+                  {t(`settings.${loginPlatformKey}AuthDescription`)}
+                </div>
+
+                {loginInfo?.userCode || loginInfo?.verificationUri ? (
+                  <div className='flex flex-col gap-8px'>
+                    {loginInfo?.userCode ? (
+                      <Input
+                        readOnly
+                        value={loginInfo.userCode}
+                        addBefore={t(`settings.${loginPlatformKey}DeviceCode`)}
+                      />
+                    ) : null}
+                    {loginInfo?.verificationUri ? (
+                      <Input
+                        readOnly
+                        value={loginInfo.verificationUri}
+                        addBefore={t(`settings.${loginPlatformKey}VerificationUrl`)}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             <Form.Item
               hidden={!isBedrock}
               label={t('settings.bedrock.authMethod')}
@@ -231,7 +435,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               </Select>
             </Form.Item>
 
-            {/* AWS Region */}
             <Form.Item
               hidden={!isBedrock}
               label={t('settings.bedrock.region')}
@@ -252,7 +455,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               </Select>
             </Form.Item>
 
-            {/* Access Key ID */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
               label={t('settings.bedrock.accessKeyId')}
@@ -263,7 +465,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               <Input.Password placeholder='AKIA...' visibilityToggle />
             </Form.Item>
 
-            {/* Secret Access Key */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
               label={t('settings.bedrock.secretAccessKey')}
@@ -274,7 +475,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               <Input.Password visibilityToggle />
             </Form.Item>
 
-            {/* AWS Profile */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'profile'}
               label={t('settings.bedrock.profile')}
@@ -286,7 +486,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               <Input placeholder='default' />
             </Form.Item>
 
-            {/* Model Selection */}
             <Form.Item
               label={t('settings.modelName')}
               field={'model'}
@@ -301,7 +500,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                 allowCreate
                 mode={data?.model && data.model.length > 1 ? 'multiple' : undefined}
                 onFocus={async () => {
-                  // For Bedrock, build bedrockConfig from current form values and fetch models
                   if (isBedrock) {
                     const values = form.getFields();
                     if (!values.bedrockAuthMethod || !values.bedrockRegion) {
@@ -319,7 +517,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                       message.error(t('settings.bedrock.fillRequiredFields'));
                       return;
                     }
-                    // Build bedrockConfig and fetch models manually
+
                     const bedrockConfig = {
                       authMethod: values.bedrockAuthMethod,
                       region: values.bedrockRegion,
@@ -332,31 +530,30 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                             profile: values.bedrockProfile,
                           }),
                     };
+
                     try {
-                      const res = await ipcBridge.mode.fetchModelList.invoke({
+                      const result = await ipcBridge.mode.fetchModelList.invoke({
                         platform: data?.platform || 'bedrock',
                         api_key: '',
+                        proxy: proxyValue,
                         bedrockConfig,
                       });
-                      if (res.success) {
-                        const models =
-                          res.data?.mode.map((v: any) => {
-                            if (typeof v === 'string') {
-                              return { label: v, value: v };
-                            } else {
-                              return { label: v.name, value: v.id };
-                            }
-                          }) || [];
-                        // Update the model list state manually
-                        void modelListState.mutate({ models }, false);
-                      } else {
-                        message.error(res.msg || 'Failed to fetch models');
+                      if (!result.success) {
+                        message.error(result.msg || 'Failed to fetch models');
+                        return;
                       }
-                    } catch (error: any) {
-                      message.error(error.message || 'Failed to fetch models');
+
+                      const models =
+                        result.data?.mode.map((item: string | { id: string; name: string }) =>
+                          typeof item === 'string' ? { label: item, value: item } : { label: item.name, value: item.id }
+                        ) || [];
+                      void modelListState.mutate({ models }, false);
+                    } catch (error) {
+                      message.error(error instanceof Error ? error.message : 'Failed to fetch models');
                     }
                     return;
                   }
+
                   void modelListState.mutate();
                 }}
                 options={modelListState.data?.models || []}

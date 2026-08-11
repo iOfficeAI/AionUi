@@ -1,0 +1,507 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { AcpBackendAll, PresetAgentType } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL, getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
+import { uuid } from '@/common/utils';
+
+// Re-export for backward compatibility (tests mock this path)
+export { hasNativeSkillSupport };
+import { existsSync } from 'fs';
+import fs from 'fs/promises';
+import path from 'path';
+import { ProcessConfig, getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
+import { computeOpenClawIdentityHash } from './openclawUtils';
+
+export async function resolveBuiltinCliPath(
+  backend: string | undefined,
+  cliPath?: string
+): Promise<string | undefined> {
+  const normalizedCliPath = cliPath?.trim();
+  if (!backend || backend === 'custom') {
+    return normalizedCliPath;
+  }
+
+  const backendConfig = Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, backend)
+    ? ACP_BACKENDS_ALL[backend as AcpBackendAll]
+    : undefined;
+  const configuredCliPath = Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, backend)
+    ? (await ProcessConfig.get('acp.config'))?.[backend as AcpBackendAll]?.cliPath?.trim()
+    : undefined;
+  const defaultCliCommand = backendConfig?.cliCommand?.trim();
+
+  if (configuredCliPath && (!normalizedCliPath || normalizedCliPath === defaultCliCommand)) {
+    return configuredCliPath;
+  }
+
+  return normalizedCliPath;
+}
+
+/**
+ * 为 assistant 设置原生 workspace 结构（skill symlinks）
+ * Set up native workspace structure for assistant (skill symlinks only)
+ *
+ * 将启用的 skills symlink 到 CLI 原生 skills 目录，让各 CLI 自动发现
+ * Symlink enabled skills into CLI-native skills directories for auto-discovery
+ *
+ * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目录
+ * Only runs for temp workspaces (not user-specified) to avoid polluting user project dirs
+ *
+ * 注意：Rules/人格设定通过 system prompt 注入，不写 context file
+ * Note: Rules/personality are injected via system prompt, NOT written to context files
+ */
+export async function setupAssistantWorkspace(
+  workspace: string,
+  options: {
+    agentType?: PresetAgentType | string;
+    backend?: string;
+    enabledSkills?: string[];
+    /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
+    excludeBuiltinSkills?: string[];
+    /** Absolute paths to extra skill directories to symlink (e.g. cron job skill dirs) */
+    extraSkillPaths?: string[];
+  }
+): Promise<void> {
+  // Determine skills directories from ACP_BACKENDS_ALL config
+  const key = options.backend || options.agentType || '';
+  const skillsDirs = getSkillsDirsForBackend(key);
+
+  // If no native skill directory is known for this CLI, skip symlink setup.
+  // The caller should use prompt injection as fallback.
+  if (!skillsDirs) return;
+
+  const autoSkillsDir = getAutoSkillsDir();
+  const userSkillsDir = getSkillsDir();
+
+  for (const skillsRelDir of skillsDirs) {
+    const targetSkillsDir = path.join(workspace, skillsRelDir);
+    await fs.mkdir(targetSkillsDir, { recursive: true });
+
+    // Always symlink _builtin skills for all native-skill backends
+    let autoSkillNames: string[] = [];
+    try {
+      autoSkillNames = await fs.readdir(autoSkillsDir);
+    } catch {
+      // _builtin dir not ready yet, skip
+    }
+    const excludeSet = new Set(options.excludeBuiltinSkills ?? []);
+    for (const skillName of autoSkillNames) {
+      if (excludeSet.has(skillName)) continue;
+      const sourceSkillDir = path.join(autoSkillsDir, skillName);
+      const targetSkillDir = path.join(targetSkillsDir, skillName);
+      try {
+        await fs.stat(sourceSkillDir);
+        try {
+          await fs.lstat(targetSkillDir);
+          // Already exists, skip
+        } catch {
+          await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked builtin skill: ${skillName} -> ${targetSkillDir}`);
+        }
+      } catch {
+        console.warn(`[setupAssistantWorkspace] Builtin skill directory not found: ${sourceSkillDir}`);
+      }
+    }
+
+    // Symlink optional enabled skills
+    for (const skillName of options.enabledSkills ?? []) {
+      // Skip if already symlinked as a builtin skill
+      if (autoSkillNames.includes(skillName)) continue;
+
+      // Try builtin-skills/ first, then user skills/
+      const builtinCandidate = path.join(getBuiltinSkillsCopyDir(), skillName);
+      const userCandidate = path.join(userSkillsDir, skillName);
+      const sourceSkillDir = existsSync(builtinCandidate) ? builtinCandidate : userCandidate;
+      const targetSkillDir = path.join(targetSkillsDir, skillName);
+
+      try {
+        await fs.stat(sourceSkillDir);
+        try {
+          await fs.lstat(targetSkillDir);
+          // Already exists, skip
+        } catch {
+          await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked skill: ${skillName} -> ${targetSkillDir}`);
+        }
+      } catch {
+        console.warn(`[setupAssistantWorkspace] Skill directory not found: ${sourceSkillDir}`);
+      }
+    }
+
+    // Symlink extra skill directories (e.g. cron job SKILL.md dirs)
+    for (const extraPath of options.extraSkillPaths ?? []) {
+      const skillDirName = path.basename(extraPath);
+      const targetSkillDir = path.join(targetSkillsDir, skillDirName);
+      try {
+        await fs.stat(extraPath);
+        try {
+          await fs.lstat(targetSkillDir);
+        } catch {
+          await fs.symlink(extraPath, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked extra skill: ${extraPath} -> ${targetSkillDir}`);
+        }
+      } catch {
+        console.warn(`[setupAssistantWorkspace] Extra skill directory not found: ${extraPath}`);
+      }
+    }
+  }
+}
+
+/**
+ * 创建工作空间目录（不复制文件）
+ * Create workspace directory (without copying files)
+ *
+ * 注意：文件复制统一由 sendMessage 时的 copyFilesToDirectory 处理
+ * 避免文件被复制两次（一次在创建会话时，一次在发送消息时）
+ * Note: File copying is handled by copyFilesToDirectory in sendMessage
+ * This avoids files being copied twice
+ */
+const buildWorkspaceWidthFiles = async (
+  defaultWorkspaceName: string,
+  workspace?: string,
+  _defaultFiles?: string[],
+  providedCustomWorkspace?: boolean
+) => {
+  // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
+  const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
+
+  if (!workspace) {
+    const tempPath = getSystemDir().workDir;
+    workspace = path.join(tempPath, defaultWorkspaceName);
+    await fs.mkdir(workspace, { recursive: true });
+  } else {
+    // 规范化路径：去除末尾斜杠，解析为绝对路径
+    workspace = path.resolve(workspace);
+  }
+
+  return { workspace, customWorkspace };
+};
+
+export const createGeminiAgent = async (
+  model: TProviderWithModel,
+  workspace?: string,
+  defaultFiles?: string[],
+  webSearchEngine?: 'google' | 'default',
+  customWorkspace?: boolean,
+  contextFileName?: string,
+  presetRules?: string,
+  enabledSkills?: string[],
+  presetAssistantId?: string,
+  sessionMode?: string,
+  isHealthCheck?: boolean,
+  extraSkillPaths?: string[],
+  excludeBuiltinSkills?: string[]
+): Promise<TChatConversation> => {
+  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
+    `gemini-temp-${Date.now()}`,
+    workspace,
+    defaultFiles,
+    customWorkspace
+  );
+
+  // 对 temp workspace 设置 skill symlinks（原生 SkillManager 自动发现）
+  // Set up skill symlinks for native SkillManager discovery
+  if (!finalCustomWorkspace) {
+    await setupAssistantWorkspace(newWorkspace, {
+      agentType: 'gemini',
+      enabledSkills,
+      extraSkillPaths,
+      excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'gemini',
+    model,
+    extra: {
+      workspace: newWorkspace,
+      customWorkspace: finalCustomWorkspace,
+      webSearchEngine,
+      contextFileName,
+      // 系统规则 / System rules
+      presetRules,
+      // 向后兼容：contextContent 保存 rules / Backward compatible: contextContent stores rules
+      contextContent: presetRules,
+      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId,
+      // Initial session mode from Guid page mode selector
+      sessionMode,
+      // Explicit marker for temporary health-check conversations
+      isHealthCheck,
+    },
+    desc: finalCustomWorkspace ? newWorkspace : '',
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: newWorkspace,
+    id: uuid(),
+  };
+};
+
+export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const persistedCliPath = await resolveBuiltinCliPath(extra.backend, extra.cliPath);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `${extra.backend}-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  // 对 temp workspace 设置 skill symlinks（原生发现）
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      backend: extra.backend,
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'acp',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      backend: extra.backend,
+      cliPath: persistedCliPath,
+      agentName: extra.agentName,
+      customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
+      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
+      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      enabledSkills: extra.enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
+      // Initial session mode selected on Guid page (from AgentModeSelector)
+      sessionMode: extra.sessionMode,
+      // Pre-selected model from Guid page (cached model list)
+      currentModelId: extra.currentModelId,
+      // Pre-selected ACP config options from Guid page (e.g. reasoning effort)
+      configOptionValues: extra.configOptionValues,
+      // Cached config options for immediate conversation render
+      cachedConfigOptions: extra.cachedConfigOptions,
+      // Pending config option selections to apply on first ACP session start
+      pendingConfigOptions: extra.pendingConfigOptions,
+      // Explicit marker for temporary health-check conversations
+      isHealthCheck: extra.isHealthCheck,
+      // Team ownership — used by sidebar filter to hide team-owned conversations
+      ...(extra.teamId ? { teamId: extra.teamId } : {}),
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const selectedModelId = extra.currentModelId || extra.codexModel;
+  const persistedCliPath = await resolveBuiltinCliPath('codex', extra.cliPath);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `codex-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      backend: 'codex',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'codex',
+    extra: {
+      workspace,
+      customWorkspace,
+      cliPath: persistedCliPath,
+      codexNative: true,
+      codexThreadId: extra.codexThreadId,
+      presetContext: extra.presetContext,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+      codexModel: selectedModelId,
+      currentModelId: selectedModelId,
+      configOptionValues: extra.configOptionValues,
+      cachedConfigOptions: extra.cachedConfigOptions,
+      pendingConfigOptions: extra.pendingConfigOptions,
+      isHealthCheck: extra.isHealthCheck,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `nanobot-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  // 对 temp workspace 设置 skill symlinks
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      agentType: 'nanobot',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'nanobot',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createRemoteAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `remote-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'remote',
+    extra: {
+      workspace,
+      customWorkspace,
+      remoteAgentId: extra.remoteAgentId!,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `aionrs-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  // Set up skill symlinks for native discovery by aionrs CLI
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      agentType: 'aionrs',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'aionrs',
+    model: options.model,
+    extra: {
+      workspace,
+      customWorkspace,
+      isHealthCheck: extra.isHealthCheck,
+      presetRules: extra.presetRules,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+      reasoningEffort: extra.reasoningEffort,
+    },
+    desc: customWorkspace ? workspace : '',
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `openclaw-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  // 对 temp workspace 设置 skill symlinks
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  const expectedIdentityHash = await computeOpenClawIdentityHash(workspace);
+  return {
+    type: 'openclaw-gateway',
+    extra: {
+      workspace: workspace,
+      backend: extra.backend,
+      agentName: extra.agentName,
+      customWorkspace,
+      gateway: {
+        cliPath: extra.cliPath,
+      },
+      runtimeValidation: {
+        expectedWorkspace: workspace,
+        expectedBackend: extra.backend,
+        expectedAgentName: extra.agentName,
+        expectedCliPath: extra.cliPath,
+        // Note: model is not used by openclaw-gateway, so skip expectedModel to avoid
+        // validation mismatch (conversation object doesn't store model for this type)
+        expectedIdentityHash,
+        switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
+      },
+      // Enabled skills list (loaded via SkillManager)
+      enabledSkills: extra.enabledSkills,
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};

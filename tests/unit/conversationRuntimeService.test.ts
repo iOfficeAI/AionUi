@@ -19,6 +19,7 @@ const workerTaskManagerRemoveTask = vi.fn(() => undefined);
 const cronBusyGuardRemove = vi.fn(() => undefined);
 const releaseConversationMessageCache = vi.fn(async () => undefined);
 const forgetSession = vi.fn(() => undefined);
+const forgetLiveSession = vi.fn(() => undefined);
 
 vi.mock('@process/WorkerManage', () => ({
   default: {
@@ -44,7 +45,7 @@ vi.mock('@process/services/cron/CronBusyGuard', () => ({
   },
 }));
 
-vi.mock('@process/message', () => ({
+vi.mock('@process/utils/message', () => ({
   releaseConversationMessageCache,
 }));
 
@@ -53,6 +54,12 @@ vi.mock('@process/services/ConversationTurnCompletionService', () => ({
     getInstance: () => ({
       forgetSession,
     }),
+  },
+}));
+
+vi.mock('@process/services/ConversationLiveStateService', () => ({
+  conversationLiveStateService: {
+    forgetSession: forgetLiveSession,
   },
 }));
 
@@ -69,6 +76,7 @@ describe('ConversationRuntimeService', () => {
     cronBusyGuardRemove.mockReset();
     releaseConversationMessageCache.mockReset();
     forgetSession.mockReset();
+    forgetLiveSession.mockReset();
 
     workerManageGetTaskById.mockReturnValue(undefined);
     workerManagePeekTaskById.mockReturnValue(undefined);
@@ -81,20 +89,16 @@ describe('ConversationRuntimeService', () => {
     cronBusyGuardRemove.mockReturnValue(undefined);
     releaseConversationMessageCache.mockResolvedValue(undefined);
     forgetSession.mockReturnValue(undefined);
+    forgetLiveSession.mockReturnValue(undefined);
   });
 
-  it('prefers the actively running task when the two managers disagree', async () => {
+  it('reads runtime task state from workerTaskManager only', async () => {
     const workerTask = {
       status: 'finished',
       getConfirmations: () => [],
     };
-    const legacyTask = {
-      status: 'running',
-      getConfirmations: () => [],
-    };
 
     workerTaskManagerGetTask.mockReturnValue(workerTask);
-    workerManagePeekTaskById.mockReturnValue(legacyTask);
 
     const { getConversationRuntimeTask } = await import('../../src/process/services/ConversationRuntimeService');
 
@@ -104,15 +108,14 @@ describe('ConversationRuntimeService', () => {
       })
     ).toEqual(
       expect.objectContaining({
-        task: legacyTask,
-        source: 'workerManage',
+        task: workerTask,
+        source: 'workerTaskManager',
         workerTask,
-        legacyTask,
       })
     );
   });
 
-  it('merges runtime task ids from both managers without duplicates', async () => {
+  it('lists runtime task ids from workerTaskManager only', async () => {
     workerTaskManagerListTasks.mockReturnValue([
       { id: 'conv-worker', type: 'gemini' },
       { id: 'conv-shared', type: 'acp' },
@@ -124,7 +127,7 @@ describe('ConversationRuntimeService', () => {
 
     const { listConversationRuntimeTaskIds } = await import('../../src/process/services/ConversationRuntimeService');
 
-    expect(listConversationRuntimeTaskIds()).toEqual(['conv-worker', 'conv-shared', 'conv-legacy']);
+    expect(listConversationRuntimeTaskIds()).toEqual(['conv-worker', 'conv-shared']);
   });
 
   it('drains worker-only runtime state and cleans runtime artifacts', async () => {
@@ -139,10 +142,12 @@ describe('ConversationRuntimeService', () => {
 
     await drainConversationRuntime('session-1');
 
-    expect(workerTaskManagerKill).toHaveBeenCalledWith('session-1');
+    expect(workerTaskManagerRemoveTask).toHaveBeenCalledWith('session-1');
+    expect(workerTaskManagerKill).not.toHaveBeenCalled();
     expect(workerManageKillAndDrain).not.toHaveBeenCalled();
     expect(cronBusyGuardRemove).toHaveBeenCalledWith('session-1');
     expect(forgetSession).toHaveBeenCalledWith('session-1');
+    expect(forgetLiveSession).toHaveBeenCalledWith('session-1');
     expect(releaseConversationMessageCache).toHaveBeenCalledWith('session-1', {
       persistPending: true,
     });

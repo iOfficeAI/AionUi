@@ -29,22 +29,38 @@ const workerManageKillAndDrain = vi.fn(async () => undefined);
 const workerManageGetTaskById = vi.fn(() => undefined);
 const workerManagePeekTaskById = vi.fn(() => undefined);
 const workerManageListTasks = vi.fn(() => []);
+const workerTaskManagerGetOrBuildTask = vi.fn();
 const workerTaskManagerListTasks = vi.fn(() => []);
 const dbGetUserConversations = vi.fn(() => ({ data: [] }));
 const dbGetUserConversationsByStatuses = vi.fn(() => ({ success: true, data: [] }));
 const dbGetConversation = vi.fn(() => ({ success: false, data: undefined }));
 const cronBusyGuardGetAllStates = vi.fn(() => new Map());
+const turnCompletionGetDebugState = vi.fn(() => ({
+  emittedKeyCount: 0,
+  inFlightCount: 0,
+  emittedKeys: [],
+  inFlightSessionIds: [],
+}));
+const getConversationMessageCacheStats = vi.fn(() => ({
+  size: 0,
+  conversations: [],
+}));
+const buildDatabaseMock = () => ({
+  getUserConversations: dbGetUserConversations,
+  getUserConversationsByStatuses: dbGetUserConversationsByStatuses,
+  getConversation: dbGetConversation,
+});
 
-vi.mock('../../src/webserver/middleware/apiAuthMiddleware', () => ({
+vi.mock('../../src/process/webserver/middleware/apiAuthMiddleware', () => ({
   validateApiToken: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-vi.mock('../../src/webserver/middleware/security', () => ({
+vi.mock('../../src/process/webserver/middleware/security', () => ({
   apiRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-vi.mock('@process/services/conversationService', () => ({
-  ConversationService: {},
+vi.mock('@process/services/conversationServiceSingleton', () => ({
+  conversationServiceSingleton: {},
 }));
 
 vi.mock('@process/WorkerManage', () => ({
@@ -59,16 +75,14 @@ vi.mock('@process/WorkerManage', () => ({
 vi.mock('@process/task/workerTaskManagerSingleton', () => ({
   workerTaskManager: {
     getTask: vi.fn(() => undefined),
+    getOrBuildTask: workerTaskManagerGetOrBuildTask,
     listTasks: workerTaskManagerListTasks,
   },
 }));
 
-vi.mock('@process/database', () => ({
-  getDatabase: vi.fn(() => ({
-    getUserConversations: dbGetUserConversations,
-    getUserConversationsByStatuses: dbGetUserConversationsByStatuses,
-    getConversation: dbGetConversation,
-  })),
+vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(() => Promise.resolve(buildDatabaseMock())),
+  getDatabaseSync: vi.fn(() => buildDatabaseMock()),
 }));
 
 vi.mock('@process/services/cron/CronBusyGuard', () => ({
@@ -94,6 +108,11 @@ vi.mock('@process/services/ApiDiagnosticsService', () => ({
 }));
 
 vi.mock('@process/services/ConversationTurnCompletionService', () => ({
+  ConversationTurnCompletionService: {
+    getInstance: vi.fn(() => ({
+      getDebugState: turnCompletionGetDebugState,
+    })),
+  },
   getConversationStatusSnapshot: vi.fn(),
   getReadOnlyConversationStatusSnapshot: vi.fn(),
   getConversationStatusCategory: vi.fn((state: string) => {
@@ -115,6 +134,10 @@ vi.mock('@process/services/ConversationTurnCompletionService', () => ({
         }
       : undefined
   ),
+}));
+
+vi.mock('@process/utils/message', () => ({
+  getConversationMessageCacheStats,
 }));
 
 vi.mock('@/common', () => ({
@@ -139,6 +162,7 @@ describe('conversationApiRoutes helpers', () => {
     workerManagePeekTaskById.mockReturnValue(undefined);
     workerManageListTasks.mockReset();
     workerManageListTasks.mockReturnValue([]);
+    workerTaskManagerGetOrBuildTask.mockReset();
     workerTaskManagerListTasks.mockReset();
     workerTaskManagerListTasks.mockReturnValue([]);
     dbGetUserConversations.mockReset();
@@ -149,10 +173,22 @@ describe('conversationApiRoutes helpers', () => {
     dbGetConversation.mockReturnValue({ success: false, data: undefined });
     cronBusyGuardGetAllStates.mockReset();
     cronBusyGuardGetAllStates.mockReturnValue(new Map());
+    turnCompletionGetDebugState.mockReset();
+    turnCompletionGetDebugState.mockReturnValue({
+      emittedKeyCount: 0,
+      inFlightCount: 0,
+      emittedKeys: [],
+      inFlightSessionIds: [],
+    });
+    getConversationMessageCacheStats.mockReset();
+    getConversationMessageCacheStats.mockReturnValue({
+      size: 0,
+      conversations: [],
+    });
   });
 
-  it('recognizes active snapshots from runtime and non-stopped states', async () => {
-    const { isConversationStatusActive } = await import('../../src/webserver/routes/conversationApiRoutes');
+  it('recognizes active snapshots from attached runtime tasks instead of generating state', async () => {
+    const { isConversationStatusActive } = await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     expect(
       isConversationStatusActive({
@@ -165,7 +201,7 @@ describe('conversationApiRoutes helpers', () => {
           pendingConfirmations: 0,
         },
       })
-    ).toBe(false);
+    ).toBe(true);
 
     expect(
       isConversationStatusActive({
@@ -182,6 +218,19 @@ describe('conversationApiRoutes helpers', () => {
 
     expect(
       isConversationStatusActive({
+        status: 'running',
+        state: 'ai_generating',
+        runtime: {
+          hasTask: false,
+          taskStatus: undefined,
+          isProcessing: true,
+          pendingConfirmations: 0,
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isConversationStatusActive({
         status: 'finished',
         state: 'stopped',
         runtime: {
@@ -195,7 +244,8 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('resolves generating scope explicitly and falls back to all for explicit status or state filters', async () => {
-    const { resolveConversationStatusListScope } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { resolveConversationStatusListScope } =
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     expect(
       resolveConversationStatusListScope({
@@ -225,7 +275,7 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('builds a sorted generating conversation status list by default', async () => {
-    const { buildConversationStatusList } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { buildConversationStatusList } = await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const conversations: MinimalConversation[] = [
       {
@@ -348,7 +398,7 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('supports scope and field filters for status list queries', async () => {
-    const { buildConversationStatusList } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { buildConversationStatusList } = await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const conversations: MinimalConversation[] = [
       {
@@ -461,7 +511,7 @@ describe('conversationApiRoutes helpers', () => {
     });
 
     const activeOnly = buildConversationStatusList(conversations as never, { scope: 'active' }, getSnapshot);
-    expect(activeOnly.map((item) => item.sessionId)).toEqual(['conv-other-source', 'conv-running']);
+    expect(activeOnly.map((item) => item.sessionId)).toEqual(['conv-other-source', 'conv-running', 'conv-active']);
 
     const apiGenerating = buildConversationStatusList(
       conversations as never,
@@ -536,22 +586,26 @@ describe('conversationApiRoutes helpers', () => {
     expect(stoppedOnly.map((item) => item.sessionId)).toEqual(['conv-active']);
   });
 
-  it('collects runtime candidate ids without including idle busy-guard entries', async () => {
-    const { collectConversationStatusCandidateIds } = await import('../../src/webserver/routes/conversationApiRoutes');
+  it('collects runtime candidate ids from task, busy, cache, and completion sources', async () => {
+    const { collectConversationStatusCandidateIds } =
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const result = collectConversationStatusCandidateIds(
       [{ id: 'task-1' }, { id: 'task-2' }],
       new Map([
         ['busy-1', { isProcessing: true }],
         ['idle-1', { isProcessing: false }],
-      ])
+      ]),
+      ['cache-1'],
+      ['turn-1']
     );
 
-    expect(result).toEqual(['task-1', 'task-2', 'busy-1']);
+    expect(result).toEqual(['task-1', 'task-2', 'busy-1', 'cache-1', 'turn-1']);
   });
 
   it('resolves active status list conversations from runtime candidates instead of scanning full history', async () => {
-    const { getConversationStatusListConversations } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { getConversationStatusListConversations } =
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const db = {
       getConversation: vi.fn((conversationId: string) => {
@@ -607,7 +661,8 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('uses full history for non-runtime scopes that need completed sessions', async () => {
-    const { getConversationStatusListConversations } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { getConversationStatusListConversations } =
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const db = {
       getConversation: vi.fn(),
@@ -641,7 +696,7 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('builds conversation usage payload with summary and paginated replies', async () => {
-    const { buildConversationUsageResponse } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { buildConversationUsageResponse } = await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const conversation: MinimalConversation = {
       id: 'conv-usage',
@@ -720,7 +775,7 @@ describe('conversationApiRoutes helpers', () => {
 
   it('builds batch conversation usage summary payload', async () => {
     const { buildConversationUsageSummaryListResponse } =
-      await import('../../src/webserver/routes/conversationApiRoutes');
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const result = buildConversationUsageSummaryListResponse(
       [
@@ -760,7 +815,8 @@ describe('conversationApiRoutes helpers', () => {
   });
 
   it('builds usage monitor payload with overall and grouped aggregates', async () => {
-    const { buildConversationUsageMonitorResponse } = await import('../../src/webserver/routes/conversationApiRoutes');
+    const { buildConversationUsageMonitorResponse } =
+      await import('../../src/process/webserver/routes/conversationApiRoutes');
 
     const result = buildConversationUsageMonitorResponse({
       range: {

@@ -8,9 +8,9 @@ import {
   CODEX_MODE_FULL_AUTO_NO_SANDBOX,
   isCodexAutoApproveMode,
   isCodexNoSandboxMode,
-} from '../../src/common/codex/codexModes';
+} from '../../src/common/types/codex/codexModes';
 import { getCodexConfigPath, getCodexSandboxModeForSessionMode } from '../../src/process/utils/codexConfig';
-import { getAgentModes } from '../../src/renderer/constants/agentModes';
+import { getAgentModes } from '../../src/renderer/utils/model/agentModes';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -40,7 +40,7 @@ describe('codex mode helpers', () => {
   it('reads Codex config from CODEX_HOME when provided', () => {
     vi.stubEnv('CODEX_HOME', 'C:\\Users\\tester\\.codex-custom');
 
-    expect(getCodexConfigPath()).toBe(join('C:\\Users\\tester\\.codex-custom', 'config.toml'));
+    expect(getCodexConfigPath()).toBe('C:\\Users\\tester\\.codex-custom\\config.toml');
   });
 
   it('falls back to ~/.codex/config.toml', () => {

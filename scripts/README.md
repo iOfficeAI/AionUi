@@ -4,13 +4,13 @@ This directory contains scripts for building and packaging AionUi across differe
 
 ## Scripts Overview
 
-| Script | Lines | Purpose |
-|--------|-------|---------|
-| `build-with-builder.js` | 116 | Coordinates Electron Forge and electron-builder |
-| `rebuildNativeModules.js` | 219 | **Unified native module rebuild utility** |
-| `beforeBuild.js` | 38 | Pre-packaging native module rebuild hook |
-| `afterPack.js` | 67 | Post-packaging verification (Linux only) |
-| `afterSign.js` | 47 | macOS code signing and notarization |
+| Script                    | Lines | Purpose                                         |
+| ------------------------- | ----- | ----------------------------------------------- |
+| `build-with-builder.js`   | 116   | Coordinates Electron Forge and electron-builder |
+| `rebuildNativeModules.js` | 219   | **Unified native module rebuild utility**       |
+| `beforeBuild.js`          | 38    | Pre-packaging native module rebuild hook        |
+| `afterPack.js`            | 67    | Post-packaging verification (Linux only)        |
+| `afterSign.js`            | 47    | macOS code signing and notarization             |
 
 **Total**: 487 lines (down from 711 lines before optimization)
 
@@ -62,16 +62,19 @@ This is the core module that handles all native module rebuilding. It provides:
 ### Platform-Specific Behavior
 
 #### Windows
+
 - **Modules rebuilt**: `better-sqlite3`
 - **Skipped**: `node-pty` (uses prebuilt binaries)
 - **Environment**: MSVS 2022, Windows SDK 10.0.19041.0
 
 #### macOS
+
 - **Modules rebuilt**: `better-sqlite3`
 - **When**: `beforeBuild` hook only
 - **Post-build**: Code signing and notarization
 
 #### Linux
+
 - **Modules rebuilt**: `better-sqlite3`
 - **When**:
   - `beforeBuild`: Rebuild in source directory
@@ -122,11 +125,13 @@ rebuildSingleModule({
 ## Why Two Rebuild Stages?
 
 ### beforeBuild (All Platforms)
+
 - Rebuilds modules in **source directory** (`node_modules/`)
 - Ensures correct binaries are packaged
 - Uses `electron-rebuild` for all modules
 
 ### afterPack (Linux Only)
+
 - Rebuilds `better-sqlite3` in **packaged app** (`app.asar.unpacked/`)
 - Handles cross-compilation issues
 - Uses `prebuild-install` for faster builds (downloads prebuilt binary)
@@ -138,6 +143,7 @@ rebuildSingleModule({
 **Symptom**: `Error: Cannot find module 'better-sqlite3'`
 
 **Solution**: Check that:
+
 1. Module is in `electron-builder.yml` → `files` section
 2. Module is in `electron-builder.yml` → `asarUnpack` section
 3. `beforeBuild.js` ran successfully during build
@@ -148,6 +154,7 @@ rebuildSingleModule({
 **Symptom**: App crashes with segfault or binary incompatibility error
 
 **Solution**:
+
 1. Verify target architecture matches build architecture
 2. Check that `beforeBuild.js` rebuilt for correct architecture
 3. For Linux ARM64: Ensure `afterPack.js` rebuilt the module
@@ -157,6 +164,7 @@ rebuildSingleModule({
 **Symptom**: Native module rebuild fails during cross-arch build
 
 **Solution**:
+
 - Windows: This is expected for `node-pty` (uses prebuilt binaries)
 - macOS/Linux: Ensure build tools for target architecture are installed
 - Consider building on native architecture instead
@@ -164,10 +172,12 @@ rebuildSingleModule({
 ## Optimization History
 
 ### Version 1.0 (Before Optimization)
+
 - Total: 711 lines across 5 files
 - Duplication: Rebuild logic in both `beforeBuild` and `afterPack`
 
 ### Version 2.0 (Current)
+
 - Total: 487 lines across 5 files
 - Savings: 224 lines (31% reduction)
 - Changes:

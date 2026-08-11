@@ -46,7 +46,7 @@ describe('CodexConnection stop cleanup', () => {
       callback(null);
     });
 
-    const { terminateCodexChildProcess } = await import('../../src/agent/codex/connection/CodexConnection');
+    const { terminateCodexChildProcess } = await import('../../src/process/agent/codex/connection/CodexConnection');
 
     const child = {
       pid: 4321,
@@ -87,7 +87,7 @@ describe('CodexConnection stop cleanup', () => {
     });
 
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-    const { CodexConnection } = await import('../../src/agent/codex/connection/CodexConnection');
+    const { CodexConnection } = await import('../../src/process/agent/codex/connection/CodexConnection');
 
     const connection = new CodexConnection();
     const pendingReject = vi.fn();

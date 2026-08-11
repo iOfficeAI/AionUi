@@ -11,7 +11,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const searchConversationMessagesInvoke = vi.fn();
 const navigateMock = vi.fn();
-const markAsReadMock = vi.fn();
 const closeAllTabsMock = vi.fn();
 const openTabMock = vi.fn();
 const blockMobileInputFocusMock = vi.fn();
@@ -36,7 +35,7 @@ vi.mock('../../src/renderer/hooks/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/context/ConversationTabsContext', () => ({
+vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', () => ({
   useOptionalConversationTabs: () => ({
     closeAllTabs: closeAllTabsMock,
     openTab: openTabMock,
@@ -44,17 +43,11 @@ vi.mock('../../src/renderer/pages/conversation/context/ConversationTabsContext',
   }),
 }));
 
-vi.mock('../../src/renderer/pages/cron', () => ({
-  useCronJobsMap: () => ({
-    markAsRead: markAsReadMock,
-  }),
-}));
-
 vi.mock('../../src/renderer/utils/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
-vi.mock('../../src/renderer/utils/focus', () => ({
+vi.mock('../../src/renderer/utils/ui/focus', () => ({
   blockMobileInputFocus: () => blockMobileInputFocusMock(),
   blurActiveElement: () => blurActiveElementMock(),
 }));
@@ -62,6 +55,7 @@ vi.mock('../../src/renderer/utils/focus', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en-US' },
   }),
 }));
 
@@ -73,18 +67,25 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import ConversationSearchPopover from '../../src/renderer/pages/conversation/grouped-history/ConversationSearchPopover';
+import ConversationSearchPopover from '../../src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
+
+const setElectronAPI = (value?: object) => {
+  Object.defineProperty(window, 'electronAPI', {
+    configurable: true,
+    value,
+  });
+};
 
 describe('ConversationSearchPopover', () => {
   beforeEach(() => {
     searchConversationMessagesInvoke.mockReset();
     navigateMock.mockReset();
-    markAsReadMock.mockReset();
     closeAllTabsMock.mockReset();
     openTabMock.mockReset();
     blockMobileInputFocusMock.mockReset();
     blurActiveElementMock.mockReset();
     globalThis.localStorage?.clear?.();
+    setElectronAPI(undefined);
   });
 
   afterEach(() => {
@@ -162,7 +163,6 @@ describe('ConversationSearchPopover', () => {
       });
     });
 
-    expect(markAsReadMock).toHaveBeenCalledWith('conv-1');
     expect(closeAllTabsMock).toHaveBeenCalledTimes(1);
     expect(openTabMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -180,5 +180,54 @@ describe('ConversationSearchPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'conversation.historySearch.tooltip' }));
 
     expect(screen.getByPlaceholderText('conversation.historySearch.placeholder')).toHaveValue('');
+  });
+
+  it('opens the modal on Cmd/Ctrl+Shift+F in desktop runtime', () => {
+    setElectronAPI({});
+
+    render(<ConversationSearchPopover />);
+
+    fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
+
+    expect(screen.getByTestId('conversation-search-modal')).toBeInTheDocument();
+  });
+
+  it('ignores the shortcut outside desktop runtime', () => {
+    render(<ConversationSearchPopover />);
+
+    fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
+
+    expect(screen.queryByTestId('conversation-search-modal')).not.toBeInTheDocument();
+  });
+
+  it('ignores composing and already-handled shortcuts', () => {
+    setElectronAPI({});
+
+    render(<ConversationSearchPopover />);
+
+    const composingEvent = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      shiftKey: true,
+      key: 'F',
+    });
+    Object.defineProperty(composingEvent, 'isComposing', {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(composingEvent);
+
+    const handledEvent = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      shiftKey: true,
+      key: 'F',
+    });
+    handledEvent.preventDefault();
+    document.dispatchEvent(handledEvent);
+
+    expect(screen.queryByTestId('conversation-search-modal')).not.toBeInTheDocument();
   });
 });

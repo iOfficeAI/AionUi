@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
-import { Robot } from '@icon-park/react';
+import { Plus, Robot } from '@icon-park/react';
+import { Tooltip } from '@arco-design/web-react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 
 type AgentPillBarProps = {
@@ -17,6 +20,7 @@ type AgentPillBarProps = {
   selectedAgentKey: string;
   getAgentKey: (agent: { backend: AcpBackend; customAgentId?: string }) => string;
   onSelectAgent: (key: string) => void;
+  suppressSelectionAnimation?: boolean;
 };
 
 const AgentPillBar: React.FC<AgentPillBarProps> = ({
@@ -24,9 +28,12 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
   selectedAgentKey,
   getAgentKey,
   onSelectAgent,
+  suppressSelectionAnimation = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className='w-full flex justify-center'>
@@ -49,11 +56,21 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         }}
       >
         {availableAgents
-          .filter((agent) => agent.backend !== 'custom' || agent.isExtension)
+          .filter((agent) => !agent.isPreset)
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-            const logoSrc = extensionAvatar || getAgentLogo(agent.backend);
+            // Remote agents use emoji avatars — not image URLs
+            const emojiAvatar = agent.backend === 'remote' && agent.avatar ? agent.avatar : undefined;
+            const logoSrc =
+              extensionAvatar ||
+              (!emojiAvatar
+                ? resolveAgentLogo({
+                    backend: agent.backend,
+                    customAgentId: agent.customAgentId,
+                    isExtension: agent.isExtension,
+                  })
+                : undefined);
 
             return (
               <React.Fragment key={getAgentKey(agent)}>
@@ -66,14 +83,17 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                   className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
                   style={
                     isSelected
-                      ? isMobile
-                        ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' }
-                        : undefined
+                      ? {
+                          ...(isMobile ? { transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined),
+                          ...(isMobile || suppressSelectionAnimation ? { animation: 'none' } : undefined),
+                        }
                       : { transition: 'opacity 0.2s ease' }
                   }
                   onClick={() => onSelectAgent(getAgentKey(agent))}
                 >
-                  {logoSrc ? (
+                  {emojiAvatar ? (
+                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{emojiAvatar}</span>
+                  ) : logoSrc ? (
                     <img
                       src={logoSrc}
                       alt={`${agent.backend} logo`}
@@ -101,6 +121,16 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               </React.Fragment>
             );
           })}
+        {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+        <Tooltip content={t('settings.agentManagement.discoverMoreAgents', { defaultValue: '发现更多 Agent' })}>
+          <div
+            className='flex items-center justify-center cursor-pointer p-4px opacity-60 hover:opacity-100 self-center'
+            style={{ transition: 'opacity 0.2s ease', flexShrink: 0, marginTop: 4 }}
+            onClick={() => navigate('/settings/agent?tab=local')}
+          >
+            <Plus theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
+          </div>
+        </Tooltip>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getScrollTopForActiveItem } from '@/renderer/hooks/useSlashCommandController';
+import { getScrollTopForActiveItem } from '@/renderer/hooks/chat/useSlashCommandController';
 
 describe('getScrollTopForActiveItem', () => {
   it('keeps scroll position when active item is already visible', () => {
