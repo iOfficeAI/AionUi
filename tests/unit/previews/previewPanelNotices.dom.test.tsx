@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// The preview panel's user-facing messages actually reach the screen.
+// Preview downloads and their user-facing failures actually reach the browser.
 //
-// The panel raises ~13 notices through `messageApi` (download failures, the
-// oversized notice, "open in system" errors, the save-conflict warning). All of
+// The panel raises notices through `messageApi` (download failures, "open in
+// system" errors, the save-conflict warning). All of
 // them depend on one easily-lost line of JSX: `{messageContextHolder}`. Drop it and
 // `messageApi.error()` still runs, still throws nothing, and shows the user
 // absolutely nothing — a pure silent failure that no type or lint check sees.
@@ -21,9 +21,15 @@
 // mock.
 
 import React from 'react';
+import { Message } from '@arco-design/web-react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import enPreview from '@/renderer/services/i18n/locales/en-US/preview.json';
+
+const mocks = vi.hoisted(() => ({
+  readContent: vi.fn(),
+  fetch: vi.fn(),
+}));
 
 // `t` echoes the key, so asserting on the key proves the pipeline delivered a
 // translated string rather than an empty node.
@@ -38,21 +44,38 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
 }));
 
+// Excel rendering has its own worker/status lifecycle and is outside these
+// download tests. Keeping it mounted can leave async viewer work running after
+// the panel behavior under test has completed.
+vi.mock('@/renderer/pages/conversation/Preview/components/viewers/ExcelViewer', () => ({
+  default: () => null,
+}));
+
 vi.mock('@/common', () => ({
-  ipcBridge: {
-    fileStream: { contentUpdate: { on: () => () => {} } },
-    preview: { open: { on: () => () => {} } },
-    shell: { openFile: { invoke: async () => undefined } },
-    fs: {
-      writeContent: { invoke: async () => true },
-      getContentMetadata: { invoke: async () => null },
-      readContent: { invoke: async () => null },
-      openSystem: { invoke: async () => undefined },
-      writeFile: { invoke: async () => true },
-      getFileMetadata: { invoke: async () => null },
-      getImageBase64: { invoke: async () => null },
-    },
-  },
+  ipcBridge: (() => {
+    const officePreview = {
+      status: { on: () => () => {} },
+      start: { invoke: async () => ({ error: 'OFFICECLI_NOT_FOUND' }) },
+      stop: { invoke: async () => undefined },
+    };
+    return {
+      fileStream: { contentUpdate: { on: () => () => {} } },
+      preview: { open: { on: () => () => {} } },
+      shell: { openFile: { invoke: async () => undefined } },
+      excelPreview: officePreview,
+      wordPreview: officePreview,
+      pptPreview: officePreview,
+      fs: {
+        writeContent: { invoke: async () => true },
+        getContentMetadata: { invoke: async () => null },
+        readContent: { invoke: mocks.readContent },
+        openSystem: { invoke: async () => undefined },
+        writeFile: { invoke: async () => true },
+        getFileMetadata: { invoke: async () => null },
+        getImageBase64: { invoke: async () => null },
+      },
+    };
+  })(),
 }));
 
 import PreviewPanel from '@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel';
@@ -121,20 +144,99 @@ const openUnsupportedTab = (): void => {
   });
 };
 
+const openExcelTab = (): void => {
+  act(() => {
+    ctx.openPreview('', 'excel', {
+      title: 'budget.xlsx',
+      file_name: 'budget.xlsx',
+      fileRef: { kind: 'project', pe_id: 'peA', relative_path: 'sheets/budget.xlsx' },
+      editable: false,
+    });
+  });
+};
+
 beforeEach(() => {
   localStorage.clear();
+  mocks.readContent.mockReset().mockResolvedValue(null);
+  mocks.fetch.mockReset();
+  vi.stubGlobal('fetch', mocks.fetch);
 });
 
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const TIMEOUT_MS = 30000;
 
-describe('preview panel notices reach the DOM', () => {
+describe('preview download behavior', () => {
+  const originalCreateObjectUrl = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+  const originalRevokeObjectUrl = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+  let downloadedBlobs: Blob[];
+  let downloadedNames: string[];
+
+  beforeEach(() => {
+    downloadedBlobs = [];
+    downloadedNames = [];
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn((blob: Blob) => {
+        downloadedBlobs.push(blob);
+        return 'blob:preview-download';
+      }),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+      downloadedNames.push(this.download);
+    });
+  });
+
+  afterEach(() => {
+    if (originalCreateObjectUrl) Object.defineProperty(URL, 'createObjectURL', originalCreateObjectUrl);
+    else Reflect.deleteProperty(URL, 'createObjectURL');
+    if (originalRevokeObjectUrl) Object.defineProperty(URL, 'revokeObjectURL', originalRevokeObjectUrl);
+    else Reflect.deleteProperty(URL, 'revokeObjectURL');
+  });
+
   it(
-    'shows the oversized download refusal to the user, not just to the code',
+    'downloads the original bytes for an Explorer-backed Excel tab',
+    async () => {
+      const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x01]);
+      mocks.fetch.mockResolvedValue(
+        new Response(bytes, {
+          headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+        })
+      );
+      const { rerender } = render(<Harness showPanel={false} />);
+      openExcelTab();
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+
+      await waitFor(() => {
+        expect(downloadedBlobs).toHaveLength(1);
+      });
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        '/api/fs/stream?kind=project&pe_id=peA&relative_path=sheets%2Fbudget.xlsx'
+      );
+      expect(downloadedBlobs[0]).toMatchObject({
+        size: bytes.byteLength,
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      expect(downloadedNames).toEqual(['budget.xlsx']);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-download');
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'shows the oversized download refusal to the user',
     async () => {
       const { rerender } = render(<Harness showPanel={false} />);
       openOversizedTab();
@@ -143,18 +245,13 @@ describe('preview panel notices reach the DOM', () => {
       const downloadButton = await screen.findByTitle('preview.downloadFile');
       fireEvent.click(downloadButton);
 
-      // The load-bearing assertion: the copy is on screen. This is what breaks if
-      // the holder is ever dropped during a JSX refactor.
-      await waitFor(() => {
-        expect(screen.getByText('preview.oversized.downloadUnavailable')).toBeInTheDocument();
-      });
+      await waitFor(() => expect(screen.getByText('preview.oversized.downloadUnavailable')).toBeInTheDocument());
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(downloadedBlobs).toHaveLength(0);
     },
     TIMEOUT_MS
   );
 
-  // Same refusal, different reason. Telling the user a 2 MB HEIC is "too large to
-  // download" is simply false, so the two states must not share one sentence — and
-  // nothing enforced that until this test.
   it(
     'explains an unsupported download refusal by format, not by size',
     async () => {
@@ -165,11 +262,122 @@ describe('preview panel notices reach the DOM', () => {
       const downloadButton = await screen.findByTitle('preview.downloadFile');
       fireEvent.click(downloadButton);
 
-      await waitFor(() => {
-        expect(screen.getByText('preview.unsupported.downloadUnavailable')).toBeInTheDocument();
-      });
-      // The size explanation must not appear for a format problem.
+      await waitFor(() => expect(screen.getByText('preview.unsupported.downloadUnavailable')).toBeInTheDocument());
       expect(screen.queryByText('preview.oversized.downloadUnavailable')).not.toBeInTheDocument();
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(downloadedBlobs).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'shows the existing failure message without starting a download when the backing read fails',
+    async () => {
+      mocks.fetch.mockRejectedValue(new Error('read failed'));
+      const { rerender } = render(<Harness showPanel={false} />);
+      openExcelTab();
+      act(() => rerender(<Harness showPanel />));
+
+      fireEvent.click(await screen.findByTitle('preview.downloadFile'));
+
+      await waitFor(() => expect(screen.getByText('Failed to download')).toBeInTheDocument());
+      expect(downloadedBlobs).toHaveLength(0);
+      expect(downloadedNames).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'reports a failure when the backing stream refuses the download',
+    async () => {
+      const messageError = vi.fn();
+      vi.spyOn(Message, 'useMessage').mockReturnValue([
+        { error: messageError } as unknown as ReturnType<typeof Message.useMessage>[0],
+        null,
+      ]);
+      mocks.fetch.mockResolvedValue(new Response(null, { status: 404 }));
+      const { rerender } = render(<Harness showPanel={false} />);
+      openExcelTab();
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(messageError).toHaveBeenCalledWith('Failed to download');
+      expect(downloadedBlobs).toHaveLength(0);
+      expect(downloadedNames).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'refuses a content-free download when the tab has no safe file reference',
+    async () => {
+      const messageError = vi.fn();
+      vi.spyOn(Message, 'useMessage').mockReturnValue([
+        { error: messageError } as unknown as ReturnType<typeof Message.useMessage>[0],
+        null,
+      ]);
+      const { rerender } = render(<Harness showPanel={false} />);
+      act(() => {
+        ctx.openPreview('', 'excel', {
+          title: 'detached.xlsx',
+          file_name: 'detached.xlsx',
+          editable: false,
+        });
+      });
+      act(() => rerender(<Harness showPanel />));
+
+      const downloadButton = await screen.findByTitle('preview.downloadFile');
+      fireEvent.click(downloadButton);
+
+      expect(messageError).toHaveBeenCalledWith('Failed to download');
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(downloadedBlobs).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'rejects an empty stream instead of saving a zero-byte file',
+    async () => {
+      mocks.fetch.mockResolvedValue(new Response());
+      const { rerender } = render(<Harness showPanel={false} />);
+      openExcelTab();
+      act(() => rerender(<Harness showPanel />));
+
+      fireEvent.click(await screen.findByTitle('preview.downloadFile'));
+
+      await waitFor(() => expect(screen.getByText('Failed to download')).toBeInTheDocument());
+      expect(downloadedBlobs).toHaveLength(0);
+      expect(downloadedNames).toHaveLength(0);
+    },
+    TIMEOUT_MS
+  );
+
+  it(
+    'downloads editable text from memory instead of rereading the backing file',
+    async () => {
+      const { rerender } = render(<Harness showPanel={false} />);
+      act(() => {
+        ctx.openPreview('unsaved edit', 'code', {
+          title: 'draft.ts',
+          file_name: 'draft.ts',
+          fileRef: { kind: 'project', pe_id: 'peA', relative_path: 'src/draft.ts' },
+          language: 'typescript',
+        });
+      });
+      act(() => rerender(<Harness showPanel />));
+
+      fireEvent.click(await screen.findByTitle('preview.downloadFile'));
+
+      await waitFor(() => expect(downloadedBlobs).toHaveLength(1));
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(mocks.readContent).not.toHaveBeenCalled();
+      expect(downloadedBlobs[0]).toMatchObject({ size: 12, type: 'text/plain;charset=utf-8' });
+      expect(downloadedNames).toEqual(['draft.ts']);
     },
     TIMEOUT_MS
   );
