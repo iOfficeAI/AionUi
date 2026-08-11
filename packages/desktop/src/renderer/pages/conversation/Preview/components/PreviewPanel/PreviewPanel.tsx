@@ -50,7 +50,13 @@ import {
   type RefreshConfirmState,
   type PreviewTab,
 } from '.';
-import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
+import {
+  DEFAULT_SPLIT_RATIO,
+  EDITABLE_CONTENT_TYPES,
+  FILE_TYPES_WITH_BUILTIN_OPEN,
+  MAX_SPLIT_WIDTH,
+  MIN_SPLIT_WIDTH,
+} from '../../constants';
 import { usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import './preview.css';
@@ -1071,6 +1077,13 @@ const PreviewPanel: React.FC = () => {
             refreshState={refreshStateToken(refreshState)}
             refreshActionable={isRefreshActionable(refreshState)}
             onRefresh={handleRefreshClick}
+            showSave={
+              isEditable &&
+              (EDITABLE_CONTENT_TYPES as readonly string[]).includes(content_type) &&
+              !(Boolean(metadata?.oversized) || content_type === 'unsupported')
+            }
+            saveActionable={Boolean(activeTab?.isDirty)}
+            onSave={() => void handleSaveActiveTab()}
             hasNoRenderableContent={Boolean(metadata?.oversized) || content_type === 'unsupported'}
             onViewModeChange={(mode) => {
               setViewMode(mode);
