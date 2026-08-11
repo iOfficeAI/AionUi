@@ -57,11 +57,17 @@ describe('customGroupHelpers - CRUD', () => {
     expect(createCustomGroup('Work', 'fixed-id').id).toBe('fixed-id');
   });
 
+  it('falls back to "Untitled group" for a blank name', () => {
+    expect(createCustomGroup('   ').name).toBe('Untitled group');
+  });
+
   it('renames a group', () => {
     const groups = [group('a', 'Old')];
     expect(renameCustomGroup(groups, 'a', 'New')[0].name).toBe('New');
     // Unknown group: unchanged, no crash.
     expect(renameCustomGroup(groups, 'nope', 'New')).toEqual(groups);
+    // Blank name: unchanged, no crash.
+    expect(renameCustomGroup(groups, 'a', '   ')).toEqual(groups);
   });
 
   it('deletes a group and keeps the rest', () => {
@@ -75,6 +81,13 @@ describe('customGroupHelpers - CRUD', () => {
     const groups = [group('a', 'A')];
     expect(toggleGroupCollapsed(groups, 'a')[0].collapsed).toBe(true);
     expect(toggleGroupCollapsed(groups, 'a')[0].collapsed).toBe(true);
+  });
+
+  it('leaves unrelated groups untouched when toggling collapsed', () => {
+    const groups = [group('a', 'A'), group('b', 'B', [], true)];
+    const next = toggleGroupCollapsed(groups, 'a');
+    expect(next[0].collapsed).toBe(true);
+    expect(next[1].collapsed).toBe(true);
   });
 });
 
@@ -144,6 +157,13 @@ describe('customGroupHelpers - moving items', () => {
     expect(next[0].itemIds).toEqual([]);
     expect(next[1].itemIds).toEqual(['conversation:3', 'conversation:1']);
   });
+
+  it('moveItemToGroupAt with a null target removes the item everywhere', () => {
+    const groups = [group('a', 'A', ['conversation:1']), group('b', 'B', ['conversation:1', 'conversation:2'])];
+    const next = moveItemToGroupAt(groups, 'conversation', '1', null, 0);
+    expect(next[0].itemIds).toEqual([]);
+    expect(next[1].itemIds).toEqual(['conversation:2']);
+  });
 });
 
 describe('customGroupHelpers - ordering', () => {
@@ -153,10 +173,22 @@ describe('customGroupHelpers - ordering', () => {
     expect(next[0].itemIds).toEqual(['conversation:3', 'conversation:1', 'conversation:2']);
   });
 
+  it('reorderGroupItems leaves other groups untouched', () => {
+    const groups = [group('a', 'A', ['conversation:1']), group('b', 'B', ['conversation:2'])];
+    const next = reorderGroupItems(groups, 'nope', ['conversation:9']);
+    expect(next).toEqual(groups);
+  });
+
   it('reorders the group list', () => {
     const groups = [group('a', 'A'), group('b', 'B'), group('c', 'C')];
     const next = reorderGroups(groups, ['c', 'a', 'b']);
     expect(next.map((g) => g.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('reorderGroups skips unknown ids and appends leftovers', () => {
+    const groups = [group('a', 'A'), group('b', 'B'), group('c', 'C')];
+    expect(reorderGroups(groups, ['nope', 'c']).map((g) => g.id)).toEqual(['c', 'a', 'b']);
+    expect(reorderGroups(groups, ['a']).map((g) => g.id)).toEqual(['a', 'b', 'c']);
   });
 });
 
@@ -171,6 +203,23 @@ describe('customGroupHelpers - normalization', () => {
     expect(next).toHaveLength(1);
     expect(next[0].name).toBe('A');
     expect(next[0].itemIds).toEqual(['conversation:1']);
+  });
+
+  it('normalizes entries with blank names, non-array/non-string/unparsable item ids', () => {
+    const raw = [
+      42,
+      null,
+      { id: 'b', name: '   ', itemIds: [] },
+      { id: 'c', name: 'C', itemIds: 'not-an-array' },
+      { id: 'd', name: 'D', itemIds: [42] },
+      { id: 'e', name: 'E', itemIds: ['bogus:'] },
+      { id: 'f', name: 'F', itemIds: ['conversation:7'] },
+    ] as unknown as SidebarCustomGroup[];
+    const next = normalizeCustomGroups(raw);
+    expect(next).toHaveLength(4);
+    expect(next.map((g) => g.id)).toEqual(['c', 'd', 'e', 'f']);
+    expect(next[0]).toMatchObject({ name: 'C', itemIds: [] });
+    expect(next[3]).toMatchObject({ id: 'f', name: 'F', itemIds: ['conversation:7'] });
   });
 
   it('returns an empty list for undefined', () => {
