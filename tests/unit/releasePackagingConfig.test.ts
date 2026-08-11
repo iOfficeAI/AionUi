@@ -47,6 +47,14 @@ describe('release packaging configuration', () => {
     expect(winBlock).not.toContain('    - zip');
   });
 
+  it('ships the in-app browser MCP runtime unpacked for the external Node launcher', () => {
+    const config = readProjectFile('packages/desktop/electron-builder.yml');
+    const packageJson = JSON.parse(readProjectFile('package.json')) as { dependencies: Record<string, string> };
+
+    expect(packageJson.dependencies['chrome-devtools-mcp']).toBe('0.16.0');
+    expect(config.match(/node_modules\/chrome-devtools-mcp\/\*\*\/\*/g)).toHaveLength(2);
+  });
+
   it('uploads mac zip artifacts without a stale Windows zip glob', () => {
     const workflow = readProjectFile('.github/workflows/_build-reusable.yml');
 

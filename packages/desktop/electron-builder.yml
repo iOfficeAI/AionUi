@@ -33,6 +33,8 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
+  # In-app browser MCP runtime (bundled to avoid first-run network downloads)
+  - node_modules/chrome-devtools-mcp/**/*
   # CLI dependencies (needed by nested jackspeak/glob)
   - node_modules/@isaacs/cliui/**/*
   - node_modules/ansi-regex/**/*
@@ -203,6 +205,7 @@ asarUnpack:
   - '**/node_modules/prebuild-install/**/*'
   - '**/node_modules/node-gyp-build/**/*'
   - '**/node_modules/bindings/**/*'
+  - '**/node_modules/chrome-devtools-mcp/**/*'
   # open library and dependencies - needed for Windows asar compatibility
   - '**/node_modules/open/**/*'
   - '**/node_modules/default-browser/**/*'

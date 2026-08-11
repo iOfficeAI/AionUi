@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IMAGE_GEN_ENV_KEYS } from '@/common/config/imageGenerationMcpEnv';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
 import { resolveImageGenerationMigrationConfig, runBackendMigrations } from '@/process/utils/runBackendMigrations';
 
@@ -8,6 +9,7 @@ const {
   batchImportServersMock,
   configFileGetMock,
   configFileSetMock,
+  deleteServerMock,
   httpRequestMock,
   listServersMock,
   testMcpConnectionMock,
@@ -16,6 +18,7 @@ const {
   batchImportServersMock: vi.fn(),
   configFileGetMock: vi.fn(),
   configFileSetMock: vi.fn(),
+  deleteServerMock: vi.fn(),
   httpRequestMock: vi.fn(),
   listServersMock: vi.fn(),
   testMcpConnectionMock: vi.fn(),
@@ -30,6 +33,7 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   mcpService: {
     listServers: { invoke: listServersMock },
     batchImportServers: { invoke: batchImportServersMock },
+    deleteServer: { invoke: deleteServerMock },
     updateServer: { invoke: updateServerMock },
     testMcpConnection: { invoke: testMcpConnectionMock },
   },
@@ -106,6 +110,7 @@ beforeEach(() => {
   configFileGetMock.mockResolvedValue(undefined);
   configFileSetMock.mockResolvedValue(undefined);
   batchImportServersMock.mockResolvedValue([]);
+  deleteServerMock.mockResolvedValue(undefined);
   updateServerMock.mockImplementation(async ({ id, data }) => ({
     ...imageServer(),
     id,
@@ -148,6 +153,126 @@ describe('resolveImageGenerationMigrationConfig', () => {
 });
 
 describe('runBackendMigrations', () => {
+  it('removes the redundant generic chrome-devtools server created by older releases', async () => {
+    listServersMock.mockResolvedValue([
+      {
+        id: 'builtin-chrome-id',
+        name: 'chrome-devtools',
+        description: 'Default MCP server: chrome-devtools',
+        enabled: false,
+        builtin: true,
+        transport: { type: 'stdio', command: 'npx', args: ['-y', 'chrome-devtools-mcp@latest'] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+      },
+    ]);
+
+    await runBackendMigrations(configFile as never);
+
+    expect(deleteServerMock).toHaveBeenCalledWith({ id: 'builtin-chrome-id' });
+    expect(batchImportServersMock).toHaveBeenCalledWith({
+      servers: expect.not.arrayContaining([expect.objectContaining({ name: 'chrome-devtools' })]),
+    });
+  });
+
+  it('preserves a customized chrome-devtools server even if an older release marked it built-in', async () => {
+    listServersMock.mockResolvedValue([
+      {
+        id: 'custom-chrome-id',
+        name: 'chrome-devtools',
+        description: 'My external Chrome',
+        enabled: true,
+        builtin: true,
+        transport: { type: 'stdio', command: 'custom-command', args: [] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+      },
+    ]);
+
+    await runBackendMigrations(configFile as never);
+
+    expect(deleteServerMock).not.toHaveBeenCalledWith({ id: 'custom-chrome-id' });
+    expect(updateServerMock).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'custom-chrome-id' }));
+  });
+
+  it('renames the legacy built-in browser server without importing a duplicate', async () => {
+    listServersMock.mockResolvedValue([
+      {
+        id: 'legacy-browser-id',
+        name: 'aionui-browser',
+        description: 'Legacy browser',
+        enabled: false,
+        builtin: true,
+        transport: { type: 'stdio', command: 'node', args: ['/old/browser.js'] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+      },
+    ]);
+    updateServerMock.mockImplementation(async ({ id, data }) => ({
+      id,
+      enabled: false,
+      created_at: 1,
+      updated_at: 1,
+      ...data,
+    }));
+
+    await runBackendMigrations(configFile as never);
+
+    expect(updateServerMock).toHaveBeenCalledWith({
+      id: 'legacy-browser-id',
+      data: expect.objectContaining({ name: BUILTIN_BROWSER_MCP_NAME }),
+    });
+    expect(batchImportServersMock).toHaveBeenCalledWith({
+      servers: expect.not.arrayContaining([expect.objectContaining({ name: BUILTIN_BROWSER_MCP_NAME })]),
+    });
+    expect(deleteServerMock).not.toHaveBeenCalled();
+  });
+
+  it('removes a legacy built-in browser record when the renamed server already exists', async () => {
+    listServersMock.mockResolvedValue([
+      {
+        id: 'current-browser-id',
+        name: BUILTIN_BROWSER_MCP_NAME,
+        description: 'Current browser',
+        enabled: true,
+        builtin: true,
+        transport: { type: 'stdio', command: 'node', args: ['/mock/builtin-mcp-browser.js'] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: JSON.stringify(
+          {
+            mcpServers: {
+              [BUILTIN_BROWSER_MCP_NAME]: {
+                command: 'node',
+                args: ['/mock/builtin-mcp-browser.js'],
+              },
+            },
+          },
+          null,
+          2
+        ),
+      },
+      {
+        id: 'legacy-browser-id',
+        name: 'aionui-browser',
+        description: 'Legacy browser',
+        enabled: true,
+        builtin: true,
+        transport: { type: 'stdio', command: 'node', args: ['/old/browser.js'] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+      },
+    ]);
+
+    await runBackendMigrations(configFile as never);
+
+    expect(deleteServerMock).toHaveBeenCalledWith({ id: 'legacy-browser-id' });
+  });
+
   it('does not write image generation business config back to local config storage', async () => {
     listServersMock.mockResolvedValue([imageServer()]);
     configFileGetMock.mockImplementation(async (key: string) => {

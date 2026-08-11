@@ -44,6 +44,7 @@
         "better-sqlite3": "^12.4.1",
         "buffer": "^6.0.3",
         "builder-util-runtime": "9.5.1",
+        "chrome-devtools-mcp": "0.16.0",
         "classnames": "^2.5.1",
         "cookie": "^1.0.2",
         "cookie-parser": "^1.4.7",
@@ -1690,6 +1691,8 @@
     "chokidar": ["chokidar@3.6.0", "", { "dependencies": { "anymatch": "~3.1.2", "braces": "~3.0.2", "glob-parent": "~5.1.2", "is-binary-path": "~2.1.0", "is-glob": "~4.0.1", "normalize-path": "~3.0.0", "readdirp": "~3.6.0" }, "optionalDependencies": { "fsevents": "~2.3.2" } }, "sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw=="],
 
     "chownr": ["chownr@3.0.0", "", {}, "sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g=="],
+
+    "chrome-devtools-mcp": ["chrome-devtools-mcp@0.16.0", "", { "bin": { "chrome-devtools-mcp": "build/src/index.js" } }, "sha512-Jw+h8OGhpU9UjXl7Mm4yZe8IRzHmC19VNPP48+MI8AkWtCmnsbOsZ0hdoV2oq0veh3T1OcBbZSFHXVpFMBBi9Q=="],
 
     "chromium-pickle-js": ["chromium-pickle-js@0.2.0", "", {}, "sha512-1R5Fho+jBq0DDydt+/vHWj5KJNJCKdARKOCwZUen84I5BreWoLqRLANH1U87eJy1tiASPtMnGqJJq0ZsLoRPOw=="],
 

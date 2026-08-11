@@ -45,7 +45,13 @@ export const BROWSER_SESSION_PARTITION = 'persist:aionui-browser';
  * light up the activity badge. Both sides must agree exactly; separate copies would
  * eventually drift, and the symptom of drift is a badge that silently never lights.
  */
-export const BUILTIN_BROWSER_MCP_NAME = 'aionui-browser';
+export const BUILTIN_BROWSER_MCP_NAME = 'workmate-browser';
+
+/**
+ * Previously registered names kept for startup migration and historical tool-call recognition.
+ * Do not reuse these names for new records.
+ */
+export const LEGACY_BUILTIN_BROWSER_MCP_NAMES = ['aionui-browser'] as const;
 
 // ===== 文件处理相关常量 =====
 

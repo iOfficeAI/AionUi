@@ -26,7 +26,9 @@
  */
 export { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 
-import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
+import { BUILTIN_BROWSER_MCP_NAME, LEGACY_BUILTIN_BROWSER_MCP_NAMES } from '@/common/config/constants';
+
+const BROWSER_MCP_NAMES = [BUILTIN_BROWSER_MCP_NAME, ...LEGACY_BUILTIN_BROWSER_MCP_NAMES];
 
 /**
  * 工具执行中的状态。
@@ -48,7 +50,7 @@ type ToolGroupEntry = {
 
 const isBrowserMcpEntry = (entry: ToolGroupEntry): boolean => {
   const details = entry.confirmationDetails as { type?: string; server_name?: string } | undefined;
-  if (details?.type === 'mcp' && details.server_name === BUILTIN_BROWSER_MCP_NAME) return true;
+  if (details?.type === 'mcp' && BROWSER_MCP_NAMES.some((name) => details.server_name === name)) return true;
 
   /**
    * 兜底按工具名前缀匹配：不同引擎对 MCP 工具的命名方式不一致，有的会带
@@ -60,7 +62,9 @@ const isBrowserMcpEntry = (entry: ToolGroupEntry): boolean => {
    * beats over-detecting, but these two checks cover every known shape today.
    */
   const name = entry.name;
-  if (typeof name === 'string' && name.startsWith(`${BUILTIN_BROWSER_MCP_NAME}__`)) return true;
+  if (typeof name === 'string' && BROWSER_MCP_NAMES.some((serverName) => name.startsWith(`${serverName}__`))) {
+    return true;
+  }
 
   return false;
 };
