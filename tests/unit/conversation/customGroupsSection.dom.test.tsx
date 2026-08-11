@@ -195,7 +195,12 @@ describe('CustomGroupsSection', () => {
     expect(screen.getByText('Work')).toBeDefined();
     expect(screen.getByText('Chill')).toBeDefined();
     // Expanded group renders its items with a drag handle; collapsed group renders none.
-    expect(renderItemSpy).toHaveBeenCalledWith('conversation:1', expect.objectContaining({ props: expect.objectContaining({ 'data-testid': 'custom-group-item-drag-conversation:1' }) }));
+    expect(renderItemSpy).toHaveBeenCalledWith(
+      'conversation:1',
+      expect.objectContaining({
+        props: expect.objectContaining({ 'data-testid': 'custom-group-item-drag-conversation:1' }),
+      })
+    );
     expect(renderItemSpy).toHaveBeenCalledWith('conversation:2', expect.anything());
     expect(renderItemSpy).not.toHaveBeenCalledWith('conversation:9', expect.anything());
 

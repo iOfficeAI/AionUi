@@ -68,7 +68,12 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   (MenuMock as any).Item = (props: { children: React.ReactNode }) => <div>{props.children}</div>;
   (MenuMock as any).SubMenu = (props: { title: React.ReactNode; children: React.ReactNode }) => {
     state.submenuProps = props;
-    return <div data-testid='submenu'>{props.title}{props.children}</div>;
+    return (
+      <div data-testid='submenu'>
+        {props.title}
+        {props.children}
+      </div>
+    );
   };
   return {
     ...actual,

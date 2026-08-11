@@ -40,7 +40,12 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   (MenuMock as any).Item = (props: { children: React.ReactNode }) => <div>{props.children}</div>;
   (MenuMock as any).SubMenu = (props: { title: React.ReactNode; children: React.ReactNode }) => {
     state.submenuProps = props;
-    return <div data-testid='submenu'>{props.title}{props.children}</div>;
+    return (
+      <div data-testid='submenu'>
+        {props.title}
+        {props.children}
+      </div>
+    );
   };
   return {
     ...actual,
@@ -185,13 +190,7 @@ describe('SiderItem', () => {
   });
 
   it('renders a pushpin overlay for a pinned row without a pin action', () => {
-    render(
-      <SiderItem
-        {...baseSiderProps()}
-        pinned
-        menuItems={[{ key: 'a', icon: <span />, label: 'A' }]}
-      />
-    );
+    render(<SiderItem {...baseSiderProps()} pinned menuItems={[{ key: 'a', icon: <span />, label: 'A' }]} />);
     // Pushpin overlay renders because hasActions && pinned && !pinAction.
     expect(screen.getByTestId('icon-Pushpin')).toBeDefined();
   });
@@ -227,9 +226,7 @@ describe('SiderItem', () => {
     render(
       <SiderItem
         {...baseSiderProps()}
-        menuItems={[
-          { key: 'delete', icon: <span />, label: 'Delete', danger: true },
-        ]}
+        menuItems={[{ key: 'delete', icon: <span />, label: 'Delete', danger: true }]}
         onMenuAction={onMenuAction}
       />
     );

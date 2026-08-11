@@ -7,10 +7,7 @@ import WorkspaceGroupedHistory from '@/renderer/pages/conversation/GroupedHistor
 const state = vi.hoisted(() => ({
   customSectionProps: undefined as
     | {
-        renderItem?: (
-          itemId: string,
-          dragHandle: React.ReactNode | null
-        ) => React.ReactNode | null;
+        renderItem?: (itemId: string, dragHandle: React.ReactNode | null) => React.ReactNode | null;
       }
     | undefined,
   conversationRowProps: undefined as Record<string, unknown> | undefined,
@@ -186,9 +183,7 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/GroupedHistory/CustomGroupsSection', () => ({
-  default: (props: {
-    renderItem?: (itemId: string, dragHandle: React.ReactNode | null) => React.ReactNode | null;
-  }) => {
+  default: (props: { renderItem?: (itemId: string, dragHandle: React.ReactNode | null) => React.ReactNode | null }) => {
     state.customSectionProps = props;
     return <div data-testid='custom-groups-section' />;
   },
@@ -304,9 +299,7 @@ describe('WorkspaceGroupedHistory grouping logic', () => {
     state.conversationRowProps = undefined;
     state.teamRowProps = undefined;
     state.sortableRowProps = undefined;
-    state.groups = [
-      { id: 'g1', name: 'Group One', itemIds: ['conversation:conv1', 'team:team1', 'bogus'] },
-    ];
+    state.groups = [{ id: 'g1', name: 'Group One', itemIds: ['conversation:conv1', 'team:team1', 'bogus'] }];
     state.groupOfItem.mockImplementation(() => null);
     state.groupOfItem.mockImplementation((kind: string, id: string) => {
       if ((kind === 'conversation' && id === 'conv1') || (kind === 'team' && id === 'team1')) return 'g1';
