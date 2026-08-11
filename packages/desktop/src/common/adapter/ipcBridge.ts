@@ -1289,13 +1289,18 @@ export const sidebar = {
   // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
   // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
   get: withResponseMap(
-    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[] }>((p) => {
-      const params = new URLSearchParams();
-      if (p.limit) params.set('limit', String(p.limit));
-      for (const w of p.win ?? []) params.append('win', w);
-      const qs = params.toString();
-      return `/api/sidebar${qs ? `?${qs}` : ''}`;
-    }),
+    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[]; archived?: boolean }>(
+      (p) => {
+        const params = new URLSearchParams();
+        if (p.limit) params.set('limit', String(p.limit));
+        for (const w of p.win ?? []) params.append('win', w);
+        // Flip the read to the archive slice. The archived page reuses this same
+        // grouped read model — only the backend `archived_at` predicate changes.
+        if (p.archived) params.set('archived', 'true');
+        const qs = params.toString();
+        return `/api/sidebar${qs ? `?${qs}` : ''}`;
+      }
+    ),
     fromApiSidebar
   ),
   // One more window of a single group (the "+10" paging). `scope` is the group token,
@@ -1320,6 +1325,21 @@ export const sidebar = {
     import('@/common/types/sidebar').RemoveProjectResult,
     { project_id: string; dry_run?: boolean }
   >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
+  // Archive a conversation/team (moves its slice out of the active sidebar and
+  // unpins it). Team members cascade with the team. Both take no body; a missing
+  // or foreign id maps to 404.
+  archive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an archived conversation/team to the active sidebar.
+  unarchive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/unarchive`,
+    () => undefined
+  ),
+  // Empty the archive: hard-delete every archived team (members cascade) and every
+  // independent archived conversation. Returns the removed counts.
+  deleteArchived: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult>('/api/sidebar/archived'),
 };
 
 // Ordering (pin / unpin). Pin truth = a `user_order` row existing; both calls are

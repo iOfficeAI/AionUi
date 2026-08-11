@@ -122,3 +122,15 @@ export type RemoveProjectItem = {
   pinned: boolean;
   kind: OrderItemType;
 };
+
+/**
+ * `DELETE /api/sidebar/archived` result — counts what was hard-deleted when the
+ * archive was emptied. Mirrors the backend `ArchiveDeleteResult`. `teams_deleted`
+ * and `conversations_deleted` are disjoint: a team's member conversations are
+ * removed via the team cascade and counted only under `teams_deleted`, while
+ * `conversations_deleted` counts the independent archived conversations.
+ */
+export type ArchiveDeleteResult = {
+  teams_deleted: number;
+  conversations_deleted: number;
+};

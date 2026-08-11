@@ -1341,5 +1341,20 @@
     "clearConfirmContent": "Vous serez déconnecté de tous les sites du navigateur intégré. Cette action est irréversible.",
     "clearSuccess": "Données de navigation effacées",
     "clearFailed": "Échec de l'effacement des données de navigation"
+  },
+  "archived": {
+    "navLabel": "Archives",
+    "title": "Archives",
+    "description": "Conversations et équipes que vous avez archivées. Restaurez-les dans la barre latérale ou videz les archives pour les supprimer définitivement.",
+    "empty": "Aucun élément archivé",
+    "clearAll": "Vider les archives",
+    "clearConfirmTitle": "Vider les archives ?",
+    "clearConfirmContent": "Cela supprime définitivement toutes les conversations et équipes archivées. Cette action est irréversible.",
+    "clearSuccess": "Archives vidées",
+    "clearFailed": "Échec du vidage des archives",
+    "restore": "Restaurer",
+    "restoreSuccess": "Restauré",
+    "restoreFailed": "Échec de la restauration",
+    "teamMemberCount": "{{count}} membres"
   }
 }

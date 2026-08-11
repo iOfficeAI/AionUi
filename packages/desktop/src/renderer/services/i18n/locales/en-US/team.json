@@ -15,7 +15,13 @@
     "renameOk": "Save",
     "renameCancel": "Cancel",
     "renameSuccess": "Team renamed",
-    "deleteSuccess": "Team deleted"
+    "deleteSuccess": "Team deleted",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archiveSuccess": "Archived",
+    "archiveFailed": "Archive failed",
+    "unarchiveSuccess": "Restored",
+    "unarchiveFailed": "Restore failed"
   },
   "newAgent": "New Assistant",
   "noMessages": "No messages yet.",

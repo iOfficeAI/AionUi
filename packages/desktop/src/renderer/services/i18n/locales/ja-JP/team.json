@@ -15,7 +15,13 @@
     "renameOk": "保存",
     "renameCancel": "キャンセル",
     "renameSuccess": "チーム名を変更しました",
-    "deleteSuccess": "チームを削除しました"
+    "deleteSuccess": "チームを削除しました",
+    "archive": "アーカイブ",
+    "unarchive": "アーカイブ解除",
+    "archiveSuccess": "アーカイブしました",
+    "archiveFailed": "アーカイブに失敗しました",
+    "unarchiveSuccess": "復元しました",
+    "unarchiveFailed": "復元に失敗しました"
   },
   "newAgent": "新しいアシスタント",
   "noMessages": "No messages yet.",

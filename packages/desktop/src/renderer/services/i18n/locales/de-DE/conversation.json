@@ -82,7 +82,13 @@
     "loadMore": "Mehr laden",
     "newTeamInProject": "Neues Team in diesem Projekt",
     "projectCreateMenu": "Erstellen",
-    "collapseAllProjects": "Alle Projekte einklappen"
+    "collapseAllProjects": "Alle Projekte einklappen",
+    "archive": "Archivieren",
+    "unarchive": "Aus Archiv holen",
+    "archiveSuccess": "Archiviert",
+    "archiveFailed": "Archivieren fehlgeschlagen",
+    "unarchiveSuccess": "Wiederhergestellt",
+    "unarchiveFailed": "Wiederherstellen fehlgeschlagen"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

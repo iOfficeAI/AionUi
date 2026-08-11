@@ -157,6 +157,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
+    handleArchive,
     handleMenuVisibleChange,
     handleOpenMenu,
     handleCreateCronTask,
@@ -215,6 +216,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onCreateCronTask: handleCreateCronTask,
       onDelete: handleDeleteClick,
       onTogglePin: handleTogglePin,
+      onArchive: handleArchive,
       getJobStatus,
       resolveConversationName,
     }),
@@ -235,6 +237,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleCreateCronTask,
       handleDeleteClick,
       handleTogglePin,
+      handleArchive,
       getJobStatus,
       resolveConversationName,
     ]

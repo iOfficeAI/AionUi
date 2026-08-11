@@ -82,7 +82,13 @@
     "loadMore": "Загрузить ещё",
     "newTeamInProject": "Новая команда в этом проекте",
     "projectCreateMenu": "Создать",
-    "collapseAllProjects": "Свернуть все проекты"
+    "collapseAllProjects": "Свернуть все проекты",
+    "archive": "Архивировать",
+    "unarchive": "Разархивировать",
+    "archiveSuccess": "Архивировано",
+    "archiveFailed": "Не удалось архивировать",
+    "unarchiveSuccess": "Восстановлено",
+    "unarchiveFailed": "Не удалось восстановить"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

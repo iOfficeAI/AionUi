@@ -1341,5 +1341,20 @@
     "clearConfirmContent": "Du wirst von allen Websites im integrierten Browser abgemeldet. Das kann nicht rückgängig gemacht werden.",
     "clearSuccess": "Browserdaten gelöscht",
     "clearFailed": "Browserdaten konnten nicht gelöscht werden"
+  },
+  "archived": {
+    "navLabel": "Archiv",
+    "title": "Archiv",
+    "description": "Von dir archivierte Unterhaltungen und Teams. Stelle sie in der Seitenleiste wieder her oder leere das Archiv, um sie dauerhaft zu löschen.",
+    "empty": "Keine archivierten Elemente",
+    "clearAll": "Archiv leeren",
+    "clearConfirmTitle": "Archiv leeren?",
+    "clearConfirmContent": "Dadurch werden alle archivierten Unterhaltungen und Teams dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "clearSuccess": "Archiv geleert",
+    "clearFailed": "Archiv konnte nicht geleert werden",
+    "restore": "Wiederherstellen",
+    "restoreSuccess": "Wiederhergestellt",
+    "restoreFailed": "Wiederherstellung fehlgeschlagen",
+    "teamMemberCount": "{{count}} Mitglieder"
   }
 }
