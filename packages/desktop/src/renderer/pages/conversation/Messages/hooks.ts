@@ -172,6 +172,26 @@ export function composeMessageWithIndex(
     return result;
   }
 
+  // A superseding tip replaces its predecessor wherever it already sits in the
+  // list instead of appending: codex reports a stalled turn as a series of retry
+  // attempts ("Reconnecting... 1/5", then 2/5 …) and the user should watch one
+  // card count up rather than collect ten near-identical ones. Matching on the
+  // key — not msg_id, which differs per attempt — also survives other messages
+  // arriving in between. Tips are rare, so the scan costs nothing.
+  if (message.type === 'tips' && message.content?.supersedes_key) {
+    const key = message.content.supersedes_key;
+    const existingIdx = list.findIndex((item) => item.type === 'tips' && item.content?.supersedes_key === key);
+    if (existingIdx >= 0) {
+      const newList = list.slice();
+      newList[existingIdx] = { ...list[existingIdx], ...message, content: message.content } as TMessage;
+      return newList;
+    }
+    const newIdx = list.length;
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
   // tool_call: 使用 call_idIndex 快速查找
   // tool_call: use call_idIndex for fast lookup
   if (message.type === 'tool_call' && message.content?.call_id) {
@@ -685,6 +705,16 @@ const normalizeDbTipsMessage = (msg: TMessage): TMessage => {
         normalizeAgentStreamError({ ...parsed, message: parsed.content }))
       : undefined;
 
+  // The merge key has to survive the round trip: it is what tells the history
+  // fold below that these rows are one card the user watched count up, not a
+  // stack of separate warnings.
+  const supersedesKey =
+    typeof parsed.supersedes_key === 'string' && parsed.supersedes_key
+      ? parsed.supersedes_key
+      : typeof existingContent?.supersedes_key === 'string' && existingContent.supersedes_key
+        ? existingContent.supersedes_key
+        : undefined;
+
   return {
     ...msg,
     content: {
@@ -693,9 +723,48 @@ const normalizeDbTipsMessage = (msg: TMessage): TMessage => {
       ...(tipType !== 'error' && code ? { code } : {}),
       ...(tipType !== 'error' && params ? { params } : {}),
       ...(structuredError ? { error: structuredError } : {}),
+      ...(supersedesKey ? { supersedes_key: supersedesKey } : {}),
     },
   } as IMessageTips;
 };
+
+/**
+ * Collapse superseding tips loaded from history into the single card the user
+ * saw live. Every retry attempt is persisted — the backend cannot know which
+ * one turns out to be the last — so without this, reopening a conversation
+ * re-expands "Reconnecting... 1/5" through "5/5" into a stack, even though the
+ * live stream had folded them into one card counting up.
+ *
+ * The first occurrence keeps its position (so scroll anchors and ordering are
+ * stable) and carries the newest attempt's content, which is exactly what the
+ * live merge in composeMessageWithIndex produces.
+ */
+export function foldSupersededTips(messages: TMessage[]): TMessage[] {
+  const supersedesKeyOf = (message: TMessage): string | undefined =>
+    message.type === 'tips' ? message.content?.supersedes_key : undefined;
+
+  const latestByKey = new Map<string, TMessage>();
+  for (const message of messages) {
+    const key = supersedesKeyOf(message);
+    if (key) latestByKey.set(key, message);
+  }
+  if (!latestByKey.size) return messages;
+
+  const seen = new Set<string>();
+  const folded: TMessage[] = [];
+  for (const message of messages) {
+    const key = supersedesKeyOf(message);
+    if (!key) {
+      folded.push(message);
+      continue;
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const latest = latestByKey.get(key);
+    folded.push(!latest || latest === message ? message : ({ ...message, content: latest.content } as TMessage));
+  }
+  return folded.length === messages.length ? messages : folded;
+}
 
 /**
  * Normalize a message loaded from backend DB into renderer runtime shape.
@@ -723,10 +792,10 @@ const preferPersistedOrLiveMessage = (persisted: TMessage, live: TMessage): TMes
 };
 
 function mergeLoadedPageWithCurrent(conversationId: string, messages: TMessage[], currentList: TMessage[]): TMessage[] {
-  if (!currentList.length) return messages;
+  if (!currentList.length) return foldSupersededTips(messages);
 
   const sameConversation = currentList.filter((message) => message.conversation_id === conversationId);
-  if (!sameConversation.length) return messages;
+  if (!sameConversation.length) return foldSupersededTips(messages);
 
   const currentById = new Map(sameConversation.map((message) => [message.id, message]));
   const currentByKey = new Map(sameConversation.map((message) => [getMessageMergeKey(message), message]));
@@ -741,7 +810,11 @@ function mergeLoadedPageWithCurrent(conversationId: string, messages: TMessage[]
     (message) => !loadedIds.has(message.id) && !loadedKeys.has(getMessageMergeKey(message))
   );
 
-  return liveOnly.length ? [...mergedMessages, ...liveOnly] : mergedMessages;
+  // Fold after the concat, not before: the live card and the persisted rows of
+  // the same retry run reach this point as separate entries (a persisted tip has
+  // no msg_id, so neither merge key matches), and only a key-based fold sees
+  // that they are one card.
+  return foldSupersededTips(liveOnly.length ? [...mergedMessages, ...liveOnly] : mergedMessages);
 }
 
 export function prependHistoryMessages(currentList: TMessage[], messages: TMessage[]): TMessage[] {
@@ -752,7 +825,9 @@ export function prependHistoryMessages(currentList: TMessage[], messages: TMessa
   const uniqueHistory = messages.filter(
     (message) => !currentIds.has(message.id) && !currentKeys.has(getMessageMergeKey(message))
   );
-  return uniqueHistory.length ? [...uniqueHistory, ...currentList] : currentList;
+  // Folding the combined list (not the page alone) also covers a retry run whose
+  // attempts straddle a page boundary.
+  return uniqueHistory.length ? foldSupersededTips([...uniqueHistory, ...currentList]) : currentList;
 }
 
 export const usePrependHistoryPage = () => {

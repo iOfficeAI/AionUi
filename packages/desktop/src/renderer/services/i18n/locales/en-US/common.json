@@ -24,6 +24,8 @@
   "loading": "Please wait...",
   "copy": "Copy",
   "reply": "Reply",
+  "openInBuiltinBrowser": "Open in built-in browser",
+  "openInSystemBrowser": "Open in system browser",
   "copySuccess": "Copied",
   "copyFailed": "Copy failed",
   "download": "Download",

@@ -23,6 +23,8 @@
   "loading": "Por favor espera...",
   "copy": "Copiar",
   "reply": "Responder",
+  "openInBuiltinBrowser": "Abrir en el navegador integrado",
+  "openInSystemBrowser": "Abrir en el navegador del sistema",
   "copySuccess": "Copiado",
   "copyFailed": "Error al copiar",
   "download": "Descargar",

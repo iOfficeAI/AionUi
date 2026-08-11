@@ -24,6 +24,8 @@
   "loading": "お待ちください...",
   "copy": "コピー",
   "reply": "引用",
+  "openInBuiltinBrowser": "内蔵ブラウザで開く",
+  "openInSystemBrowser": "システムブラウザで開く",
   "copySuccess": "コピーしました",
   "copyFailed": "コピーに失敗しました",
   "download": "ダウンロード",

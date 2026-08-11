@@ -593,11 +593,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} paso(s) han fallado y NO se han aplicado. agy termina estos turnos como correctos igualmente, así que comprueba el resultado real en lugar de la respuesta."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "La versión instalada de agy {{reported}} es anterior a la {{verified}} verificada para esta integración; puede que falten funciones. Se recomienda actualizar agy."
+      "CLI_VERSION_OLDER": {
+        "body": "El {{cli}} instalado es anterior a la versión verificada por AionUi; puede que falten funciones. Se recomienda actualizar {{cli}}. (instalado: {{reported}} / verificado por AionUi: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "La versión instalada de agy {{reported}} es posterior a la {{verified}} verificada para esta integración. Debería seguir funcionando; informa de cualquier comportamiento extraño."
+      "CLI_VERSION_NEWER": {
+        "body": "El {{cli}} instalado es posterior a la versión verificada por AionUi. Debería seguir funcionando; informa de cualquier comportamiento extraño. (instalado: {{reported}} / verificado por AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (intento {{attempts}}, {{elapsed}} transcurridos: el proveedor del agente corta la conexión una y otra vez; AionUi está esperando.)"
       }
     }
   },
@@ -611,7 +614,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Cambiar nombre",
-      "addToChat": "Añadir al chat"
+      "addToChat": "Añadir al chat",
+      "copyRelativePath": "Copiar ruta relativa",
+      "copyAbsolutePath": "Copiar ruta absoluta"
     },
     "namePlaceholder": "Nombre",
     "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
@@ -642,6 +647,15 @@
         "changes": "Cambios",
         "blocked": "Requiere resolución"
       },
+      "sections": {
+        "repositories": "Repositorios",
+        "changes": "Cambios"
+      },
+      "viewAsTree": "Ver como árbol",
+      "viewAsList": "Ver como lista",
+      "worktree": "Árbol de trabajo",
+      "expandWorktrees": "Mostrar árboles de trabajo",
+      "collapseWorktrees": "Ocultar árboles de trabajo",
       "state": {
         "created": "Añadido",
         "modified": "Modificado",
@@ -696,7 +710,9 @@
         "outcomeUnknown": "La conexión se restableció antes de recibir respuesta: esta acción puede haberse completado o no. Actualiza y revisa la lista de archivos antes de reintentar.",
         "allFailed": "No se pudo procesar ninguno de los {{count}} archivo(s)"
       }
-    }
+    },
+    "pathCopied": "Ruta copiada",
+    "copyFailed": "No se pudo copiar la ruta"
   },
   "terminal": {
     "running": "En ejecución",

@@ -24,6 +24,8 @@
   "loading": "لطفاً صبر کنید...",
   "copy": "کپی",
   "reply": "پاسخ",
+  "openInBuiltinBrowser": "باز کردن در مرورگر داخلی",
+  "openInSystemBrowser": "باز کردن در مرورگر سیستم",
   "copySuccess": "کپی شد",
   "copyFailed": "کپی ناموفق بود",
   "download": "دانلود",

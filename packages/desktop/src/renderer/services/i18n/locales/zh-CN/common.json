@@ -24,6 +24,8 @@
   "loading": "请稍候...",
   "copy": "复制",
   "reply": "引用",
+  "openInBuiltinBrowser": "内置浏览器打开",
+  "openInSystemBrowser": "系统浏览器打开",
   "copySuccess": "已复制",
   "copyFailed": "Copy failed",
   "download": "下载",

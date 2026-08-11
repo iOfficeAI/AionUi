@@ -197,6 +197,9 @@ export type IMessageTips = IMessage<
     code?: string;
     params?: Record<string, unknown>;
     error?: AgentStreamErrorInfo;
+    /** Stable identity for a tip that supersedes its predecessor — see the
+     *  `supersedes_key` handling in `transformMessage`. */
+    supersedes_key?: string;
   }
 >;
 
@@ -708,16 +711,25 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
         code?: unknown;
         params?: unknown;
         error?: unknown;
+        supersedes_key?: unknown;
       };
       const tipType = data.type ?? 'warning';
       const tipCode = typeof data.code === 'string' ? data.code : undefined;
       const tipParams = isObject(data.params) ? data.params : undefined;
+      // A progress-style tip restates the same fact with a new number (codex
+      // retries: "Reconnecting... 1/5", then 2/5 …). Deriving the message id
+      // from the key makes each update REPLACE its predecessor in the list
+      // instead of appending, so the user watches one card count up rather
+      // than collecting ten near-identical ones. Tips without a key keep a
+      // fresh uuid and are appended as before.
+      const supersedesKey =
+        typeof data.supersedes_key === 'string' && data.supersedes_key ? data.supersedes_key : undefined;
       const structuredError =
         tipType === 'error'
           ? (normalizeAgentStreamError(data.error) ?? normalizeAgentStreamError({ ...data, message: data.content }))
           : undefined;
       return {
-        id: uuid(),
+        id: supersedesKey ? `tip:${supersedesKey}` : uuid(),
         type: 'tips',
         msg_id: message.msg_id,
         position: 'center',
@@ -729,6 +741,7 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
           ...(tipCode ? { code: tipCode } : {}),
           ...(tipParams ? { params: tipParams } : {}),
           ...(structuredError ? { error: structuredError } : {}),
+          ...(supersedesKey ? { supersedes_key: supersedesKey } : {}),
         },
       };
     }
@@ -936,6 +949,18 @@ export const composeMessage = (
     messageHandler('insert', message);
     return list.slice();
   };
+
+  // A superseding tip replaces its predecessor wherever it already sits in the
+  // list, rather than being appended: codex reports a stalled turn as a series
+  // of attempts ("Reconnecting... 1/5", then 2/5 …), and appending each one
+  // buried the conversation under near-identical cards. Matching on the key —
+  // not on list position — keeps working when other messages arrive in between.
+  if (message.type === 'tips' && message.content?.supersedes_key) {
+    const key = message.content.supersedes_key;
+    const existing = list.findIndex((item) => item.type === 'tips' && item.content?.supersedes_key === key);
+    if (existing >= 0) return updateMessage(existing, message);
+    return pushMessage(message);
+  }
 
   if (message.type === 'tool_group') {
     const remainingToolsMap = new Map(message.content.map((t) => [t.call_id, t] as const));

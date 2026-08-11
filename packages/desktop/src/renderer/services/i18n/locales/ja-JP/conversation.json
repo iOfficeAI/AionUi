@@ -592,11 +592,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "このターンで {{count}} 件のステップが失敗し、実行されませんでした。agy はこうしたターンも成功として終了するため、返答ではなく実際の結果を確認してください。"
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より古いため、一部の機能が利用できない可能性があります。agy の更新をご検討ください。"
+      "CLI_VERSION_OLDER": {
+        "body": "インストール済みの {{cli}} は、AionUi が検証したバージョンより古いため、一部の機能が使えない可能性があります。{{cli}} の更新を検討してください。 （インストール済み {{reported}} / AionUi 検証済み {{verified}}）"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より新しいバージョンです。通常は問題なく動作しますが、異常があればご報告ください。"
+      "CLI_VERSION_NEWER": {
+        "body": "インストール済みの {{cli}} は、AionUi が検証したバージョンより新しいです。通常は動作しますが、不審な挙動があればご報告ください。 （インストール済み {{reported}} / AionUi 検証済み {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累計 {{attempts}} 回目の再試行、経過 {{elapsed}} — エージェントの提供元が接続を切断し続けており、AionUi は再接続を待っています。）"
       }
     }
   },
@@ -610,7 +613,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "名前を変更",
-      "addToChat": "チャットに追加"
+      "addToChat": "チャットに追加",
+      "copyRelativePath": "相対パスをコピー",
+      "copyAbsolutePath": "絶対パスをコピー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
@@ -641,6 +646,15 @@
         "changes": "変更",
         "blocked": "要解決"
       },
+      "sections": {
+        "repositories": "リポジトリ",
+        "changes": "変更"
+      },
+      "viewAsTree": "ツリー表示",
+      "viewAsList": "リスト表示",
+      "worktree": "ワークツリー",
+      "expandWorktrees": "ワークツリーを表示",
+      "collapseWorktrees": "ワークツリーを非表示",
       "state": {
         "created": "追加",
         "modified": "変更",
@@ -695,7 +709,9 @@
         "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
         "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
       }
-    }
+    },
+    "pathCopied": "パスをコピーしました",
+    "copyFailed": "パスのコピーに失敗しました"
   },
   "terminal": {
     "running": "実行中",

@@ -24,6 +24,8 @@
   "loading": "Veuillez patienter...",
   "copy": "Copier",
   "reply": "Répondre",
+  "openInBuiltinBrowser": "Ouvrir dans le navigateur intégré",
+  "openInSystemBrowser": "Ouvrir dans le navigateur système",
   "copySuccess": "Copié",
   "copyFailed": "Échec de la copie",
   "download": "Télécharger",

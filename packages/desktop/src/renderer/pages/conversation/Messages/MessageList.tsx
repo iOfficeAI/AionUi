@@ -11,6 +11,7 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
+import { collectAiCopyRows, type TurnCopyItem } from '@/renderer/utils/chat/turnCopy';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
@@ -226,6 +227,7 @@ const MessageItem: React.FC<{
   showCopyRow?: boolean;
   isLastMessage?: boolean;
   hasForkAnchor?: boolean;
+  turnTexts?: string[];
 }> = React.memo(
   HOC((props) => {
     const { message, highlighted, rowWidthClass } = props as {
@@ -259,6 +261,7 @@ const MessageItem: React.FC<{
       showCopyRow,
       isLastMessage,
       hasForkAnchor,
+      turnTexts,
     }: {
       message: TMessage;
       highlighted?: boolean;
@@ -266,6 +269,7 @@ const MessageItem: React.FC<{
       showCopyRow?: boolean;
       isLastMessage?: boolean;
       hasForkAnchor?: boolean;
+      turnTexts?: string[];
     }) => {
       const { t } = useTranslation();
       switch (message.type) {
@@ -276,6 +280,7 @@ const MessageItem: React.FC<{
               showCopyRow={showCopyRow}
               isLastMessage={isLastMessage}
               hasForkAnchor={hasForkAnchor}
+              turnTexts={turnTexts}
             ></MessageText>
           );
         case 'tips':
@@ -316,7 +321,12 @@ const MessageItem: React.FC<{
     prev.rowWidthClass === next.rowWidthClass &&
     prev.showCopyRow === next.showCopyRow &&
     prev.isLastMessage === next.isLastMessage &&
-    prev.hasForkAnchor === next.hasForkAnchor
+    prev.hasForkAnchor === next.hasForkAnchor &&
+    // Compare by content: the map is rebuilt per render, so reference equality
+    // would defeat the memo for the one row that carries the copy button.
+    (prev.turnTexts === next.turnTexts ||
+      (prev.turnTexts?.length === next.turnTexts?.length &&
+        (prev.turnTexts ?? []).every((segment, i) => segment === next.turnTexts?.[i])))
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -453,36 +463,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // by tool blocks. While the conversation is still streaming, the final turn's
   // row is withheld (it would otherwise appear then shift down as more text
   // streams in); earlier, already-finished turns always keep their row.
-  const aiCopyRowTextIds = useMemo(() => {
-    const ids = new Set<string>();
-    let pendingTextId: string | undefined;
-    let lastTurnTextId: string | undefined;
-    const flush = () => {
-      if (pendingTextId) ids.add(pendingTextId);
-      pendingTextId = undefined;
-    };
-    for (const item of processedList) {
-      if (
-        'type' in item &&
-        (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
-      ) {
-        continue;
-      }
-      const message = item as TMessage;
-      if (message.position === 'right') {
-        flush();
-        continue;
-      }
-      if (message.type === 'text') {
-        pendingTextId = message.id;
-      }
-    }
-    lastTurnTextId = pendingTextId;
-    flush();
-    // The final turn is the one that may still be streaming; hide its row until done.
-    if (isProcessing && lastTurnTextId) ids.delete(lastTurnTextId);
-    return ids;
-  }, [processedList, isProcessing]);
+  const { copyRowIds: aiCopyRowTextIds, turnTextsById: aiTurnTextsById } = useMemo(
+    () => collectAiCopyRows(processedList as TurnCopyItem[], isProcessing),
+    [processedList, isProcessing]
+  );
 
   // The last REAL message in the visible timeline (pseudo entries like
   // file/tool summaries don't count). HEAD-fork backends (claude/ACP) only
@@ -731,6 +715,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         showCopyRow={showCopyRow}
         isLastMessage={message.id === lastMessageId}
         hasForkAnchor={forkAnchoredIds.has(message.id)}
+        turnTexts={aiTurnTextsById.get(message.id)}
       ></MessageItem>
     );
   };

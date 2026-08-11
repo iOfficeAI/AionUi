@@ -591,11 +591,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} étape(s) ont échoué et n'ont PAS pris effet. agy termine malgré tout ces tours comme réussis : vérifiez le résultat réel plutôt que la réponse."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "La version installée d'agy {{reported}} est antérieure à la version {{verified}} validée pour cette intégration ; certaines fonctionnalités peuvent manquer. Une mise à jour est conseillée."
+      "CLI_VERSION_OLDER": {
+        "body": "Le {{cli}} installé est antérieur à la version validée par AionUi ; certaines fonctionnalités peuvent manquer. Envisagez de mettre à jour {{cli}}. (installé : {{reported}} / vérifié par AionUi : {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "La version installée d'agy {{reported}} est postérieure à la version {{verified}} validée pour cette intégration. Elle devrait fonctionner ; signalez tout comportement anormal."
+      "CLI_VERSION_NEWER": {
+        "body": "Le {{cli}} installé est postérieur à la version validée par AionUi. Cela devrait fonctionner ; signalez tout comportement anormal. (installé : {{reported}} / vérifié par AionUi : {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (tentative {{attempts}}, {{elapsed}} écoulées — le fournisseur de l'agent coupe la connexion à répétition ; AionUi patiente.)"
       }
     }
   },
@@ -609,7 +612,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renommer",
-      "addToChat": "Ajouter au chat"
+      "addToChat": "Ajouter au chat",
+      "copyRelativePath": "Copier le chemin relatif",
+      "copyAbsolutePath": "Copier le chemin absolu"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",
@@ -640,6 +645,15 @@
         "changes": "Modifications",
         "blocked": "À résoudre"
       },
+      "sections": {
+        "repositories": "Dépôts",
+        "changes": "Modifications"
+      },
+      "viewAsTree": "Afficher en arborescence",
+      "viewAsList": "Afficher en liste",
+      "worktree": "Arbre de travail",
+      "expandWorktrees": "Afficher les arbres de travail",
+      "collapseWorktrees": "Masquer les arbres de travail",
       "state": {
         "created": "Ajouté",
         "modified": "Modifié",
@@ -694,7 +708,9 @@
         "outcomeUnknown": "La connexion a été réinitialisée avant la réponse — cette action a peut-être abouti, ou non. Actualisez et vérifiez la liste des fichiers avant de réessayer.",
         "allFailed": "Aucun des {{count}} fichier(s) n'a pu être traité"
       }
-    }
+    },
+    "pathCopied": "Chemin copié",
+    "copyFailed": "Échec de la copie du chemin"
   },
   "terminal": {
     "running": "En cours",

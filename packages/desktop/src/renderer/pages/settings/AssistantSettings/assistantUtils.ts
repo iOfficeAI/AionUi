@@ -136,7 +136,24 @@ export const filterByEnabled = (
 };
 
 const byAssistantSortOrder = (a: AssistantListItem, b: AssistantListItem) => a.sort_order - b.sort_order;
-const ASSISTANT_EDITOR_AGENT_TYPES = new Set(['acp', 'aionrs']);
+
+/// Agent types the assistant editor can drive.
+///
+/// This is a whitelist, so every new `AgentType` is invisible here until it is
+/// added — which is how Antigravity ended up missing from the Agent dropdown
+/// AND showing its raw id (`a9f3c21e`) instead of its name in the editor. Both
+/// symptoms are this one line: an agent filtered out here never reaches
+/// `availableBackends`, and `Select` with no matching Option falls back to
+/// rendering the bare value.
+///
+/// `antigravity` is a first-class agent type rather than an `acp` backend
+/// because agy is a direct-CLI integration (one process per turn), the same
+/// reason it has its own variant in `AgentType`.
+///
+/// Excluded on purpose: `gemini` and `codex` are legacy read-only variants kept
+/// so historical rows stay readable, and `remote` / `nanobot` /
+/// `openclaw-gateway` are not editor-driven.
+const ASSISTANT_EDITOR_AGENT_TYPES = new Set(['acp', 'aionrs', 'antigravity']);
 
 const isAssistantEditorAgent = (agent: ManagedAgent): boolean => ASSISTANT_EDITOR_AGENT_TYPES.has(agent.agent_type);
 
@@ -152,6 +169,25 @@ export const groupMyAssistants = (assistants: AssistantListItem[]) => {
     cliAssistants: assistants.filter((a) => a.source === 'generated').toSorted(byAssistantSortOrder),
     createdAssistants: assistants.filter((a) => a.source === 'user').toSorted(byAssistantSortOrder),
   };
+};
+
+/**
+ * Narrow the editor's agent list by a search query.
+ *
+ * Matches the id and runtime key as well as the display name: a user who knows
+ * an agent as "codex" or "antigravity" should find it without knowing what the
+ * row is labelled.
+ *
+ * Lives here rather than inline in the component so the matching rule is
+ * testable on its own — driving an Arco popup to assert which rows survive is
+ * both slower and less precise.
+ */
+export const filterAssistantEditorBackends = (backends: AvailableBackend[], query: string): AvailableBackend[] => {
+  const keyword = query.trim().toLowerCase();
+  if (!keyword) return backends;
+  return backends.filter((option) =>
+    [option.name, option.id, option.runtimeKey].some((field) => field?.toLowerCase().includes(keyword))
+  );
 };
 
 export const buildAssistantEditorBackends = (

@@ -53,6 +53,21 @@ export type ScmRepository = {
    */
   pe_name?: string;
   head?: ScmHead;
+  /**
+   * Whether this repository is a linked worktree rather than a primary clone (wire
+   * field `is_worktree`, aioncore `types.rs`). Only surfaced under one-level workspace
+   * discovery; the backend omits it entirely when `false`, so it is optional and a
+   * missing value means "not a worktree". Never assume it is present.
+   */
+  is_worktree?: boolean;
+  /**
+   * When this is a linked worktree **and** its primary repository is also in the same
+   * project's surfaced set, the primary repository's `repo_id` (wire field `worktree_of`,
+   * aioncore `types.rs`). Omitted when the primary is outside the current view — the
+   * client then renders the worktree at the outer level. Matched by real git directory
+   * upstream, never by path text; the client treats it as an opaque id.
+   */
+  worktree_of?: string;
   capabilities: ScmCapabilities;
   state: 'idle' | 'refreshing' | 'operation' | 'error';
 };

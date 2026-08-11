@@ -52,7 +52,7 @@ class ConfigServiceImpl {
 
   // Idempotent: concurrent callers share the same in-flight promise, and a
   // resolved init returns immediately. Modules that need persisted settings on
-  // module load (theme/colorScheme/language) await whenReady() before reading.
+  // module load (theme/language) await whenReady() before reading.
   initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
     this.initPromise = (async () => {
@@ -62,20 +62,6 @@ class ConfigServiceImpl {
         for (const [key, value] of Object.entries(data)) {
           this.cache.set(key, value);
         }
-      }
-      // One-time theme migration: only when new keys are absent (idempotent).
-      if (!this.cache.has('theme.activeId')) {
-        const { migrateThemeConfig } = await import('@/common/theme/migrateThemeConfig');
-        const migrated = migrateThemeConfig({
-          theme: this.cache.get('theme') as string | undefined,
-          'css.activeThemeId': this.cache.get('css.activeThemeId') as string | undefined,
-          'css.themes': this.cache.get('css.themes') as never,
-          customCss: this.cache.get('customCss') as string | undefined,
-        });
-        this.cache.set('theme.activeId', migrated['theme.activeId']);
-        this.cache.set('theme.userThemes', migrated['theme.userThemes']);
-        // Persist asynchronously; ignore failure (will re-run next launch).
-        void fetchJson<void>('PUT', '/api/settings/client', migrated).catch(() => {});
       }
       this.initialized = true;
     })();
