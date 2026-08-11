@@ -12,7 +12,6 @@ import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup } from '../types';
-import { getConversationSortOrder } from './sortOrderHelpers';
 
 export const isConversationPinned = (conversation: TChatConversation): boolean => {
   // Pin truth is the backend, derived from a `user_order` row's existence and
@@ -207,14 +206,9 @@ export const buildGroupedHistory = (
 
   const pinnedConversations = visibleConversations
     .filter((conversation) => isConversationPinned(conversation))
-    .toSorted((a, b) => {
-      const orderA = getConversationSortOrder(a);
-      const orderB = getConversationSortOrder(b);
-      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
-      if (orderA !== undefined) return -1;
-      if (orderB !== undefined) return 1;
-      return getConversationPinnedAt(b) - getConversationPinnedAt(a);
-    });
+    // Pin order truth is the backend `user_order` table (see mapSidebarToGroupedHistory,
+    // the live path). This legacy fallback keeps pinned-first-by-recency only.
+    .toSorted((a, b) => getConversationPinnedAt(b) - getConversationPinnedAt(a));
 
   const normalConversations = visibleConversations.filter((conversation) => !isConversationPinned(conversation));
 

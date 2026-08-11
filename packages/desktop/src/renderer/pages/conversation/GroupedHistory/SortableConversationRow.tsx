@@ -11,12 +11,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationRow from './ConversationRow';
+import { sortableId } from './hooks/useDragAndDrop';
 import type { ConversationRowProps } from './types';
 
 const SortableConversationRow: React.FC<ConversationRowProps> = (props) => {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
-    id: props.conversation.id,
+    // Composite id, matching the shared pinned SortableContext (conversation ∪ team).
+    id: sortableId('conversation', props.conversation.id),
     disabled: props.batchMode,
     data: {
       type: 'conversation',
