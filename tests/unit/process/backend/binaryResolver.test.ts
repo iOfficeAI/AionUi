@@ -6,7 +6,7 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveBinaryPath } from '@/process/backend/binaryResolver';
 
@@ -56,8 +56,10 @@ describe('resolveBinaryPath', () => {
   });
 
   it('returns the AIONUI_BACKEND_BIN override when the file exists', () => {
-    const overridePath = '/custom/aioncore';
-    process.env.AIONUI_BACKEND_BIN = overridePath;
+    const overrideInput = '/custom/aioncore';
+    // Resolve mirrors the implementation so the expectation holds on Windows too.
+    const overridePath = resolve(overrideInput);
+    process.env.AIONUI_BACKEND_BIN = overrideInput;
     vi.mocked(existsSync).mockImplementation((path) => path === overridePath);
 
     expect(resolveBinaryPath()).toBe(overridePath);
@@ -66,8 +68,9 @@ describe('resolveBinaryPath', () => {
   });
 
   it('trims whitespace around AIONUI_BACKEND_BIN before use', () => {
-    const overridePath = '/custom/aioncore';
-    process.env.AIONUI_BACKEND_BIN = `  ${overridePath}  `;
+    const overrideInput = '/custom/aioncore';
+    const overridePath = resolve(overrideInput);
+    process.env.AIONUI_BACKEND_BIN = `  ${overrideInput}  `;
     vi.mocked(existsSync).mockImplementation((path) => path === overridePath);
 
     expect(resolveBinaryPath()).toBe(overridePath);
@@ -75,18 +78,20 @@ describe('resolveBinaryPath', () => {
 
   it('resolves a relative AIONUI_BACKEND_BIN against process.cwd', () => {
     process.env.AIONUI_BACKEND_BIN = 'rel/aioncore';
-    const absolute = join(process.cwd(), 'rel/aioncore');
+    const absolute = resolve('rel/aioncore');
     vi.mocked(existsSync).mockImplementation((path) => path === absolute);
 
     expect(resolveBinaryPath()).toBe(absolute);
   });
 
   it('throws with override diagnostics when AIONUI_BACKEND_BIN points at a missing file', () => {
-    const overridePath = '/custom/missing-aioncore';
-    process.env.AIONUI_BACKEND_BIN = overridePath;
+    const overrideInput = '/custom/missing-aioncore';
+    const overridePath = resolve(overrideInput);
+    process.env.AIONUI_BACKEND_BIN = overrideInput;
     vi.mocked(existsSync).mockReturnValue(false);
 
-    expect(() => resolveBinaryPath()).toThrow(`AIONUI_BACKEND_BIN is set to "${overridePath}"`);
+    // Error message quotes the raw input, diagnostics carry the resolved path.
+    expect(() => resolveBinaryPath()).toThrow(`AIONUI_BACKEND_BIN is set to "${overrideInput}"`);
 
     try {
       resolveBinaryPath();
