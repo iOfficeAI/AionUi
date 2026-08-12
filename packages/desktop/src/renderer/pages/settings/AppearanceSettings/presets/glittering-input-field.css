@@ -342,9 +342,7 @@ body {
 
 /* ===== Inline Code / Highlight Chip ===== */
 .message-content code:not(pre code),
-.markdown-body code:not(pre code),
-.markdown-shadow-body code:not(pre code),
-[class*='markdown'] code:not(pre code) {
+.markdown-body code:not(pre code) {
   background: var(--hl-chip-bg) !important;
   color: var(--hl-chip-text) !important;
   border: 1px solid var(--hl-chip-border) !important;
@@ -360,9 +358,7 @@ body {
 }
 
 [data-theme='dark'] .message-content code:not(pre code),
-[data-theme='dark'] .markdown-body code:not(pre code),
-[data-theme='dark'] .markdown-shadow-body code:not(pre code),
-[data-theme='dark'] [class*='markdown'] code:not(pre code) {
+[data-theme='dark'] .markdown-body code:not(pre code) {
   background: var(--hl-chip-bg) !important;
   color: var(--hl-chip-text) !important;
   border-color: var(--hl-chip-border) !important;
@@ -375,9 +371,7 @@ body {
 
 /* ===== Emphasis Highlight (Bold with Background) ===== */
 .message-content strong,
-.markdown-body strong,
-.markdown-shadow-body strong,
-[class*='markdown'] strong {
+.markdown-body strong {
   background: var(--hl-chip-bg) !important;
   color: var(--hl-chip-text) !important;
   padding: 0 6px !important;
@@ -392,9 +386,7 @@ body {
 }
 
 [data-theme='dark'] .message-content strong,
-[data-theme='dark'] .markdown-body strong,
-[data-theme='dark'] .markdown-shadow-body strong,
-[data-theme='dark'] [class*='markdown'] strong {
+[data-theme='dark'] .markdown-body strong {
   background: var(--hl-chip-bg) !important;
   color: var(--hl-chip-text) !important;
   border-color: var(--hl-chip-border) !important;
@@ -407,12 +399,8 @@ body {
 
 [data-theme='light'] .message-content mark,
 [data-theme='light'] .markdown-body mark,
-[data-theme='light'] .markdown-shadow-body mark,
-[data-theme='light'] [class*='markdown'] mark,
 [data-theme='dark'] .message-content mark,
-[data-theme='dark'] .markdown-body mark,
-[data-theme='dark'] .markdown-shadow-body mark,
-[data-theme='dark'] [class*='markdown'] mark {
+[data-theme='dark'] .markdown-body mark {
   background: var(--hl-chip-bg) !important;
   color: var(--hl-chip-text) !important;
   border: 1px solid var(--hl-chip-border) !important;
@@ -426,16 +414,10 @@ body {
 
 .message-content strong *,
 .markdown-body strong *,
-.markdown-shadow-body strong *,
-[class*='markdown'] strong *,
 .message-content code:not(pre code) *,
 .markdown-body code:not(pre code) *,
-.markdown-shadow-body code:not(pre code) *,
-[class*='markdown'] code:not(pre code) *,
 .message-content mark *,
-.markdown-body mark *,
-.markdown-shadow-body mark *,
-[class*='markdown'] mark * {
+.markdown-body mark * {
   color: var(--hl-chip-text) !important;
   -webkit-text-fill-color: var(--hl-chip-text) !important;
   opacity: 1 !important;
