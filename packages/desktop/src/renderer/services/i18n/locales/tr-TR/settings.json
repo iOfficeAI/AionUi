@@ -1343,7 +1343,7 @@
     "clearFailed": "Tarama verileri temizlenemedi"
   },
   "archived": {
-    "navLabel": "Arşiv",
+    "navLabel": "Arşivlenen sohbetler",
     "title": "Arşiv",
     "description": "Arşivlediğin sohbetler ve ekipler. Bunları kenar çubuğuna geri yükleyebilir veya arşivi boşaltarak kalıcı olarak silebilirsin.",
     "empty": "Arşivlenmiş öğe yok",

@@ -1343,7 +1343,7 @@
     "clearFailed": "Échec de l'effacement des données de navigation"
   },
   "archived": {
-    "navLabel": "Archives",
+    "navLabel": "Conversations archivées",
     "title": "Archives",
     "description": "Conversations et équipes que vous avez archivées. Restaurez-les dans la barre latérale ou videz les archives pour les supprimer définitivement.",
     "empty": "Aucun élément archivé",

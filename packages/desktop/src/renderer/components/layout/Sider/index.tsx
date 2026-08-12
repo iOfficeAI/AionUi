@@ -112,6 +112,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const handleArchivedClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    Promise.resolve(navigate('/settings/archived')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
     blurActiveElement();
@@ -243,6 +254,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         onThemeToggle={handleQuickThemeToggle}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
+        isArchivedActive={pathname.startsWith('/settings/archived')}
+        onArchivedClick={handleArchivedClick}
       />
     </div>
   );

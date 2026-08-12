@@ -1344,7 +1344,7 @@
     "clearFailed": "清空浏览数据失败"
   },
   "archived": {
-    "navLabel": "归档",
+    "navLabel": "已归档的会话",
     "title": "归档",
     "description": "你归档的会话和团队。可以恢复到侧边栏，或清空归档将其永久删除。",
     "empty": "暂无归档内容",

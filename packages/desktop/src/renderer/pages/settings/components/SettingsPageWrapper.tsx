@@ -13,7 +13,6 @@ import {
   Communication,
   Computer,
   Earth,
-  Inbox,
   Info,
   Lightning,
   LinkCloud,
@@ -78,12 +77,6 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       path: 'webui',
     },
     pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
-    archived: {
-      id: 'archived',
-      label: t('settings.archived.navLabel'),
-      icon: <Inbox theme='outline' size='16' />,
-      path: 'archived',
-    },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };

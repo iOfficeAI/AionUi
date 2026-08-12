@@ -1343,7 +1343,7 @@
     "clearFailed": "Browserdaten konnten nicht gelöscht werden"
   },
   "archived": {
-    "navLabel": "Archiv",
+    "navLabel": "Archivierte Konversationen",
     "title": "Archiv",
     "description": "Von dir archivierte Unterhaltungen und Teams. Stelle sie in der Seitenleiste wieder her oder leere das Archiv, um sie dauerhaft zu löschen.",
     "empty": "Keine archivierten Elemente",
