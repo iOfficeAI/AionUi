@@ -6,6 +6,7 @@ import {
   supportsOpenAiApiMode,
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
+import { resolveModelLimits, type ProtocolFamily } from '@/common/config/modelLimits';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
 import { InputNumber, Select } from '@arco-design/web-react';
@@ -29,11 +30,25 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     const [contextWindowSize, setContextWindowSize] = useState<number | undefined>(undefined);
     const [maxContentLength, setMaxContentLength] = useState<number | undefined>(undefined);
     const [maxResponseLength, setMaxResponseLength] = useState<number | undefined>(undefined);
+    const [isLimitsDirty, setIsLimitsDirty] = useState(false);
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
     const isEditing = Boolean(editingModel);
     const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
     const existingModels = data?.models || [];
     const showOpenAiApiMode = supportsOpenAiApiMode(data?.platform ?? '', modelProtocol);
+
+    const protocolOf = (platform: string): ProtocolFamily => {
+      const lower = (platform ?? '').toLowerCase();
+      if (lower.includes('anthropic') || lower.includes('claude')) return 'anthropic';
+      if (lower.includes('gemini')) return 'gemini';
+      if (lower.includes('bedrock')) return 'openai';
+      return 'openai';
+    };
+
+    const mapNewApiProtocol = (proto: string): ProtocolFamily => {
+      if (proto === 'openai' || proto === 'anthropic' || proto === 'gemini') return proto;
+      return 'unknown';
+    };
     const optionsList = useMemo(() => {
       // 处理新的数据格式，可能包含 fix_base_url
       const fetchedModels = Array.isArray(modelList) ? modelList : modelList?.models || [];
@@ -47,12 +62,21 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       if (!modalProps.visible) return;
 
       setModels([]);
+      setIsLimitsDirty(false);
       const settings = editingModel ? data?.model_settings?.[editingModel] : undefined;
       setImageInput(settings?.image_input ?? 'auto');
       setOpenAiApiMode(settings?.openai_api_mode ?? 'auto');
-      setContextWindowSize(settings?.context_window_size);
-      setMaxContentLength(settings?.max_content_length);
-      setMaxResponseLength(settings?.max_response_length);
+
+      if (editingModel) {
+        setContextWindowSize(settings?.context_window_size);
+        setMaxContentLength(settings?.max_content_length);
+        setMaxResponseLength(settings?.max_response_length);
+      } else {
+        setContextWindowSize(undefined);
+        setMaxContentLength(undefined);
+        setMaxResponseLength(undefined);
+      }
+
       setModelProtocol(editingModel ? (data?.model_protocols?.[editingModel] ?? 'openai') : 'openai');
     }, [data, editingModel, modalProps.visible]);
 
@@ -130,8 +154,21 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
                 loading={isLoading}
                 onChange={(value: string[]) => {
                   setModels(value);
-                  // new-api 平台：以最后选中的模型推断协议 / new-api: infer protocol from the last picked model
-                  if (isNewApi && value.length > 0) setModelProtocol(detectNewApiProtocol(value[value.length - 1]));
+                  if (value.length === 0 || editingModel) return;
+                  if (isLimitsDirty) return;
+
+                  const last = value[value.length - 1];
+                  let proto: ProtocolFamily;
+                  if (isNewApi) {
+                    proto = mapNewApiProtocol(detectNewApiProtocol(last));
+                    setModelProtocol(detectNewApiProtocol(last));
+                  } else {
+                    proto = protocolOf(data?.platform ?? '');
+                  }
+                  const limits = resolveModelLimits(last, proto);
+                  setContextWindowSize(limits.contextWindowSize);
+                  setMaxContentLength(limits.maxContentLength);
+                  setMaxResponseLength(limits.maxResponseLength);
                 }}
                 value={models}
                 allowCreate
@@ -146,7 +183,16 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <div className='text-13px font-500 text-t-secondary'>{t('settings.modelProtocol')}</div>
               <Select
                 value={modelProtocol}
-                onChange={setModelProtocol}
+                onChange={(value: string) => {
+                  setModelProtocol(value);
+                  if (editingModel || isLimitsDirty) return;
+                  if (models.length === 0) return;
+                  const last = models[models.length - 1];
+                  const limits = resolveModelLimits(last, mapNewApiProtocol(value));
+                  setContextWindowSize(limits.contextWindowSize);
+                  setMaxContentLength(limits.maxContentLength);
+                  setMaxResponseLength(limits.maxResponseLength);
+                }}
                 options={NEW_API_PROTOCOL_OPTIONS}
                 triggerProps={{ getPopupContainer: (node) => node.parentElement || document.body }}
               />
@@ -195,7 +241,10 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <div className='text-13px font-500 text-t-secondary'>{t('settings.contextWindowSize')}</div>
               <InputNumber
                 value={contextWindowSize}
-                onChange={(v) => setContextWindowSize(typeof v === 'number' ? v : undefined)}
+                onChange={(v) => {
+                  setIsLimitsDirty(true);
+                  setContextWindowSize(typeof v === 'number' ? v : undefined);
+                }}
                 placeholder={t('settings.contextWindowSizePlaceholder')}
                 min={1}
                 precision={0}
@@ -208,7 +257,10 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <div className='text-13px font-500 text-t-secondary'>{t('settings.maxContentLength')}</div>
               <InputNumber
                 value={maxContentLength}
-                onChange={(v) => setMaxContentLength(typeof v === 'number' ? v : undefined)}
+                onChange={(v) => {
+                  setIsLimitsDirty(true);
+                  setMaxContentLength(typeof v === 'number' ? v : undefined);
+                }}
                 placeholder={t('settings.maxContentLengthPlaceholder')}
                 min={1}
                 precision={0}
@@ -221,7 +273,10 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <div className='text-13px font-500 text-t-secondary'>{t('settings.maxResponseLength')}</div>
               <InputNumber
                 value={maxResponseLength}
-                onChange={(v) => setMaxResponseLength(typeof v === 'number' ? v : undefined)}
+                onChange={(v) => {
+                  setIsLimitsDirty(true);
+                  setMaxResponseLength(typeof v === 'number' ? v : undefined);
+                }}
                 placeholder={t('settings.maxResponseLengthPlaceholder')}
                 min={1}
                 precision={0}
