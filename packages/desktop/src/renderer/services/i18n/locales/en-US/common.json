@@ -104,11 +104,7 @@
     },
     "databaseNewerThanApp": {
       "title": "A newer version of AionUi is required",
-      "description": "Your local data was created by a newer version of AionUi, and this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed.",
-      "sendDiagnostics": "Send diagnostics",
-      "diagnosticsSent": "Diagnostics sent",
-      "diagnosticsReportSuccess": "Diagnostics report sent",
-      "diagnosticsReportFailed": "Failed to send diagnostics report"
+      "description": "Your local data was created by a newer version of AionUi, and this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

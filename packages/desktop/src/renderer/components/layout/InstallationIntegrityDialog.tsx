@@ -86,9 +86,6 @@ export function getInstallationIntegrityDiagnosticsSentText(
     return t('common.backendStartup.transientConcurrentStartup.diagnosticsSent');
   }
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.diagnosticsSent');
-  if (diagnosticsKind === 'database_newer_than_app') {
-    return t('common.backendStartup.databaseNewerThanApp.diagnosticsSent');
-  }
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
   if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.diagnosticsSent');
   if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.diagnosticsSent');
@@ -170,7 +167,7 @@ export function getInstallationIntegrityModalActions(
   onRecoverCorruptedDatabase: () => Promise<unknown> | void;
   onReportDiagnostics: () => Promise<unknown> | void;
   recoverText?: string;
-  reportText: string;
+  reportText?: string;
 } {
   const diagnosticsKind = options.diagnosticsKind ?? 'incomplete_installation';
   return {
@@ -187,17 +184,20 @@ export function getInstallationIntegrityModalActions(
       diagnosticsKind === 'recoverable_database_corruption'
         ? t('common.backendStartup.recoverableDatabaseCorruption.confirmRebuild')
         : undefined,
+    // The downgrade dialog intentionally has NO diagnostics button: the root
+    // cause is fully understood (the database is from a newer AionUi) and the
+    // only remedy is updating, so the single download action stays unambiguous.
     reportText:
-      diagnosticsKind === 'recoverable_database_corruption'
-        ? t('common.backendStartup.recoverableDatabaseCorruption.sendDiagnostics')
-        : diagnosticsKind === 'transient_concurrent_startup'
-          ? t('common.backendStartup.transientConcurrentStartup.sendDiagnostics')
-          : diagnosticsKind === 'startup_directory'
-            ? t('common.backendStartup.startupDirectory.sendDiagnostics')
-            : diagnosticsKind === 'local_data_repair'
-              ? t('common.backendStartup.localDataRepair.sendDiagnostics')
-              : diagnosticsKind === 'database_newer_than_app'
-                ? t('common.backendStartup.databaseNewerThanApp.sendDiagnostics')
+      diagnosticsKind === 'database_newer_than_app'
+        ? undefined
+        : diagnosticsKind === 'recoverable_database_corruption'
+          ? t('common.backendStartup.recoverableDatabaseCorruption.sendDiagnostics')
+          : diagnosticsKind === 'transient_concurrent_startup'
+            ? t('common.backendStartup.transientConcurrentStartup.sendDiagnostics')
+            : diagnosticsKind === 'startup_directory'
+              ? t('common.backendStartup.startupDirectory.sendDiagnostics')
+              : diagnosticsKind === 'local_data_repair'
+                ? t('common.backendStartup.localDataRepair.sendDiagnostics')
                 : diagnosticsKind === 'data_migration'
                   ? t('common.backendStartup.dataMigration.sendDiagnostics')
                   : diagnosticsKind === 'backend_exited'
@@ -273,17 +273,15 @@ export const InstallationIntegrityFooter: React.FC<{
             ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportSuccess')
             : diagnosticsKind === 'local_data_repair'
               ? t('common.backendStartup.localDataRepair.diagnosticsReportSuccess')
-              : diagnosticsKind === 'database_newer_than_app'
-                ? t('common.backendStartup.databaseNewerThanApp.diagnosticsReportSuccess')
-                : diagnosticsKind === 'data_migration'
-                  ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
-                  : diagnosticsKind === 'backend_exited'
-                    ? t('common.backendStartup.exited.diagnosticsReportSuccess')
-                    : diagnosticsKind === 'port_report_timeout'
-                      ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
-                      : diagnosticsKind === 'startup_failed'
-                        ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
-                        : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
+              : diagnosticsKind === 'data_migration'
+                ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
+                : diagnosticsKind === 'backend_exited'
+                  ? t('common.backendStartup.exited.diagnosticsReportSuccess')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
       );
     } catch {
       Message.error(
@@ -293,17 +291,15 @@ export const InstallationIntegrityFooter: React.FC<{
             ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportFailed')
             : diagnosticsKind === 'local_data_repair'
               ? t('common.backendStartup.localDataRepair.diagnosticsReportFailed')
-              : diagnosticsKind === 'database_newer_than_app'
-                ? t('common.backendStartup.databaseNewerThanApp.diagnosticsReportFailed')
-                : diagnosticsKind === 'data_migration'
-                  ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
-                  : diagnosticsKind === 'backend_exited'
-                    ? t('common.backendStartup.exited.diagnosticsReportFailed')
-                    : diagnosticsKind === 'port_report_timeout'
-                      ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
-                      : diagnosticsKind === 'startup_failed'
-                        ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
-                        : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
+              : diagnosticsKind === 'data_migration'
+                ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
+                : diagnosticsKind === 'backend_exited'
+                  ? t('common.backendStartup.exited.diagnosticsReportFailed')
+                  : diagnosticsKind === 'port_report_timeout'
+                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
+                    : diagnosticsKind === 'startup_failed'
+                      ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
+                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
       );
     } finally {
       setReporting(false);
@@ -333,14 +329,16 @@ export const InstallationIntegrityFooter: React.FC<{
 
   return (
     <Space>
-      <Button
-        data-testid='installation-integrity-report'
-        disabled={!diagnostics || reported}
-        loading={reporting}
-        onClick={handleReportDiagnostics}
-      >
-        {reported ? getInstallationIntegrityDiagnosticsSentText(t, diagnosticsKind) : actions.reportText}
-      </Button>
+      {actions.reportText ? (
+        <Button
+          data-testid='installation-integrity-report'
+          disabled={!diagnostics || reported}
+          loading={reporting}
+          onClick={handleReportDiagnostics}
+        >
+          {reported ? getInstallationIntegrityDiagnosticsSentText(t, diagnosticsKind) : actions.reportText}
+        </Button>
+      ) : null}
       {actions.downloadText ? (
         <Button data-testid='installation-integrity-download' type='primary' onClick={actions.onDownloadLatest}>
           {actions.downloadText}

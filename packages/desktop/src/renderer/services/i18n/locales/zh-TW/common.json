@@ -104,11 +104,7 @@
     },
     "databaseNewerThanApp": {
       "title": "需要更新 AionUi",
-      "description": "本機資料由較新版本的 AionUi 建立，目前版本無法開啟。請將 AionUi 更新至最新版本即可繼續使用，資料完好無損，無需重新安裝或重設資料。",
-      "sendDiagnostics": "傳送診斷報告",
-      "diagnosticsSent": "診斷報告已傳送",
-      "diagnosticsReportSuccess": "診斷報告已傳送",
-      "diagnosticsReportFailed": "診斷報告傳送失敗"
+      "description": "本機資料由較新版本的 AionUi 建立，目前版本無法開啟。請將 AionUi 更新至最新版本即可繼續使用，資料完好無損，無需重新安裝或重設資料。"
     },
     "localDataRepair": {
       "title": "本機資料修復失敗",
