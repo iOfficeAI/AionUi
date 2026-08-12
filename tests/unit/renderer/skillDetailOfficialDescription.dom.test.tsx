@@ -122,6 +122,15 @@ const customSkill = {
   source: 'custom',
 };
 
+const noDescSkill = {
+  name: 'no-description-skill',
+  description: '',
+  location: '/skills/no-description-skill',
+  is_auto_inject: false,
+  is_custom: true,
+  source: 'custom',
+};
+
 const renderPage = () =>
   render(
     <MemoryRouter initialEntries={[{ pathname: '/settings/skills/mermaid', state: { skillsTab: 'official' } }]}>
@@ -139,14 +148,18 @@ describe('SkillDetailPage description i18n', () => {
     useSWRMock.mockReset();
     useSWRMock.mockImplementation((key: string) => {
       if (key === 'skills.list') {
-        return { data: [officialSkill, customSkill], isLoading: false };
+        return { data: [officialSkill, customSkill, noDescSkill], isLoading: false };
       }
       if (key === 'assistants.list') {
         return { data: [], isLoading: false, mutate: vi.fn() };
       }
       return { data: [], isLoading: false };
     });
-    vi.mocked(ipcBridge.fs.listAvailableSkills.invoke).mockResolvedValue([officialSkill, customSkill] as never);
+    vi.mocked(ipcBridge.fs.listAvailableSkills.invoke).mockResolvedValue([
+      officialSkill,
+      customSkill,
+      noDescSkill,
+    ] as never);
     vi.mocked(ipcBridge.assistants.list.invoke).mockResolvedValue([] as never);
   });
 
@@ -188,6 +201,27 @@ describe('SkillDetailPage description i18n', () => {
 
     const desc = (await screen.findByTestId('skill-detail-info')).querySelector('p');
     expect(desc?.textContent).toBe('Custom skill description from backend.');
+    expect(desc?.getAttribute('title')).toBeNull();
+  });
+
+  it('falls back to detailNoDescription when a skill has no localized or backend description', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/settings/skills/no-description-skill', state: { skillsTab: 'custom' } }]}
+      >
+        <Routes>
+          <Route path='/settings/skills/:skillName' element={<SkillDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const desc = (await screen.findByTestId('skill-detail-info')).querySelector('p');
+    // detailNoDescription has no i18n key in the mock, so it falls back to the defaultValue 'No description.'
+    expect(mocks.t).toHaveBeenCalledWith(
+      'settings.skillsHub.detailNoDescription',
+      expect.objectContaining({ defaultValue: 'No description.' })
+    );
+    expect(desc?.textContent).toBe('No description.');
     expect(desc?.getAttribute('title')).toBeNull();
   });
 });
