@@ -11,9 +11,12 @@ import type { SidebarGroup, SidebarResponse } from '@/common/types/sidebar';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-/** Per-group window sizes: first screen shows 10, "load more" pages 10 at a time. */
-const FIRST_SCREEN_LIMIT = 10;
-const LOAD_MORE_LIMIT = 10;
+/** Per-group window sizes: first screen shows 100, "load more" pages 100 at a
+ *  time. The window is intentionally large so one page overflows the viewport —
+ *  the infinite-scroll sentinel then only re-fires after the user scrolls,
+ *  rather than cascade-loading every window at once. */
+const FIRST_SCREEN_LIMIT = 100;
+const LOAD_MORE_LIMIT = 100;
 
 /**
  * Whitelist of message types that indicate content generation is in progress.
@@ -269,13 +272,20 @@ const noteKnownConversation = (conversation_id: string) => {
   conversation_idsState = new Set(conversation_idsState).add(conversation_id);
 };
 
-/** Page one more window into a group (the "+10" affordance). No-op when the
- *  group is gone or has nothing more. */
+// Tokens with a page request in flight. Infinite-scroll re-fires the sentinel
+// while a fetch is pending; without this guard the same cursor would be paged
+// twice and its window duplicated.
+const pendingLoadMoreTokens = new Set<string>();
+
+/** Page one more window into a group (the "load more" affordance / infinite
+ *  scroll). No-op when the group is gone, has nothing more, or already has a
+ *  page request in flight. */
 const loadMoreGroup = (token: string) => {
   const group = sidebarState.groups.find((candidate) => scopeToToken(candidate.scope) === token);
-  if (!group || !group.has_more) {
+  if (!group || !group.has_more || pendingLoadMoreTokens.has(token)) {
     return;
   }
+  pendingLoadMoreTokens.add(token);
   void ipcBridge.sidebar.items
     .invoke({ scope: token, cursor: group.next_cursor, limit: LOAD_MORE_LIMIT })
     .then((page) => {
@@ -296,6 +306,9 @@ const loadMoreGroup = (token: string) => {
     })
     .catch((error) => {
       console.error('[WorkspaceGroupedHistory] Failed to page sidebar group:', error);
+    })
+    .finally(() => {
+      pendingLoadMoreTokens.delete(token);
     });
 };
 

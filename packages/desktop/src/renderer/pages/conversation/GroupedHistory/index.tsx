@@ -15,7 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { Delete, MoreOne, Plus, Right, MessageOne, Peoples, FoldUpOne } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -31,6 +31,50 @@ import { useConversations } from './hooks/useConversations';
 import { sortableId, useDragAndDrop } from './hooks/useDragAndDrop';
 import { useTeamRows } from './hooks/useTeamRows';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+
+/**
+ * Bottom-of-group sentinel driving infinite scroll: pages one more window when
+ * scrolled into view. The click/keyboard affordance stays as a manual fallback
+ * for when a window doesn't overflow the viewport (so the observer never fires)
+ * or when the environment has no IntersectionObserver. Re-fire while a page is
+ * in flight is a no-op — the store guards duplicate loads per token.
+ */
+const LoadMoreSentinel: React.FC<{
+  token: string;
+  label: string;
+  onLoadMore: (token: string) => void;
+  collapsed: boolean;
+  dimIcon?: boolean;
+}> = ({ token, label, onLoadMore, collapsed, dimIcon = false }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) onLoadMore(token);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [token, onLoadMore]);
+  return (
+    <div ref={ref} className={classNames('flex items-center', !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'))}>
+      <span
+        role='button'
+        tabIndex={0}
+        className='text-13px text-t-tertiary hover:text-t-primary cursor-pointer transition-colors py-4px select-none'
+        onClick={() => onLoadMore(token)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onLoadMore(token);
+          }
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+};
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -258,25 +302,16 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   );
 
   // "Load more" affordance: pages one more window of a group via the backend
-  // items endpoint (first screen 5, +10 per page). `dimIcon` indents it to
-  // align with rows inside a project folder.
+  // items endpoint (first screen 100, +100 per page), auto-firing on scroll via
+  // the sentinel. `dimIcon` indents it to align with rows inside a project folder.
   const renderLoadMore = (token: string, dimIcon = false) => (
-    <div className={classNames('flex items-center', !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'))}>
-      <span
-        role='button'
-        tabIndex={0}
-        className='text-13px text-t-tertiary hover:text-t-primary cursor-pointer transition-colors py-4px select-none'
-        onClick={() => loadMore(token)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            loadMore(token);
-          }
-        }}
-      >
-        {t('conversation.history.loadMore')}
-      </span>
-    </div>
+    <LoadMoreSentinel
+      token={token}
+      label={t('conversation.history.loadMore')}
+      onLoadMore={loadMore}
+      collapsed={collapsed}
+      dimIcon={dimIcon}
+    />
   );
 
   const renderConversation = (conversation: TChatConversation, dimIcon = false) => {
