@@ -2,19 +2,23 @@
  * Resolve the aioncore binary path.
  *
  * Search order:
- *  1. Bundled with app (production)
- *  2. System PATH
+ *  1. AIONUI_BACKEND_BIN env override (path, resolved to absolute)
+ *  2. Bundled with app (production)
+ *  3. System PATH
  */
 
 import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const BINARY_NAME = 'aioncore';
+const BIN_ENV_VAR = 'AIONUI_BACKEND_BIN';
 const MAX_DIR_ENTRIES = 20;
 const MAX_LOOKUP_TEXT_LENGTH = 1000;
 
 type BackendBinaryResolveDiagnostics = {
+  envOverridePath?: string;
+  envOverrideExists?: boolean;
   resourcesPath?: string;
   runtimeKey: string;
   binaryName: string;
@@ -73,6 +77,9 @@ export function resolveBinaryPath(): string {
     pathLookupCommand: process.platform === 'win32' ? `where ${BINARY_NAME}` : `which ${BINARY_NAME}`,
   };
 
+  const override = envOverridePath(diagnostics);
+  if (override) return override;
+
   const bundled = bundledPath(runtimeKey, binaryName, diagnostics);
   if (bundled) return bundled;
 
@@ -81,6 +88,30 @@ export function resolveBinaryPath(): string {
 
   throw new BackendBinaryResolveError(
     `Cannot find "${BINARY_NAME}" binary. Checked bundled location and system PATH.`,
+    diagnostics
+  );
+}
+
+/**
+ * Honor the AIONUI_BACKEND_BIN env override.
+ * The value is resolved to an absolute path (relative to process.cwd) so it
+ * survives the backend launcher spawning with a different working directory.
+ * Returns the path when it points at an existing file. When the variable is
+ * set but the file is missing, throws so a typo fails loudly instead of
+ * silently falling back to the bundled or PATH binary.
+ */
+function envOverridePath(diagnostics: BackendBinaryResolveDiagnostics): string | null {
+  const raw = process.env[BIN_ENV_VAR]?.trim();
+  if (!raw) return null;
+
+  const absolute = resolve(raw);
+  diagnostics.envOverridePath = absolute;
+  const exists = existsSync(absolute);
+  diagnostics.envOverrideExists = exists;
+  if (exists) return absolute;
+
+  throw new BackendBinaryResolveError(
+    `${BIN_ENV_VAR} is set to "${raw}" but no file exists at "${absolute}".`,
     diagnostics
   );
 }

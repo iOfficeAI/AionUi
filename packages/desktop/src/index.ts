@@ -295,7 +295,10 @@ function broadcastBackendStartupState(state: BackendStartupFailureInfo | null): 
 
 function markBackendStartupFailed(error: unknown): void {
   backendStartupFailed = true;
-  backendStartupFailureInfo = classifyBackendStartupFailure(error);
+  // Stamp the currently installed app version so failure dialogs (notably the
+  // downgrade "update AionUi" dialog) can tell the user which version they are
+  // on now — i.e. that they need something newer than this.
+  backendStartupFailureInfo = { ...classifyBackendStartupFailure(error), appVersion: app.getVersion() };
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
   broadcastBackendStartupState(backendStartupFailureInfo);
 }
