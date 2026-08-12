@@ -20,11 +20,10 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import SiderItem from '@renderer/components/layout/Sider/SiderItem';
-import SortableSiderEntry from '@renderer/components/layout/Sider/SortableSiderEntry';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
-import SortableConversationRow from './SortableConversationRow';
+import SortableSidebarRow from './SortableSidebarRow';
 import TeamRow from './TeamRow';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
@@ -73,10 +72,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { resolveTeamRow, renameModal: teamRenameModal } = useTeamRows({ pathname, onSessionClick });
 
   const renderTeamRow = useCallback(
-    (item: SidebarTeamItem, dimIcon = false) => {
+    (item: SidebarTeamItem, dimIcon = false, dragHandle?: React.ReactNode) => {
       const data = resolveTeamRow(item);
       return (
-        <TeamRow key={item.team_id} {...data} collapsed={collapsed} dimIcon={dimIcon} tooltipEnabled={tooltipEnabled} />
+        <TeamRow
+          key={item.team_id}
+          {...data}
+          collapsed={collapsed}
+          dimIcon={dimIcon}
+          tooltipEnabled={tooltipEnabled}
+          dragHandle={dragHandle}
+        />
       );
     },
     [resolveTeamRow, collapsed, tooltipEnabled]
@@ -528,23 +534,31 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   <div className='min-w-0'>
                     {pinnedRowItems.map((item) => {
                       // Pinned group is a conversation ∪ team union — both kinds drag
-                      // (PR-D). Teams use the generic whole-node sortable wrapper; the
-                      // distance:8 activation constraint keeps a plain click working.
+                      // (PR-D) through the shared SortableSidebarRow, so they get the
+                      // identical hover-reveal 6-dot handle. The handle is the only
+                      // drag activator, so a plain click keeps its normal meaning.
                       if (item.type === 'team') {
                         return isDragEnabled ? (
-                          <SortableSiderEntry
+                          <SortableSidebarRow
                             key={sortableId('team', item.team_id)}
                             id={sortableId('team', item.team_id)}
                           >
-                            {renderTeamRow(item)}
-                          </SortableSiderEntry>
+                            {(dragHandle) => renderTeamRow(item, false, dragHandle)}
+                          </SortableSidebarRow>
                         ) : (
                           renderTeamRow(item)
                         );
                       }
                       const props = getConversationRowProps(item.conversation);
                       return isDragEnabled ? (
-                        <SortableConversationRow key={item.conversation.id} {...props} />
+                        <SortableSidebarRow
+                          key={item.conversation.id}
+                          id={sortableId('conversation', item.conversation.id)}
+                          disabled={props.batchMode}
+                          data={{ type: 'conversation', conversation: item.conversation }}
+                        >
+                          {(dragHandle) => <ConversationRow {...props} dragHandle={dragHandle} />}
+                        </SortableSidebarRow>
                       ) : (
                         <ConversationRow key={item.conversation.id} {...props} />
                       );
