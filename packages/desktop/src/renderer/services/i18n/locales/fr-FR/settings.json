@@ -1002,7 +1002,17 @@
     "slackStep2": "Envoyez un message ou une @mention pour lancer l'appairage",
     "slackStep3": "Une demande d'appairage apparaîtra ci-dessous. Cliquez sur « Approuver » pour autoriser l'utilisateur.",
     "slackStep4": "Une fois approuvé, vous pouvez commencer à discuter avec l'assistant dans Slack !",
-    "unknownUser": "Utilisateur inconnu"
+    "unknownUser": "Utilisateur inconnu",
+    "discordBotToken": "Jeton du bot",
+    "discordBotTokenDesc": "Créez une application Discord, ajoutez un Bot, activez l'intent MESSAGE CONTENT et copiez le Jeton du bot.",
+    "discordPluginEnabled": "Bot Discord activé",
+    "discordPluginDisabled": "Bot Discord désactivé",
+    "agentDescDiscord": "Utilisé pour les conversations Discord",
+    "defaultModelDescDiscord": "Modèle utilisé pour les conversations Discord",
+    "discordStep1": "Ouvrez Discord et mentionnez votre bot dans un canal, ou envoyez-lui un message privé",
+    "discordStep2": "Envoyez un message ou une @mention pour lancer l'appairage",
+    "discordStep3": "Une demande d'appairage apparaîtra ci-dessous. Cliquez sur « Approuver » pour autoriser l'utilisateur.",
+    "discordStep4": "Une fois approuvé, vous pouvez commencer à discuter avec l'assistant dans Discord !"
   },
   "lark": {
     "appId": "ID d'application",

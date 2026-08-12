@@ -5,9 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
+import { downloadFileFromPath, downloadFileFromRef, downloadTextContent } from '@/renderer/utils/file/download';
 import { formatFileSize } from '@/renderer/services/FileService';
-import { formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
+import { CONTENT_FREE_TYPES, formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 import { isRefreshActionable, refreshButtonState, refreshStateToken } from './refreshButtonState';
 import { reloadViaViewer } from '../../context/tabReloaderRegistry';
@@ -50,7 +50,13 @@ import {
   type RefreshConfirmState,
   type PreviewTab,
 } from '.';
-import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
+import {
+  DEFAULT_SPLIT_RATIO,
+  EDITABLE_CONTENT_TYPES,
+  FILE_TYPES_WITH_BUILTIN_OPEN,
+  MAX_SPLIT_WIDTH,
+  MIN_SPLIT_WIDTH,
+} from '../../constants';
 import { usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import './preview.css';
@@ -562,6 +568,18 @@ const PreviewPanel: React.FC = () => {
         return;
       }
 
+      // Content-free previews cannot manufacture a download from `content`.
+      // Use the renderer-safe ChatFileRef to download the original file.
+      if (CONTENT_FREE_TYPES.has(content_type)) {
+        const fileRef = isOpenableFileRef(metadata?.fileRef) ? metadata.fileRef : undefined;
+        if (fileRef) {
+          await downloadFileFromRef(fileRef, rawFileName);
+          return;
+        }
+        messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+        return;
+      }
+
       if (content_type === 'image') {
         // Pure base64 image (no file path on disk)
         if (!content) {
@@ -620,7 +638,18 @@ const PreviewPanel: React.FC = () => {
       console.error('[PreviewPanel] Failed to download file:', error);
       messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
     }
-  }, [content, content_type, metadata?.file_name, metadata?.file_path, metadata?.language, messageApi, t]);
+  }, [
+    content,
+    content_type,
+    metadata?.file_name,
+    metadata?.file_path,
+    metadata?.fileRef,
+    metadata?.language,
+    metadata?.oversized,
+    metadata?.workspace,
+    messageApi,
+    t,
+  ]);
 
   // 在系统默认应用中打开文件 / Open file in system default application
   const handleOpenInSystem = useCallback(async () => {
@@ -1071,6 +1100,13 @@ const PreviewPanel: React.FC = () => {
             refreshState={refreshStateToken(refreshState)}
             refreshActionable={isRefreshActionable(refreshState)}
             onRefresh={handleRefreshClick}
+            showSave={
+              isEditable &&
+              (EDITABLE_CONTENT_TYPES as readonly string[]).includes(content_type) &&
+              !(Boolean(metadata?.oversized) || content_type === 'unsupported')
+            }
+            saveActionable={Boolean(activeTab?.isDirty)}
+            onSave={() => void handleSaveActiveTab()}
             hasNoRenderableContent={Boolean(metadata?.oversized) || content_type === 'unsupported'}
             onViewModeChange={(mode) => {
               setViewMode(mode);

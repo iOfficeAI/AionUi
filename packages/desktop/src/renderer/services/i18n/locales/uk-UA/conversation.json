@@ -72,11 +72,17 @@
     "removeProjectTitle": "Видалити проєкт",
     "removeProject": "Видалити проєкт",
     "removeProjectConfirm": "Видалити проєкт «{{name}}»? Також буде видалено {{count}} розмов у ньому.",
+    "removeProjectConfirmTeams": "Також буде видалено {{teams}} команд у ньому.",
+    "removeProjectListMore": "Ще {{count}}",
     "newConversationInProject": "Нова розмова в цьому проєкті",
     "deleting": "Видалення...",
     "reorderPinned": "Перетягніть, щоб змінити порядок закріплених розмов",
     "forkedFrom": "Відгалуження від «{{name}}»",
-    "forkedConversation": "Відгалужена розмова"
+    "forkedConversation": "Відгалужена розмова",
+    "loadMore": "Завантажити більше",
+    "newTeamInProject": "Нова команда в цьому проєкті",
+    "projectCreateMenu": "Створити",
+    "collapseAllProjects": "Згорнути всі проєкти"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",

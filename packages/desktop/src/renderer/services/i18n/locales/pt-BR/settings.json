@@ -1002,7 +1002,17 @@
     "slackStep2": "Envie qualquer mensagem ou @menção para iniciar o pareamento",
     "slackStep3": "Uma solicitação de pareamento aparecerá abaixo. Clique em \"Aprovar\" para autorizar o usuário.",
     "slackStep4": "Após aprovado, você pode começar a conversar com o assistente no Slack!",
-    "unknownUser": "Usuário desconhecido"
+    "unknownUser": "Usuário desconhecido",
+    "discordBotToken": "Token do bot",
+    "discordBotTokenDesc": "Crie um aplicativo do Discord, adicione um Bot, ative o intent MESSAGE CONTENT e copie o Token do bot.",
+    "discordPluginEnabled": "Bot do Discord ativado",
+    "discordPluginDisabled": "Bot do Discord desativado",
+    "agentDescDiscord": "Usado para conversas no Discord",
+    "defaultModelDescDiscord": "Modelo usado para conversas no Discord",
+    "discordStep1": "Abra o Discord e mencione seu bot em um canal, ou envie um DM",
+    "discordStep2": "Envie qualquer mensagem ou @menção para iniciar o pareamento",
+    "discordStep3": "Uma solicitação de pareamento aparecerá abaixo. Clique em \"Aprovar\" para autorizar o usuário.",
+    "discordStep4": "Após aprovado, você pode começar a conversar com o assistente no Discord!"
   },
   "lark": {
     "appId": "ID do Aplicativo",

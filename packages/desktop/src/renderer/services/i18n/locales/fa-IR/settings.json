@@ -1002,7 +1002,17 @@
     "slackStep2": "برای شروع جفت‌سازی هر پیامی یا @منشن ارسال کنید",
     "slackStep3": "یک درخواست جفت‌سازی در زیر ظاهر می‌شود. برای مجاز کردن کاربر روی «تأیید» کلیک کنید.",
     "slackStep4": "پس از تأیید، می‌توانید در Slack با دستیار گفتگو کنید!",
-    "unknownUser": "کاربر ناشناس"
+    "unknownUser": "کاربر ناشناس",
+    "discordBotToken": "Bot Token",
+    "discordBotTokenDesc": "یک برنامه Discord بسازید، یک Bot اضافه کنید، intent مربوط به MESSAGE CONTENT را فعال کنید و Bot Token را کپی کنید.",
+    "discordPluginEnabled": "ربات Discord فعال شد",
+    "discordPluginDisabled": "ربات Discord غیرفعال شد",
+    "agentDescDiscord": "برای گفتگوهای Discord استفاده می‌شود",
+    "defaultModelDescDiscord": "مدلی که برای گفتگوهای Discord استفاده می‌شود",
+    "discordStep1": "Discord را باز کنید و در یک کانال ربات خود را mention کنید یا به آن پیام خصوصی بدهید",
+    "discordStep2": "برای شروع اتصال، هر پیامی بفرستید یا @mention کنید",
+    "discordStep3": "یک درخواست اتصال در پایین نمایش داده می‌شود. برای احراز هویت کاربر روی «تأیید» کلیک کنید.",
+    "discordStep4": "پس از تأیید، می‌توانید در Discord با دستیار گفتگو را شروع کنید!"
   },
   "lark": {
     "appId": "شناسه برنامه",

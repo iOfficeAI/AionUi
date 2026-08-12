@@ -87,7 +87,7 @@ describe('buildScmTree', () => {
   it('is deterministic regardless of input order', () => {
     const paths = ['src/z.ts', 'docs/readme.md', 'src/a.ts', 'src/nested/x.ts'];
     const forward = buildScmTree(paths.map(res));
-    const reversed = buildScmTree([...paths].reverse().map(res));
+    const reversed = buildScmTree([...paths].toReversed().map(res));
     const shape = (ns: ScmTreeNode[]): unknown =>
       ns.map((n) => (n.kind === 'dir' ? { d: n.label, c: shape(n.children) } : { f: n.label }));
     expect(shape(forward)).toEqual(shape(reversed));
