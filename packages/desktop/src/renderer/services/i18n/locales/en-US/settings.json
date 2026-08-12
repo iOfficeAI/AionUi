@@ -1343,7 +1343,7 @@
     "clearFailed": "Failed to clear browsing data"
   },
   "archived": {
-    "navLabel": "Archived",
+    "navLabel": "Archived conversations",
     "title": "Archived",
     "description": "Conversations and teams you've archived. Restore them to the sidebar, or empty the archive to delete them permanently.",
     "empty": "No archived items",

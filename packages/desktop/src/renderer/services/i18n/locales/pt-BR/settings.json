@@ -1346,7 +1346,7 @@
     "clearFailed": "Falha ao limpar dados de navegação"
   },
   "archived": {
-    "navLabel": "Arquivados",
+    "navLabel": "Conversas arquivadas",
     "title": "Arquivados",
     "description": "Conversas e equipes que você arquivou. Restaure-as para a barra lateral ou esvazie o arquivo para excluí-las permanentemente.",
     "empty": "Nenhum item arquivado",

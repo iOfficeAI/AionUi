@@ -1343,7 +1343,7 @@
     "clearFailed": "No se pudieron borrar los datos de navegación"
   },
   "archived": {
-    "navLabel": "Archivados",
+    "navLabel": "Conversaciones archivadas",
     "title": "Archivados",
     "description": "Conversaciones y equipos que has archivado. Restáuralos en la barra lateral o vacía el archivo para eliminarlos permanentemente.",
     "empty": "No hay elementos archivados",
