@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Hi，今天有什麼安排？",
+    "title": "Hi {{name}}，今天有什麼安排？",
     "placeholder": "發送訊息、上傳檔案、開啟資料夾、建立定時任務，或輸入 / 喚起命令...",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
@@ -12,10 +12,10 @@
     "clearWorkspace": "移除專案",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "AionUi 能做什麼？",
+    "quickActionsTitle": "BadouWork 能做什麼？",
     "quickActionFeedback": "反饋問題",
     "quickActionStar": "喜歡我們？點個星吧",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "BadouWork Skills Market",
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
     "skillsMarketDetails": "詳情 >>"
   },
@@ -129,29 +129,29 @@
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
     "ownership": {
-      "aionui": "應用",
+      "BadouWork": "應用",
       "user_agent": "Agent",
       "user_llm_provider": "模型服務商",
       "unknown_upstream": "上游"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "回應流異常中斷",
         "body": "訊息已送出，但回應流異常結束。請先重試；如果反覆出現，可以提交回饋。"
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "會話狀態不一致",
         "body": "目前對話狀態和後台記錄不同步。請重新開啟應用程式或建立新對話後再試。"
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "無法存取所需資源",
         "body": "本機權限或檔案存取檢查失敗。請確認專案路徑和應用程式權限後重試。"
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "應用處理失敗",
         "body": "本次請求在應用程式處理過程中失敗。請先重試一次；如果仍然出現，可以提交回饋。"
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "會話正在處理上一則訊息",
         "body": "目前會話還有回覆尚未結束。請等待本次回覆完成後再傳送新的訊息。"
       },
@@ -306,7 +306,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "讀取團隊輔助程序回應失敗",
-        "body": "AionUi 無法讀取本地團隊輔助程序的回應。請先重試一次，若持續發生再重新啟動應用。"
+        "body": "BadouWork 無法讀取本地團隊輔助程序的回應。請先重試一次，若持續發生再重新啟動應用。"
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "本地團隊輔助程序拒絕了這次請求",
@@ -314,11 +314,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "團隊輔助程序回傳了異常回應",
-        "body": "AionUi 收到了本地團隊輔助程序的異常回應。請先重試一次，若持續發生再回報問題。"
+        "body": "BadouWork 收到了本地團隊輔助程序的異常回應。請先重試一次，若持續發生再回報問題。"
       },
       "MCP_TCP_READ_FAILED": {
         "title": "讀取本地團隊輔助程序失敗",
-        "body": "AionUi 無法讀取本地團隊輔助程序的 TCP 回應。請先重試一次，如仍失敗可重新啟動應用。"
+        "body": "BadouWork 無法讀取本地團隊輔助程序的 TCP 回應。請先重試一次，如仍失敗可重新啟動應用。"
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "團隊服務尚未就緒",
@@ -592,14 +592,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "本輪有 {{count}} 個步驟失敗且未生效。agy 仍會將這類輪次標記為成功，請核對實際結果而非回覆內容。"
       },
-      "CLI_VERSION_OLDER": {
-        "body": "已安裝的 {{cli}} 低於 AionUi 驗證過的版本，部分功能可能缺失。建議升級 {{cli}}。 （本機 {{reported}} / AionUi 驗證過 {{verified}}）"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "已安裝的 agy {{reported}} 低於本整合驗證過的 {{verified}}，部分功能可能缺失，建議升級 agy。"
       },
-      "CLI_VERSION_NEWER": {
-        "body": "已安裝的 {{cli}} 高於 AionUi 驗證過的版本。通常仍可正常使用；如遇異常行為請回報。 （本機 {{reported}} / AionUi 驗證過 {{verified}}）"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}}（累計第 {{attempts}} 次重試，已等待 {{elapsed}}——Agent 的服務方反覆中斷連線，AionUi 正在等待重連。）"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "已安裝的 agy {{reported}} 高於本整合驗證過的 {{verified}}。通常仍可正常使用；如遇異常行為請回報。"
       }
     }
   },
@@ -613,9 +610,7 @@
     "removeFailed": "移除資料夾失敗",
     "contextMenu": {
       "rename": "重新命名",
-      "addToChat": "加入對話",
-      "copyRelativePath": "複製相對路徑",
-      "copyAbsolutePath": "複製絕對路徑"
+      "addToChat": "加入對話"
     },
     "namePlaceholder": "名稱",
     "deleteConfirm": "刪除「{{name}}」？此操作無法復原。",
@@ -624,6 +619,7 @@
       "files": "檔案",
       "changes": "變更"
     },
+    "changesPlaceholder": "原始碼管理在獨立通道中,敬請期待。",
     "addedToChat": "已將 {{name}} 加入對話",
     "imported": "已匯入 {{count}} 個檔案",
     "importPartialFailed": "已複製 {{copied}} 個，{{failed}} 個失敗（重名或不支援）",
@@ -633,91 +629,6 @@
       "searching": "搜尋中…",
       "empty": "沒有符合的檔案",
       "limitReached": "僅顯示前 {{count}} 項 — 請縮小範圍"
-    },
-    "scm": {
-      "notARepository": "該資料夾未納入版本控制",
-      "noChanges": "沒有變更",
-      "loading": "正在載入變更…",
-      "loadFailed": "無法載入變更",
-      "refresh": "重新整理",
-      "groups": {
-        "staged": "已暫存的變更",
-        "unstaged": "變更",
-        "changes": "變更",
-        "blocked": "需先解決"
-      },
-      "sections": {
-        "repositories": "儲存庫",
-        "changes": "變更"
-      },
-      "viewAsTree": "以樹狀檢視顯示",
-      "viewAsList": "以清單檢視顯示",
-      "worktree": "工作樹",
-      "expandWorktrees": "顯示工作樹",
-      "collapseWorktrees": "隱藏工作樹",
-      "state": {
-        "created": "新增",
-        "modified": "已修改",
-        "deleted": "已刪除",
-        "renamed": "已重新命名",
-        "conflicted": "衝突",
-        "unknown": "未識別的狀態"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "請先在 AionUi 之外解決此衝突",
-      "opaqueHint": "該狀態來自更新版本的後端 — 僅供檢視",
-      "degraded": "由於無法更新 git 索引，重新整理正以較慢的模式執行",
-      "truncated": "變更過多，僅顯示前一部分",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "正在載入差異…",
-        "failed": "無法載入差異",
-        "binary": "二進位檔案 — 無文字差異",
-        "truncated": "差異已截斷（檔案過大）",
-        "empty": "沒有文字變更",
-        "close": "關閉差異"
-      },
-      "actions": {
-        "stage": "暫存變更",
-        "unstage": "取消暫存",
-        "discard": "捨棄變更",
-        "stageAll": "全部暫存",
-        "unstageAll": "全部取消暫存",
-        "blockedHint": "請先在 AionUi 之外解決衝突，然後再暫存或捨棄",
-        "confirmDiscardTitle": "要捨棄變更嗎？",
-        "confirmDiscardTracked": "{{count}} 個檔案的修改將遺失，且無法復原。",
-        "confirmDiscardUntracked": "{{count}} 個新檔案將被移到垃圾桶。",
-        "confirmDiscardMixed": "{{tracked}} 個檔案的修改將遺失且無法復原；{{untracked}} 個新檔案將被移到垃圾桶。",
-        "discardConfirmButton": "捨棄",
-        "okStage": "已暫存 {{count}} 個檔案",
-        "okUnstage": "已取消暫存 {{count}} 個檔案",
-        "okDiscard": "已捨棄 {{count}} 個檔案",
-        "partial": "已完成 {{succeeded}}/{{total}} —— {{failed}} 個未能完成",
-        "partialDetail": "未完成：{{files}}",
-        "rejectedBlocked": "未變動任何內容 —— 請先解決衝突",
-        "rejectedUnsupported": "該儲存庫不支援此操作",
-        "rejectedFailed": "操作未能完成",
-        "retry": "重試",
-        "notSent": "請求沒有送達後端，未變動任何內容。可以重試。",
-        "outcomeUnknown": "連線在收到回覆前已重設——此操作可能已完成，也可能未完成。請重新整理並核對檔案清單，確認後再決定是否重試。",
-        "allFailed": "{{count}} 個檔案都未能處理"
-      }
-    },
-    "pathCopied": "已複製路徑",
-    "copyFailed": "複製路徑失敗"
-  },
-  "terminal": {
-    "running": "執行中",
-    "stopped": "已停止",
-    "exited": "結束碼 {{code}}",
-    "stop": "停止",
-    "truncated": "(較早輸出已截斷)"
+    }
   }
 }

@@ -30,7 +30,7 @@
   "errorTitle": "更新失败",
   "installerLastFailure": {
     "title": "上次更新未完成",
-    "description": "上次静默更新时未能关闭 AionUi。你可以重试更新、查看安装日志，或发送反馈。",
+    "description": "上次静默更新时未能关闭 BadouWork。你可以重试更新、查看安装日志，或发送反馈。",
     "retryUpdate": "重试更新",
     "viewLog": "查看日志"
   },
@@ -64,7 +64,7 @@
   "migration": {
     "capsule": "致用户的一封信",
     "letter": {
-      "title": "来自 AionUi 团队的一封信",
+      "title": "来自 BadouWork 团队的一封信",
       "whyTitle": "为什么要这样做？",
       "whyLead": "过去「打包分发、各自本地运行」的方式，一直难以支撑我们想带给您的体验：",
       "whyReason1": "安装包一旦发出，我们就无法再触达它——修复无法及时送达，最新的技能与助手也无法为您同步；",
@@ -75,20 +75,20 @@
       "promise3": "新版本没有绑定消费：现在怎么用，以后还怎么用；现在免费的功能，以后也都是免费的；",
       "choicesTitle": "您依旧可以自由选择：",
       "choice2": "如果您更喜欢本地 DIY，可以持续更新开源源码，自行打包使用。",
-      "closing": "最后，感谢您陪 AionUi 走到今天，期待在新版与您相遇。",
-      "signature": "AionUi 团队",
+      "closing": "最后，感谢您陪 BadouWork 走到今天，期待在新版与您相遇。",
+      "signature": "BadouWork 团队",
       "downloadNew": "前往官网下载新版",
-      "greeting": "亲爱的 AionUi 用户：",
+      "greeting": "亲爱的 BadouWork 用户：",
       "whyOutroPrefix": "因此，",
       "whyOutroBold": "新版本需要登录后使用",
-      "whyOutroSuffix": "（支持 Google 登录，更多登录方式正在路上）。我们希望把 AionUi 真正当作一个产品认真做下去，有了账号，这些才有了起点；您反馈的问题，我们也能更好地响应。",
-      "choice1Bold": "如果您日常使用 AionUi，建议您升级到新版本",
+      "whyOutroSuffix": "（支持 Google 登录，更多登录方式正在路上）。我们希望把 BadouWork 真正当作一个产品认真做下去，有了账号，这些才有了起点；您反馈的问题，我们也能更好地响应。",
+      "choice1Bold": "如果您日常使用 BadouWork，建议您升级到新版本",
       "choice1Rest": "：今后新的能力、技能与助手都会第一时间到达您手上，后续基于账号的数据同步等服务，也都会为您顺畅开启；",
       "promise1Bold": "您的对话与文件依旧只在本地",
       "promise1Rest": "：Agent 在您自己的电脑上运行，对话内容与文件不会上传到我们的服务器；",
-      "introPrefix": "感谢您一直以来对 AionUi 的支持，",
-      "introBold": "这是一封 AionUi 新版本的下载邀请信",
-      "introSuffix": "：今后 AionUi 的安装包与更新将由官网提供，不再走 GitHub Release 渠道，我们诚邀您移步官网下载新版。",
+      "introPrefix": "感谢您一直以来对 BadouWork 的支持，",
+      "introBold": "这是一封 BadouWork 新版本的下载邀请信",
+      "introSuffix": "：今后 BadouWork 的安装包与更新将由官网提供，不再走 GitHub Release 渠道，我们诚邀您移步官网下载新版。",
       "promise4": "开源仓库持续更新，核心功能保持同步，开源精神不变。",
       "noRush": "如果您暂不升级，当前版本仍可照常使用，只是不会再收到更新；而一旦在新版本完成首次登录，本地数据便已迁移过去，请以新版本作为日常入口。"
     }

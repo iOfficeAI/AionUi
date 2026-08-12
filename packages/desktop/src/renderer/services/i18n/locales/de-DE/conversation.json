@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Hallo, was hast du heute vor?",
+    "title": "Hallo {{name}}, was hast du heute vor?",
     "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",
     "linkFolder": "Ordner öffnen",
     "newConversation": "Neuer Chat",
@@ -12,10 +12,10 @@
     "clearWorkspace": "Ordner entfernen",
     "openFolder": "Ordner öffnen",
     "none": "Keiner",
-    "quickActionsTitle": "Was kann AionUi?",
+    "quickActionsTitle": "Was kann BadouWork?",
     "quickActionFeedback": "Feedback oder Vorschläge?",
-    "quickActionStar": "Gefällt dir AionUi? Gib uns einen Stern!",
-    "skillsMarket": "AionUi Skills-Markt",
+    "quickActionStar": "Gefällt dir BadouWork? Gib uns einen Stern!",
+    "skillsMarket": "BadouWork Skills-Markt",
     "skillsMarketDesc": "Community-Skills auf Abruf suchen und aktivieren. Einmal konfigurieren, für alle Agenten verfügbar.",
     "skillsMarketDetails": "Mehr anzeigen >>"
   },
@@ -129,29 +129,29 @@
       "send_feedback": "Sende Feedback mit Protokollen, damit das Team das Problem untersuchen kann."
     },
     "ownership": {
-      "aionui": "App",
+      "BadouWork": "App",
       "user_agent": "Agent",
       "user_llm_provider": "Modellanbieter",
       "unknown_upstream": "Upstream"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "Antwortstrom wurde unterbrochen",
         "body": "Die App hat deine Nachricht akzeptiert, aber der Antwortstrom endete unerwartet. Bitte versuche es erneut; wenn es wieder passiert, sende Feedback."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "Unterhaltungszustand ist nicht synchronisiert",
         "body": "Der Unterhaltungszustand ist nicht synchronisiert. Starte diesen Chat neu oder lade die App erneut, bevor du es nochmal versuchst."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "Zugriff auf die angeforderte Ressource konnte nicht erfolgen",
         "body": "Eine lokale Berechtigung oder Dateisystem-Überprüfung ist fehlgeschlagen. Überprüfe den Projektpfad und die App-Berechtigungen und versuche es erneut."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "Anfrage in der App fehlgeschlagen",
         "body": "Die Anfrage ist fehlgeschlagen, während die App sie verarbeitete. Bitte versuche es einmal erneut; wenn es wiederholt passiert, sende Feedback."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "Unterhaltung ist beschäftigt",
         "body": "Eine weitere Antwort wird noch verarbeitet. Warte, bis sie fertig ist, bevor du eine neue Nachricht sendest."
       },
@@ -306,7 +306,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -314,11 +314,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -593,14 +593,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} Schritt(e) sind fehlgeschlagen und wurden NICHT ausgeführt. agy schließt solche Durchläufe trotzdem als erfolgreich ab – prüfe daher das tatsächliche Ergebnis statt der Antwort."
       },
-      "CLI_VERSION_OLDER": {
-        "body": "Das installierte {{cli}} ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade von {{cli}} wird empfohlen. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "Das installierte agy {{reported}} ist älter als die für diese Integration geprüfte Version {{verified}}; einzelne Funktionen fehlen möglicherweise. Ein Update wird empfohlen."
       },
-      "CLI_VERSION_NEWER": {
-        "body": "Das installierte {{cli}} ist neuer als die von AionUi verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AionUi wartet ab.)"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "Das installierte agy {{reported}} ist neuer als die für diese Integration geprüfte Version {{verified}}. Es sollte weiterhin funktionieren – melde bitte alles, was sich seltsam verhält."
       }
     }
   },
@@ -614,9 +611,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Umbenennen",
-      "addToChat": "Zum Chat hinzufügen",
-      "copyRelativePath": "Relativen Pfad kopieren",
-      "copyAbsolutePath": "Absoluten Pfad kopieren"
+      "addToChat": "Zum Chat hinzufügen"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -625,6 +620,7 @@
       "files": "Dateien",
       "changes": "Änderungen"
     },
+    "changesPlaceholder": "Die Versionsverwaltung folgt in einem eigenen Bereich — bald.",
     "addedToChat": "{{name}} zum Chat hinzugefügt",
     "imported": "{{count}} Datei(en) importiert",
     "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
@@ -634,91 +630,6 @@
       "searching": "Suche läuft…",
       "empty": "Keine passenden Dateien",
       "limitReached": "Erste {{count}} werden angezeigt — eingrenzen"
-    },
-    "scm": {
-      "notARepository": "Dieser Ordner steht nicht unter Versionskontrolle",
-      "noChanges": "Keine Änderungen",
-      "loading": "Änderungen werden geladen…",
-      "loadFailed": "Änderungen konnten nicht geladen werden",
-      "refresh": "Aktualisieren",
-      "groups": {
-        "staged": "Vorgemerkte Änderungen",
-        "unstaged": "Änderungen",
-        "changes": "Änderungen",
-        "blocked": "Muss gelöst werden"
-      },
-      "sections": {
-        "repositories": "Repositorys",
-        "changes": "Änderungen"
-      },
-      "viewAsTree": "Als Baum anzeigen",
-      "viewAsList": "Als Liste anzeigen",
-      "worktree": "Worktree",
-      "expandWorktrees": "Worktrees anzeigen",
-      "collapseWorktrees": "Worktrees ausblenden",
-      "state": {
-        "created": "Hinzugefügt",
-        "modified": "Geändert",
-        "deleted": "Gelöscht",
-        "renamed": "Umbenannt",
-        "conflicted": "Konflikt",
-        "unknown": "Unbekannter Status"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "Lösen Sie diesen Konflikt zuerst außerhalb von AionUi",
-      "opaqueHint": "Dieser Status kommt von einem neueren Backend — nur lesend angezeigt",
-      "degraded": "Die Aktualisierung läuft langsamer, weil der git-Index nicht geschrieben werden kann",
-      "truncated": "Zu viele Änderungen — nur der erste Teil wird angezeigt",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "Unterschiede werden geladen…",
-        "failed": "Unterschiede konnten nicht geladen werden",
-        "binary": "Binärdatei — kein Textvergleich",
-        "truncated": "Unterschiede gekürzt (große Datei)",
-        "empty": "Keine textlichen Änderungen",
-        "close": "Unterschiede schließen"
-      },
-      "actions": {
-        "stage": "Änderungen vormerken",
-        "unstage": "Vormerkung aufheben",
-        "discard": "Änderungen verwerfen",
-        "stageAll": "Alle vormerken",
-        "unstageAll": "Alle Vormerkungen aufheben",
-        "blockedHint": "Lösen Sie den Konflikt außerhalb von AionUi, bevor Sie vormerken oder verwerfen",
-        "confirmDiscardTitle": "Änderungen verwerfen?",
-        "confirmDiscardTracked": "Die Änderungen an {{count}} Dateien gehen verloren. Das kann nicht rückgängig gemacht werden.",
-        "confirmDiscardUntracked": "{{count}} neue Dateien werden in den Papierkorb verschoben.",
-        "confirmDiscardMixed": "Änderungen an {{tracked}} Datei(en) gehen unwiderruflich verloren; {{untracked}} neue Datei(en) landen im Papierkorb.",
-        "discardConfirmButton": "Verwerfen",
-        "okStage": "{{count}} Dateien vorgemerkt",
-        "okUnstage": "Vormerkung für {{count}} Dateien aufgehoben",
-        "okDiscard": "{{count}} Dateien verworfen",
-        "partial": "{{succeeded}} von {{total}} erledigt —— {{failed}} konnten nicht abgeschlossen werden",
-        "partialDetail": "Nicht abgeschlossen: {{files}}",
-        "rejectedBlocked": "Es wurde nichts geändert —— lösen Sie zuerst den Konflikt",
-        "rejectedUnsupported": "Dieses Repository unterstützt diese Aktion nicht",
-        "rejectedFailed": "Die Aktion konnte nicht abgeschlossen werden",
-        "retry": "Wiederholen",
-        "notSent": "Die Anfrage hat das Backend nicht erreicht — es wurde nichts geändert. Sie können es erneut versuchen.",
-        "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
-        "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
-      }
-    },
-    "pathCopied": "Pfad kopiert",
-    "copyFailed": "Pfad konnte nicht kopiert werden"
-  },
-  "terminal": {
-    "running": "Läuft",
-    "stopped": "Gestoppt",
-    "exited": "Exit {{code}}",
-    "stop": "Stopp",
-    "truncated": "(frühere Ausgabe gekürzt)"
+    }
   }
 }

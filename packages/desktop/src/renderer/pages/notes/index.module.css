@@ -1,0 +1,54 @@
+/**
+ * Notes page styles.
+ * Overrides Vditor defaults to match the app's theme.
+ */
+
+.editorContainer {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editorContainer :global(.vditor) {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background-color: var(--bg-base);
+}
+
+.editorContainer :global(.vditor-toolbar) {
+  border-bottom: 1px solid var(--bg-3);
+  background-color: var(--bg-base);
+}
+
+.editorContainer :global(.vditor-content) {
+  background-color: var(--bg-base);
+}
+
+.editorContainer :global(.vditor-ir) {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.editorContainer :global(.vditor-preview) {
+  background-color: var(--bg-base);
+}
+
+/**
+ * First line of the body is rendered as the note's title — make it visually
+ * obvious by making it bold and larger, regardless of what markdown the user
+ * typed (plain text, **bold**, # H1, ## H2, etc.).
+ *
+ * `:not(:empty)` keeps the placeholder text shown on a freshly opened empty
+ * note at its normal size.
+ */
+.editorContainer :global(.vditor-ir pre.vditor-reset > :first-child:not(:empty)),
+.editorContainer :global(.vditor-wysiwyg .vditor-reset > :first-child:not(:empty)) {
+  font-weight: 700;
+  font-size: 1.5em;
+  line-height: 1.3;
+}

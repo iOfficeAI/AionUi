@@ -63,8 +63,10 @@ interface AutoUpdateCheckParams {
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'static.aionui.com';
-const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
+// const CDN_HOST = 'static.aionui.com';
+// const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
+const CDN_HOST = 'https://qw.badousoft.com/badouwork/statics';
+const CDN_BASE_URL = `${CDN_HOST}`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
   'github.com',
@@ -313,7 +315,8 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
 };
 
 const fetchGitHubReleases = async (repo: string, timeoutMs = 30000): Promise<GitHubReleaseApi[]> => {
-  const url = `https://api.github.com/repos/${repo}/releases`;
+  //const url = `https://api.github.com/repos/${repo}/releases`;
+  const url = `https://qw.badousoft.com/badouwork/api/versions`;
 
   // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
   const controller = new AbortController();

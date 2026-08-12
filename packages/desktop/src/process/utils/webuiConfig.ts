@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { httpRequest, isBackendHttpError } from '@/common/adapter/httpBridge';
 import { startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
@@ -17,6 +17,15 @@ const WEBUI_CONFIG_FILE = 'webui.config.json';
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
+
+// Bounded retry window for the boot-time preference read. The backend may
+// still be booting when restoreDesktopWebUIFromPreferences() runs, so a bare
+// GET can fail with `TypeError: fetch failed` (connection refused). Give the
+// backend a chance to come up before giving up on auto-restore.
+const WEBUI_PREFERENCE_READ_TIMEOUT_MS = 10_000;
+const WEBUI_PREFERENCE_READ_INTERVAL_MS = 200;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Read WebUI preferences from the backend's /api/settings/client store.
@@ -34,17 +43,35 @@ async function readWebUIDesktopPreferences(): Promise<{
   allowRemote: boolean;
   port: number | undefined;
 }> {
-  try {
-    const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
-    const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
-    const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
-    const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
-    const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
-    return { enabled, allowRemote, port };
-  } catch (error) {
-    console.error('[WebUI] Failed to read preferences from backend:', error);
-    return { enabled: false, allowRemote: false, port: undefined };
+  // The backend may still be booting when the boot-time auto-restore runs
+  // (src/index.ts invokes restoreDesktopWebUIFromPreferences right after
+  // createWindow; under allowPendingOnHealthTimeout the backend process can
+  // be alive while its HTTP listener is not yet ready), so the first GET can
+  // throw `TypeError: fetch failed`. Retry transient network errors against a
+  // bounded deadline instead of giving up on the first attempt — otherwise a
+  // user's enabled=true preference is silently dropped and the WebUI never
+  // auto-restores. HTTP-level errors (BackendHttpError) mean the backend IS
+  // up but the settings store is broken; retrying those is pointless.
+  const deadline = Date.now() + WEBUI_PREFERENCE_READ_TIMEOUT_MS;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
+      const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
+      const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
+      const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
+      const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
+      return { enabled, allowRemote, port };
+    } catch (error) {
+      lastError = error;
+      if (isBackendHttpError(error)) {
+        break;
+      }
+      await sleep(WEBUI_PREFERENCE_READ_INTERVAL_MS);
+    }
   }
+  console.error('[WebUI] Failed to read preferences from backend:', lastError);
+  return { enabled: false, allowRemote: false, port: undefined };
 }
 
 async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {

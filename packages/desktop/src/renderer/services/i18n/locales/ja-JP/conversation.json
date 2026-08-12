@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Hi、今日の予定は何ですか？",
+    "title": "Hi {{name}}、今日の予定は何ですか？",
     "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、スケジュールタスクの作成、または / でコマンド呼び出し...",
     "linkFolder": "フォルダを追加",
     "newConversation": "新しいチャット",
@@ -12,10 +12,10 @@
     "clearWorkspace": "プロジェクトを解除",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "AionUi で何ができる？",
+    "quickActionsTitle": "BadouWork で何ができる？",
     "quickActionFeedback": "問題を報告",
     "quickActionStar": "気に入った？スターをください！",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "BadouWork Skills Market",
     "skillsMarketDesc": "コミュニティ Skills をオンデマンドで検索・有効化。一度設定すれば、すべてのAgentで利用可能。",
     "skillsMarketDetails": "詳細 >>"
   },
@@ -129,29 +129,29 @@
       "send_feedback": "チームが調査できるよう、ログを添えてフィードバックを送信してください。"
     },
     "ownership": {
-      "aionui": "アプリ",
+      "BadouWork": "アプリ",
       "user_agent": "エージェント",
       "user_llm_provider": "モデルプロバイダー",
       "unknown_upstream": "上流"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "応答ストリームが中断されました",
         "body": "アプリはメッセージを受け付けましたが、応答ストリームが予期せず終了しました。再試行してください。繰り返し発生する場合はフィードバックを送信してください。"
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "会話状態が同期していません",
         "body": "会話の状態が同期していません。このチャットを再開するか、アプリを再読み込みしてから再試行してください。"
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "必要なリソースにアクセスできませんでした",
         "body": "ローカル権限またはファイルシステムの確認に失敗しました。プロジェクトパスとアプリの権限を確認してから再試行してください。"
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "アプリ内でリクエストに失敗しました",
         "body": "アプリが処理している間にリクエストが失敗しました。一度再試行してください。繰り返し発生する場合はフィードバックを送信してください。"
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "会話は処理中です",
         "body": "別の応答がまだ実行中です。完了してから新しいメッセージを送信してください。"
       },
@@ -306,7 +306,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -314,11 +314,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -592,14 +592,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "このターンで {{count}} 件のステップが失敗し、実行されませんでした。agy はこうしたターンも成功として終了するため、返答ではなく実際の結果を確認してください。"
       },
-      "CLI_VERSION_OLDER": {
-        "body": "インストール済みの {{cli}} は、AionUi が検証したバージョンより古いため、一部の機能が使えない可能性があります。{{cli}} の更新を検討してください。 （インストール済み {{reported}} / AionUi 検証済み {{verified}}）"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より古いため、一部の機能が利用できない可能性があります。agy の更新をご検討ください。"
       },
-      "CLI_VERSION_NEWER": {
-        "body": "インストール済みの {{cli}} は、AionUi が検証したバージョンより新しいです。通常は動作しますが、不審な挙動があればご報告ください。 （インストール済み {{reported}} / AionUi 検証済み {{verified}}）"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}}（累計 {{attempts}} 回目の再試行、経過 {{elapsed}} — エージェントの提供元が接続を切断し続けており、AionUi は再接続を待っています。）"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "インストールされている agy {{reported}} は、この統合が検証した {{verified}} より新しいバージョンです。通常は問題なく動作しますが、異常があればご報告ください。"
       }
     }
   },
@@ -613,9 +610,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "名前を変更",
-      "addToChat": "チャットに追加",
-      "copyRelativePath": "相対パスをコピー",
-      "copyAbsolutePath": "絶対パスをコピー"
+      "addToChat": "チャットに追加"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
@@ -624,6 +619,7 @@
       "files": "ファイル",
       "changes": "変更"
     },
+    "changesPlaceholder": "ソース管理は別レーンで近日公開。",
     "addedToChat": "{{name}} をチャットに追加しました",
     "imported": "{{count}} 件のファイルをインポートしました",
     "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
@@ -633,91 +629,6 @@
       "searching": "検索中…",
       "empty": "一致するファイルがありません",
       "limitReached": "最初の {{count}} 件を表示 — 絞り込んでください"
-    },
-    "scm": {
-      "notARepository": "このフォルダーはバージョン管理されていません",
-      "noChanges": "変更はありません",
-      "loading": "変更を読み込み中…",
-      "loadFailed": "変更を読み込めませんでした",
-      "refresh": "更新",
-      "groups": {
-        "staged": "ステージ済みの変更",
-        "unstaged": "変更",
-        "changes": "変更",
-        "blocked": "要解決"
-      },
-      "sections": {
-        "repositories": "リポジトリ",
-        "changes": "変更"
-      },
-      "viewAsTree": "ツリー表示",
-      "viewAsList": "リスト表示",
-      "worktree": "ワークツリー",
-      "expandWorktrees": "ワークツリーを表示",
-      "collapseWorktrees": "ワークツリーを非表示",
-      "state": {
-        "created": "追加",
-        "modified": "変更",
-        "deleted": "削除",
-        "renamed": "名前変更",
-        "conflicted": "競合",
-        "unknown": "未知の状態"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "この競合は AionUi の外で解決してください",
-      "opaqueHint": "この状態は新しいバックエンドのものです — 読み取り専用で表示",
-      "degraded": "git のインデックスを更新できないため、低速モードで更新しています",
-      "truncated": "変更が多すぎるため、先頭部分のみ表示しています",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "差分を読み込み中…",
-        "failed": "差分を読み込めませんでした",
-        "binary": "バイナリファイル — テキスト差分なし",
-        "truncated": "差分は切り詰められました（大きいファイル）",
-        "empty": "テキストの変更はありません",
-        "close": "差分を閉じる"
-      },
-      "actions": {
-        "stage": "変更をステージ",
-        "unstage": "ステージを取り消す",
-        "discard": "変更を破棄",
-        "stageAll": "すべてステージ",
-        "unstageAll": "すべてステージ解除",
-        "blockedHint": "ステージや破棄の前に、AionUi の外で競合を解決してください",
-        "confirmDiscardTitle": "変更を破棄しますか？",
-        "confirmDiscardTracked": "{{count}} 個のファイルの編集は失われ、元に戻せません。",
-        "confirmDiscardUntracked": "{{count}} 個の新規ファイルがゴミ箱に移動されます。",
-        "confirmDiscardMixed": "{{tracked}} 個のファイルの編集は失われ元に戻せません。{{untracked}} 個の新規ファイルはゴミ箱に移動されます。",
-        "discardConfirmButton": "破棄",
-        "okStage": "{{count}} 個のファイルをステージしました",
-        "okUnstage": "{{count}} 個のファイルのステージを解除しました",
-        "okDiscard": "{{count}} 個のファイルを破棄しました",
-        "partial": "{{total}} 件のうち {{succeeded}} 件完了 —— {{failed}} 件は未完了",
-        "partialDetail": "未完了: {{files}}",
-        "rejectedBlocked": "何も変更されていません —— まず競合を解決してください",
-        "rejectedUnsupported": "このリポジトリはその操作に対応していません",
-        "rejectedFailed": "操作を完了できませんでした",
-        "retry": "再試行",
-        "notSent": "リクエストがバックエンドに届かず、何も変更されていません。再試行できます。",
-        "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
-        "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
-      }
-    },
-    "pathCopied": "パスをコピーしました",
-    "copyFailed": "パスのコピーに失敗しました"
-  },
-  "terminal": {
-    "running": "実行中",
-    "stopped": "停止済み",
-    "exited": "終了コード {{code}}",
-    "stop": "停止",
-    "truncated": "(以前の出力は切り捨て)"
+    }
   }
 }

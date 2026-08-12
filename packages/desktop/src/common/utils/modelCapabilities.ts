@@ -71,24 +71,40 @@ export const supportsOpenAiApiMode = (platform: string, modelProtocol = 'openai'
   return !['anthropic', 'bedrock', 'gemini', 'gemini-vertex-ai'].includes(platform);
 };
 
+/** Per-model token limit overrides (optional). All fields are positive integers in tokens. */
+export interface ModelLimitInput {
+  contextWindowSize?: number;
+  maxContentLength?: number;
+  maxResponseLength?: number;
+}
+
 /** Apply explicit settings to models while keeping automatic values absent on the wire. */
 export const updateModelSettings = (
   current: Record<string, ModelSettings> | undefined,
   modelIds: string[],
   imageInput: ModelImageInputChoice,
-  openAiApiMode: ModelOpenAiApiModeChoice
+  openAiApiMode: ModelOpenAiApiModeChoice,
+  limits?: ModelLimitInput
 ): Record<string, ModelSettings> => {
   const next = { ...current };
 
   for (const modelId of modelIds) {
-    if (imageInput === 'auto' && openAiApiMode === 'auto') {
+    const limitsEmpty = !limits?.contextWindowSize && !limits?.maxContentLength && !limits?.maxResponseLength;
+    if (imageInput === 'auto' && openAiApiMode === 'auto' && limitsEmpty) {
       delete next[modelId];
       continue;
     }
-
-    const settings: ModelSettings = {};
+    const settings: ModelSettings = { ...(next[modelId] ?? {}) };
     if (imageInput !== 'auto') settings.image_input = imageInput;
+    else delete settings.image_input;
     if (openAiApiMode !== 'auto') settings.openai_api_mode = openAiApiMode;
+    else delete settings.openai_api_mode;
+    if (limits?.contextWindowSize) settings.context_window_size = limits.contextWindowSize;
+    else delete settings.context_window_size;
+    if (limits?.maxContentLength) settings.max_content_length = limits.maxContentLength;
+    else delete settings.max_content_length;
+    if (limits?.maxResponseLength) settings.max_response_length = limits.maxResponseLength;
+    else delete settings.max_response_length;
     next[modelId] = settings;
   }
 

@@ -38,6 +38,11 @@
   border-right: 1px solid var(--border-base);
 }
 
+.app-img {
+  border: 1px solid var(--border-base);
+  border-radius: 4px;
+}
+
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
    stack vertically and Content fills the remaining space (avoids a fixed
    calc() that breaks when header height changes). */

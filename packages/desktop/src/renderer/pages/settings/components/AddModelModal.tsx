@@ -2,12 +2,13 @@ import type { IProvider } from '@/common/config/storage';
 import {
   type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
+  type ModelLimitInput,
   supportsOpenAiApiMode,
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Select } from '@arco-design/web-react';
+import { InputNumber, Select } from '@arco-design/web-react';
 import { PreviewOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,9 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const [imageInput, setImageInput] = useState<ModelImageInputChoice>('auto');
     const [openAiApiMode, setOpenAiApiMode] = useState<ModelOpenAiApiModeChoice>('auto');
+    const [contextWindowSize, setContextWindowSize] = useState<number | undefined>(undefined);
+    const [maxContentLength, setMaxContentLength] = useState<number | undefined>(undefined);
+    const [maxResponseLength, setMaxResponseLength] = useState<number | undefined>(undefined);
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
     const isEditing = Boolean(editingModel);
     const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
@@ -46,12 +50,20 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       const settings = editingModel ? data?.model_settings?.[editingModel] : undefined;
       setImageInput(settings?.image_input ?? 'auto');
       setOpenAiApiMode(settings?.openai_api_mode ?? 'auto');
+      setContextWindowSize(settings?.context_window_size);
+      setMaxContentLength(settings?.max_content_length);
+      setMaxResponseLength(settings?.max_response_length);
       setModelProtocol(editingModel ? (data?.model_protocols?.[editingModel] ?? 'openai') : 'openai');
     }, [data, editingModel, modalProps.visible]);
 
     const handleConfirm = useCallback(() => {
       if (!data || (!editingModel && !models.length)) return;
       const targetModels = editingModel ? [editingModel] : models;
+      const limits: ModelLimitInput = {
+           contextWindowSize,
+           maxContentLength,
+           maxResponseLength,
+      };
       const updatedData: IProvider = {
         ...data,
         models: editingModel ? existingModels : [...existingModels, ...models],
@@ -59,7 +71,8 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
           data.model_settings,
           targetModels,
           imageInput,
-          showOpenAiApiMode ? openAiApiMode : 'auto'
+          showOpenAiApiMode ? openAiApiMode : 'auto',
+          limits
         ),
       };
 
@@ -85,6 +98,9 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       openAiApiMode,
       modalCtrl,
       showOpenAiApiMode,
+      contextWindowSize,
+      maxContentLength,
+      maxResponseLength,
     ]);
 
     return (
@@ -170,13 +186,58 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
               <div className='text-11px text-t-secondary leading-4'>{t('settings.openAiApiModeTip')}</div>
             </div>
           )}
+          <div className='space-y-8px border-t border-line pt-12px'>
+            <div className='flex items-center gap-5px text-13px font-500 text-t-secondary'>
+              <span>{t('settings.advancedSettings')}</span>
+            </div>
+
+            <div className='space-y-8px'>
+              <div className='text-13px font-500 text-t-secondary'>{t('settings.contextWindowSize')}</div>
+              <InputNumber
+                value={contextWindowSize}
+                onChange={(v) => setContextWindowSize(typeof v === 'number' ? v : undefined)}
+                placeholder={t('settings.contextWindowSizePlaceholder')}
+                min={1}
+                precision={0}
+                style={{ width: '100%' }}
+              />
+              <div className='text-11px text-t-secondary leading-4'>{t('settings.contextWindowSizeTip')}</div>
+            </div>
+
+            <div className='space-y-8px'>
+              <div className='text-13px font-500 text-t-secondary'>{t('settings.maxContentLength')}</div>
+              <InputNumber
+                value={maxContentLength}
+                onChange={(v) => setMaxContentLength(typeof v === 'number' ? v : undefined)}
+                placeholder={t('settings.maxContentLengthPlaceholder')}
+                min={1}
+                precision={0}
+                style={{ width: '100%' }}
+              />
+              <div className='text-11px text-t-secondary leading-4'>{t('settings.maxContentLengthTip')}</div>
+            </div>
+
+            <div className='space-y-8px'>
+              <div className='text-13px font-500 text-t-secondary'>{t('settings.maxResponseLength')}</div>
+              <InputNumber
+                value={maxResponseLength}
+                onChange={(v) => setMaxResponseLength(typeof v === 'number' ? v : undefined)}
+                placeholder={t('settings.maxResponseLengthPlaceholder')}
+                min={1}
+                precision={0}
+                style={{ width: '100%' }}
+              />
+              <div className='text-11px text-t-secondary leading-4'>{t('settings.maxResponseLengthTip')}</div>
+            </div>
+          </div>
 
           {!isEditing && models.length > 1 && (
             <div className='text-11px text-t-secondary leading-4'>{t('settings.modelSettingsApplyToSelected')}</div>
           )}
         </div>
-      </AionModal>
-    );
+  </AionModal>
+  )
+    ;
   }
 );
 

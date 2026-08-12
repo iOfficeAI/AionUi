@@ -1,0 +1,21 @@
+/**
+ * Hint strip shown above the note editor.
+ * Reminds users that the first Markdown line is the H1 title.
+ */
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px;
+  background-color: var(--bg-1);
+  border-bottom: 1px solid var(--bg-3);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.hint svg {
+  flex-shrink: 0;
+}

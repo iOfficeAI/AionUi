@@ -21,8 +21,9 @@ const os = require('os');
 const path = require('path');
 const { verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
 
-const GITHUB_OWNER = 'iOfficeAI';
-const GITHUB_REPO = 'AionCore';
+const GITHUB_OWNER = 'zhaolinzhi';
+//const GITHUB_REPO = 'aioncore';
+const GITHUB_REPO = 'BadouWorkCore';
 
 const ACTIONS_ARTIFACT_TARGETS = {
   'darwin-arm64': {
@@ -464,12 +465,19 @@ function prepareAioncore(options) {
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
+  // 如果 aioncore 二进制文件已存在，跳过下载，但其他逻辑（prepare managed resources、写入 manifest）照常执行
+  const binaryCached = fs.existsSync(targetBinaryPath);
+
   console.log(
     `Preparing aioncore for ${runtimeKey} (${actionsRunId ? `actions run: ${actionsRunId}` : `version: ${tag}`})`
   );
 
-  removeDirectorySafe(targetDir);
-  ensureDirectory(targetDir);
+  if (!binaryCached) {
+    removeDirectorySafe(targetDir);
+    ensureDirectory(targetDir);
+  } else {
+    console.log(`  aioncore already exists at ${path.relative(projectRoot, targetBinaryPath)}, skipping download`);
+  }
 
   const localBundleDir = (process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR || '').trim();
   if (localBundleDir) {
@@ -506,53 +514,63 @@ function prepareAioncore(options) {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Download from GitHub Actions artifacts when manual build run id is provided.
-  if (actionsRunId) {
-    const result = downloadAndExtractActionsArtifact(platform, arch, actionsRunId);
-    sourcePath = result.binaryPath;
-    tempDir = result.tempDir;
-    sourceType = 'actions-artifact';
-    sourceDetail = {
-      runId: actionsRunId,
-      artifactName: result.artifactName,
-      url: result.url,
-    };
-    console.log(`  Downloaded from GitHub Actions artifact`);
-  }
-
-  // 2. Download from GitHub releases.
-  if (!sourcePath && tag) {
-    try {
-      const result = downloadAndExtract(platform, arch, tag);
+  // 如果 aioncore 已缓存，跳过所有下载逻辑，直接复用现有二进制
+  if (!binaryCached) {
+    // 1. Download from GitHub Actions artifacts when manual build run id is provided.
+    if (actionsRunId) {
+      const result = downloadAndExtractActionsArtifact(platform, arch, actionsRunId);
       sourcePath = result.binaryPath;
       tempDir = result.tempDir;
-      sourceType = 'download';
-      sourceDetail = { url: result.url };
-      console.log(`  Downloaded from GitHub releases`);
-    } catch (error) {
-      console.warn(`  Download failed: ${error.message}`);
+      sourceType = 'actions-artifact';
+      sourceDetail = {
+        runId: actionsRunId,
+        artifactName: result.artifactName,
+        url: result.url,
+      };
+      console.log(`  Downloaded from GitHub Actions artifact`);
     }
-  }
 
-  // 3. Use an explicitly supplied local cache when network download is unavailable.
-  if (!sourcePath) {
-    const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
-    if (localBinary) {
-      const resolvedLocalBinary = path.resolve(localBinary);
-      if (fs.existsSync(resolvedLocalBinary) && fs.statSync(resolvedLocalBinary).isFile()) {
-        sourcePath = resolvedLocalBinary;
-        sourceType = 'local-binary';
-        sourceDetail = { path: resolvedLocalBinary };
-        console.log(`  Using local aioncore binary: ${resolvedLocalBinary}`);
-      } else {
-        console.warn(`  Local aioncore binary not found: ${resolvedLocalBinary}`);
+    // 2. Download from GitHub releases.
+    if (!sourcePath && tag) {
+      try {
+        const result = downloadAndExtract(platform, arch, tag);
+        sourcePath = result.binaryPath;
+        tempDir = result.tempDir;
+        sourceType = 'download';
+        sourceDetail = { url: result.url };
+        console.log(`  Downloaded from GitHub releases`);
+      } catch (error) {
+        console.warn(`  Download failed: ${error.message}`);
       }
     }
+
+    // 3. Use an explicitly supplied local cache when network download is unavailable.
+    if (!sourcePath) {
+      const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
+      if (localBinary) {
+        const resolvedLocalBinary = path.resolve(localBinary);
+        if (fs.existsSync(resolvedLocalBinary) && fs.statSync(resolvedLocalBinary).isFile()) {
+          sourcePath = resolvedLocalBinary;
+          sourceType = 'local-binary';
+          sourceDetail = { path: resolvedLocalBinary };
+          console.log(`  Using local aioncore binary: ${resolvedLocalBinary}`);
+        } else {
+          console.warn(`  Local aioncore binary not found: ${resolvedLocalBinary}`);
+        }
+      }
+    }
+  } else {
+    // 复用已缓存的二进制
+    sourcePath = targetBinaryPath;
+    sourceType = 'cache';
+    sourceDetail = { path: targetBinaryPath };
   }
 
   // Write result
   if (sourcePath) {
-    copyFileSafe(sourcePath, targetBinaryPath);
+    if (!binaryCached) {
+      copyFileSafe(sourcePath, targetBinaryPath);
+    }
     ensureExecutableMode(targetBinaryPath);
     const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
 

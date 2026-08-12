@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Merhaba, bugünkü planın nedir?",
+    "title": "Merhaba {{name}}, bugünkü planın nedir?",
     "placeholder": "Mesaj gönder, dosya yükle, klasör aç veya komutlar için / yaz...",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
@@ -12,10 +12,10 @@
     "clearWorkspace": "Projeyi kaldır",
     "openFolder": "Klasör Aç",
     "none": "Hiçbiri",
-    "quickActionsTitle": "AionUi neler yapabilir?",
+    "quickActionsTitle": "BadouWork neler yapabilir?",
     "quickActionFeedback": "Sorun Bildir",
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "BadouWork Skills Market",
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
     "skillsMarketDetails": "Ayrıntılar >>"
   },
@@ -112,29 +112,29 @@
       "send_feedback": "Ekibin inceleyebilmesi için günlüklerle birlikte geri bildirim gönderin."
     },
     "ownership": {
-      "aionui": "Uygulama",
+      "BadouWork": "Uygulama",
       "user_agent": "Ajan",
       "user_llm_provider": "Model sağlayıcı",
       "unknown_upstream": "Üst hizmet"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "Yanıt akışı kesildi",
         "body": "Uygulama mesajınızı aldı ancak yanıt akışı beklenmedik şekilde sona erdi. Yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "Konuşma durumu eşitlenmemiş",
         "body": "Konuşma durumu eşitlenmemiş. Yeniden denemeden önce bu sohbeti yeniden başlatın veya uygulamayı yenileyin."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "İstenen kaynağa erişilemedi",
         "body": "Yerel izin veya dosya sistemi denetimi başarısız oldu. Proje yolunu ve uygulama izinlerini kontrol edip yeniden deneyin."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "İstek uygulamada başarısız oldu",
         "body": "Uygulama isteği işlerken hata oluştu. Bir kez yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "Konuşma meşgul",
         "body": "Başka bir yanıt hâlâ çalışıyor. Yeni mesaj göndermeden önce bitmesini bekleyin."
       },
@@ -289,7 +289,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -297,11 +297,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -594,14 +594,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} adım başarısız oldu ve etkili OLMADI. agy bu turları yine de başarılı olarak bitirir; bu yüzden yanıta değil gerçek sonuca bakın."
       },
-      "CLI_VERSION_OLDER": {
-        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. {{cli}} sürümünü yükseltmeyi düşünün. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden eski; bazı özellikler eksik olabilir. agy'yi güncellemeniz önerilir."
       },
-      "CLI_VERSION_NEWER": {
-        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; AionUi bekliyor.)"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "Kurulu agy {{reported}} sürümü, bu entegrasyonun doğrulandığı {{verified}} sürümünden yeni. Yine de çalışması beklenir; tuhaf davranışları bildirin."
       }
     }
   },
@@ -615,9 +612,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Yeniden adlandır",
-      "addToChat": "Sohbete ekle",
-      "copyRelativePath": "Göreli yolu kopyala",
-      "copyAbsolutePath": "Mutlak yolu kopyala"
+      "addToChat": "Sohbete ekle"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
@@ -626,6 +621,7 @@
       "files": "Dosyalar",
       "changes": "Değişiklikler"
     },
+    "changesPlaceholder": "Kaynak denetimi ayrı bir hatta — yakında.",
     "addedToChat": "{{name}} sohbete eklendi",
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
@@ -635,91 +631,6 @@
       "searching": "Aranıyor…",
       "empty": "Eşleşen dosya yok",
       "limitReached": "İlk {{count}} gösteriliyor — daraltın"
-    },
-    "scm": {
-      "notARepository": "Bu klasör sürüm denetiminde değil",
-      "noChanges": "Değişiklik yok",
-      "loading": "Değişiklikler yükleniyor…",
-      "loadFailed": "Değişiklikler yüklenemedi",
-      "refresh": "Yenile",
-      "groups": {
-        "staged": "Hazırlanan değişiklikler",
-        "unstaged": "Değişiklikler",
-        "changes": "Değişiklikler",
-        "blocked": "Çözülmesi gerekiyor"
-      },
-      "sections": {
-        "repositories": "Depolar",
-        "changes": "Değişiklikler"
-      },
-      "viewAsTree": "Ağaç olarak görüntüle",
-      "viewAsList": "Liste olarak görüntüle",
-      "worktree": "Çalışma ağacı",
-      "expandWorktrees": "Çalışma ağaçlarını göster",
-      "collapseWorktrees": "Çalışma ağaçlarını gizle",
-      "state": {
-        "created": "Eklendi",
-        "modified": "Değiştirildi",
-        "deleted": "Silindi",
-        "renamed": "Yeniden adlandırıldı",
-        "conflicted": "Çakışma",
-        "unknown": "Tanınmayan durum"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "Bu çakışmayı önce AionUi dışında çözün",
-      "opaqueHint": "Bu durum daha yeni bir arka uçtan geliyor — salt okunur gösteriliyor",
-      "degraded": "git dizini güncellenemediği için yenileme daha yavaş bir modda çalışıyor",
-      "truncated": "Listelenecek çok fazla değişiklik var — yalnızca ilk kısım gösteriliyor",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "Fark yükleniyor…",
-        "failed": "Fark yüklenemedi",
-        "binary": "İkili dosya — metin farkı yok",
-        "truncated": "Fark kısaltıldı (büyük dosya)",
-        "empty": "Metinsel değişiklik yok",
-        "close": "Farkı kapat"
-      },
-      "actions": {
-        "stage": "Değişiklikleri hazırla",
-        "unstage": "Hazırlamayı geri al",
-        "discard": "Değişiklikleri sil",
-        "stageAll": "Tümünü hazırla",
-        "unstageAll": "Tümünün hazırlamasını geri al",
-        "blockedHint": "Hazırlamadan veya silmeden önce çakışmayı AionUi dışında çözün",
-        "confirmDiscardTitle": "Değişiklikler silinsin mi?",
-        "confirmDiscardTracked": "{{count}} dosyadaki düzenlemeler kaybolacak. Bu geri alınamaz.",
-        "confirmDiscardUntracked": "{{count}} yeni dosya çöp kutusuna taşınacak.",
-        "confirmDiscardMixed": "{{tracked}} dosyadaki düzenlemeler geri alınamaz şekilde kaybolacak; {{untracked}} yeni dosya çöp kutusuna gidecek.",
-        "discardConfirmButton": "Sil",
-        "okStage": "{{count}} dosya hazırlandı",
-        "okUnstage": "{{count}} dosyanın hazırlaması geri alındı",
-        "okDiscard": "{{count}} dosya silindi",
-        "partial": "{{total}} işlemden {{succeeded}} tamamlandı —— {{failed}} tamamlanamadı",
-        "partialDetail": "Tamamlanamayan: {{files}}",
-        "rejectedBlocked": "Hiçbir şey değişmedi —— önce çakışmayı çözün",
-        "rejectedUnsupported": "Bu depo bu işlemi desteklemiyor",
-        "rejectedFailed": "İşlem tamamlanamadı",
-        "retry": "Yeniden dene",
-        "notSent": "İstek arka uca ulaşmadı, hiçbir şey değişmedi. Yeniden deneyebilirsiniz.",
-        "outcomeUnknown": "Yanıt gelmeden bağlantı sıfırlandı — bu işlem tamamlanmış da olabilir, olmamış da. Yeniden denemeden önce yenileyip dosya listesini kontrol edin.",
-        "allFailed": "{{count}} dosyanın hiçbiri işlenemedi"
-      }
-    },
-    "pathCopied": "Yol kopyalandı",
-    "copyFailed": "Yol kopyalanamadı"
-  },
-  "terminal": {
-    "running": "Çalışıyor",
-    "stopped": "Durduruldu",
-    "exited": "Çıkış {{code}}",
-    "stop": "Durdur",
-    "truncated": "(önceki çıktı kesildi)"
+    }
   }
 }

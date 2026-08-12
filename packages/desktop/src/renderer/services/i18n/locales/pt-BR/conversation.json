@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Olá, qual é o seu plano para hoje?",
+    "title": "Olá {{name}}, qual é o seu plano para hoje?",
     "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, crie uma tarefa agendada ou digite / para comandos...",
     "linkFolder": "Abrir Pasta",
     "newConversation": "Novo Chat",
@@ -12,10 +12,10 @@
     "clearWorkspace": "Remover projeto",
     "openFolder": "Abrir Pasta",
     "none": "Nenhum",
-    "quickActionsTitle": "O que o AionUi pode fazer?",
+    "quickActionsTitle": "O que o BadouWork pode fazer?",
     "quickActionFeedback": "Reportar Problema",
     "quickActionStar": "Gostou? Nos dê uma estrela!",
-    "skillsMarket": "Mercado de Habilidades AionUi",
+    "skillsMarket": "Mercado de Habilidades BadouWork",
     "skillsMarketDesc": "Pesquise e ative as Habilidades da comunidade sob demanda. Configure uma vez, disponível para todos os agentes.",
     "skillsMarketDetails": "Ver Mais >>"
   },
@@ -130,29 +130,29 @@
       "send_feedback": "Envie feedback com logs para que a equipe possa investigar."
     },
     "ownership": {
-      "aionui": "Aplicativo",
+      "BadouWork": "Aplicativo",
       "user_agent": "Agente",
       "user_llm_provider": "Provedor de modelo",
       "unknown_upstream": "Upstream"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "O fluxo de resposta foi interrompido",
         "body": "O aplicativo aceitou sua mensagem, mas o fluxo de resposta terminou inesperadamente. Tente novamente; se acontecer de novo, envie feedback."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "O estado da conversa está fora de sincronia",
         "body": "O estado da conversa está fora de sincronia. Reinicie este chat ou recarregue o aplicativo antes de tentar novamente."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "Não foi possível acessar o recurso solicitado",
         "body": "Falhou uma verificação local de permissões ou do sistema de arquivos. Verifique o caminho do projeto e as permissões do aplicativo e tente novamente."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "A solicitação falhou no aplicativo",
         "body": "A solicitação falhou enquanto o aplicativo a estava processando. Tente novamente uma vez; se se repetir, envie feedback."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "A conversa está ocupada",
         "body": "Ainda há outra resposta em execução. Espere ela terminar antes de enviar uma nova mensagem."
       },
@@ -303,8 +303,8 @@
       },
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
         "title": "Este caminho de projeto não é mais compatível com execução",
-        "body": "Esta conversa ou tarefa existente usa um caminho de projeto cujos nomes de diretório contêm espaços ou outros caracteres de espaço em branco. O AionUi não oferece mais suporte ao envio de mensagens em caminhos desse tipo. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco.",
-        "bodyWithPath": "O caminho de projeto existente \"{{workspacePath}}\" contém espaços ou outros caracteres de espaço em branco. O AionUi não oferece mais suporte ao envio de mensagens em conversas ou tarefas que usam esse caminho. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco."
+        "body": "Esta conversa ou tarefa existente usa um caminho de projeto cujos nomes de diretório contêm espaços ou outros caracteres de espaço em branco. O BadouWork não oferece mais suporte ao envio de mensagens em caminhos desse tipo. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco.",
+        "bodyWithPath": "O caminho de projeto existente \"{{workspacePath}}\" contém espaços ou outros caracteres de espaço em branco. O BadouWork não oferece mais suporte ao envio de mensagens em conversas ou tarefas que usam esse caminho. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "O agente ou provedor upstream falhou",
@@ -312,7 +312,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -320,11 +320,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -598,14 +598,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} etapa(s) falharam e NÃO tiveram efeito. O agy encerra esses turnos como bem-sucedidos mesmo assim, então confira o resultado real em vez da resposta."
       },
-      "CLI_VERSION_OLDER": {
-        "body": "O {{cli}} instalado é anterior à versão verificada pelo AionUi; alguns recursos podem estar ausentes. Considere atualizar o {{cli}}. (instalado: {{reported}} / verificado pelo AionUi: {{verified}})"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "A versão instalada do agy {{reported}} é anterior à {{verified}} verificada nesta integração; alguns recursos podem estar ausentes. Considere atualizar o agy."
       },
-      "CLI_VERSION_NEWER": {
-        "body": "O {{cli}} instalado é posterior à versão verificada pelo AionUi. Deve continuar funcionando; relate qualquer comportamento estranho. (instalado: {{reported}} / verificado pelo AionUi: {{verified}})"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}} (tentativa {{attempts}}, {{elapsed}} decorridos — o provedor do agente derruba a conexão repetidamente; o AionUi está aguardando.)"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "A versão instalada do agy {{reported}} é mais recente que a {{verified}} verificada nesta integração. Deve continuar funcionando; relate qualquer comportamento estranho."
       }
     }
   },
@@ -619,9 +616,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renomear",
-      "addToChat": "Adicionar ao chat",
-      "copyRelativePath": "Copiar caminho relativo",
-      "copyAbsolutePath": "Copiar caminho absoluto"
+      "addToChat": "Adicionar ao chat"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
@@ -630,6 +625,7 @@
       "files": "Arquivos",
       "changes": "Alterações"
     },
+    "changesPlaceholder": "O controle de versão fica em uma aba separada — em breve.",
     "addedToChat": "{{name}} adicionado ao chat",
     "imported": "{{count}} arquivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
@@ -639,91 +635,6 @@
       "searching": "Buscando…",
       "empty": "Nenhum arquivo corresponde",
       "limitReached": "Mostrando os primeiros {{count}} — refine a busca"
-    },
-    "scm": {
-      "notARepository": "Esta pasta não está sob controle de versão",
-      "noChanges": "Nenhuma alteração",
-      "loading": "Carregando alterações…",
-      "loadFailed": "Não foi possível carregar as alterações",
-      "refresh": "Atualizar",
-      "groups": {
-        "staged": "Alterações preparadas",
-        "unstaged": "Alterações",
-        "changes": "Alterações",
-        "blocked": "Precisa ser resolvido"
-      },
-      "sections": {
-        "repositories": "Repositórios",
-        "changes": "Alterações"
-      },
-      "viewAsTree": "Ver como árvore",
-      "viewAsList": "Ver como lista",
-      "worktree": "Árvore de trabalho",
-      "expandWorktrees": "Mostrar árvores de trabalho",
-      "collapseWorktrees": "Ocultar árvores de trabalho",
-      "state": {
-        "created": "Adicionado",
-        "modified": "Modificado",
-        "deleted": "Excluído",
-        "renamed": "Renomeado",
-        "conflicted": "Conflito",
-        "unknown": "Estado não reconhecido"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "Resolva este conflito fora do AionUi primeiro",
-      "opaqueHint": "Este estado vem de um backend mais novo — exibido somente leitura",
-      "degraded": "A atualização está em modo mais lento porque o índice do git não pode ser gravado",
-      "truncated": "Alterações demais para listar — mostrando apenas a primeira parte",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "Carregando diferenças…",
-        "failed": "Não foi possível carregar as diferenças",
-        "binary": "Arquivo binário — sem diferenças de texto",
-        "truncated": "Diferenças truncadas (arquivo grande)",
-        "empty": "Nenhuma alteração de texto",
-        "close": "Fechar diferenças"
-      },
-      "actions": {
-        "stage": "Preparar alterações",
-        "unstage": "Retirar da preparação",
-        "discard": "Descartar alterações",
-        "stageAll": "Preparar tudo",
-        "unstageAll": "Retirar tudo da preparação",
-        "blockedHint": "Resolva o conflito fora do AionUi antes de preparar ou descartar",
-        "confirmDiscardTitle": "Descartar alterações?",
-        "confirmDiscardTracked": "As edições em {{count}} arquivos serão perdidas. Isso não pode ser desfeito.",
-        "confirmDiscardUntracked": "{{count}} novos arquivos serão movidos para a lixeira.",
-        "confirmDiscardMixed": "As edições em {{tracked}} arquivo(s) serão perdidas de forma irreversível; {{untracked}} novo(s) arquivo(s) vão para a lixeira.",
-        "discardConfirmButton": "Descartar",
-        "okStage": "{{count}} arquivos preparados",
-        "okUnstage": "{{count}} arquivos retirados da preparação",
-        "okDiscard": "{{count}} arquivos descartados",
-        "partial": "{{succeeded}} de {{total}} concluídos —— {{failed}} não foi possível concluir",
-        "partialDetail": "Não concluídos: {{files}}",
-        "rejectedBlocked": "Nada foi alterado —— resolva o conflito primeiro",
-        "rejectedUnsupported": "Este repositório não suporta essa ação",
-        "rejectedFailed": "Não foi possível concluir a ação",
-        "retry": "Tentar novamente",
-        "notSent": "A solicitação não chegou ao backend — nada foi alterado. Você pode tentar novamente.",
-        "outcomeUnknown": "A conexão foi reiniciada antes da resposta — esta ação pode ou não ter sido concluída. Atualize e confira a lista de arquivos antes de tentar de novo.",
-        "allFailed": "Nenhum dos {{count}} arquivo(s) pôde ser processado"
-      }
-    },
-    "pathCopied": "Caminho copiado",
-    "copyFailed": "Falha ao copiar o caminho"
-  },
-  "terminal": {
-    "running": "Executando",
-    "stopped": "Parado",
-    "exited": "Saída {{code}}",
-    "stop": "Parar",
-    "truncated": "(saída anterior truncada)"
+    }
   }
 }

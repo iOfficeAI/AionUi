@@ -1,11 +1,11 @@
 {
-  "name": "AionUi",
+  "name": "BaDouWork",
   "version": "2.1.53",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
+    "name": "BaDouWork",
     "email": "service@aionui.com"
   },
   "workspaces": [
@@ -119,6 +119,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "croner": "^9.1.0",
+    "crypto-js": "^4.2.0",
     "dayjs": "^1.11.18",
     "diff": "^8.0.3",
     "diff2html": "^3.4.55",
@@ -171,6 +172,7 @@
     "tiny-csrf": "^1.1.6",
     "turndown": "^7.2.2",
     "turndown-plugin-gfm": "^1.0.2",
+    "vditor": "^3.11.1",
     "web-tree-sitter": "^0.25.10",
     "ws": "^8.18.3",
     "xlsx-republish": "^0.20.3",
@@ -189,6 +191,7 @@
     "@types/cookie": "^1.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
+    "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.6",
     "@types/html-to-text": "^9.0.4",
     "@types/js-yaml": "^4.0.9",
@@ -265,5 +268,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "BadouWork"
 }

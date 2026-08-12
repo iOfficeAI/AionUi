@@ -13,7 +13,7 @@
     "error": "오류",
     "unread": "새 실행",
     "unconfigured": "예약 작업 미설정",
-    "defaultPrompt": "매일 오전 10시에 최신 AI 뉴스를 검색하고 요약하여 인사이트 보고서를 출력해 주세요. (AionUi에서 예약 작업을 만들려면 /cron 스킬을 사용해 주세요.)"
+    "defaultPrompt": "매일 오전 10시에 최신 AI 뉴스를 검색하고 요약하여 인사이트 보고서를 출력해 주세요. (BadouWork에서 예약 작업을 만들려면 /cron 스킬을 사용해 주세요.)"
   },
   "actions": {
     "goTo": "채팅 보기",
@@ -54,10 +54,10 @@
     "newTask": "새 작업",
     "createViaChat": "대화로 생성",
     "createManually": "수동 생성",
-    "description": "작업을 일정에 따라 자동 실행할 수 있습니다. 어떤 대화에서든 AionUi에게 예약 작업 생성을 요청할 수도 있습니다.",
+    "description": "작업을 일정에 따라 자동 실행할 수 있습니다. 어떤 대화에서든 BadouWork에게 예약 작업 생성을 요청할 수도 있습니다.",
     "awakeBanner": "예약 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
     "keepAwake": "절전 방지",
-    "keepAwakeTooltip": "활성화하면 AionUi가 컴퓨터의 절전 모드를 방지합니다",
+    "keepAwakeTooltip": "활성화하면 BadouWork가 컴퓨터의 절전 모드를 방지합니다",
     "createTask": "예약 작업 만들기",
     "editTask": "예약 작업 편집",
     "createSuccess": "작업이 성공적으로 생성되었습니다",

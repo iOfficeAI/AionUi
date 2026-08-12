@@ -1,0 +1,64 @@
+/**
+ * Notes sidebar styles.
+ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 260px;
+  height: 100%;
+  border-right: 1px solid var(--bg-3);
+  background-color: var(--bg-base);
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--bg-3);
+}
+
+.sidebarList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 8px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.createInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background-color: var(--bg-1, var(--fill-1));
+  border-radius: 6px;
+}
+
+.input {
+  flex: 1 1 auto;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}

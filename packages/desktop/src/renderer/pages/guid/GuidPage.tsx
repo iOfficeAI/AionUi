@@ -41,6 +41,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 
 type GuidNavigationState = {
   resetAssistant?: boolean;
@@ -59,6 +60,7 @@ const GuidPage: React.FC = () => {
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  const { user } = useAuth();
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -667,7 +669,9 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            <p className='text-2xl font-semibold mb-0 text-0 text-center'>{t('conversation.welcome.title')}</p>
+              <p className='text-2xl font-semibold mb-0 text-0 text-center'>
+                {t('conversation.welcome.title', { name: user?.username || '' })}
+              </p>
           </div>
 
           <AssistantSelectionArea

@@ -1,5 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { AIPAAS_BASE_URL } from '@/renderer/api';
+import { aesEncrypt } from '@/renderer/utils/crypto';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -11,6 +13,7 @@ type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 export interface AuthUser {
   id: string;
   username: string;
+  token: string;
 }
 
 interface LoginParams {
@@ -85,7 +88,7 @@ function clearAuthCache(): void {
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
   try {
-    const response = await fetch(AUTH_USER_ENDPOINT, {
+      const response = await fetch(`${AIPAAS_BASE_URL}${AUTH_USER_ENDPOINT}`, {
       method: 'GET',
       credentials: 'include',
       signal,
@@ -119,12 +122,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
-    if (isDesktopRuntime) {
-      setStatus('authenticated');
-      setUser(null);
-      setReady(true);
-      return;
-    }
+    // if (isDesktopRuntime) {
+    //   setStatus('authenticated');
+    //   setUser(null);
+    //   setReady(true);
+    //   return;
+    // }
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -149,12 +152,115 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
   }, [refresh]);
 
+  // const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
+  //   try {
+  //     // if (isDesktopRuntime) {
+  //     //   setReady(true);
+  //     //   return { success: true };
+  //     // }
+  //
+  //     // Check CSRF token availability before login
+  //     // If token is missing, clear cache and inform user
+  //     const csrfTokenValid = hasValidCsrfToken();
+  //     if (!csrfTokenValid) {
+  //       console.warn('CSRF token missing or invalid, clearing cache');
+  //       clearAuthCache();
+  //       // Allow login to proceed anyway - server will set new token
+  //     }
+  //
+  //     // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
+  //     // Backend route is /login; web-host's static-server explicitly proxies it.
+  //     const response = await fetch(`${BASE_URL}/login`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       credentials: 'include',
+  //       body: JSON.stringify(withCsrfToken({ username, password, remember })),
+  //     });
+  //
+  //     const data = (await response.json()) as {
+  //       success: boolean;
+  //       message?: string;
+  //       user?: AuthUser;
+  //     };
+  //
+  //     if (!response.ok || !data.success || !data.user) {
+  //       let code: LoginErrorCode = 'unknown';
+  //       let message = data?.message ?? 'Login failed';
+  //       let shouldClearCache = false;
+  //
+  //       if (response.status === 401) {
+  //         code = 'invalidCredentials';
+  //       } else if (response.status === 403) {
+  //         // CSRF validation failed - clear cache
+  //         code = 'csrfError';
+  //         message = 'Security token expired. Please try again.';
+  //         shouldClearCache = true;
+  //       } else if (response.status === 429) {
+  //         code = 'tooManyAttempts';
+  //       } else if (response.status >= 500) {
+  //         code = 'serverError';
+  //       } else if (!csrfTokenValid) {
+  //         // If we knew CSRF was invalid and login failed, suggest cache clear
+  //         code = 'csrfError';
+  //         message = 'Login failed due to cached data. Please clear your browser cache and try again.';
+  //         shouldClearCache = true;
+  //       }
+  //
+  //       // Clear cache on CSRF-related errors
+  //       if (shouldClearCache) {
+  //         clearAuthCache();
+  //       }
+  //
+  //       return {
+  //         success: false,
+  //         message,
+  //         code,
+  //         shouldClearCache,
+  //       };
+  //     }
+  //
+  //     setUser(data.user);
+  //     setStatus('authenticated');
+  //     setReady(true);
+  //
+  //     // Re-enable WebSocket reconnection after successful login (WebUI mode only)
+  //     if (typeof window !== 'undefined' && (window as any).__websocketReconnect) {
+  //       (window as any).__websocketReconnect();
+  //     }
+  //
+  //     return { success: true };
+  //   } catch (error) {
+  //     console.error('Login request failed:', error);
+  //
+  //     // Check if error is related to CSRF token parsing
+  //     const errorMessage = (error as Error).message;
+  //     if (errorMessage?.includes('parse') || errorMessage?.includes('csrf') || errorMessage?.includes('cookie')) {
+  //       // CSRF or cookie parsing error - clear cache
+  //       clearAuthCache();
+  //       return {
+  //         success: false,
+  //         message: 'Login failed due to cached data. Please clear your browser cache and try again.',
+  //         code: 'csrfError',
+  //         shouldClearCache: true,
+  //       };
+  //     }
+  //
+  //     return {
+  //       success: false,
+  //       message: 'Network error. Please try again.',
+  //       code: 'networkError',
+  //     };
+  //   }
+  // }, []);
+
   const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     try {
-      if (isDesktopRuntime) {
-        setReady(true);
-        return { success: true };
-      }
+      // if (isDesktopRuntime) {
+      //   setReady(true);
+      //   return { success: true };
+      // }
 
       // Check CSRF token availability before login
       // If token is missing, clear cache and inform user
@@ -165,21 +271,64 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         // Allow login to proceed anyway - server will set new token
       }
 
+      const userForm = {
+        username: username,
+        password: password,
+        remember: remember,
+      };
+
+      const encryptedData = aesEncrypt(JSON.stringify(userForm));
+
+      const formData = {
+        data: encryptedData,
+        sign: 'false',
+      };
+
       // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
       // Backend route is /login; web-host's static-server explicitly proxies it.
-      const response = await fetch('/login', {
+      const response = await fetch(`${AIPAAS_BASE_URL}/system/security/logon/logon`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         credentials: 'include',
-        body: JSON.stringify(withCsrfToken({ username, password, remember })),
+        body: new URLSearchParams(formData),
       });
 
-      const data = (await response.json()) as {
-        success: boolean;
+      const tempData = (await response.json()) as {
+        result: boolean;
         message?: string;
-        user?: AuthUser;
+        tip: string;
+      };
+
+      let tempUser: { id: string; logonId: string; name: string } | undefined;
+
+      if (tempData.result) {
+        const responseUser = await fetch(`${AIPAAS_BASE_URL}/system/security/logon/userInfo`, {
+          method: 'POST',
+          headers: {
+            Token: tempData.message,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+
+        tempUser = (await responseUser.json()) as {
+          id: string;
+          logonId: string;
+          name: string;
+        };
+      }
+
+      const data = {
+        success: tempData.result,
+        message: tempData.message,
+        user: tempUser
+          ? {
+            id: tempUser.id,
+            username: tempUser.name,
+            token: tempData.message,
+          }
+          : undefined,
       };
 
       if (!response.ok || !data.success || !data.user) {
@@ -253,19 +402,21 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async () => {
-    if (isDesktopRuntime) {
-      setUser(null);
-      setStatus('authenticated');
-      setReady(true);
-      return;
-    }
-
+    // if (isDesktopRuntime) {
+    //   setUser(null);
+    //   setStatus('authenticated');
+    //   setReady(true);
+    //   return;
+    // }
+    console.log('正在登出用户:', user?.username); // 现在能拿到最新值
+    console.log('当前状态:', status);
     try {
-      await fetch('/logout', {
+      await fetch(`${AIPAAS_BASE_URL}/system/security/logout/logout`, {
         method: 'POST',
         // Logout also needs CSRF token / 登出同样需要 CSRF Token
         headers: {
-          'Content-Type': 'application/json',
+          Token: user.token,
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         credentials: 'include',
         body: JSON.stringify(withCsrfToken({})),
@@ -278,7 +429,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       // Clear cache on logout for security
       clearAuthCache();
     }
-  }, []);
+  }, [user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

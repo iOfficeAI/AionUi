@@ -1,6 +1,9 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "Live file watching is unavailable — the system may have run out of file-watch handles (inotify). Auto-preview of new Office files is disabled. Raise fs.inotify.max_user_instances or close programs holding many file watches."
+  },
   "welcome": {
-    "title": "Hi, what's your plan for today?",
+    "title": "Hi {{name}}, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
@@ -12,10 +15,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can AionUi do?",
+    "quickActionsTitle": "What can BadouWork do?",
     "quickActionFeedback": "Report Issue",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "BadouWork Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
@@ -129,29 +132,29 @@
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
     "ownership": {
-      "aionui": "App",
+      "BadouWork": "App",
       "user_agent": "Agent",
       "user_llm_provider": "Model provider",
       "unknown_upstream": "Upstream"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "Response stream was interrupted",
         "body": "The app accepted your message but the response stream ended unexpectedly. Please retry; if it happens again, send feedback."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "Conversation state is out of sync",
         "body": "The conversation state is out of sync. Restart this chat or reload the app before retrying."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "Could not access the requested resource",
         "body": "A local permission or filesystem check failed. Check the project path and app permissions, then retry."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "Request failed in the app",
         "body": "The request failed while the app was processing it. Please retry once; if it repeats, send feedback."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "Conversation is busy",
         "body": "Another response is still running. Wait for it to finish before sending a new message."
       },
@@ -306,7 +309,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -314,11 +317,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -593,14 +596,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} step(s) failed and did NOT take effect. agy ends such turns as successful, so check the result rather than the reply."
       },
-      "CLI_VERSION_OLDER": {
-        "body": "The installed {{cli}} is older than the version AionUi verified; some features may be missing. Consider upgrading {{cli}}. (installed {{reported}} / verified by AionUi: {{verified}})"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "agy {{reported}} is older than the {{verified}} this integration was verified against; some features may be missing. Consider upgrading agy."
       },
-      "CLI_VERSION_NEWER": {
-        "body": "The installed {{cli}} is newer than the version AionUi verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by AionUi: {{verified}})"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; AionUi is waiting it out.)"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "agy {{reported}} is newer than the {{verified}} this integration was verified against. It should still work; report anything that behaves oddly."
       }
     }
   },
@@ -614,9 +614,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Rename",
-      "addToChat": "Add to chat",
-      "copyRelativePath": "Copy relative path",
-      "copyAbsolutePath": "Copy absolute path"
+      "addToChat": "Add to chat"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -625,6 +623,7 @@
       "files": "Files",
       "changes": "Changes"
     },
+    "changesPlaceholder": "Source control lives in a separate lane — coming soon.",
     "addedToChat": "Added {{name}} to chat",
     "imported": "Imported {{count}} file(s)",
     "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
@@ -634,91 +633,6 @@
       "searching": "Searching…",
       "empty": "No files match",
       "limitReached": "Showing first {{count}} — refine to narrow"
-    },
-    "scm": {
-      "notARepository": "Not a version-controlled folder",
-      "noChanges": "No changes",
-      "loading": "Loading changes…",
-      "loadFailed": "Couldn't load changes",
-      "refresh": "Refresh",
-      "groups": {
-        "staged": "Staged changes",
-        "unstaged": "Changes",
-        "changes": "Changes",
-        "blocked": "Needs resolving"
-      },
-      "sections": {
-        "repositories": "Repositories",
-        "changes": "Changes"
-      },
-      "viewAsTree": "View as tree",
-      "viewAsList": "View as list",
-      "worktree": "Worktree",
-      "expandWorktrees": "Show worktrees",
-      "collapseWorktrees": "Hide worktrees",
-      "state": {
-        "created": "Added",
-        "modified": "Modified",
-        "deleted": "Deleted",
-        "renamed": "Renamed",
-        "conflicted": "Conflict",
-        "unknown": "Unrecognized state"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "Resolve this conflict outside AionUi first",
-      "opaqueHint": "This state comes from a newer backend — shown read-only",
-      "degraded": "Refresh is running in a slower mode because git's index can't be updated",
-      "truncated": "Too many changes to list — showing the first part only",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "Loading diff…",
-        "failed": "Couldn't load the diff",
-        "binary": "Binary file — no text diff",
-        "truncated": "Diff truncated (large file)",
-        "empty": "No textual changes",
-        "close": "Close diff"
-      },
-      "actions": {
-        "stage": "Stage changes",
-        "unstage": "Unstage changes",
-        "discard": "Discard changes",
-        "stageAll": "Stage all",
-        "unstageAll": "Unstage all",
-        "blockedHint": "Resolve the conflict outside AionUi before staging or discarding",
-        "confirmDiscardTitle": "Discard changes?",
-        "confirmDiscardTracked": "Edits to {{count}} files will be lost. This can’t be undone.",
-        "confirmDiscardUntracked": "{{count}} new files will be moved to the trash.",
-        "confirmDiscardMixed": "Edits to {{tracked}} file(s) will be lost and can’t be undone; {{untracked}} new file(s) go to the trash.",
-        "discardConfirmButton": "Discard",
-        "okStage": "Staged {{count}} files",
-        "okUnstage": "Unstaged {{count}} files",
-        "okDiscard": "Discarded {{count}} files",
-        "partial": "{{succeeded}} of {{total}} done — {{failed}} couldn’t be completed",
-        "partialDetail": "Not completed: {{files}}",
-        "rejectedBlocked": "Nothing was changed — resolve the conflict first",
-        "rejectedUnsupported": "This repository doesn’t support that action",
-        "rejectedFailed": "The action couldn’t be completed",
-        "retry": "Retry",
-        "notSent": "The request didn't reach the backend — nothing was changed. You can try again.",
-        "outcomeUnknown": "The connection reset before a reply arrived — this action may or may not have completed. Refresh and check the file list before retrying.",
-        "allFailed": "None of the {{count}} file(s) could be processed"
-      }
-    },
-    "pathCopied": "Path copied",
-    "copyFailed": "Failed to copy path"
-  },
-  "terminal": {
-    "running": "Running",
-    "stopped": "Stopped",
-    "exited": "Exit {{code}}",
-    "stop": "Stop",
-    "truncated": "(earlier output truncated)"
+    }
   }
 }

@@ -102,7 +102,7 @@ export default defineConfig(({ mode }) => {
         // '@aionui/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)
         // are bundled by esbuild rather than left as `require('@aionui/web-host')`, which Node
         // cannot resolve because the package ships no compiled .js files (workspace-only).
-        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'] }),
+        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'], include: ['builder-util-runtime'] }),
         ...(isDevelopment
           ? [
               {
@@ -240,6 +240,22 @@ export default defineConfig(({ mode }) => {
       plugins: [
         UnoCSS(unoConfig),
         iconParkPlugin(),
+        viteStaticCopy({
+          // Vditor hardcodes requests like `${cdn}/dist/js/i18n/zh_CN.js`
+          // and `${cdn}/dist/js/lute/lute.min.js`. The renderer root is
+          // packages/desktop/src/renderer, so a relative `src` would be
+          // resolved against that directory — which has no `node_modules`
+          // (the workspace hoists vditor to the repo root). Using an absolute
+          // path lets the glob find it, and the resolved `base` becomes
+          // `dist`, which fileMap keys as `/vditor/dist` to match Vditor's
+          // hardcoded URLs.
+          targets: [
+            {
+              src: resolve(__dirname, '../../node_modules/vditor/dist'),
+              dest: 'vditor',
+            },
+          ],
+        }),
         ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
       ],
       build: {
@@ -351,6 +367,7 @@ export default defineConfig(({ mode }) => {
           '@uiw/react-codemirror',
           '@codemirror/lang-markdown',
           '@codemirror/language',
+          'vditor',
         ],
       },
     },

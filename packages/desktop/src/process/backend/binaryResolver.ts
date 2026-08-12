@@ -94,20 +94,34 @@ function bundledPath(
   binaryName: string,
   diagnostics: BackendBinaryResolveDiagnostics
 ): string | null {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-  if (!resourcesPath) return null;
-  diagnostics.resourcesPath = resourcesPath;
+  // Packaged builds ship the backend under Electron's resourcesPath. In dev
+  // mode (electron-vite dev) process.resourcesPath points at the Electron
+  // framework's own Resources dir, so fall back to the repo resources/
+  // directory (same convention as tray.ts getTrayIcon).
+  const candidates: string[] = [];
+  const electronResources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (electronResources) candidates.push(electronResources);
+  const devResources = join(process.cwd(), 'resources');
+  if (!candidates.includes(devResources)) candidates.push(devResources);
 
-  const bundledDir = join(resourcesPath, 'bundled-aioncore');
-  const runtimeDir = join(bundledDir, runtimeKey);
-  const candidate = join(runtimeDir, binaryName);
-  diagnostics.checkedBundledPath = candidate;
-  diagnostics.bundledDirExists = existsSync(bundledDir);
-  diagnostics.runtimeDirExists = existsSync(runtimeDir);
-  diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
-  diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
-
-  if (existsSync(candidate)) return candidate;
+  let reported = false;
+  for (const resourcesPath of candidates) {
+    const bundledDir = join(resourcesPath, 'bundled-aioncore');
+    const runtimeDir = join(bundledDir, runtimeKey);
+    const candidate = join(runtimeDir, binaryName);
+    // Report diagnostics for the primary candidate, then switch to a fallback
+    // candidate only when it actually ships the bundled backend dir.
+    if (!reported || existsSync(bundledDir)) {
+      reported = true;
+      diagnostics.resourcesPath = resourcesPath;
+      diagnostics.checkedBundledPath = candidate;
+      diagnostics.bundledDirExists = existsSync(bundledDir);
+      diagnostics.runtimeDirExists = existsSync(runtimeDir);
+      diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
+      diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
+    }
+    if (existsSync(candidate)) return candidate;
+  }
   return null;
 }
 

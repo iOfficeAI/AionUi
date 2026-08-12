@@ -1,6 +1,9 @@
 {
+  "officePreview": {
+    "fileWatchUnavailable": "文件实时监听不可用——系统的文件监听句柄（inotify）可能已耗尽，新 Office 文件的自动预览已停用。请提高 fs.inotify.max_user_instances，或关闭占用大量文件监听的程序。"
+  },
   "welcome": {
-    "title": "Hi，今天有什么安排？",
+    "title": "Hi {{name}}，今天有什么安排？",
     "placeholder": "发消息、上传文件、打开文件夹、创建定时任务，或输入 / 唤起命令...",
     "linkFolder": "打开文件夹",
     "newConversation": "新会话",
@@ -12,10 +15,10 @@
     "clearWorkspace": "移除项目",
     "openFolder": "打开文件夹",
     "none": "无",
-    "quickActionsTitle": "AionUi 能做什么？",
+    "quickActionsTitle": "BadouWork 能做什么？",
     "quickActionFeedback": "反馈问题",
     "quickActionStar": "喜欢我们？点个星吧",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "BadouWork Skills Market",
     "skillsMarketDesc": "按需搜索并调用社区 Skills，一次配置，所有Agent通用。",
     "skillsMarketDetails": "详情 >>"
   },
@@ -129,29 +132,29 @@
       "send_feedback": "请提交反馈并附带日志，方便团队排查。"
     },
     "ownership": {
-      "aionui": "应用",
+      "BadouWork": "应用",
       "user_agent": "Agent",
       "user_llm_provider": "模型服务商",
       "unknown_upstream": "上游"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "响应流异常中断",
         "body": "消息已发送，但响应流异常结束。请先重试；如果反复出现，可以提交反馈。"
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "会话状态不一致",
         "body": "当前对话状态和后台记录不同步。请重新打开应用或新建会话后再试。"
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "无法访问所需资源",
         "body": "本地权限或文件访问检查失败。请确认项目路径和应用权限后重试。"
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "应用处理失败",
         "body": "本次请求在应用处理过程中失败。请先重试一次；如果仍然出现，可以提交反馈。"
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "会话正在处理上一条消息",
         "body": "当前会话还有回复未结束。请等待本次回复完成后再发送新的消息。"
       },
@@ -306,7 +309,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "读取团队辅助进程响应失败",
-        "body": "AionUi 无法读取本地团队辅助进程的响应。请先重试一次，如果持续出现，再重启应用。"
+        "body": "BadouWork 无法读取本地团队辅助进程的响应。请先重试一次，如果持续出现，再重启应用。"
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "本地团队辅助进程拒绝了这次请求",
@@ -314,11 +317,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "团队辅助进程返回了异常响应",
-        "body": "AionUi 收到了本地团队辅助进程的异常响应。请先重试一次，如果持续出现再反馈问题。"
+        "body": "BadouWork 收到了本地团队辅助进程的异常响应。请先重试一次，如果持续出现再反馈问题。"
       },
       "MCP_TCP_READ_FAILED": {
         "title": "读取本地团队辅助进程失败",
-        "body": "AionUi 无法读取本地团队辅助进程的 TCP 响应。请先重试一次，如仍失败可重启应用。"
+        "body": "BadouWork 无法读取本地团队辅助进程的 TCP 响应。请先重试一次，如仍失败可重启应用。"
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "团队服务尚未就绪",
@@ -593,14 +596,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "本轮有 {{count}} 个步骤失败且未生效。agy 仍会把这类轮次标记为成功，请核对实际结果而非回复内容。"
       },
-      "CLI_VERSION_OLDER": {
-        "body": "已安装的 {{cli}} 低于 AionUi 验证过的版本，部分功能可能缺失。建议升级 {{cli}}。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "已安装的 agy {{reported}} 低于本集成验证过的 {{verified}}，部分功能可能缺失，建议升级 agy。"
       },
-      "CLI_VERSION_NEWER": {
-        "body": "已安装的 {{cli}} 高于 AionUi 验证过的版本。通常仍可正常使用；如遇异常行为请反馈。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}}（累计第 {{attempts}} 次重试，已等待 {{elapsed}}——Agent 的服务方反复中断连接，AionUi 正在等待重连。）"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "已安装的 agy {{reported}} 高于本集成验证过的 {{verified}}。通常仍可正常使用；如遇异常行为请反馈。"
       }
     }
   },
@@ -614,9 +614,7 @@
     "removeFailed": "移除文件夹失败",
     "contextMenu": {
       "rename": "重命名",
-      "addToChat": "添加到聊天",
-      "copyRelativePath": "复制相对路径",
-      "copyAbsolutePath": "复制绝对路径"
+      "addToChat": "添加到聊天"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
@@ -625,6 +623,7 @@
       "files": "文件",
       "changes": "变更"
     },
+    "changesPlaceholder": "源代码管理在独立通道中,敬请期待。",
     "addedToChat": "已将 {{name}} 添加到聊天",
     "imported": "已导入 {{count}} 个文件",
     "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
@@ -634,91 +633,6 @@
       "searching": "搜索中…",
       "empty": "没有匹配的文件",
       "limitReached": "仅显示前 {{count}} 项 — 请缩小范围"
-    },
-    "scm": {
-      "notARepository": "该文件夹未纳入版本控制",
-      "noChanges": "没有变更",
-      "loading": "正在加载变更…",
-      "loadFailed": "无法加载变更",
-      "refresh": "刷新",
-      "groups": {
-        "staged": "已暂存的变更",
-        "unstaged": "变更",
-        "changes": "变更",
-        "blocked": "需先解决"
-      },
-      "sections": {
-        "repositories": "仓库",
-        "changes": "变更"
-      },
-      "viewAsTree": "以树状视图显示",
-      "viewAsList": "以列表视图显示",
-      "worktree": "工作树",
-      "expandWorktrees": "显示工作树",
-      "collapseWorktrees": "隐藏工作树",
-      "state": {
-        "created": "新增",
-        "modified": "已修改",
-        "deleted": "已删除",
-        "renamed": "已重命名",
-        "conflicted": "冲突",
-        "unknown": "未识别的状态"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "请先在 AionUi 之外解决此冲突",
-      "opaqueHint": "该状态来自更新版本的后端 — 仅供查看",
-      "degraded": "由于无法更新 git 索引，刷新正以较慢的模式运行",
-      "truncated": "变更过多，仅显示前一部分",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "正在加载差异…",
-        "failed": "无法加载差异",
-        "binary": "二进制文件 — 无文本差异",
-        "truncated": "差异已截断（文件过大）",
-        "empty": "没有文本变更",
-        "close": "关闭差异"
-      },
-      "actions": {
-        "stage": "暂存更改",
-        "unstage": "取消暂存",
-        "discard": "丢弃更改",
-        "stageAll": "全部暂存",
-        "unstageAll": "全部取消暂存",
-        "blockedHint": "请先在 AionUi 之外解决冲突，然后再暂存或丢弃",
-        "confirmDiscardTitle": "要丢弃更改吗？",
-        "confirmDiscardTracked": "{{count}} 个文件的修改将丢失，且无法撤销。",
-        "confirmDiscardUntracked": "{{count}} 个新文件将被移到回收站。",
-        "confirmDiscardMixed": "{{tracked}} 个文件的修改将丢失且无法撤销；{{untracked}} 个新文件将被移到回收站。",
-        "discardConfirmButton": "丢弃",
-        "okStage": "已暂存 {{count}} 个文件",
-        "okUnstage": "已取消暂存 {{count}} 个文件",
-        "okDiscard": "已丢弃 {{count}} 个文件",
-        "partial": "已完成 {{succeeded}}/{{total}} —— {{failed}} 个未能完成",
-        "partialDetail": "未完成：{{files}}",
-        "rejectedBlocked": "未改动任何内容 —— 请先解决冲突",
-        "rejectedUnsupported": "该仓库不支持此操作",
-        "rejectedFailed": "操作未能完成",
-        "retry": "重试",
-        "notSent": "请求没有发出到后端，未改动任何内容。可以重试。",
-        "outcomeUnknown": "连接在收到答复前已重置——此操作可能已完成，也可能未完成。请刷新并核对文件列表，确认后再决定是否重试。",
-        "allFailed": "{{count}} 个文件都未能处理"
-      }
-    },
-    "pathCopied": "已复制路径",
-    "copyFailed": "复制路径失败"
-  },
-  "terminal": {
-    "running": "运行中",
-    "stopped": "已停止",
-    "exited": "退出码 {{code}}",
-    "stop": "停止",
-    "truncated": "(较早输出已截断)"
+    }
   }
 }

@@ -24,8 +24,6 @@
   "loading": "請稍候...",
   "copy": "複製",
   "reply": "引用",
-  "openInBuiltinBrowser": "內建瀏覽器開啟",
-  "openInSystemBrowser": "系統瀏覽器開啟",
   "copySuccess": "已複製",
   "copyFailed": "複製失敗",
   "download": "下載",
@@ -63,10 +61,10 @@
   "more": "更多",
   "refresh": "重新整理",
   "readOnly": "唯讀",
-  "tray.showWindow": "顯示 AionUi",
+  "tray.showWindow": "顯示 BadouWork",
   "tray.newChat": "新建對話",
   "tray.closeToTray": "隱藏到托盤",
-  "tray.about": "關於 AionUi",
+  "tray.about": "關於 BadouWork",
   "tray.restart": "重啟應用",
   "tray.quit": "結束",
   "tray.runningTasks": "運行中的任務",
@@ -77,26 +75,26 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "目前系統不支援內建後端",
-      "description": "AionUi 已開啟，但本機 AionCore 後端無法在目前 Linux 版本上執行。請升級到受支援的 Linux 發行版後重新啟動 AionUi。",
+      "description": "BadouWork 已開啟，但本機 AionCore 後端無法在目前 Linux 版本上執行。請升級到受支援的 Linux 發行版後重新啟動 BadouWork。",
       "requiredVersions": "需要的執行階段符號：{{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi 安裝不完整",
-      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionCore。",
+      "title": "BadouWork 安裝不完整",
+      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 BadouWork；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionCore。",
       "downloadLatest": "下載最新版",
       "sendDiagnostics": "傳送診斷報告",
       "diagnosticsSent": "診斷報告已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
       "diagnosticsReportFailed": "診斷報告傳送失敗",
-      "runtimeComponentDescription": "目前安裝缺少必要的內建執行元件，{{resource}} 無法啟動。請重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionUi 元件。"
+      "runtimeComponentDescription": "目前安裝缺少必要的內建執行元件，{{resource}} 無法啟動。請重新安裝最新版 BadouWork；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 BadouWork 元件。"
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi 安裝包架構不相符",
-      "description": "目前 AionUi 安裝包是 {{packageArch}}，但這台 Mac 是 {{deviceArch}}。你可能下載了錯誤的安裝包，請重新下載並安裝 {{expectedArch}} 版本。"
+      "title": "BadouWork 安裝包架構不相符",
+      "description": "目前 BadouWork 安裝包是 {{packageArch}}，但這台 Mac 是 {{deviceArch}}。你可能下載了錯誤的安裝包，請重新下載並安裝 {{expectedArch}} 版本。"
     },
     "dataMigration": {
       "title": "本地資料遷移失敗",
-      "description": "AionUi 已開啟，但 AionCore 在初始化本地資料時停止。重新安裝 AionUi 未必能解決此問題。請傳送診斷報告或聯絡支援，以便檢查本地資料庫遷移狀態。",
+      "description": "BadouWork 已開啟，但 AionCore 在初始化本地資料時停止。重新安裝 BadouWork 未必能解決此問題。請傳送診斷報告或聯絡支援，以便檢查本地資料庫遷移狀態。",
       "sendDiagnostics": "傳送診斷報告",
       "diagnosticsSent": "診斷報告已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
@@ -104,7 +102,7 @@
     },
     "localDataRepair": {
       "title": "本機資料修復失敗",
-      "description": "AionUi 已開啟，但 AionCore 在準備本機啟動資料時停止，例如 assistant 或代理記錄。重新安裝 AionUi 可能無法解決此問題。請傳送診斷報告或聯絡支援，以便檢查本機資料庫。",
+      "description": "BadouWork 已開啟，但 AionCore 在準備本機啟動資料時停止，例如 assistant 或代理記錄。重新安裝 BadouWork 可能無法解決此問題。請傳送診斷報告或聯絡支援，以便檢查本機資料庫。",
       "sendDiagnostics": "傳送診斷",
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
@@ -112,7 +110,7 @@
     },
     "startupDirectory": {
       "title": "啟動目錄無法使用",
-      "description": "AionUi 已開啟，但因為設定的工作目錄或日誌目錄不存在、無法存取或權限受限，AionCore 無法啟動。請確認這些目錄存在且可寫入，然後重新啟動 AionUi。",
+      "description": "BadouWork 已開啟，但因為設定的工作目錄或日誌目錄不存在、無法存取或權限受限，AionCore 無法啟動。請確認這些目錄存在且可寫入，然後重新啟動 BadouWork。",
       "sendDiagnostics": "傳送診斷報告",
       "diagnosticsSent": "診斷報告已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
@@ -120,7 +118,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "本機資料已損壞",
-      "description": "偵測到本機資料庫損壞，AionUi 無法繼續啟動。確認後將備份舊資料庫，並建立新的本機資料庫繼續啟動。歷史對話將不再顯示，舊資料庫會保留為備份檔案。",
+      "description": "偵測到本機資料庫損壞，BadouWork 無法繼續啟動。確認後將備份舊資料庫，並建立新的本機資料庫繼續啟動。歷史對話將不再顯示，舊資料庫會保留為備份檔案。",
       "confirmRebuild": "備份舊資料庫並重建新資料庫",
       "sendDiagnostics": "傳送診斷報告",
       "diagnosticsHint": "傳送診斷報告不會修改本機資料庫。",
@@ -136,8 +134,8 @@
       }
     },
     "transientConcurrentStartup": {
-      "title": "AionUi 正在啟動",
-      "description": "此視窗開啟時，另一個 AionUi 啟動程序仍在使用本機資料。這是暫時的，您的資料是安全的——無需重新安裝。請稍候片刻後重試，或重新啟動 AionUi。",
+      "title": "BadouWork 正在啟動",
+      "description": "此視窗開啟時，另一個 BadouWork 啟動程序仍在使用本機資料。這是暫時的，您的資料是安全的——無需重新安裝。請稍候片刻後重試，或重新啟動 BadouWork。",
       "sendDiagnostics": "傳送診斷",
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
@@ -151,22 +149,6 @@
     "exited": {
       "title": "啟動未完成",
       "description": "AionCore 未能完成啟動並已結束。請重新啟動應用程式；若反覆出現，請回報診斷資訊。",
-      "sendDiagnostics": "傳送診斷",
-      "diagnosticsSent": "診斷已傳送",
-      "diagnosticsReportSuccess": "診斷資訊已回報",
-      "diagnosticsReportFailed": "診斷回報失敗，請稍後再試"
-    },
-    "portReportTimeout": {
-      "title": "啟動逾時",
-      "description": "AionCore 未在預期時間內完成啟動。請重新啟動應用程式；若反覆出現，請傳送診斷。",
-      "sendDiagnostics": "傳送診斷",
-      "diagnosticsSent": "診斷已傳送",
-      "diagnosticsReportSuccess": "診斷資訊已回報",
-      "diagnosticsReportFailed": "診斷回報失敗，請稍後再試"
-    },
-    "startupFailed": {
-      "title": "啟動失敗",
-      "description": "AionCore 啟動失敗。請重新啟動應用程式；若反覆出現，請傳送診斷。",
       "sendDiagnostics": "傳送診斷",
       "diagnosticsSent": "診斷已傳送",
       "diagnosticsReportSuccess": "診斷資訊已回報",

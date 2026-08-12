@@ -907,9 +907,17 @@ export const fs = {
   },
 };
 
+
 // ---------------------------------------------------------------------------
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
+
+// Workspace Office file watch
+export const workspaceOfficeWatch = {
+  start: httpPost<void, { workspace: string }>('/api/fs/office-watch/start'),
+  stop: httpPost<void, { workspace: string }>('/api/fs/office-watch/stop'),
+  fileAdded: wsEmitter<{ file_path: string; workspace: string }>('workspaceOfficeWatch.fileAdded'),
+};
 
 // Note for whoever next compares a watch event's path against a local one: the
 // workspace Office watch removed here carried the repo's only macOS
@@ -1281,6 +1289,29 @@ export const database = {
   ),
 };
 
+
+// ---------------------------------------------------------------------------
+// Preview History — routed to /api/preview-history/*
+// ---------------------------------------------------------------------------
+
+function mapPreviewTarget(target: PreviewHistoryTarget): Record<string, unknown> {
+  return { ...target, content_type: target.contentType, contentType: undefined };
+}
+
+export const previewHistory = {
+  list: httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list', (p) => ({
+    target: mapPreviewTarget(p.target),
+  })),
+  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>(
+    '/api/preview-history/save',
+    (p) => ({ target: mapPreviewTarget(p.target), content: p.content })
+  ),
+  getContent: httpPost<
+    { snapshot: PreviewSnapshotInfo; content: string } | null,
+    { target: PreviewHistoryTarget; snapshot_id: string }
+  >('/api/preview-history/get-content', (p) => ({ target: mapPreviewTarget(p.target), snapshot_id: p.snapshot_id })),
+};
+
 // Preview panel
 export const preview = {
   open: wsEmitter<{
@@ -1399,6 +1430,10 @@ export const systemSettings = {
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     saveUploadToWorkspace: p.enabled,
   })),
+  getAutoPreviewOfficeFiles: httpGetClientSetting<boolean>('autoPreviewOfficeFiles'),
+  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
+    autoPreviewOfficeFiles: p.enabled,
+  })),
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
   getPetSize: bridge.buildProvider<number, void>('system-settings:get-pet-size'),
@@ -1487,6 +1522,175 @@ export const webui = {
   })),
   resetPassword: httpPost<{ new_password: string }, void>('/api/webui/reset-password'),
   generateQRToken: httpPost<{ token: string; expires_at_ms: number }, void>('/api/webui/generate-qr-token'),
+};
+
+
+import {
+  fromApiNote,
+  fromApiNoteList,
+  fromApiNotebook,
+  fromApiTagList,
+  type ApiNotebook,
+  type ApiNotebookListResponse,
+  type ApiNotebookWithNotes,
+  type ApiNote,
+  type ApiNotesListResponse,
+  type ApiStarToggleResponse,
+  type ApiTagsResponse,
+} from './notebookMapper';
+
+// ---------------------------------------------------------------------------
+// Notebook / Note request params
+// ---------------------------------------------------------------------------
+
+/** Params for creating a note — `notebook_id` is the parent notebook id. */
+export interface CreateNoteParams {
+  /** Parent notebook id. Omit/null for a standalone note. */
+  notebook_id?: string | null;
+  title: string;
+  content?: string;
+  tags?: string[];
+  summary?: string;
+}
+
+/** Params for updating a note — omitted fields keep their current value. */
+export interface UpdateNoteParams {
+  id: string;
+  title?: string;
+  content?: string;
+  /** Tri-state: omit = keep, null = clear ownership, string = set to id. */
+  notebook_id?: string | null;
+  /** Tri-state: omit = keep, null = clear summary, string = set. */
+  summary?: string | null;
+  /** Omit = keep, array = full replace. */
+  tags?: string[];
+  /** Direct assignment (unlike `/star` toggle). */
+  star?: boolean;
+}
+
+/** Filters for `GET /api/notes`. */
+export interface ListNotesParams {
+  /** Notebook **id** exact match. */
+  notebook_id?: string;
+  /** Tag name exact match. */
+  tag?: string;
+  /** When true, only starred notes. */
+  starred?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+function toCreateNoteBody(p: CreateNoteParams): Record<string, unknown> {
+  const body: Record<string, unknown> = { title: p.title };
+  if (p.notebook_id !== undefined) body.notebook_id = p.notebook_id;
+  if (p.content !== undefined) body.content = p.content;
+  if (p.tags !== undefined) body.tags = p.tags;
+  if (p.summary !== undefined) body.summary = p.summary;
+  return body;
+}
+
+function toUpdateNoteBody(p: UpdateNoteParams): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (p.title !== undefined) body.title = p.title;
+  if (p.content !== undefined) body.content = p.content;
+  if (p.notebook_id !== undefined) body.notebook_id = p.notebook_id;
+  if (p.summary !== undefined) body.summary = p.summary;
+  if (p.tags !== undefined) body.tags = p.tags;
+  if (p.star !== undefined) body.star = p.star;
+  return body;
+}
+
+function buildNotesListPath(p: ListNotesParams): string {
+  const query = new URLSearchParams();
+  if (p.notebook_id !== undefined) query.set('notebook_id', p.notebook_id);
+  if (p.tag !== undefined) query.set('tag', p.tag);
+  if (p.starred !== undefined) query.set('starred', String(p.starred));
+  if (p.limit !== undefined) query.set('limit', String(p.limit));
+  if (p.offset !== undefined) query.set('offset', String(p.offset));
+  const qs = query.toString();
+  return qs ? `/api/notes?${qs}` : '/api/notes';
+}
+
+export const notebooks = {
+  list: withResponseMap(httpGet<ApiNotebookListResponse, void>('/api/notebooks'), (data) =>
+    data.notebooks.map(fromApiNotebook)
+  ),
+  get: withResponseMap(
+    httpGet<ApiNotebookWithNotes, { id: string }>((p) => `/api/notebooks/${encodeURIComponent(p.id)}`),
+    (data) => ({
+      notebook: fromApiNotebook(data.notebook),
+      notes: fromApiNoteList(data.notes),
+    })
+  ),
+  create: withResponseMap(
+    httpPost<ApiNotebook, { name: string; description?: string }>('/api/notebooks', (p) => ({
+      name: p.name,
+      description: p.description,
+    })),
+    fromApiNotebook
+  ),
+  update: withResponseMap(
+    httpPut<ApiNotebook, { id: string; name?: string; description?: string | null }>(
+      (p) => `/api/notebooks/${encodeURIComponent(p.id)}`,
+      (p) => {
+        const body: { name?: string; description?: string | null } = {};
+        if (p.name !== undefined) body.name = p.name;
+        if (p.description !== undefined) body.description = p.description;
+        return body;
+      }
+    ),
+    fromApiNotebook
+  ),
+  delete: httpDelete<void, { id: string }>((p) => `/api/notebooks/${encodeURIComponent(p.id)}`),
+  listNotes: withResponseMap(
+    httpGet<ApiNotesListResponse, { id: string }>((p) => `/api/notebooks/${encodeURIComponent(p.id)}/notes`),
+    (data) => fromApiNoteList(data.notes)
+  ),
+  // Path id is authoritative for ownership; body fields except `title`/`content`/
+  // `tags`/`summary` are intentionally omitted.
+  createNote: withResponseMap(
+    httpPost<ApiNote, { notebook_id: string; title: string; content?: string; tags?: string[]; summary?: string }>(
+      (p) => `/api/notebooks/${encodeURIComponent(p.notebook_id)}/notes`,
+      (p) => {
+        const body: { title: string; content?: string; tags?: string[]; summary?: string } = { title: p.title };
+        if (p.content !== undefined) body.content = p.content;
+        if (p.tags !== undefined) body.tags = p.tags;
+        if (p.summary !== undefined) body.summary = p.summary;
+        return body;
+      }
+    ),
+    fromApiNote
+  ),
+};
+
+export const notes = {
+  list: withResponseMap(httpGet<ApiNotesListResponse, ListNotesParams>(buildNotesListPath), (data) =>
+    fromApiNoteList(data.notes)
+  ),
+  get: withResponseMap(
+    httpGet<ApiNote, { id: string }>((p) => `/api/notes/${encodeURIComponent(p.id)}`),
+    fromApiNote
+  ),
+  /** Full raw Markdown (including the metadata block). Returns '' on orphan rows. */
+  raw: withResponseMap(
+    httpGet<string, { id: string }>((p) => `/api/notes/${encodeURIComponent(p.id)}/raw`, { textResponse: true }),
+    (text) => text ?? ''
+  ),
+  create: withResponseMap(httpPost<ApiNote, CreateNoteParams>('/api/notes', toCreateNoteBody), fromApiNote),
+  update: withResponseMap(
+    httpPut<ApiNote, UpdateNoteParams>((p) => `/api/notes/${encodeURIComponent(p.id)}`, toUpdateNoteBody),
+    fromApiNote
+  ),
+  delete: httpDelete<void, { id: string }>((p) => `/api/notes/${encodeURIComponent(p.id)}`),
+  /** Toggle the star state (0↔1). Resolves to the new star value. */
+  star: withResponseMap(
+    httpPost<ApiStarToggleResponse, { id: string }>((p) => `/api/notes/${encodeURIComponent(p.id)}/star`),
+    (data) => data.star
+  ),
+};
+
+export const tags = {
+  list: withResponseMap(httpGet<ApiTagsResponse, void>('/api/tags'), (data) => fromApiTagList(data.tags)),
 };
 
 // ---------------------------------------------------------------------------

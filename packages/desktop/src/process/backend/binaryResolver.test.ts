@@ -38,6 +38,23 @@ describe('resolveBinaryPath', () => {
     setResourcesPath(originalResourcesPath);
   });
 
+  it('falls back to the repo resources dir when Electron resourcesPath lacks the bundle (dev mode)', () => {
+    const runtimeKey = `${process.platform}-${process.arch}`;
+    const binaryName = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+    const devResources = join(process.cwd(), 'resources');
+    const binaryPath = join(devResources, 'bundled-aioncore', runtimeKey, binaryName);
+
+    setResourcesPath('/app/resources'); // Electron's own Resources dir (dev mode)
+    vi.mocked(existsSync).mockImplementation((path) => path === binaryPath);
+    vi.mocked(readdirSync).mockImplementation((path) => {
+      if (path === devResources) return [dirEntry('bundled-aioncore', true)];
+      if (path === join(devResources, 'bundled-aioncore', runtimeKey)) return [dirEntry(binaryName)];
+      return [] as ReturnType<typeof readdirSync>;
+    });
+
+    expect(resolveBinaryPath()).toBe(binaryPath);
+  });
+
   it('attaches bundled path diagnostics when aioncore cannot be resolved', () => {
     const resourcesPath = '/app/resources';
     const runtimeKey = `${process.platform}-${process.arch}`;

@@ -13,7 +13,7 @@
     "error": "Erreur",
     "unread": "Nouvelle exécution",
     "unconfigured": "Aucune tâche planifiée",
-    "defaultPrompt": "Chaque jour à 10h, rechercher les dernières actualités IA, résumer et produire un rapport d'analyse. (Veuillez utiliser la compétence /cron pour créer une tâche planifiée dans AionUi.)"
+    "defaultPrompt": "Chaque jour à 10h, rechercher les dernières actualités IA, résumer et produire un rapport d'analyse. (Veuillez utiliser la compétence /cron pour créer une tâche planifiée dans BadouWork.)"
   },
   "actions": {
     "goTo": "Voir le chat",
@@ -53,10 +53,10 @@
     "newTask": "Nouvelle tâche",
     "createViaChat": "Créer via le chat",
     "createManually": "Créer manuellement",
-    "description": "Exécuter des tâches selon un calendrier. Vous pouvez aussi demander à AionUi dans n'importe quelle conversation d'en créer une.",
+    "description": "Exécuter des tâches selon un calendrier. Vous pouvez aussi demander à BadouWork dans n'importe quelle conversation d'en créer une.",
     "awakeBanner": "Les tâches planifiées s'exécutent uniquement quand votre ordinateur est allumé.",
     "keepAwake": "Maintenir en veille",
-    "keepAwakeTooltip": "Quand activé, AionUi empêche votre ordinateur de se mettre en veille",
+    "keepAwakeTooltip": "Quand activé, BadouWork empêche votre ordinateur de se mettre en veille",
     "createTask": "Créer une tâche planifiée",
     "editTask": "Modifier la tâche planifiée",
     "createSuccess": "Tâche créée avec succès",

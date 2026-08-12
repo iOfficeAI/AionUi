@@ -1,6 +1,6 @@
 {
   "welcome": {
-    "title": "Привіт, які плани на сьогодні?",
+    "title": "Привіт {{name}}, які плани на сьогодні?",
     "placeholder": "Надішліть повідомлення, завантажте файли, відкрийте папку, створіть заплановане завдання або введіть / для команд...",
     "linkFolder": "Відкрити папку",
     "newConversation": "Новий чат",
@@ -12,10 +12,10 @@
     "clearWorkspace": "Видалити проєкт",
     "openFolder": "Відкрити папку",
     "none": "Немає",
-    "quickActionsTitle": "Що вміє AionUi?",
+    "quickActionsTitle": "Що вміє BadouWork?",
     "quickActionFeedback": "Повідомити про проблему",
     "quickActionStar": "Подобається? Поставте нам зірку!",
-    "skillsMarket": "Маркет навичок AionUi",
+    "skillsMarket": "Маркет навичок BadouWork",
     "skillsMarketDesc": "Шукайте та активуйте навички спільноти за запитом. Налаштуйте один раз — доступно для всіх агентів.",
     "skillsMarketDetails": "Докладніше >>"
   },
@@ -129,29 +129,29 @@
       "send_feedback": "Надішліть відгук із логами, щоб команда могла розібратися."
     },
     "ownership": {
-      "aionui": "Застосунок",
+      "BadouWork": "Застосунок",
       "user_agent": "Агент",
       "user_llm_provider": "Постачальник моделі",
       "unknown_upstream": "Зовнішній сервіс"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "BadouWork_STREAM_BROKEN": {
         "title": "Потік відповіді було перервано",
         "body": "Застосунок прийняв повідомлення, але потік відповіді несподівано завершився. Повторіть спробу; якщо це повториться, надішліть відгук."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "BadouWork_STATE_INCONSISTENT": {
         "title": "Стан розмови не синхронізовано",
         "body": "Стан розмови не синхронізовано. Перезапустіть цей чат або перезавантажте застосунок, потім повторіть спробу."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "BadouWork_PERMISSION_ERROR": {
         "title": "Не вдалося отримати доступ до потрібного ресурсу",
         "body": "Перевірка локальних дозволів або файлової системи не вдалася. Перевірте шлях проєкту та дозволи застосунку, потім повторіть спробу."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "BadouWork_INTERNAL_ERROR": {
         "title": "Запит не вдалося обробити в застосунку",
         "body": "Під час обробки запиту в застосунку сталася помилка. Повторіть спробу один раз; якщо проблема повториться, надішліть відгук."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "BadouWork_CONVERSATION_BUSY": {
         "title": "Розмова зайнята",
         "body": "Інша відповідь ще виконується. Дочекайтеся її завершення перед надсиланням нового повідомлення."
       },
@@ -306,7 +306,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "BadouWork could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -314,11 +314,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "BadouWork received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "BadouWork could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -592,14 +592,11 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "Кроків завершилося невдало: {{count}}; вони НЕ були виконані. agy все одно позначає такі ходи як успішні — перевіряйте фактичний результат, а не відповідь."
       },
-      "CLI_VERSION_OLDER": {
-        "body": "Встановлена версія {{cli}} старіша за перевірену AionUi; деякі можливості можуть бути відсутні. Радимо оновити {{cli}}. (встановлено: {{reported}} / перевірено AionUi: {{verified}})"
+      "ANTIGRAVITY_VERSION_OLDER": {
+        "body": "Встановлена версія agy {{reported}} старіша за перевірену для цієї інтеграції {{verified}}; частина можливостей може бути відсутня. Радимо оновити agy."
       },
-      "CLI_VERSION_NEWER": {
-        "body": "Встановлена версія {{cli}} новіша за перевірену AionUi. Зазвичай усе працює; повідомте про дивну поведінку. (встановлено: {{reported}} / перевірено AionUi: {{verified}})"
-      },
-      "CODEX_RETRYING": {
-        "body": "{{detail}} (спроба {{attempts}}, минуло {{elapsed}} — провайдер агента постійно обриває з'єднання, AionUi очікує відновлення.)"
+      "ANTIGRAVITY_VERSION_NEWER": {
+        "body": "Встановлена версія agy {{reported}} новіша за перевірену для цієї інтеграції {{verified}}. Зазвичай усе працює; повідомляйте про дивну поведінку."
       }
     }
   },
@@ -613,9 +610,7 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Перейменувати",
-      "addToChat": "Додати в чат",
-      "copyRelativePath": "Копіювати відносний шлях",
-      "copyAbsolutePath": "Копіювати абсолютний шлях"
+      "addToChat": "Додати в чат"
     },
     "namePlaceholder": "Назва",
     "deleteConfirm": "Видалити «{{name}}»? Цю дію не можна скасувати.",
@@ -624,6 +619,7 @@
       "files": "Файли",
       "changes": "Зміни"
     },
+    "changesPlaceholder": "Контроль версій буде в окремій вкладці — незабаром.",
     "addedToChat": "{{name}} додано в чат",
     "imported": "Імпортовано файлів: {{count}}",
     "importPartialFailed": "Скопійовано: {{copied}}, з помилкою: {{failed}} (конфлікти імен або не підтримується)",
@@ -633,91 +629,6 @@
       "searching": "Пошук…",
       "empty": "Немає відповідних файлів",
       "limitReached": "Показано перші {{count}} — уточніть запит"
-    },
-    "scm": {
-      "notARepository": "Ця тека не під контролем версій",
-      "noChanges": "Немає змін",
-      "loading": "Завантаження змін…",
-      "loadFailed": "Не вдалося завантажити зміни",
-      "refresh": "Оновити",
-      "groups": {
-        "staged": "Проіндексовані зміни",
-        "unstaged": "Зміни",
-        "changes": "Зміни",
-        "blocked": "Потребує розв’язання"
-      },
-      "sections": {
-        "repositories": "Репозиторії",
-        "changes": "Зміни"
-      },
-      "viewAsTree": "Показати деревом",
-      "viewAsList": "Показати списком",
-      "worktree": "Робоче дерево",
-      "expandWorktrees": "Показати робочі дерева",
-      "collapseWorktrees": "Приховати робочі дерева",
-      "state": {
-        "created": "Додано",
-        "modified": "Змінено",
-        "deleted": "Видалено",
-        "renamed": "Перейменовано",
-        "conflicted": "Конфлікт",
-        "unknown": "Невідомий стан"
-      },
-      "badge": {
-        "created": "A",
-        "modified": "M",
-        "deleted": "D",
-        "renamed": "R",
-        "conflicted": "!",
-        "unknown": "?"
-      },
-      "conflictedHint": "Спершу розв’яжіть цей конфлікт поза AionUi",
-      "opaqueHint": "Цей стан надійшов від новішої версії сервера — лише для перегляду",
-      "degraded": "Оновлення виконується в повільнішому режимі: не вдається записати індекс git",
-      "truncated": "Занадто багато змін — показано лише першу частину",
-      "renamedFrom": "{{from}} → {{to}}",
-      "diff": {
-        "loading": "Завантаження різниці…",
-        "failed": "Не вдалося завантажити різницю",
-        "binary": "Двійковий файл — текстової різниці немає",
-        "truncated": "Різницю скорочено (великий файл)",
-        "empty": "Немає текстових змін",
-        "close": "Закрити різницю"
-      },
-      "actions": {
-        "stage": "Проіндексувати зміни",
-        "unstage": "Прибрати з індексу",
-        "discard": "Скасувати зміни",
-        "stageAll": "Проіндексувати все",
-        "unstageAll": "Прибрати все з індексу",
-        "blockedHint": "Спершу розв’яжіть конфлікт поза AionUi, потім індексуйте або скасовуйте",
-        "confirmDiscardTitle": "Скасувати зміни?",
-        "confirmDiscardTracked": "Правки у {{count}} файлах буде втрачено. Це не можна скасувати.",
-        "confirmDiscardUntracked": "{{count}} нових файлів буде переміщено до смітника.",
-        "confirmDiscardMixed": "Правки у {{tracked}} файлі(ах) буде безповоротно втрачено; {{untracked}} нових файлів потраплять до смітника.",
-        "discardConfirmButton": "Скасувати",
-        "okStage": "Проіндексовано файлів: {{count}}",
-        "okUnstage": "Прибрано з індексу файлів: {{count}}",
-        "okDiscard": "Скасовано зміни у {{count}} файлах",
-        "partial": "Виконано {{succeeded}} з {{total}} —— не вдалося: {{failed}}",
-        "partialDetail": "Не виконано: {{files}}",
-        "rejectedBlocked": "Нічого не змінено —— спершу розв’яжіть конфлікт",
-        "rejectedUnsupported": "Це сховище не підтримує таку дію",
-        "rejectedFailed": "Не вдалося виконати дію",
-        "retry": "Повторити",
-        "notSent": "Запит не дійшов до сервера, нічого не змінено. Можна повторити.",
-        "outcomeUnknown": "З’єднання скинуто до отримання відповіді — операція могла завершитися, а могла й ні. Оновіть і перевірте список файлів, перш ніж повторювати.",
-        "allFailed": "Жоден із {{count}} файл(ів) не вдалося обробити"
-      }
-    },
-    "pathCopied": "Шлях скопійовано",
-    "copyFailed": "Не вдалося скопіювати шлях"
-  },
-  "terminal": {
-    "running": "Виконується",
-    "stopped": "Зупинено",
-    "exited": "Код {{code}}",
-    "stop": "Зупинити",
-    "truncated": "(ранній вивід обрізано)"
+    }
   }
 }
