@@ -18,14 +18,6 @@ import {
 // Persist section collapsed state across reloads.
 const COLLAPSED_SECTIONS_KEY = 'grouped-history-collapsed-sections';
 
-// Fixed section key → backend group token. Collapsing a section resets its
-// window to the first screen (no request — the "收起重置不发请求" rule); the
-// projects section has no single token (each folder pages independently).
-const SECTION_SCOPE_TOKEN: Record<string, string | undefined> = {
-  pinned: 'pinned',
-  conversations: 'chats',
-};
-
 const readCollapsedSections = (): Set<string> => {
   try {
     const raw = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
@@ -72,11 +64,9 @@ export const useConversations = () => {
     clearCompletionUnread,
     setActiveConversation,
     groupedHistory,
-    loadMore,
-    resetGroupWindow,
   } = useConversationHistoryContext();
 
-  const { pinnedConversations, pinnedRows, timelineSections, pinnedPaging, chatsPaging } = groupedHistory;
+  const { pinnedConversations, timelineSections } = groupedHistory;
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
@@ -86,22 +76,14 @@ export const useConversations = () => {
   // re-triggers, but manual collapses afterwards are not fought.
   const revealedIdRef = useRef<string | null>(null);
 
-  const toggleSection = useCallback(
-    (key: string) => {
-      setCollapsedSections((prev) => {
-        const next = new Set(prev);
-        if (next.has(key)) {
-          next.delete(key);
-        } else {
-          next.add(key);
-          const token = SECTION_SCOPE_TOKEN[key];
-          if (token) resetGroupWindow(token);
-        }
-        return next;
-      });
-    },
-    [resetGroupWindow]
-  );
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   // Reveal + scroll the active conversation into view.
   // Depends on the grouped data because on a cold start (opening the app
@@ -215,32 +197,14 @@ export const useConversations = () => {
     });
   }, [timelineSections]);
 
-  const handleToggleWorkspace = useCallback(
-    (workspace: string, scopeToken?: string) => {
-      setExpandedWorkspaces((prev) => {
-        if (prev.includes(workspace)) {
-          // Collapsing a project folder resets its window to the first screen
-          // (no request), mirroring the fixed-section rule above.
-          if (scopeToken) resetGroupWindow(scopeToken);
-          return prev.filter((item) => item !== workspace);
-        }
-        return [...prev, workspace];
-      });
-    },
-    [resetGroupWindow]
-  );
-
-  // Collapse every project folder at once (the "collapse all" affordance in the
-  // projects section header). Each collapsed folder resets its paging window,
-  // mirroring `handleToggleWorkspace`'s collapse branch. There is no matching
-  // "expand all" by design.
-  const collapseAllWorkspaces = useCallback(
-    (scopeTokens?: string[]) => {
-      scopeTokens?.forEach((token) => resetGroupWindow(token));
-      setExpandedWorkspaces([]);
-    },
-    [resetGroupWindow]
-  );
+  const handleToggleWorkspace = useCallback((workspace: string) => {
+    setExpandedWorkspaces((prev) => {
+      if (prev.includes(workspace)) {
+        return prev.filter((item) => item !== workspace);
+      }
+      return [...prev, workspace];
+    });
+  }, []);
 
   return {
     conversations,
@@ -248,14 +212,9 @@ export const useConversations = () => {
     hasCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
-    pinnedRows,
     timelineSections,
-    pinnedPaging,
-    chatsPaging,
     handleToggleWorkspace,
-    collapseAllWorkspaces,
     collapsedSections,
     toggleSection,
-    loadMore,
   };
 };
