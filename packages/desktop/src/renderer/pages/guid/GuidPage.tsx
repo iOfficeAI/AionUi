@@ -335,21 +335,6 @@ const GuidPage: React.FC = () => {
     [guidInput.setInput]
   );
 
-  const handleInputKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (slashController.onKeyDown(event)) {
-        return;
-      }
-
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        if (!guidInput.input.trim()) return;
-        send.sendMessageHandler();
-      }
-    },
-    [guidInput.input, send.sendMessageHandler, slashController]
-  );
-
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
       const exists = selectedAssistantIds.includes(assistantId);
@@ -766,6 +751,23 @@ const GuidPage: React.FC = () => {
     }
     send.sendMessageHandler();
   }, [selectionCount, handleCreateTeamFromHome, send.sendMessageHandler]);
+
+  // Enter (without Shift) mirrors the primary button so an empty prompt still
+  // triggers start / team creation, not just send. Defined after
+  // handlePrimaryAction to avoid a temporal-dead-zone reference in its deps.
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (slashController.onKeyDown(event)) {
+        return;
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (isPrimaryDisabled) return;
+        handlePrimaryAction();
+      }
+    },
+    [slashController, isPrimaryDisabled, handlePrimaryAction]
+  );
 
   // Build the action row
   const actionRowNode = (
