@@ -36,6 +36,8 @@ export type SiderItemProps = {
   pinned?: boolean;
   /** Indent the row content to align with rows nested inside a project folder (matches `ConversationRow`'s `dimIcon`). */
   dimIcon?: boolean;
+  /** Hover-reveal drag handle overlaying the leading icon for sortable rows; when set it replaces the pushpin marker (matches `ConversationRow`). */
+  dragHandle?: React.ReactNode;
   menuItems?: SiderMenuItem[];
   onMenuAction?: (key: string) => void;
   pinAction?: SiderItemPinAction;
@@ -49,6 +51,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
   selected,
   pinned,
   dimIcon,
+  dragHandle,
   menuItems,
   onMenuAction,
   pinAction,
@@ -84,7 +87,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
-        {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
+        {/* Leading icon — on hover this slot shows the drag handle (sortable pinned rows) or the pushpin marker. */}
         <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>
           <span
             className={classNames('flex items-center justify-center', {
@@ -93,14 +96,17 @@ const SiderItem: React.FC<SiderItemProps> = ({
           >
             {icon}
           </span>
-          {hasActions && pinned && !pinAction && (
-            <span
-              className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
-              style={{ lineHeight: 0 }}
-            >
-              <Pushpin theme='outline' size='14' />
-            </span>
-          )}
+          {/* A provided dragHandle replaces the pushpin marker, matching ConversationRow; it stays independent of the
+              right-side pinAction toggle since it overlays the leading icon, not the trailing actions. */}
+          {dragHandle ??
+            (hasActions && pinned && !pinAction ? (
+              <span
+                className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+                style={{ lineHeight: 0 }}
+              >
+                <Pushpin theme='outline' size='14' />
+              </span>
+            ) : null)}
         </span>
 
         {/* Name with truncation — reserve room for the hover three-dot menu */}

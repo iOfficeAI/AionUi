@@ -26,6 +26,8 @@ export type TeamRowProps = {
   /** Indent to align with conversation rows nested in the same project group. */
   dimIcon?: boolean;
   tooltipEnabled?: boolean;
+  /** Hover-reveal drag handle overlaying the leading icon when the row is sortable (pinned). */
+  dragHandle?: React.ReactNode;
   onClick: () => void;
   onPin: () => void;
   onRename: () => void;
@@ -50,6 +52,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
   collapsed,
   dimIcon,
   tooltipEnabled = false,
+  dragHandle,
   onClick,
   onPin,
   onRename,
@@ -143,6 +146,7 @@ const TeamRow: React.FC<TeamRowProps> = ({
         selected={selected}
         pinned={pinned && !isRunning}
         dimIcon={dimIcon}
+        dragHandle={dragHandle}
         menuItems={menuItems}
         onMenuAction={(key) => {
           if (key === 'pin') onPin();
