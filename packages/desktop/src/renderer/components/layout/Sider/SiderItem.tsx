@@ -17,28 +17,13 @@ export type SiderMenuItem = {
   danger?: boolean;
 };
 
-/**
- * Inline hover pin/unpin toggle, mirroring `ConversationRow`'s. Optional so the
- * other `SiderItem` consumers (settings sider, team tabs) get no pin affordance.
- */
-export type SiderItemPinAction = {
-  pinned: boolean;
-  onToggle: () => void;
-  pinLabel: string;
-  unpinLabel: string;
-  testId?: string;
-};
-
 export type SiderItemProps = {
   icon: React.ReactNode;
   name: string;
   selected?: boolean;
   pinned?: boolean;
-  /** Indent the row content to align with rows nested inside a project folder (matches `ConversationRow`'s `dimIcon`). */
-  dimIcon?: boolean;
   menuItems?: SiderMenuItem[];
   onMenuAction?: (key: string) => void;
-  pinAction?: SiderItemPinAction;
   onClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 };
@@ -48,10 +33,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
   name,
   selected,
   pinned,
-  dimIcon,
   menuItems,
   onMenuAction,
-  pinAction,
   onClick,
   onContextMenu,
 }) => {
@@ -60,7 +43,6 @@ const SiderItem: React.FC<SiderItemProps> = ({
   const isMobile = layout?.isMobile ?? false;
 
   const hasMenu = menuItems && menuItems.length > 0;
-  const hasActions = hasMenu || !!pinAction;
 
   return (
     <Tooltip
@@ -74,8 +56,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
     >
       <div
         className={classNames(
-          'h-34px rd-8px flex items-center gap-8px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
-          dimIcon ? 'pl-34px' : 'pl-10px',
+          'h-34px rd-8px flex items-center gap-8px pl-10px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
           {
             'hover:bg-fill-3': !selected,
             '!bg-fill-3': selected,
@@ -88,12 +69,12 @@ const SiderItem: React.FC<SiderItemProps> = ({
         <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>
           <span
             className={classNames('flex items-center justify-center', {
-              'group-hover:opacity-0 transition-opacity': hasActions && pinned && !pinAction,
+              'group-hover:opacity-0 transition-opacity': hasMenu && pinned,
             })}
           >
             {icon}
           </span>
-          {hasActions && pinned && !pinAction && (
+          {hasMenu && pinned && (
             <span
               className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
               style={{ lineHeight: 0 }}
@@ -110,85 +91,61 @@ const SiderItem: React.FC<SiderItemProps> = ({
           </div>
         </div>
 
-        {/* Hover/active actions: inline pin toggle + three-dot menu */}
-        {hasActions && (
+        {/* Hover/active actions: three-dot menu */}
+        {hasMenu && (
           <div
-            className={classNames('absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end gap-4px', {
+            className={classNames('absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end', {
               flex: isMobile || menuVisible,
               'hidden group-hover:flex': !isMobile && !menuVisible,
             })}
             onClick={(e) => e.stopPropagation()}
           >
-            {pinAction && (
-              <Tooltip content={pinAction.pinned ? pinAction.unpinLabel : pinAction.pinLabel} position='top' mini>
-                <span
-                  data-testid={pinAction.testId}
-                  className={classNames(
-                    'flex-center cursor-pointer transition-colors size-20px rd-4px sider-action-btn',
-                    pinAction.pinned ? 'text-[rgb(var(--primary-6))]' : 'text-t-secondary hover:text-t-primary'
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pinAction.onToggle();
+            <Dropdown
+              droplist={
+                <Menu
+                  onClickMenuItem={(key) => {
+                    setMenuVisible(false);
+                    onMenuAction?.(key);
                   }}
                 >
-                  <Pushpin
-                    theme={pinAction.pinned ? 'filled' : 'outline'}
-                    size='14'
-                    fill='currentColor'
-                    className='block leading-none'
-                  />
-                </span>
-              </Tooltip>
-            )}
-            {hasMenu && (
-              <Dropdown
-                droplist={
-                  <Menu
-                    onClickMenuItem={(key) => {
-                      setMenuVisible(false);
-                      onMenuAction?.(key);
-                    }}
-                  >
-                    {menuItems.map((item) => (
-                      <Menu.Item key={item.key}>
-                        <div
-                          className={classNames('flex items-center gap-8px', {
-                            'text-[rgb(var(--warning-6))]': item.danger,
-                          })}
-                        >
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </div>
-                      </Menu.Item>
-                    ))}
-                  </Menu>
-                }
-                trigger='click'
-                position='br'
-                popupVisible={menuVisible}
-                onVisibleChange={setMenuVisible}
-                getPopupContainer={() => document.body}
-                unmountOnExit={false}
+                  {menuItems.map((item) => (
+                    <Menu.Item key={item.key}>
+                      <div
+                        className={classNames('flex items-center gap-8px', {
+                          'text-[rgb(var(--warning-6))]': item.danger,
+                        })}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </div>
+                    </Menu.Item>
+                  ))}
+                </Menu>
+              }
+              trigger='click'
+              position='br'
+              popupVisible={menuVisible}
+              onVisibleChange={setMenuVisible}
+              getPopupContainer={() => document.body}
+              unmountOnExit={false}
+            >
+              <span
+                data-testid='sider-item-menu-trigger'
+                className={classNames(
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                  {
+                    flex: isMobile || menuVisible,
+                    'hidden group-hover:flex': !isMobile && !menuVisible,
+                  }
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuVisible(true);
+                }}
               >
-                <span
-                  data-testid='sider-item-menu-trigger'
-                  className={classNames(
-                    'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                    {
-                      flex: isMobile || menuVisible,
-                      'hidden group-hover:flex': !isMobile && !menuVisible,
-                    }
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuVisible(true);
-                  }}
-                >
-                  <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
-                </span>
-              </Dropdown>
-            )}
+                <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
+              </span>
+            </Dropdown>
           </div>
         )}
       </div>
