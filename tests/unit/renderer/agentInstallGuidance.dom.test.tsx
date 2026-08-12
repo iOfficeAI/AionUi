@@ -81,6 +81,13 @@ describe('AgentCard one-click install guidance', () => {
     await vi.waitFor(() => expect(mocks.messageSuccess).toHaveBeenCalled());
   });
 
+  it('shows an error toast when copying the install command fails', async () => {
+    mocks.copyText.mockRejectedValueOnce(new Error('no clipboard'));
+    renderOfficial({ ...baseAgent, status: 'missing', backend: 'claude' });
+    fireEvent.click(screen.getByTestId('agent-row-install-agent-1'));
+    await vi.waitFor(() => expect(mocks.messageError).toHaveBeenCalled());
+  });
+
   it('opens the official docs when the docs button is clicked', () => {
     renderOfficial({ ...baseAgent, status: 'missing', backend: 'gemini' });
     fireEvent.click(screen.getByTestId('agent-row-docs-agent-1'));

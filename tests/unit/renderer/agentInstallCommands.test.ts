@@ -69,4 +69,16 @@ describe('detectAgentPlatform', () => {
     expect(detectAgentPlatform(undefined)).toBe('linux');
     vi.unstubAllGlobals();
   });
+
+  it('reads navigator.userAgentData.platform when present', () => {
+    vi.stubGlobal('navigator', { userAgentData: { platform: 'Win32' }, platform: 'MacIntel' });
+    expect(detectAgentPlatform(undefined)).toBe('windows');
+    vi.unstubAllGlobals();
+  });
+
+  it('falls back to navigator.platform', () => {
+    vi.stubGlobal('navigator', { platform: 'MacIntel' });
+    expect(detectAgentPlatform(undefined)).toBe('macos');
+    vi.unstubAllGlobals();
+  });
 });
