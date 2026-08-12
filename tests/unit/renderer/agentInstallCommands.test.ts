@@ -81,4 +81,10 @@ describe('detectAgentPlatform', () => {
     expect(detectAgentPlatform(undefined)).toBe('macos');
     vi.unstubAllGlobals();
   });
+
+  it('falls back to navigator.platform when userAgentData yields no platform', () => {
+    vi.stubGlobal('navigator', { userAgentData: {}, platform: 'MacIntel' });
+    expect(detectAgentPlatform(undefined)).toBe('macos');
+    vi.unstubAllGlobals();
+  });
 });

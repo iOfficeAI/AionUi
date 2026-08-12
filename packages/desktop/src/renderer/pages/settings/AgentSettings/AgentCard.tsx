@@ -17,7 +17,7 @@ import {
 } from '@/renderer/utils/model/agentTypes';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { getAgentInstallCommand, getAgentInstallGuidance } from './agentInstallCommands';
+import { getAgentInstallCommand, getAgentInstallGuidance, type AgentInstallGuidance } from './agentInstallCommands';
 import { detectAgentPlatform } from './agentInstallPlatform';
 import { BoundAssistantStack } from './BoundAssistants';
 
@@ -125,9 +125,10 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
 
   const stop = (event: React.MouseEvent) => event.stopPropagation();
 
-  const handleCopyInstallCommand = async () => {
-    if (!installGuidance) return;
-    const command = getAgentInstallCommand(installGuidance, detectAgentPlatform());
+  // Handlers take the guidance as an argument — they are only mounted (and
+  // clicked) when `installGuidance` is set, so there is no unreachable guard.
+  const handleCopyInstallCommand = async (guidance: AgentInstallGuidance) => {
+    const command = getAgentInstallCommand(guidance, detectAgentPlatform());
     try {
       await copyText(command);
       Message.success(t('settings.agentManagement.installCommandCopied'));
@@ -136,9 +137,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
     }
   };
 
-  const handleOpenInstallDocs = () => {
-    if (!installGuidance) return;
-    void openExternalUrl(installGuidance.docsUrl).catch(console.error);
+  const handleOpenInstallDocs = (guidance: AgentInstallGuidance) => {
+    void openExternalUrl(guidance.docsUrl).catch(console.error);
   };
 
   return (
@@ -192,7 +192,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
                 size='small'
                 type='outline'
                 icon={<CopyOne theme='outline' size='14' />}
-                onClick={handleCopyInstallCommand}
+                onClick={() => void handleCopyInstallCommand(installGuidance)}
                 className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
               >
                 {t('settings.agentManagement.install', { defaultValue: 'Install' })}
@@ -203,7 +203,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
                   size='small'
                   type='outline'
                   icon={<LinkTwo theme='outline' size='14' />}
-                  onClick={handleOpenInstallDocs}
+                  onClick={() => handleOpenInstallDocs(installGuidance)}
                   className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
                 />
               </Tooltip>
