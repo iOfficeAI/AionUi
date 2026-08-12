@@ -25,6 +25,9 @@ vi.mock('@/common', () => ({
       userCreated: {
         on: vi.fn().mockReturnValue(() => {}),
       },
+      statusChanged: {
+        on: vi.fn().mockReturnValue(() => {}),
+      },
     },
     database: {
       getConversationMessages: {
@@ -274,5 +277,126 @@ describe('message merging', () => {
       limit: 50,
       content_mode: 'compact',
     });
+  });
+
+  it('flips a pending user message to finish when message.statusChanged arrives for it', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    let emitUserCreated: ((payload: any) => void) | undefined;
+    let emitStatusChanged: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.userCreated.on).mockImplementation((cb: any) => {
+      emitUserCreated = cb;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.statusChanged.on).mockImplementation((cb: any) => {
+      emitStatusChanged = cb;
+      return () => {};
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const { result } = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      emitUserCreated?.({
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-1',
+        client_msg_id: 'client-1',
+        content: 'sent mid-turn',
+        position: 'right',
+        status: 'pending',
+        hidden: false,
+        created_at: Date.now(),
+      });
+    });
+
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-1') as IMessageText | undefined)?.status
+    ).toBe('pending');
+
+    act(() => {
+      emitStatusChanged?.({
+        user_id: 'user-1',
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-1',
+        status: 'finish',
+      });
+    });
+
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-1') as IMessageText | undefined)?.status
+    ).toBe('finish');
+  });
+
+  it('ignores message.statusChanged for a different conversation', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    let emitUserCreated: ((payload: any) => void) | undefined;
+    let emitStatusChanged: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.userCreated.on).mockImplementation((cb: any) => {
+      emitUserCreated = cb;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.statusChanged.on).mockImplementation((cb: any) => {
+      emitStatusChanged = cb;
+      return () => {};
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const { result } = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      emitUserCreated?.({
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-2',
+        content: 'sent mid-turn',
+        position: 'right',
+        status: 'pending',
+        hidden: false,
+        created_at: Date.now(),
+      });
+    });
+
+    act(() => {
+      emitStatusChanged?.({
+        user_id: 'user-1',
+        conversation_id: 'other-conversation',
+        msg_id: 'msg-midturn-2',
+        status: 'finish',
+      });
+    });
+
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-2') as IMessageText | undefined)?.status
+    ).toBe('pending');
   });
 });

@@ -229,7 +229,7 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
   const runtimeView = useConversationRuntimeView(conversation_id);
-  const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
+  const { markSendStarted, markSendAccepted, markSendFailed, supportsMidturnDelivery } = runtimeView;
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -416,7 +416,11 @@ Please check your local CLI tool authentication status`,
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversation_id: conversation_id,
-    enabled: true,
+    // Backends that can deliver a message mid-turn (supports_midturn_delivery)
+    // bypass the client-side queue entirely and go straight to executeCommand;
+    // non-supporting backends (e.g. antigravity/ACP) keep today's queue panel
+    // untouched.
+    enabled: !supportsMidturnDelivery,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
     onExecute: executeCommand,
@@ -430,7 +434,7 @@ Please check your local CLI tool authentication status`,
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: true,
+        enabled: !supportsMidturnDelivery,
         isBusy,
         hasPendingCommands,
       })

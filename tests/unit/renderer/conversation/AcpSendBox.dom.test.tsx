@@ -23,6 +23,8 @@ const {
   isMobileMock,
   mobileActionSheetEntries,
   sendBoxPropsSpy,
+  runtimeViewMock,
+  useConversationCommandQueueSpy,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -41,6 +43,21 @@ const {
       };
     }>,
   },
+  runtimeViewMock: {
+    hydrated: true,
+    state: 'idle' as const,
+    isProcessing: false,
+    canSendMessage: true,
+    activeTurnId: null as string | null,
+    supportsMidturnDelivery: false,
+    markSendStarted: vi.fn(),
+    markSendAccepted: vi.fn(),
+    markSendFailed: vi.fn(),
+    markStopRequested: vi.fn(),
+    markStopAcknowledged: vi.fn(),
+    resetLocalGate: vi.fn(),
+  },
+  useConversationCommandQueueSpy: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -171,22 +188,36 @@ vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
 }));
 vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
-  shouldEnqueueConversationCommand: () => false,
-  useConversationCommandQueue: () => ({
-    items: [],
-    isPaused: false,
-    isInteractionLocked: false,
-    hasPendingCommands: false,
-    enqueue: vi.fn(),
-    remove: vi.fn(),
-    clear: vi.fn(),
-    reorder: vi.fn(),
-    pause: vi.fn(),
-    resume: vi.fn(),
-    lockInteraction: vi.fn(),
-    unlockInteraction: vi.fn(),
-    resetActiveExecution: vi.fn(),
-  }),
+  shouldEnqueueConversationCommand: ({
+    enabled = true,
+    isBusy,
+    hasPendingCommands,
+  }: {
+    enabled?: boolean;
+    isBusy: boolean;
+    hasPendingCommands: boolean;
+  }) => enabled && (isBusy || hasPendingCommands),
+  useConversationCommandQueue: (args: unknown) => {
+    useConversationCommandQueueSpy(args);
+    return {
+      items: [],
+      isPaused: false,
+      isInteractionLocked: false,
+      hasPendingCommands: false,
+      enqueue: vi.fn(),
+      remove: vi.fn(),
+      clear: vi.fn(),
+      reorder: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      lockInteraction: vi.fn(),
+      unlockInteraction: vi.fn(),
+      resetActiveExecution: vi.fn(),
+    };
+  },
+}));
+vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
+  useConversationRuntimeView: () => runtimeViewMock,
 }));
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({
@@ -245,6 +276,12 @@ describe('AcpSendBox', () => {
     vi.clearAllMocks();
     isMobileMock.current = false;
     mobileActionSheetEntries.current = [];
+    runtimeViewMock.hydrated = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.activeTurnId = null;
+    runtimeViewMock.supportsMidturnDelivery = false;
     useTeamPermissionMock.mockReturnValue(null);
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
@@ -613,5 +650,35 @@ describe('AcpSendBox', () => {
     expect(props.active).toBe(true);
     props.onFocused?.();
     expect(onFocus).toHaveBeenCalledTimes(1);
+  });
+
+  it('bypasses the client command queue for backends that can deliver mid-turn', () => {
+    runtimeViewMock.supportsMidturnDelivery = true;
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='claude'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(useConversationCommandQueueSpy).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+  });
+
+  it('keeps the client command queue enabled for backends that cannot deliver mid-turn', () => {
+    runtimeViewMock.supportsMidturnDelivery = false;
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='antigravity'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(useConversationCommandQueueSpy).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
   });
 });

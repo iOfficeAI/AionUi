@@ -1003,6 +1003,27 @@ export const useMessageLstCache = (key: string) => {
       });
     });
   }, [key, update]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    // Flips a mid-turn-delivered user message's badge from 待接收 to
+    // consumed once the agent actually picks it up (claude command_lifecycle
+    // Started; codex synthetic receipt). Correlates by msg_id — the same
+    // server-assigned id message.userCreated used to add the row — never by
+    // text/time.
+    return ipcBridge.conversation.statusChanged.on((payload) => {
+      if (payload.conversation_id !== key) {
+        return;
+      }
+
+      update((list) =>
+        list.map((message) => (message.msg_id === payload.msg_id ? { ...message, status: payload.status } : message))
+      );
+    });
+  }, [key, update]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
