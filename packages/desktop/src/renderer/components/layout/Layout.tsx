@@ -21,6 +21,7 @@ import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversati
 import { setCurrentConversation } from '@renderer/pages/conversation/explorer/currentConversationStore';
 import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
 import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
+import { useResizableSplit } from '@renderer/hooks/ui/useResizableSplit';
 import { useProjectPreviewRegionWidth } from '@renderer/hooks/ui/useProjectPreviewRegionWidth';
 import { useProjectPanelCollapse } from '@renderer/hooks/ui/useProjectPanelCollapse';
 import { isMacEnvironment } from '@renderer/pages/conversation/utils/detectPlatform';
@@ -94,8 +95,9 @@ const UpdateModal = React.lazy(() => import('@/renderer/components/settings/Upda
 
 const DEFAULT_SIDER_WIDTH = 260;
 const DESKTOP_COLLAPSED_WIDTH = 0;
-const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
-const SIDER_DRAG_HYSTERESIS = 6;
+// 桌面侧栏连续可调：下限 200；低于此值拖拽即吸附收起（消灭旧 130 死区）。
+// 上限 = 窗口宽 50%（动态随窗口）。
+const SIDER_MIN_WIDTH = 200;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
 const MOBILE_SIDER_MIN_WIDTH = 260;
 const MOBILE_SIDER_MAX_WIDTH = 420;
@@ -227,10 +229,20 @@ const Layout: React.FC<{
   }, [location.pathname, workspaceAvailable, closePreviewOnRouteChange]);
 
   const collapsedRef = useRef(collapsed);
-  const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
-    active: false,
-    startX: 0,
-    startWidth: DEFAULT_SIDER_WIDTH,
+
+  // 桌面侧栏连续可调宽 + 记忆宽度 + 收起吸附（design §6）。复用 useResizableSplit
+  // 的 pointer/rAF 拖拽管线：拖到 <200 吸附收起（onCollapsedChange→collapsed），
+  // ≥200 跟手且写盘，双击分隔线恢复 260。上限动态跟随窗口 50%。移动端不使用。
+  const { splitRatio: desktopSiderWidth, createDragHandle: createSiderDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: DEFAULT_SIDER_WIDTH,
+    minWidth: SIDER_MIN_WIDTH,
+    maxWidth: Math.max(SIDER_MIN_WIDTH, Math.round(viewportWidth * 0.5)),
+    storageKey: 'sider-width-px',
+    collapseThreshold: SIDER_MIN_WIDTH,
+    collapsedWidth: DESKTOP_COLLAPSED_WIDTH,
+    collapsed,
+    onCollapsedChange: setCollapsed,
   });
 
   // 检测移动端并响应窗口大小变化
@@ -333,59 +345,10 @@ const Layout: React.FC<{
         MOBILE_SIDER_MIN_WIDTH,
         Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
       )
-    : DEFAULT_SIDER_WIDTH;
+    : desktopSiderWidth;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
-
-  const beginSiderResizeDrag = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      if (isMobile) return;
-      event.preventDefault();
-      dragStateRef.current = {
-        active: true,
-        startX: event.clientX,
-        startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
-      };
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    },
-    [isMobile]
-  );
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      const dragState = dragStateRef.current;
-      if (!dragState.active) return;
-
-      const draggedWidth = dragState.startWidth + (event.clientX - dragState.startX);
-      // Add a small hysteresis zone to avoid rapid toggling near the snap threshold.
-      const shouldCollapse = collapsedRef.current
-        ? draggedWidth < SIDER_DRAG_SNAP_THRESHOLD + SIDER_DRAG_HYSTERESIS
-        : draggedWidth <= SIDER_DRAG_SNAP_THRESHOLD - SIDER_DRAG_HYSTERESIS;
-      if (shouldCollapse !== collapsedRef.current) {
-        setCollapsed(shouldCollapse);
-      }
-    };
-
-    const endDrag = () => {
-      if (!dragStateRef.current.active) return;
-      dragStateRef.current.active = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    const handleBlur = () => endDrag();
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', endDrag);
-      window.removeEventListener('blur', handleBlur);
-      endDrag();
-    };
-  }, []);
 
   const siderStyle = isMobile
     ? {
@@ -504,16 +467,12 @@ const Layout: React.FC<{
                     } as any)
                   : sider}
               </ArcoLayout.Content>
-              {!isMobile && (
-                <div
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                  style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
-                  aria-hidden='true'
-                >
-                  <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
-                </div>
-              )}
+              {!isMobile &&
+                createSiderDragHandle({
+                  className: 'z-20',
+                  style: { right: '-4px', width: '8px' },
+                  linePlacement: 'start',
+                })}
             </ArcoLayout.Sider>
 
             {/* Content + project Explorer share one measured flex row (stage3
