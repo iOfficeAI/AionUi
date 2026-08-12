@@ -4,6 +4,9 @@
     "placeholder": "Envoyez un message, téléversez des fichiers, ouvrez un dossier, créez une tâche planifiée ou tapez / pour les commandes...",
     "linkFolder": "Ouvrir un dossier",
     "newConversation": "Nouveau chat",
+    "startConversation": "Démarrer la discussion",
+    "selectAssistant": "Sélectionner l’assistant",
+    "createTeam": "Créer une équipe",
     "selectModel": "Sélectionner un modèle",
     "useCliModel": "Sélectionner un modèle",
     "modelSwitchNotSupported": "La liste des modèles sera disponible après la première connexion. Envoyez un message pour vous connecter et charger les modèles disponibles.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Vous aimez ? Donnez-nous une étoile !",
     "skillsMarket": "Marché de compétences AionUi",
     "skillsMarketDesc": "Recherchez et activez des compétences communautaires à la demande. Configurez une fois, disponible pour tous les agents.",
-    "skillsMarketDetails": "Voir plus >>"
+    "skillsMarketDetails": "Voir plus >>",
+    "teamLabel": "Équipe",
+    "membersLabel": "Membres",
+    "teamNamePlaceholder": "Nom automatique (modifiable, facultatif)",
+    "setLeader": "Définir comme chef",
+    "removeMember": "Retirer le membre",
+    "addAdvanced": "Ajouter / Avancé…"
   },
   "history": {
     "recents": "Récents",
@@ -730,5 +739,8 @@
     "exited": "Code {{code}}",
     "stop": "Arrêter",
     "truncated": "(sortie antérieure tronquée)"
+  },
+  "emptyState": {
+    "greeting": "Bonjour ! Dites-moi ce dont vous avez besoin et je commence."
   }
 }

@@ -4,6 +4,9 @@
     "placeholder": "發送訊息、上傳檔案、開啟資料夾、建立定時任務，或輸入 / 喚起命令...",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
+    "startConversation": "開始對話",
+    "selectAssistant": "選擇助手",
+    "createTeam": "建立團隊",
     "selectModel": "選擇模型",
     "useCliModel": "選擇模型",
     "modelSwitchNotSupported": "首次連接後將顯示可用模型列表。請先發送訊息以連接並載入可用模型。",
@@ -17,7 +20,13 @@
     "quickActionStar": "喜歡我們？點個星吧",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
-    "skillsMarketDetails": "詳情 >>"
+    "skillsMarketDetails": "詳情 >>",
+    "teamLabel": "團隊",
+    "membersLabel": "成員",
+    "teamNamePlaceholder": "自動命名（可改，可留空）",
+    "setLeader": "設為隊長",
+    "removeMember": "移除成員",
+    "addAdvanced": "新增 / 進階…"
   },
   "history": {
     "recents": "最近",
@@ -731,5 +740,8 @@
     "exited": "結束碼 {{code}}",
     "stop": "停止",
     "truncated": "(較早輸出已截斷)"
+  },
+  "emptyState": {
+    "greeting": "你好！說說你的需求，我這就開始。"
   }
 }

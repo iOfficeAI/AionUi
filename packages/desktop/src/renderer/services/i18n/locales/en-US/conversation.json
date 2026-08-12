@@ -4,6 +4,9 @@
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
+    "startConversation": "Start chat",
+    "selectAssistant": "Select assistant",
+    "createTeam": "Create team",
     "selectModel": "Select Model",
     "useCliModel": "Select Model",
     "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Like us? Give us a star!",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
-    "skillsMarketDetails": "View More >>"
+    "skillsMarketDetails": "View More >>",
+    "teamLabel": "Team",
+    "membersLabel": "Members",
+    "teamNamePlaceholder": "Auto-named (editable, optional)",
+    "setLeader": "Set as leader",
+    "removeMember": "Remove member",
+    "addAdvanced": "Add / Advanced…"
   },
   "history": {
     "recents": "Recents",
@@ -732,5 +741,8 @@
     "exited": "Exit {{code}}",
     "stop": "Stop",
     "truncated": "(earlier output truncated)"
+  },
+  "emptyState": {
+    "greeting": "Hi! Tell me what you need and I'll get started."
   }
 }

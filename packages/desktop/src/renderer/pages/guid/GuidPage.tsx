@@ -18,10 +18,15 @@ import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import GuidActionRow from './components/GuidActionRow';
+import GuidTeamMemberBar from './components/GuidTeamMemberBar';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import QuickActionButtons from './components/QuickActionButtons';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
+import { createTeam } from '@/renderer/pages/team/components/createTeam';
+import { assistantToOption, type TeamAssistantOption } from '@/renderer/pages/team/components/assistantSelectUtils';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
@@ -35,7 +40,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { ArrowRightUp } from '@icon-park/react';
-import { Button, ConfigProvider } from '@arco-design/web-react';
+import { Button, ConfigProvider, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -53,8 +58,18 @@ type GuidNavigationState = {
   [key: string]: unknown;
 };
 
+/** Max characters for an auto-generated team name before it is ellipsized. */
+const AUTO_TEAM_NAME_MAX = 60;
+
+/** Fallback team name: member names joined in selection order (design 图2). */
+function buildAutoTeamName(memberNames: string[]): string {
+  const joined = memberNames.join(' · ');
+  return joined.length > AUTO_TEAM_NAME_MAX ? `${joined.slice(0, AUTO_TEAM_NAME_MAX)}…` : joined;
+}
+
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
@@ -161,6 +176,32 @@ const GuidPage: React.FC = () => {
 
   const selectedAssistantId = agentSelection.selectedAssistantId;
   const hasSelectedAssistant = selectedAssistantId !== null;
+
+  // Homepage multi-select set used to build the primary action. Index 0 is the
+  // "primary" assistant and mirrors the single-selection hook that drives all
+  // downstream derived state (model / skills / MCP); any extra ids are only used
+  // when the user chooses to spin up a team.
+  const [selectedAssistantIds, setSelectedAssistantIds] = useState<string[]>([]);
+  // Leader for the team primary action (design 图2); defaults to the first
+  // selected assistant and only matters once ≥2 are selected.
+  const [leaderAssistantId, setLeaderAssistantId] = useState<string | undefined>(undefined);
+  // Team-name draft for the inline memberbar; empty means "auto-name from members".
+  const [teamName, setTeamName] = useState('');
+  const [teamCreating, setTeamCreating] = useState(false);
+  const didSeedSelectionRef = useRef(false);
+  const [teamModalVisible, setTeamModalVisible] = useState(false);
+
+  // Seed the set once from the hook's auto-picked default so the homepage starts
+  // with exactly one assistant selected. Guarded by a ref so a later clear-to-zero
+  // by the user does not snap back to the default.
+  useEffect(() => {
+    if (didSeedSelectionRef.current) return;
+    if (selectedAssistantId) {
+      setSelectedAssistantIds([selectedAssistantId]);
+      setLeaderAssistantId(selectedAssistantId);
+      didSeedSelectionRef.current = true;
+    }
+  }, [selectedAssistantId]);
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
     async (): Promise<AssistantDetail | null> =>
@@ -311,9 +352,31 @@ const GuidPage: React.FC = () => {
 
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
-      agentSelection.setSelectedAssistantId(assistantId);
+      const exists = selectedAssistantIds.includes(assistantId);
+      // Keep at least one assistant selected, matching main's single-select model
+      // where a pick can be switched but never cleared. Deselecting the last one
+      // is a no-op so the homepage never falls into an empty "nothing picked" state.
+      if (exists && selectedAssistantIds.length === 1) return;
+      const next = exists
+        ? selectedAssistantIds.filter((id) => id !== assistantId)
+        : [...selectedAssistantIds, assistantId];
+      setSelectedAssistantIds(next);
+      // Keep the single-selection hook pointed at the primary (index 0) so the
+      // model / skills / MCP derived state always tracks the lead assistant.
+      const nextPrimary = next[0];
+      if (nextPrimary && nextPrimary !== agentSelection.selectedAssistantId) {
+        agentSelection.setSelectedAssistantId(nextPrimary);
+      }
+      // Maintain a valid team leader: dropping the leader (or having none yet)
+      // falls back to the first remaining selection.
+      setLeaderAssistantId((current) => {
+        if (exists) {
+          return current === assistantId || !current ? next[0] : current;
+        }
+        return current ?? assistantId;
+      });
     },
-    [agentSelection.setSelectedAssistantId]
+    [selectedAssistantIds, agentSelection.setSelectedAssistantId, agentSelection.selectedAssistantId]
   );
 
   // Typewriter placeholder
@@ -609,6 +672,101 @@ const GuidPage: React.FC = () => {
   );
   const { handleLiveTranscript } = useLiveTranscriptInsertion(guidInput.setInput);
 
+  // Primary-action state machine driven by the multi-select set + input text:
+  //   0 selected            → "Select assistant" (disabled)
+  //   text present          → send-arrow icon (single-chat send)
+  //   1 selected, empty      → "Start chat" (create empty conversation)
+  //   ≥2 selected, empty     → "Create team" (open the team-create modal)
+  const selectionCount = selectedAssistantIds.length;
+  const hasInputText = guidInput.input.trim().length > 0;
+  const primaryLabel = useMemo(() => {
+    if (selectionCount === 0) {
+      return t('conversation.welcome.selectAssistant', { defaultValue: 'Select assistant' });
+    }
+    if (hasInputText) {
+      return undefined; // text present → circular icon send button
+    }
+    if (selectionCount >= 2) {
+      return t('conversation.welcome.createTeam', { defaultValue: 'Create team' });
+    }
+    return t('conversation.welcome.startConversation', { defaultValue: 'Start chat' });
+  }, [selectionCount, hasInputText, t]);
+  // Locale-independent mirror of primaryLabel for tests (see GuidActionRow).
+  const primaryMode = useMemo(() => {
+    if (selectionCount === 0) return 'select';
+    if (hasInputText) return 'send';
+    if (selectionCount >= 2) return 'team';
+    return 'start';
+  }, [selectionCount, hasInputText]);
+  const isPrimaryDisabled = send.isButtonDisabled || selectionCount === 0 || teamCreating;
+  // Ordered member options (selection order) driving the inline memberbar and the
+  // direct team-create path; index 0 is the default leader.
+  const teamMemberOptions = useMemo<TeamAssistantOption[]>(
+    () =>
+      selectedAssistantIds
+        .map((id) => agentSelection.assistants.find((item) => item.id === id))
+        .filter((assistant): assistant is NonNullable<typeof assistant> => Boolean(assistant))
+        .map((assistant) => assistantToOption(assistant, localeKey)),
+    [selectedAssistantIds, agentSelection.assistants, localeKey]
+  );
+
+  // ≥2 selected → always a team. Create it directly (no modal), then per the
+  // design 2.5 matrix replay any typed first message / files to the leader
+  // before navigating to the (possibly empty) team window.
+  const handleCreateTeamFromHome = useCallback(async () => {
+    if (teamCreating || teamMemberOptions.length < 2) return;
+    const members = teamMemberOptions.map((assistant) => ({
+      assistant,
+      isLeader: assistant.id === leaderAssistantId,
+    }));
+    if (!members.some((member) => member.isLeader)) members[0].isLeader = true;
+    const name = teamName.trim() || buildAutoTeamName(teamMemberOptions.map((member) => member.name));
+    setTeamCreating(true);
+    try {
+      const result = await createTeam({
+        userId: user?.id ?? 'system_default_user',
+        name,
+        workspace: guidInput.dir || '',
+        members,
+        t,
+      });
+      if (!result.ok) {
+        Message.error(result.message);
+        return;
+      }
+      const firstMessage = guidInput.input.trim();
+      const files = guidInput.files;
+      if (firstMessage.length > 0 || files.length > 0) {
+        await ipcBridge.team.sendMessage
+          .invoke({ team_id: result.team.id, input: firstMessage, files })
+          .catch(() => {});
+      }
+      void navigate(`/team/${result.team.id}`);
+    } finally {
+      setTeamCreating(false);
+    }
+  }, [
+    teamCreating,
+    teamMemberOptions,
+    leaderAssistantId,
+    teamName,
+    user?.id,
+    guidInput.dir,
+    guidInput.input,
+    guidInput.files,
+    navigate,
+    t,
+  ]);
+
+  const handlePrimaryAction = useCallback(() => {
+    if (selectionCount === 0) return;
+    if (selectionCount >= 2) {
+      void handleCreateTeamFromHome();
+      return;
+    }
+    send.sendMessageHandler();
+  }, [selectionCount, handleCreateTeamFromHome, send.sendMessageHandler]);
+
   // Build the action row
   const actionRowNode = (
     <GuidActionRow
@@ -639,9 +797,11 @@ const GuidPage: React.FC = () => {
       speechInputNode={
         <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
       }
-      loading={guidInput.loading}
-      isButtonDisabled={send.isButtonDisabled}
-      onSend={send.sendMessageHandler}
+      loading={guidInput.loading || teamCreating}
+      isButtonDisabled={isPrimaryDisabled}
+      onSend={handlePrimaryAction}
+      primaryLabel={primaryLabel}
+      primaryMode={primaryMode}
     />
   );
   const slashCommandMenuNode = slashController.isOpen ? (
@@ -671,11 +831,25 @@ const GuidPage: React.FC = () => {
           </div>
 
           <AssistantSelectionArea
-            selectedAssistantId={agentSelection.selectedAssistantId}
+            selectedAssistantIds={selectedAssistantIds}
             assistants={agentSelection.assistants}
             localeKey={localeKey}
             onSelectAssistant={handleSelectAssistant}
           />
+
+          {selectionCount >= 2 ? (
+            <div className='mt-14px w-full animate-fade-in'>
+              <GuidTeamMemberBar
+                members={teamMemberOptions}
+                leaderId={leaderAssistantId}
+                teamName={teamName}
+                onTeamNameChange={setTeamName}
+                onSetLeader={setLeaderAssistantId}
+                onRemove={handleSelectAssistant}
+                onOpenAdvanced={() => setTeamModalVisible(true)}
+              />
+            </div>
+          ) : null}
 
           <GuidInputCard
             focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}
@@ -737,6 +911,18 @@ const GuidPage: React.FC = () => {
           activeShadow={activeShadow}
         />
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+        <TeamCreateModal
+          visible={teamModalVisible}
+          onClose={() => setTeamModalVisible(false)}
+          initialAssistantIds={selectedAssistantIds}
+          initialLeaderAssistantId={leaderAssistantId}
+          initialTeamName={teamName}
+          initialWorkspace={guidInput.dir || undefined}
+          onCreated={(team) => {
+            setTeamModalVisible(false);
+            void navigate(`/team/${team.id}`);
+          }}
+        />
       </div>
     </ConfigProvider>
   );

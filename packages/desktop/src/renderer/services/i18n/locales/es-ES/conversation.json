@@ -4,6 +4,9 @@
     "placeholder": "Envía un mensaje, sube archivos, abre una carpeta, crea una tarea programada o escribe / para ver los comandos...",
     "linkFolder": "Abrir carpeta",
     "newConversation": "Nuevo chat",
+    "startConversation": "Iniciar chat",
+    "selectAssistant": "Seleccionar asistente",
+    "createTeam": "Crear equipo",
     "selectModel": "Seleccionar modelo",
     "useCliModel": "Seleccionar modelo",
     "modelSwitchNotSupported": "La lista de modelos estará disponible después de la primera conexión. Envía un mensaje para conectar y cargar los modelos disponibles.",
@@ -17,7 +20,13 @@
     "quickActionStar": "¿Te gusta? ¡Danos una estrella!",
     "skillsMarket": "Mercado de habilidades de AionUi",
     "skillsMarketDesc": "Busca y activa habilidades de la comunidad según sea necesario. Configúralo una vez, disponible para todos los asistentes.",
-    "skillsMarketDetails": "Ver más >>"
+    "skillsMarketDetails": "Ver más >>",
+    "teamLabel": "Equipo",
+    "membersLabel": "Miembros",
+    "teamNamePlaceholder": "Nombre automático (editable, opcional)",
+    "setLeader": "Establecer como líder",
+    "removeMember": "Eliminar miembro",
+    "addAdvanced": "Añadir / Avanzado…"
   },
   "history": {
     "recents": "Recientes",
@@ -732,5 +741,8 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."
   }
 }

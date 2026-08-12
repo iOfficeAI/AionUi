@@ -57,6 +57,13 @@ export function hasTruncatedAssistantLabels(root: HTMLElement | null): boolean {
 
 type AssistantSelectionAreaProps = {
   selectedAssistantId?: string | null;
+  /**
+   * Multi-select highlight set. When provided, every id in it renders selected
+   * and drives which pills are pinned visible; `selectedAssistantId` is then only
+   * a single-select fallback for callers that have not adopted multi-select.
+   * `onSelectAssistant` is expected to toggle membership.
+   */
+  selectedAssistantIds?: string[];
   assistants: Assistant[];
   localeKey: string;
   maxVisibleAssistants?: number;
@@ -65,6 +72,7 @@ type AssistantSelectionAreaProps = {
 
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   selectedAssistantId,
+  selectedAssistantIds,
   assistants,
   localeKey,
   maxVisibleAssistants = 4,
@@ -79,7 +87,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const barRef = useRef<HTMLDivElement>(null);
   const hoverOpenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const selectedId = selectedAssistantId || undefined;
+  // Normalize both prop shapes into one selection set. Multi-select wins when
+  // present; otherwise fall back to the single `selectedAssistantId`.
+  const selectedIds = useMemo(() => {
+    if (selectedAssistantIds) return selectedAssistantIds;
+    return selectedAssistantId ? [selectedAssistantId] : [];
+  }, [selectedAssistantIds, selectedAssistantId]);
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  // Primary selection = first id; used to pin a single item into view when the
+  // list overflows (kept for parity with the previous single-select behavior).
+  const selectedId = selectedIds[0] || undefined;
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
   const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
@@ -167,17 +184,25 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   }, []);
 
   const visibleAssistants = useMemo(() => {
-    if (enabledAssistants.length <= visibleLimit || !selectedId) {
+    if (enabledAssistants.length <= visibleLimit || selectedIdSet.size === 0) {
       return enabledAssistants.slice(0, visibleLimit);
     }
 
-    const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
-    if (selectedIndex < 0 || selectedIndex < visibleLimit) {
-      return enabledAssistants.slice(0, visibleLimit);
+    // Keep every selected assistant on the bar so a chosen agent never hides in
+    // the overflow panel, then backfill the remaining slots from the front of
+    // the list. Original order is preserved for a stable layout.
+    const pinnedIds = new Set(
+      enabledAssistants
+        .filter((assistant) => selectedIdSet.has(assistant.id))
+        .slice(0, visibleLimit)
+        .map((a) => a.id)
+    );
+    for (const assistant of enabledAssistants) {
+      if (pinnedIds.size >= visibleLimit) break;
+      pinnedIds.add(assistant.id);
     }
-
-    return [...enabledAssistants.slice(0, visibleLimit - 1), enabledAssistants[selectedIndex]];
-  }, [enabledAssistants, selectedId, visibleLimit]);
+    return enabledAssistants.filter((assistant) => pinnedIds.has(assistant.id)).slice(0, visibleLimit);
+  }, [enabledAssistants, selectedIdSet, visibleLimit]);
 
   useLayoutEffect(() => {
     if (visibleLimit <= 1 || !hasTruncatedAssistantLabels(containerRef.current)) {
@@ -222,7 +247,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false) => {
     const avatar = resolveAssistantAvatar(assistant.avatar);
-    const isSelected = selectedId === assistant.id;
+    const isSelected = selectedIdSet.has(assistant.id);
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
 
     return (

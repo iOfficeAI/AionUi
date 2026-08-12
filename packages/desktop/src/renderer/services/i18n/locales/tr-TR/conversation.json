@@ -4,6 +4,9 @@
     "placeholder": "Mesaj gönder, dosya yükle, klasör aç veya komutlar için / yaz...",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
+    "startConversation": "Sohbeti başlat",
+    "selectAssistant": "Asistan seç",
+    "createTeam": "Takım oluştur",
     "selectModel": "Model Seç",
     "useCliModel": "Model Seç",
     "modelSwitchNotSupported": "Model listesi ilk bağlantıdan sonra kullanılabilir olacaktır. Bağlanmak ve mevcut modelleri yüklemek için önce bir mesaj gönderin.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
-    "skillsMarketDetails": "Ayrıntılar >>"
+    "skillsMarketDetails": "Ayrıntılar >>",
+    "teamLabel": "Takım",
+    "membersLabel": "Üyeler",
+    "teamNamePlaceholder": "Otomatik adlandırma (düzenlenebilir, isteğe bağlı)",
+    "setLeader": "Lider yap",
+    "removeMember": "Üyeyi kaldır",
+    "addAdvanced": "Ekle / Gelişmiş…"
   },
   "history": {
     "recents": "Son",
@@ -733,5 +742,8 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "emptyState": {
+    "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
   }
 }
