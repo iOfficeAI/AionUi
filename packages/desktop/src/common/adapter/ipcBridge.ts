@@ -359,6 +359,7 @@ export const conversation = {
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
       turn_id: (rawRuntime.turn_id ?? rawRuntime.turnId ?? null) as string | null,
+      supports_midturn_delivery: (rawRuntime.supports_midturn_delivery ?? rawRuntime.supportsMidturnDelivery ?? false) as boolean,
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -1896,6 +1897,10 @@ export interface IConversationTurnCompletedEvent {
     is_processing: boolean;
     pending_confirmations: number;
     turn_id: string | null;
+    /** Whether a message sent right now reaches the agent without waiting for
+     * the current turn to end. The ONLY capability bit the frontend may gate
+     * mid-turn UI on. */
+    supports_midturn_delivery: boolean;
   };
   workspace: string;
   model: {
