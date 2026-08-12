@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { cleanupTeamsByName, createTeam } from '../../helpers';
+import { cleanupTeamsByName, createTeam, openTeamCreateModal } from '../../helpers';
 
 const TEAM_COLLAPSED = 'E2E Collapsed Team';
 const TEAM_WORKSPACE = 'E2E Workspace Team';
@@ -48,9 +48,7 @@ test.describe('Team UI Details', () => {
       dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [dir] });
     }, tmpDir);
 
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await expect(createBtn).toBeVisible({ timeout: 10_000 });
-    await createBtn.click();
+    await openTeamCreateModal(page);
 
     const modal = page.locator('.arco-modal').last();
     await modal.waitFor({ state: 'visible', timeout: 5_000 });

@@ -133,28 +133,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   );
 
   const SectionLabel = useCallback(
-    ({
-      sectionKey,
-      label,
-      trailing,
-      divider,
-    }: {
-      sectionKey: string;
-      label: string;
-      trailing?: React.ReactNode;
-      /** Hairline divider above the header, used to segment peer sections (not the first one). */
-      divider?: boolean;
-    }) => {
+    ({ sectionKey, label, trailing }: { sectionKey: string; label: string; trailing?: React.ReactNode }) => {
       const isCollapsed = collapsedSections.has(sectionKey);
       return (
         <div
-          className={classNames(
-            'group/label sider-section-label relative flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-8px cursor-pointer bg-[var(--bg-2)]',
-            // Full-bleed 1px separator drawn via ::after so it never changes the
-            // header height (WorkspaceCollapse pins its folders at stickyTop=28).
-            divider &&
-              'after:content-[""] after:absolute after:left-12px after:right-12px after:top-0 after:h-1px after:bg-b-base'
-          )}
+          className='group/label sider-section-label relative flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-8px cursor-pointer bg-[var(--bg-2)]'
           onClick={() => toggleSection(sectionKey)}
         >
           <span className='text-14px text-t-secondary sider-section-title group-hover/label:text-t-primary transition-colors font-600 tracking-[0.03em] leading-none'>
@@ -616,7 +599,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               <SectionLabel
                 sectionKey='projects'
                 label={t('conversation.history.projectsSection')}
-                divider
                 trailing={
                   projectGroups.some((group) => expandedWorkspaces.includes(group.workspace)) ? (
                     <Tooltip content={t('conversation.history.collapseAllProjects')} position='top'>
@@ -768,15 +750,46 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             <SectionLabel
               sectionKey='conversations'
               label={t('conversation.history.conversationsSection')}
-              divider
               trailing={
-                <Tooltip content={t('team.sider.createTeam')} position='top'>
-                  {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试入口 selector，不得删改。
-                      如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
-                  <div
-                    data-testid='team-create-btn'
+                <Dropdown
+                  trigger='click'
+                  position='br'
+                  getPopupContainer={() => document.body}
+                  unmountOnExit={false}
+                  droplist={
+                    <Menu
+                      onClickMenuItem={(key) => {
+                        if (key === 'newConversation') {
+                          void navigate('/guid');
+                        } else if (key === 'newTeam') {
+                          setGlobalTeamCreateVisible(true);
+                        }
+                      }}
+                    >
+                      <Menu.Item key='newConversation'>
+                        <span className='flex items-center gap-8px'>
+                          <MessageOne theme='outline' size='14' />
+                          {t('common.tray.newChat')}
+                        </span>
+                      </Menu.Item>
+                      <Menu.Item key='newTeam'>
+                        {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试入口 selector，不得删改。
+                            如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
+                        <span data-testid='team-create-btn' className='flex items-center gap-8px'>
+                          <Peoples theme='outline' size='14' />
+                          {t('team.sider.createTeam')}
+                        </span>
+                      </Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <span
+                    role='button'
+                    tabIndex={0}
+                    data-testid='sider-conversation-create-btn'
+                    aria-label={t('conversation.history.projectCreateMenu')}
                     className='-mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
-                    onClick={() => setGlobalTeamCreateVisible(true)}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Plus
                       theme='outline'
@@ -785,8 +798,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       className='block leading-none'
                       style={{ lineHeight: 0 }}
                     />
-                  </div>
-                </Tooltip>
+                  </span>
+                </Dropdown>
               }
             />
           )}

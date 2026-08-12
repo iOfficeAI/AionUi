@@ -8,7 +8,7 @@
  * integration suite (tests/integration).
  */
 import { test, expect } from '../../fixtures';
-import { cleanupTeamsByName, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
+import { cleanupTeamsByName, TEAM_SUPPORTED_BACKENDS, openTeamCreateModal } from '../../helpers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -47,9 +47,7 @@ test.describe('Workspace Files — UI panel', () => {
     await cleanupTeamsByName(page, TEAM_NAME);
 
     // ── Create team via sidebar UI ───────────────────────────────────────
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await expect(createBtn).toBeVisible({ timeout: 10_000 });
-    await createBtn.click();
+    await openTeamCreateModal(page);
 
     const modal = page.locator('.team-create-modal');
     await expect(modal).toBeVisible({ timeout: 10_000 });

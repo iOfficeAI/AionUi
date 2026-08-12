@@ -13,6 +13,22 @@ const BACKEND_UI_PATTERN: Record<string, RegExp> = {
 };
 
 /**
+ * Open the Create Team modal from the sidebar.
+ *
+ * The conversations-section "+" is a dropdown menu ("新建对话" / "新建团队");
+ * team creation is the second item. Open the menu, then click the team entry.
+ */
+export async function openTeamCreateModal(page: Page): Promise<void> {
+  const trigger = page.locator('[data-testid="sider-conversation-create-btn"]').first();
+  await trigger.waitFor({ state: 'visible', timeout: 10_000 });
+  await trigger.click();
+
+  const teamItem = page.locator('[data-testid="team-create-btn"]').first();
+  await teamItem.waitFor({ state: 'visible', timeout: 5_000 });
+  await teamItem.click();
+}
+
+/**
  * Create a team through the sidebar UI (TeamCreateModal).
  *
  * Uses the real user flow so the TeamCreateModal.onCreated -> refreshTeams()
@@ -32,9 +48,7 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
   });
   await page.waitForFunction(() => window.location.hash === '#/team', { timeout: 10_000 }).catch(() => {});
 
-  const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-  await createBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await createBtn.click();
+  await openTeamCreateModal(page);
 
   const modal = page.locator('.arco-modal').last();
   await modal.waitFor({ state: 'visible', timeout: 5_000 });

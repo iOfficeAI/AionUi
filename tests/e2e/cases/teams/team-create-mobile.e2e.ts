@@ -13,7 +13,7 @@
  * afterwards because the Electron window is shared across specs.
  */
 import { test, expect } from '../../fixtures';
-import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../helpers';
+import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName, openTeamCreateModal } from '../../helpers';
 
 const MOBILE_WIDTH = 430;
 const MOBILE_HEIGHT = 900;
@@ -59,10 +59,8 @@ test.describe('Team Create - mobile (narrow screen)', () => {
   });
 
   test('shows single-column layout and adds a member via the bottom sheet', async ({ electronApp, page }) => {
-    // Open the modal at desktop width via the sidebar create button (stable testid).
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await expect(createBtn).toBeVisible({ timeout: 15_000 });
-    await createBtn.click();
+    // Open the modal at desktop width via the sidebar "+" menu (stable testid).
+    await openTeamCreateModal(page);
 
     await expect(
       page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队|New Team|新建团队/ })
