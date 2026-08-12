@@ -6,7 +6,7 @@
 
 import { iconColors } from '@renderer/styles/colors';
 import { getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
-import { DeleteOne, EditOne, Inbox, Peoples, Pushpin } from '@icon-park/react';
+import { EditOne, Inbox, Peoples, Pushpin } from '@icon-park/react';
 import { Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -31,7 +31,6 @@ export type TeamRowProps = {
   onClick: () => void;
   onPin: () => void;
   onRename: () => void;
-  onDelete: () => void;
   onArchive: () => void;
 };
 
@@ -56,7 +55,6 @@ const TeamRow: React.FC<TeamRowProps> = ({
   onClick,
   onPin,
   onRename,
-  onDelete,
   onArchive,
 }) => {
   const { t } = useTranslation();
@@ -116,12 +114,6 @@ const TeamRow: React.FC<TeamRowProps> = ({
       icon: <Inbox theme='outline' size='14' />,
       label: t('team.sider.archive'),
     },
-    {
-      key: 'delete',
-      icon: <DeleteOne theme='outline' size='14' />,
-      label: t('team.sider.delete'),
-      danger: true,
-    },
   ];
 
   return (
@@ -152,7 +144,6 @@ const TeamRow: React.FC<TeamRowProps> = ({
           if (key === 'pin') onPin();
           else if (key === 'rename') onRename();
           else if (key === 'archive') onArchive();
-          else if (key === 'delete') onDelete();
         }}
         pinAction={{
           pinned,

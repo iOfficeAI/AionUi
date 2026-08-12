@@ -1361,6 +1361,10 @@
     "deleteConfirmContent": "“{{name}}”将被永久删除，此操作无法撤销。",
     "deleteSuccess": "已删除",
     "deleteFailed": "删除失败",
-    "teamMemberCount": "{{count}} 个成员"
+    "teamMemberCount": "{{count}} 个成员",
+    "restoreProject": "全部恢复",
+    "deleteProject": "全部删除",
+    "deleteProjectConfirmTitle": "删除该项目下的全部归档项？",
+    "deleteProjectConfirmContent": "“{{name}}”下的所有归档对话和团队将被永久删除，此操作无法撤销。"
   }
 }

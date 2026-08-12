@@ -1346,6 +1346,26 @@ export const sidebar = {
   deleteArchivedItem: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
     (p) => `/api/sidebar/archived/${p.item_type}/${encodeURIComponent(p.item_id)}`
   ),
+  // Archive an entire standard project in one request: every unit classified into
+  // its group (teams cascade to members, path-merged unbound conversations
+  // included) moves to the archive slice and is unpinned. Dir pseudo-groups have
+  // no project_id and instead loop `archive` over their items. Missing /
+  // non-standard project maps to 404.
+  archiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an entire archived standard project in one request.
+  unarchiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/unarchive`,
+    () => undefined
+  ),
+  // Hard-delete every archived unit of a standard project (teams cascade). The
+  // project record is kept. Returns the removed counts. Missing / non-standard
+  // project maps to 404.
+  deleteArchivedProject: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult, { project_id: string }>(
+    (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
+  ),
 };
 
 // Ordering (pin / unpin / move). Pin truth = a `user_order` row existing; pin/unpin

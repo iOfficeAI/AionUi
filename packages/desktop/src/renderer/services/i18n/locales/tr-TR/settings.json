@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "\"{{name}}\" kalıcı olarak silinecek. Bu geri alınamaz.",
     "deleteSuccess": "Silindi",
     "deleteFailed": "Silme başarısız",
-    "teamMemberCount": "{{count}} üye"
+    "teamMemberCount": "{{count}} üye",
+    "restoreProject": "Tümünü geri yükle",
+    "deleteProject": "Tümünü sil",
+    "deleteProjectConfirmTitle": "Tüm arşivlenmiş öğeler silinsin mi?",
+    "deleteProjectConfirmContent": "\"{{name}}\" altındaki arşivlenmiş tüm sohbetler ve ekipler kalıcı olarak silinecek. Bu işlem geri alınamaz."
   }
 }

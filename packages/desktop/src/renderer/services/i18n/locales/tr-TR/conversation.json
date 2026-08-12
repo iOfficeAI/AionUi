@@ -97,7 +97,12 @@
     "archiveSuccess": "Arşivlendi",
     "archiveFailed": "Arşivleme başarısız",
     "unarchiveSuccess": "Geri yüklendi",
-    "unarchiveFailed": "Geri yükleme başarısız"
+    "unarchiveFailed": "Geri yükleme başarısız",
+    "archiveProject": "Projeyi arşivle",
+    "archiveProjectConfirmTitle": "Proje arşivlensin mi?",
+    "archiveProjectConfirmContent": "\"{{name}}\" altındaki tüm sohbetler ve ekipler arşivlensin mi? Arşiv sayfasından geri yükleyebilirsiniz.",
+    "archiveProjectSuccess": "Proje arşivlendi",
+    "archiveProjectFailed": "Proje arşivlenemedi"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",

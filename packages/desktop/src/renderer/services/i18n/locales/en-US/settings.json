@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "\"{{name}}\" will be permanently deleted. This can't be undone.",
     "deleteSuccess": "Deleted",
     "deleteFailed": "Failed to delete",
-    "teamMemberCount": "{{count}} members"
+    "teamMemberCount": "{{count}} members",
+    "restoreProject": "Restore all",
+    "deleteProject": "Delete all",
+    "deleteProjectConfirmTitle": "Delete all archived items?",
+    "deleteProjectConfirmContent": "All archived conversations and teams under \"{{name}}\" will be permanently deleted. This can't be undone."
   }
 }

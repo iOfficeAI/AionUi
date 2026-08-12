@@ -1362,6 +1362,10 @@
     "deleteConfirmContent": "「{{name}}」は完全に削除されます。この操作は元に戻せません。",
     "deleteSuccess": "削除しました",
     "deleteFailed": "削除に失敗しました",
-    "teamMemberCount": "メンバー {{count}} 人"
+    "teamMemberCount": "メンバー {{count}} 人",
+    "restoreProject": "すべて復元",
+    "deleteProject": "すべて削除",
+    "deleteProjectConfirmTitle": "アーカイブ項目をすべて削除しますか？",
+    "deleteProjectConfirmContent": "「{{name}}」内のアーカイブされたすべての会話とチームが完全に削除されます。この操作は元に戻せません。"
   }
 }

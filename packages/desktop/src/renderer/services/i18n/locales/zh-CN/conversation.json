@@ -97,7 +97,12 @@
     "archiveSuccess": "已归档",
     "archiveFailed": "归档失败",
     "unarchiveSuccess": "已恢复",
-    "unarchiveFailed": "恢复失败"
+    "unarchiveFailed": "恢复失败",
+    "archiveProject": "归档项目",
+    "archiveProjectConfirmTitle": "归档项目？",
+    "archiveProjectConfirmContent": "将“{{name}}”下的所有对话和团队归档？你可以在归档页恢复它们。",
+    "archiveProjectSuccess": "项目已归档",
+    "archiveProjectFailed": "归档项目失败"
   },
   "historySearch": {
     "tooltip": "检索会话",

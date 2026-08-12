@@ -97,7 +97,12 @@
     "archiveSuccess": "Archiviert",
     "archiveFailed": "Archivieren fehlgeschlagen",
     "unarchiveSuccess": "Wiederhergestellt",
-    "unarchiveFailed": "Wiederherstellen fehlgeschlagen"
+    "unarchiveFailed": "Wiederherstellen fehlgeschlagen",
+    "archiveProject": "Projekt archivieren",
+    "archiveProjectConfirmTitle": "Projekt archivieren?",
+    "archiveProjectConfirmContent": "Alle Unterhaltungen und Teams unter „{{name}}“ archivieren? Sie können sie auf der Archivseite wiederherstellen.",
+    "archiveProjectSuccess": "Projekt archiviert",
+    "archiveProjectFailed": "Projekt konnte nicht archiviert werden"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",

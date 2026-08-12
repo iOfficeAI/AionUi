@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
-import type { RemoveProjectResult } from '@/common/types/sidebar';
+import type { SidebarItem } from '@/common/types/sidebar';
 import { requestConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -88,36 +88,6 @@ export const useConversationActions = ({
       return true;
     },
     [id, navigate]
-  );
-
-  const handleDeleteClick = useCallback(
-    (conversation_id: string) => {
-      Modal.confirm({
-        title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
-        okText: t('conversation.history.confirmDelete'),
-        cancelText: t('conversation.history.cancelDelete'),
-        okButtonProps: { status: 'warning' },
-        onOk: async () => {
-          try {
-            const success = await removeConversation(conversation_id);
-            if (success) {
-              emitter.emit('chat.history.refresh');
-              Message.success(t('conversation.history.deleteSuccess'));
-            } else {
-              Message.error(t('conversation.history.deleteFailed'));
-            }
-          } catch (error) {
-            console.error('Failed to remove conversation:', error);
-            Message.error(t('conversation.history.deleteFailed'));
-          }
-        },
-        style: { borderRadius: '12px' },
-        alignCenter: true,
-        getPopupContainer: () => document.body,
-      });
-    },
-    [removeConversation, t]
   );
 
   const handleBatchDelete = useCallback(() => {
@@ -271,85 +241,45 @@ export const useConversationActions = ({
     [id, navigate, onSessionClick, t]
   );
 
-  /**
-   * Remove project state — rendered via AionModal in the GroupedHistory component.
-   * Uses project's design system: AionModal component with danger-styled action button.
-   */
-  const [removeProjectTarget, setRemoveProjectTarget] = useState<{
-    name: string;
-    conversations: TChatConversation[];
-    /**
-     * The backing standard project id when this is a real project group. Absent
-     * for dir pseudo-groups, which have no project record and fall back to
-     * per-conversation deletion.
-     */
-    projectId?: string;
-    /** Accurate delete preview from a `dry_run` call; absent until it resolves. */
-    preview?: RemoveProjectResult;
-  } | null>(null);
-  const [removeProjectLoading, setRemoveProjectLoading] = useState(false);
-
-  const handleRemoveProject = useCallback(
-    (projectName: string, conversations: TChatConversation[], projectId?: string) => {
-      // Dir pseudo-groups (no backing project) can only remove their loose
-      // conversations — skip when there is nothing to remove. A real project may
-      // hold only teams (no standalone conversations), so let it through.
-      if (!projectId && conversations.length === 0) return;
-      setRemoveProjectTarget({ name: projectName, conversations, projectId });
-      if (!projectId) return;
-      // Fetch an accurate preview (teams + path-merged items the current window
-      // may not show). Best-effort: on failure the dialog keeps the local count.
-      void ipcBridge.sidebar.removeProject
-        .invoke({ project_id: projectId, dry_run: true })
-        .then((preview) => {
-          setRemoveProjectTarget((prev) => (prev && prev.projectId === projectId ? { ...prev, preview } : prev));
-        })
-        .catch(() => {
-          /* keep fallback count */
-        });
+  const handleArchiveProject = useCallback(
+    (projectName: string, items: SidebarItem[], projectId?: string) => {
+      // Archiving is the sidebar's non-destructive "remove" — the whole project's
+      // units move into the archived slice (hard delete now lives on the archive
+      // page). A real project archives in one server-side sweep keyed by
+      // `project_id` (catches path-merged units the window may not show); a dir
+      // pseudo-group has no backing project, so it archives each visible unit.
+      Modal.confirm({
+        title: t('conversation.history.archiveProjectConfirmTitle'),
+        content: t('conversation.history.archiveProjectConfirmContent', { name: projectName }),
+        okText: t('conversation.history.archive'),
+        cancelText: t('conversation.history.cancelDelete'),
+        onOk: async () => {
+          try {
+            if (projectId) {
+              await ipcBridge.sidebar.archiveProject.invoke({ project_id: projectId });
+            } else {
+              await Promise.all(
+                items.map((item) =>
+                  item.type === 'team'
+                    ? ipcBridge.sidebar.archive.invoke({ item_type: 'team', item_id: item.team_id })
+                    : ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: item.conversation.id })
+                )
+              );
+            }
+            emitter.emit('chat.history.refresh');
+            Message.success(t('conversation.history.archiveProjectSuccess'));
+          } catch (error) {
+            console.error('Failed to archive project:', error);
+            Message.error(t('conversation.history.archiveProjectFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
     },
-    []
+    [t]
   );
-
-  const handleRemoveProjectCancel = useCallback(() => {
-    if (removeProjectLoading) return;
-    setRemoveProjectTarget(null);
-  }, [removeProjectLoading]);
-
-  const handleRemoveProjectConfirm = useCallback(async () => {
-    if (!removeProjectTarget) return;
-    setRemoveProjectLoading(true);
-    try {
-      if (removeProjectTarget.projectId) {
-        // Real project: one server-side transaction removes teams + standalone
-        // conversations + the project record ("所见即所删").
-        const result = await ipcBridge.sidebar.removeProject.invoke({ project_id: removeProjectTarget.projectId });
-        emitter.emit('chat.history.refresh');
-        const removed = result.teams_deleted + result.conversations_deleted;
-        if (removed > 0) {
-          Message.success(t('conversation.history.batchDeleteSuccess', { count: removed }));
-        } else {
-          Message.error(t('conversation.history.deleteFailed'));
-        }
-      } else {
-        // Dir pseudo-group: delete its loose conversations one by one.
-        const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
-        const successCount = results.filter(Boolean).length;
-        emitter.emit('chat.history.refresh');
-        if (successCount > 0) {
-          Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
-        } else {
-          Message.error(t('conversation.history.deleteFailed'));
-        }
-      }
-      setRemoveProjectTarget(null);
-    } catch (error) {
-      console.error('Failed to remove project:', error);
-      Message.error(t('conversation.history.deleteFailed'));
-    } finally {
-      setRemoveProjectLoading(false);
-    }
-  }, [removeProjectTarget, removeConversation, t]);
 
   return {
     renameModalVisible,
@@ -358,7 +288,6 @@ export const useConversationActions = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
-    handleDeleteClick,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
@@ -368,10 +297,6 @@ export const useConversationActions = ({
     handleMenuVisibleChange,
     handleOpenMenu,
     handleCreateCronTask,
-    handleRemoveProject,
-    removeProjectTarget,
-    removeProjectLoading,
-    handleRemoveProjectCancel,
-    handleRemoveProjectConfirm,
+    handleArchiveProject,
   };
 };

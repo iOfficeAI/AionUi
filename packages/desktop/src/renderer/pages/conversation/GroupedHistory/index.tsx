@@ -6,20 +6,18 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { SidebarItem, SidebarTeamItem } from '@/common/types/sidebar';
-import AionModal from '@/renderer/components/base/AionModal';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { Delete, MoreOne, Plus, Right, MessageOne, Peoples, FoldUpOne } from '@icon-park/react';
+import { Inbox, MoreOne, Plus, Right, MessageOne, Peoples, FoldUpOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import SiderItem from '@renderer/components/layout/Sider/SiderItem';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -192,7 +190,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
-    handleDeleteClick,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
@@ -202,11 +199,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleMenuVisibleChange,
     handleOpenMenu,
     handleCreateCronTask,
-    handleRemoveProject,
-    removeProjectTarget,
-    removeProjectLoading,
-    handleRemoveProjectCancel,
-    handleRemoveProjectConfirm,
+    handleArchiveProject,
   } = useConversationActions({
     batchMode,
     onSessionClick,
@@ -262,7 +255,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onMenuVisibleChange: handleMenuVisibleChange,
       onEditStart: handleEditStart,
       onCreateCronTask: handleCreateCronTask,
-      onDelete: handleDeleteClick,
       onTogglePin: handleTogglePin,
       onArchive: handleArchive,
       getJobStatus,
@@ -283,7 +275,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleMenuVisibleChange,
       handleEditStart,
       handleCreateCronTask,
-      handleDeleteClick,
       handleTogglePin,
       handleArchive,
       getJobStatus,
@@ -426,132 +417,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </div>
       )}
 
-      {/* 移除项目确认弹窗 — 使用项目自家 AionModal + 圆角线框按钮（红色危险态） */}
-      <AionModal
-        visible={removeProjectTarget !== null}
-        style={{ width: '400px' }}
-        header={{
-          title: t('conversation.history.removeProjectTitle'),
-          showClose: true,
-          style: { borderBottom: 'none' },
-        }}
-        onCancel={handleRemoveProjectCancel}
-        footer={
-          <div className='flex justify-end gap-12px pt-16px'>
-            <button
-              type='button'
-              className='px-24px py-8px rounded-20px text-14px font-medium transition-all'
-              style={{
-                border: '1px solid var(--color-border-2)',
-                backgroundColor: 'var(--color-fill-2)',
-                color: 'var(--color-text-1)',
-                cursor: removeProjectLoading ? 'not-allowed' : 'pointer',
-                opacity: removeProjectLoading ? 0.55 : 1,
-              }}
-              onMouseEnter={(event) => {
-                if (!removeProjectLoading) event.currentTarget.style.backgroundColor = 'var(--color-fill-3)';
-              }}
-              onMouseLeave={(event) => {
-                if (!removeProjectLoading) event.currentTarget.style.backgroundColor = 'var(--color-fill-2)';
-              }}
-              onClick={handleRemoveProjectCancel}
-              disabled={removeProjectLoading}
-            >
-              {t('conversation.history.cancelDelete')}
-            </button>
-            <button
-              type='button'
-              className='px-24px py-8px rounded-20px text-14px font-medium transition-all'
-              style={{
-                border: '1px solid rgb(var(--danger-6))',
-                backgroundColor: 'transparent',
-                color: 'rgb(var(--danger-6))',
-                cursor: removeProjectLoading ? 'not-allowed' : 'pointer',
-                opacity: removeProjectLoading ? 0.55 : 1,
-              }}
-              onMouseEnter={(event) => {
-                if (!removeProjectLoading) {
-                  event.currentTarget.style.backgroundColor = 'rgba(var(--danger-6), 0.08)';
-                }
-              }}
-              onMouseLeave={(event) => {
-                if (!removeProjectLoading) event.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => void handleRemoveProjectConfirm()}
-              disabled={removeProjectLoading}
-            >
-              {removeProjectLoading ? t('conversation.history.deleting') : t('conversation.history.confirmDelete')}
-            </button>
-          </div>
-        }
-      >
-        <div className='text-14px leading-22px text-t-secondary'>
-          {t('conversation.history.removeProjectConfirm', {
-            name: removeProjectTarget?.name ?? '',
-            count:
-              removeProjectTarget?.preview?.conversations_deleted ?? removeProjectTarget?.conversations.length ?? 0,
-          })}
-          {(removeProjectTarget?.preview?.teams_deleted ?? 0) > 0 &&
-            ` ${t('conversation.history.removeProjectConfirmTeams', {
-              teams: removeProjectTarget?.preview?.teams_deleted ?? 0,
-            })}`}
-          {(() => {
-            // List *which* units go, not just how many, laid out like the sidebar:
-            // a 置顶 section then a 项目 section, one icon+name row per unit. Pinned
-            // members are hoisted into the top pinned group, so a count alone doesn't
-            // tell the user who is where — the backend preview carries the names and
-            // pinned flags (the frontend can't reconstruct project membership). The
-            // per-unit icon is a generic per-kind mark (conversation / team); the
-            // preview doesn't carry the model logo. Unpinned: at most 5 rows (with a
-            // "+N more" tail). Pinned: all, since they were displaced away from this
-            // project group and are easy to overlook.
-            const items = removeProjectTarget?.preview?.items;
-            if (!items?.length) return null;
-            const UNPINNED_CAP = 5;
-            const pinned = items.filter((i) => i.pinned);
-            const unpinned = items.filter((i) => !i.pinned);
-            const shownUnpinned = unpinned.slice(0, UNPINNED_CAP);
-            const extraUnpinned = unpinned.length - shownUnpinned.length;
-            const sectionLabelCls =
-              'px-12px h-24px flex items-center text-13px font-600 tracking-[0.03em] text-t-secondary';
-            const renderRow = (item: { name: string; pinned: boolean; kind: string }, idx: number) => (
-              <SiderItem
-                key={`${item.kind}-${idx}-${item.name}`}
-                icon={
-                  item.kind === 'team' ? (
-                    <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
-                  ) : (
-                    <MessageOne theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
-                  )
-                }
-                name={item.name}
-              />
-            );
-            return (
-              <div className='mt-12px max-h-260px overflow-y-auto'>
-                {pinned.length > 0 && (
-                  <div>
-                    <div className={sectionLabelCls}>{t('conversation.history.pinnedSection')}</div>
-                    {pinned.map(renderRow)}
-                  </div>
-                )}
-                {shownUnpinned.length > 0 && (
-                  <div className={pinned.length > 0 ? 'mt-8px' : undefined}>
-                    <div className={sectionLabelCls}>{t('conversation.history.projectsSection')}</div>
-                    {shownUnpinned.map(renderRow)}
-                    {extraUnpinned > 0 && (
-                      <div className='px-12px h-28px flex items-center text-13px text-t-tertiary'>
-                        {t('conversation.history.removeProjectListMore', { count: extraUnpinned })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-      </AionModal>
-
       <div>
         {/* L1: Pinned section */}
         <DndContext
@@ -640,20 +505,26 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 const projectMenu = (
                   <Menu
                     onClickMenuItem={(key) => {
-                      if (key === 'remove') {
-                        // `project:<id>` → real project (server-side "所见即所删");
-                        // `dir:<key>` → pseudo-group with no backing project.
+                      if (key === 'archive') {
+                        // `project:<id>` → real project: one server-side sweep keyed
+                        // by id (catches path-merged units). `dir:<key>` → pseudo-group
+                        // with no backing project: archive each visible unit instead.
                         const projectId = group.scopeToken?.startsWith('project:')
                           ? group.scopeToken.slice('project:'.length)
                           : undefined;
-                        handleRemoveProject(group.displayName, group.conversations, projectId);
+                        const items =
+                          group.rows ??
+                          group.conversations.map(
+                            (conversation) => ({ type: 'conversation', conversation }) as SidebarItem
+                          );
+                        handleArchiveProject(group.displayName, items, projectId);
                       }
                     }}
                   >
-                    <Menu.Item key='remove' className='!text-[rgb(var(--danger-6))]'>
+                    <Menu.Item key='archive'>
                       <span className='flex items-center gap-8px'>
-                        <Delete theme='outline' size='14' />
-                        {t('conversation.history.removeProject')}
+                        <Inbox theme='outline' size='14' />
+                        {t('conversation.history.archiveProject')}
                       </span>
                     </Menu.Item>
                   </Menu>

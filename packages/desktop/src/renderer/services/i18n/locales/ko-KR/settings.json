@@ -1362,6 +1362,10 @@
     "deleteConfirmContent": "\"{{name}}\"이(가) 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
     "deleteSuccess": "삭제됨",
     "deleteFailed": "삭제 실패",
-    "teamMemberCount": "멤버 {{count}}명"
+    "teamMemberCount": "멤버 {{count}}명",
+    "restoreProject": "모두 복원",
+    "deleteProject": "모두 삭제",
+    "deleteProjectConfirmTitle": "보관된 항목을 모두 삭제할까요?",
+    "deleteProjectConfirmContent": "\"{{name}}\"의 보관된 모든 대화와 팀이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다."
   }
 }

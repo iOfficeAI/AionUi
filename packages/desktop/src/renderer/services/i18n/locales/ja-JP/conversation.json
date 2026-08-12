@@ -97,7 +97,12 @@
     "archiveSuccess": "アーカイブしました",
     "archiveFailed": "アーカイブに失敗しました",
     "unarchiveSuccess": "復元しました",
-    "unarchiveFailed": "復元に失敗しました"
+    "unarchiveFailed": "復元に失敗しました",
+    "archiveProject": "プロジェクトをアーカイブ",
+    "archiveProjectConfirmTitle": "プロジェクトをアーカイブしますか？",
+    "archiveProjectConfirmContent": "「{{name}}」内のすべての会話とチームをアーカイブしますか？アーカイブページから復元できます。",
+    "archiveProjectSuccess": "プロジェクトをアーカイブしました",
+    "archiveProjectFailed": "プロジェクトのアーカイブに失敗しました"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",

@@ -97,7 +97,12 @@
     "archiveSuccess": "Заархівовано",
     "archiveFailed": "Не вдалося заархівувати",
     "unarchiveSuccess": "Відновлено",
-    "unarchiveFailed": "Не вдалося відновити"
+    "unarchiveFailed": "Не вдалося відновити",
+    "archiveProject": "Архівувати проєкт",
+    "archiveProjectConfirmTitle": "Архівувати проєкт?",
+    "archiveProjectConfirmContent": "Архівувати всі чати та команди в «{{name}}»? Ви можете відновити їх зі сторінки архіву.",
+    "archiveProjectSuccess": "Проєкт заархівовано",
+    "archiveProjectFailed": "Не вдалося заархівувати проєкт"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",

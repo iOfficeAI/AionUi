@@ -97,7 +97,12 @@
     "archiveSuccess": "已封存",
     "archiveFailed": "封存失敗",
     "unarchiveSuccess": "已還原",
-    "unarchiveFailed": "還原失敗"
+    "unarchiveFailed": "還原失敗",
+    "archiveProject": "封存專案",
+    "archiveProjectConfirmTitle": "封存專案？",
+    "archiveProjectConfirmContent": "將「{{name}}」下的所有對話和團隊封存？你可以在封存頁面還原它們。",
+    "archiveProjectSuccess": "專案已封存",
+    "archiveProjectFailed": "封存專案失敗"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",

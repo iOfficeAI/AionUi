@@ -97,7 +97,12 @@
     "archiveSuccess": "Archivado",
     "archiveFailed": "Error al archivar",
     "unarchiveSuccess": "Restaurado",
-    "unarchiveFailed": "Error al restaurar"
+    "unarchiveFailed": "Error al restaurar",
+    "archiveProject": "Archivar proyecto",
+    "archiveProjectConfirmTitle": "¿Archivar proyecto?",
+    "archiveProjectConfirmContent": "¿Archivar todas las conversaciones y equipos de \"{{name}}\"? Puedes restaurarlos desde la página de archivo.",
+    "archiveProjectSuccess": "Proyecto archivado",
+    "archiveProjectFailed": "No se pudo archivar el proyecto"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",

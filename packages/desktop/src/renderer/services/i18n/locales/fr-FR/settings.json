@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "« {{name}} » sera définitivement supprimé. Cette action est irréversible.",
     "deleteSuccess": "Supprimé",
     "deleteFailed": "Échec de la suppression",
-    "teamMemberCount": "{{count}} membres"
+    "teamMemberCount": "{{count}} membres",
+    "restoreProject": "Tout restaurer",
+    "deleteProject": "Tout supprimer",
+    "deleteProjectConfirmTitle": "Supprimer tous les éléments archivés ?",
+    "deleteProjectConfirmContent": "Toutes les conversations et équipes archivées de « {{name}} » seront définitivement supprimées. Cette action est irréversible."
   }
 }

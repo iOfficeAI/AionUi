@@ -1363,6 +1363,10 @@
     "deleteConfirmContent": "\"{{name}}\" será excluído permanentemente. Isso não pode ser desfeito.",
     "deleteSuccess": "Excluído",
     "deleteFailed": "Falha ao excluir",
-    "teamMemberCount": "{{count}} membros"
+    "teamMemberCount": "{{count}} membros",
+    "restoreProject": "Restaurar tudo",
+    "deleteProject": "Excluir tudo",
+    "deleteProjectConfirmTitle": "Excluir todos os itens arquivados?",
+    "deleteProjectConfirmContent": "Todas as conversas e equipes arquivadas em \"{{name}}\" serão excluídas permanentemente. Isso não pode ser desfeito."
   }
 }

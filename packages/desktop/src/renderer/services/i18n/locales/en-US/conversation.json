@@ -97,7 +97,12 @@
     "archiveSuccess": "Archived",
     "archiveFailed": "Archive failed",
     "unarchiveSuccess": "Restored",
-    "unarchiveFailed": "Restore failed"
+    "unarchiveFailed": "Restore failed",
+    "archiveProject": "Archive project",
+    "archiveProjectConfirmTitle": "Archive project?",
+    "archiveProjectConfirmContent": "Archive all conversations and teams under \"{{name}}\"? You can restore them from the archive page.",
+    "archiveProjectSuccess": "Project archived",
+    "archiveProjectFailed": "Failed to archive project"
   },
   "historySearch": {
     "tooltip": "Search messages",

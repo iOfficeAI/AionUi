@@ -97,7 +97,12 @@
     "archiveSuccess": "بایگانی شد",
     "archiveFailed": "بایگانی ناموفق بود",
     "unarchiveSuccess": "بازیابی شد",
-    "unarchiveFailed": "بازیابی ناموفق بود"
+    "unarchiveFailed": "بازیابی ناموفق بود",
+    "archiveProject": "بایگانی پروژه",
+    "archiveProjectConfirmTitle": "پروژه بایگانی شود؟",
+    "archiveProjectConfirmContent": "همه گفتگوها و تیم‌های زیر «{{name}}» بایگانی شوند؟ می‌توانید آن‌ها را از صفحه بایگانی بازیابی کنید.",
+    "archiveProjectSuccess": "پروژه بایگانی شد",
+    "archiveProjectFailed": "بایگانی پروژه ناموفق بود"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

@@ -9,7 +9,7 @@ import type { SidebarTeamItem } from '@/common/types/sidebar';
 import { emitter } from '@renderer/utils/emitter';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
-import { Message, Modal } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +29,6 @@ export type TeamRowData = {
   onClick: () => void;
   onPin: () => void;
   onRename: () => void;
-  onDelete: () => void;
   onArchive: () => void;
 };
 
@@ -52,7 +51,7 @@ type UseTeamRowsArgs = {
 export const useTeamRows = ({ pathname, onSessionClick }: UseTeamRowsArgs) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
+  const { teams, mutate: refreshTeams } = useTeamList();
   const teamBadgeCounts = useSiderTeamBadges(teams);
   const isTeamRunning = useSiderTeamRunning(teams);
   const { mutate: globalMutate } = useSWRConfig();
@@ -135,29 +134,6 @@ export const useTeamRows = ({ pathname, onSessionClick }: UseTeamRowsArgs) => {
     }
   }, [closeRename, globalMutate, refreshTeams, renameId, renameName, t]);
 
-  const handleDelete = useCallback(
-    (team_id: string) => {
-      Modal.confirm({
-        title: t('team.sider.deleteConfirm'),
-        content: t('team.sider.deleteConfirmContent'),
-        okText: t('team.sider.deleteOk'),
-        cancelText: t('team.sider.deleteCancel'),
-        okButtonProps: { status: 'warning' },
-        onOk: async () => {
-          await removeTeam(team_id);
-          Message.success(t('team.sider.deleteSuccess'));
-          if (window.location.hash.includes(`/team/${team_id}`)) {
-            window.location.hash = '#/';
-          }
-        },
-        style: { borderRadius: '12px' },
-        alignCenter: true,
-        getPopupContainer: () => document.body,
-      });
-    },
-    [removeTeam, t]
-  );
-
   const resolveTeamRow = useCallback(
     (item: SidebarTeamItem): TeamRowData => ({
       team_id: item.team_id,
@@ -169,19 +145,9 @@ export const useTeamRows = ({ pathname, onSessionClick }: UseTeamRowsArgs) => {
       onClick: () => handleTeamClick(item.team_id),
       onPin: () => void handleTogglePin(item.team_id, item.pinned),
       onRename: () => openRename(item.team_id, item.name),
-      onDelete: () => handleDelete(item.team_id),
       onArchive: () => void handleArchiveTeam(item.team_id),
     }),
-    [
-      pathname,
-      teamBadgeCounts,
-      isTeamRunning,
-      handleTeamClick,
-      handleTogglePin,
-      openRename,
-      handleDelete,
-      handleArchiveTeam,
-    ]
+    [pathname, teamBadgeCounts, isTeamRunning, handleTeamClick, handleTogglePin, openRename, handleArchiveTeam]
   );
 
   const renameModal = useMemo(

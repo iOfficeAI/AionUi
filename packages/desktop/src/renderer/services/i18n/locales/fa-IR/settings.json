@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "«{{name}}» برای همیشه حذف خواهد شد. این عمل قابل بازگشت نیست.",
     "deleteSuccess": "حذف شد",
     "deleteFailed": "حذف ناموفق بود",
-    "teamMemberCount": "{{count}} عضو"
+    "teamMemberCount": "{{count}} عضو",
+    "restoreProject": "بازیابی همه",
+    "deleteProject": "حذف همه",
+    "deleteProjectConfirmTitle": "همه موارد بایگانی‌شده حذف شوند؟",
+    "deleteProjectConfirmContent": "همه گفتگوها و تیم‌های بایگانی‌شده زیر «{{name}}» برای همیشه حذف می‌شوند. این عمل قابل بازگشت نیست."
   }
 }

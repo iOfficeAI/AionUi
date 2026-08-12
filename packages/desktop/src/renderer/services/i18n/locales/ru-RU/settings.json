@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "«{{name}}» будет удалён навсегда. Это действие нельзя отменить.",
     "deleteSuccess": "Удалено",
     "deleteFailed": "Не удалось удалить",
-    "teamMemberCount": "{{count}} участников"
+    "teamMemberCount": "{{count}} участников",
+    "restoreProject": "Восстановить все",
+    "deleteProject": "Удалить все",
+    "deleteProjectConfirmTitle": "Удалить все архивированные элементы?",
+    "deleteProjectConfirmContent": "Все архивированные чаты и команды в «{{name}}» будут безвозвратно удалены. Это действие нельзя отменить."
   }
 }

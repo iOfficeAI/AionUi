@@ -97,7 +97,12 @@
     "archiveSuccess": "Архивировано",
     "archiveFailed": "Не удалось архивировать",
     "unarchiveSuccess": "Восстановлено",
-    "unarchiveFailed": "Не удалось восстановить"
+    "unarchiveFailed": "Не удалось восстановить",
+    "archiveProject": "Архивировать проект",
+    "archiveProjectConfirmTitle": "Архивировать проект?",
+    "archiveProjectConfirmContent": "Архивировать все чаты и команды в «{{name}}»? Вы можете восстановить их со страницы архива.",
+    "archiveProjectSuccess": "Проект архивирован",
+    "archiveProjectFailed": "Не удалось архивировать проект"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

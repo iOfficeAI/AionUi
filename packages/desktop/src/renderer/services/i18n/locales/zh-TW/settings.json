@@ -1362,6 +1362,10 @@
     "deleteConfirmContent": "「{{name}}」將被永久刪除，此操作無法復原。",
     "deleteSuccess": "已刪除",
     "deleteFailed": "刪除失敗",
-    "teamMemberCount": "{{count}} 個成員"
+    "teamMemberCount": "{{count}} 個成員",
+    "restoreProject": "全部還原",
+    "deleteProject": "全部刪除",
+    "deleteProjectConfirmTitle": "刪除該專案下的全部封存項目？",
+    "deleteProjectConfirmContent": "「{{name}}」下的所有封存對話和團隊將被永久刪除，此操作無法復原。"
   }
 }

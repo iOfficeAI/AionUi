@@ -12,7 +12,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { EditOne, Export, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -45,7 +45,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMenuVisibleChange,
     onEditStart,
     onCreateCronTask,
-    onDelete,
     onExport,
     onTogglePin,
     onArchive,
@@ -283,10 +282,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     }
                     if (key === 'archive') {
                       onArchive(conversation);
-                      return;
-                    }
-                    if (key === 'delete') {
-                      onDelete(conversation.id);
                     }
                   }}
                 >
@@ -320,12 +315,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     <div className='flex items-center gap-8px'>
                       <Inbox theme='outline' size='14' />
                       <span>{t('conversation.history.archive')}</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='delete'>
-                    <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
-                      <DeleteOne theme='outline' size='14' />
-                      <span>{t('conversation.history.deleteTitle')}</span>
                     </div>
                   </Menu.Item>
                 </Menu>

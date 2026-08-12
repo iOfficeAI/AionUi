@@ -1361,6 +1361,10 @@
     "deleteConfirmContent": "«{{name}}» буде видалено назавжди. Цю дію не можна скасувати.",
     "deleteSuccess": "Видалено",
     "deleteFailed": "Не вдалося видалити",
-    "teamMemberCount": "{{count}} учасників"
+    "teamMemberCount": "{{count}} учасників",
+    "restoreProject": "Відновити все",
+    "deleteProject": "Видалити все",
+    "deleteProjectConfirmTitle": "Видалити всі архівовані елементи?",
+    "deleteProjectConfirmContent": "Усі архівовані чати та команди в «{{name}}» будуть остаточно видалені. Цю дію не можна скасувати."
   }
 }

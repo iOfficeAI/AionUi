@@ -1360,6 +1360,10 @@
     "deleteConfirmContent": "\"{{name}}\" se eliminará permanentemente. Esta acción no se puede deshacer.",
     "deleteSuccess": "Eliminado",
     "deleteFailed": "Error al eliminar",
-    "teamMemberCount": "{{count}} miembros"
+    "teamMemberCount": "{{count}} miembros",
+    "restoreProject": "Restaurar todo",
+    "deleteProject": "Eliminar todo",
+    "deleteProjectConfirmTitle": "¿Eliminar todos los elementos archivados?",
+    "deleteProjectConfirmContent": "Todas las conversaciones y equipos archivados de \"{{name}}\" se eliminarán permanentemente. Esta acción no se puede deshacer."
   }
 }

@@ -97,7 +97,12 @@
     "archiveSuccess": "보관됨",
     "archiveFailed": "보관 실패",
     "unarchiveSuccess": "복원됨",
-    "unarchiveFailed": "복원 실패"
+    "unarchiveFailed": "복원 실패",
+    "archiveProject": "프로젝트 보관",
+    "archiveProjectConfirmTitle": "프로젝트를 보관할까요?",
+    "archiveProjectConfirmContent": "\"{{name}}\"의 모든 대화와 팀을 보관할까요? 보관 페이지에서 복원할 수 있습니다.",
+    "archiveProjectSuccess": "프로젝트를 보관했습니다",
+    "archiveProjectFailed": "프로젝트 보관에 실패했습니다"
   },
   "historySearch": {
     "tooltip": "메시지 검색",
