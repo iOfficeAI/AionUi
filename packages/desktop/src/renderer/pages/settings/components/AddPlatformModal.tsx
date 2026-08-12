@@ -23,9 +23,11 @@ import {
   NEW_API_PROTOCOL_OPTIONS,
   detectNewApiProtocol,
   getPlatformByValue,
+  getPlatformDisplayName,
   isCustomOption,
   isGeminiPlatform,
   isNewApiPlatform,
+  sortPlatformsByDisplayName,
   type PlatformConfig,
 } from '@/renderer/utils/model/modelPlatforms';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
@@ -200,9 +202,9 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
  * @param t - 翻译函数 / Translation function
  */
 const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => string) => {
-  // 如果有 i18nKey 且提供了翻译函数，使用翻译后的名称；否则使用原始名称
-  // If i18nKey exists and t function is provided, use translated name; otherwise use original name
-  const display_name = platform.i18nKey && t ? t(platform.i18nKey) : platform.name;
+  // 有 i18nKey 用翻译名，否则用原始名；品牌标注（annotation）在对应 locale 命中时追加为「（标注）」
+  // Use the translated base name when i18nKey exists; append a localized brand annotation in parentheses when the locale has one.
+  const display_name = t ? getPlatformDisplayName(platform, t) : platform.name;
   return (
     <div className='flex items-center gap-8px'>
       <ProviderLogo logo={platform.logo} name={display_name} size={18} />
@@ -210,13 +212,15 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
     </div>
   );
 };
+// Exported for unit/DOM testing of the localized provider label rendering.
+export { renderPlatformOption };
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
   deepLinkData?: DeepLinkAddProviderDetail;
 }>(({ modalProps, onSubmit, modalCtrl, deepLinkData }) => {
   const [message, messageContext] = Message.useMessage();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [form] = Form.useForm();
   // 用于追踪上次检测时的输入值，避免重复检测
   // Track last detection input to avoid redundant detection
@@ -231,6 +235,13 @@ const AddPlatformModal = ModalHOC<{
 
   // 获取当前选中的平台配置 / Get current selected platform config
   const selectedPlatform = useMemo(() => getPlatformByValue(platformValue), [platformValue]);
+
+  // 平台下拉按显示名（跟随 UI locale）做 locale-aware 字母排序
+  // The provider dropdown is sorted alphabetically by display name using the active UI locale's collation.
+  const sortedPlatforms = useMemo(
+    () => sortPlatformsByDisplayName(MODEL_PLATFORMS, t, i18n?.language ?? 'en-US'),
+    [t, i18n?.language]
+  );
 
   const platform = selectedPlatform?.platform ?? 'gemini';
   // 判断是否为"自定义"选项（没有预设 base_url） / Check if "Custom" option (no preset base_url)
@@ -460,7 +471,7 @@ const AddPlatformModal = ModalHOC<{
                 return renderPlatformOption(plat, t);
               }}
             >
-              {MODEL_PLATFORMS.map((plat) => (
+              {sortedPlatforms.map((plat) => (
                 <Select.Option key={plat.value} value={plat.value}>
                   {renderPlatformOption(plat, t)}
                 </Select.Option>
