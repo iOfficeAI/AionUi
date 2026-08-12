@@ -1340,6 +1340,12 @@ export const sidebar = {
   // Empty the archive: hard-delete every archived team (members cascade) and every
   // independent archived conversation. Returns the removed counts.
   deleteArchived: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult>('/api/sidebar/archived'),
+  // Permanently delete a single archived unit (a conversation row or a team, whose
+  // members cascade). The id is validated against the archived slice — an active,
+  // foreign, or team-member id maps to 404.
+  deleteArchivedItem: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/archived/${p.item_type}/${encodeURIComponent(p.item_id)}`
+  ),
 };
 
 // Ordering (pin / unpin / move). Pin truth = a `user_order` row existing; pin/unpin

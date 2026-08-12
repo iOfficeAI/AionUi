@@ -1355,6 +1355,11 @@
     "restore": "Restaurar",
     "restoreSuccess": "Restaurado",
     "restoreFailed": "Error al restaurar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "¿Eliminar permanentemente?",
+    "deleteConfirmContent": "\"{{name}}\" se eliminará permanentemente. Esta acción no se puede deshacer.",
+    "deleteSuccess": "Eliminado",
+    "deleteFailed": "Error al eliminar",
     "teamMemberCount": "{{count}} miembros"
   }
 }

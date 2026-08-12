@@ -117,6 +117,33 @@ const ArchivedSettings: React.FC = () => {
     [mutate, t]
   );
 
+  const handleDelete = React.useCallback(
+    (row: ArchivedRow) => {
+      Modal.confirm({
+        title: t('settings.archived.deleteConfirmTitle'),
+        content: t('settings.archived.deleteConfirmContent', { name: row.name }),
+        okText: t('settings.archived.delete'),
+        cancelText: t('common.cancel'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          try {
+            await ipcBridge.sidebar.deleteArchivedItem.invoke({ item_type: row.item_type, item_id: row.item_id });
+            emitter.emit('chat.history.refresh');
+            await mutate();
+            Message.success(t('settings.archived.deleteSuccess'));
+          } catch (error) {
+            console.error('Failed to delete archived item:', error);
+            Message.error(t('settings.archived.deleteFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [mutate, t]
+  );
+
   const handleEmpty = React.useCallback(() => {
     Modal.confirm({
       title: t('settings.archived.clearConfirmTitle'),
@@ -157,9 +184,14 @@ const ArchivedSettings: React.FC = () => {
           </div>
         ) : null}
       </div>
-      <Button type='text' size='small' className='shrink-0' onClick={() => void handleRestore(row)}>
-        {t('settings.archived.restore')}
-      </Button>
+      <div className='shrink-0 flex items-center gap-4px'>
+        <Button type='text' size='small' onClick={() => void handleRestore(row)}>
+          {t('settings.archived.restore')}
+        </Button>
+        <Button type='text' size='small' status='danger' onClick={() => handleDelete(row)}>
+          {t('settings.archived.delete')}
+        </Button>
+      </div>
     </div>
   );
 

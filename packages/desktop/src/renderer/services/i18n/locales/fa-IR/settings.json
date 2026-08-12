@@ -1355,6 +1355,11 @@
     "restore": "بازیابی",
     "restoreSuccess": "بازیابی شد",
     "restoreFailed": "بازیابی ناموفق بود",
+    "delete": "حذف",
+    "deleteConfirmTitle": "برای همیشه حذف شود؟",
+    "deleteConfirmContent": "«{{name}}» برای همیشه حذف خواهد شد. این عمل قابل بازگشت نیست.",
+    "deleteSuccess": "حذف شد",
+    "deleteFailed": "حذف ناموفق بود",
     "teamMemberCount": "{{count}} عضو"
   }
 }

@@ -1356,6 +1356,11 @@
     "restore": "Відновити",
     "restoreSuccess": "Відновлено",
     "restoreFailed": "Не вдалося відновити",
+    "delete": "Видалити",
+    "deleteConfirmTitle": "Видалити назавжди?",
+    "deleteConfirmContent": "«{{name}}» буде видалено назавжди. Цю дію не можна скасувати.",
+    "deleteSuccess": "Видалено",
+    "deleteFailed": "Не вдалося видалити",
     "teamMemberCount": "{{count}} учасників"
   }
 }

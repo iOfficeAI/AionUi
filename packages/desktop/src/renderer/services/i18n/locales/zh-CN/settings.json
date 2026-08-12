@@ -1356,6 +1356,11 @@
     "restore": "恢复",
     "restoreSuccess": "已恢复",
     "restoreFailed": "恢复失败",
+    "delete": "删除",
+    "deleteConfirmTitle": "永久删除?",
+    "deleteConfirmContent": "“{{name}}”将被永久删除，此操作无法撤销。",
+    "deleteSuccess": "已删除",
+    "deleteFailed": "删除失败",
     "teamMemberCount": "{{count}} 个成员"
   }
 }

@@ -1355,6 +1355,11 @@
     "restore": "Wiederherstellen",
     "restoreSuccess": "Wiederhergestellt",
     "restoreFailed": "Wiederherstellung fehlgeschlagen",
+    "delete": "Löschen",
+    "deleteConfirmTitle": "Endgültig löschen?",
+    "deleteConfirmContent": "„{{name}}“ wird endgültig gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteSuccess": "Gelöscht",
+    "deleteFailed": "Löschen fehlgeschlagen",
     "teamMemberCount": "{{count}} Mitglieder"
   }
 }

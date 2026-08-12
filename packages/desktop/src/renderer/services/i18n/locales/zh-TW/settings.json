@@ -1357,6 +1357,11 @@
     "restore": "還原",
     "restoreSuccess": "已還原",
     "restoreFailed": "還原失敗",
+    "delete": "刪除",
+    "deleteConfirmTitle": "永久刪除？",
+    "deleteConfirmContent": "「{{name}}」將被永久刪除，此操作無法復原。",
+    "deleteSuccess": "已刪除",
+    "deleteFailed": "刪除失敗",
     "teamMemberCount": "{{count}} 個成員"
   }
 }

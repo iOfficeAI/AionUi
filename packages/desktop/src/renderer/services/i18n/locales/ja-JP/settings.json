@@ -1357,6 +1357,11 @@
     "restore": "復元",
     "restoreSuccess": "復元しました",
     "restoreFailed": "復元に失敗しました",
+    "delete": "削除",
+    "deleteConfirmTitle": "完全に削除しますか？",
+    "deleteConfirmContent": "「{{name}}」は完全に削除されます。この操作は元に戻せません。",
+    "deleteSuccess": "削除しました",
+    "deleteFailed": "削除に失敗しました",
     "teamMemberCount": "メンバー {{count}} 人"
   }
 }

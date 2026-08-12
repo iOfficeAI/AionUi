@@ -1357,6 +1357,11 @@
     "restore": "복원",
     "restoreSuccess": "복원했습니다",
     "restoreFailed": "복원하지 못했습니다",
+    "delete": "삭제",
+    "deleteConfirmTitle": "영구 삭제하시겠습니까?",
+    "deleteConfirmContent": "\"{{name}}\"이(가) 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "deleteSuccess": "삭제됨",
+    "deleteFailed": "삭제 실패",
     "teamMemberCount": "멤버 {{count}}명"
   }
 }

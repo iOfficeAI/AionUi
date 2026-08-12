@@ -1355,6 +1355,11 @@
     "restore": "Geri yükle",
     "restoreSuccess": "Geri yüklendi",
     "restoreFailed": "Geri yükleme başarısız",
+    "delete": "Sil",
+    "deleteConfirmTitle": "Kalıcı olarak silinsin mi?",
+    "deleteConfirmContent": "\"{{name}}\" kalıcı olarak silinecek. Bu geri alınamaz.",
+    "deleteSuccess": "Silindi",
+    "deleteFailed": "Silme başarısız",
     "teamMemberCount": "{{count}} üye"
   }
 }

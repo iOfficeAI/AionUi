@@ -1355,6 +1355,11 @@
     "restore": "Restore",
     "restoreSuccess": "Restored",
     "restoreFailed": "Failed to restore",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete permanently?",
+    "deleteConfirmContent": "\"{{name}}\" will be permanently deleted. This can't be undone.",
+    "deleteSuccess": "Deleted",
+    "deleteFailed": "Failed to delete",
     "teamMemberCount": "{{count}} members"
   }
 }

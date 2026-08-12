@@ -1355,6 +1355,11 @@
     "restore": "Restaurer",
     "restoreSuccess": "Restauré",
     "restoreFailed": "Échec de la restauration",
+    "delete": "Supprimer",
+    "deleteConfirmTitle": "Supprimer définitivement ?",
+    "deleteConfirmContent": "« {{name}} » sera définitivement supprimé. Cette action est irréversible.",
+    "deleteSuccess": "Supprimé",
+    "deleteFailed": "Échec de la suppression",
     "teamMemberCount": "{{count}} membres"
   }
 }
