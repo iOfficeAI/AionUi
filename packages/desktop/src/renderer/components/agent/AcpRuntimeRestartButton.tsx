@@ -65,9 +65,9 @@ const AcpRuntimeRestartButton: React.FC<{
         runtimeView.markRestartFailed(runtime, parseError(error) || 'runtime restart failed');
       }
       if (isBackendHttpError(error) && error.code === 'TEAM_MEMBER_BUSY') {
-        Message.error(t('agent.runtimeRestart.busy'));
+        Message.error(t('agent.runtimeRestart.processingTooltip'));
       } else {
-        Message.error(parseError(error) || t('agent.runtimeRestart.failed'));
+        Message.error(t('agent.runtimeRestart.failed'));
       }
     } finally {
       restartingRef.current = false;

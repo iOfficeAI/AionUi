@@ -53,7 +53,6 @@
     "confirmContent": "Restart the agent process so it picks up external CLI config changes (such as a channel switch). Chat history is kept and the session resumes when possible.",
     "success": "Agent reconnected",
     "failed": "Failed to reconnect agent",
-    "processingTooltip": "Wait for the current reply to finish before reconnecting",
-    "busy": "This member is currently replying. Stop the reply first, then reconnect."
+    "processingTooltip": "Wait for the current reply to finish before reconnecting"
   }
 }

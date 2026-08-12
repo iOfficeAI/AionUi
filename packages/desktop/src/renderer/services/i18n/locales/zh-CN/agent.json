@@ -50,10 +50,9 @@
   },
   "runtimeRestart": {
     "tooltip": "重连代理",
-    "confirmContent": "重启代理进程,使其读取最新的 CLI 配置(例如切换渠道后)。聊天记录会保留,并尽可能恢复原会话。",
+    "confirmContent": "将重启代理进程，以读取最新的 CLI 配置（例如切换渠道后）。聊天记录不会丢失，代理会尽可能恢复当前会话。",
     "success": "代理已重连",
     "failed": "代理重连失败",
-    "processingTooltip": "请等当前回复结束后再重连",
-    "busy": "该成员正在回复中,请先停止回复再重连。"
+    "processingTooltip": "请等当前回复结束后再重连"
   }
 }

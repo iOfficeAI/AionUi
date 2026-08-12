@@ -45,7 +45,6 @@ export type I18nKey =
   | 'agent.model.searchPlaceholder'
   | 'agent.model.switchFailed'
   | 'agent.model.switchSuccess'
-  | 'agent.runtimeRestart.busy'
   | 'agent.runtimeRestart.confirmContent'
   | 'agent.runtimeRestart.failed'
   | 'agent.runtimeRestart.processingTooltip'

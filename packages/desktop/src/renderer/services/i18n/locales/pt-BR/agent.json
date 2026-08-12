@@ -53,7 +53,6 @@
     "confirmContent": "Reinicia o processo do agente para adotar alterações externas de configuração da CLI (como troca de canal). O histórico do chat é mantido e a sessão é retomada quando possível.",
     "success": "Agente reconectado",
     "failed": "Falha ao reconectar o agente",
-    "processingTooltip": "Aguarde a resposta atual terminar antes de reconectar",
-    "busy": "Este membro está respondendo no momento. Pare a resposta antes de reconectar."
+    "processingTooltip": "Aguarde a resposta atual terminar antes de reconectar"
   }
 }

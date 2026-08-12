@@ -171,10 +171,10 @@ describe('AcpRuntimeRestartButton', () => {
     expect(mocks.getConversation).toHaveBeenCalledWith('conversation-failed');
     expect(mocks.markRestartSucceeded).not.toHaveBeenCalled();
     expect(mocks.revalidateConfig).not.toHaveBeenCalled();
-    expect(mocks.messageError).toHaveBeenCalledWith('restart rejected');
+    expect(mocks.messageError).toHaveBeenCalledWith('agent.runtimeRestart.failed');
   });
 
-  it('shows the busy message and does not refresh config when team work is active', async () => {
+  it('asks the user to wait and does not refresh config when team work is active', async () => {
     mocks.restartTeamMember.mockRejectedValueOnce({ code: 'TEAM_MEMBER_BUSY' });
     const user = userEvent.setup();
     render(
@@ -184,7 +184,7 @@ describe('AcpRuntimeRestartButton', () => {
     await user.click(screen.getByRole('button', { name: 'confirm restart' }));
 
     await waitFor(() => {
-      expect(mocks.messageError).toHaveBeenCalledWith('agent.runtimeRestart.busy');
+      expect(mocks.messageError).toHaveBeenCalledWith('agent.runtimeRestart.processingTooltip');
     });
     expect(mocks.revalidateConfig).not.toHaveBeenCalled();
     expect(mocks.messageSuccess).not.toHaveBeenCalled();

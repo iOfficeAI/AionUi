@@ -51,7 +51,6 @@
     "confirmContent": "Redémarre le processus de l'agent pour qu'il prenne en compte les changements externes de configuration CLI (comme un changement de canal). L'historique du chat est conservé et la session est reprise si possible.",
     "success": "Agent reconnecté",
     "failed": "Échec de la reconnexion de l'agent",
-    "processingTooltip": "Attendez la fin de la réponse en cours avant de reconnecter",
-    "busy": "Ce membre est en train de répondre. Arrêtez d'abord la réponse, puis reconnectez."
+    "processingTooltip": "Attendez la fin de la réponse en cours avant de reconnecter"
   }
 }
