@@ -73,6 +73,14 @@ describe('resolveBinaryPath', () => {
     expect(resolveBinaryPath()).toBe(overridePath);
   });
 
+  it('resolves a relative AIONUI_BACKEND_BIN against process.cwd', () => {
+    process.env.AIONUI_BACKEND_BIN = 'rel/aioncore';
+    const absolute = join(process.cwd(), 'rel/aioncore');
+    vi.mocked(existsSync).mockImplementation((path) => path === absolute);
+
+    expect(resolveBinaryPath()).toBe(absolute);
+  });
+
   it('throws with override diagnostics when AIONUI_BACKEND_BIN points at a missing file', () => {
     const overridePath = '/custom/missing-aioncore';
     process.env.AIONUI_BACKEND_BIN = overridePath;

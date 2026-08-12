@@ -2,13 +2,13 @@
  * Resolve the aioncore binary path.
  *
  * Search order:
- *  1. AIONUI_BACKEND_BIN env override (explicit absolute path)
+ *  1. AIONUI_BACKEND_BIN env override (path, resolved to absolute)
  *  2. Bundled with app (production)
  *  3. System PATH
  */
 
 import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const BINARY_NAME = 'aioncore';
@@ -94,20 +94,26 @@ export function resolveBinaryPath(): string {
 
 /**
  * Honor the AIONUI_BACKEND_BIN env override.
- * Returns the override path when it points at an existing file. When the
- * variable is set but the file is missing, throws so a typo fails loudly
- * instead of silently falling back to the bundled or PATH binary.
+ * The value is resolved to an absolute path (relative to process.cwd) so it
+ * survives the backend launcher spawning with a different working directory.
+ * Returns the path when it points at an existing file. When the variable is
+ * set but the file is missing, throws so a typo fails loudly instead of
+ * silently falling back to the bundled or PATH binary.
  */
 function envOverridePath(diagnostics: BackendBinaryResolveDiagnostics): string | null {
   const raw = process.env[BIN_ENV_VAR]?.trim();
   if (!raw) return null;
 
-  diagnostics.envOverridePath = raw;
-  const exists = existsSync(raw);
+  const absolute = resolve(raw);
+  diagnostics.envOverridePath = absolute;
+  const exists = existsSync(absolute);
   diagnostics.envOverrideExists = exists;
-  if (exists) return raw;
+  if (exists) return absolute;
 
-  throw new BackendBinaryResolveError(`${BIN_ENV_VAR} is set to "${raw}" but no file exists there.`, diagnostics);
+  throw new BackendBinaryResolveError(
+    `${BIN_ENV_VAR} is set to "${raw}" but no file exists at "${absolute}".`,
+    diagnostics
+  );
 }
 
 /**
