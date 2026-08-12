@@ -84,9 +84,9 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
       if (!data || (!editingModel && !models.length)) return;
       const targetModels = editingModel ? [editingModel] : models;
       const limits: ModelLimitInput = {
-           contextWindowSize,
-           maxContentLength,
-           maxResponseLength,
+        contextWindowSize,
+        maxContentLength,
+        maxResponseLength,
       };
       const updatedData: IProvider = {
         ...data,
@@ -290,9 +290,8 @@ const AddModelModal = ModalHOC<{ data?: IProvider; model?: string; onSubmit: (mo
             <div className='text-11px text-t-secondary leading-4'>{t('settings.modelSettingsApplyToSelected')}</div>
           )}
         </div>
-  </AionModal>
-  )
-    ;
+      </AionModal>
+    );
   }
 );
 
