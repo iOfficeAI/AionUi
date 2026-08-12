@@ -60,6 +60,30 @@ describe('createTeamConfigOptionsLoader', () => {
     expect(result?.[0]?.current_value).toBe('gpt-5.5');
   });
 
+  it('exposes the team-owned setter and runtime Starting blocker', async () => {
+    const setConfigOption = vi.fn(async () => ({
+      confirmation: 'observed' as const,
+      config_options: configOptionsResponse.config_options,
+    }));
+    const isConfigOptionBlocked = vi.fn(
+      (conversation_id: string, _option_id: string, _category: string) => conversation_id === 'conversation-starting'
+    );
+    const loader = createTeamConfigOptionsLoader({
+      team_id: 'team-1',
+      warmupSession: vi.fn(async () => {}),
+      getConfigOptions: vi.fn(async () => configOptionsResponse),
+      setConfigOption,
+      isConfigOptionBlocked,
+    });
+
+    const response = await loader.setConfigOption?.('conversation-ready', 'model', 'gpt-5.5');
+
+    expect(setConfigOption).toHaveBeenCalledWith('conversation-ready', 'model', 'gpt-5.5');
+    expect(response?.confirmation).toBe('observed');
+    expect(loader.isConfigOptionBlocked?.('conversation-starting', 'model', 'model')).toBe(true);
+    expect(loader.isConfigOptionBlocked?.('conversation-ready', 'model', 'model')).toBe(false);
+  });
+
   it('surfaces team runtime-not-ready without retrying config loads', async () => {
     vi.useFakeTimers();
     try {

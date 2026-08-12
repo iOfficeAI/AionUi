@@ -82,20 +82,29 @@ const AcpModelSelector: React.FC<{
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
-  const { model_info, canSwitch, isLoading, isSetting, selectModel, thoughtLevel, setStatus, setConfigOption } =
-    useAcpModelInfo({
-      conversation_id,
-      backend,
-      initialModelId,
-      prepareRuntime,
-      prepareSetRuntime,
-      loadConfigOptions,
-      onSelectModelSuccess: async (model_id) => {
-        await onModelChange?.(model_id);
-        Message.success(t('agent.model.switchSuccess'));
-      },
-      onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
-    });
+  const {
+    model_info,
+    canSwitch,
+    isLoading,
+    isSetting,
+    selectModel,
+    thoughtLevel,
+    setStatus,
+    setConfigOption,
+    isConfigOptionBlocked = () => false,
+  } = useAcpModelInfo({
+    conversation_id,
+    backend,
+    initialModelId,
+    prepareRuntime,
+    prepareSetRuntime,
+    loadConfigOptions,
+    onSelectModelSuccess: async (model_id) => {
+      await onModelChange?.(model_id);
+      Message.success(t('agent.model.switchSuccess'));
+    },
+    onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
+  });
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =
@@ -114,7 +123,13 @@ const AcpModelSelector: React.FC<{
   const isRuntimeSetting = isConfigSetting(setStatus);
   const handleThoughtLevelSelect = useCallback(
     async (value: string) => {
-      if (!thoughtLevel || value === thoughtLevel.currentValue || isRuntimeSetting) return;
+      if (
+        !thoughtLevel ||
+        value === thoughtLevel.currentValue ||
+        isRuntimeSetting ||
+        isConfigOptionBlocked(thoughtLevel.id)
+      )
+        return;
       try {
         await setConfigOption(thoughtLevel.id, value);
         Message.success(t('agent.thoughtLevel.switchSuccess'));
@@ -122,7 +137,7 @@ const AcpModelSelector: React.FC<{
         Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [isRuntimeSetting, setConfigOption, thoughtLevel, t]
+    [isConfigOptionBlocked, isRuntimeSetting, setConfigOption, thoughtLevel, t]
   );
   const tooltipContent = combinedLabel;
 
@@ -221,7 +236,7 @@ const AcpModelSelector: React.FC<{
                 <RuntimeSelectorModelList
                   models={model_info.available_models}
                   currentModelId={model_info.current_model_id}
-                  disabled={isRuntimeSetting}
+                  disabled={isRuntimeSetting || isConfigOptionBlocked('model')}
                   onSelect={selectModel}
                 />
               </Menu.SubMenu>
@@ -240,7 +255,9 @@ const AcpModelSelector: React.FC<{
                     key={item.value}
                     className={item.value === thoughtLevel.currentValue ? 'bg-2!' : ''}
                     onClick={() => {
-                      if (!isRuntimeSetting) void handleThoughtLevelSelect(item.value);
+                      if (!isRuntimeSetting && !isConfigOptionBlocked(thoughtLevel.id)) {
+                        void handleThoughtLevelSelect(item.value);
+                      }
                     }}
                   >
                     <RuntimeSelectorCheckedItem
@@ -258,7 +275,7 @@ const AcpModelSelector: React.FC<{
             <RuntimeSelectorModelList
               models={model_info.available_models}
               currentModelId={model_info.current_model_id}
-              disabled={isRuntimeSetting}
+              disabled={isRuntimeSetting || isConfigOptionBlocked('model')}
               onSelect={selectModel}
             />
           )}

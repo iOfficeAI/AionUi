@@ -13,7 +13,11 @@ import type {
   SetConfigOptionResponse,
 } from '@/common/types/platform/acpTypes';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  getConversationRuntimeViewSnapshot,
+  subscribeConversationRuntimeView,
+} from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import useSWR, { mutate as swrMutate } from 'swr';
 
 export type AcpDerivedSelectOption = {
@@ -95,6 +99,10 @@ export function classifyConfigSetError(error: unknown): AcpConfigSetErrorKind {
   if (isBackendHttpError(error)) {
     if (error.code === 'confirmation_timeout') return 'confirmation_timeout';
     if (error.code === 'config_update_in_progress') return 'config_update_in_progress';
+    if (error.code === 'TEAM_MEMBER_RUNTIME_STARTING') return 'config_update_in_progress';
+    if (error.status === 409 && error.backendMessage.includes('runtime is restarting')) {
+      return 'config_update_in_progress';
+    }
   }
   return 'unknown';
 }
@@ -108,7 +116,18 @@ export function revalidateAcpConfigOptions(conversation_id: string): Promise<Acp
   return swrMutate(getRuntimeConfigOptionsKey(conversation_id));
 }
 
-export type AcpConfigOptionsLoader = (conversation_id: string) => Promise<AcpConfigOptionDto[] | null | undefined>;
+export type AcpConfigOptionSetter = (
+  conversation_id: string,
+  option_id: string,
+  value: string
+) => Promise<SetConfigOptionResponse>;
+
+export type AcpConfigOptionBlocker = (conversation_id: string, option_id: string, category: string) => boolean;
+
+export type AcpConfigOptionsLoader = ((conversation_id: string) => Promise<AcpConfigOptionDto[] | null | undefined>) & {
+  setConfigOption?: AcpConfigOptionSetter;
+  isConfigOptionBlocked?: AcpConfigOptionBlocker;
+};
 
 const statusByConversation = new Map<string, AcpConfigSetStatus>();
 const statusListeners = new Map<string, Set<(status: AcpConfigSetStatus) => void>>();
@@ -175,6 +194,8 @@ export function useAcpConfigOptions({
   const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
   const [isReloading, setIsReloading] = useState(false);
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
+  const getRuntimeSnapshot = useCallback(() => getConversationRuntimeViewSnapshot(conversation_id), [conversation_id]);
+  const runtimeView = useSyncExternalStore(subscribeConversationRuntimeView, getRuntimeSnapshot, getRuntimeSnapshot);
   const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
   const {
     data: snapshotData,
@@ -206,6 +227,17 @@ export function useAcpConfigOptions({
     [mutate]
   );
 
+  const isConfigOptionBlocked = useCallback(
+    (optionId: string) => {
+      if (runtimeView.state === 'restarting') return true;
+      const option = optionsRef.current?.find((candidate) => candidate.id === optionId);
+      return Boolean(
+        loadConfigOptions.isConfigOptionBlocked?.(conversation_id, optionId, option?.category ?? optionId)
+      );
+    },
+    [conversation_id, loadConfigOptions, runtimeView.state]
+  );
+
   const reload = useCallback(async () => {
     setIsReloading(true);
     try {
@@ -222,19 +254,23 @@ export function useAcpConfigOptions({
 
   const setConfigOption = useCallback(
     async (optionId: string, value: string) => {
-      if (getConversationSetStatus(conversation_id).state === 'setting') {
+      if (getConversationSetStatus(conversation_id).state === 'setting' || isConfigOptionBlocked(optionId)) {
         throw new Error('config_update_in_progress');
       }
       setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
       try {
         await (prepareSetRuntime ?? prepareRuntime)?.();
+        if (isConfigOptionBlocked(optionId)) throw new Error('config_update_in_progress');
         const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
         if (beforeSet) replaceSnapshot(beforeSet);
-        const response = await ipcBridge.acpConversation.setConfigOption.invoke({
-          conversation_id,
-          option_id: optionId,
-          value,
-        });
+        if (isConfigOptionBlocked(optionId)) throw new Error('config_update_in_progress');
+        const response = loadConfigOptions.setConfigOption
+          ? await loadConfigOptions.setConfigOption(conversation_id, optionId, value)
+          : await ipcBridge.acpConversation.setConfigOption.invoke({
+              conversation_id,
+              option_id: optionId,
+              value,
+            });
         const confirmation = response.confirmation;
         if (!hasObservedValue(response, optionId, value)) {
           throw new Error(confirmation === 'command_ack' ? 'command_ack' : 'config_not_observed');
@@ -245,7 +281,7 @@ export function useAcpConfigOptions({
         setConversationSetStatus(conversation_id, { state: 'idle' });
       }
     },
-    [conversation_id, key, loadConfigOptions, prepareRuntime, prepareSetRuntime, replaceSnapshot]
+    [conversation_id, isConfigOptionBlocked, key, loadConfigOptions, prepareRuntime, prepareSetRuntime, replaceSnapshot]
   );
 
   useEffect(() => {
@@ -279,5 +315,6 @@ export function useAcpConfigOptions({
     thoughtLevel: deriveSelectOption(configOptions, 'thought_level', ['thought_level', 'reasoning_effort']),
     reload,
     setConfigOption,
+    isConfigOptionBlocked,
   };
 }

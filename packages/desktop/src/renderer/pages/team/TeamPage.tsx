@@ -106,6 +106,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   return (
     <AionrsModelSelector
       selection={modelSelection}
+      disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
       thoughtLevel={runtimeConfig.thoughtLevel}
       setStatus={runtimeConfig.setStatus}
       onSetThoughtLevel={handleThoughtLevelSetOption}
@@ -286,6 +287,16 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   const allConversationIds = useMemo(
     () => assistants.map((assistant) => assistant.conversation_id).filter(Boolean),
     [assistants]
+  );
+  const runtimeStartingConversationIds = useMemo(
+    () =>
+      new Set(
+        assistants
+          .filter((assistant) => teamRun.state.slotWorkBySlot[assistant.slot_id]?.blocked_reason === 'runtime_starting')
+          .map((assistant) => assistant.conversation_id)
+          .filter(Boolean)
+      ),
+    [assistants, teamRun.state.slotWorkBySlot]
   );
 
   // Fetch leader assistant's conversation for the workspace sider. Its
@@ -508,6 +519,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
       isLeaderAgent={isLeaderAssistant}
       leaderConversationId={leaderConversationId}
       allConversationIds={allConversationIds}
+      runtimeStartingConversationIds={runtimeStartingConversationIds}
     >
       <TeamIdentityProvider colorOfConversation={colorOfConversation}>
         {messageContext}

@@ -27,7 +27,15 @@ export const TeamPermissionProvider: React.FC<{
   isLeaderAgent: boolean;
   leaderConversationId: string;
   allConversationIds: string[];
-}> = ({ children, team_id, isLeaderAgent, leaderConversationId, allConversationIds }) => {
+  runtimeStartingConversationIds: ReadonlySet<string>;
+}> = ({
+  children,
+  team_id,
+  isLeaderAgent,
+  leaderConversationId,
+  allConversationIds,
+  runtimeStartingConversationIds,
+}) => {
   const warmupPromiseRef = useRef<Promise<void> | null>(null);
 
   const propagateMode = useCallback(
@@ -62,8 +70,13 @@ export const TeamPermissionProvider: React.FC<{
         warmupSession,
         getConfigOptions: (targetTeamId, conversation_id) =>
           ipcBridge.team.getConfigOptions.invoke({ team_id: targetTeamId, conversation_id }),
+        setConfigOption: (conversation_id, option_id, value) =>
+          ipcBridge.team.setConfigOption.invoke({ team_id, conversation_id, option_id, value }),
+        isConfigOptionBlocked: (conversation_id, _option_id, category) =>
+          runtimeStartingConversationIds.has(conversation_id) ||
+          (conversation_id === leaderConversationId && category === 'mode' && runtimeStartingConversationIds.size > 0),
       }),
-    [team_id, warmupSession]
+    [leaderConversationId, runtimeStartingConversationIds, team_id, warmupSession]
   );
 
   const value = useMemo<TeamPermissionContextValue>(

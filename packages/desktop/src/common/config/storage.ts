@@ -117,7 +117,13 @@ export interface IEnvStorageRefer {
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
 export type TChatConversationStatus = 'pending' | 'running' | 'finished';
-export type TConversationRuntimeStateKind = 'idle' | 'starting' | 'running' | 'cancelling' | 'waiting_confirmation';
+export type TConversationRuntimeStateKind =
+  | 'idle'
+  | 'starting'
+  | 'running'
+  | 'cancelling'
+  | 'restarting'
+  | 'waiting_confirmation';
 
 export type TConversationRuntimeSummary = {
   state: TConversationRuntimeStateKind;

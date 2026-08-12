@@ -476,13 +476,14 @@ const AionrsSendBox: React.FC<{
 
   const handleSheetModelSelect = useCallback(
     (value: string) => {
+      if (runtimeConfig.isConfigOptionBlocked?.('model')) return;
       // value format: `${providerId}::${modelName}`
       const [providerId, modelName] = value.split('::');
       const provider = modelSelection.providers.find((p) => p.id === providerId);
       if (!provider || !modelName) return;
       void modelSelection.handleSelectModel(provider, modelName);
     },
-    [modelSelection]
+    [modelSelection, runtimeConfig]
   );
 
   const sheetEntries = useMemo<MobileActionSheetEntry[]>(() => {

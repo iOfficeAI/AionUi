@@ -36,6 +36,7 @@ export type UseAcpModelInfoResult = {
   thoughtLevel: AcpDerivedOption | null;
   setStatus: AcpConfigSetStatus;
   setConfigOption: (optionId: string, value: string) => Promise<AcpConfigOptionDto[]>;
+  isConfigOptionBlocked: (optionId: string) => boolean;
 };
 
 function sameModelInfo(a: AcpModelInfo | null, b: AcpModelInfo | null): boolean {
@@ -74,13 +75,15 @@ export const useAcpModelInfo = ({
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
-  const { model, thoughtLevel, setStatus, setConfigOption, isLoading } = useAcpConfigOptions({
+  const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime,
     prepareSetRuntime,
     loadConfigOptions,
     enabled,
   });
+  const { model, thoughtLevel, setStatus, setConfigOption, isLoading } = runtimeConfig;
+  const isConfigOptionBlocked = runtimeConfig.isConfigOptionBlocked ?? (() => false);
   const [legacyModelInfo, setLegacyModelInfo] = useState<AcpModelInfo | null>(null);
 
   const configModelInfo = useMemo<AcpModelInfo | null>(() => {
@@ -150,12 +153,15 @@ export const useAcpModelInfo = ({
 
   return {
     model_info,
-    canSwitch: Boolean(configModelInfo && configModelInfo.available_models.length > 0),
+    canSwitch: Boolean(
+      configModelInfo && configModelInfo.available_models.length > 0 && model && !isConfigOptionBlocked(model.id)
+    ),
     isLoading: !model_info && isLoading,
     isSetting: setStatus.state === 'setting' && setStatus.optionId === model?.id,
     selectModel,
     thoughtLevel,
     setStatus,
     setConfigOption,
+    isConfigOptionBlocked,
   };
 };

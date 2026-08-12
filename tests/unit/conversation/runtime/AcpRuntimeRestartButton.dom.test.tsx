@@ -15,7 +15,21 @@ const mocks = vi.hoisted(() => ({
   revalidateConfig: vi.fn(),
   messageSuccess: vi.fn(),
   messageError: vi.fn(),
+  markRestartStarted: vi.fn(),
+  markRestartSucceeded: vi.fn(),
+  markRestartFailed: vi.fn(),
+  getConversation: vi.fn(),
 }));
+
+const idleRuntime = {
+  state: 'idle' as const,
+  can_send_message: true,
+  has_task: true,
+  task_status: 'finished' as const,
+  is_processing: false,
+  pending_confirmations: 0,
+  turn_id: null,
+};
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -35,6 +49,18 @@ vi.mock('@/common/utils', () => ({
 
 vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
   revalidateAcpConfigOptions: mocks.revalidateConfig,
+}));
+
+vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
+  useConversationRuntimeView: () => ({
+    markRestartStarted: mocks.markRestartStarted,
+    markRestartSucceeded: mocks.markRestartSucceeded,
+    markRestartFailed: mocks.markRestartFailed,
+  }),
+}));
+
+vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
+  getConversationOrNull: mocks.getConversation,
 }));
 
 vi.mock('@/renderer/styles/colors', () => ({
@@ -89,9 +115,10 @@ import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeResta
 describe('AcpRuntimeRestartButton', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.restartConversation.mockResolvedValue(undefined);
+    mocks.restartConversation.mockResolvedValue({ runtime: idleRuntime });
     mocks.restartTeamMember.mockResolvedValue(undefined);
     mocks.revalidateConfig.mockResolvedValue(undefined);
+    mocks.getConversation.mockResolvedValue({ runtime: idleRuntime });
   });
 
   afterEach(() => {
@@ -108,6 +135,8 @@ describe('AcpRuntimeRestartButton', () => {
       expect(mocks.restartConversation).toHaveBeenCalledWith({ conversation_id: 'conversation-1' });
     });
     expect(mocks.restartTeamMember).not.toHaveBeenCalled();
+    expect(mocks.markRestartStarted).toHaveBeenCalledTimes(1);
+    expect(mocks.markRestartSucceeded).toHaveBeenCalledWith(idleRuntime);
     expect(mocks.revalidateConfig).toHaveBeenCalledWith('conversation-1');
     expect(mocks.messageSuccess).toHaveBeenCalledWith('agent.runtimeRestart.success');
   });
@@ -124,7 +153,25 @@ describe('AcpRuntimeRestartButton', () => {
       expect(mocks.restartTeamMember).toHaveBeenCalledWith({ team_id: 'team-1', slot_id: 'slot-1' });
     });
     expect(mocks.restartConversation).not.toHaveBeenCalled();
+    expect(mocks.markRestartStarted).not.toHaveBeenCalled();
+    expect(mocks.markRestartSucceeded).not.toHaveBeenCalled();
     expect(mocks.revalidateConfig).toHaveBeenCalledWith('conversation-2');
+  });
+
+  it('recovers the standalone runtime gate from the backend summary when restart fails', async () => {
+    mocks.restartConversation.mockRejectedValueOnce(new Error('restart rejected'));
+    const user = userEvent.setup();
+    render(<AcpRuntimeRestartButton conversation_id='conversation-failed' />);
+
+    await user.click(screen.getByRole('button', { name: 'confirm restart' }));
+
+    await waitFor(() => {
+      expect(mocks.markRestartFailed).toHaveBeenCalledWith(idleRuntime, 'restart rejected');
+    });
+    expect(mocks.getConversation).toHaveBeenCalledWith('conversation-failed');
+    expect(mocks.markRestartSucceeded).not.toHaveBeenCalled();
+    expect(mocks.revalidateConfig).not.toHaveBeenCalled();
+    expect(mocks.messageError).toHaveBeenCalledWith('restart rejected');
   });
 
   it('shows the busy message and does not refresh config when team work is active', async () => {

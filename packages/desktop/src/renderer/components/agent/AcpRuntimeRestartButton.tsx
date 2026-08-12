@@ -8,10 +8,12 @@ import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError } from '@/common/utils';
 import { revalidateAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Message, Popconfirm, Tooltip } from '@arco-design/web-react';
 import { Refresh } from '@icon-park/react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -33,30 +35,45 @@ const AcpRuntimeRestartButton: React.FC<{
 }> = ({ conversation_id, team, disabled, disabledReason }) => {
   const { t } = useTranslation();
   const [restarting, setRestarting] = useState(false);
+  const restartingRef = useRef(false);
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   const handleRestart = useCallback(async () => {
-    if (restarting) return;
+    if (restartingRef.current) return;
+    restartingRef.current = true;
     setRestarting(true);
+    if (!team) runtimeView.markRestartStarted();
     try {
       if (team) {
         await ipcBridge.team.restartAgentRuntime.invoke({ team_id: team.team_id, slot_id: team.slot_id });
       } else {
-        await ipcBridge.conversation.restartRuntime.invoke({ conversation_id });
+        const response = await ipcBridge.conversation.restartRuntime.invoke({ conversation_id });
+        runtimeView.markRestartSucceeded(response.runtime);
       }
       // The runtime was rebuilt; pull the fresh config options so the model
       // selector reflects the new process (channel/model) immediately.
       await revalidateAcpConfigOptions(conversation_id);
       Message.success(t('agent.runtimeRestart.success'));
     } catch (error) {
+      if (!team) {
+        let runtime = null;
+        try {
+          runtime = (await getConversationOrNull(conversation_id))?.runtime ?? null;
+        } catch {
+          // The local gate still needs to recover if the follow-up refresh also fails.
+        }
+        runtimeView.markRestartFailed(runtime, parseError(error) || 'runtime restart failed');
+      }
       if (isBackendHttpError(error) && error.code === 'TEAM_MEMBER_BUSY') {
         Message.error(t('agent.runtimeRestart.busy'));
       } else {
         Message.error(parseError(error) || t('agent.runtimeRestart.failed'));
       }
     } finally {
+      restartingRef.current = false;
       setRestarting(false);
     }
-  }, [conversation_id, team, restarting, t]);
+  }, [conversation_id, runtimeView, team, t]);
 
   const button = (
     <Button
@@ -64,7 +81,7 @@ const AcpRuntimeRestartButton: React.FC<{
       size='mini'
       className='h-28px w-28px'
       loading={restarting}
-      disabled={disabled}
+      disabled={disabled || restarting}
       icon={<Refresh theme='outline' size='14' fill={iconColors.secondary} />}
       aria-label={t('agent.runtimeRestart.tooltip')}
     />
