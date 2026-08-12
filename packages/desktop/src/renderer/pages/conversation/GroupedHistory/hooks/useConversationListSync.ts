@@ -11,8 +11,8 @@ import type { SidebarGroup, SidebarResponse } from '@/common/types/sidebar';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-/** Per-group window sizes: first screen shows 5, "load more" pages 10 at a time. */
-const FIRST_SCREEN_LIMIT = 5;
+/** Per-group window sizes: first screen shows 10, "load more" pages 10 at a time. */
+const FIRST_SCREEN_LIMIT = 10;
 const LOAD_MORE_LIMIT = 10;
 
 /**
