@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.54](https://github.com/iOfficeAI/AionUi/compare/v2.1.53...v2.1.54) (2026-08-12)
+
+### Desktop
+
+#### Features
+
+- **backend:** honor AIONUI_BACKEND_BIN override in desktop resolver (#3988)
+- **channel:** add Discord channel configuration UI (#3956)
+- **conversation:** open selected links in built-in or system browser (#3959)
+- **preview:** add save button to editable file toolbar (#3964)
+- **preview:** enable mermaid pan/zoom controls in markdown viewer (#3958)
+- **startup:** dedicated dialog for database created by newer AionUi (downgrade) (#3998)
+
+#### Bug Fixes
+
+- **explorer:** stop React #185 loadMore loop (#3966)
+- **preview:** download PDF, DOCX, XLSX, and PPTX (#3973)
+
+### Core ([v0.1.65](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.65))
+
+#### Features
+
+- **db:** dedicated startup stage for database created by a newer app (downgrade) (#834)
+
+#### Bug Fixes
+
+- **antigravity:** parse TSV output from `agy models` (#797)
+- **conversation:** tell the client when a turn is cancelled before its agent exists (#827)
+
+---
+
 ## [2.1.53](https://github.com/iOfficeAI/AionUi/compare/v2.1.52...v2.1.53) (2026-08-10)
 
 ### Desktop
