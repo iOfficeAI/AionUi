@@ -361,7 +361,11 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
           expectedArch: failure.expectedDownloadArch ?? 'arm64',
         })
       : isDatabaseNewerThanApp
-        ? t('common.backendStartup.databaseNewerThanApp.description')
+        ? failure.appVersion
+          ? t('common.backendStartup.databaseNewerThanApp.descriptionWithVersion', {
+              currentVersion: failure.appVersion,
+            })
+          : t('common.backendStartup.databaseNewerThanApp.description')
         : isDataMigrationFailure
           ? t('common.backendStartup.dataMigration.description')
           : isLocalDataRepairFailure

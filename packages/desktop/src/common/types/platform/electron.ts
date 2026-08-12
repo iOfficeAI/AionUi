@@ -76,6 +76,10 @@ export interface BackendStartupFailureInfo {
   deviceArch?: string;
   expectedDownloadArch?: string;
   isRosettaTranslated?: boolean;
+  /** Currently installed AionUi version, stamped by the main process when a
+   * startup failure is recorded. Lets dialogs reference the user's version
+   * (e.g. the downgrade dialog: "data needs something newer than vX.Y.Z"). */
+  appVersion?: string;
 }
 
 declare global {

@@ -187,6 +187,7 @@ export type I18nKey =
   | 'common.backendStartup.dataMigration.sendDiagnostics'
   | 'common.backendStartup.dataMigration.title'
   | 'common.backendStartup.databaseNewerThanApp.description'
+  | 'common.backendStartup.databaseNewerThanApp.descriptionWithVersion'
   | 'common.backendStartup.databaseNewerThanApp.title'
   | 'common.backendStartup.exited.description'
   | 'common.backendStartup.exited.diagnosticsReportFailed'
