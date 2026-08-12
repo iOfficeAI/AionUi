@@ -39,6 +39,19 @@ describe('resolveModelLimits', () => {
     });
   });
 
+  it('returns 1M / 615k / 384k defaults for DeepSeek model names', () => {
+    expect(resolveModelLimits('deepseek-v3', 'openai')).toEqual({
+      contextWindowSize: 1000000,
+      maxContentLength: 615000,
+      maxResponseLength: 384000,
+    });
+    expect(resolveModelLimits('deepseek-r1', 'openai')).toEqual({
+      contextWindowSize: 1000000,
+      maxContentLength: 615000,
+      maxResponseLength: 384000,
+    });
+  });
+
   it('falls back to openai protocol defaults when name does not match', () => {
     expect(resolveModelLimits('my-unknown-model', 'openai')).toEqual(PROTOCOL_LIMIT_DEFAULTS.openai);
   });

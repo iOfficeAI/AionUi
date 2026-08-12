@@ -82,7 +82,7 @@ export const MODEL_NAME_LIMIT_DEFAULTS: ReadonlyArray<{
   // DeepSeek
   {
     pattern: /^deepseek-(v3|r1|chat|coder)/i,
-    limits: { contextWindowSize: 64000, maxContentLength: 50000, maxResponseLength: 4096 },
+    limits: { contextWindowSize: 1000000, maxContentLength: 615000, maxResponseLength: 384000 },
   },
 
   // Qwen
