@@ -198,4 +198,18 @@ describe('AcpRuntimeRestartButton', () => {
     expect(screen.getByRole('button', { name: 'agent.runtimeRestart.tooltip' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'confirm restart' })).not.toBeInTheDocument();
   });
+
+  it('disables restart while the runtime is initializing', () => {
+    render(<AcpRuntimeRestartButton conversation_id='conversation-5' availability='initializing' />);
+
+    expect(screen.getByRole('button', { name: 'agent.runtimeRestart.tooltip' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'confirm restart' })).not.toBeInTheDocument();
+  });
+
+  it('hides restart when no reconnectable runtime exists', () => {
+    render(<AcpRuntimeRestartButton conversation_id='conversation-6' availability='unavailable' />);
+
+    expect(screen.queryByRole('button', { name: 'agent.runtimeRestart.tooltip' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'confirm restart' })).not.toBeInTheDocument();
+  });
 });

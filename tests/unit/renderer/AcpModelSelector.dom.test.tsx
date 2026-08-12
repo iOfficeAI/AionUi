@@ -19,6 +19,7 @@ const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted
 
 type MockAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
+  isRuntimeReady: boolean;
   canSwitch: boolean;
   isLoading: boolean;
   isSetting: boolean;
@@ -49,6 +50,7 @@ const thoughtLevel: AcpDerivedOption = {
 
 const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpModelInfoResult => ({
   model_info: modelInfo,
+  isRuntimeReady: true,
   canSwitch: true,
   isLoading: false,
   isSetting: false,
@@ -187,6 +189,23 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
 
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
+  });
+
+  it('reports runtime readiness changes to its parent', () => {
+    const onRuntimeReadyChange = vi.fn();
+    useAcpModelInfoMock.mockReturnValue(makeResult({ isRuntimeReady: false }));
+    const { rerender } = render(
+      <AcpModelSelector conversation_id='conversation-1' backend='codex' onRuntimeReadyChange={onRuntimeReadyChange} />
+    );
+
+    expect(onRuntimeReadyChange).toHaveBeenLastCalledWith(false);
+
+    useAcpModelInfoMock.mockReturnValue(makeResult({ isRuntimeReady: true }));
+    rerender(
+      <AcpModelSelector conversation_id='conversation-1' backend='codex' onRuntimeReadyChange={onRuntimeReadyChange} />
+    );
+
+    expect(onRuntimeReadyChange).toHaveBeenLastCalledWith(true);
   });
 
   it('shows a plain loading slot while runtime config is initializing', () => {

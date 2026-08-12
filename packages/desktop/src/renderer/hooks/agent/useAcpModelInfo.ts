@@ -29,6 +29,7 @@ type UseAcpModelInfoArgs = {
 
 export type UseAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
+  isRuntimeReady: boolean;
   canSwitch: boolean;
   isLoading: boolean;
   isSetting: boolean;
@@ -153,6 +154,7 @@ export const useAcpModelInfo = ({
 
   return {
     model_info,
+    isRuntimeReady: runtimeConfig.isRuntimeReady,
     canSwitch: Boolean(
       configModelInfo && configModelInfo.available_models.length > 0 && model && !isConfigOptionBlocked(model.id)
     ),

@@ -47,6 +47,7 @@ export type I18nKey =
   | 'agent.model.switchSuccess'
   | 'agent.runtimeRestart.confirmContent'
   | 'agent.runtimeRestart.failed'
+  | 'agent.runtimeRestart.initializingTooltip'
   | 'agent.runtimeRestart.processingTooltip'
   | 'agent.runtimeRestart.success'
   | 'agent.runtimeRestart.tooltip'

@@ -170,6 +170,12 @@ const AssistantChatSlot: React.FC<{
     }),
     [warmupStatus, warmupDisabled, team_id, assistant.slot_id]
   );
+  const restartAvailability =
+    warmupDisabled || warmup.status === 'pending'
+      ? 'initializing'
+      : warmup.status === 'ready'
+        ? 'ready'
+        : 'unavailable';
   // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
   // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
@@ -206,6 +212,7 @@ const AssistantChatSlot: React.FC<{
               <AcpRuntimeRestartButton
                 conversation_id={assistant.conversation_id}
                 team={{ team_id, slot_id: assistant.slot_id }}
+                availability={restartAvailability}
               />
             </div>
           )}

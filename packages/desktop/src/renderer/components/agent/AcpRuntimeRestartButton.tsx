@@ -16,6 +16,8 @@ import { Refresh } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+export type RuntimeRestartAvailability = 'ready' | 'initializing' | 'unavailable';
+
 /**
  * Header button for ACP conversations that restarts the agent runtime: the
  * backend tears down the cached CLI agent process (cancelling any active
@@ -30,9 +32,10 @@ const AcpRuntimeRestartButton: React.FC<{
   conversation_id: string;
   /** Team context for team member conversations. */
   team?: { team_id: string; slot_id: string };
+  availability?: RuntimeRestartAvailability;
   disabled?: boolean;
   disabledReason?: string;
-}> = ({ conversation_id, team, disabled, disabledReason }) => {
+}> = ({ conversation_id, team, availability = 'ready', disabled, disabledReason }) => {
   const { t } = useTranslation();
   const [restarting, setRestarting] = useState(false);
   const restartingRef = useRef(false);
@@ -75,20 +78,28 @@ const AcpRuntimeRestartButton: React.FC<{
     }
   }, [conversation_id, runtimeView, team, t]);
 
+  if (availability === 'unavailable') {
+    return null;
+  }
+
+  const initializing = availability === 'initializing';
+  const effectivelyDisabled = disabled || initializing;
+  const effectiveDisabledReason =
+    disabledReason ?? (initializing ? t('agent.runtimeRestart.initializingTooltip') : undefined);
   const button = (
     <Button
       type='text'
       size='mini'
       className='h-28px w-28px'
       loading={restarting}
-      disabled={disabled || restarting}
+      disabled={effectivelyDisabled || restarting}
       icon={<Refresh theme='outline' size='14' fill={iconColors.secondary} />}
       aria-label={t('agent.runtimeRestart.tooltip')}
     />
   );
 
-  if (disabled) {
-    return <Tooltip content={disabledReason ?? t('agent.runtimeRestart.tooltip')}>{button}</Tooltip>;
+  if (effectivelyDisabled) {
+    return <Tooltip content={effectiveDisabledReason ?? t('agent.runtimeRestart.tooltip')}>{button}</Tooltip>;
   }
 
   return (

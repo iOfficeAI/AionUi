@@ -137,9 +137,12 @@ describe('useAcpModelInfo', () => {
       initialModelId: 'sonnet-4',
     });
 
+    expect(result.current.isRuntimeReady).toBe(false);
+
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
+    expect(result.current.isRuntimeReady).toBe(true);
     expect(result.current.model_info?.available_models.map((model) => model.id)).toEqual(['sonnet-4', 'opus-4']);
     expect(result.current.canSwitch).toBe(true);
     expect(ensureRuntimeInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1' });
@@ -229,6 +232,7 @@ describe('useAcpModelInfo', () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.canSwitch).toBe(false);
+    expect(result.current.isRuntimeReady).toBe(false);
 
     act(() => {
       emitStream({
@@ -241,6 +245,7 @@ describe('useAcpModelInfo', () => {
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
+    expect(result.current.isRuntimeReady).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -271,6 +276,40 @@ describe('useAcpModelInfo', () => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
       expect(result.current.canSwitch).toBe(true);
     });
+  });
+
+  it('does not mark a new conversation ready when the previous runtime load resolves late', async () => {
+    const firstLoad = deferred<AcpConfigOptionDto[]>();
+    const secondLoad = deferred<AcpConfigOptionDto[]>();
+    const loadConfigOptions = vi.fn((conversationId: string) =>
+      conversationId === 'conv-1' ? firstLoad.promise : secondLoad.promise
+    );
+    const wrapper = createSwrWrapper();
+    const { result, rerender } = renderHook(
+      ({ conversationId }) =>
+        useAcpModelInfo({
+          conversation_id: conversationId,
+          backend: 'claude',
+          loadConfigOptions,
+        }),
+      { initialProps: { conversationId: 'conv-1' }, wrapper }
+    );
+
+    await waitFor(() => expect(loadConfigOptions).toHaveBeenCalledWith('conv-1'));
+    rerender({ conversationId: 'conv-2' });
+    await waitFor(() => expect(loadConfigOptions).toHaveBeenCalledWith('conv-2'));
+
+    await act(async () => {
+      firstLoad.resolve(buildConfigOptions());
+      await firstLoad.promise;
+    });
+    expect(result.current.isRuntimeReady).toBe(false);
+
+    await act(async () => {
+      secondLoad.resolve(buildConfigOptions());
+      await secondLoad.promise;
+    });
+    await waitFor(() => expect(result.current.isRuntimeReady).toBe(true));
   });
 
   it('preserves model option descriptions from config options', async () => {

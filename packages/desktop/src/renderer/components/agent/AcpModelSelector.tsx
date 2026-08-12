@@ -57,6 +57,7 @@ const AcpModelSelector: React.FC<{
   prepareRuntime?: () => Promise<void>;
   prepareSetRuntime?: () => Promise<void>;
   loadConfigOptions?: AcpConfigOptionsLoader;
+  onRuntimeReadyChange?: (ready: boolean) => void;
   onModelChange?: (model_id: string) => Promise<void> | void;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
@@ -76,6 +77,7 @@ const AcpModelSelector: React.FC<{
   prepareRuntime,
   prepareSetRuntime,
   loadConfigOptions,
+  onRuntimeReadyChange,
   onModelChange,
   warmup,
 }) => {
@@ -84,6 +86,7 @@ const AcpModelSelector: React.FC<{
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const {
     model_info,
+    isRuntimeReady,
     canSwitch,
     isLoading,
     isSetting,
@@ -105,6 +108,10 @@ const AcpModelSelector: React.FC<{
     },
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
+
+  useEffect(() => {
+    onRuntimeReadyChange?.(isRuntimeReady);
+  }, [isRuntimeReady, onRuntimeReadyChange]);
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =

@@ -8,6 +8,7 @@ import type { TTeam } from '@/common/types/team/teamTypes';
 const {
   getConversationOrNullMock,
   acpSelectorPropsBySlot,
+  restartAvailabilityBySlot,
   ensureSessionMock,
   teamEventHandlers,
   makeTeamEventChannel,
@@ -22,6 +23,7 @@ const {
   return {
     getConversationOrNullMock: vi.fn(),
     acpSelectorPropsBySlot: new Map<string, { status: string; trigger?: () => Promise<void> }>(),
+    restartAvailabilityBySlot: new Map<string, string>(),
     ensureSessionMock: vi.fn(async () => undefined),
     teamEventHandlers: handlers,
     makeTeamEventChannel: makeChannel,
@@ -118,6 +120,14 @@ vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
   },
 }));
 
+vi.mock('@/renderer/components/agent/AcpRuntimeRestartButton', () => ({
+  __esModule: true,
+  default: (props: { conversation_id: string; availability: string }) => {
+    restartAvailabilityBySlot.set(props.conversation_id, props.availability);
+    return <div data-testid={`runtime-restart-${props.conversation_id}`} />;
+  },
+}));
+
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
   __esModule: true,
   default: () => <div data-testid='mock-aionrs-model-selector' />,
@@ -153,6 +163,7 @@ describe('TeamPage teammate warmup wiring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     acpSelectorPropsBySlot.clear();
+    restartAvailabilityBySlot.clear();
     ensureSessionMock.mockReset();
     for (const key of Object.keys(teamEventHandlers)) delete teamEventHandlers[key];
     getConversationOrNullMock.mockImplementation(async (id: string) => conversation({ id, name: id }));
@@ -171,6 +182,7 @@ describe('TeamPage teammate warmup wiring', () => {
     await screen.findByTestId('acp-model-selector-member-conv');
     await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('dormant'));
     expect(acpSelectorPropsBySlot.get('member-conv')?.trigger).toBeUndefined();
+    expect(restartAvailabilityBySlot.get('member-conv')).toBe('initializing');
   });
 
   it('wires the trigger to attachAgent once warming finishes, and reflects runtime status', async () => {
@@ -196,6 +208,21 @@ describe('TeamPage teammate warmup wiring', () => {
       }
     });
     await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('pending'));
+    expect(restartAvailabilityBySlot.get('member-conv')).toBe('initializing');
+
+    act(() => {
+      for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
+        handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'ready' });
+      }
+    });
+    await waitFor(() => expect(restartAvailabilityBySlot.get('member-conv')).toBe('ready'));
+
+    act(() => {
+      for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
+        handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'failed' });
+      }
+    });
+    await waitFor(() => expect(restartAvailabilityBySlot.get('member-conv')).toBe('unavailable'));
   });
 });
 
