@@ -72,17 +72,11 @@
     "removeProjectTitle": "프로젝트 제거",
     "removeProject": "프로젝트 제거",
     "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
-    "removeProjectConfirmTeams": "프로젝트의 팀 {{teams}}개도 함께 제거됩니다.",
-    "removeProjectListMore": "외 {{count}}개",
     "newConversationInProject": "이 프로젝트에서 새 대화",
     "deleting": "삭제 중...",
     "reorderPinned": "드래그하여 고정된 대화 순서 변경",
     "forkedFrom": "“{{name}}”에서 분기됨",
-    "forkedConversation": "분기된 대화",
-    "loadMore": "더 보기",
-    "newTeamInProject": "이 프로젝트에 새 팀",
-    "projectCreateMenu": "만들기",
-    "collapseAllProjects": "모든 프로젝트 접기"
+    "forkedConversation": "분기된 대화"
   },
   "historySearch": {
     "tooltip": "메시지 검색",

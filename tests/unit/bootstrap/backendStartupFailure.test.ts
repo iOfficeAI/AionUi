@@ -398,6 +398,23 @@ describe('getInstallationIntegrityModalActions', () => {
     expect(failure.backendBoundaryStage).toBe('database.migration');
   });
 
+  it('shows download-latest as the only action for the database-newer-than-app downgrade dialog', () => {
+    const t = (key: string) => key;
+
+    const actions = getInstallationIntegrityModalActions(
+      t as any,
+      {
+        diagnosticsKind: 'database_newer_than_app',
+      } as any
+    );
+
+    // The root cause is fully understood (database from a newer AionUi), so
+    // no diagnostics button — a single unambiguous "download latest" action.
+    expect(actions.downloadText).toBe('common.backendStartup.incompleteInstallation.downloadLatest');
+    expect(actions.reportText).toBeUndefined();
+    expect(actions.recoverText).toBeUndefined();
+  });
+
   it('uses local data repair copy and diagnostics-only actions for local cache corruption', () => {
     const t = vi.fn((key: string) => key) as any;
 

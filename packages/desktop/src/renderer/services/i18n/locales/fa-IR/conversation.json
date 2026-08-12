@@ -72,17 +72,11 @@
     "removeProjectTitle": "حذف پروژه",
     "removeProject": "حذف پروژه",
     "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
-    "removeProjectConfirmTeams": "همچنین {{teams}} تیم مرتبط نیز حذف خواهند شد.",
-    "removeProjectListMore": "{{count}} مورد دیگر",
     "newConversationInProject": "چت جدید در این پروژه",
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
-    "forkedConversation": "گفتگوی منشعب",
-    "loadMore": "بارگیری بیشتر",
-    "newTeamInProject": "تیم جدید در این پروژه",
-    "projectCreateMenu": "ایجاد",
-    "collapseAllProjects": "جمع کردن همه پروژه‌ها"
+    "forkedConversation": "گفتگوی منشعب"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",

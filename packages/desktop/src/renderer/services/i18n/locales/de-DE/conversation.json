@@ -72,17 +72,11 @@
     "removeProjectTitle": "Projekt entfernen",
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
-    "removeProjectConfirmTeams": "Außerdem werden {{teams}} zugehörige(s) Team(s) entfernt.",
-    "removeProjectListMore": "+{{count}} weitere",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
-    "forkedConversation": "Verzweigte Unterhaltung",
-    "loadMore": "Mehr laden",
-    "newTeamInProject": "Neues Team in diesem Projekt",
-    "projectCreateMenu": "Erstellen",
-    "collapseAllProjects": "Alle Projekte einklappen"
+    "forkedConversation": "Verzweigte Unterhaltung"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
