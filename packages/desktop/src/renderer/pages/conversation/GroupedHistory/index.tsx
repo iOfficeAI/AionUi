@@ -33,11 +33,16 @@ import { useTeamRows } from './hooks/useTeamRows';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
 /**
- * Bottom-of-group sentinel driving infinite scroll: pages one more window when
- * scrolled into view. The click/keyboard affordance stays as a manual fallback
- * for when a window doesn't overflow the viewport (so the observer never fires)
- * or when the environment has no IntersectionObserver. Re-fire while a page is
- * in flight is a no-op — the store guards duplicate loads per token.
+ * Bottom-of-group "load more" affordance. Two modes:
+ * - `infinite`: also attaches an IntersectionObserver so the group pages when
+ *   scrolled into view (used by the flat chats section). The click/keyboard
+ *   affordance stays as a manual fallback for when a window doesn't overflow the
+ *   viewport (so the observer never fires) or the environment has no
+ *   IntersectionObserver.
+ * - default (manual): click/keyboard only, no observer — used by pinned and
+ *   project/dir groups, which page a small step per explicit click.
+ * Re-fire while a page is in flight is a no-op — the store guards duplicate
+ * loads per token.
  */
 const LoadMoreSentinel: React.FC<{
   token: string;
@@ -45,9 +50,11 @@ const LoadMoreSentinel: React.FC<{
   onLoadMore: (token: string) => void;
   collapsed: boolean;
   dimIcon?: boolean;
-}> = ({ token, label, onLoadMore, collapsed, dimIcon = false }) => {
+  infinite?: boolean;
+}> = ({ token, label, onLoadMore, collapsed, dimIcon = false, infinite = false }) => {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if (!infinite) return;
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver((entries) => {
@@ -55,7 +62,7 @@ const LoadMoreSentinel: React.FC<{
     });
     io.observe(el);
     return () => io.disconnect();
-  }, [token, onLoadMore]);
+  }, [token, onLoadMore, infinite]);
   return (
     <div ref={ref} className={classNames('flex items-center', !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'))}>
       <span
@@ -285,15 +292,21 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   );
 
   // "Load more" affordance: pages one more window of a group via the backend
-  // items endpoint (first screen 100, +100 per page), auto-firing on scroll via
-  // the sentinel. `dimIcon` indents it to align with rows inside a project folder.
-  const renderLoadMore = (token: string, dimIcon = false) => (
+  // items endpoint. Chats (`infinite`) starts at 100 and pages +100 auto-firing
+  // on scroll via the sentinel; pinned + project/dir groups start at 5 and page
+  // +10 per explicit click (no observer). `dimIcon` indents it to align with rows
+  // inside a project folder.
+  const renderLoadMore = (
+    token: string,
+    { dimIcon = false, infinite = false }: { dimIcon?: boolean; infinite?: boolean } = {}
+  ) => (
     <LoadMoreSentinel
       token={token}
       label={t('conversation.history.loadMore')}
       onLoadMore={loadMore}
       collapsed={collapsed}
       dimIcon={dimIcon}
+      infinite={infinite}
     />
   );
 
@@ -733,7 +746,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         ).map((item) =>
                           item.type === 'team' ? renderTeamRow(item, true) : renderConversation(item.conversation, true)
                         )}
-                        {group.hasMore && group.scopeToken && renderLoadMore(group.scopeToken, true)}
+                        {group.hasMore && group.scopeToken && renderLoadMore(group.scopeToken, { dimIcon: true })}
                       </div>
                     </WorkspaceCollapse>
                   </div>
@@ -820,7 +833,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 )}
               </div>
             ))}
-          {!collapsedSections.has('conversations') && chatsPaging?.hasMore && renderLoadMore('chats')}
+          {!collapsedSections.has('conversations') &&
+            chatsPaging?.hasMore &&
+            renderLoadMore('chats', { infinite: true })}
         </div>
 
         {!hasAnyContent && (

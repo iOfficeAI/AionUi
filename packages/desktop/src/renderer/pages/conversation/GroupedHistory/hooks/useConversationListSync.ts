@@ -11,12 +11,19 @@ import type { SidebarGroup, SidebarResponse } from '@/common/types/sidebar';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-/** Per-group window sizes: first screen shows 100, "load more" pages 100 at a
- *  time. The window is intentionally large so one page overflows the viewport —
- *  the infinite-scroll sentinel then only re-fires after the user scrolls,
- *  rather than cascade-loading every window at once. */
-const FIRST_SCREEN_LIMIT = 100;
-const LOAD_MORE_LIMIT = 100;
+/** Window sizes differ by section. Project/dir/pinned groups browse by folder
+ *  and page via an explicit "load more" click, so they start small (5) and step
+ *  +10 per click. The flat chats section starts large (100) so its
+ *  infinite-scroll sentinel only re-fires after the user scrolls past the first
+ *  page — rather than cascade-loading every window at once — and pages a full
+ *  +100 window per hit. 100 is the backend's per-window MAX_LIMIT. */
+const FIRST_SCREEN_LIMIT = 5;
+const CHATS_FIRST_SCREEN_LIMIT = 100;
+const PROJECT_LOAD_MORE_LIMIT = 10;
+const CHATS_LOAD_MORE_LIMIT = 100;
+
+/** Fixed group token for the flat chats section (the only infinite-scroll group). */
+const CHATS_TOKEN = 'chats';
 
 /**
  * Whitelist of message types that indicate content generation is in progress.
@@ -253,7 +260,7 @@ const applySidebarResponse = (response: SidebarResponse) => {
 
 const refreshConversations = () => {
   void ipcBridge.sidebar.get
-    .invoke({ limit: FIRST_SCREEN_LIMIT })
+    .invoke({ limit: FIRST_SCREEN_LIMIT, win: [`${CHATS_TOKEN}:${CHATS_FIRST_SCREEN_LIMIT}`] })
     .then((response) => {
       applySidebarResponse(response ?? EMPTY_SIDEBAR);
     })
@@ -286,8 +293,9 @@ const loadMoreGroup = (token: string) => {
     return;
   }
   pendingLoadMoreTokens.add(token);
+  const limit = token === CHATS_TOKEN ? CHATS_LOAD_MORE_LIMIT : PROJECT_LOAD_MORE_LIMIT;
   void ipcBridge.sidebar.items
-    .invoke({ scope: token, cursor: group.next_cursor, limit: LOAD_MORE_LIMIT })
+    .invoke({ scope: token, cursor: group.next_cursor, limit })
     .then((page) => {
       const groups = sidebarState.groups.map((candidate) => {
         if (scopeToToken(candidate.scope) !== token) {
