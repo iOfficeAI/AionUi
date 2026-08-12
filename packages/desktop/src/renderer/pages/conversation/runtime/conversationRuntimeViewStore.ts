@@ -151,7 +151,10 @@ const viewFromRuntimeSummary = (
     state: pendingLocalSend && runtime.state === 'idle' ? 'starting' : runtime.state,
     isProcessing: pendingLocalSend || isCancelling || runtime.is_processing,
     canSendMessage:
-      !pendingLocalSend && !isCancelling && (runtime.can_send_message || runtime.supports_midturn_delivery === true),
+      !pendingLocalSend &&
+      !isCancelling &&
+      (runtime.can_send_message ||
+        (runtime.supports_midturn_delivery === true && runtime.state !== 'waiting_confirmation')),
     pendingConfirmations: runtime.pending_confirmations,
     hasBackendRuntime: true,
     hydrated: true,

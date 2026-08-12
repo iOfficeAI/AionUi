@@ -348,7 +348,7 @@ export const conversation = {
     user_id: string;
     conversation_id: string;
     msg_id: string;
-    status: 'finish' | 'pending';
+    status: 'finish' | 'pending' | 'error';
   }>('message.statusChanged'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
