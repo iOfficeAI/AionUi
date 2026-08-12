@@ -10,6 +10,7 @@ const INSTALLATION_INTEGRITY_REPORT_FLUSH_TIMEOUT_MS = 2000;
 type InstallationIntegrityDialogKind =
   | 'incomplete_installation'
   | 'data_migration'
+  | 'database_newer_than_app'
   | 'local_data_repair'
   | 'recoverable_database_corruption'
   | 'transient_concurrent_startup'
@@ -48,6 +49,7 @@ export function getInstallationIntegrityTitle(
     return t('common.backendStartup.transientConcurrentStartup.title');
   }
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.title');
+  if (diagnosticsKind === 'database_newer_than_app') return t('common.backendStartup.databaseNewerThanApp.title');
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.title');
   if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.title');
   if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.title');
@@ -84,6 +86,9 @@ export function getInstallationIntegrityDiagnosticsSentText(
     return t('common.backendStartup.transientConcurrentStartup.diagnosticsSent');
   }
   if (diagnosticsKind === 'startup_directory') return t('common.backendStartup.startupDirectory.diagnosticsSent');
+  if (diagnosticsKind === 'database_newer_than_app') {
+    return t('common.backendStartup.databaseNewerThanApp.diagnosticsSent');
+  }
   if (diagnosticsKind === 'local_data_repair') return t('common.backendStartup.localDataRepair.diagnosticsSent');
   if (diagnosticsKind === 'backend_exited') return t('common.backendStartup.exited.diagnosticsSent');
   if (diagnosticsKind === 'port_report_timeout') return t('common.backendStartup.portReportTimeout.diagnosticsSent');
@@ -169,7 +174,12 @@ export function getInstallationIntegrityModalActions(
 } {
   const diagnosticsKind = options.diagnosticsKind ?? 'incomplete_installation';
   return {
-    downloadText: diagnosticsKind === 'incomplete_installation' ? getInstallationIntegrityDownloadText(t) : undefined,
+    // The downgrade dialog's primary remedy IS downloading the latest version,
+    // so it gets the download button alongside the incomplete-installation one.
+    downloadText:
+      diagnosticsKind === 'incomplete_installation' || diagnosticsKind === 'database_newer_than_app'
+        ? getInstallationIntegrityDownloadText(t)
+        : undefined,
     onDownloadLatest: options.onDownloadLatest ?? openDownloadLatest,
     onRecoverCorruptedDatabase: options.onRecoverCorruptedDatabase ?? (() => Promise.resolve()),
     onReportDiagnostics: options.onReportDiagnostics ?? (() => Promise.resolve()),
@@ -186,15 +196,17 @@ export function getInstallationIntegrityModalActions(
             ? t('common.backendStartup.startupDirectory.sendDiagnostics')
             : diagnosticsKind === 'local_data_repair'
               ? t('common.backendStartup.localDataRepair.sendDiagnostics')
-              : diagnosticsKind === 'data_migration'
-                ? t('common.backendStartup.dataMigration.sendDiagnostics')
-                : diagnosticsKind === 'backend_exited'
-                  ? t('common.backendStartup.exited.sendDiagnostics')
-                  : diagnosticsKind === 'port_report_timeout'
-                    ? t('common.backendStartup.portReportTimeout.sendDiagnostics')
-                    : diagnosticsKind === 'startup_failed'
-                      ? t('common.backendStartup.startupFailed.sendDiagnostics')
-                      : getInstallationIntegritySendDiagnosticsText(t),
+              : diagnosticsKind === 'database_newer_than_app'
+                ? t('common.backendStartup.databaseNewerThanApp.sendDiagnostics')
+                : diagnosticsKind === 'data_migration'
+                  ? t('common.backendStartup.dataMigration.sendDiagnostics')
+                  : diagnosticsKind === 'backend_exited'
+                    ? t('common.backendStartup.exited.sendDiagnostics')
+                    : diagnosticsKind === 'port_report_timeout'
+                      ? t('common.backendStartup.portReportTimeout.sendDiagnostics')
+                      : diagnosticsKind === 'startup_failed'
+                        ? t('common.backendStartup.startupFailed.sendDiagnostics')
+                        : getInstallationIntegritySendDiagnosticsText(t),
   };
 }
 
@@ -261,15 +273,17 @@ export const InstallationIntegrityFooter: React.FC<{
             ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportSuccess')
             : diagnosticsKind === 'local_data_repair'
               ? t('common.backendStartup.localDataRepair.diagnosticsReportSuccess')
-              : diagnosticsKind === 'data_migration'
-                ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
-                : diagnosticsKind === 'backend_exited'
-                  ? t('common.backendStartup.exited.diagnosticsReportSuccess')
-                  : diagnosticsKind === 'port_report_timeout'
-                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
-                    : diagnosticsKind === 'startup_failed'
-                      ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
-                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
+              : diagnosticsKind === 'database_newer_than_app'
+                ? t('common.backendStartup.databaseNewerThanApp.diagnosticsReportSuccess')
+                : diagnosticsKind === 'data_migration'
+                  ? t('common.backendStartup.dataMigration.diagnosticsReportSuccess')
+                  : diagnosticsKind === 'backend_exited'
+                    ? t('common.backendStartup.exited.diagnosticsReportSuccess')
+                    : diagnosticsKind === 'port_report_timeout'
+                      ? t('common.backendStartup.portReportTimeout.diagnosticsReportSuccess')
+                      : diagnosticsKind === 'startup_failed'
+                        ? t('common.backendStartup.startupFailed.diagnosticsReportSuccess')
+                        : t('common.backendStartup.incompleteInstallation.diagnosticsReportSuccess')
       );
     } catch {
       Message.error(
@@ -279,15 +293,17 @@ export const InstallationIntegrityFooter: React.FC<{
             ? t('common.backendStartup.transientConcurrentStartup.diagnosticsReportFailed')
             : diagnosticsKind === 'local_data_repair'
               ? t('common.backendStartup.localDataRepair.diagnosticsReportFailed')
-              : diagnosticsKind === 'data_migration'
-                ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
-                : diagnosticsKind === 'backend_exited'
-                  ? t('common.backendStartup.exited.diagnosticsReportFailed')
-                  : diagnosticsKind === 'port_report_timeout'
-                    ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
-                    : diagnosticsKind === 'startup_failed'
-                      ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
-                      : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
+              : diagnosticsKind === 'database_newer_than_app'
+                ? t('common.backendStartup.databaseNewerThanApp.diagnosticsReportFailed')
+                : diagnosticsKind === 'data_migration'
+                  ? t('common.backendStartup.dataMigration.diagnosticsReportFailed')
+                  : diagnosticsKind === 'backend_exited'
+                    ? t('common.backendStartup.exited.diagnosticsReportFailed')
+                    : diagnosticsKind === 'port_report_timeout'
+                      ? t('common.backendStartup.portReportTimeout.diagnosticsReportFailed')
+                      : diagnosticsKind === 'startup_failed'
+                        ? t('common.backendStartup.startupFailed.diagnosticsReportFailed')
+                        : t('common.backendStartup.incompleteInstallation.diagnosticsReportFailed')
       );
     } finally {
       setReporting(false);

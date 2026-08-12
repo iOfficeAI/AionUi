@@ -102,6 +102,14 @@
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
     },
+    "databaseNewerThanApp": {
+      "title": "需要更新 AionUi",
+      "description": "本地数据由更高版本的 AionUi 创建，当前版本无法打开。请将 AionUi 更新到最新版本即可继续使用，数据完好无损，无需重装或重置数据。",
+      "sendDiagnostics": "发送诊断报告",
+      "diagnosticsSent": "诊断报告已发送",
+      "diagnosticsReportSuccess": "诊断报告已发送",
+      "diagnosticsReportFailed": "诊断报告发送失败"
+    },
     "localDataRepair": {
       "title": "本地数据修复失败",
       "description": "AionUi 已打开，但 AionCore 在准备本地启动数据时停止，例如 assistant 或智能体记录。重新安装 AionUi 可能无法解决此问题。请发送诊断报告或联系支持，以便检查本地数据库。",

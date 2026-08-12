@@ -102,6 +102,14 @@
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
+    "databaseNewerThanApp": {
+      "title": "É necessária uma versão mais recente do AionUi",
+      "description": "Seus dados locais foram criados por uma versão mais recente do AionUi e esta versão não consegue abri-los. Atualize o AionUi para a versão mais recente para continuar; seus dados estão intactos e não é preciso reinstalar nem redefinir nada.",
+      "sendDiagnostics": "Send diagnostics",
+      "diagnosticsSent": "Diagnostics sent",
+      "diagnosticsReportSuccess": "Diagnostics report sent",
+      "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
     "localDataRepair": {
       "title": "Local data repair failed",
       "description": "O AionUi abriu, mas o AionCore parou ao preparar dados locais de inicialização, como registros de assistants ou agentes. Reinstalar o AionUi pode não corrigir o problema. Envie um relatório de diagnóstico ou entre em contato com o suporte para que o banco de dados local possa ser inspecionado.",
