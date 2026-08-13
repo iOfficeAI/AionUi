@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "Saisissez votre réponse",
   "requestDetails": "Détails de la demande :",
   "delivery": {
-    "pending": "Livraison en attente"
+    "pending": "Non lu"
   }
 }

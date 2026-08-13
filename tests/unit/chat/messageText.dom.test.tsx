@@ -690,7 +690,7 @@ describe('MessageText delivery status badge', () => {
       </ConversationProvider>
     );
 
-    expect(screen.getByTestId('message-status-badge')).toHaveTextContent('Pending delivery');
+    expect(screen.getByTestId('message-status-badge')).toHaveTextContent('Unread');
   });
 
   it('shows no badge once the agent has consumed the message', () => {

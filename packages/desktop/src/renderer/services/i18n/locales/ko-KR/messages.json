@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "답변을 입력하세요",
   "requestDetails": "요청 내용:",
   "delivery": {
-    "pending": "전달 대기 중"
+    "pending": "읽지 않음"
   }
 }

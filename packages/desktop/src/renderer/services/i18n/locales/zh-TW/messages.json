@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "輸入你的回答",
   "requestDetails": "請求內容：",
   "delivery": {
-    "pending": "待接收"
+    "pending": "未讀"
   }
 }

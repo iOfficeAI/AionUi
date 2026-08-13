@@ -1018,7 +1018,7 @@ export const useMessageLstCache = (key: string) => {
       return;
     }
 
-    // Flips a mid-turn-delivered user message's badge from 待接收 to
+    // Flips a mid-turn-delivered user message's badge from "unread" to
     // consumed once the agent actually picks it up (claude command_lifecycle
     // Started; codex synthetic receipt). Correlates by msg_id — the same
     // server-assigned id message.userCreated used to add the row — never by

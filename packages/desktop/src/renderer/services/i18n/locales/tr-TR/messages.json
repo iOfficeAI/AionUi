@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "Yanıtınızı yazın",
   "requestDetails": "İstek ayrıntıları:",
   "delivery": {
-    "pending": "Teslim bekleniyor"
+    "pending": "Okunmadı"
   }
 }

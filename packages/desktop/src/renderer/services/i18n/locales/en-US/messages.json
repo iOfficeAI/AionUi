@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "Type your answer",
   "requestDetails": "Request details:",
   "delivery": {
-    "pending": "Pending delivery"
+    "pending": "Unread"
   }
 }

@@ -336,7 +336,7 @@ const MessageText: React.FC<{
         </div>
         {isPendingDelivery && (
           <div className='text-12px text-t-secondary mt-4px select-none' data-testid='message-status-badge'>
-            {t('messages.delivery.pending', { defaultValue: 'Pending delivery' })}
+            {t('messages.delivery.pending', { defaultValue: 'Unread' })}
           </div>
         )}
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,

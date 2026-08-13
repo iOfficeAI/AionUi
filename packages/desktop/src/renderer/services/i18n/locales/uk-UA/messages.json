@@ -91,6 +91,6 @@
   "askOtherPlaceholder": "Введіть свою відповідь",
   "requestDetails": "Деталі запиту:",
   "delivery": {
-    "pending": "Очікує доставки"
+    "pending": "Непрочитано"
   }
 }

@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "پاسخ خود را بنویسید",
   "requestDetails": "جزئیات درخواست:",
   "delivery": {
-    "pending": "در انتظار تحویل"
+    "pending": "خوانده‌نشده"
   }
 }

@@ -89,6 +89,6 @@
   "askOtherPlaceholder": "回答を入力",
   "requestDetails": "リクエスト内容:",
   "delivery": {
-    "pending": "配信待ち"
+    "pending": "未読"
   }
 }
