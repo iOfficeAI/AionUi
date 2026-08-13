@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.1.55](https://github.com/iOfficeAI/AionUi/compare/v2.1.54...v2.1.55) (2026-08-13)
+
+### Desktop
+
+#### Features
+
+- **conversation:** surface fork entry point in aionrs chats
+
+#### Bug Fixes
+
+- **update:** reject downgrade offers in update check (#4010)
+
+### Core ([v0.1.66](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.66))
+
+#### Features
+
+- **conversation:** support forking aionrs conversations
+
+#### Bug Fixes
+
+- **session:** retry claude session-title generation with timeout and observability (#843)
+
+---
+
 ## [2.1.54](https://github.com/iOfficeAI/AionUi/compare/v2.1.53...v2.1.54) (2026-08-12)
 
 ### Desktop
