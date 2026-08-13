@@ -11,7 +11,6 @@ import { Button } from '@arco-design/web-react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-/* arrayMove lives in @dnd-kit/sortable */
 import { AionSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
 import { normalizeFavoriteAssistantIds } from '@/renderer/hooks/assistant/useAssistantFavorites';
@@ -90,8 +89,9 @@ type AssistantSelectionAreaProps = {
 const SortableAssistantPill: React.FC<{
   assistantId: string;
   dragHandleTestId?: string;
+  dragHandleLabel?: string;
   children: React.ReactNode;
-}> = ({ assistantId, dragHandleTestId, children }) => {
+}> = ({ assistantId, dragHandleTestId, dragHandleLabel, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: assistantId });
 
   return (
@@ -105,7 +105,7 @@ const SortableAssistantPill: React.FC<{
         {...attributes}
         {...listeners}
         data-testid={dragHandleTestId}
-        aria-label='Drag to reorder'
+        aria-label={dragHandleLabel}
         className='inline-flex h-16px w-12px cursor-grab items-center justify-center text-13px text-t-tertiary active:cursor-grabbing'
       >
         <Drag size={12} />
@@ -453,6 +453,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
                       key={assistant.id}
                       assistantId={assistant.id}
                       dragHandleTestId={testIds?.dragHandle?.(assistant.id) ?? `assistant-drag-handle-${assistant.id}`}
+                      dragHandleLabel={t('settings.assistantReorderHintShort', { defaultValue: 'Drag to reorder' })}
                     >
                       {pill}
                     </SortableAssistantPill>
