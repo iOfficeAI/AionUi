@@ -28,6 +28,9 @@ vi.mock('@/common', () => ({
       statusChanged: {
         on: vi.fn().mockReturnValue(() => {}),
       },
+      turnCompleted: {
+        on: vi.fn().mockReturnValue(() => {}),
+      },
     },
     database: {
       getConversationMessages: {
@@ -398,5 +401,181 @@ describe('message merging', () => {
     expect(
       (result.current.messages.find((m) => m.msg_id === 'msg-midturn-2') as IMessageText | undefined)?.status
     ).toBe('pending');
+  });
+
+  it('reconciles a pending badge with the DB row when a turn completes for this conversation', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValueOnce({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    let emitUserCreated: ((payload: any) => void) | undefined;
+    let emitTurnCompleted: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.userCreated.on).mockImplementation((cb: any) => {
+      emitUserCreated = cb;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.turnCompleted.on).mockImplementation((cb: any) => {
+      emitTurnCompleted = cb;
+      return () => {};
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const { result } = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      emitUserCreated?.({
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-3',
+        content: 'sent mid-turn',
+        position: 'right',
+        status: 'pending',
+        hidden: false,
+        created_at: Date.now(),
+      });
+    });
+
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-3') as IMessageText | undefined)?.status
+    ).toBe('pending');
+
+    // The reconcile reload returns the DB's authoritative 'finish' row — the
+    // missed live statusChanged event never arrived, so this is the only
+    // path that heals the badge.
+    invoke.mockResolvedValueOnce({
+      items: [
+        {
+          id: 'msg-midturn-3',
+          msg_id: 'msg-midturn-3',
+          conversation_id: CONVERSATION_ID,
+          type: 'text',
+          position: 'right',
+          status: 'finish',
+          hidden: false,
+          created_at: Date.now(),
+          content: { content: 'sent mid-turn' },
+        },
+      ],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    invoke.mockClear();
+
+    act(() => {
+      emitTurnCompleted?.({ session_id: CONVERSATION_ID, turn_id: 'turn-1' });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalled();
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-3') as IMessageText | undefined)?.status
+    ).toBe('finish');
+  });
+
+  it('does not reload on turnCompleted when there is no pending right-position message', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    let emitTurnCompleted: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.turnCompleted.on).mockImplementation((cb: any) => {
+      emitTurnCompleted = cb;
+      return () => {};
+    });
+
+    renderHook(() => useMessageLstCache(CONVERSATION_ID), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    invoke.mockClear();
+
+    act(() => {
+      emitTurnCompleted?.({ session_id: CONVERSATION_ID, turn_id: 'turn-1' });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('ignores turnCompleted for a different conversation even with a pending row', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    let emitUserCreated: ((payload: any) => void) | undefined;
+    let emitTurnCompleted: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.userCreated.on).mockImplementation((cb: any) => {
+      emitUserCreated = cb;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.turnCompleted.on).mockImplementation((cb: any) => {
+      emitTurnCompleted = cb;
+      return () => {};
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      emitUserCreated?.({
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-4',
+        content: 'sent mid-turn',
+        position: 'right',
+        status: 'pending',
+        hidden: false,
+        created_at: Date.now(),
+      });
+    });
+
+    invoke.mockClear();
+
+    act(() => {
+      emitTurnCompleted?.({ session_id: 'other-conversation', turn_id: 'turn-1' });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).not.toHaveBeenCalled();
   });
 });
