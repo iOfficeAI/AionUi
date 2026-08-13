@@ -711,6 +711,20 @@ const AionrsSendBox: React.FC<{
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
 
+      {canQueueCurrentDraft && (
+        <div className='flex justify-end mb-4px'>
+          <Button
+            type='text'
+            size='mini'
+            className='sendbox-add-to-queue-btn'
+            onClick={handleAddToQueue}
+            data-testid='sendbox-add-to-queue-btn'
+          >
+            {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+          </Button>
+        </div>
+      )}
+
       <SendBox
         data-testid='aionrs-sendbox'
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
@@ -813,22 +827,6 @@ const AionrsSendBox: React.FC<{
         slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
-        sendButtonPrefix={
-          // sendButtonPrefix renders in both single-line and multi-line
-          // layouts (unlike rightTools, which is multi-line-only) — the
-          // add-to-queue entry must live here to stay visible on short drafts.
-          canQueueCurrentDraft ? (
-            <Button
-              type='text'
-              size='mini'
-              className='sendbox-add-to-queue-btn'
-              onClick={handleAddToQueue}
-              data-testid='sendbox-add-to-queue-btn'
-            >
-              {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-            </Button>
-          ) : undefined
-        }
       />
       {isMobile && (
         <>
