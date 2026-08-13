@@ -12,7 +12,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -48,6 +48,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onDelete,
     onExport,
     onTogglePin,
+    onToggleManualUnread,
+    isManualUnread,
     getJobStatus,
   } = props;
   const { t } = useTranslation();
@@ -242,6 +244,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onTogglePin(conversation);
                       return;
                     }
+                    if (key === 'toggleManualUnread') {
+                      onToggleManualUnread(conversation);
+                      return;
+                    }
                     if (key === 'rename') {
                       onEditStart(conversation);
                       return;
@@ -263,6 +269,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     <div className='flex items-center gap-8px'>
                       <Pushpin theme='outline' size='14' />
                       <span>{isPinned ? t('conversation.history.unpin') : t('conversation.history.pin')}</span>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='toggleManualUnread'>
+                    <div className='flex items-center gap-8px'>
+                      <Inbox theme='outline' size='14' />
+                      <span>
+                        {isManualUnread ? t('conversation.history.markAsRead') : t('conversation.history.markAsUnread')}
+                      </span>
                     </div>
                   </Menu.Item>
                   <Menu.Item key='rename'>
