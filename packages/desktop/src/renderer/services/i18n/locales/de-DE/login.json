@@ -23,6 +23,5 @@
     "serverError": "Serverfehler, bitte später erneut versuchen",
     "unknown": "Anmeldung fehlgeschlagen, bitte erneut versuchen"
   },
-  "externalTitle": "Anmelden",
-  "iframeLoadFailed": "Die externe Anmeldeseite konnte nicht geladen werden. Bitte aktualisieren Sie die Seite und versuchen Sie es erneut."
+  "externalTitle": "Anmelden"
 }

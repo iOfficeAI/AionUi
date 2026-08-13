@@ -23,6 +23,5 @@
     "serverError": "Erreur serveur, veuillez réessayer plus tard",
     "unknown": "Échec de connexion, veuillez réessayer"
   },
-  "externalTitle": "Connexion",
-  "iframeLoadFailed": "Impossible de charger la page de connexion externe. Veuillez actualiser et réessayer."
+  "externalTitle": "Connexion"
 }

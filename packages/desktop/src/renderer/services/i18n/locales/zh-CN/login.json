@@ -23,6 +23,5 @@
     "serverError": "服务器开小差了，请稍后重试",
     "unknown": "登录失败，请稍后再试"
   },
-  "externalTitle": "登录",
-  "iframeLoadFailed": "无法加载外部登录页，请刷新后重试。"
+  "externalTitle": "登录"
 }

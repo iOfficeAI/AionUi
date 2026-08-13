@@ -23,6 +23,5 @@
     "serverError": "Server error, please try again later",
     "unknown": "Sign-in failed, please try again"
   },
-  "externalTitle": "Sign in",
-  "iframeLoadFailed": "Unable to load the external login page. Please refresh and try again."
+  "externalTitle": "Sign in"
 }

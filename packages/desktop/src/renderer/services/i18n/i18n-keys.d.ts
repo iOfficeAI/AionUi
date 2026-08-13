@@ -936,7 +936,6 @@ export type I18nKey =
   | 'login.footerPrimary'
   | 'login.footerSecondary'
   | 'login.hidePassword'
-  | 'login.iframeLoadFailed'
   | 'login.languageToggle'
   | 'login.pageTitle'
   | 'login.password'
