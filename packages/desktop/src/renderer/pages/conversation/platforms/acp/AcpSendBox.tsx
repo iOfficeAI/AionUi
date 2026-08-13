@@ -448,10 +448,14 @@ Please check your local CLI tool authentication status`,
     await executeCommand({ input: message, files: allFiles });
   };
 
-  // Explicit "add to queue" entry — visible whenever there's a non-empty
-  // draft and the agent is replying, for both supporting and non-supporting
-  // backends. Clears the draft the same way a send would.
-  const canQueueCurrentDraft = content.trim().length > 0 && isBusy;
+  // Explicit "add to queue" entry — visibility is keyed only to the user's
+  // own input (non-empty draft), never to the agent's busy/replying state:
+  // tying it to that racy, async signal made the entry appear/disappear
+  // unpredictably. Clicking while idle is semantically fine — the queue's own
+  // mode governs (auto drains immediately, manual holds). Shown for both
+  // supporting and non-supporting backends. Clears the draft the same way a
+  // send would.
+  const canQueueCurrentDraft = content.trim().length > 0;
   const handleAddToQueue = useCallback(() => {
     const allFiles = collectChatFileRefs(uploadFile, atPath);
     enqueue({ input: content, files: allFiles });

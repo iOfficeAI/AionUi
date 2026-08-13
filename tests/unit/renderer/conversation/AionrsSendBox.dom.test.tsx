@@ -445,7 +445,7 @@ describe('AionrsSendBox', () => {
       expect(Message.warning).not.toHaveBeenCalled();
     });
 
-    it('shows the add-to-queue entry while replying with a non-empty draft, and clicking it enqueues without executing', async () => {
+    it('shows the add-to-queue entry with a non-empty draft while replying, and clicking it enqueues without executing', async () => {
       runtimeViewIsProcessingRef.current = true;
       draftContentRef.current = 'hello world';
 
@@ -464,17 +464,19 @@ describe('AionrsSendBox', () => {
       expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
     });
 
-    it('hides the add-to-queue entry while idle', async () => {
+    it('shows the add-to-queue entry while idle, as long as the draft is non-empty', async () => {
+      // Visibility is keyed only to the draft, not to the agent's busy state —
+      // clicking while idle is semantically fine (the queue's own mode governs).
       runtimeViewIsProcessingRef.current = false;
       draftContentRef.current = 'hello world';
 
       render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
       await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
 
-      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add to queue' })).toBeInTheDocument();
     });
 
-    it('hides the add-to-queue entry while replying with an empty draft', async () => {
+    it('hides the add-to-queue entry with an empty draft, even while replying', async () => {
       runtimeViewIsProcessingRef.current = true;
       draftContentRef.current = '';
 

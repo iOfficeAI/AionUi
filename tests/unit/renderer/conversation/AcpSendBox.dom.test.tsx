@@ -707,7 +707,7 @@ describe('AcpSendBox', () => {
   });
 
   describe('mid-turn interjection controls', () => {
-    it('shows the add-to-queue entry when a supporting agent is replying with a non-empty draft, and clicking it enqueues without executing', async () => {
+    it('shows the add-to-queue entry for a supporting agent with a non-empty draft, and clicking it enqueues without executing', async () => {
       runtimeViewMock.supportsMidturnDelivery = true;
       runtimeViewMock.isProcessing = true;
       runtimeViewMock.canSendMessage = true;
@@ -735,7 +735,9 @@ describe('AcpSendBox', () => {
       expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
     });
 
-    it('hides the add-to-queue entry for a supporting agent that is idle', () => {
+    it('shows the add-to-queue entry for a supporting agent that is idle, as long as the draft is non-empty', () => {
+      // Visibility is keyed only to the draft, not to the agent's busy state —
+      // clicking while idle is semantically fine (the queue's own mode governs).
       runtimeViewMock.supportsMidturnDelivery = true;
       runtimeViewMock.isProcessing = false;
       draftContentRef.current = 'hello world';
@@ -749,10 +751,10 @@ describe('AcpSendBox', () => {
         />
       );
 
-      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Add to queue' })).toBeInTheDocument();
     });
 
-    it('hides the add-to-queue entry for a supporting agent replying with an empty draft', () => {
+    it('hides the add-to-queue entry for a supporting agent with an empty draft, even while replying', () => {
       runtimeViewMock.supportsMidturnDelivery = true;
       runtimeViewMock.isProcessing = true;
       draftContentRef.current = '';
