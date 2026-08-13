@@ -431,7 +431,7 @@ describe('AcpSendBox', () => {
       />
     );
 
-    const wrapper = screen.getByRole('button', { name: 'send' }).parentElement?.parentElement;
+    const wrapper = screen.getByRole('button', { name: 'send' }).closest('.chat-surface-fluid');
     expect(wrapper?.className).toContain('chat-surface-fluid');
     expect(wrapper?.className).not.toContain('w-[calc(100%-24px)]');
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
@@ -459,7 +459,7 @@ describe('AcpSendBox', () => {
       />
     );
 
-    const wrapper = screen.getByRole('button', { name: 'send' }).parentElement?.parentElement;
+    const wrapper = screen.getByRole('button', { name: 'send' }).closest('.chat-surface-fluid');
     expect(wrapper?.className).toContain('chat-surface-fluid');
     expect(wrapper?.className).not.toContain('w-[calc(100%-24px)]');
     expect(wrapper?.className).not.toContain('md:w-[calc(100%-clamp(80px,10vw,240px))]');
