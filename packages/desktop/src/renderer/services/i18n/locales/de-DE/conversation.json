@@ -509,7 +509,9 @@
     "mode": {
       "auto": "Auto senden",
       "manual": "Manuell senden"
-    }
+    },
+    "addToQueue": "Zur Warteschlange hinzufügen",
+    "midturnBlocked": "Ein Einwurf wird nicht unterstützt, während dieser Agent antwortet. Verwende stattdessen „Zur Warteschlange hinzufügen“."
   },
   "contextUsage": {
     "contextUsed": "Kontext verwendet",

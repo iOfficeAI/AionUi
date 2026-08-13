@@ -514,7 +514,9 @@
     "mode": {
       "auto": "Envio automático",
       "manual": "Envio manual"
-    }
+    },
+    "addToQueue": "Adicionar à fila",
+    "midturnBlocked": "Não é possível interromper enquanto este agente está respondendo. Use Adicionar à fila."
   },
   "contextUsage": {
     "contextUsed": "contexto usado",

@@ -509,7 +509,9 @@
     "mode": {
       "auto": "Envío automático",
       "manual": "Envío manual"
-    }
+    },
+    "addToQueue": "Añadir a la cola",
+    "midturnBlocked": "No se admite interrumpir mientras este agente está respondiendo. Usa Añadir a la cola en su lugar."
   },
   "contextUsage": {
     "contextUsed": "contexto usado",

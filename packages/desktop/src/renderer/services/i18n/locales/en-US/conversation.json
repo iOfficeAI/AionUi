@@ -509,7 +509,9 @@
     "mode": {
       "auto": "Auto send",
       "manual": "Manual send"
-    }
+    },
+    "addToQueue": "Add to queue",
+    "midturnBlocked": "Interjecting isn't supported while this agent is replying. Use Add to queue instead."
   },
   "contextUsage": {
     "contextUsed": "context used",

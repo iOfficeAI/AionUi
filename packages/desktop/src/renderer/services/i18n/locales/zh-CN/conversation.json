@@ -509,7 +509,9 @@
     "mode": {
       "auto": "自动发送",
       "manual": "手动发送"
-    }
+    },
+    "addToQueue": "加入队列",
+    "midturnBlocked": "当前 agent 回复过程中不支持插话,请使用加入队列"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用",

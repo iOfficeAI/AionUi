@@ -28,7 +28,6 @@ import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import {
-  shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -46,7 +45,7 @@ import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/c
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Message, Tag } from '@arco-design/web-react';
+import { Button, Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -324,7 +323,6 @@ const AionrsSendBox: React.FC<{
     items: queuedCommands,
     mode: queueMode,
     isInteractionLocked: isQueueInteractionLocked,
-    hasPendingCommands,
     enqueue,
     remove,
     prioritize,
@@ -376,24 +374,38 @@ const AionrsSendBox: React.FC<{
     void processInitialMessage();
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
+  // aionrs backends never support mid-turn delivery: while the agent is
+  // replying, sending is hard-blocked with a toast instead of implicitly
+  // enqueuing. The only way to queue a message while busy is the explicit
+  // "add to queue" entry (handleAddToQueue below).
   const onSendHandler = async (message: string) => {
     const filesToSend = collectChatFileRefs(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
 
-    if (
-      shouldEnqueueConversationCommand({
-        enabled: true,
-        isBusy,
-        hasPendingCommands,
-      })
-    ) {
-      enqueue({ input: message, files: filesToSend });
+    if (isBusy) {
+      Message.warning(
+        t('conversation.commandQueue.midturnBlocked', {
+          defaultValue: "Interjecting isn't supported while this agent is replying. Use Add to queue instead.",
+        })
+      );
       return;
     }
 
     await executeCommand({ input: message, files: filesToSend });
   };
+
+  // Explicit "add to queue" entry — visible whenever there's a non-empty
+  // draft and the agent is replying. Clears the draft the same way a send
+  // would.
+  const canQueueCurrentDraft = content.trim().length > 0 && isBusy;
+  const handleAddToQueue = useCallback(() => {
+    const filesToSend = collectChatFileRefs(uploadFile, atPath);
+    enqueue({ input: content, files: filesToSend });
+    setContent('');
+    clearFiles();
+    emitter.emit('aionrs.selected.file.clear');
+  }, [atPath, clearFiles, content, enqueue, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -713,6 +725,7 @@ const AionrsSendBox: React.FC<{
         active={teamRuntime?.isActive}
         onFocused={teamRuntime?.onFocus}
         disabled={!current_model?.use_model}
+        sendDisabled={isBusy}
         placeholder={
           current_model?.use_model
             ? t('acp.sendbox.placeholder', {
@@ -737,6 +750,17 @@ const AionrsSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
+            {canQueueCurrentDraft && (
+              <Button
+                type='text'
+                size='mini'
+                className='sendbox-add-to-queue-btn'
+                onClick={handleAddToQueue}
+                data-testid='sendbox-add-to-queue-btn'
+              >
+                {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+              </Button>
+            )}
             <AgentModeSelector
               backend='aionrs'
               conversation_id={conversation_id}

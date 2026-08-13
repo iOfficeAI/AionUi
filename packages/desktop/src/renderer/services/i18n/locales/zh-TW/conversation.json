@@ -508,7 +508,9 @@
     "mode": {
       "auto": "自動發送",
       "manual": "手動發送"
-    }
+    },
+    "addToQueue": "加入佇列",
+    "midturnBlocked": "目前 agent 回覆過程中不支援插話,請使用加入佇列"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用",

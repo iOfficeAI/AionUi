@@ -508,7 +508,9 @@
     "mode": {
       "auto": "자동 전송",
       "manual": "수동 전송"
-    }
+    },
+    "addToQueue": "대기열에 추가",
+    "midturnBlocked": "이 에이전트가 응답하는 동안에는 끼어들기를 지원하지 않습니다. 대기열에 추가를 사용하세요."
   },
   "contextUsage": {
     "contextUsed": "사용된 컨텍스트",

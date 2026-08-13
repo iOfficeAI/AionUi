@@ -25,6 +25,11 @@ const {
   sendBoxPropsSpy,
   runtimeViewMock,
   useConversationCommandQueueSpy,
+  enqueueMock,
+  clearFilesMock,
+  draftMutateMock,
+  draftContentRef,
+  messageWarningMock,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -58,6 +63,11 @@ const {
     resetLocalGate: vi.fn(),
   },
   useConversationCommandQueueSpy: vi.fn(),
+  enqueueMock: vi.fn(),
+  clearFilesMock: vi.fn(),
+  draftMutateMock: vi.fn(),
+  draftContentRef: { current: '' },
+  messageWarningMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -83,6 +93,8 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     sendButtonPrefix,
     active,
     onFocused,
+    disabled,
+    sendDisabled,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -90,8 +102,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     sendButtonPrefix?: React.ReactNode;
     active?: boolean;
     onFocused?: () => void;
+    disabled?: boolean;
+    sendDisabled?: boolean;
   }) => {
-    sendBoxPropsSpy({ active, onFocused });
+    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled });
     return (
       <div>
         {rightTools}
@@ -102,6 +116,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
         <button
           type='button'
           onClick={() => {
+            // Models the Enter-key submit path: in the real component Enter
+            // reaches `onSend` regardless of the button's visual `sendDisabled`
+            // state (only a mouse click on the real, disabled button is
+            // blocked natively) — the parent decides whether to block+toast.
             void onSend('Hello').catch(() => {});
           }}
         >
@@ -152,15 +170,15 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
     data: {
       atPath: [],
       uploadFile: [],
-      content: '',
+      content: draftContentRef.current,
     },
-    mutate: vi.fn(),
+    mutate: draftMutateMock,
   }),
 }));
 vi.mock('@/renderer/hooks/chat/useSendBoxFiles', () => ({
   useSendBoxFiles: () => ({
     handleFilesAdded: vi.fn(),
-    clearFiles: vi.fn(),
+    clearFiles: clearFilesMock,
   }),
   createSetUploadFile: () => vi.fn(),
 }));
@@ -188,15 +206,6 @@ vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
 }));
 vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
-  shouldEnqueueConversationCommand: ({
-    enabled = true,
-    isBusy,
-    hasPendingCommands,
-  }: {
-    enabled?: boolean;
-    isBusy: boolean;
-    hasPendingCommands: boolean;
-  }) => enabled && (isBusy || hasPendingCommands),
   useConversationCommandQueue: (args: unknown) => {
     useConversationCommandQueueSpy(args);
     return {
@@ -204,7 +213,7 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', (
       isPaused: false,
       isInteractionLocked: false,
       hasPendingCommands: false,
-      enqueue: vi.fn(),
+      enqueue: enqueueMock,
       remove: vi.fn(),
       clear: vi.fn(),
       reorder: vi.fn(),
@@ -250,9 +259,23 @@ vi.mock('@arco-design/web-react', () => ({
   Message: {
     success: vi.fn(),
     error: vi.fn(),
+    warning: messageWarningMock,
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Button: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => (
+    <button type='button' onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  ),
 }));
 
 const makeMessageState = (): UseAcpMessageReturn => ({
@@ -282,6 +305,7 @@ describe('AcpSendBox', () => {
     runtimeViewMock.canSendMessage = true;
     runtimeViewMock.activeTurnId = null;
     runtimeViewMock.supportsMidturnDelivery = false;
+    draftContentRef.current = '';
     useTeamPermissionMock.mockReturnValue(null);
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
@@ -652,7 +676,7 @@ describe('AcpSendBox', () => {
     expect(onFocus).toHaveBeenCalledTimes(1);
   });
 
-  it('bypasses the client command queue for backends that can deliver mid-turn', () => {
+  it('keeps the client command queue enabled for backends that can deliver mid-turn (queued items still auto-send)', () => {
     runtimeViewMock.supportsMidturnDelivery = true;
 
     render(
@@ -664,7 +688,7 @@ describe('AcpSendBox', () => {
       />
     );
 
-    expect(useConversationCommandQueueSpy).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+    expect(useConversationCommandQueueSpy).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
   });
 
   it('keeps the client command queue enabled for backends that cannot deliver mid-turn', () => {
@@ -680,5 +704,127 @@ describe('AcpSendBox', () => {
     );
 
     expect(useConversationCommandQueueSpy).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
+  describe('mid-turn interjection controls', () => {
+    it('shows the add-to-queue entry when a supporting agent is replying with a non-empty draft, and clicking it enqueues without executing', async () => {
+      runtimeViewMock.supportsMidturnDelivery = true;
+      runtimeViewMock.isProcessing = true;
+      runtimeViewMock.canSendMessage = true;
+      draftContentRef.current = 'hello world';
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      const queueButton = screen.getByRole('button', { name: 'Add to queue' });
+      await act(async () => {
+        queueButton.click();
+      });
+
+      expect(enqueueMock).toHaveBeenCalledWith({ input: 'hello world', files: [] });
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(clearFilesMock).toHaveBeenCalled();
+      // setContent('') clears the draft the same way a send would.
+      const updater = draftMutateMock.mock.calls.at(-1)?.[0] as (prev: { content: string }) => { content: string };
+      expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
+    });
+
+    it('hides the add-to-queue entry for a supporting agent that is idle', () => {
+      runtimeViewMock.supportsMidturnDelivery = true;
+      runtimeViewMock.isProcessing = false;
+      draftContentRef.current = 'hello world';
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+    });
+
+    it('hides the add-to-queue entry for a supporting agent replying with an empty draft', () => {
+      runtimeViewMock.supportsMidturnDelivery = true;
+      runtimeViewMock.isProcessing = true;
+      draftContentRef.current = '';
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+    });
+
+    it('disables the send button and blocks Enter with a toast for a non-supporting agent while replying, without implicitly enqueuing', async () => {
+      runtimeViewMock.supportsMidturnDelivery = false;
+      runtimeViewMock.isProcessing = true;
+      runtimeViewMock.canSendMessage = true;
+      draftContentRef.current = 'hello world';
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='antigravity'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { sendDisabled?: boolean };
+      expect(props.sendDisabled).toBe(true);
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'send' }).click();
+      });
+
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(enqueueMock).not.toHaveBeenCalled();
+      expect(messageWarningMock).toHaveBeenCalledWith(
+        "Interjecting isn't supported while this agent is replying. Use Add to queue instead."
+      );
+    });
+
+    it('sends normally for a non-supporting agent while idle', async () => {
+      runtimeViewMock.supportsMidturnDelivery = false;
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      sendMessageInvokeMock.mockResolvedValue({ turn_id: 'turn-1', runtime: null, msg_id: 'msg-1' });
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='antigravity'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { sendDisabled?: boolean };
+      expect(props.sendDisabled).toBe(false);
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'send' }).click();
+      });
+
+      await waitFor(() => {
+        expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1);
+      });
+      expect(enqueueMock).not.toHaveBeenCalled();
+      expect(messageWarningMock).not.toHaveBeenCalled();
+    });
   });
 });

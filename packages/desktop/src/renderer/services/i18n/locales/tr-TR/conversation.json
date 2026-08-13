@@ -493,7 +493,9 @@
     "mode": {
       "auto": "Otomatik gönder",
       "manual": "Elle gönder"
-    }
+    },
+    "addToQueue": "Kuyruğa ekle",
+    "midturnBlocked": "Bu aracı yanıt verirken araya girmek desteklenmiyor. Bunun yerine Kuyruğa ekle'yi kullanın."
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı",

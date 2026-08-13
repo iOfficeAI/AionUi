@@ -508,7 +508,9 @@
     "mode": {
       "auto": "自動送信",
       "manual": "手動送信"
-    }
+    },
+    "addToQueue": "キューに追加",
+    "midturnBlocked": "このエージェントが応答中は割り込みができません。「キューに追加」をご利用ください。"
   },
   "contextUsage": {
     "contextUsed": "コンテキスト使用量",

@@ -181,6 +181,14 @@ const SendBox: React.FC<{
   onSend: (message: string) => Promise<void>;
   onStop?: () => Promise<void>;
   disabled?: boolean;
+  /**
+   * Disables only the send button's click affordance (visual + non-clickable)
+   * without swapping it for the stop button while loading — used to hard-block
+   * interjection on backends that can't accept a mid-turn send. Enter still
+   * reaches `onSend`; the caller is responsible for rejecting it there (so it
+   * can show its own toast/copy).
+   */
+  sendDisabled?: boolean;
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
@@ -220,6 +228,7 @@ const SendBox: React.FC<{
   tools,
   rightTools,
   disabled,
+  sendDisabled = false,
   placeholder,
   value: input = '',
   onChange: setInput = constVoid,
@@ -1359,7 +1368,7 @@ const SendBox: React.FC<{
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
   // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
+  const isButtonDisabled = disabled || sendDisabled || isUploading || (!input.trim() && domSnippets.length === 0);
 
   // Reusable send button component
   const sendButton = (

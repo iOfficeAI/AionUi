@@ -508,7 +508,9 @@
     "mode": {
       "auto": "Envoi automatique",
       "manual": "Envoi manuel"
-    }
+    },
+    "addToQueue": "Ajouter à la file",
+    "midturnBlocked": "L'interjection n'est pas prise en charge pendant que cet agent répond. Utilisez plutôt Ajouter à la file."
   },
   "contextUsage": {
     "contextUsed": "contexte utilisé",
