@@ -22,5 +22,7 @@
     "networkError": "Falha na conexão, por favor tente novamente",
     "serverError": "Erro no servidor, por favor tente novamente mais tarde",
     "unknown": "O login falhou, por favor tente novamente"
-  }
+  },
+  "externalTitle": "Entrar",
+  "iframeLoadFailed": "Não foi possível carregar a página de login externa. Atualize e tente novamente."
 }

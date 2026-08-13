@@ -22,5 +22,7 @@
     "networkError": "Bağlantı başarısız, lütfen tekrar deneyin",
     "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
     "unknown": "Giriş başarısız, lütfen tekrar deneyin"
-  }
+  },
+  "externalTitle": "Giriş yap",
+  "iframeLoadFailed": "Harici giriş sayfası yüklenemedi. Lütfen yenileyip tekrar deneyin."
 }

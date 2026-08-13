@@ -22,5 +22,7 @@
     "networkError": "Error de conexión, intenta de nuevo",
     "serverError": "Error del servidor, intenta más tarde",
     "unknown": "Error al iniciar sesión, intenta de nuevo"
-  }
+  },
+  "externalTitle": "Iniciar sesión",
+  "iframeLoadFailed": "No se pudo cargar la página de inicio de sesión externa. Por favor, actualice e inténtelo de nuevo."
 }

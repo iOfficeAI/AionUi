@@ -22,5 +22,7 @@
     "networkError": "連線失敗，請稍後再試",
     "serverError": "伺服器發生錯誤，請稍後再試",
     "unknown": "登入失敗，請稍後再試"
-  }
+  },
+  "externalTitle": "登入",
+  "iframeLoadFailed": "無法載入外部登入頁，請重新整理後重試。"
 }

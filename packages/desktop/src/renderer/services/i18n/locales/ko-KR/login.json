@@ -22,5 +22,7 @@
     "networkError": "연결 실패, 다시 시도하세요",
     "serverError": "서버 오류, 나중에 다시 시도하세요",
     "unknown": "로그인 실패, 다시 시도하세요"
-  }
+  },
+  "externalTitle": "로그인",
+  "iframeLoadFailed": "외부 로그인 페이지를 불러올 수 없습니다. 페이지를 새로 고침 후 다시 시도해 주세요."
 }
