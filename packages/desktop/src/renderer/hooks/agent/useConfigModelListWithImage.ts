@@ -39,6 +39,15 @@ const useConfigModelListWithImage = () => {
         // AntigravityTools 平台：添加常用图像模型
         // AntigravityTools platform: add common image models
         nextPlatform.models = nextPlatform.models.concat(['gemini-3-pro-image-1x1']);
+      } else if (platformLower.includes('dashscope') || platformLower.includes('alibaba') || platformLower.includes('aliyun')) {
+        // Alibaba/DashScope 平台：确保有通义万相图像模型
+        // Alibaba/DashScope platform: ensure Tongyi Wanxiang image model is available
+        const hasAlibabaImage = nextPlatform.models.some(
+          (m) => m.toLowerCase().includes('wanx') || m.toLowerCase().includes('tongyi')
+        );
+        if (!hasAlibabaImage) {
+          nextPlatform.models = nextPlatform.models.concat(['wanx2.2-t2i-turbo']);
+        }
       }
 
       return nextPlatform;
