@@ -1,14 +1,21 @@
-.fullscreen {
+.center {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
 }
 
-.iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
+.spinnerBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.opening {
+  margin: 0;
+  font-size: 14px;
+  color: currentColor;
 }

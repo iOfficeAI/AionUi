@@ -1,23 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, act } from '@testing-library/react';
-import LoginPage from '@/renderer/pages/login/index';
-import { EXTERNAL_LOGIN_ALLOWED_ORIGINS } from '@/renderer/api';
+import { render, waitFor } from '@testing-library/react';
 
-const completeExternalLogin = vi.fn();
-const navigate = vi.fn();
-
-// `let` so each test can override the auth status returned by the mocked useAuth.
-// Using a `let` (instead of `vi.mocked(useAuth).mockReturnValue(...)`) works because
-// the module-level vi.mock factory captures the binding by reference.
-let authStatus: 'unauthenticated' | 'authenticated' = 'unauthenticated';
+const mocks = vi.hoisted(() => {
+  return {
+    startExternalLoginInvoke: vi.fn(),
+    completeExternalLogin: vi.fn(),
+    navigate: vi.fn(),
+  };
+});
 
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({
   useAuth: () => ({
     ready: true,
     user: null,
-    status: authStatus,
-    completeExternalLogin,
+    status: 'unauthenticated',
+    completeExternalLogin: mocks.completeExternalLogin,
     logout: vi.fn(),
     refresh: vi.fn(),
   }),
@@ -28,53 +26,69 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => navigate,
+  useNavigate: () => mocks.navigate,
 }));
 
-function postMessage(data: unknown, origin = EXTERNAL_LOGIN_ALLOWED_ORIGINS[0]) {
-  const event = new MessageEvent('message', { data, origin });
-  act(() => {
-    window.dispatchEvent(event);
-  });
-}
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    auth: {
+      startExternalLogin: {
+        invoke: mocks.startExternalLoginInvoke,
+      },
+    },
+  },
+}));
 
-describe('LoginPage', () => {
-  beforeEach(() => {
-    completeExternalLogin.mockReset();
-    navigate.mockReset();
-    authStatus = 'unauthenticated';
-  });
+import LoginPage from '@/renderer/pages/login/index';
 
-  it('ignores messages from disallowed origins', () => {
+const successResult = {
+  success: true as const,
+  token: 'tok-1',
+  user: { id: 'u1', username: 'alice' },
+};
+
+beforeEach(() => {
+  mocks.startExternalLoginInvoke.mockReset();
+  mocks.completeExternalLogin.mockReset();
+  mocks.navigate.mockReset();
+  mocks.startExternalLoginInvoke.mockResolvedValue(successResult);
+});
+
+describe('LoginPage (BrowserWindow flow)', () => {
+  it('calls ipcBridge.auth.startExternalLogin once on mount', async () => {
     render(<LoginPage />);
-    postMessage(
-      { type: 'external-login-success', token: 't', user: { id: '1', username: 'a' } },
-      'https://evil.example.com'
-    );
-    expect(completeExternalLogin).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.startExternalLoginInvoke).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('ignores messages with the wrong type', () => {
+  it('calls completeExternalLogin with token+user on success', async () => {
     render(<LoginPage />);
-    postMessage({ type: 'something-else', token: 't' });
-    expect(completeExternalLogin).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.completeExternalLogin).toHaveBeenCalledWith('tok-1', { id: 'u1', username: 'alice' });
+    });
   });
 
-  it('ignores messages with an empty token', () => {
+  it('navigates to /guid on success', async () => {
     render(<LoginPage />);
-    postMessage({ type: 'external-login-success', token: '', user: { id: '1', username: 'a' } });
-    expect(completeExternalLogin).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.navigate).toHaveBeenCalledWith('/guid', { replace: true });
+    });
   });
 
-  it('calls completeExternalLogin on a valid message', () => {
+  it('does not call completeExternalLogin when IPC rejects', async () => {
+    mocks.startExternalLoginInvoke.mockRejectedValue(new Error('window closed'));
     render(<LoginPage />);
-    postMessage({ type: 'external-login-success', token: 'tok-1', user: { id: 'u1', username: 'alice' } });
-    expect(completeExternalLogin).toHaveBeenCalledWith('tok-1', { id: 'u1', username: 'alice' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mocks.completeExternalLogin).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
-  it('navigates to /guid with replace when authenticated', () => {
-    authStatus = 'authenticated';
+  it('does not call completeExternalLogin when result.success is false', async () => {
+    mocks.startExternalLoginInvoke.mockResolvedValue({ success: false, code: 'loadFailed', message: '502' });
     render(<LoginPage />);
-    expect(navigate).toHaveBeenCalledWith('/guid', { replace: true });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mocks.completeExternalLogin).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });
