@@ -91,6 +91,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onChange,
     rightTools,
     sendButtonPrefix,
+    topRightOverlay,
     active,
     onFocused,
     disabled,
@@ -100,6 +101,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
     sendButtonPrefix?: React.ReactNode;
+    topRightOverlay?: React.ReactNode;
     active?: boolean;
     onFocused?: () => void;
     disabled?: boolean;
@@ -110,6 +112,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
       <div>
         {rightTools}
         {sendButtonPrefix}
+        {topRightOverlay}
         <button type='button' onClick={() => onChange?.('hello')}>
           change
         </button>

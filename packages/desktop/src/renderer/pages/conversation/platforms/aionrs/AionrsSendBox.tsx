@@ -688,8 +688,20 @@ const AionrsSendBox: React.FC<{
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
+  const addToQueueEntry = canQueueCurrentDraft ? (
+    <Button
+      type='text'
+      size='mini'
+      className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px'
+      onClick={handleAddToQueue}
+      data-testid='sendbox-add-to-queue-btn'
+    >
+      {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+    </Button>
+  ) : undefined;
+
   return (
-    <div className={`${sendBoxWidthClass} relative flex flex-col mt-auto mb-16px`}>
+    <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
       <CommandQueuePanel
         items={queuedCommands}
         mode={queueMode}
@@ -713,35 +725,9 @@ const AionrsSendBox: React.FC<{
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
-      {canQueueCurrentDraft && (
-        // Zero-height overlay, out-of-flow (absolute) so it never reflows
-        // ThoughtDisplay/SendBox. ThoughtDisplay must stay a DIRECT flex child
-        // of the root (same as SendBox): flex items with an explicit z-index
-        // establish a stacking context per the flexbox spec even at
-        // position:static, which is how SendBox's `z-10` paints over
-        // ThoughtDisplay's -mb-20px/pb-30px tucked band (z-1) while replying.
-        // Wrapping SendBox in an intermediate div previously broke that (the
-        // wrapper had no z-index, so it no longer got the flex-item stacking
-        // exception, and the band rendered at full height). Anchoring from
-        // the root's bottom instead of its top keeps the button pinned to
-        // SendBox's own bottom edge (SendBox is always the last flow child)
-        // regardless of whether ThoughtDisplay is mounted above it — a top
-        // offset would jump every time the bar appears/disappears. The offset
-        // is tuned for a single-line send box; a multi-line draft will grow
-        // the box downward past this anchor, which is an accepted visual
-        // approximation (no overlay slot exists on SendBox to attach to).
-        <Button
-          type='text'
-          size='mini'
-          className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px absolute bottom-64px right-12px z-2 pointer-events-auto'
-          onClick={handleAddToQueue}
-          data-testid='sendbox-add-to-queue-btn'
-        >
-          {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-        </Button>
-      )}
 
       <SendBox
+        topRightOverlay={addToQueueEntry}
         data-testid='aionrs-sendbox'
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}

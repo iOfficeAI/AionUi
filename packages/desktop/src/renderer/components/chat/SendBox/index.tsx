@@ -219,6 +219,15 @@ const SendBox: React.FC<{
   active?: boolean;
   /** Called when the textarea gains focus, so the team layer can sync tab selection. */
   onFocused?: () => void;
+  /**
+   * Floats at the send box's top-right corner with zero flow impact (rendered
+   * inside the box's own root, absolutely positioned, so it never reflows the
+   * box or any sibling above it). Anchored to the box's own top edge — unlike
+   * anchoring from an ancestor's bottom, this tracks correctly through
+   * multi-line growth. Paints inside the root's own stacking context, so it
+   * sits above both the box's surface and a preceding ThoughtDisplay bar.
+   */
+  topRightOverlay?: React.ReactNode;
 }> = ({
   onSend,
   onStop,
@@ -249,6 +258,7 @@ const SendBox: React.FC<{
   onMobilePlusClick,
   active = true,
   onFocused,
+  topRightOverlay,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -1475,7 +1485,18 @@ const SendBox: React.FC<{
   }, [allAtFileQueries, input]);
 
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`.trim()}>
+      {topRightOverlay && (
+        // Zero-height overlay: absolutely positioned inside the box's own
+        // root, so it never reflows the box or a preceding ThoughtDisplay
+        // bar. Anchored to the box's own top edge (not an ancestor's bottom),
+        // so it tracks correctly through multi-line growth. It paints inside
+        // this root's own stacking context (the root already carries the
+        // caller's z-index, e.g. z-10, which is how the box's surface covers
+        // ThoughtDisplay's tucked band) — z-3 here only needs to beat the
+        // panel's own untouched content, not re-fight that outer stacking.
+        <div className='absolute right-12px top--28px z-3 pointer-events-auto'>{topRightOverlay}</div>
+      )}
       <div
         ref={containerRef}
         className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
