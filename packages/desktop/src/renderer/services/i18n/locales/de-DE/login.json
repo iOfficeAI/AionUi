@@ -21,7 +21,10 @@
     "tooManyAttempts": "Zu viele Versuche, bitte später erneut versuchen",
     "networkError": "Verbindung fehlgeschlagen, bitte erneut versuchen",
     "serverError": "Serverfehler, bitte später erneut versuchen",
+    "timeout": "Anmeldung Zeitüberschreitung. Bitte erneut versuchen.",
+    "loadFailed": "Anmeldedienst nicht erreichbar. Bitte überprüfen Sie Ihre Netzwerkverbindung.",
     "unknown": "Anmeldung fehlgeschlagen, bitte erneut versuchen"
   },
-  "externalTitle": "Anmelden"
+  "opening": "Anmeldefenster wird geöffnet...",
+  "canceled": "Anmeldung abgebrochen"
 }

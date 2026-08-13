@@ -15,13 +15,16 @@
   "languageToggle": "Mudar idioma",
   "footerPrimary": "Transforme sua IA de linha de comando",
   "footerSecondary": "Moderno e Eficiente",
+  "opening": "Abrindo janela de login...",
+  "canceled": "Login cancelado",
   "errors": {
     "empty": "Por favor, insira nome de usuário e senha",
     "invalidCredentials": "Nome de usuário ou senha inválidos",
     "tooManyAttempts": "Muitas tentativas, por favor tente novamente mais tarde",
     "networkError": "Falha na conexão, por favor tente novamente",
     "serverError": "Erro no servidor, por favor tente novamente mais tarde",
+    "timeout": "O login expirou. Por favor, tente novamente.",
+    "loadFailed": "Não foi possível acessar o serviço de login. Verifique sua rede.",
     "unknown": "O login falhou, por favor tente novamente"
-  },
-  "externalTitle": "Entrar"
+  }
 }

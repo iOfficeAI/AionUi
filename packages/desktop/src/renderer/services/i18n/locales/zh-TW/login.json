@@ -21,7 +21,10 @@
     "tooManyAttempts": "登入嘗試過多，請稍後再試",
     "networkError": "連線失敗，請稍後再試",
     "serverError": "伺服器發生錯誤，請稍後再試",
+    "timeout": "登入逾時，請重試",
+    "loadFailed": "無法存取登入服務，請檢查網路",
     "unknown": "登入失敗，請稍後再試"
   },
-  "externalTitle": "登入"
+  "opening": "正在開啟登入視窗...",
+  "canceled": "登入已取消"
 }

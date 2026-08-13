@@ -15,13 +15,16 @@
   "languageToggle": "Cambiar idioma",
   "footerPrimary": "Transforma tu IA de línea de comandos",
   "footerSecondary": "Moderno y eficiente",
+  "opening": "Abriendo ventana de inicio de sesión...",
+  "canceled": "Inicio de sesión cancelado",
   "errors": {
     "empty": "Ingresa usuario y contraseña",
     "invalidCredentials": "Usuario o contraseña inválidos",
     "tooManyAttempts": "Demasiados intentos, vuelve a intentarlo más tarde",
     "networkError": "Error de conexión, intenta de nuevo",
     "serverError": "Error del servidor, intenta más tarde",
+    "timeout": "Se agotó el tiempo de inicio de sesión. Por favor, inténtelo de nuevo.",
+    "loadFailed": "No se puede acceder al servicio de inicio de sesión. Por favor, verifique su red.",
     "unknown": "Error al iniciar sesión, intenta de nuevo"
-  },
-  "externalTitle": "Iniciar sesión"
+  }
 }

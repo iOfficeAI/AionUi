@@ -15,13 +15,16 @@
   "languageToggle": "Dili değiştir",
   "footerPrimary": "Komut satırı AI'nızı dönüştürün",
   "footerSecondary": "Modern ve Verimli",
+  "opening": "Giriş penceresi açılıyor...",
+  "canceled": "Giriş iptal edildi",
   "errors": {
     "empty": "Lütfen kullanıcı adı ve şifre girin",
     "invalidCredentials": "Geçersiz kullanıcı adı veya şifre",
     "tooManyAttempts": "Çok fazla deneme, lütfen daha sonra tekrar deneyin",
     "networkError": "Bağlantı başarısız, lütfen tekrar deneyin",
     "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
+    "timeout": "Giriş zaman aşımına uğradı. Lütfen tekrar deneyin.",
+    "loadFailed": "Giriş hizmetine erişilemiyor. Lütfen ağınızı kontrol edin.",
     "unknown": "Giriş başarısız, lütfen tekrar deneyin"
-  },
-  "externalTitle": "Giriş yap"
+  }
 }

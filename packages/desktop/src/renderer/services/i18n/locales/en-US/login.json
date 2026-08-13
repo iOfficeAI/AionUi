@@ -15,13 +15,16 @@
   "languageToggle": "Change language",
   "footerPrimary": "Transform your command-line AI",
   "footerSecondary": "Modern & Efficient",
+  "opening": "Opening login window...",
+  "canceled": "Login canceled",
   "errors": {
     "empty": "Please enter username and password",
     "invalidCredentials": "Invalid username or password",
     "tooManyAttempts": "Too many attempts, please try again later",
     "networkError": "Connection failed, please try again",
     "serverError": "Server error, please try again later",
+    "timeout": "Login timed out. Please try again.",
+    "loadFailed": "Unable to reach the login service. Please check your network.",
     "unknown": "Sign-in failed, please try again"
-  },
-  "externalTitle": "Sign in"
+  }
 }

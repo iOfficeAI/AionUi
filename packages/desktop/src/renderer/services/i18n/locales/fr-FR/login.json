@@ -15,13 +15,16 @@
   "languageToggle": "Changer de langue",
   "footerPrimary": "Transformez votre IA en ligne de commande",
   "footerSecondary": "Moderne et efficace",
+  "opening": "Ouverture de la fenêtre de connexion...",
+  "canceled": "Connexion annulée",
   "errors": {
     "empty": "Veuillez entrer un nom d'utilisateur et un mot de passe",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide",
     "tooManyAttempts": "Trop de tentatives, veuillez réessayer plus tard",
     "networkError": "Connexion échouée, veuillez réessayer",
     "serverError": "Erreur serveur, veuillez réessayer plus tard",
+    "timeout": "Délai de connexion dépassé. Veuillez réessayer.",
+    "loadFailed": "Service de connexion inaccessible. Veuillez vérifier votre réseau.",
     "unknown": "Échec de connexion, veuillez réessayer"
-  },
-  "externalTitle": "Connexion"
+  }
 }
