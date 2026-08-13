@@ -215,7 +215,9 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
     if (!container) return;
     const hasOverflow = container.scrollWidth > container.clientWidth + 1;
     setShowLeftFade(hasOverflow && container.scrollLeft > TAB_OVERFLOW_THRESHOLD);
-    setShowRightFade(hasOverflow && container.scrollLeft < container.scrollWidth - container.clientWidth - TAB_OVERFLOW_THRESHOLD);
+    setShowRightFade(
+      hasOverflow && container.scrollLeft < container.scrollWidth - container.clientWidth - TAB_OVERFLOW_THRESHOLD
+    );
   }, []);
 
   useEffect(() => {
@@ -257,7 +259,9 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
     if (!container) return;
     const hasOverflow = container.scrollWidth > container.clientWidth + 1;
     setShowLeftFade(hasOverflow && container.scrollLeft > TAB_OVERFLOW_THRESHOLD);
-    setShowRightFade(hasOverflow && container.scrollLeft < container.scrollWidth - container.clientWidth - TAB_OVERFLOW_THRESHOLD);
+    setShowRightFade(
+      hasOverflow && container.scrollLeft < container.scrollWidth - container.clientWidth - TAB_OVERFLOW_THRESHOLD
+    );
   }, []);
 
   const isTeamMode = agents.length > 1;
@@ -316,9 +320,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent, onTabClick }) => {
           )}
         </div>
       )}
-      {isTeamMode && (
-        <AddAgentTrigger onAddAgent={onAddAgent} teamAgents={agents} />
-      )}
+      {isTeamMode && <AddAgentTrigger onAddAgent={onAddAgent} teamAgents={agents} />}
     </div>
   );
 };
