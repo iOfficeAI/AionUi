@@ -26,10 +26,14 @@ const {
   runtimeViewMock,
   useConversationCommandQueueSpy,
   enqueueMock,
+  removeMock,
+  prioritizeMock,
+  commandQueuePanelPropsSpy,
   clearFilesMock,
   draftMutateMock,
   draftContentRef,
   messageWarningMock,
+  stopInvokeMock,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -64,10 +68,14 @@ const {
   },
   useConversationCommandQueueSpy: vi.fn(),
   enqueueMock: vi.fn(),
+  removeMock: vi.fn(),
+  prioritizeMock: vi.fn(),
+  commandQueuePanelPropsSpy: vi.fn(),
   clearFilesMock: vi.fn(),
   draftMutateMock: vi.fn(),
   draftContentRef: { current: '' },
   messageWarningMock: vi.fn(),
+  stopInvokeMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/common', () => ({
@@ -79,7 +87,7 @@ vi.mock('@/common', () => ({
     },
     conversation: {
       stop: {
-        invoke: vi.fn().mockResolvedValue(undefined),
+        invoke: stopInvokeMock,
       },
     },
   },
@@ -134,7 +142,12 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
-vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
+vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({
+  default: (props: { onSendNow: (item: unknown) => void }) => {
+    commandQueuePanelPropsSpy(props);
+    return null;
+  },
+}));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
   default: ({
     entries,
@@ -217,7 +230,8 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', (
       isInteractionLocked: false,
       hasPendingCommands: false,
       enqueue: enqueueMock,
-      remove: vi.fn(),
+      remove: removeMock,
+      prioritize: prioritizeMock,
       clear: vi.fn(),
       reorder: vi.fn(),
       pause: vi.fn(),
@@ -830,6 +844,87 @@ describe('AcpSendBox', () => {
       });
       expect(enqueueMock).not.toHaveBeenCalled();
       expect(messageWarningMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('queued command send-now', () => {
+    const queuedItem = { id: 'q1', input: 'queued draft', files: [], created_at: 1 };
+
+    const getOnSendNow = () => {
+      const props = commandQueuePanelPropsSpy.mock.calls.at(-1)?.[0] as {
+        onSendNow: (item: typeof queuedItem) => void;
+      };
+      return props.onSendNow;
+    };
+
+    it('delivers mid-turn for a supporting agent instead of stopping the turn', async () => {
+      runtimeViewMock.supportsMidturnDelivery = true;
+      sendMessageInvokeMock.mockResolvedValue({ turn_id: 'turn-1', runtime: null, msg_id: 'msg-1' });
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        await getOnSendNow()(queuedItem);
+      });
+
+      expect(removeMock).toHaveBeenCalledWith('q1');
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).toHaveBeenCalledWith(expect.objectContaining({ input: 'queued draft', files: [] }));
+      expect(prioritizeMock).not.toHaveBeenCalled();
+      expect(enqueueMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps the stop-then-prioritize path for a non-supporting agent', async () => {
+      runtimeViewMock.supportsMidturnDelivery = false;
+      runtimeViewMock.activeTurnId = 'turn-9';
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='antigravity'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        await getOnSendNow()(queuedItem);
+      });
+
+      expect(stopInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', turn_id: 'turn-9' });
+      expect(prioritizeMock).toHaveBeenCalledWith('q1');
+      expect(removeMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    });
+
+    it('re-enqueues at the front when a supporting agent fails to deliver mid-turn', async () => {
+      runtimeViewMock.supportsMidturnDelivery = true;
+      sendMessageInvokeMock.mockRejectedValue(new Error('boom'));
+      enqueueMock.mockReturnValue({ id: 'restored-1', input: 'queued draft', files: [], created_at: 123 });
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        await getOnSendNow()(queuedItem);
+      });
+
+      expect(removeMock).toHaveBeenCalledWith('q1');
+      expect(enqueueMock).toHaveBeenCalledWith({ input: 'queued draft', files: [] });
+      expect(prioritizeMock).toHaveBeenCalledWith('restored-1');
     });
   });
 });

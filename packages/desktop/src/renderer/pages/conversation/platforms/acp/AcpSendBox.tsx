@@ -705,6 +705,30 @@ Please check your local CLI tool authentication status`,
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
   const handleSendNowQueued = useCallback(
     async (item: ConversationCommandQueueItem) => {
+      if (supportsMidturnDelivery) {
+        // Supporting agents can deliver directly into the running turn — no
+        // need to stop/restart. Remove the item BEFORE executing (rather than
+        // after success) so the queue's own auto-drain effect can never
+        // double-pick it: send-now can be clicked while the turn is still
+        // busy (isProcessing → canExecute stays false, drain naturally
+        // skips) or while idle (canExecute true, drain WOULD race to dequeue
+        // the same front-of-queue item concurrently with this manual send).
+        // Removing first closes that race in both cases.
+        remove(item.id);
+        try {
+          await executeCommand({ input: item.input, files: item.files });
+        } catch {
+          // executeCommand already surfaces the failure (busy-conflict toast,
+          // error message card, etc.) via its own catch path — don't show a
+          // second one. Restore the user's content instead of dropping it:
+          // enqueue appends to the end, so promote it back to the front to
+          // match "send now" intent (it was already next in line).
+          const restored = enqueue({ input: item.input, files: item.files });
+          if (restored) prioritize(restored.id);
+        }
+        return;
+      }
+
       // Stop the current reply (best-effort), then promote the chosen command
       // to the front of the queue in auto mode.  The drain effect will fire it
       // once the execution gate shows canExecute — avoiding the 409 race that
@@ -713,7 +737,7 @@ Please check your local CLI tool authentication status`,
       await effectiveHandleStop();
       prioritize(item.id);
     },
-    [effectiveHandleStop, prioritize]
+    [effectiveHandleStop, enqueue, executeCommand, prioritize, remove, supportsMidturnDelivery]
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
