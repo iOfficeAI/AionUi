@@ -15,6 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
+import type { ExternalLoginOutcome } from '@/process/auth';
 import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
@@ -180,6 +181,14 @@ export const assistants = {
     }
   ),
   import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
+};
+
+// ---------------------------------------------------------------------------
+// Auth — Electron-native (hidden BrowserWindow + preload bridge)
+// ---------------------------------------------------------------------------
+
+export const auth = {
+  startExternalLogin: bridge.buildProvider<ExternalLoginOutcome, void>('auth:start-external-login'),
 };
 
 // ---------------------------------------------------------------------------
