@@ -66,6 +66,7 @@ const LoginPage: React.FC = () => {
         className={styles.iframe}
         src={EXTERNAL_LOGIN_URL}
         sandbox='allow-scripts allow-same-origin allow-forms'
+        referrerPolicy='no-referrer'
         title={t('login.externalTitle')}
       />
       {errorKey ? (

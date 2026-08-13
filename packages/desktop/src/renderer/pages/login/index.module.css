@@ -3,7 +3,7 @@
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: #fff;
+  background: transparent;
 }
 
 .iframe {
@@ -19,9 +19,9 @@
   bottom: 24px;
   transform: translateX(-50%);
   padding: 10px 16px;
-  background: #fff1f0;
-  color: #cf1322;
-  border: 1px solid #ffa39e;
+  background: transparent;
+  color: currentColor;
+  border: 1px solid currentColor;
   border-radius: 6px;
   font-size: 13px;
 }
