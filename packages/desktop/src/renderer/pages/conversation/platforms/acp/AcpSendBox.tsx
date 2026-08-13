@@ -773,17 +773,6 @@ Please check your local CLI tool authentication status`,
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {canQueueCurrentDraft && (
-              <Button
-                type='text'
-                size='mini'
-                className='sendbox-add-to-queue-btn'
-                onClick={handleAddToQueue}
-                data-testid='sendbox-add-to-queue-btn'
-              >
-                {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-              </Button>
-            )}
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}
@@ -848,11 +837,29 @@ Please check your local CLI tool authentication status`,
         allowSendWhileLoading
         compactActions={false}
         sendButtonPrefix={
-          // Agents reporting a window size (UsageUpdate.size) get a progress
-          // ring; agents reporting only a token count get a hollow ring whose
-          // popover shows the raw count — never a percentage against a
-          // guessed denominator. No usage report at all → nothing.
-          tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
+          // sendButtonPrefix renders in both single-line and multi-line
+          // layouts (unlike rightTools, which is multi-line-only) — the
+          // add-to-queue entry must live here to stay visible on short drafts.
+          <div className='flex items-center gap-8px'>
+            {canQueueCurrentDraft && (
+              <Button
+                type='text'
+                size='mini'
+                className='sendbox-add-to-queue-btn'
+                onClick={handleAddToQueue}
+                data-testid='sendbox-add-to-queue-btn'
+              >
+                {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+              </Button>
+            )}
+            {
+              // Agents reporting a window size (UsageUpdate.size) get a progress
+              // ring; agents reporting only a token count get a hollow ring whose
+              // popover shows the raw count — never a percentage against a
+              // guessed denominator. No usage report at all → nothing.
+              tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
+            }
+          </div>
         }
       ></SendBox>
       {isMobile && (

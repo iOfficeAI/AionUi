@@ -750,17 +750,6 @@ const AionrsSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {canQueueCurrentDraft && (
-              <Button
-                type='text'
-                size='mini'
-                className='sendbox-add-to-queue-btn'
-                onClick={handleAddToQueue}
-                data-testid='sendbox-add-to-queue-btn'
-              >
-                {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-              </Button>
-            )}
             <AgentModeSelector
               backend='aionrs'
               conversation_id={conversation_id}
@@ -824,6 +813,22 @@ const AionrsSendBox: React.FC<{
         slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        sendButtonPrefix={
+          // sendButtonPrefix renders in both single-line and multi-line
+          // layouts (unlike rightTools, which is multi-line-only) — the
+          // add-to-queue entry must live here to stay visible on short drafts.
+          canQueueCurrentDraft ? (
+            <Button
+              type='text'
+              size='mini'
+              className='sendbox-add-to-queue-btn'
+              onClick={handleAddToQueue}
+              data-testid='sendbox-add-to-queue-btn'
+            >
+              {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+            </Button>
+          ) : undefined
+        }
       />
       {isMobile && (
         <>

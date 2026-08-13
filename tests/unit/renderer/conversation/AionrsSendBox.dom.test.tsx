@@ -61,6 +61,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     disabled,
     sendDisabled,
     rightTools,
+    sendButtonPrefix,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -69,11 +70,13 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     disabled?: boolean;
     sendDisabled?: boolean;
     rightTools?: React.ReactNode;
+    sendButtonPrefix?: React.ReactNode;
   }) => {
     sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled });
     return (
       <div>
         {rightTools}
+        {sendButtonPrefix}
         <button type='button' onClick={() => onChange?.('hello')}>
           change
         </button>
