@@ -17,5 +17,6 @@
   "permission": "Дозвіл",
   "switchMode": "Режим дозволів",
   "switchSuccess": "Режим успішно змінено",
+  "switchPendingNextTurn": "Набуде чинності з наступного ходу",
   "switchFailed": "Не вдалося змінити режим"
 }

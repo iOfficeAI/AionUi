@@ -17,5 +17,6 @@
   "permission": "権限",
   "switchMode": "権限モード",
   "switchSuccess": "モードを切り替えました",
+  "switchPendingNextTurn": "次のターンから有効になります",
   "switchFailed": "モードの切り替えに失敗しました"
 }
