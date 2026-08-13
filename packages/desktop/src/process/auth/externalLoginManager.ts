@@ -22,7 +22,7 @@ export interface ExternalLoginResult {
 export interface ExternalLoginError {
   success: false;
   code: ExternalLoginErrorCode;
-  message?: string;
+  message: string;
   reason?: string;
   url?: string;
 }

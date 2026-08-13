@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ipcBridge } from '@/common';
+import type { ExternalLoginOutcome } from '@/process/auth';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import styles from './index.module.css';
 
@@ -17,13 +18,14 @@ const LoginPage: React.FC = () => {
 
     (async () => {
       try {
-        const result = await ipcBridge.auth.startExternalLogin.invoke();
+        const result: ExternalLoginOutcome = await ipcBridge.auth.startExternalLogin.invoke();
         if (!active) return;
         if (result.success) {
           completeExternalLogin(result.token, { id: result.user.id, username: result.user.username });
           navigate('/guid', { replace: true });
         } else {
-          setErrorMessage(result.message ?? t('login.errors.unknown'));
+          const errorResult = result as Extract<ExternalLoginOutcome, { success: false }>;
+          setErrorMessage(errorResult.message ?? t('login.errors.unknown'));
         }
       } catch (err) {
         if (!active) return;
