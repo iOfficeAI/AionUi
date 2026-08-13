@@ -8,7 +8,12 @@ import { BrowserWindow } from 'electron';
 import { registerExternalLoginBridge, setExternalLoginMainWindow } from './externalLoginManager';
 
 export { startExternalLogin } from './externalLoginManager';
-export type { ExternalLoginOutcome, ExternalLoginResult, ExternalLoginError, ExternalLoginErrorCode } from './externalLoginManager';
+export type {
+  ExternalLoginOutcome,
+  ExternalLoginResult,
+  ExternalLoginError,
+  ExternalLoginErrorCode,
+} from './externalLoginManager';
 
 /**
  * Wire the external-login IPC handler. Idempotent — calling more than once

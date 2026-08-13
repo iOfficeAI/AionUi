@@ -180,21 +180,19 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       } satisfies ExternalLoginError);
     });
 
-    win
-      .loadURL(EXTERNAL_LOGIN_URL)
-      .catch((error: Error) => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        pendingResolve.delete(win.webContents.id);
-        win.destroy();
-        reject({
-          success: false,
-          code: 'loadFailed',
-          message: error.message,
-          url: EXTERNAL_LOGIN_URL,
-        } satisfies ExternalLoginError);
-      });
+    win.loadURL(EXTERNAL_LOGIN_URL).catch((error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      pendingResolve.delete(win.webContents.id);
+      win.destroy();
+      reject({
+        success: false,
+        code: 'loadFailed',
+        message: error.message,
+        url: EXTERNAL_LOGIN_URL,
+      } satisfies ExternalLoginError);
+    });
 
     pendingResolve.set(win.webContents.id, (result: ExternalLoginOutcome) => {
       if (settled) return;
