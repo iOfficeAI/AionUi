@@ -743,11 +743,16 @@ Please check your local CLI tool authentication status`,
       />
 
       {canQueueCurrentDraft && (
-        <div className='flex justify-end mb-4px'>
+        // ThoughtDisplay tucks a -20px/pb-30px overlap band under itself (z-1)
+        // so the send box's rounded top can cover it while replying — this row
+        // sits in that same band, so it needs a higher z-index (relative z-2)
+        // to stay above the bar, plus the send box's own surface color so it
+        // reads legibly against the bar's gradient in both themes.
+        <div className='relative z-2 flex justify-end mb-4px'>
           <Button
             type='text'
             size='mini'
-            className='sendbox-add-to-queue-btn'
+            className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px'
             onClick={handleAddToQueue}
             data-testid='sendbox-add-to-queue-btn'
           >
