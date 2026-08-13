@@ -5,11 +5,24 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { getSidebarStreamGuardDecision } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import {
+  getSidebarStreamGuardDecision,
+  shouldReconcileMarkGenerating,
+} from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 describe('getSidebarStreamGuardDecision', () => {
   it('marks normal generating stream messages', () => {
     expect(getSidebarStreamGuardDecision({ type: 'content', completed: false })).toEqual({
+      markGenerating: true,
+      clearCompleted: false,
+      lateIgnored: false,
+    });
+  });
+
+  it('marks tool_call frames as generating (direct-CLI tool streaks)', () => {
+    // Direct-CLI (non-ACP) sessions stream `tool_call`, not `tool_group` —
+    // measured live: 31 of 34 frames in a 55s tool stretch were `tool_call`.
+    expect(getSidebarStreamGuardDecision({ type: 'tool_call', completed: false })).toEqual({
       markGenerating: true,
       clearCompleted: false,
       lateIgnored: false,
@@ -78,5 +91,18 @@ describe('getSidebarStreamGuardDecision', () => {
       clearCompleted: false,
       lateIgnored: true,
     });
+  });
+});
+
+describe('shouldReconcileMarkGenerating', () => {
+  it('marks generating when the runtime summary reports processing', () => {
+    expect(shouldReconcileMarkGenerating(true)).toBe(true);
+  });
+
+  it('does NOT signal a clear when the runtime summary reports idle', () => {
+    // Reconcile never clears — an idle-looking summary must not fight a live
+    // background stream. Clearing stays exclusively with terminal frames /
+    // turn.completed.
+    expect(shouldReconcileMarkGenerating(false)).toBe(false);
   });
 });
