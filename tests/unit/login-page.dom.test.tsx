@@ -5,16 +5,22 @@ import LoginPage from '@/renderer/pages/login/index';
 import { EXTERNAL_LOGIN_ALLOWED_ORIGINS } from '@/renderer/api';
 
 const completeExternalLogin = vi.fn();
+const navigate = vi.fn();
+
+// `let` so each test can override the auth status returned by the mocked useAuth.
+// Using a `let` (instead of `vi.mocked(useAuth).mockReturnValue(...)`) works because
+// the module-level vi.mock factory captures the binding by reference.
+let authStatus: 'unauthenticated' | 'authenticated' = 'unauthenticated';
 
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({
-  useAuth: vi.fn(() => ({
+  useAuth: () => ({
     ready: true,
     user: null,
-    status: 'unauthenticated',
+    status: authStatus,
     completeExternalLogin,
     logout: vi.fn(),
     refresh: vi.fn(),
-  })),
+  }),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -22,7 +28,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigate,
 }));
 
 function postMessage(data: unknown, origin = EXTERNAL_LOGIN_ALLOWED_ORIGINS[0]) {
@@ -35,6 +41,8 @@ function postMessage(data: unknown, origin = EXTERNAL_LOGIN_ALLOWED_ORIGINS[0]) 
 describe('LoginPage', () => {
   beforeEach(() => {
     completeExternalLogin.mockReset();
+    navigate.mockReset();
+    authStatus = 'unauthenticated';
   });
 
   it('ignores messages from disallowed origins', () => {
@@ -62,5 +70,11 @@ describe('LoginPage', () => {
     render(<LoginPage />);
     postMessage({ type: 'external-login-success', token: 'tok-1', user: { id: 'u1', username: 'alice' } });
     expect(completeExternalLogin).toHaveBeenCalledWith('tok-1', { id: 'u1', username: 'alice' });
+  });
+
+  it('navigates to /guid with replace when authenticated', () => {
+    authStatus = 'authenticated';
+    render(<LoginPage />);
+    expect(navigate).toHaveBeenCalledWith('/guid', { replace: true });
   });
 });

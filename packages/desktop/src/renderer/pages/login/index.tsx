@@ -1,5 +1,4 @@
-import { Alert } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { EXTERNAL_LOGIN_ALLOWED_ORIGINS, EXTERNAL_LOGIN_URL } from '@/renderer/api';
@@ -31,7 +30,6 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { status, completeExternalLogin } = useAuth();
-  const [errorKey, setErrorKey] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -69,11 +67,6 @@ const LoginPage: React.FC = () => {
         referrerPolicy='no-referrer'
         title={t('login.externalTitle')}
       />
-      {errorKey ? (
-        <div className={styles.errorBanner}>
-          <Alert type='error' content={t(errorKey)} />
-        </div>
-      ) : null}
     </div>
   );
 };

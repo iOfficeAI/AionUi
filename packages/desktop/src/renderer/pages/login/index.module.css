@@ -12,16 +12,3 @@
   border: 0;
   display: block;
 }
-
-.errorBanner {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  padding: 10px 16px;
-  background: transparent;
-  color: currentColor;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  font-size: 13px;
-}
