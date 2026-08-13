@@ -8,26 +8,35 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/config/storage';
+import type { OrderItemType, SidebarItem } from '@/common/types/sidebar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback } from 'react';
 
-import {
-  assignInitialSortOrders,
-  computeSortOrder,
-  getConversationSortOrder,
-  needsReindex,
-  reindexSortOrders,
-} from '../utils/sortOrderHelpers';
+type OrderAnchor = { item_type: OrderItemType; item_id: string };
+
+/**
+ * Composite sortable id — `${item_type}:${item_id}` — so a conversation and a
+ * team can never collide inside the shared pinned `SortableContext` (their id
+ * spaces are independent). Both the sortable rows and the drag resolution below
+ * key off this, so they stay in lockstep.
+ */
+export const sortableId = (item_type: OrderItemType, item_id: string): string => `${item_type}:${item_id}`;
+
+/** Order anchor (type + id) for a pinned row, regardless of its kind. */
+const anchorOf = (item: SidebarItem): OrderAnchor =>
+  item.type === 'team'
+    ? { item_type: 'team', item_id: item.team_id }
+    : { item_type: 'conversation', item_id: item.conversation.id };
 
 type UseDragAndDropParams = {
-  pinnedConversations: TChatConversation[];
+  /** The pinned group in backend order (conversation ∪ team) — the drag universe. */
+  pinnedRows: SidebarItem[];
   batchMode: boolean;
   collapsed: boolean;
 };
 
-export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: UseDragAndDropParams) => {
+export const useDragAndDrop = ({ pinnedRows, batchMode, collapsed }: UseDragAndDropParams) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
 
@@ -41,64 +50,36 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
     })
   );
 
-  const persistSortOrder = useCallback(async (conversation_id: string, sortOrder: number) => {
-    try {
-      await ipcBridge.conversation.update.invoke({
-        id: conversation_id,
-        updates: {
-          extra: {
-            sortOrder,
-          } as Partial<TChatConversation['extra']>,
-        } as Partial<TChatConversation>,
-        merge_extra: true,
-      });
-    } catch (error) {
-      console.error('[DragAndDrop] Failed to persist sort order:', error);
-    }
-  }, []);
-
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
 
       if (!over || active.id === over.id) return;
 
-      const activeIdStr = String(active.id);
-      const overIdStr = String(over.id);
+      const anchors = pinnedRows.map(anchorOf);
+      const ids = anchors.map((a) => sortableId(a.item_type, a.item_id));
 
-      // Build pinned items list with sort orders
-      const items = pinnedConversations.map((c) => ({
-        id: c.id,
-        sortOrder: getConversationSortOrder(c),
-      }));
-      const itemsWithOrder = assignInitialSortOrders(items);
-
-      const oldIndex = itemsWithOrder.findIndex((i) => i.id === activeIdStr);
-      const newIndex = itemsWithOrder.findIndex((i) => i.id === overIdStr);
-
+      const oldIndex = ids.indexOf(String(active.id));
+      const newIndex = ids.indexOf(String(over.id));
       if (oldIndex === -1 || newIndex === -1) return;
 
-      const reordered = arrayMove(itemsWithOrder, oldIndex, newIndex);
-      const before = newIndex > 0 ? reordered[newIndex - 1].sortOrder : undefined;
-      const after = newIndex < reordered.length - 1 ? reordered[newIndex + 1].sortOrder : undefined;
-      const newSortOrder = computeSortOrder(before, after);
+      const moved = anchors[oldIndex];
+      const reordered = arrayMove(anchors, oldIndex, newIndex);
+      // Anchor-only payload (BR-26): the moved item lands right after its new
+      // predecessor; dropping at the very top sends `after: null`. The server owns
+      // the numeric order key — the client never computes or sends one.
+      const after = newIndex > 0 ? reordered[newIndex - 1] : null;
 
-      // Check if reindex needed
-      if (needsReindex(reordered.map((i) => ({ sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder })))) {
-        const finalOrder = reordered.map((i) => ({
-          id: i.id,
-          sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder,
-        }));
-        const reindexed = reindexSortOrders(finalOrder);
-        await Promise.all(reindexed.map((item) => persistSortOrder(item.id, item.sortOrder)));
-        emitter.emit('chat.history.refresh');
-        return;
+      try {
+        await ipcBridge.order.pinned.move.invoke({ moved, after });
+      } catch (error) {
+        // Stale window: an anchor vanished server-side (400/404). Fall through to
+        // the refresh below, which reconciles the list to server truth.
+        console.error('[DragAndDrop] move failed, reconciling to server order:', error);
       }
-
-      await persistSortOrder(activeIdStr, newSortOrder);
       emitter.emit('chat.history.refresh');
     },
-    [pinnedConversations, persistSortOrder]
+    [pinnedRows]
   );
 
   return {

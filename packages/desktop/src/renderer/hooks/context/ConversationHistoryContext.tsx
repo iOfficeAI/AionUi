@@ -5,10 +5,9 @@
  */
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useConversationListSync } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import type { GroupedHistoryResult } from '@/renderer/pages/conversation/GroupedHistory/types';
-import { buildGroupedHistory } from '@/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
+import { mapSidebarToGroupedHistory } from '@/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
 
 export type ConversationHistoryContextValue = ReturnType<typeof useConversationListSync> & {
   groupedHistory: GroupedHistoryResult;
@@ -17,12 +16,13 @@ export type ConversationHistoryContextValue = ReturnType<typeof useConversationL
 const ConversationHistoryContext = createContext<ConversationHistoryContextValue | null>(null);
 
 export const ConversationHistoryProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { t } = useTranslation();
   const conversationListSync = useConversationListSync();
 
+  // Grouping / ordering are owned by the backend sidebar read model (BR-1); the
+  // client only reshapes it into the existing render structure.
   const groupedHistory = useMemo(() => {
-    return buildGroupedHistory(conversationListSync.conversations, t);
-  }, [conversationListSync.conversations, t]);
+    return mapSidebarToGroupedHistory(conversationListSync.sidebar);
+  }, [conversationListSync.sidebar]);
 
   const value = useMemo<ConversationHistoryContextValue>(() => {
     return {

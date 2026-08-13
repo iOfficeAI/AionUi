@@ -115,6 +115,7 @@ import {
   wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
+import { fromApiSidebar, fromApiSidebarItems } from './sidebarMapper';
 import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
   fromBackendAssistant,
@@ -1279,6 +1280,71 @@ export const database = {
     ),
     fromApiSearchResult
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Sidebar read model (grouped + paginated left panel)
+// ---------------------------------------------------------------------------
+export const sidebar = {
+  // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
+  // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
+  get: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[] }>((p) => {
+      const params = new URLSearchParams();
+      if (p.limit) params.set('limit', String(p.limit));
+      for (const w of p.win ?? []) params.append('win', w);
+      const qs = params.toString();
+      return `/api/sidebar${qs ? `?${qs}` : ''}`;
+    }),
+    fromApiSidebar
+  ),
+  // One more window of a single group (the "+10" paging). `scope` is the group token,
+  // `cursor` the keyset cursor from the previous page.
+  items: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarItemsResponse, { scope: string; cursor?: string; limit?: number }>(
+      (p) => {
+        const params = new URLSearchParams();
+        params.set('scope', p.scope);
+        if (p.cursor) params.set('cursor', p.cursor);
+        if (p.limit) params.set('limit', String(p.limit));
+        return `/api/sidebar/items?${params.toString()}`;
+      }
+    ),
+    fromApiSidebarItems
+  ),
+  // Remove a project and everything classified into its group (teams + standalone
+  // conversations), BR-19 "所见即所删". With `dry_run` nothing is deleted and the
+  // response reports the counts that *would* be removed (used for the confirm
+  // dialog). A missing / non-standard project maps to 404.
+  removeProject: httpDelete<
+    import('@/common/types/sidebar').RemoveProjectResult,
+    { project_id: string; dry_run?: boolean }
+  >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
+};
+
+// Ordering (pin / unpin / move). Pin truth = a `user_order` row existing; pin/unpin
+// are idempotent and take no body. v1 only the `pinned` scene.
+export const order = {
+  pinned: {
+    put: httpPut<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`,
+      () => undefined
+    ),
+    delete: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`
+    ),
+    // Reposition a pinned item by drag-drop. `after = null` moves it to the top;
+    // otherwise it lands right after `after`. The server computes the order key
+    // (BR-26) — the client sends only anchors, never numeric orders. Stale-window
+    // anchors map to 404 (`moved` gone) / 400 (`after` gone) so the caller refetches.
+    move: httpPost<
+      void,
+      {
+        moved: { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string };
+        after: { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string } | null;
+      }
+    >('/api/order/pinned/move', (p) => ({ moved: p.moved, after: p.after })),
+  },
 };
 
 // Preview panel
