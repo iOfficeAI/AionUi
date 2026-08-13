@@ -907,7 +907,6 @@ export const fs = {
   },
 };
 
-
 // ---------------------------------------------------------------------------
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
@@ -1289,7 +1288,6 @@ export const database = {
   ),
 };
 
-
 // ---------------------------------------------------------------------------
 // Preview History — routed to /api/preview-history/*
 // ---------------------------------------------------------------------------
@@ -1523,7 +1521,6 @@ export const webui = {
   resetPassword: httpPost<{ new_password: string }, void>('/api/webui/reset-password'),
   generateQRToken: httpPost<{ token: string; expires_at_ms: number }, void>('/api/webui/generate-qr-token'),
 };
-
 
 import {
   fromApiNote,

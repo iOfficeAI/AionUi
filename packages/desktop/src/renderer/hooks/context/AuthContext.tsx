@@ -88,7 +88,7 @@ function clearAuthCache(): void {
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
   try {
-      const response = await fetch(`${AIPAAS_BASE_URL}${AUTH_USER_ENDPOINT}`, {
+    const response = await fetch(`${AIPAAS_BASE_URL}${AUTH_USER_ENDPOINT}`, {
       method: 'GET',
       credentials: 'include',
       signal,
@@ -324,10 +324,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         message: tempData.message,
         user: tempUser
           ? {
-            id: tempUser.id,
-            username: tempUser.name,
-            token: tempData.message,
-          }
+              id: tempUser.id,
+              username: tempUser.name,
+              token: tempData.message,
+            }
           : undefined,
       };
 

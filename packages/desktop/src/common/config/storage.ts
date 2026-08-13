@@ -494,6 +494,9 @@ export type ModelImageInputCapability = 'supported' | 'unsupported';
 export type ModelSettings = {
   image_input?: ModelImageInputCapability;
   openai_api_mode?: ModelOpenAiApiMode;
+  context_window_size?: number;
+  max_content_length?: number;
+  max_response_length?: number;
 };
 
 export interface IProvider {

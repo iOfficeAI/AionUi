@@ -27,11 +27,11 @@ let webuiStatusCache: {
 } | null = null;
 
 const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
-                                                                 onOpenLink,
-                                                                 onOpenBugReport,
-                                                                 inactiveBorderColor,
-                                                                 activeShadow,
-                                                               }) => {
+  onOpenLink,
+  onOpenBugReport,
+  inactiveBorderColor,
+  activeShadow,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hoveredQuickAction, setHoveredQuickAction] = useState<'bugReport' | 'repo' | 'webui' | null>(null);
