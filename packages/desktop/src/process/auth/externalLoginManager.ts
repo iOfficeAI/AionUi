@@ -76,6 +76,16 @@ function isValidUrl(url: string): boolean {
 
 const pendingResolve = new Map<number, (result: ExternalLoginOutcome) => void>();
 
+let mainWindowRef: BrowserWindow | null = null;
+
+/**
+ * Track the main BrowserWindow so the login IPC handler can forward the
+ * validated token to the renderer's AuthContext via webContents.send.
+ */
+export function setExternalLoginMainWindow(win: BrowserWindow | null): void {
+  mainWindowRef = win;
+}
+
 let inFlight: Promise<ExternalLoginOutcome> | null = null;
 
 /**
@@ -204,14 +214,14 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
 
 /**
  * Register the IPC handler for `external-login:post-token`. This must be
- * called once during app startup (see process/auth/index.ts).
+ * called once during app startup.
  *
  * Returns `{ received: true }` to the external page on success, or
  * `{ received: false, code: 'payloadInvalid', reason }` on invalid input.
  * The login window is destroyed and the in-flight Promise resolved with
  * the validated payload on success.
  */
-export function registerExternalLoginBridge(getMainWindow: () => BrowserWindow | null): void {
+export function registerExternalLoginBridge(): void {
   ipcMain.handle(POST_TOKEN_CHANNEL, async (_event: unknown, payload: unknown) => {
     const parsed = parsePayload(payload);
     if (!parsed.success || !parsed.value) {
@@ -224,9 +234,8 @@ export function registerExternalLoginBridge(getMainWindow: () => BrowserWindow |
       return { received: false, code: 'payloadInvalid', reason: 'no-pending-window' };
     }
 
-    const mainWindow = getMainWindow();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(RENDERER_COMPLETED_CHANNEL, {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      mainWindowRef.webContents.send(RENDERER_COMPLETED_CHANNEL, {
         token: parsed.value.token,
         user: { id: parsed.value.userId, username: parsed.value.username },
       });

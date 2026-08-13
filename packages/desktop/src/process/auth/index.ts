@@ -5,7 +5,10 @@
  */
 
 import { BrowserWindow } from 'electron';
-import { registerExternalLoginBridge } from './externalLoginManager';
+import { registerExternalLoginBridge, setExternalLoginMainWindow } from './externalLoginManager';
+
+export { startExternalLogin } from './externalLoginManager';
+export type { ExternalLoginOutcome, ExternalLoginResult, ExternalLoginError, ExternalLoginErrorCode } from './externalLoginManager';
 
 /**
  * Wire the external-login IPC handler. Idempotent — calling more than once
@@ -14,10 +17,16 @@ import { registerExternalLoginBridge } from './externalLoginManager';
  */
 let initialized = false;
 
-export function initExternalLogin(getMainWindow: () => BrowserWindow | null): void {
+export function initExternalLogin(): void {
   if (initialized) return;
   initialized = true;
-  registerExternalLoginBridge(getMainWindow);
+  registerExternalLoginBridge();
 }
 
-export { startExternalLogin } from './externalLoginManager';
+/**
+ * Track the main BrowserWindow so the external-login IPC handler can
+ * forward validated tokens to the renderer via webContents.send.
+ */
+export function bindExternalLoginMainWindow(window: BrowserWindow): void {
+  setExternalLoginMainWindow(window);
+}

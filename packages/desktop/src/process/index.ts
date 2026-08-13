@@ -19,6 +19,7 @@ if (app.isPackaged) {
 import initStorage from './utils/initStorage';
 import './utils/initBridge';
 import './services/i18n'; // Initialize i18n for main process
+import { initExternalLogin } from './auth';
 
 export const initializeProcess = async () => {
   const t0 = performance.now();
@@ -26,4 +27,7 @@ export const initializeProcess = async () => {
 
   await initStorage();
   mark('initStorage');
+
+  initExternalLogin();
+  mark('initExternalLogin');
 };
