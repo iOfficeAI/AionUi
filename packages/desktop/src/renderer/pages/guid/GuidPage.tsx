@@ -17,6 +17,7 @@ import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hook
 import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
+import { useAssistantFavorites, toggleFavoriteAssistantId } from '@/renderer/hooks/assistant/useAssistantFavorites';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
@@ -62,6 +63,21 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  // Favorite ("常用") assistants pinned for the new-conversation picker.
+  const { favoriteAssistantIds, setFavoriteAssistantIds } = useAssistantFavorites();
+  const handleToggleFavorite = useCallback(
+    (assistantId: string) => {
+      void setFavoriteAssistantIds(toggleFavoriteAssistantId(favoriteAssistantIds, assistantId));
+    },
+    [setFavoriteAssistantIds, favoriteAssistantIds]
+  );
+  const handleReorderFavorites = useCallback(
+    (nextIds: string[]) => {
+      void setFavoriteAssistantIds(nextIds);
+    },
+    [setFavoriteAssistantIds]
+  );
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -674,6 +690,10 @@ const GuidPage: React.FC = () => {
             selectedAssistantId={agentSelection.selectedAssistantId}
             assistants={agentSelection.assistants}
             localeKey={localeKey}
+            favoriteAssistantIds={favoriteAssistantIds}
+            onToggleFavorite={handleToggleFavorite}
+            onReorderFavorites={handleReorderFavorites}
+            favoriteLabelFn={(isFavorite) => t(isFavorite ? 'common.unfavoriteAssistant' : 'common.favoriteAssistant')}
             onSelectAssistant={handleSelectAssistant}
           />
 

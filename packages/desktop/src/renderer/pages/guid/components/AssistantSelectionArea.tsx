@@ -6,13 +6,19 @@
 
 import styles from '../index.module.css';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
-import { Down, Robot } from '@icon-park/react';
+import { Down, Drag, Robot, Star } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+/* arrayMove lives in @dnd-kit/sortable */
 import { AionSearchInput } from '@/renderer/components/base';
 import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
+import { normalizeFavoriteAssistantIds } from '@/renderer/hooks/assistant/useAssistantFavorites';
+import { resolveFavoriteFrontRow } from '@/renderer/pages/guid/hooks/favoriteAssistants';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +67,52 @@ type AssistantSelectionAreaProps = {
   localeKey: string;
   maxVisibleAssistants?: number;
   onSelectAssistant: (assistantId: string) => void;
+  /**
+   * User-pinned favorite assistant ids (in pinned order). When non-empty the
+   * front row is made up of these; otherwise behaviour is unchanged (the first
+   * `visibleLimit` enabled assistants).
+   */
+  favoriteAssistantIds?: string[];
+  /** Toggle an assistant's pinned/favorite state. */
+  onToggleFavorite?: (assistantId: string) => void;
+  /** Reorder the favorite list (full list, not just the visible slice). */
+  onReorderFavorites?: (nextIds: string[]) => void;
+  /** Localized accessibility/tooltip label for the pin button. */
+  favoriteLabelFn?: (isFavorite: boolean) => string;
+  testIds?: { favoriteToggle?: (assistantId: string) => string; dragHandle?: (assistantId: string) => string };
+};
+
+/**
+ * Wrapper that makes a front-row favorite pill draggable for reordering,
+ * exposing a drag handle on the left. Uses the project's dnd-kit sortable
+ * pattern (same as TeamTabs / enabled-assistants reordering).
+ */
+const SortableAssistantPill: React.FC<{
+  assistantId: string;
+  dragHandleTestId?: string;
+  children: React.ReactNode;
+}> = ({ assistantId, dragHandleTestId, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: assistantId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-testid={dragHandleTestId ? `${dragHandleTestId}-container` : undefined}
+      className='inline-flex min-w-0 items-center'
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 }}
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        data-testid={dragHandleTestId}
+        aria-label='Drag to reorder'
+        className='inline-flex h-16px w-12px cursor-grab items-center justify-center text-13px text-t-tertiary active:cursor-grabbing'
+      >
+        <Drag size={12} />
+      </span>
+      {children}
+    </div>
+  );
 };
 
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
@@ -69,6 +121,11 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   localeKey,
   maxVisibleAssistants = 4,
   onSelectAssistant,
+  favoriteAssistantIds = [],
+  onToggleFavorite,
+  onReorderFavorites,
+  favoriteLabelFn,
+  testIds,
 }) => {
   const { t } = useTranslation();
   const { assistantOrder } = useAssistantOrder();
@@ -166,18 +223,37 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     return () => window.removeEventListener('resize', updateAvailableWidth);
   }, []);
 
+  const favoritesEnabled = onToggleFavorite !== undefined && onReorderFavorites !== undefined;
+
+  // Decide which assistants occupy the front row. When the user has pinned
+  // favorites that are still enabled, the front row is the pinned set (in the
+  // user's pinned order, capped at the visible limit); otherwise it falls back
+  // to the default first-N-of-enabled behaviour (unchanged from before).
+  const favoriteIds = normalizeFavoriteAssistantIds(favoriteAssistantIds);
+  const { frontRowIds, hasCustomFavorites } = resolveFavoriteFrontRow(
+    enabledAssistants,
+    favoriteIds,
+    visibleLimit,
+    selectedId
+  );
+
   const visibleAssistants = useMemo(() => {
-    if (enabledAssistants.length <= visibleLimit || !selectedId) {
-      return enabledAssistants.slice(0, visibleLimit);
+    if (!hasCustomFavorites) {
+      if (enabledAssistants.length <= visibleLimit || !selectedId) {
+        return enabledAssistants.slice(0, visibleLimit);
+      }
+
+      const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
+      if (selectedIndex < 0 || selectedIndex < visibleLimit) {
+        return enabledAssistants.slice(0, visibleLimit);
+      }
+
+      return [...enabledAssistants.slice(0, visibleLimit - 1), enabledAssistants[selectedIndex]];
     }
 
-    const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
-    if (selectedIndex < 0 || selectedIndex < visibleLimit) {
-      return enabledAssistants.slice(0, visibleLimit);
-    }
-
-    return [...enabledAssistants.slice(0, visibleLimit - 1), enabledAssistants[selectedIndex]];
-  }, [enabledAssistants, selectedId, visibleLimit]);
+    const byId = new Map(enabledAssistants.map((assistant) => [assistant.id, assistant]));
+    return frontRowIds.map((id) => byId.get(id)).filter((assistant): assistant is Assistant => Boolean(assistant));
+  }, [enabledAssistants, selectedId, visibleLimit, hasCustomFavorites, frontRowIds]);
 
   useLayoutEffect(() => {
     if (visibleLimit <= 1 || !hasTruncatedAssistantLabels(containerRef.current)) {
@@ -218,12 +294,64 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     );
   }, [agentSearchTextById, localeKey, overflowAssistants, search, showOverflowSearch]);
 
+  // Front-row favorite ids eligible for drag reordering (favorites still enabled).
+  const sortableFavoriteIds = useMemo(() => {
+    if (!favoritesEnabled || !hasCustomFavorites) return [];
+    const enabledIds = new Set(enabledAssistants.map((assistant) => assistant.id));
+    return favoriteIds.filter((id) => enabledIds.has(id));
+  }, [favoritesEnabled, hasCustomFavorites, favoriteIds, enabledAssistants]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = sortableFavoriteIds.indexOf(String(active.id));
+      const newIndex = sortableFavoriteIds.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return;
+      onReorderFavorites?.(arrayMove(sortableFavoriteIds, oldIndex, newIndex));
+    },
+    [onReorderFavorites, sortableFavoriteIds]
+  );
+
   if (enabledAssistants.length === 0) return null;
 
-  const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false) => {
+  const renderAssistantPill = (assistant: Assistant, testId: string, fullWidth = false, isFavorite = false) => {
     const avatar = resolveAssistantAvatar(assistant.avatar);
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;
+    const favoriteLabel = favoriteLabelFn?.(isFavorite);
+
+    const favoriteToggle = favoritesEnabled ? (
+      <span
+        role='button'
+        tabIndex={0}
+        data-testid={testIds?.favoriteToggle?.(assistant.id) ?? `assistant-favorite-toggle-${assistant.id}`}
+        data-assistant-id={assistant.id}
+        data-favorite={isFavorite ? 'true' : 'false'}
+        aria-label={favoriteLabel ?? (isFavorite ? 'Un-favorite' : 'Favorite')}
+        title={favoriteLabel}
+        className='inline-flex h-16px w-16px cursor-pointer items-center justify-center text-13px'
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleFavorite?.(assistant.id);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleFavorite?.(assistant.id);
+          }
+        }}
+      >
+        <Star
+          theme={isFavorite ? 'filled' : 'outline'}
+          size={13}
+          style={{ color: isFavorite ? '#f5a524' : 'currentColor' }}
+        />
+      </span>
+    ) : null;
 
     return (
       <Button
@@ -246,6 +374,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           setMoreVisible(false);
         }}
       >
+        {favoriteToggle}
         <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
           {avatar.kind === 'image' ? (
             <img src={avatar.value} alt='' className='h-full w-full object-contain' />
@@ -285,7 +414,12 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       >
         {filteredOverflowAssistants.map((assistant) => (
           <div key={assistant.id} className='min-w-0'>
-            {renderAssistantPill(assistant, `assistant-overflow-${assistant.id}`, true)}
+            {renderAssistantPill(
+              assistant,
+              `assistant-overflow-${assistant.id}`,
+              true,
+              favoriteIds.includes(assistant.id)
+            )}
           </div>
         ))}
       </div>
@@ -303,7 +437,29 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           onMouseLeave={hasOverflow ? handleBarMouseLeave : undefined}
         >
           <div className='flex min-w-0 max-w-full items-center gap-6px'>
-            {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={sortableFavoriteIds} strategy={horizontalListSortingStrategy}>
+                {visibleAssistants.map((assistant) => {
+                  const isSortableFavorite = sortableFavoriteIds.includes(assistant.id);
+                  const pill = renderAssistantPill(
+                    assistant,
+                    `preset-pill-${assistant.id}`,
+                    false,
+                    favoriteIds.includes(assistant.id)
+                  );
+                  if (!isSortableFavorite) return <div key={assistant.id}>{pill}</div>;
+                  return (
+                    <SortableAssistantPill
+                      key={assistant.id}
+                      assistantId={assistant.id}
+                      dragHandleTestId={testIds?.dragHandle?.(assistant.id) ?? `assistant-drag-handle-${assistant.id}`}
+                    >
+                      {pill}
+                    </SortableAssistantPill>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
             {hasOverflow ? (
               <Button
                 data-testid='assistant-more-btn'

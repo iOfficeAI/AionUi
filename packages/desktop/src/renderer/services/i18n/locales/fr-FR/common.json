@@ -28,6 +28,8 @@
   "openInSystemBrowser": "Ouvrir dans le navigateur système",
   "copySuccess": "Copié",
   "copyFailed": "Échec de la copie",
+  "favoriteAssistant": "Marquer comme favori",
+  "unfavoriteAssistant": "Retirer des favoris",
   "download": "Télécharger",
   "close": "Fermer",
   "retry": "Réessayer",

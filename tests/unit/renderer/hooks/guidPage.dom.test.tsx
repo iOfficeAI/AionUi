@@ -724,4 +724,22 @@ describe('GuidInputCard prefill focus', () => {
     expect(outsideTarget).toHaveFocus();
     outsideTarget.remove();
   });
+
+  it('passes favorite assistant wiring to the assistant selection area', async () => {
+    swrMock.useSWRMock.mockReturnValue({ data: null });
+    const { configService } = await import('@/common/config/configService');
+    configService.setLocal('guid.favoriteAssistantIds', ['bare-aionrs']);
+
+    render(<GuidPage />);
+
+    const latestAssistantSelectionAreaProps = capturedAssistantSelectionAreaProps.at(-1);
+    expect(latestAssistantSelectionAreaProps).toMatchObject({
+      favoriteAssistantIds: ['bare-aionrs'],
+    });
+    expect(typeof latestAssistantSelectionAreaProps?.onToggleFavorite).toBe('function');
+    expect(typeof latestAssistantSelectionAreaProps?.onReorderFavorites).toBe('function');
+    expect(typeof latestAssistantSelectionAreaProps?.favoriteLabelFn).toBe('function');
+
+    configService.setLocal('guid.favoriteAssistantIds', undefined);
+  });
 });
