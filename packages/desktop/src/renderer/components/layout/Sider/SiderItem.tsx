@@ -44,6 +44,17 @@ const SiderItem: React.FC<SiderItemProps> = ({
 
   const hasMenu = menuItems && menuItems.length > 0;
 
+  const handleContextMenu = (event: React.MouseEvent) => {
+    if (!hasMenu) {
+      onContextMenu?.(event);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setMenuVisible(true);
+    onContextMenu?.(event);
+  };
+
   return (
     <Tooltip
       content={name}
@@ -63,7 +74,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
           }
         )}
         onClick={onClick}
-        onContextMenu={onContextMenu}
+        onContextMenu={handleContextMenu}
       >
         {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
         <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>

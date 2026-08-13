@@ -88,6 +88,12 @@ vi.mock('@arco-design/web-react', async () => {
   const Modal = ({ children }: { children?: React.ReactNode }) => ReactModule.createElement('div', null, children);
   Modal.confirm = vi.fn();
 
+  const MenuItem = ({ children }: { children?: React.ReactNode }) =>
+    ReactModule.createElement('div', { 'data-testid': 'team-menu-item' }, children);
+  const Menu = ({ children }: { children?: React.ReactNode }) =>
+    ReactModule.createElement('div', { 'data-testid': 'team-menu' }, children);
+  (Menu as Record<string, unknown>).Item = MenuItem;
+
   return {
     Input: () => null,
     Message: { success: vi.fn(), error: vi.fn() },
@@ -96,6 +102,14 @@ vi.mock('@arco-design/web-react', async () => {
       ReactModule.createElement('span', { 'data-testid': 'spin', 'data-size': String(size) }),
     Tooltip: ({ children }: { children?: React.ReactNode }) =>
       ReactModule.createElement(ReactModule.Fragment, null, children),
+    Dropdown: ({ children, droplist }: { children?: React.ReactNode; droplist?: React.ReactNode }) =>
+      ReactModule.createElement(
+        ReactModule.Fragment,
+        null,
+        children,
+        ReactModule.createElement('div', { 'data-testid': 'team-dropdown-droplist' }, droplist)
+      ),
+    Menu,
   };
 });
 
@@ -175,5 +189,15 @@ describe('TeamSiderSection running state', () => {
 
     expect(screen.getByTestId('collapsed-team-icon-idle-team')).toHaveAttribute('data-mock-icon', 'Peoples');
     expect(screen.queryByTestId('collapsed-team-spinner-idle-team')).not.toBeInTheDocument();
+  });
+
+  it('renders a right-click context menu (pin/rename/delete) for a collapsed team row', () => {
+    renderSection(true);
+
+    const dropdowns = screen.getAllByTestId('team-dropdown-droplist');
+    expect(dropdowns.length).toBeGreaterThanOrEqual(2);
+    // Every collapsed team row exposes the shared pin/rename/delete menu.
+    expect(screen.getAllByTestId('team-menu').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByTestId('team-menu-item').length).toBeGreaterThanOrEqual(6);
   });
 });
