@@ -5,37 +5,19 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { SidebarItem, SidebarTeamItem } from '@/common/types/sidebar';
 import type { ReactNode } from 'react';
 
 export type WorkspaceGroup = {
   workspace: string;
   display_name: string;
   conversations: TChatConversation[];
-  /**
-   * The group's items in backend render order, as the union of conversation and
-   * team rows (`conversations` above is the conversation-only projection kept for
-   * drag / locate / removeProject, which are conversation-scoped). Present for
-   * the sidebar read model; absent for legacy (client-grouped) callers.
-   */
-  rows?: SidebarItem[];
-  /**
-   * Backend paging token for this group (`project:<id>` | `dir:<key>`). When
-   * `hasMore` is true the sidebar shows a "load more" affordance that pages via
-   * `ipcBridge.sidebar.items`. Absent for legacy (client-grouped) callers.
-   */
-  scopeToken?: string;
-  /** True when the group has items beyond the current window. */
-  hasMore?: boolean;
 };
 
 export type TimelineItem = {
-  type: 'workspace' | 'conversation' | 'team';
+  type: 'workspace' | 'conversation';
   time: number;
   workspaceGroup?: WorkspaceGroup;
   conversation?: TChatConversation;
-  /** Set when `type === 'team'`: an aggregated team row folded into this group. */
-  team?: SidebarTeamItem;
 };
 
 export type TimelineSection = {
@@ -43,25 +25,9 @@ export type TimelineSection = {
   items: TimelineItem[];
 };
 
-/** Paging metadata for a fixed-token section (pinned / chats). */
-export type SectionPaging = {
-  token: string;
-  hasMore: boolean;
-};
-
 export type GroupedHistoryResult = {
   pinnedConversations: TChatConversation[];
-  /**
-   * The pinned group's items in backend render order (conversation ∪ team). The
-   * conversation-only `pinnedConversations` above still feeds drag ordering;
-   * this carries team rows for rendering. Absent for legacy callers.
-   */
-  pinnedRows?: SidebarItem[];
-  /** Paging for the pinned section (token `pinned`); absent when nothing to page. */
-  pinnedPaging?: SectionPaging;
   timelineSections: TimelineSection[];
-  /** Paging for the flat chats section (token `chats`); absent when nothing to page. */
-  chatsPaging?: SectionPaging;
 };
 
 export type ExportZipFile = {
@@ -109,6 +75,7 @@ export type WorkspaceGroupedHistoryProps = {
   tooltipEnabled?: boolean;
   batchMode?: boolean;
   onBatchModeChange?: (value: boolean) => void;
+  afterPinnedContent?: ReactNode;
 };
 
 export type DragItemType = 'conversation' | 'workspace';

@@ -129,6 +129,47 @@ describe('AutoUpdaterService', () => {
     expect(autoUpdaterMock.checkForUpdates).not.toHaveBeenCalled();
   });
 
+  it('ignores a feed version that is not newer than the installed build', async () => {
+    appMock.getVersion.mockReturnValue('2.1.54');
+    autoUpdaterMock.checkForUpdates.mockResolvedValue({
+      isUpdateAvailable: true,
+      updateInfo: {
+        version: '2.1.53',
+        files: [{ url: 'AionUi-2.1.53-mac-arm64.dmg', sha512: 'sha512-value' }],
+        path: 'AionUi-2.1.53-mac-arm64.dmg',
+        sha512: 'sha512-value',
+        releaseDate: '2026-06-08T00:00:00.000Z',
+      },
+    });
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const result = await autoUpdaterService.checkForUpdates();
+
+    expect(result).toEqual({ success: true });
+    expect(autoUpdaterMock.checkForUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a feed version that is strictly newer than the installed build', async () => {
+    appMock.getVersion.mockReturnValue('2.1.13');
+    const updateInfo = {
+      version: '2.1.14',
+      files: [{ url: 'AionUi-2.1.14-mac-arm64.dmg', sha512: 'sha512-value' }],
+      path: 'AionUi-2.1.14-mac-arm64.dmg',
+      sha512: 'sha512-value',
+      releaseDate: '2026-06-08T00:00:00.000Z',
+    };
+    autoUpdaterMock.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo });
+
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const result = await autoUpdaterService.checkForUpdates();
+
+    expect(result).toEqual({ success: true, updateInfo });
+  });
+
   it('configures electron-updater to read stable metadata from the CDN', async () => {
     const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
     const { CdnGenericProvider } = await import('@/process/services/cdnGenericProvider');

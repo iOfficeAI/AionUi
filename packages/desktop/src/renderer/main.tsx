@@ -343,6 +343,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const isIncompatibleRuntime = failure.reason === 'backend_incompatible_runtime';
   const isPackageArchitectureMismatch = failure.reason === 'backend_package_architecture_mismatch';
   const isDataMigrationFailure = failure.reason === 'backend_data_migration_failed';
+  const isDatabaseNewerThanApp = failure.reason === 'backend_database_newer_than_app';
   const isLocalDataRepairFailure = failure.reason === 'backend_local_data_repair_failed';
   const isRecoverableDatabaseCorruption = failure.reason === 'backend_recoverable_database_corruption';
   const isTransientConcurrentStartup = failure.reason === 'backend_transient_concurrent_startup';
@@ -359,23 +360,29 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
           deviceArch: failure.deviceArch ?? 'arm64',
           expectedArch: failure.expectedDownloadArch ?? 'arm64',
         })
-      : isDataMigrationFailure
-        ? t('common.backendStartup.dataMigration.description')
-        : isLocalDataRepairFailure
-          ? t('common.backendStartup.localDataRepair.description')
-          : isTransientConcurrentStartup
-            ? t('common.backendStartup.transientConcurrentStartup.description')
-            : isStartupDirectoryFailure
-              ? t('common.backendStartup.startupDirectory.description')
-              : isRecoverableDatabaseCorruption
-                ? t('common.backendStartup.recoverableDatabaseCorruption.description')
-                : isBackendExited
-                  ? t('common.backendStartup.exited.description')
-                  : isPortReportTimeout
-                    ? t('common.backendStartup.portReportTimeout.description')
-                    : isIncompleteInstallation
-                      ? getBackendStartupInstallationDescription(t)
-                      : t('common.backendStartup.startupFailed.description');
+      : isDatabaseNewerThanApp
+        ? failure.appVersion
+          ? t('common.backendStartup.databaseNewerThanApp.descriptionWithVersion', {
+              currentVersion: failure.appVersion,
+            })
+          : t('common.backendStartup.databaseNewerThanApp.description')
+        : isDataMigrationFailure
+          ? t('common.backendStartup.dataMigration.description')
+          : isLocalDataRepairFailure
+            ? t('common.backendStartup.localDataRepair.description')
+            : isTransientConcurrentStartup
+              ? t('common.backendStartup.transientConcurrentStartup.description')
+              : isStartupDirectoryFailure
+                ? t('common.backendStartup.startupDirectory.description')
+                : isRecoverableDatabaseCorruption
+                  ? t('common.backendStartup.recoverableDatabaseCorruption.description')
+                  : isBackendExited
+                    ? t('common.backendStartup.exited.description')
+                    : isPortReportTimeout
+                      ? t('common.backendStartup.portReportTimeout.description')
+                      : isIncompleteInstallation
+                        ? getBackendStartupInstallationDescription(t)
+                        : t('common.backendStartup.startupFailed.description');
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
@@ -392,15 +399,17 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
                   ? 'startup_directory'
                   : isLocalDataRepairFailure
                     ? 'local_data_repair'
-                    : isDataMigrationFailure
-                      ? 'data_migration'
-                      : isBackendExited
-                        ? 'backend_exited'
-                        : isPortReportTimeout
-                          ? 'port_report_timeout'
-                          : isIncompleteInstallation
-                            ? 'incomplete_installation'
-                            : 'startup_failed'
+                    : isDatabaseNewerThanApp
+                      ? 'database_newer_than_app'
+                      : isDataMigrationFailure
+                        ? 'data_migration'
+                        : isBackendExited
+                          ? 'backend_exited'
+                          : isPortReportTimeout
+                            ? 'port_report_timeout'
+                            : isIncompleteInstallation
+                              ? 'incomplete_installation'
+                              : 'startup_failed'
           }
           diagnostics={{
             source: 'backend_startup_failure',

@@ -6,6 +6,20 @@
 
 import { ipcBridge } from '@/common';
 import type { UpdateReleaseInfo } from '@/common/update/updateTypes';
+import semver from 'semver';
+
+/**
+ * True only when `candidate` is a strictly greater version than `current`.
+ * Guards against downgrade offers (e.g. installed 2.1.54, feed reports 2.1.53)
+ * that upstream checks can surface when a channel is rolled back or the local
+ * build is ahead of the feed. Coerces loose versions so dev builds still compare.
+ */
+const isNewerVersion = (candidate: string | null | undefined, current: string): boolean => {
+  if (!candidate) return false;
+  const currentSemver = semver.valid(current) || semver.coerce(current)?.version;
+  const candidateSemver = semver.valid(candidate) || semver.coerce(candidate)?.version;
+  return Boolean(currentSemver && candidateSemver && semver.gt(candidateSemver, currentSemver));
+};
 
 /**
  * Discriminated outcome of an update check. The `available`/`upToDate` field
@@ -46,12 +60,10 @@ export const runUpdateCheck = async (opts: {
   checkFailedLabel: string;
 }): Promise<CheckUpdateOutcome> => {
   try {
-    let autoUpdateAvailable = false;
     let autoUpdateInfo: { version: string; releaseNotes?: string } | null = null;
     try {
       const autoRes = await ipcBridge.autoUpdate.check.invoke({ includePrerelease: opts.includePrerelease });
       if (autoRes?.success && autoRes.data?.updateInfo) {
-        autoUpdateAvailable = true;
         autoUpdateInfo = {
           version: autoRes.data.updateInfo.version,
           releaseNotes: autoRes.data.updateInfo.releaseNotes,
@@ -70,7 +82,15 @@ export const runUpdateCheck = async (opts: {
     const latest = res.data?.latest ?? null;
     const releasePageUrl = latest?.htmlUrl || '';
 
-    if (autoUpdateAvailable || (res.data?.updateAvailable && latest)) {
+    // Never treat a same-or-older feed version as an available update. The
+    // auto-updater and CDN manifest can report a version that is not strictly
+    // newer than the installed build; comparing here prevents downgrade offers.
+    const autoUpdateAvailable = isNewerVersion(autoUpdateInfo?.version, currentVersion);
+    const manualUpdateAvailable = Boolean(
+      res.data?.updateAvailable && latest && isNewerVersion(latest.version, currentVersion)
+    );
+
+    if (autoUpdateAvailable || manualUpdateAvailable) {
       return {
         kind: 'available',
         currentVersion,
