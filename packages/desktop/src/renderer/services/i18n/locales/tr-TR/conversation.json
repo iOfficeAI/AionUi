@@ -72,11 +72,17 @@
     "removeProjectTitle": "Projeyi kaldır",
     "removeProject": "Projeyi kaldır",
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
+    "removeProjectConfirmTeams": "Projedeki {{teams}} takım da kaldırılacak.",
+    "removeProjectListMore": "+{{count}} daha",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
     "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",
     "forkedFrom": "“{{name}}” konuşmasından çatallandı",
-    "forkedConversation": "Çatallanmış konuşma"
+    "forkedConversation": "Çatallanmış konuşma",
+    "loadMore": "Daha fazla yükle",
+    "newTeamInProject": "Bu projede yeni ekip",
+    "projectCreateMenu": "Oluştur",
+    "collapseAllProjects": "Tüm projeleri daralt"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
