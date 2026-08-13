@@ -718,7 +718,7 @@ Please check your local CLI tool authentication status`,
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
-    <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
+    <div className={`${sendBoxWidthClass} relative flex flex-col mt-auto mb-16px`}>
       <CommandQueuePanel
         items={queuedCommands}
         mode={queueMode}
@@ -741,137 +741,140 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
+      {canQueueCurrentDraft && (
+        // Zero-height overlay, out-of-flow (absolute) so it never reflows
+        // ThoughtDisplay/SendBox. ThoughtDisplay must stay a DIRECT flex child
+        // of the root (same as SendBox): flex items with an explicit z-index
+        // establish a stacking context per the flexbox spec even at
+        // position:static, which is how SendBox's `z-10` paints over
+        // ThoughtDisplay's -mb-20px/pb-30px tucked band (z-1) while replying.
+        // Wrapping SendBox in an intermediate div previously broke that (the
+        // wrapper had no z-index, so it no longer got the flex-item stacking
+        // exception, and the band rendered at full height). Anchoring from
+        // the root's bottom instead of its top keeps the button pinned to
+        // SendBox's own bottom edge (SendBox is always the last flow child)
+        // regardless of whether ThoughtDisplay is mounted above it — a top
+        // offset would jump every time the bar appears/disappears. The offset
+        // is tuned for a single-line send box; a multi-line draft will grow
+        // the box downward past this anchor, which is an accepted visual
+        // approximation (no overlay slot exists on SendBox to attach to).
+        <Button
+          type='text'
+          size='mini'
+          className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px absolute bottom-64px right-12px z-2 pointer-events-auto'
+          onClick={handleAddToQueue}
+          data-testid='sendbox-add-to-queue-btn'
+        >
+          {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
+        </Button>
+      )}
 
-      <div className='relative'>
-        {canQueueCurrentDraft && (
-          // Zero-height overlay: absolutely positioned so it never affects
-          // flow layout (no reflow of ThoughtDisplay/SendBox when it toggles).
-          // ThoughtDisplay tucks a -20px/pb-30px overlap band under itself
-          // (z-1) so the send box's rounded top can cover it while replying —
-          // the negative top offset floats this button in that same band, so
-          // it needs a higher z-index (z-2) to stay above the bar, plus the
-          // send box's own surface color so it reads legibly against the
-          // bar's gradient in both themes.
-          <Button
-            type='text'
-            size='mini'
-            className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px absolute -top-28px right-12px z-2 pointer-events-auto'
-            onClick={handleAddToQueue}
-            data-testid='sendbox-add-to-queue-btn'
-          >
-            {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-          </Button>
-        )}
-
-        <SendBox
-          onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
-          value={content}
-          onChange={handleContentChange}
-          selectedWorkspaceItems={atPath}
-          onSelectedWorkspaceItemsChange={(items) => {
-            emitter.emit('acp.selected.file', items, conversation_id);
-            setAtPath(items);
-          }}
-          loading={teamRuntime?.loading ?? isBusy}
-          active={teamRuntime?.isActive}
-          onFocused={teamRuntime?.onFocus}
-          disabled={false}
-          sendDisabled={!supportsMidturnDelivery && isBusy}
-          placeholder={t('acp.sendbox.placeholder', {
-            backend: agent_name || backend,
-            defaultValue: `Send message to {{backend}}...`,
-          })}
-          onStop={effectiveHandleStop}
-          className='z-10'
-          onFilesAdded={handleFilesAdded}
-          hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
-          enableBtw={isSideQuestionSupported({ type: 'acp', backend })}
-          supportedExts={allSupportedExts}
-          defaultMultiLine={!isMobile}
-          lockMultiLine={!isMobile}
-          tools={
-            <FileAttachButton
-              openFileSelector={openFileSelector}
-              onLocalFilesAdded={handleFilesAdded}
-              loadedMcpStatuses={loadedMcpStatuses}
-            />
-          }
-          rightTools={
-            <div className='flex items-center gap-8px min-w-0'>
-              {showModeSelector && (
-                <AgentModeSelector
-                  backend={backend}
-                  conversation_id={conversation_id}
-                  compact
-                  initialMode={session_mode}
-                  compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-                  modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-                  compactLabelPrefix={t('agentMode.permission')}
-                  hideCompactLabelPrefixOnMobile
-                  onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-                  beforeRuntimeSync={prepareRuntimeConfig}
-                  beforeRuntimeSet={teamPermission?.warmupSession}
-                  loadConfigOptions={teamPermission?.loadConfigOptions}
-                />
-              )}
-            </div>
-          }
-          prefix={
-            <>
-              {uploadFile.length > 0 && (
-                <HorizontalFileList>
-                  {uploadFile.map((path) => (
-                    <FilePreview
-                      key={path}
-                      path={path}
-                      hint={mediaPathHintFor(path)}
-                      onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
-                    />
-                  ))}
-                </HorizontalFileList>
-              )}
-              {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
-                <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                  {atPath.map((item) => {
-                    if (typeof item === 'string') return null;
-                    if (!item.isFile) {
-                      return (
-                        <Tag
-                          key={item.path}
-                          color='blue'
-                          closable
-                          onClose={() => {
-                            const newAtPath = atPath.filter((v) =>
-                              typeof v === 'string' ? true : v.path !== item.path
-                            );
-                            emitter.emit('acp.selected.file', newAtPath, conversation_id);
-                            setAtPath(newAtPath);
-                          }}
-                        >
-                          {item.name}
-                        </Tag>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              )}
-            </>
-          }
-          onSend={onSendHandler}
-          slash_commands={slashCommands}
-          onSlashBuiltinCommand={onSlashBuiltinCommand}
-          allowSendWhileLoading
-          compactActions={false}
-          sendButtonPrefix={
-            // Agents reporting a window size (UsageUpdate.size) get a progress
-            // ring; agents reporting only a token count get a hollow ring whose
-            // popover shows the raw count — never a percentage against a
-            // guessed denominator. No usage report at all → nothing.
-            tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
-          }
-        ></SendBox>
-      </div>
+      <SendBox
+        onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
+        value={content}
+        onChange={handleContentChange}
+        selectedWorkspaceItems={atPath}
+        onSelectedWorkspaceItemsChange={(items) => {
+          emitter.emit('acp.selected.file', items, conversation_id);
+          setAtPath(items);
+        }}
+        loading={teamRuntime?.loading ?? isBusy}
+        active={teamRuntime?.isActive}
+        onFocused={teamRuntime?.onFocus}
+        disabled={false}
+        sendDisabled={!supportsMidturnDelivery && isBusy}
+        placeholder={t('acp.sendbox.placeholder', {
+          backend: agent_name || backend,
+          defaultValue: `Send message to {{backend}}...`,
+        })}
+        onStop={effectiveHandleStop}
+        className='z-10'
+        onFilesAdded={handleFilesAdded}
+        hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
+        enableBtw={isSideQuestionSupported({ type: 'acp', backend })}
+        supportedExts={allSupportedExts}
+        defaultMultiLine={!isMobile}
+        lockMultiLine={!isMobile}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            onLocalFilesAdded={handleFilesAdded}
+            loadedMcpStatuses={loadedMcpStatuses}
+          />
+        }
+        rightTools={
+          <div className='flex items-center gap-8px min-w-0'>
+            {showModeSelector && (
+              <AgentModeSelector
+                backend={backend}
+                conversation_id={conversation_id}
+                compact
+                initialMode={session_mode}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+                beforeRuntimeSync={prepareRuntimeConfig}
+                beforeRuntimeSet={teamPermission?.warmupSession}
+                loadConfigOptions={teamPermission?.loadConfigOptions}
+              />
+            )}
+          </div>
+        }
+        prefix={
+          <>
+            {uploadFile.length > 0 && (
+              <HorizontalFileList>
+                {uploadFile.map((path) => (
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    hint={mediaPathHintFor(path)}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
+                ))}
+              </HorizontalFileList>
+            )}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {atPath.map((item) => {
+                  if (typeof item === 'string') return null;
+                  if (!item.isFile) {
+                    return (
+                      <Tag
+                        key={item.path}
+                        color='blue'
+                        closable
+                        onClose={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
+                          emitter.emit('acp.selected.file', newAtPath, conversation_id);
+                          setAtPath(newAtPath);
+                        }}
+                      >
+                        {item.name}
+                      </Tag>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </>
+        }
+        onSend={onSendHandler}
+        slash_commands={slashCommands}
+        onSlashBuiltinCommand={onSlashBuiltinCommand}
+        allowSendWhileLoading
+        compactActions={false}
+        sendButtonPrefix={
+          // Agents reporting a window size (UsageUpdate.size) get a progress
+          // ring; agents reporting only a token count get a hollow ring whose
+          // popover shows the raw count — never a percentage against a
+          // guessed denominator. No usage report at all → nothing.
+          tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
+        }
+      ></SendBox>
       {isMobile && (
         <>
           <MobileActionSheet
