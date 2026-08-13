@@ -5,6 +5,7 @@ import type { TeamAssistant } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 import { useTeamAssistantOptions } from '../../hooks/useTeamAssistantOptions';
 import { useTeamTabs } from '../../hooks/TeamTabsContext';
 import type { TeamAssistantOption } from '../assistantSelectUtils';
@@ -22,6 +23,7 @@ type Props = {
 const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) => {
   const { t, i18n } = useTranslation();
   const { assistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
+  const { recordUse: recordAssistantUse } = useAssistantSort();
   const { addAssistant, switchTab, assistants: teamMembers = [] } = useTeamTabs();
   const [visible, setVisible] = useState(false);
   const [pendingAssistantId, setPendingAssistantId] = useState<string | undefined>();
@@ -68,6 +70,9 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
       const created: TeamAssistant = await addAssistant(input);
       setVisible(false);
       switchTab(created.slot_id);
+      // Fire-and-forget: usage is a best-effort local preference for the
+      // automatic sort strategies; a failed persist must not block the add.
+      void recordAssistantUse(assistant.id).catch(() => {});
     } catch (error) {
       Message.error(getConversationCreateErrorMessage(error, t));
     } finally {

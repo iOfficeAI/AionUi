@@ -19,6 +19,7 @@
  */
 import { Message } from '@arco-design/web-react';
 import { useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends, resolveAvatarImageSrc } from './assistantUtils';
 import AssistantEditorPage from './AssistantEditorPage';
@@ -68,6 +69,7 @@ const AssistantSettings: React.FC = () => {
     localeKey,
   } = useAssistantList();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  const { sortAssistants, strategy: sortStrategy, setStrategy: setSortStrategy } = useAssistantSort();
   const builtinAvatarOptions = useMemo(
     () =>
       assistants
@@ -230,8 +232,10 @@ const AssistantSettings: React.FC = () => {
           ) : (
             <AssistantHomeTabs
               assistants={assistants}
-              assistantOrder={assistantOrder}
               localeKey={localeKey}
+              sortAssistants={sortAssistants}
+              sortStrategy={sortStrategy}
+              onSortStrategyChange={(strategy) => void setSortStrategy(strategy)}
               initialTab={homeTab}
               onTabChange={setHomeTab}
               onOpenDetail={(assistant) => {

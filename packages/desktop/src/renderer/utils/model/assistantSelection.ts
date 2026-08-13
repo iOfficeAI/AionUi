@@ -48,7 +48,10 @@ const compareLegacyAssistantOrder = (left: Assistant, right: Assistant): number 
  * Return enabled assistants in the user's preferred cross-source order.
  * Stale IDs and duplicates in `preferredOrder` are ignored.
  */
-export const selectableAssistants = (assistants: Assistant[], preferredOrder?: readonly string[]): Assistant[] => {
+export const selectableAssistants = (
+  assistants: readonly Assistant[],
+  preferredOrder?: readonly string[]
+): Assistant[] => {
   const legacyOrdered = assistants
     .filter((assistant) => assistant.enabled !== false)
     .toSorted(compareLegacyAssistantOrder);

@@ -11,6 +11,7 @@ import { ConfigProvider } from '@arco-design/web-react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantSettings from '@/renderer/pages/settings/AssistantSettings';
 import EnabledAssistantsList from '@/renderer/pages/settings/AssistantSettings/home/EnabledAssistantsList';
+import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 
 const useAssistantListMock = vi.fn();
@@ -75,6 +76,10 @@ vi.mock('@/renderer/pages/settings/AssistantSettings/assistantUtils', async () =
     resolveAvatarImageSrc: (avatar?: string) => avatar,
   };
 });
+
+/** Builds a manual `sortAssistants` prop honoring the given preferred order. */
+const manualSort = (order: readonly string[]) => (assistants: readonly unknown[]) =>
+  selectableAssistants(assistants as never, order);
 
 describe('AssistantSettings', () => {
   beforeEach(() => {
@@ -202,7 +207,8 @@ describe('AssistantSettings', () => {
       <ConfigProvider>
         <EnabledAssistantsList
           assistants={assistants}
-          assistantOrder={['official', 'custom', 'cli']}
+          sortAssistants={manualSort(['official', 'custom', 'cli'])}
+          sortStrategy='manual'
           localeKey='en-US'
           searchActive={false}
           onOpenDetail={vi.fn()}
@@ -243,7 +249,8 @@ describe('AssistantSettings', () => {
       <ConfigProvider>
         <EnabledAssistantsList
           assistants={assistants}
-          assistantOrder={[]}
+          sortAssistants={manualSort([])}
+          sortStrategy='manual'
           localeKey='en-US'
           searchActive
           onOpenDetail={vi.fn()}
@@ -277,7 +284,8 @@ describe('AssistantSettings', () => {
       <ConfigProvider>
         <EnabledAssistantsList
           assistants={assistants}
-          assistantOrder={[]}
+          sortAssistants={manualSort([])}
+          sortStrategy='manual'
           localeKey='en-US'
           searchActive={false}
           onOpenDetail={onOpenDetail}
@@ -315,7 +323,8 @@ describe('AssistantSettings', () => {
       <ConfigProvider>
         <EnabledAssistantsList
           assistants={assistants}
-          assistantOrder={[]}
+          sortAssistants={manualSort([])}
+          sortStrategy='manual'
           localeKey='en-US'
           searchActive={false}
           onOpenDetail={vi.fn()}
