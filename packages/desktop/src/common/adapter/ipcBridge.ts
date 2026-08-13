@@ -1083,6 +1083,30 @@ export const acpConversation = {
 };
 
 // ---------------------------------------------------------------------------
+// Agent permission policy — routed to /api/agents/permission-policy/*
+// (OpenCode pilot for iOfficeAI/AionUi#4018)
+// ---------------------------------------------------------------------------
+
+export const permissionPolicy = {
+  /** List all known agents' permission-policy read-models. */
+  list: httpGet<import('@/renderer/utils/model/agentPermissionPolicy').AgentPermissionPolicy[], void>(
+    '/api/agents/permission-policy'
+  ),
+  /** Write-through a permission level to the agent's own config file. */
+  setLevel: httpPut<
+    import('@/renderer/utils/model/agentPermissionPolicy').AgentPermissionPolicy,
+    { agent: string; level: import('@/renderer/utils/model/agentPermissionPolicy').AgentPermissionLevel }
+  >(
+    (p) => `/api/agents/permission-policy/${encodeURIComponent(p.agent)}`,
+    (p) => ({ level: p.level })
+  ),
+  /** Remove the agent-side policy so the agent uses its default behaviour. */
+  clear: httpPost<import('@/renderer/utils/model/agentPermissionPolicy').AgentPermissionPolicy, { agent: string }>(
+    (p) => `/api/agents/permission-policy/${encodeURIComponent(p.agent)}/clear`
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // MCP Service — routed to /api/mcp/*
 // ---------------------------------------------------------------------------
 
