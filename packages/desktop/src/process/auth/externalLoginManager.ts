@@ -110,7 +110,10 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       return;
     }
 
-    const preloadPath = path.join(__dirname, '..', 'preload', 'authPreload.js');
+    // `externalLoginManager.ts` lives under `out/main/chunks/` when bundled
+    // by Vite, so we need `../../` to reach `out/preload/`. The same pattern
+    // is used by `petManager.ts`.
+    const preloadPath = path.join(__dirname, '..', '..', 'preload', 'authPreload.js');
 
     let win: BrowserWindow;
     try {
