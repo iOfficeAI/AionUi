@@ -12,10 +12,9 @@ export const AIPAAS_BASE_URL = 'http://devops.badousoft.com/aipaas-service';
 
 /**
  * External login page URL. The hidden BrowserWindow loads this URL during
- * the external login flow. The deployed external system is at
- * http://localhost:8910/ in this environment.
+ * the external login flow.
  */
-export const EXTERNAL_LOGIN_URL = 'http://localhost:8910/';
+export const EXTERNAL_LOGIN_URL = 'http://devops.badousoft.com/aipaas-front/';
 
 /**
  * Maximum time (ms) we wait for the external page to call
