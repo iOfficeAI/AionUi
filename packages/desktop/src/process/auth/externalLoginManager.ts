@@ -114,6 +114,10 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
     // by Vite, so we need `../../` to reach `out/preload/`. The same pattern
     // is used by `petManager.ts`.
     const preloadPath = path.join(__dirname, '..', '..', 'preload', 'authPreload.js');
+    console.log('[ExternalLogin] preloadPath =', preloadPath);
+    const fs = require('fs') as typeof import('fs');
+    console.log('[ExternalLogin] preload exists =', fs.existsSync(preloadPath));
+    console.log('[ExternalLogin] __dirname =', __dirname);
 
     let win: BrowserWindow;
     try {
