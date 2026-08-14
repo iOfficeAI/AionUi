@@ -23,8 +23,10 @@
     "serverError": "Serverfehler, bitte später erneut versuchen",
     "timeout": "Anmeldung Zeitüberschreitung. Bitte erneut versuchen.",
     "loadFailed": "Anmeldedienst nicht erreichbar. Bitte überprüfen Sie Ihre Netzwerkverbindung.",
+    "invalidCallback": "Anmelde-Callback abgelehnt, bitte erneut versuchen",
     "unknown": "Anmeldung fehlgeschlagen, bitte erneut versuchen"
   },
-  "opening": "Anmeldefenster wird geöffnet...",
+  "opening": "Externe Anmeldeseite wird geöffnet...",
+  "cancel": "Abbrechen",
   "canceled": "Anmeldung abgebrochen"
 }

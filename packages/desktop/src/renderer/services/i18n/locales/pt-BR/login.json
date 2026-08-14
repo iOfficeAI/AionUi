@@ -15,7 +15,8 @@
   "languageToggle": "Mudar idioma",
   "footerPrimary": "Transforme sua IA de linha de comando",
   "footerSecondary": "Moderno e Eficiente",
-  "opening": "Abrindo janela de login...",
+  "opening": "Abrindo a página de login externa...",
+  "cancel": "Cancelar",
   "canceled": "Login cancelado",
   "errors": {
     "empty": "Por favor, insira nome de usuário e senha",
@@ -25,6 +26,7 @@
     "serverError": "Erro no servidor, por favor tente novamente mais tarde",
     "timeout": "O login expirou. Por favor, tente novamente.",
     "loadFailed": "Não foi possível acessar o serviço de login. Verifique sua rede.",
+    "invalidCallback": "Callback de login rejeitado, tente novamente",
     "unknown": "O login falhou, por favor tente novamente"
   }
 }

@@ -23,8 +23,10 @@
     "serverError": "服务器开小差了，请稍后重试",
     "timeout": "登录超时，请重试",
     "loadFailed": "无法访问登录服务，请检查网络",
+    "invalidCallback": "登录回调校验失败，请重试",
     "unknown": "登录失败，请稍后再试"
   },
-  "opening": "正在打开登录窗口...",
+  "opening": "正在打开外部登录页...",
+  "cancel": "取消",
   "canceled": "登录已取消"
 }

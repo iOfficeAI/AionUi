@@ -15,7 +15,8 @@
   "languageToggle": "Changer de langue",
   "footerPrimary": "Transformez votre IA en ligne de commande",
   "footerSecondary": "Moderne et efficace",
-  "opening": "Ouverture de la fenêtre de connexion...",
+  "opening": "Ouverture de la page de connexion externe...",
+  "cancel": "Annuler",
   "canceled": "Connexion annulée",
   "errors": {
     "empty": "Veuillez entrer un nom d'utilisateur et un mot de passe",
@@ -25,6 +26,7 @@
     "serverError": "Erreur serveur, veuillez réessayer plus tard",
     "timeout": "Délai de connexion dépassé. Veuillez réessayer.",
     "loadFailed": "Service de connexion inaccessible. Veuillez vérifier votre réseau.",
+    "invalidCallback": "Rappel de connexion rejeté, veuillez réessayer",
     "unknown": "Échec de connexion, veuillez réessayer"
   }
 }

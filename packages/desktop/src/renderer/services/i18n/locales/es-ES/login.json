@@ -15,7 +15,8 @@
   "languageToggle": "Cambiar idioma",
   "footerPrimary": "Transforma tu IA de línea de comandos",
   "footerSecondary": "Moderno y eficiente",
-  "opening": "Abriendo ventana de inicio de sesión...",
+  "opening": "Abriendo la página externa de inicio de sesión...",
+  "cancel": "Cancelar",
   "canceled": "Inicio de sesión cancelado",
   "errors": {
     "empty": "Ingresa usuario y contraseña",
@@ -25,6 +26,7 @@
     "serverError": "Error del servidor, intenta más tarde",
     "timeout": "Se agotó el tiempo de inicio de sesión. Por favor, inténtelo de nuevo.",
     "loadFailed": "No se puede acceder al servicio de inicio de sesión. Por favor, verifique su red.",
+    "invalidCallback": "Callback de inicio de sesión rechazado, inténtalo de nuevo",
     "unknown": "Error al iniciar sesión, intenta de nuevo"
   }
 }

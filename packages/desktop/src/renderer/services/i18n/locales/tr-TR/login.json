@@ -15,7 +15,8 @@
   "languageToggle": "Dili değiştir",
   "footerPrimary": "Komut satırı AI'nızı dönüştürün",
   "footerSecondary": "Modern ve Verimli",
-  "opening": "Giriş penceresi açılıyor...",
+  "opening": "Harici giriş sayfası açılıyor...",
+  "cancel": "İptal",
   "canceled": "Giriş iptal edildi",
   "errors": {
     "empty": "Lütfen kullanıcı adı ve şifre girin",
@@ -25,6 +26,7 @@
     "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
     "timeout": "Giriş zaman aşımına uğradı. Lütfen tekrar deneyin.",
     "loadFailed": "Giriş hizmetine erişilemiyor. Lütfen ağınızı kontrol edin.",
+    "invalidCallback": "Giriş geri çağrısı reddedildi, lütfen tekrar deneyin",
     "unknown": "Giriş başarısız, lütfen tekrar deneyin"
   }
 }

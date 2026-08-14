@@ -23,8 +23,10 @@
     "serverError": "伺服器發生錯誤，請稍後再試",
     "timeout": "登入逾時，請重試",
     "loadFailed": "無法存取登入服務，請檢查網路",
+    "invalidCallback": "登入回呼驗證失敗，請重試",
     "unknown": "登入失敗，請稍後再試"
   },
-  "opening": "正在開啟登入視窗...",
+  "opening": "正在打開外部登入頁面...",
+  "cancel": "取消",
   "canceled": "登入已取消"
 }
