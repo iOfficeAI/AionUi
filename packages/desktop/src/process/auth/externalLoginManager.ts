@@ -169,7 +169,8 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
     });
 
     win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-      console.log(`[ExternalLogin][webContents:${level}] ${message}`);
+      const tag = level === 2 ? 'error' : level === 3 ? 'warn' : 'log';
+      console.log(`[ExternalLogin][webContents:${tag}] ${message}`);
     });
 
     win.webContents.on('render-process-gone', (_event, details) => {
