@@ -76,9 +76,9 @@ export const handleDeepLinkUrl = (url: string): void => {
   }
 
   // Auth callback is consumed by the main process and forwarded to the
-  // renderer via the dedicated auth emitter. Do not emit `deepLink.received`
-  // for this action — useDeepLink in the renderer would warn and ignore it,
-  // but routing here keeps the contract explicit.
+  // renderer via the dedicated auth emitter. Route it here so the
+  // contract is explicit and `useDeepLink` in the renderer doesn't see
+  // it.
   if (isExternalLoginAction(parsed.action)) {
     const result = handleExternalLoginDeepLink(parsed.params);
     if (!result.ok) {
