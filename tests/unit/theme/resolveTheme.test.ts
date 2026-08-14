@@ -37,6 +37,14 @@ describe('resolveActiveTheme', () => {
   it('falls back to Light when id is empty', () => {
     expect(resolveActiveTheme('', themes).id).toBe(LIGHT_THEME_ID);
   });
+  it('falls back to Light when activeId points at a removed community theme', () => {
+    // Decorative community skins (e.g. hello-kitty, retro-windows) were deprecated and
+    // removed; only Light/Dark remain built in. A persisted activeId still pointing at
+    // one is unknown to the resolver and safely resolves to Light — no crash, no blank UI.
+    const remainingBuiltins = [light, dark];
+    expect(resolveActiveTheme('hello-kitty', remainingBuiltins).id).toBe(LIGHT_THEME_ID);
+    expect(resolveActiveTheme('retro-windows', remainingBuiltins).id).toBe(LIGHT_THEME_ID);
+  });
   it('falls back to first theme when no Light present', () => {
     expect(resolveActiveTheme('nope', [dark, userTheme]).id).toBe(DARK_THEME_ID);
   });

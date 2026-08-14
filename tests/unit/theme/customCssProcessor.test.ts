@@ -4,18 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
 import { parse } from 'postcss';
 import { describe, expect, it } from 'vitest';
 import { addImportantToAll, processCustomCss } from '@/renderer/utils/theme/customCssProcessor';
-
-const presetDir = path.resolve(
-  process.cwd(),
-  'packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets'
-);
-
-const presetFiles = fs.readdirSync(presetDir).filter((f) => f.endsWith('.css'));
 
 /** Collect every rule selector in declaration order. */
 const selectorsOf = (css: string): string[] => {
@@ -96,29 +87,6 @@ describe('addImportantToAll', () => {
     expect(() => addImportantToAll(broken)).not.toThrow();
     expect(typeof addImportantToAll(broken)).toBe('string');
   });
-});
-
-describe('addImportantToAll — real preset regression guard (F1)', () => {
-  it('found preset css files to test', () => {
-    expect(presetFiles.length).toBeGreaterThan(0);
-  });
-
-  for (const file of presetFiles) {
-    it(`does not corrupt any selector in ${file} and marks every declaration !important`, () => {
-      const css = fs.readFileSync(path.join(presetDir, file), 'utf8');
-      const processed = addImportantToAll(css);
-
-      // 1. Output must still be valid CSS (re-parses without throwing).
-      expect(() => parse(processed)).not.toThrow();
-
-      // 2. Selectors must be byte-identical before and after — the direct F1 guard.
-      expect(selectorsOf(processed)).toEqual(selectorsOf(css));
-
-      // 3. Every declaration must be !important in the output.
-      const notImportant = declImportanceOf(processed).filter((d) => d.endsWith(':false'));
-      expect(notImportant).toEqual([]);
-    });
-  }
 });
 
 describe('processCustomCss', () => {
