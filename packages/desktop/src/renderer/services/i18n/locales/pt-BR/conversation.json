@@ -58,6 +58,8 @@
     "exportFailed": "A exportação falhou",
     "pin": "Fixar",
     "unpin": "Desafixar",
+    "markAsUnread": "Marcar como não lida",
+    "markAsRead": "Marcar como lida",
     "pinned": "Fixado",
     "pinFailed": "Falha na operação de fixar",
     "pinnedSection": "Fixados",

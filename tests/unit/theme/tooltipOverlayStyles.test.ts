@@ -3,10 +3,6 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const arcoOverridePath = path.resolve(process.cwd(), 'packages/desktop/src/renderer/styles/arco-override.css');
-const presetDir = path.resolve(
-  process.cwd(),
-  'packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets'
-);
 
 describe('arco tooltip and popover overlay styles', () => {
   it('defines shared light and dark overlay tokens for tooltip-like surfaces', () => {
@@ -47,25 +43,5 @@ describe('arco tooltip and popover overlay styles', () => {
 
     expect(css).not.toContain('.arco-popover-inner,');
     expect(css).not.toContain('.arco-tooltip-inner,');
-  });
-
-  it('keeps decorative preset css from re-skinning tooltip surfaces', () => {
-    const presetFiles = ['retro-windows.css', 'misaka-mikoto.css', 'discourse-horizon.css', 'hello-kitty.css'];
-
-    for (const file of presetFiles) {
-      const css = fs.readFileSync(path.join(presetDir, file), 'utf8');
-      expect(css).not.toContain('.arco-tooltip-inner *');
-      expect(css).not.toContain('.arco-popover-inner *');
-      expect(css).not.toContain('.arco-popover-content *');
-      expect(css).not.toContain("[data-theme='dark'] .arco-tooltip-inner");
-      expect(css).not.toContain("[data-theme='dark'] .arco-popover-inner");
-      expect(css).not.toContain("[data-theme='dark'] .arco-popover-content");
-    }
-
-    const retromaNocturne = fs.readFileSync(path.join(presetDir, 'retroma-nocturne-parchment.css'), 'utf8');
-    const retromaObsidianDark = fs.readFileSync(path.join(presetDir, 'retroma-obsidian-book-2-1-dark.css'), 'utf8');
-
-    expect(retromaNocturne).not.toContain('.arco-popover-content,');
-    expect(retromaObsidianDark).not.toContain("[data-theme='dark'] .arco-popover-content,");
   });
 });

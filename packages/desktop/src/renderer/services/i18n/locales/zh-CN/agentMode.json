@@ -17,5 +17,6 @@
   "permission": "权限",
   "switchMode": "授权模式",
   "switchSuccess": "模式切换成功",
+  "switchPendingNextTurn": "将在下一轮生效",
   "switchFailed": "模式切换失败"
 }

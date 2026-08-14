@@ -62,6 +62,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "未読にする",
+    "markAsRead": "既読にする",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
