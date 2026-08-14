@@ -355,6 +355,7 @@
   "baseUrlHint": "El sistema agregará automáticamente la ruta de solicitud",
   "modelNotFoundAfterUrlChange": "El modelo {{model}} no se encontró en la nueva dirección; vuelve a seleccionarlo si no funciona.",
   "apiKey": "Clave API",
+  "getApiKey": "Obtener clave API",
   "deleteModelConfirm": "¿Estás seguro de que deseas eliminar este modelo?",
   "deleteAllModelConfirm": "¿Estás seguro de que deseas eliminar todos los modelos?",
   "modelCount": "Modelo",

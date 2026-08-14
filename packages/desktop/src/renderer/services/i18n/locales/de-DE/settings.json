@@ -357,6 +357,7 @@
   "baseUrlHint": "System fügt automatisch Anfragepfad an",
   "modelNotFoundAfterUrlChange": "Modell {{model}} wurde unter der neuen Adresse nicht gefunden; wähle es erneut aus, wenn es nicht funktioniert.",
   "apiKey": "API-Schlüssel",
+  "getApiKey": "API-Schlüssel abrufen",
   "deleteModelConfirm": "Bist du sicher, dass du dieses Modell löschen möchtest?",
   "deleteAllModelConfirm": "Bist du sicher, dass du alle Modelle löschen möchtest?",
   "modelCount": "Modell",

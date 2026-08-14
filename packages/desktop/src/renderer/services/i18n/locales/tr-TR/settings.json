@@ -365,6 +365,7 @@
   "baseUrlHint": "Sistem otomatik olarak istek yolunu ekleyecektir",
   "modelNotFoundAfterUrlChange": "{{model}} modeli yeni adreste bulunamadı; çalışmazsa yeniden seçin.",
   "apiKey": "API Anahtarı",
+  "getApiKey": "API Anahtarı Al",
   "deleteModelConfirm": "Bu modeli silmek istediğinizden emin misiniz?",
   "deleteAllModelConfirm": "Tüm modelleri silmek istediğinizden emin misiniz?",
   "modelCount": "Model",
