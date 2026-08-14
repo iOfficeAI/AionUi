@@ -111,12 +111,17 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       return;
     }
 
-    // `externalLoginManager.ts` lives under `out/main/chunks/` when bundled
-    // by Vite, so we need `../../` to reach `out/preload/`. The same pattern
-    // is used by `petManager.ts`.
-    const preloadPath = path.join(__dirname, '..', '..', 'preload', 'authPreload.js');
-    console.log('[ExternalLogin] preloadPath =', preloadPath);
+    // Resolve the preload path. The main bundle lives at:
+    //   - dev: `out/main/index.js`           (__dirname === out/main)
+    //   - prod (chunked): `out/main/chunks/...` (__dirname === out/main/chunks)
+    // In both cases the preload ships at `out/preload/authPreload.js`, so the
+    // relative path differs. Try the more-specific (chunked) location first;
+    // fall back to the dev layout when that file is absent.
     const fs = require('fs') as typeof import('fs');
+    const chunkedPath = path.join(__dirname, '..', '..', 'preload', 'authPreload.js');
+    const devPath = path.join(__dirname, '..', 'preload', 'authPreload.js');
+    const preloadPath = fs.existsSync(chunkedPath) ? chunkedPath : devPath;
+    console.log('[ExternalLogin] preloadPath =', preloadPath);
     console.log('[ExternalLogin] preload exists =', fs.existsSync(preloadPath));
     console.log('[ExternalLogin] __dirname =', __dirname);
 
