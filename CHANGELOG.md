@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.1.56](https://github.com/iOfficeAI/AionUi/compare/v2.1.55...v2.1.56) (2026-08-14)
+
+### Desktop
+
+#### Features
+
+- **sidebar:** allow marking a conversation as unread (#4028)
+- **agent:** show a deferred mode switch as pending instead of switched (#4031)
+
+#### Refactoring
+
+- **theme:** remove deprecated community themes, keep official (#3922)
+
+### Core ([v0.1.67](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.67))
+
+#### Features
+
+- **session:** report a deferred mode switch as pending instead of observed (#846)
+
+#### Bug Fixes
+
+- restore direct CLI Team MCP capabilities (#853)
+
+---
+
 ## [2.1.55](https://github.com/iOfficeAI/AionUi/compare/v2.1.54...v2.1.55) (2026-08-13)
 
 ### Desktop
