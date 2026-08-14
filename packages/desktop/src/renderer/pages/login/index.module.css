@@ -19,3 +19,7 @@
   font-size: 14px;
   color: currentColor;
 }
+
+.cancelButton {
+  margin-top: 8px;
+}
