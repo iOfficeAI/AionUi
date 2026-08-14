@@ -6,6 +6,7 @@
 
 import { BrowserWindow, ipcMain, type WebContents } from 'electron';
 import path from 'path';
+import { ipcBridge } from '@/common';
 import { EXTERNAL_LOGIN_TIMEOUT_MS, EXTERNAL_LOGIN_URL } from '@/renderer/api/config';
 
 const POST_TOKEN_CHANNEL = 'external-login:post-token';
@@ -221,12 +222,24 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
  * Register the IPC handler for `external-login:post-token`. This must be
  * called once during app startup.
  *
+ * Two registrations happen here:
+ *
+ * 1. `ipcBridge.auth.startExternalLogin.provider(...)` — handles the renderer's
+ *    `invoke()` call from LoginPage and returns an ExternalLoginOutcome. This
+ *    is what kicks off the hidden BrowserWindow flow.
+ *
+ * 2. `ipcMain.handle(POST_TOKEN_CHANNEL, ...)` — receives `postToken` calls
+ *    from the preload inside the hidden BrowserWindow, validates the payload,
+ *    and resolves the in-flight Promise started by (1).
+ *
  * Returns `{ received: true }` to the external page on success, or
  * `{ received: false, code: 'payloadInvalid', reason }` on invalid input.
  * The login window is destroyed and the in-flight Promise resolved with
  * the validated payload on success.
  */
 export function registerExternalLoginBridge(): void {
+  ipcBridge.auth.startExternalLogin.provider(() => startExternalLogin());
+
   ipcMain.handle(POST_TOKEN_CHANNEL, async (_event: unknown, payload: unknown) => {
     const parsed = parsePayload(payload);
     if (!parsed.success || !parsed.value) {
