@@ -172,6 +172,14 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       console.log(`[ExternalLogin][webContents:${level}] ${message}`);
     });
 
+    win.webContents.on('render-process-gone', (_event, details) => {
+      console.error('[ExternalLogin] render-process-gone:', details);
+    });
+
+    win.webContents.on('preload-error', (_event, preloadPath, error) => {
+      console.error('[ExternalLogin] preload-error:', preloadPath, error);
+    });
+
     win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       if (settled) return;
       settled = true;
