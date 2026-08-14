@@ -147,11 +147,13 @@ const resolveRuntimeActionAvailability = ({
   warmupDisabled,
   slotWork,
   sessionStopped,
+  fallbackAvailability,
 }: {
-  warmupStatus: AcpWarmupStatus;
+  warmupStatus?: AcpWarmupStatus;
   warmupDisabled: boolean;
   slotWork?: ITeamSlotWork;
   sessionStopped: boolean;
+  fallbackAvailability: TeamContextResetAvailability;
 }): TeamContextResetAvailability => {
   if (sessionStopped || slotWork?.blocked_reason === 'session_stopped') return 'session_stopped';
   if (slotWork?.blocked_reason === 'removing') return 'removing';
@@ -167,7 +169,33 @@ const resolveRuntimeActionAvailability = ({
   ) {
     return 'busy';
   }
-  return warmupStatus === 'ready' ? 'ready' : 'dormant';
+  if (warmupStatus === 'ready') return 'ready';
+  return fallbackAvailability;
+};
+
+const runtimeAvailabilityToWarmupStatus = (availability: TeamContextResetAvailability): AcpWarmupStatus => {
+  switch (availability) {
+    case 'ready':
+    case 'busy':
+      return 'ready';
+    case 'initializing':
+      return 'pending';
+    case 'failed':
+      return 'failed';
+    default:
+      return 'dormant';
+  }
+};
+
+const teamWarmupPhaseAvailability = (phase: TeamWarmupPhase): TeamContextResetAvailability => {
+  switch (phase) {
+    case 'ready':
+      return 'ready';
+    case 'error':
+      return 'failed';
+    case 'warming':
+      return 'initializing';
+  }
 };
 
 const contextResetErrorMessageKey = (error: unknown) => {
@@ -340,8 +368,10 @@ const AssistantChatSlot: React.FC<{
   onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
   onTeamSlotPaused: ReturnType<typeof useTeamRunView>['applyLocalPause'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
-  /** teammate 的真实 warmup 运行态；缺省视为 'dormant'。单聊不传。 */
+  /** Teammate runtime status observed after subscribing to warmup events. */
   warmupStatus?: AcpWarmupStatus;
+  /** Server-derived fallback used when the renderer subscribed after the runtime event. */
+  fallbackAvailability: TeamContextResetAvailability;
   /** 整队 warming 期间为 true —— 此时不下发手动触发器。 */
   warmupDisabled?: boolean;
 }> = ({
@@ -356,8 +386,10 @@ const AssistantChatSlot: React.FC<{
   onTeamSlotPaused,
   onRunStateStale,
   warmupStatus,
+  fallbackAvailability,
   warmupDisabled,
 }) => {
+  const { t } = useTranslation();
   const layout = useLayoutContext();
   const teamPermission = useTeamPermission();
   const isMobile = layout?.isMobile ?? false;
@@ -378,23 +410,19 @@ const AssistantChatSlot: React.FC<{
   // while the whole team is warming so manual wake is gated by phase.
   const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
     () => ({
-      status: warmupStatus ?? 'dormant',
+      status: warmupStatus ?? (warmupDisabled ? 'dormant' : runtimeAvailabilityToWarmupStatus(fallbackAvailability)),
       trigger: warmupDisabled ? undefined : buildTeamRetryStartHandler({ team_id, slot_id: assistant.slot_id }),
     }),
-    [warmupStatus, warmupDisabled, team_id, assistant.slot_id]
+    [warmupStatus, fallbackAvailability, warmupDisabled, team_id, assistant.slot_id]
   );
-  const restartAvailability =
-    warmupDisabled || warmup.status === 'pending'
-      ? 'initializing'
-      : warmup.status === 'ready'
-        ? 'ready'
-        : 'unavailable';
   const runtimeActionAvailability = resolveRuntimeActionAvailability({
-    warmupStatus: warmup.status,
+    warmupStatus,
     warmupDisabled: Boolean(warmupDisabled),
     slotWork: teamRunView.slotWorkBySlot[assistant.slot_id],
     sessionStopped: teamRunView.sessionStopped,
+    fallbackAvailability,
   });
+  const restartDisabled = runtimeActionAvailability !== 'ready';
   const contextResetAvailability =
     assistant.role === 'leader'
       ? 'leader_not_targetable'
@@ -440,7 +468,11 @@ const AssistantChatSlot: React.FC<{
               <AcpRuntimeRestartButton
                 conversation_id={assistant.conversation_id}
                 team={{ team_id, slot_id: assistant.slot_id }}
-                availability={restartAvailability}
+                availability={restartDisabled ? 'initializing' : 'ready'}
+                disabled={restartDisabled}
+                disabledReason={
+                  restartDisabled ? t(contextResetAvailabilityMessageKey(runtimeActionAvailability)) : undefined
+                }
               />
             </div>
           )}
@@ -822,7 +854,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                       onTeamRunAck={teamRun.applyAck}
                       onTeamSlotPaused={teamRun.applyLocalPause}
                       onRunStateStale={teamRun.reconcile}
-                      warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
+                      warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
+                      fallbackAvailability={
+                        isLeaderSlot ? teamWarmupPhaseAvailability(warmupPhase) : assistant.context_reset.availability
+                      }
                       warmupDisabled={isWarmingUp}
                     />
                   </div>
@@ -887,7 +922,12 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                           onTeamRunAck={teamRun.applyAck}
                           onTeamSlotPaused={teamRun.applyLocalPause}
                           onRunStateStale={teamRun.reconcile}
-                          warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status ?? 'dormant'}
+                          warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
+                          fallbackAvailability={
+                            isLeaderSlot
+                              ? teamWarmupPhaseAvailability(warmupPhase)
+                              : assistant.context_reset.availability
+                          }
                           warmupDisabled={isWarmingUp}
                         />
                       </div>

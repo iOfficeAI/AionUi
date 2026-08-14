@@ -9,7 +9,7 @@ import type { TTeam } from '@/common/types/team/teamTypes';
 const {
   getConversationOrNullMock,
   acpSelectorPropsBySlot,
-  restartAvailabilityBySlot,
+  restartPropsBySlot,
   ensureSessionMock,
   teamEventHandlers,
   makeTeamEventChannel,
@@ -32,7 +32,7 @@ const {
   return {
     getConversationOrNullMock: vi.fn(),
     acpSelectorPropsBySlot: new Map<string, { status: string; trigger?: () => Promise<void> }>(),
-    restartAvailabilityBySlot: new Map<string, string>(),
+    restartPropsBySlot: new Map<string, { availability: string; disabled?: boolean; disabledReason?: string }>(),
     ensureSessionMock: vi.fn(async () => undefined),
     teamEventHandlers: handlers,
     makeTeamEventChannel: makeChannel,
@@ -147,8 +147,12 @@ vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
 vi.mock('@/renderer/components/agent/AcpRuntimeRestartButton', () => ({
   __esModule: true,
   useAcpRuntimeRestart: () => ({ restart: restartTeamMemberMock, restarting: false }),
-  default: (props: { conversation_id: string; availability: string }) => {
-    restartAvailabilityBySlot.set(props.conversation_id, props.availability);
+  default: (props: { conversation_id: string; availability: string; disabled?: boolean; disabledReason?: string }) => {
+    restartPropsBySlot.set(props.conversation_id, {
+      availability: props.availability,
+      disabled: props.disabled,
+      disabledReason: props.disabledReason,
+    });
     return <div data-testid={`runtime-restart-${props.conversation_id}`} />;
   },
 }));
@@ -195,7 +199,7 @@ describe('TeamPage teammate warmup wiring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     acpSelectorPropsBySlot.clear();
-    restartAvailabilityBySlot.clear();
+    restartPropsBySlot.clear();
     ensureSessionMock.mockReset();
     resetAgentContextMock.mockReset();
     restartTeamMemberMock.mockReset().mockResolvedValue(undefined);
@@ -261,6 +265,101 @@ describe('TeamPage teammate warmup wiring', () => {
       }
     });
     await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('failed'));
+  });
+
+  it('falls back to the server capability when the ready runtime event was missed', async () => {
+    const user = userEvent.setup();
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('ready'));
+    expect(restartPropsBySlot.get('leader-conv')).toMatchObject({ availability: 'ready', disabled: false });
+
+    await user.click(screen.getByRole('button', { name: 'team.agentActions.label' }));
+    const contextResetTitle = await screen.findByText('team.agentActions.contextReset.title');
+    expect(contextResetTitle.closest('[role="menuitem"]')).not.toHaveClass('arco-dropdown-menu-disabled');
+  });
+
+  it('keeps the leader reconnect visible but disabled after idle cleanup', async () => {
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+    await waitFor(() => expect(restartPropsBySlot.get('leader-conv')?.availability).toBe('ready'));
+
+    act(() => {
+      for (const handler of teamEventHandlers.sessionStatusChanged ?? []) {
+        handler({ team_id: 'team-1', status: 'stopped' });
+      }
+    });
+
+    await waitFor(() => {
+      expect(restartPropsBySlot.get('leader-conv')).toMatchObject({
+        availability: 'initializing',
+        disabled: true,
+        disabledReason: 'team.agentActions.disabled.sessionStopped',
+      });
+    });
+  });
+
+  it('shows the session-stopped reason for teammate actions after idle cleanup', async () => {
+    const user = userEvent.setup();
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('ready'));
+
+    act(() => {
+      for (const handler of teamEventHandlers.sessionStatusChanged ?? []) {
+        handler({ team_id: 'team-1', status: 'stopped' });
+      }
+    });
+    await user.click(screen.getByRole('button', { name: 'team.agentActions.label' }));
+
+    const contextResetTitle = await screen.findByText('team.agentActions.contextReset.title');
+    expect(screen.getAllByText('team.agentActions.disabled.sessionStopped').length).toBeGreaterThan(0);
+    expect(contextResetTitle.closest('[role="menuitem"]')).toHaveClass('arco-dropdown-menu-disabled');
+  });
+
+  it('re-enables the leader reconnect after the idle-cleaned session recovers', async () => {
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+    await waitFor(() => expect(restartPropsBySlot.get('leader-conv')?.availability).toBe('ready'));
+
+    act(() => {
+      for (const handler of teamEventHandlers.sessionStatusChanged ?? []) {
+        handler({ team_id: 'team-1', status: 'stopped' });
+      }
+    });
+    await waitFor(() => expect(restartPropsBySlot.get('leader-conv')?.disabled).toBe(true));
+
+    act(() => {
+      for (const handler of teamEventHandlers.sessionStatusChanged ?? []) {
+        handler({ team_id: 'team-1', status: 'starting' });
+        handler({ team_id: 'team-1', status: 'ready' });
+      }
+    });
+
+    await waitFor(() => {
+      expect(restartPropsBySlot.get('leader-conv')).toMatchObject({ availability: 'ready', disabled: false });
+    });
   });
 
   it('targets the selected teammate through the dedicated context-reset action', async () => {
