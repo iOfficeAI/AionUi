@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.61](https://github.com/suoak/AionUi/compare/v2.1.60...v2.1.61) (2026-08-14)
+
+### Desktop
+
+#### Features
+
+- **agents:** add the DeepSeek Harness Preview integration with provider-driven model selection (#47)
+
+#### 内网更新说明
+
+<!-- internal-release-notes:start -->
+
+**由运营管理部提供**
+
+- 新增 DeepSeek Harness 预览 Agent，可使用已配置的 DeepSeek 服务及其启用模型。
+- 支持在 Agent 设置页显式安装运行组件，并展示安装进度和健康状态。
+- 切换模型时会重建 Agent 内部会话，界面会提前提示相关影响。
+
+<!-- internal-release-notes:end -->
+
+### Core ([v0.1.69](https://github.com/suoak/AionCore/releases/tag/v0.1.69))
+
+#### Features
+
+- **runtime:** add a versioned DeepSeek Harness installer
+- **agents:** add the DeepSeek Harness Preview agent with provider-driven model selection
+- **conversation:** govern large tool output with scoped spill storage
+- **conversation:** add a canonical event journal and replay projection
+
+---
+
 ## [2.1.60](https://github.com/suoak/AionUi/compare/v2.1.59...v2.1.60) (2026-08-11)
 
 ### Desktop
