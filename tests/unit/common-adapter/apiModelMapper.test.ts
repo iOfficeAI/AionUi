@@ -186,6 +186,21 @@ describe('apiModelMapper', () => {
 
       expect('model' in body).toBe(false);
     });
+
+    it('mirrors transient selected session MCP servers into persisted conversation extra', () => {
+      const body = buildCreateConversationBody({
+        name: 'hello',
+        assistant: { id: 'bare:claude' },
+        extra: {
+          selected_session_mcp_servers: [{ id: 'browser-mcp', name: 'aionui-browser' }],
+        },
+      });
+
+      expect(body.extra).toEqual({
+        selected_session_mcp_servers: [{ id: 'browser-mcp', name: 'aionui-browser' }],
+        session_mcp_servers: [{ id: 'browser-mcp', name: 'aionui-browser' }],
+      });
+    });
   });
 
   describe('fromApiModel', () => {

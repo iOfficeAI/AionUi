@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
@@ -65,6 +66,15 @@ export type GuidSendResult = {
   isButtonDisabled: boolean;
 };
 
+const appendBuiltinBrowserMcp = (servers: ReturnType<typeof toSessionMcpServer>[], catalog: IMcpServer[]) => {
+  const browserMcp = catalog.find(
+    (server) => server.name === BUILTIN_BROWSER_MCP_NAME && server.builtin === true && server.enabled === true
+  );
+  if (!browserMcp || servers.some((server) => server.id === browserMcp.id)) return servers;
+
+  return [...servers, toSessionMcpServer(browserMcp)];
+};
+
 /**
  * Hook that manages the send logic for ACP and Aion CLI conversations.
  */
@@ -119,12 +129,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const selectedUserMcpServerIds = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin !== true)
       .map((server) => server.id);
-    const selectedAllSessionMcpServers = availableMcpServers
-      .filter((server) => selectedMcpServerIdSet.has(server.id))
-      .map((server) => toSessionMcpServer(server));
-    const selectedSessionMcpServers = availableMcpServers
-      .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
-      .map((server) => toSessionMcpServer(server));
+    const selectedAllSessionMcpServers = appendBuiltinBrowserMcp(
+      availableMcpServers.filter((server) => selectedMcpServerIdSet.has(server.id)).map(toSessionMcpServer),
+      availableMcpServers
+    );
+    const selectedSessionMcpServers = appendBuiltinBrowserMcp(
+      availableMcpServers
+        .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
+        .map(toSessionMcpServer),
+      availableMcpServers
+    );
     const defaultSelectedMcpServerIds = assistantDefaultMcpIds;
     const defaultSelectedUserMcpServerIds = availableMcpServers
       .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id) && server.builtin !== true)
@@ -133,12 +147,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       selectedMcpServerIds !== undefined ? selectedAllMcpServerIds : defaultSelectedMcpServerIds;
     const selectedUserMcpServerIdsToSend =
       selectedMcpServerIds !== undefined ? selectedUserMcpServerIds : defaultSelectedUserMcpServerIds;
-    const selectedSessionMcpServersToSend =
+    const selectedSessionMcpServersToSend = appendBuiltinBrowserMcp(
       selectedMcpServerIds !== undefined
         ? selectedAllSessionMcpServers
         : availableMcpServers
             .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
-            .map((server) => toSessionMcpServer(server));
+            .map(toSessionMcpServer),
+      availableMcpServers
+    );
 
     // `current_model` is the aionrs provider selection and means nothing to a
     // CLI agent, which owns its own model list. Used as a blanket fallback it

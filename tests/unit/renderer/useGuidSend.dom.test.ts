@@ -7,6 +7,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMcpServer } from '@/common/config/storage';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 import { useGuidSend, type GuidSendDeps } from '@/renderer/pages/guid/hooks/useGuidSend';
 
 const createConversationInvokeMock = vi.fn();
@@ -85,7 +86,7 @@ describe('useGuidSend', () => {
 
   it('passes selected mode into assistant conversation overrides when creating a preset ACP conversation', async () => {
     const deps = createDeps();
-    (deps as any).selectedThoughtLevelValue = 'high';
+    deps.selectedThoughtLevelValue = 'high';
 
     const { result } = renderHook(() => useGuidSend(deps));
 
@@ -153,6 +154,28 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.mcp_ids).toEqual(['mcp-user', 'builtin-mcp']);
     expect(payload.extra.selected_mcp_server_ids).toEqual(['mcp-user']);
     expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'builtin-mcp' })]);
+  });
+
+  it('automatically sends the enabled built-in browser MCP to new conversations', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      {
+        id: 'browser-mcp',
+        name: BUILTIN_BROWSER_MCP_NAME,
+        enabled: true,
+        builtin: true,
+      } as IMcpServer,
+    ];
+    deps.selectedMcpServerIds = [];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'browser-mcp' })]);
   });
 
   it('does not write legacy preset_assistant_id for preset assistant sends', async () => {

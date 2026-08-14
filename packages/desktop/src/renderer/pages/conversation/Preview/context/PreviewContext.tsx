@@ -357,6 +357,16 @@ const isLegacyTruncatedTab = (tab: PreviewTab): boolean => {
   return legacyMetadata?.truncated === true;
 };
 
+const normalizePersistedTab = (tab: PreviewTab): PreviewTab => {
+  return Object.assign({}, tab, {
+    originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
+    // 按存储时的状态恢复未保存标记；此处强制设为 `false` 会让恢复后的未保存修改被误认为已保存。
+    // Restore the unsaved state as it was stored. Forcing `false` here is what
+    // made a restored unsaved edit look saved.
+    isDirty: tab.isDirty === true,
+  });
+};
+
 const parsePersistedTabs = (value: unknown): PreviewTab[] => {
   if (!Array.isArray(value)) return [];
 
@@ -393,13 +403,7 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
       // since writing goes through the ref. Keeping a tab that can neither dedup nor
       // save only postpones the confusion.
       .filter((tab) => !tab.metadata?.fileRef || isChatFileRef(tab.metadata.fileRef))
-      .map((tab) => ({
-        ...tab,
-        originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-        // Restore the unsaved state as it was stored. Forcing `false` here is what
-        // made a restored unsaved edit look saved.
-        isDirty: tab.isDirty === true,
-      }))
+      .map(normalizePersistedTab)
   );
 };
 
@@ -783,10 +787,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // new tab so changes aren't lost.
       const replaceTarget = (() => {
         if (existingTab || !options?.replace) return null;
-        const activeTab = activeTabIdRef.current
+        const activePreviewTab = activeTabIdRef.current
           ? currentTabs.find((tab) => tab.id === activeTabIdRef.current)
           : undefined;
-        return activeTab && !activeTab.isDirty ? activeTab : null;
+        return activePreviewTab && !activePreviewTab.isDirty ? activePreviewTab : null;
       })();
 
       // 上限触发时被复用的最旧浏览器 tab / Oldest browser tab reused at the cap
@@ -1321,6 +1325,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const unsubscribe = stream.on((message) => {
       if (isBrowserMcpActivity(message.type, message.data)) {
+        if (!tabsRef.current.some((tab) => tab.content_type === 'browser')) {
+          openBrowserTab();
+        } else {
+          setIsOpen(true);
+          const browserTab = tabsRef.current.find((tab) => tab.content_type === 'browser');
+          if (browserTab) setActiveTabId(browserTab.id);
+        }
         markBrowserTabs(true);
         maybeNotifyFirstAgentBrowserUse();
         return;
@@ -1331,7 +1342,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     return unsubscribe;
-  }, []);
+  }, [openBrowserTab]);
 
   const previewContextValue = useMemo(() => {
     return {

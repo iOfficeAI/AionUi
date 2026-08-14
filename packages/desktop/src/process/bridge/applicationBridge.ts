@@ -237,10 +237,14 @@ export function initApplicationBridge(): void {
      * rather than all ten at once.
      */
     try {
+      console.info('[CDP] Browser webContents registration received', { webContentsId });
       const handle = getCdpBridgeHandle();
       if (!handle) return { success: false, msg: 'Agent browser control is not enabled.' };
       const result = handle.attach(webContentsId);
-      if (result.ok === false) return { success: false, msg: result.reason };
+      if (result.ok === false) {
+        console.warn('[CDP] Browser webContents registration rejected', { webContentsId, reason: result.reason });
+        return { success: false, msg: result.reason };
+      }
       return { success: true };
     } catch (e) {
       return { success: false, msg: e instanceof Error ? e.message : String(e) };

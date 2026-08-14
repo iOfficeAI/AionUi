@@ -55,19 +55,25 @@ const readBridgeEnv = async (electronApp: ElectronApplication): Promise<BridgeEn
   const deadline = Date.now() + 30_000;
   let latest = await readOnce();
   while ((latest.port === null || !latest.token) && Date.now() < deadline) {
+    // 轮询依赖上一次读取结果，因此必须串行等待。
+    // oxlint-disable-next-line eslint(no-await-in-loop) -- polling depends on the previous read.
     await new Promise((resolve) => setTimeout(resolve, 500));
+    // 轮询依赖上一次读取结果，因此必须串行等待。
+    // oxlint-disable-next-line eslint(no-await-in-loop) -- polling depends on the previous read.
     latest = await readOnce();
   }
   return latest;
 };
 
+type HttpResponse = { statusCode: number; body: string };
+
 /** GET a path off the bridge from this process; null when nothing is listening. */
-const httpGetFromTestProcess = (port: number, path: string): Promise<string | null> =>
+const httpGetFromTestProcess = (port: number, path: string): Promise<HttpResponse | null> =>
   new Promise((resolve) => {
-    const req = http.get({ host: '127.0.0.1', port, path, timeout: 5_000 }, (res) => {
+    const req = http.get({ host: '127.0.0.1', port, path, timeout: 15_000 }, (res) => {
       let body = '';
       res.on('data', (chunk) => (body += String(chunk)));
-      res.on('end', () => resolve(body));
+      res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body }));
     });
     req.on('error', () => resolve(null));
     req.on('timeout', () => {
@@ -161,6 +167,8 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
     const deadline = Date.now() + 30_000;
     let inherited = readOurAioncoreEnv();
     while (inherited === null && Date.now() < deadline) {
+      // 轮询依赖上一次读取结果，因此必须串行等待。
+      // oxlint-disable-next-line eslint(no-await-in-loop) -- polling depends on the previous read.
       await new Promise((resolve) => setTimeout(resolve, 500));
       inherited = readOurAioncoreEnv();
     }
@@ -195,7 +203,7 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
     if (legacyBody === null) return; // Nothing listening at all — the strongest outcome.
 
     // Something answered, but it must not be this app's bridge or targets.
-    expect(legacyBody).not.toContain(SINGLE_TARGET_ID);
+    expect(legacyBody.body).not.toContain(SINGLE_TARGET_ID);
 
     /**
      * And it must not be *our* renderer. Chromium's app-wide endpoint lists targets by URL,
@@ -208,27 +216,46 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
       return win?.webContents.getURL() ?? null;
     });
     if (ourRendererUrl) {
-      expect(legacyBody).not.toContain(ourRendererUrl);
+      expect(legacyBody.body).not.toContain(ourRendererUrl);
     }
   });
 
-  test('advertises exactly one page target over discovery', async ({ electronApp }) => {
+  test('does not advertise a page until the browser webview has attached', async ({ electronApp, page }) => {
     const { port } = await readBridgeEnv(electronApp);
     expect(port).not.toBeNull();
+
+    await page.evaluate(() => {
+      type BrowserOpenEventWindow = Window & {
+        __e2eBrowserOpenEvents?: unknown[];
+        electronAPI?: { on: (callback: (event: { value: unknown }) => void) => void };
+      };
+      const target = window as BrowserOpenEventWindow;
+      target.__e2eBrowserOpenEvents = [];
+      target.electronAPI?.on(({ value }) => {
+        const event = JSON.parse(String(value)) as { name?: unknown; data?: unknown };
+        if (event.name === 'preview.open') target.__e2eBrowserOpenEvents?.push(event.data);
+      });
+    });
 
     const body = await httpGetFromTestProcess(port as number, '/json/list');
     expect(body).not.toBeNull();
 
-    const targets = JSON.parse(body as string) as Array<{ type: string; webSocketDebuggerUrl: string }>;
-    // Exactly one: puppeteer must never be handed a second target to choose from.
-    expect(targets).toHaveLength(1);
-    expect(targets[0].type).toBe('page');
-    /**
-     * Discovery hands back a tokened ws address. That is how the token reaches puppeteer,
-     * which cannot carry a query string on browserURL itself — `new URL(path, base)` drops
-     * it when the path is absolute.
-     */
-    expect(targets[0].webSocketDebuggerUrl).toContain('token=');
+    // 启动页没有项目预览区，所以浏览器 webview 无法挂载。这里返回虚构的 about:blank
+    // target 会让 puppeteer 在没有可控制页面的情况下继续，造成该桥接层要避免的空白 tab 问题。
+    // The startup page has no project preview region, so no browser webview can mount.
+    // Returning an invented about:blank target here lets puppeteer proceed without a
+    // controllable page and creates the blank-tab failure this bridge is meant to avoid.
+    expect(body?.statusCode).toBe(503);
+    expect(body?.body).toMatch(/not currently attached/i);
+
+    // 发现请求仍须要求渲染进程创建浏览器 tab；在对话页中，该 tab 就绪上报后浏览器
+    // target 才可用。
+    // Discovery must still request that the renderer creates a browser tab. In a
+    // conversation the browser target becomes available after that tab reports ready.
+    const browserOpenEvents = await page.evaluate(() => {
+      return (window as Window & { __e2eBrowserOpenEvents?: unknown[] }).__e2eBrowserOpenEvents ?? [];
+    });
+    expect(browserOpenEvents).toContainEqual({ content: 'about:blank', content_type: 'browser' });
   });
 
   test('refuses a WebSocket upgrade without a valid token', async ({ electronApp }) => {

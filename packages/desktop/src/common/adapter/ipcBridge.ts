@@ -594,8 +594,11 @@ export const application = {
    * The renderer reports the in-app browser webview's webContents id so the single-target
    * CDP bridge can attach to it. It must come from the renderer because the webview handle
    * only exists there (webviewRef); main cannot otherwise tell which WebContents is the
-   * in-app browser. Main validates getType() === 'webview', so even a misused call cannot
-   * attach to the main window.
+   * 主进程同时校验 getType() === 'webview' 和浏览器专用 session partition，因此误用
+   * 此通道也无法附加到主窗口或其他预览页。
+   *
+   * Main validates both getType() === 'webview' and the browser session
+   * partition, so even a misused call cannot attach to the main window or another preview.
    */
   reportBrowserWebContentsId: bridge.buildProvider<IBridgeResponse<void>, { webContentsId: number }>(
     'app.report-browser-webcontents-id'
@@ -1283,7 +1286,7 @@ export const database = {
 
 // Preview panel
 export const preview = {
-  open: wsEmitter<{
+  open: bridge.buildEmitter<{
     content: string;
     content_type: import('../types/office/preview').PreviewContentType;
     metadata?: {

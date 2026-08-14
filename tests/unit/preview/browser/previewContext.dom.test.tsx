@@ -18,12 +18,24 @@
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
+
+let responseStreamHandler: ((message: { type: string; data: unknown }) => void) | undefined;
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     fileStream: { contentUpdate: { on: () => () => {} } },
     preview: { open: { on: () => () => {} } },
-    conversation: { responseStream: { on: () => () => {} } },
+    conversation: {
+      responseStream: {
+        on: (handler: (message: { type: string; data: unknown }) => void) => {
+          responseStreamHandler = handler;
+          return () => {
+            responseStreamHandler = undefined;
+          };
+        },
+      },
+    },
     fs: { getFileContent: { invoke: vi.fn() }, writeFile: { invoke: vi.fn() } },
   },
 }));
@@ -54,12 +66,47 @@ const renderProvider = () =>
   );
 
 const browserTabs = () => ctx.tabs.filter((tab) => tab.content_type === 'browser');
+const readScope = (scope: string) => JSON.parse(localStorage.getItem(`preview-ui:${scope}`) ?? '{}');
 
 beforeEach(() => {
   localStorage.clear();
+  responseStreamHandler = undefined;
 });
 
 describe('PreviewContext browser tabs', () => {
+  it('opens a browser tab when the agent starts using the browser MCP', () => {
+    renderProvider();
+
+    act(() => {
+      responseStreamHandler?.({
+        type: 'tool_group',
+        data: [{ name: `${BUILTIN_BROWSER_MCP_NAME}__navigate_page`, status: 'Executing' }],
+      });
+    });
+
+    expect(browserTabs()).toHaveLength(1);
+    expect(browserTabs()[0].content).toBe('about:blank');
+    expect(browserTabs()[0].metadata?.agentActive).toBe(true);
+    expect(ctx.isOpen).toBe(true);
+  });
+
+  it('focuses an existing browser tab when the agent resumes browser control', () => {
+    renderProvider();
+    act(() => ctx.openBrowserTab('https://example.com'));
+    const browserTabId = browserTabs()[0].id;
+    act(() => ctx.openPreview('const value = 1;', 'code', { file_name: 'example.ts' }));
+    expect(ctx.activeTabId).not.toBe(browserTabId);
+
+    act(() => {
+      responseStreamHandler?.({
+        type: 'tool_group',
+        data: [{ name: `${BUILTIN_BROWSER_MCP_NAME}__navigate_page`, status: 'Executing' }],
+      });
+    });
+
+    expect(ctx.activeTabId).toBe(browserTabId);
+  });
+
   it('opens a blank browser tab with the placeholder title', () => {
     renderProvider();
     act(() => ctx.openBrowserTab());
@@ -136,8 +183,6 @@ describe('PreviewContext browser tabs', () => {
 });
 
 describe('PreviewContext browser tab persistence', () => {
-  const readScope = (scope: string) => JSON.parse(localStorage.getItem(`preview-ui:${scope}`) ?? '{}');
-
   it('persists browser tabs per project so switching projects restores the right pages', async () => {
     renderProvider();
     act(() => ctx.closePreviewIfScopeChanged('project-a'));
