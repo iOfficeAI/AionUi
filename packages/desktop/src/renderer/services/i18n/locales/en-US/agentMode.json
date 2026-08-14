@@ -17,5 +17,6 @@
   "permission": "Permission",
   "switchMode": "Permission Mode",
   "switchSuccess": "Mode switched successfully",
+  "switchPendingNextTurn": "Takes effect on the next turn",
   "switchFailed": "Failed to switch mode"
 }

@@ -17,5 +17,6 @@
   "permission": "Разрешение",
   "switchMode": "Режим разрешений",
   "switchSuccess": "Режим успешно сменён",
+  "switchPendingNextTurn": "Вступит в силу со следующего хода",
   "switchFailed": "Не удалось сменить режим"
 }

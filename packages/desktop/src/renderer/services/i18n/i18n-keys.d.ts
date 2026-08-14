@@ -76,6 +76,7 @@ export type I18nKey =
   | 'agentMode.smart'
   | 'agentMode.switchFailed'
   | 'agentMode.switchMode'
+  | 'agentMode.switchPendingNextTurn'
   | 'agentMode.switchSuccess'
   | 'agentMode.yolo'
   | 'agentMode.yoloNoSandbox'
