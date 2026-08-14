@@ -163,7 +163,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
       isGenerating: isConversationGenerating(conversation.id),
-      hasCompletionUnread: hasCompletionUnread(conversation.id) || isManualUnread(conversation.id),
+      hasUnread: hasCompletionUnread(conversation.id) || isManualUnread(conversation.id),
       isManualUnread: isManualUnread(conversation.id),
       collapsed,
       tooltipEnabled,

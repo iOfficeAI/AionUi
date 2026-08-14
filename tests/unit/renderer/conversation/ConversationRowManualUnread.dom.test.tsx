@@ -54,7 +54,7 @@ const conversation = {
 const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationRowProps => ({
   conversation,
   isGenerating: false,
-  hasCompletionUnread: false,
+  hasUnread: false,
   isManualUnread: false,
   collapsed: false,
   tooltipEnabled: false,

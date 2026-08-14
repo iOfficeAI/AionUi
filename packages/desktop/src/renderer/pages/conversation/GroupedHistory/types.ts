@@ -44,7 +44,7 @@ export type ExportTask =
 export type ConversationRowProps = {
   conversation: TChatConversation;
   isGenerating: boolean;
-  hasCompletionUnread: boolean;
+  hasUnread: boolean;
   /** Whether the user manually marked this conversation as unread (persisted). */
   isManualUnread: boolean;
   collapsed: boolean;
