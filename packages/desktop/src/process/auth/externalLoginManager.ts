@@ -173,6 +173,38 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       console.log(`[ExternalLogin][webContents:${tag}] ${message}`);
     });
 
+    // After each main-frame load, hook console.error in the external page so
+    // single-spa / qiankun error stacks come through with full arguments
+    // (Electron's console-message event only delivers the first arg).
+    const hookConsole = () => {
+      win.webContents
+        .executeJavaScript(
+          `
+          (function() {
+            if (window.__aionuiErrorHooked) return;
+            window.__aionuiErrorHooked = true;
+            const origError = console.error;
+            console.error = function() {
+              try {
+                const parts = Array.from(arguments).map((a) => {
+                  if (a instanceof Error) return a.stack || a.message;
+                  if (typeof a === 'object') {
+                    try { return JSON.stringify(a); } catch (_) { return String(a); }
+                  }
+                  return String(a);
+                });
+                // Use console.log (which Electron forwards) instead of console.error
+                console.log('[aionui-hook] ' + parts.join(' | '));
+              } catch (e) {}
+              return origError.apply(console, arguments);
+            };
+          })();
+          `
+        )
+        .catch(() => {});
+    };
+    win.webContents.on('did-finish-load', hookConsole);
+
     win.webContents.on('render-process-gone', (_event, details) => {
       console.error('[ExternalLogin] render-process-gone:', details);
     });
