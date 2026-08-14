@@ -195,6 +195,17 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       } satisfies ExternalLoginError);
     });
 
+    win.webContents.session.webRequest.onErrorOccurred((details) => {
+      console.log('[ExternalLogin] webRequest error:', details.error, details.url?.slice(0, 120));
+    });
+
+    win.webContents.session.webRequest.onCompleted((details) => {
+      const url = details.url.slice(0, 120);
+      if (details.statusCode >= 400) {
+        console.log(`[ExternalLogin] webRequest ${details.statusCode}: ${url}`);
+      }
+    });
+
     win.on('closed', () => {
       if (settled) return;
       settled = true;
