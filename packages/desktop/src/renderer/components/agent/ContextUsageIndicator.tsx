@@ -196,7 +196,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
  */
 export function formatCostAmount(cost: TokenUsageCost): string {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: cost.currency,
       maximumFractionDigits: 4,
