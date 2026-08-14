@@ -15,12 +15,10 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    console.log('[LoginPage] mount, calling startExternalLogin');
 
     (async () => {
       try {
         const result: ExternalLoginOutcome = await ipcBridge.auth.startExternalLogin.invoke();
-        console.log('[LoginPage] startExternalLogin resolved', result);
         if (!active) return;
         if (result.success) {
           completeExternalLogin(result.token, { id: result.user.id, username: result.user.username });
@@ -30,7 +28,6 @@ const LoginPage: React.FC = () => {
           setErrorMessage(errorResult.message ?? t('login.errors.unknown'));
         }
       } catch (err) {
-        console.log('[LoginPage] startExternalLogin rejected', err);
         if (!active) return;
         setErrorMessage((err as Error).message ?? t('login.errors.unknown'));
       }

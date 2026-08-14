@@ -121,9 +121,6 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
     const chunkedPath = path.join(__dirname, '..', '..', 'preload', 'authPreload.js');
     const devPath = path.join(__dirname, '..', 'preload', 'authPreload.js');
     const preloadPath = fs.existsSync(chunkedPath) ? chunkedPath : devPath;
-    console.log('[ExternalLogin] preloadPath =', preloadPath);
-    console.log('[ExternalLogin] preload exists =', fs.existsSync(preloadPath));
-    console.log('[ExternalLogin] __dirname =', __dirname);
 
     let win: BrowserWindow;
     try {
@@ -135,9 +132,7 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
           preload: preloadPath,
           contextIsolation: true,
           nodeIntegration: false,
-          // sandbox: true — would be ideal but currently breaks preload injection
-          // on this Electron build; revisit once the upstream bug is fixed.
-          sandbox: false,
+          sandbox: true,
           webSecurity: true,
         },
       });
@@ -169,10 +164,6 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       win.webContents.removeAllListeners('did-fail-load');
     };
 
-    win.webContents.on('did-start-navigation', (_event, url, isInPlace, isMainFrame) => {
-      console.log('[ExternalLogin] did-start-navigation:', url, 'mainFrame=', isMainFrame);
-    });
-
     win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       if (settled) return;
       settled = true;
@@ -185,14 +176,6 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
         message: `${errorCode} ${errorDescription}`,
         url: validatedURL,
       } satisfies ExternalLoginError);
-    });
-
-    win.webContents.on('preload-error', (_event, preloadPathErr, error) => {
-      console.error('[ExternalLogin] preload-error:', preloadPathErr, error);
-    });
-
-    win.webContents.on('console-message', (_event, level, message) => {
-      console.log(`[ExternalLogin][webContents:${level}] ${message}`);
     });
 
     win.on('closed', () => {
