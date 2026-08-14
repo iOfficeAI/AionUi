@@ -1174,6 +1174,14 @@
     "callbackRecommendation": "Öneri: sertifikalı ters proxy kullanın veya Cloudflare Tunnel / ngrok ile bu makineye yönlendirin."
   },
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "Yerel Ajanlar",
     "remoteAgents": "Uzak Ajanlar",
     "localAgentsDescription": "Bu cihazda kullanılabilen yapay zekâ kodlama aracılarını yönetin. CSBU WorkMate yerleşiktir ve uygulamayla birlikte gelir — kuruluma gerek yoktur; diğer aracılar yalnızca CLI’leri yerel olarak kurulduktan sonra algılanır.",
@@ -1221,6 +1229,7 @@
     "customEmpty": "Henüz özel ajan yok.",
     "customEmptyDescription": "Özel ajanlar ACP desteği gerektirir.",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
       "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",

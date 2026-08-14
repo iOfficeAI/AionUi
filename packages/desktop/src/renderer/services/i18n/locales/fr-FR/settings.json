@@ -1186,6 +1186,14 @@
     "callbackRecommendation": "Recommandation : utilisez un proxy inverse avec un certificat, ou mappez-le à cette machine avec Cloudflare Tunnel / ngrok."
   },
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "Agents locaux",
     "remoteAgents": "Agents distants",
     "localAgentsDescription": "Gemini CLI est intégré. Les autres agents sont auto-détectés après installation locale.",
@@ -1233,6 +1241,7 @@
     "customEmpty": "Aucun agent personnalisé configuré. Cliquez sur \"Ajouter un agent personnalisé\" pour en créer un.",
     "customEmptyDescription": "Les agents personnalisés doivent prendre en charge ACP.",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "Installez {{command}} et réessayez le test de connexion.",
       "acp_init_failed": "La CLI a démarré mais a échoué lors de l'initialisation. Terminez la connexion ou la première exécution, puis réessayez le test de connexion.",
       "health_check_failed": "Ouvrez {{name}} une fois pour terminer la configuration ou vous connecter, puis réessayez le test de connexion.",

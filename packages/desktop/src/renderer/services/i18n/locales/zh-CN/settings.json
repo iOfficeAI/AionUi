@@ -1187,6 +1187,14 @@
   },
   "addAssistant": "添加助手",
   "agentManagement": {
+    "preview": "预览",
+    "previewTitle": "DeepSeek Harness 预览版",
+    "installAndCheck": "安装并检测",
+    "runtimeInstalling": "安装中 {{progress}}%",
+    "runtimeInstallFailed": "Runtime 安装失败，请在 Agent 设置中重试。",
+    "deepseekHarnessLimitations": "首版暂不支持 Resume、Fork、Team、MCP 和多模态。workspace-write 只限制文件写入，不提供网络隔离或完整读取隔离。",
+    "modelRebuildTitle": "切换模型并重启 Agent？",
+    "modelRebuildDescription": "当前会话记录会保留，但 Agent 内部上下文将在新进程中重新开始。",
     "localAgents": "本地 Agents",
     "remoteAgents": "远端 Agents",
     "localAgentsDescription": "管理本机可用的 AI 编程 Agent。CSBU WorkMate 为内置，App 自带、无需安装；其它 Agent 需先在本地安装对应 CLI 才能被识别。",
@@ -1236,6 +1244,7 @@
     "customEmpty": "暂无自定义 Agent",
     "customEmptyDescription": "自定义 Agent 需要支持 ACP 协议。",
     "errorCodes": {
+      "no_model": "请为默认 DeepSeek Provider 至少启用一个模型，然后重新检测连接。",
       "command_not_found": "请安装 {{command}}，然后重新测试连接。",
       "acp_init_failed": "CLI 已启动，但初始化失败。请先完成登录或首次设置，然后重新测试连接。",
       "health_check_failed": "请先手动打开一次 {{name}} 完成设置或登录，然后重新测试连接。",

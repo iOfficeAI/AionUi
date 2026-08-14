@@ -13,13 +13,13 @@ import React from 'react';
 const COPY: Record<string, string> = {
   'common.backendStartup.pendingSlow.title': 'Starting up',
   'common.backendStartup.pendingSlow.description':
-    "AionCore is starting up, please wait. If it doesn't respond after a while, you can quit and reopen the app.",
+    "CSBU WorkMate backend is starting up, please wait. If it doesn't respond after a while, you can quit and reopen the app.",
   'common.backendStartup.exited.title': "Startup didn't complete",
   'common.backendStartup.exited.description':
-    'AionCore could not finish starting and has exited. Please restart the app; if this keeps happening, please send diagnostics.',
+    "CSBU WorkMate backend couldn't finish starting and has exited. Please restart the app; if this keeps happening, please send diagnostics.",
   'common.backendStartup.exited.sendDiagnostics': 'Send diagnostics',
   'common.backendStartup.incompleteInstallation.description':
-    'Your installation is missing required local resources. Please download and reinstall the latest CSBU WorkMate; if it persists after reinstalling, check whether antivirus quarantined AionCore.',
+    'Your installation is missing required local resources. Please download and reinstall the latest CSBU WorkMate; if it persists after reinstalling, check whether antivirus quarantined CSBU WorkMate backend.',
 };
 
 vi.mock('react-i18next', () => ({
@@ -35,7 +35,7 @@ vi.mock('@/renderer/services/feedback/submitFeedbackReport', () => ({
   submitFeedbackReport: vi.fn().mockResolvedValue(undefined),
 }));
 
-const FORBIDDEN_PHRASES = ['missing required local resources', 'reinstall', 'antivirus', 'quarantine'];
+const FORBIDDEN_PHRASES = ['AionCore', 'missing required local resources', 'reinstall', 'antivirus', 'quarantine'];
 
 import BackendStartingView from '@/renderer/components/layout/BackendStartingView';
 import {

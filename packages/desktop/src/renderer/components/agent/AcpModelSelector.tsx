@@ -9,7 +9,7 @@ import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Modal, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -112,6 +112,23 @@ const AcpModelSelector: React.FC<{
     [isRuntimeSetting, setConfigOption, thoughtLevel, t]
   );
   const tooltipContent = combinedLabel;
+  const handleModelSelect = useCallback(
+    (modelId: string) => {
+      if (modelId === model_info?.current_model_id) return;
+      if (backend !== 'deepseek-harness') {
+        void selectModel(modelId);
+        return;
+      }
+      Modal.confirm({
+        title: t('settings.agentManagement.modelRebuildTitle'),
+        content: t('settings.agentManagement.modelRebuildDescription'),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        onOk: () => selectModel(modelId),
+      });
+    },
+    [backend, model_info?.current_model_id, selectModel, t]
+  );
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
@@ -209,7 +226,7 @@ const AcpModelSelector: React.FC<{
                   models={model_info.available_models}
                   currentModelId={model_info.current_model_id}
                   disabled={isRuntimeSetting}
-                  onSelect={selectModel}
+                  onSelect={handleModelSelect}
                 />
               </Menu.SubMenu>
               <Menu.SubMenu
@@ -246,7 +263,7 @@ const AcpModelSelector: React.FC<{
               models={model_info.available_models}
               currentModelId={model_info.current_model_id}
               disabled={isRuntimeSetting}
-              onSelect={selectModel}
+              onSelect={handleModelSelect}
             />
           )}
         </Menu>

@@ -45,6 +45,20 @@ export type AgentSourceInfo = {
   bridge_binary?: string;
   hub_package_id?: string;
   version?: string;
+  managed_runtime?: {
+    runtime_id: string;
+    release: string;
+  };
+};
+
+export type ManagedRuntimeStatus = {
+  runtime_id: string;
+  release: string;
+  state: 'not_installed' | 'installing' | 'ready' | 'failed';
+  phase?: string;
+  progress?: number;
+  error_code?: string;
+  error_message?: string;
 };
 
 /** Environment variable entry passed to a spawned agent process. */
@@ -65,6 +79,7 @@ export type AgentEnvEntry = {
  */
 export type BehaviorPolicy = {
   supports_side_question?: boolean;
+  session_lifetime?: 'persistent' | 'vendor_resume' | 'connection_scoped';
 };
 
 /**
@@ -104,6 +119,7 @@ export type AgentMetadata = {
   available: boolean;
   /** True when the management view resolved the agent command on `$PATH`. */
   installed?: boolean;
+  runtime?: ManagedRuntimeStatus;
   isExtension?: boolean;
   /** True when the agent supports team mode (MCP stdio capable). Computed by backend. */
   team_capable?: boolean;
@@ -225,6 +241,7 @@ export function formatManagedAgentDiagnosticMessage(t: TFunction, agent: Managed
     case 'health_check_failed':
     case 'session_send_failed':
     case 'no_provider':
+    case 'no_model':
     case 'disabled':
     case 'no_command':
       return t(`settings.agentManagement.errorCodes.${agent.last_check_error_code}`, {

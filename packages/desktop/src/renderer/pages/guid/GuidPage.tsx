@@ -120,10 +120,6 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  // Only aionrs uses this provider-based model picker now (Gemini runs as a
-  // regular ACP backend with its own model selector).
-  const modelSelection = useGuidModelSelection('aionrs');
-
   const navState = location.state as GuidNavigationState | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
   const preselectAssistantId = navState?.selectedAssistantId;
@@ -132,6 +128,9 @@ const GuidPage: React.FC = () => {
     preselectAssistantId,
     locationKey: location.key,
   });
+  const modelSelection = useGuidModelSelection(
+    agentSelection.selectedAssistantBackend === 'deepseek-harness' ? 'deepseek-harness' : 'aionrs'
+  );
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -572,7 +571,7 @@ const GuidPage: React.FC = () => {
 
   // Agents that use configured model providers instead of ACP probe-based models.
   // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
-  const PROVIDER_BASED_AGENTS = new Set(['aionrs']);
+  const PROVIDER_BASED_AGENTS = new Set(['aionrs', 'deepseek-harness']);
   const isGeminiMode = PROVIDER_BASED_AGENTS.has(agentSelection.selectedAssistantBackend);
 
   // Build the mention dropdown node

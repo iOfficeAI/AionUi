@@ -1176,6 +1176,14 @@
     "callbackRecommendation": "推奨: 証明書付きリバースプロキシ、または Cloudflare Tunnel / ngrok でこのマシンへ転送してください。"
   },
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "ローカルエージェント",
     "remoteAgents": "リモートエージェント",
     "localAgentsDescription": "このデバイスで利用できる AI コーディングエージェントを管理します。CSBU WorkMate は組み込みでアプリに同梱されており、インストール不要です。他のエージェントは対応する CLI をローカルにインストールした後にのみ検出されます。",
@@ -1223,6 +1231,7 @@
     "customEmpty": "カスタムエージェントがありません。",
     "customEmptyDescription": "カスタムエージェントは ACP に対応している必要があります。",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
       "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",

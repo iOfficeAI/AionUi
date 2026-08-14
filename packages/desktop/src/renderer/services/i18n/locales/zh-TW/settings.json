@@ -1188,6 +1188,14 @@
     "callbackRecommendation": "建議：使用反向代理 + 憑證，或 Cloudflare Tunnel / ngrok 對應到本機。"
   },
   "agentManagement": {
+    "preview": "預覽",
+    "previewTitle": "DeepSeek Harness 預覽版",
+    "installAndCheck": "安裝並檢測",
+    "runtimeInstalling": "安裝中 {{progress}}%",
+    "runtimeInstallFailed": "Runtime 安裝失敗，請在 Agent 設定中重試。",
+    "deepseekHarnessLimitations": "首版暫不支援 Resume、Fork、Team、MCP 和多模態。workspace-write 只限制檔案寫入。",
+    "modelRebuildTitle": "切換模型並重新啟動 Agent？",
+    "modelRebuildDescription": "目前會話記錄會保留，但 Agent 內部上下文將重新開始。",
     "localAgents": "本機 Agents",
     "remoteAgents": "遠端 Agents",
     "localAgentsDescription": "管理本機可用的 AI 編程 Agent。CSBU WorkMate 為內建，App 自帶、無需安裝；其它 Agent 需先在本地安裝對應 CLI 才能被識別。",
@@ -1237,6 +1245,7 @@
     "customEmpty": "尚無自訂 Agent",
     "customEmptyDescription": "自訂 Agent 需要支援 ACP 協議。",
     "errorCodes": {
+      "no_model": "請為預設 DeepSeek Provider 至少啟用一個模型。",
       "command_not_found": "請安裝 {{command}}，然後重新測試連線。",
       "acp_init_failed": "CLI 已啟動，但初始化失敗。請先完成登入或首次設定，然後重新測試連線。",
       "health_check_failed": "請先手動開啟一次 {{name}} 完成設定或登入，然後重新測試連線。",

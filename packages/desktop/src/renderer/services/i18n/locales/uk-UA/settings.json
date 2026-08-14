@@ -1086,6 +1086,14 @@
   },
   "addAssistant": "Додати асистента",
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "Локальні агенти",
     "remoteAgents": "Віддалені агенти",
     "localAgentsDescription": "Керуйте доступними на цьому пристрої ШІ-агентами для програмування. CSBU WorkMate вбудований і постачається з застосунком — встановлення не потрібне; інші агенти виявляються лише після локального встановлення їхнього CLI.",
@@ -1133,6 +1141,7 @@
     "customEmpty": "Власних агентів ще немає.",
     "customEmptyDescription": "Власні агенти мають підтримувати ACP.",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
       "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",

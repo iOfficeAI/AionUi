@@ -86,7 +86,7 @@ describe('AgentCard (custom variant)', () => {
 
 const renderOfficial = (
   agent: Record<string, unknown>,
-  handlers: Partial<{ onTestConnection: () => void; onConfigure: () => void }> = {}
+  handlers: Partial<{ onTestConnection: () => void; onConfigure: () => void; onPrepareRuntime: () => void }> = {}
 ) =>
   render(
     <AgentCard
@@ -95,10 +95,40 @@ const renderOfficial = (
       boundAssistants={[]}
       onTestConnection={handlers.onTestConnection ?? vi.fn()}
       onConfigure={handlers.onConfigure ?? vi.fn()}
+      onPrepareRuntime={handlers.onPrepareRuntime}
     />
   );
 
 describe('AgentCard (official variant)', () => {
+  it('shows Preview and prepares an uninstalled managed runtime', () => {
+    const onPrepareRuntime = vi.fn();
+    renderOfficial(
+      {
+        id: 'deepseek-harness',
+        name: 'DeepSeek Harness',
+        agent_type: 'acp',
+        agent_source: 'builtin',
+        backend: 'deepseek-harness',
+        enabled: true,
+        installed: false,
+        status: 'missing',
+        agent_source_info: {
+          managed_runtime: { runtime_id: 'deepseek-harness', release: '2026.08.14-1' },
+        },
+        runtime: {
+          runtime_id: 'deepseek-harness',
+          release: '2026.08.14-1',
+          state: 'not_installed',
+        },
+      },
+      { onPrepareRuntime }
+    );
+
+    expect(screen.getByText('settings.agentManagement.preview')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('settings.agentManagement.installAndCheck'));
+    expect(onPrepareRuntime).toHaveBeenCalledOnce();
+  });
+
   it('uses the CSBU WorkMate app icon for the internal agent instead of the legacy Aion logo', () => {
     renderOfficial({
       id: 'aionrs',

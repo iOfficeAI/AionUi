@@ -30,7 +30,7 @@ const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
 };
 
 /** Provider-based agent keys that share the model list UI */
-type ProviderAgentKey = 'aionrs';
+type ProviderAgentKey = 'aionrs' | 'deepseek-harness';
 
 export type GuidModelSelectionResult = {
   modelList: IProvider[];
@@ -53,8 +53,17 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
 
   const modelList = useMemo(() => {
     const allProviders: IProvider[] = (modelConfig || []).filter((platform) => !!platform.models.length);
-    return allProviders.filter(hasAvailableModels);
-  }, [modelConfig]);
+    if (agentKey === 'deepseek-harness') {
+      const defaultDeepSeek = allProviders.find(
+        (provider) => provider.enabled !== false && provider.platform?.toLowerCase() === 'deepseek'
+      );
+      if (!defaultDeepSeek) return [];
+      const enabledModels = defaultDeepSeek.models.filter((model) => defaultDeepSeek.model_enabled?.[model] !== false);
+      return enabledModels.length > 0 ? [{ ...defaultDeepSeek, models: enabledModels }] : [];
+    }
+    const available = allProviders.filter(hasAvailableModels);
+    return available;
+  }, [agentKey, modelConfig]);
 
   const formatGeminiModelLabel = useCallback((_provider: { platform?: string } | undefined, modelName?: string) => {
     if (!modelName) return '';

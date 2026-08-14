@@ -25,6 +25,7 @@ type AgentCardProps =
       onTestConnection: () => void;
       onConfigure: () => void;
       isTesting?: boolean;
+      onPrepareRuntime?: () => void;
     }
   | {
       type: 'custom';
@@ -94,6 +95,8 @@ const statusLabelKey = (display: DisplayStatus) => {
   }
 };
 
+const stopPropagation = (event: React.MouseEvent) => event.stopPropagation();
+
 /**
  * Single agent row. Clicking anywhere on the row opens the configuration /
  * editor page; inner controls call `stopPropagation` so they don't trigger
@@ -109,6 +112,11 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const isDisabled = isCustom && agent.enabled === false;
   const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
   const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
+  const isPreview = agent.agent_source_info?.managed_runtime?.runtime_id === 'deepseek-harness';
+  const runtimeNeedsInstall =
+    isPreview &&
+    (agent.runtime?.state !== 'ready' || ['update_available', 'rollback'].includes(agent.runtime?.phase ?? ''));
+  const onPrepareRuntime = props.type === 'official' ? props.onPrepareRuntime : undefined;
 
   const avatar = resolveAgentAvatar(logos, {
     icon: agent.avatar || agent.icon,
@@ -116,8 +124,6 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
     custom_agent_id: agent.custom_agent_id,
     isExtension: agent.isExtension,
   });
-
-  const stop = (event: React.MouseEvent) => event.stopPropagation();
 
   return (
     <div
@@ -142,6 +148,11 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <div className='min-w-0 flex-1'>
           <div className='flex min-w-0 items-center gap-8px'>
             <Typography.Text className='truncate text-14px font-medium text-t-primary'>{agent.name}</Typography.Text>
+            {isPreview ? (
+              <Tag size='small' color='purple'>
+                {t('settings.agentManagement.preview')}
+              </Tag>
+            ) : null}
             <Tag
               data-testid={`agent-row-status-${agent.id}`}
               size='small'
@@ -159,17 +170,22 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         </div>
       </div>
 
-      <div className='ml-12px flex flex-shrink-0 items-center gap-8px' onClick={stop}>
+      <div className='ml-12px flex flex-shrink-0 items-center gap-8px' onClick={stopPropagation}>
         <BoundAssistantStack assistants={boundAssistants} />
         <Button
           data-testid={`agent-row-test-${agent.id}`}
           size='small'
           type='outline'
-          loading={isTesting}
-          onClick={onTestConnection}
+          loading={isTesting || agent.runtime?.state === 'installing'}
+          onClick={runtimeNeedsInstall ? onPrepareRuntime : onTestConnection}
+          disabled={runtimeNeedsInstall && !onPrepareRuntime}
           className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
         >
-          {t('settings.agentManagement.testConnection')}
+          {runtimeNeedsInstall
+            ? agent.runtime?.state === 'installing'
+              ? t('settings.agentManagement.runtimeInstalling', { progress: agent.runtime.progress ?? 0 })
+              : t('settings.agentManagement.installAndCheck')
+            : t('settings.agentManagement.testConnection')}
         </Button>
         {/* Both agent kinds get an explicit Edit button that opens the same
             configuration page the whole row links to (status, path/env

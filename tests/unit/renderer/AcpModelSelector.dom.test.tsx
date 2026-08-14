@@ -11,9 +11,10 @@ import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/agent/useAcpConfigOptions';
 
-const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted(() => ({
+const { messageSuccessMock, messageErrorMock, modalConfirmMock, useAcpModelInfoMock } = vi.hoisted(() => ({
   messageSuccessMock: vi.fn(),
   messageErrorMock: vi.fn(),
+  modalConfirmMock: vi.fn(),
   useAcpModelInfoMock: vi.fn(),
 }));
 
@@ -170,6 +171,9 @@ vi.mock('@arco-design/web-react', () => {
     Message: {
       success: messageSuccessMock,
       error: messageErrorMock,
+    },
+    Modal: {
+      confirm: modalConfirmMock,
     },
     Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
       <span data-tooltip-content={typeof content === 'string' ? content : undefined}>{children}</span>
@@ -344,6 +348,20 @@ describe('AcpModelSelector runtime options', () => {
 
     fireEvent.click(screen.getByText('GPT-5.2 Mini'));
 
+    expect(selectModel).toHaveBeenCalledWith('gpt-5.2-mini');
+  });
+
+  it('confirms before rebuilding a DeepSeek Harness session for a new model', () => {
+    const selectModel = vi.fn();
+    useAcpModelInfoMock.mockReturnValue(makeResult({ selectModel }));
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='deepseek-harness' />);
+    fireEvent.click(screen.getByText('GPT-5.2 Mini'));
+
+    expect(selectModel).not.toHaveBeenCalled();
+    expect(modalConfirmMock).toHaveBeenCalledOnce();
+    const confirmation = modalConfirmMock.mock.calls[0][0] as { onOk: () => void };
+    confirmation.onOk();
     expect(selectModel).toHaveBeenCalledWith('gpt-5.2-mini');
   });
 

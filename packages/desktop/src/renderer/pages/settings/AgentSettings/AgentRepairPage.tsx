@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Message, Typography } from '@arco-design/web-react';
+import { Alert, Button, Message, Typography } from '@arco-design/web-react';
 import { ArrowLeft, Connection } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -133,6 +133,14 @@ const AgentRepairPage: React.FC = () => {
 
       <div data-testid='agent-repair-body' className='relative min-h-0 flex-1 overflow-auto px-18px py-18px pb-24px'>
         <div className='mx-auto w-full max-w-760px'>
+          {agent.agent_source_info?.managed_runtime?.runtime_id === 'deepseek-harness' ? (
+            <Alert
+              className='mb-14px'
+              type='info'
+              title={t('settings.agentManagement.previewTitle')}
+              content={t('settings.agentManagement.deepseekHarnessLimitations')}
+            />
+          ) : null}
           <AgentRepairPanel agent={agent} onSaved={handleSaved} />
 
           {/* Which assistants depend on this agent — clicking one jumps to its

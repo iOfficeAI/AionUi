@@ -442,6 +442,10 @@ export const conversation = {
     } | null,
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/usage`),
+  getRetainedOutput: httpGet<
+    { reference: string; sha256: string; size: number; content: string },
+    { conversation_id: string; reference: string }
+  >((p) => `/api/conversations/${p.conversation_id}/outputs/${encodeURIComponent(p.reference)}`),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question })
@@ -1281,6 +1285,10 @@ export const acpConversation = {
   ),
   checkManagedAgentHealthById: httpPost<import('@/renderer/utils/model/agentTypes').ManagedAgent, { id: string }>(
     (p) => `/api/agents/${p.id}/health-check`,
+    () => undefined
+  ),
+  prepareManagedAgentRuntime: httpPost<import('@/renderer/utils/model/agentTypes').ManagedAgent, { id: string }>(
+    (p) => `/api/agents/${p.id}/runtime/prepare`,
     () => undefined
   ),
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(

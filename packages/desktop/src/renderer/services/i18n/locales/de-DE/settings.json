@@ -1178,6 +1178,14 @@
     "callbackRecommendation": "Empfehlung: Reverse Proxy mit Zertifikat verwenden oder mit Cloudflare Tunnel / ngrok auf diesen Rechner weiterleiten."
   },
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "Lokale Agenten",
     "remoteAgents": "Remote-Agenten",
     "localAgentsDescription": "Verwalte die auf diesem Gerät verfügbaren KI-Coding-Agenten. CSBU WorkMate ist integriert und wird mit der App geliefert – keine Installation nötig; andere Agenten werden erst nach lokaler CLI-Installation erkannt.",
@@ -1229,6 +1237,7 @@
     "statusUnchecked": "Not Checked",
     "statusUnknown": "Unknown",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "Install {{command}} and retry the connection test.",
       "acp_init_failed": "The CLI started but failed during initialization. Complete sign-in or first-run setup, then retry the connection test.",
       "health_check_failed": "Open {{name}} once to finish setup or sign-in, then retry the connection test.",

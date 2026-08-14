@@ -1186,6 +1186,14 @@
     "callbackRecommendation": "پیشنهاد: از پروکسی معکوس با گواهی استفاده کنید، یا این دستگاه را با Cloudflare Tunnel / ngrok نگاشت کنید."
   },
   "agentManagement": {
+    "preview": "Preview",
+    "previewTitle": "DeepSeek Harness Preview",
+    "installAndCheck": "Install & Check",
+    "runtimeInstalling": "Installing {{progress}}%",
+    "runtimeInstallFailed": "Runtime installation failed. Retry from Agent settings.",
+    "deepseekHarnessLimitations": "Resume, Fork, Team, MCP and multimodal input are unavailable. Workspace-write limits file writes only.",
+    "modelRebuildTitle": "Switch model and restart Agent?",
+    "modelRebuildDescription": "The conversation remains, but the Agent's internal context will restart.",
     "localAgents": "ایجنت‌های محلی",
     "remoteAgents": "ایجنت‌های ریموت",
     "localAgentsDescription": "عامل‌های برنامه‌نویسی هوش مصنوعی موجود در این دستگاه را مدیریت کنید. CSBU WorkMate داخلی است و همراه برنامه ارائه می‌شود — بدون نیاز به نصب؛ سایر عامل‌ها تنها پس از نصب محلی CLI آن‌ها شناسایی می‌شوند.",
@@ -1233,6 +1241,7 @@
     "customEmpty": "ایجنت سفارشی پیکربندی نشده است. روی «افزودن ایجنت سفارشی» کلیک کنید تا یکی ایجاد شود.",
     "customEmptyDescription": "ایجنت‌های سفارشی باید از ACP پشتیبانی کنند.",
     "errorCodes": {
+      "no_model": "Enable at least one model for the default DeepSeek provider.",
       "command_not_found": "{{command}} را نصب کنید و آزمایش اتصال را دوباره انجام دهید.",
       "acp_init_failed": "CLI شروع شد اما هنگام مقداردهی اولیه ناموفق بود. ورود یا راه‌اندازی اولیه را کامل کنید، سپس آزمایش اتصال را دوباره انجام دهید.",
       "health_check_failed": "{{name}} را یک‌بار باز کنید تا راه‌اندازی یا ورود کامل شود، سپس آزمایش اتصال را دوباره انجام دهید.",
