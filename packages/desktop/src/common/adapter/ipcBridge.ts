@@ -15,7 +15,6 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
-import type { ExternalLoginOutcome } from '@/process/auth';
 import { buildListTasksPath } from './teamTaskPath';
 import type { OpenDialogOptions } from 'electron';
 import type {
@@ -188,7 +187,15 @@ export const assistants = {
 // ---------------------------------------------------------------------------
 
 export const auth = {
-  startExternalLogin: bridge.buildProvider<ExternalLoginOutcome, void>('auth:start-external-login'),
+  /** Kick off the external login flow: opens the system browser at the
+   *  external login URL. Resolves immediately on launch success/failure —
+   *  the token itself arrives asynchronously via `externalLoginCompleted`. */
+  startExternalLogin: bridge.buildProvider<{ success: boolean; message?: string }, void>('auth:start-external-login'),
+  /** Main → renderer: aipaas-front redirected back with a validated token
+   *  via the `aionui://auth/callback` deep link. */
+  externalLoginCompleted: bridge.buildEmitter<{ token: string; user: { id: string; username: string } }>(
+    'auth:external-login-completed'
+  ),
 };
 
 // ---------------------------------------------------------------------------
