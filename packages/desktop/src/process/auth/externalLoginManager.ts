@@ -168,6 +168,10 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
       console.log('[ExternalLogin] did-start-navigation:', url, 'mainFrame=', isMainFrame);
     });
 
+    win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      console.log(`[ExternalLogin][webContents:${level}] ${message}`);
+    });
+
     win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       if (settled) return;
       settled = true;
