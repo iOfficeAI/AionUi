@@ -33,14 +33,60 @@ export type StaticServerHandle = {
 
 const DEFAULT_PORT = 25808;
 
-function getLanIP(): string | null {
+/**
+ * Best-effort LAN IPv4 address, used to build the `networkUrl` shown in the UI
+ * when remote access is enabled.
+ *
+ * Skips special-purpose ranges that are never reachable from the LAN — most
+ * importantly the 198.18.0.0/15 benchmarking block, which VPN/TUN adapters
+ * (Clash, Sing-box, ...) on Windows commonly bind (e.g. 198.18.0.1) and which
+ * used to be picked first on multi-adapter machines. Prefers RFC 1918 private
+ * addresses over public ones, and falls back to any remaining usable IPv4.
+ */
+export function getLanIP(): string | null {
+  const candidates: string[] = [];
   const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
     for (const iface of nets[name] || []) {
-      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+      const isIPv4 = iface.family === 'IPv4' || (iface.family as unknown) === 4;
+      if (!isIPv4 || iface.internal) continue;
+      if (isLanReachableIPv4(iface.address)) candidates.push(iface.address);
     }
   }
-  return null;
+  return candidates.find(isPrivateIPv4) ?? candidates[0] ?? null;
+}
+
+const ipv4Octets = (ip: string): number[] => {
+  const parts = ip.split('.').map((part) => Number(part));
+  return parts.length === 4 && parts.every((part) => Number.isInteger(part) && part >= 0 && part <= 255) ? parts : [];
+};
+
+/**
+ * True for IPv4 addresses that can plausibly be reached from the LAN.
+ * Excludes IANA special-purpose ranges (RFC 6890): the 198.18.0.0/15
+ * benchmarking block (TUN/VPN adapters), CGNAT 100.64.0.0/10, link-local
+ * 169.254.0.0/16, TEST-NET blocks, multicast and reserved space.
+ */
+function isLanReachableIPv4(ip: string): boolean {
+  const [a, b, c] = ipv4Octets(ip);
+  if (a === undefined) return false;
+  if (a === 0) return false; // 0.0.0.0/8
+  if (a === 100 && b >= 64 && b <= 127) return false; // 100.64.0.0/10 CGNAT
+  if (a === 169 && b === 254) return false; // 169.254.0.0/16 link-local
+  if (a === 192 && b === 0 && c === 0) return false; // 192.0.0.0/24 protocol
+  if (a === 192 && b === 0 && c === 2) return false; // 192.0.2.0/24 TEST-NET-1
+  if (a === 198 && (b === 18 || b === 19)) return false; // 198.18.0.0/15 benchmarking
+  if (a === 198 && b === 51 && c === 100) return false; // 198.51.100.0/24 TEST-NET-2
+  if (a === 203 && b === 0 && c === 113) return false; // 203.0.113.0/24 TEST-NET-3
+  if (a >= 224) return false; // 224.0.0.0/4 multicast + 240.0.0.0/4 reserved
+  return true;
+}
+
+/** RFC 1918 private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16. */
+function isPrivateIPv4(ip: string): boolean {
+  const [a, b] = ipv4Octets(ip);
+  if (a === undefined) return false;
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
 }
 
 function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
