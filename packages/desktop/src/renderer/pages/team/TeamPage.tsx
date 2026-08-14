@@ -1,20 +1,24 @@
-import { Message, Modal, Spin } from '@arco-design/web-react';
-import { FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
+import { Button, Dropdown, Menu, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
+import { FullScreen, Left, MoreOne, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
-import type { TeamAssistant, TTeam } from '@/common/types/team/teamTypes';
+import type { ITeamSlotWork, TeamAssistant, TeamContextResetAvailability, TTeam } from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import {
+  classifyConfigSetError,
+  revalidateAcpConfigOptions,
+  useAcpConfigOptions,
+} from '@/renderer/hooks/agent/useAcpConfigOptions';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
 import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
-import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
+import AcpRuntimeRestartButton, { useAcpRuntimeRestart } from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { CronJobManager } from '@/renderer/pages/cron';
@@ -40,6 +44,7 @@ import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/p
 import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 
 type Props = {
   team: TTeam;
@@ -114,6 +119,214 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   );
 };
 
+const contextResetAvailabilityMessageKey = (availability: TeamContextResetAvailability) => {
+  switch (availability) {
+    case 'initializing':
+      return 'team.agentActions.disabled.initializing' as const;
+    case 'busy':
+      return 'team.agentActions.disabled.busy' as const;
+    case 'dormant':
+      return 'team.agentActions.disabled.dormant' as const;
+    case 'failed':
+      return 'team.agentActions.disabled.failed' as const;
+    case 'removing':
+      return 'team.agentActions.disabled.removing' as const;
+    case 'session_stopped':
+      return 'team.agentActions.disabled.sessionStopped' as const;
+    case 'unsupported':
+      return 'team.agentActions.disabled.unsupported' as const;
+    case 'leader_not_targetable':
+      return 'team.agentActions.disabled.leaderNotTargetable' as const;
+    case 'ready':
+      return 'team.agentActions.label' as const;
+  }
+};
+
+const resolveRuntimeActionAvailability = ({
+  warmupStatus,
+  warmupDisabled,
+  slotWork,
+  sessionStopped,
+}: {
+  warmupStatus: AcpWarmupStatus;
+  warmupDisabled: boolean;
+  slotWork?: ITeamSlotWork;
+  sessionStopped: boolean;
+}): TeamContextResetAvailability => {
+  if (sessionStopped || slotWork?.blocked_reason === 'session_stopped') return 'session_stopped';
+  if (slotWork?.blocked_reason === 'removing') return 'removing';
+  if (warmupDisabled || warmupStatus === 'pending' || slotWork?.blocked_reason === 'runtime_starting') {
+    return 'initializing';
+  }
+  if (warmupStatus === 'dormant') return 'dormant';
+  if (warmupStatus === 'failed' || slotWork?.blocked_reason === 'runtime_failed') return 'failed';
+  if (
+    slotWork?.active_turn_id ||
+    (slotWork?.queued_foreground_count ?? 0) > 0 ||
+    (slotWork?.queued_background_count ?? 0) > 0
+  ) {
+    return 'busy';
+  }
+  return warmupStatus === 'ready' ? 'ready' : 'dormant';
+};
+
+const contextResetErrorMessageKey = (error: unknown) => {
+  if (!isBackendHttpError(error)) return 'team.agentActions.contextReset.failed' as const;
+  switch (error.code) {
+    case 'TEAM_MEMBER_BUSY':
+      return 'team.agentActions.disabled.busy' as const;
+    case 'TEAM_MEMBER_RUNTIME_STARTING':
+      return 'team.agentActions.disabled.initializing' as const;
+    case 'TEAM_MEMBER_DORMANT':
+      return 'team.agentActions.disabled.dormant' as const;
+    case 'TEAM_MEMBER_RUNTIME_FAILED':
+      return 'team.agentActions.disabled.failed' as const;
+    case 'TEAM_MEMBER_REMOVING':
+      return 'team.agentActions.disabled.removing' as const;
+    case 'TEAM_SESSION_STOPPED':
+      return 'team.agentActions.disabled.sessionStopped' as const;
+    case 'TEAM_MEMBER_UNSUPPORTED':
+      return 'team.agentActions.disabled.unsupported' as const;
+    case 'TEAM_CONTEXT_RESET_LEADER_NOT_TARGETABLE':
+      return 'team.agentActions.disabled.leaderNotTargetable' as const;
+    default:
+      return 'team.agentActions.contextReset.failed' as const;
+  }
+};
+
+const TeamAgentActions: React.FC<{
+  assistant: TeamAssistant;
+  team_id: string;
+  runtimeAvailability: TeamContextResetAvailability;
+  contextResetAvailability: TeamContextResetAvailability;
+  onRuntimeChanged: () => Promise<void>;
+}> = ({ assistant, team_id, runtimeAvailability, contextResetAvailability, onRuntimeChanged }) => {
+  const { t } = useTranslation();
+  const teamTarget = useMemo(() => ({ team_id, slot_id: assistant.slot_id }), [assistant.slot_id, team_id]);
+  const { restart, restarting } = useAcpRuntimeRestart({
+    conversation_id: assistant.conversation_id,
+    team: teamTarget,
+  });
+  const [resetting, setResetting] = useState(false);
+  const reconnectDisabled = runtimeAvailability !== 'ready';
+  const reconnectDisabledReason = reconnectDisabled
+    ? t(contextResetAvailabilityMessageKey(runtimeAvailability))
+    : undefined;
+  const contextResetDisabled = contextResetAvailability !== 'ready';
+  const contextResetDisabledReason = contextResetDisabled
+    ? t(contextResetAvailabilityMessageKey(contextResetAvailability))
+    : undefined;
+
+  const confirmReconnect = useCallback(() => {
+    if (reconnectDisabled || restarting || resetting) return;
+    Modal.confirm({
+      title: t('agent.runtimeRestart.tooltip'),
+      content: t('agent.runtimeRestart.confirmContent'),
+      okText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      onOk: async () => {
+        try {
+          await restart();
+          await onRuntimeChanged();
+        } catch {
+          // The shared restart action already presents the localized failure.
+        }
+      },
+    });
+  }, [onRuntimeChanged, reconnectDisabled, restart, restarting, resetting, t]);
+
+  const confirmContextReset = useCallback(() => {
+    if (contextResetDisabled || restarting || resetting) return;
+    Modal.confirm({
+      title: t('team.agentActions.contextReset.confirmTitle', { memberName: assistant.assistant_name }),
+      content: t('team.agentActions.contextReset.confirmContent'),
+      okText: t('team.agentActions.contextReset.confirm'),
+      cancelText: t('common.cancel'),
+      okButtonProps: { status: 'danger' },
+      onOk: async () => {
+        setResetting(true);
+        try {
+          const outcome = await ipcBridge.team.resetAgentContext.invoke(teamTarget);
+          if (outcome.reset_status === 'completed' && outcome.runtime_status === 'ready') {
+            Message.success(t('team.agentActions.contextReset.success', { memberName: assistant.assistant_name }));
+          } else if (outcome.reset_status === 'completed') {
+            Message.warning(
+              t('team.agentActions.contextReset.partialSuccess', { memberName: assistant.assistant_name })
+            );
+          } else {
+            Message.error(t('team.agentActions.contextReset.notApplied'));
+          }
+          await Promise.all([revalidateAcpConfigOptions(assistant.conversation_id), onRuntimeChanged()]);
+        } catch (error) {
+          Message.error(t(contextResetErrorMessageKey(error)));
+        } finally {
+          setResetting(false);
+        }
+      },
+    });
+  }, [
+    assistant.assistant_name,
+    assistant.conversation_id,
+    contextResetDisabled,
+    onRuntimeChanged,
+    restarting,
+    resetting,
+    t,
+    teamTarget,
+  ]);
+
+  const actionContent = (title: string, description: string, reason?: string) => (
+    <Tooltip content={reason} disabled={!reason} position='right'>
+      <div className='flex min-w-220px flex-col py-2px'>
+        <span className='text-13px'>{title}</span>
+        <span className='text-12px text-t-secondary whitespace-normal'>{reason ?? description}</span>
+      </div>
+    </Tooltip>
+  );
+  const menu = (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (key === 'reconnect') confirmReconnect();
+        if (key === 'context-reset') confirmContextReset();
+      }}
+    >
+      <Menu.Item key='reconnect' disabled={reconnectDisabled || restarting || resetting}>
+        {actionContent(
+          t('agent.runtimeRestart.tooltip'),
+          t('team.agentActions.reconnectDescription'),
+          reconnectDisabledReason
+        )}
+      </Menu.Item>
+      <Menu.Item
+        key='context-reset'
+        disabled={contextResetDisabled || restarting || resetting}
+        style={{ color: 'rgb(var(--danger-6))' }}
+      >
+        {actionContent(
+          t('team.agentActions.contextReset.title'),
+          t('team.agentActions.contextReset.description'),
+          contextResetDisabledReason
+        )}
+      </Menu.Item>
+    </Menu>
+  );
+
+  return (
+    <Dropdown trigger='click' droplist={menu} position='br' disabled={restarting || resetting}>
+      <Tooltip content={t('team.agentActions.label')}>
+        <Button
+          type='text'
+          size='mini'
+          className='h-28px w-28px'
+          loading={restarting || resetting}
+          icon={<MoreOne theme='outline' size='14' fill='currentColor' />}
+          aria-label={t('team.agentActions.label')}
+        />
+      </Tooltip>
+    </Dropdown>
+  );
+};
+
 /** Fetches conversation for a single assistant and renders TeamChatView */
 const AssistantChatSlot: React.FC<{
   assistant: TeamAssistant;
@@ -148,7 +361,7 @@ const AssistantChatSlot: React.FC<{
   const layout = useLayoutContext();
   const teamPermission = useTeamPermission();
   const isMobile = layout?.isMobile ?? false;
-  const { data: conversation } = useSWR(
+  const { data: conversation, mutate: mutateConversation } = useSWR(
     assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
     () => getConversationOrNull(assistant.conversation_id)
   );
@@ -176,6 +389,21 @@ const AssistantChatSlot: React.FC<{
       : warmup.status === 'ready'
         ? 'ready'
         : 'unavailable';
+  const runtimeActionAvailability = resolveRuntimeActionAvailability({
+    warmupStatus: warmup.status,
+    warmupDisabled: Boolean(warmupDisabled),
+    slotWork: teamRunView.slotWorkBySlot[assistant.slot_id],
+    sessionStopped: teamRunView.sessionStopped,
+  });
+  const contextResetAvailability =
+    assistant.role === 'leader'
+      ? 'leader_not_targetable'
+      : assistant.context_reset.supported
+        ? runtimeActionAvailability
+        : assistant.context_reset.availability;
+  const handleRuntimeChanged = useCallback(async () => {
+    await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
+  }, [mutateConversation, onRunStateStale]);
   // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
   // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
   return (
@@ -207,12 +435,23 @@ const AssistantChatSlot: React.FC<{
               />
             </div>
           )}
-          {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
+          {assistant.conversation_id && !isAionrs && isAcpLike && isLeader && (
             <div className='shrink-0'>
               <AcpRuntimeRestartButton
                 conversation_id={assistant.conversation_id}
                 team={{ team_id, slot_id: assistant.slot_id }}
                 availability={restartAvailability}
+              />
+            </div>
+          )}
+          {assistant.conversation_id && !isAionrs && isAcpLike && !isLeader && (
+            <div className='shrink-0'>
+              <TeamAgentActions
+                assistant={assistant}
+                team_id={team_id}
+                runtimeAvailability={runtimeActionAvailability}
+                contextResetAvailability={contextResetAvailability}
+                onRuntimeChanged={handleRuntimeChanged}
               />
             </div>
           )}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { TChatConversation } from '@/common/config/storage';
@@ -12,6 +13,14 @@ const {
   ensureSessionMock,
   teamEventHandlers,
   makeTeamEventChannel,
+  resetAgentContextMock,
+  restartTeamMemberMock,
+  revalidateConfigOptionsMock,
+  messageSuccessMock,
+  messageWarningMock,
+  messageErrorMock,
+  modalConfirmMock,
+  layoutState,
 } = vi.hoisted(() => {
   const handlers: Record<string, Array<(event: unknown) => void>> = {};
   const makeChannel = (name: string) => ({
@@ -27,6 +36,14 @@ const {
     ensureSessionMock: vi.fn(async () => undefined),
     teamEventHandlers: handlers,
     makeTeamEventChannel: makeChannel,
+    resetAgentContextMock: vi.fn(),
+    restartTeamMemberMock: vi.fn(),
+    revalidateConfigOptionsMock: vi.fn(),
+    messageSuccessMock: vi.fn(),
+    messageWarningMock: vi.fn(),
+    messageErrorMock: vi.fn(),
+    modalConfirmMock: vi.fn(),
+    layoutState: { isMobile: false },
   };
 });
 
@@ -41,12 +58,18 @@ vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
   return {
     ...actual,
-    Message: { success: vi.fn(), error: vi.fn(), useMessage: () => [null, null] },
+    Message: {
+      success: messageSuccessMock,
+      warning: messageWarningMock,
+      error: messageErrorMock,
+      useMessage: () => [null, null],
+    },
+    Modal: Object.assign(actual.Modal, { confirm: modalConfirmMock }),
   };
 });
 
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
-vi.mock('@/renderer/hooks/context/LayoutContext', () => ({ useLayoutContext: () => ({ isMobile: false }) }));
+vi.mock('@/renderer/hooks/context/LayoutContext', () => ({ useLayoutContext: () => layoutState }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -56,6 +79,7 @@ vi.mock('@/common', () => ({
       addAgent: { invoke: vi.fn() },
       removeAgent: { invoke: vi.fn() },
       attachAgent: { invoke: vi.fn(async () => undefined) },
+      resetAgentContext: { invoke: (...args: unknown[]) => resetAgentContextMock(...args) },
       pauseSlotWork: { invoke: vi.fn() },
       getRunState: { invoke: vi.fn(async () => ({ session_generation: null, active_run: null, slot_work: [] })) },
       activeLease: { invoke: vi.fn(async () => ({ renewed_count: 2 })) },
@@ -122,11 +146,19 @@ vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
 
 vi.mock('@/renderer/components/agent/AcpRuntimeRestartButton', () => ({
   __esModule: true,
+  useAcpRuntimeRestart: () => ({ restart: restartTeamMemberMock, restarting: false }),
   default: (props: { conversation_id: string; availability: string }) => {
     restartAvailabilityBySlot.set(props.conversation_id, props.availability);
     return <div data-testid={`runtime-restart-${props.conversation_id}`} />;
   },
 }));
+
+vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', async () => {
+  const actual = await vi.importActual<typeof import('@/renderer/hooks/agent/useAcpConfigOptions')>(
+    '@/renderer/hooks/agent/useAcpConfigOptions'
+  );
+  return { ...actual, revalidateAcpConfigOptions: revalidateConfigOptionsMock };
+});
 
 vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
   __esModule: true,
@@ -165,6 +197,12 @@ describe('TeamPage teammate warmup wiring', () => {
     acpSelectorPropsBySlot.clear();
     restartAvailabilityBySlot.clear();
     ensureSessionMock.mockReset();
+    resetAgentContextMock.mockReset();
+    restartTeamMemberMock.mockReset().mockResolvedValue(undefined);
+    revalidateConfigOptionsMock.mockReset().mockResolvedValue(undefined);
+    messageErrorMock.mockReset();
+    modalConfirmMock.mockReset();
+    layoutState.isMobile = false;
     for (const key of Object.keys(teamEventHandlers)) delete teamEventHandlers[key];
     getConversationOrNullMock.mockImplementation(async (id: string) => conversation({ id, name: id }));
     localStorage.clear();
@@ -182,7 +220,7 @@ describe('TeamPage teammate warmup wiring', () => {
     await screen.findByTestId('acp-model-selector-member-conv');
     await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('dormant'));
     expect(acpSelectorPropsBySlot.get('member-conv')?.trigger).toBeUndefined();
-    expect(restartAvailabilityBySlot.get('member-conv')).toBe('initializing');
+    expect(screen.getByRole('button', { name: 'team.agentActions.label' })).toBeInTheDocument();
   });
 
   it('wires the trigger to attachAgent once warming finishes, and reflects runtime status', async () => {
@@ -208,21 +246,135 @@ describe('TeamPage teammate warmup wiring', () => {
       }
     });
     await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('pending'));
-    expect(restartAvailabilityBySlot.get('member-conv')).toBe('initializing');
+    expect(screen.getByRole('button', { name: 'team.agentActions.label' })).toBeInTheDocument();
 
     act(() => {
       for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
         handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'ready' });
       }
     });
-    await waitFor(() => expect(restartAvailabilityBySlot.get('member-conv')).toBe('ready'));
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('ready'));
 
     act(() => {
       for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
         handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'failed' });
       }
     });
-    await waitFor(() => expect(restartAvailabilityBySlot.get('member-conv')).toBe('unavailable'));
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('failed'));
+  });
+
+  it('targets the selected teammate through the dedicated context-reset action', async () => {
+    const user = userEvent.setup();
+    ensureSessionMock.mockResolvedValue(undefined);
+    resetAgentContextMock.mockResolvedValue({
+      reset_status: 'completed',
+      runtime_status: 'ready',
+      preserved_unread_count: 2,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+    await screen.findByTestId('acp-model-selector-member-conv');
+    act(() => {
+      for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
+        handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'ready' });
+      }
+    });
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.status).toBe('ready'));
+
+    expect(screen.getByTestId('runtime-restart-leader-conv')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'team.agentActions.label' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'team.agentActions.label' }));
+    const contextResetTitle = await screen.findByText('team.agentActions.contextReset.title');
+    await waitFor(() => expect(getComputedStyle(contextResetTitle).pointerEvents).not.toBe('none'));
+    await user.click(contextResetTitle);
+    expect(modalConfirmMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'team.agentActions.contextReset.confirmTitle',
+        content: 'team.agentActions.contextReset.confirmContent',
+        okText: 'team.agentActions.contextReset.confirm',
+      })
+    );
+    const onOk = modalConfirmMock.mock.calls.at(-1)?.[0]?.onOk as (() => Promise<void>) | undefined;
+    expect(onOk).toBeTypeOf('function');
+    await act(async () => onOk?.());
+
+    await waitFor(() => {
+      expect(resetAgentContextMock).toHaveBeenCalledWith({ team_id: 'team-1', slot_id: 'member-slot' });
+    });
+    expect(messageSuccessMock).toHaveBeenCalledWith('team.agentActions.contextReset.success');
+    expect(revalidateConfigOptionsMock).toHaveBeenCalledWith('member-conv');
+  });
+
+  it('reports completed reset with failed restart as localized partial success', async () => {
+    const user = userEvent.setup();
+    ensureSessionMock.mockResolvedValue(undefined);
+    resetAgentContextMock.mockResolvedValue({
+      reset_status: 'completed',
+      runtime_status: 'failed',
+      preserved_unread_count: 0,
+    });
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+    await screen.findByTestId('acp-model-selector-member-conv');
+    act(() => {
+      for (const handler of teamEventHandlers.agentRuntimeStatusChanged ?? []) {
+        handler({ team_id: 'team-1', slot_id: 'member-slot', conversation_id: 'member-conv', status: 'ready' });
+      }
+    });
+
+    await user.click(screen.getByRole('button', { name: 'team.agentActions.label' }));
+    const contextResetTitle = await screen.findByText('team.agentActions.contextReset.title');
+    await waitFor(() => expect(getComputedStyle(contextResetTitle).pointerEvents).not.toBe('none'));
+    await user.click(contextResetTitle);
+    const onOk = modalConfirmMock.mock.calls.at(-1)?.[0]?.onOk as (() => Promise<void>) | undefined;
+    await act(async () => onOk?.());
+
+    expect(messageWarningMock).toHaveBeenCalledWith('team.agentActions.contextReset.partialSuccess');
+    expect(messageSuccessMock).not.toHaveBeenCalledWith('team.agentActions.contextReset.success');
+    expect(messageErrorMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps unsupported teammate context reset visible with a localized disabled reason', async () => {
+    const user = userEvent.setup();
+    ensureSessionMock.mockResolvedValue(undefined);
+    const unsupportedTeam = team();
+    unsupportedTeam.assistants[1].context_reset = { supported: false, availability: 'unsupported' };
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={unsupportedTeam} />
+      </MemoryRouter>
+    );
+    await screen.findByTestId('acp-model-selector-member-conv');
+    await user.click(screen.getByRole('button', { name: 'team.agentActions.label' }));
+
+    const contextResetTitle = await screen.findByText('team.agentActions.contextReset.title');
+    expect(screen.getAllByText('team.agentActions.disabled.unsupported').length).toBeGreaterThan(0);
+    expect(getComputedStyle(contextResetTitle).pointerEvents).toBe('none');
+    expect(modalConfirmMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the same teammate action menu on mobile', async () => {
+    layoutState.isMobile = true;
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: 'team.agentActions.label' })).toBeInTheDocument();
+    expect(screen.getByTestId('runtime-restart-leader-conv')).toBeInTheDocument();
+    expect(screen.queryByTestId('acp-model-selector-member-conv')).not.toBeInTheDocument();
   });
 });
 
@@ -256,6 +408,7 @@ function team(): TTeam {
         assistant_backend: 'codex',
         assistant_name: 'Leader',
         status: 'idle',
+        context_reset: { supported: false, availability: 'leader_not_targetable' },
       },
       {
         slot_id: 'member-slot',
@@ -264,6 +417,7 @@ function team(): TTeam {
         assistant_backend: 'codex',
         assistant_name: 'Member',
         status: 'idle',
+        context_reset: { supported: true, availability: 'ready' },
       },
     ],
   };

@@ -81,6 +81,7 @@ import type {
   ITeamInterruptAgentResponse,
   TTeam,
   TeamAssistant,
+  TeamContextResetResponse,
 } from '../types/team/teamTypes';
 import type {
   AutoUpdateReadyResult,
@@ -2244,6 +2245,9 @@ export const team = {
    */
   restartAgentRuntime: httpPost<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/runtime/restart`
+  ),
+  resetAgentContext: httpPost<TeamContextResetResponse, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/context/reset`
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,

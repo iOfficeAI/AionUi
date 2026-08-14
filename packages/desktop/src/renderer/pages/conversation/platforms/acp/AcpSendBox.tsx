@@ -2,7 +2,6 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
-import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
@@ -112,17 +111,7 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-  extraSlashCommands?: SlashCommandItem[];
-}> = ({
-  conversation_id,
-  backend,
-  session_mode,
-  agent_name,
-  messageState,
-  teamSendMessage,
-  teamRuntime,
-  extraSlashCommands,
-}) => {
+}> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
   const {
     aiProcessing,
     setAiProcessing,
@@ -841,7 +830,6 @@ Please check your local CLI tool authentication status`,
         }
         onSend={onSendHandler}
         slash_commands={slashCommands}
-        extraSlashCommands={extraSlashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
         compactActions={false}

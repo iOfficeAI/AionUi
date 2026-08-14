@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
-import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
+import MessageText, {
+  parseTeamContextResetNotice,
+} from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 
 const previewMocks = vi.hoisted(() => ({
@@ -666,6 +668,41 @@ describe('MessageText attachment paths', () => {
     });
     // The whole point: the content endpoint is never hit for an oversized file.
     expect(ipcBridge.fs.readContent.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('MessageText team system notices', () => {
+  it('renders a context-reset notice through i18n instead of exposing the wire payload', () => {
+    const content = JSON.stringify({
+      kind: 'context_reset',
+      member_name: 'Writer',
+      runtime_status: 'ready',
+    });
+    render(
+      <MessageText
+        message={{
+          id: 'notice-1',
+          msg_id: 'notice-1',
+          conversation_id: 'conv-1',
+          type: 'text',
+          position: 'left',
+          createdAt: Date.now(),
+          content: {
+            content,
+            teammateMessage: true,
+            senderName: 'team_system',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getAllByText('team.systemNotice.sender')).toHaveLength(2);
+    expect(screen.getByTestId('message-text-content')).toHaveTextContent('team.systemNotice.contextResetSuccess');
+    expect(screen.queryByText(content)).not.toBeInTheDocument();
+  });
+
+  it('rejects malformed context-reset notice payloads', () => {
+    expect(parseTeamContextResetNotice('{"kind":"context_reset","runtime_status":"ready"}')).toBeNull();
   });
 });
 

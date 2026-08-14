@@ -120,6 +120,28 @@ describe('TeamChatView', () => {
     );
   });
 
+  it('does not inject a Team orchestration clear command into the agent slash catalog', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='worker-1'
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team member',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock.mock.calls[0]?.[0]).not.toHaveProperty('extraSlashCommands');
+  });
+
   it('passes loaded skills and MCP snapshot to ACP team chat', async () => {
     usePresetAssistantInfoMock.mockReturnValue({ info: null });
     const mcpStatuses = [{ id: 'office', name: 'office', status: 'loaded' as const }];

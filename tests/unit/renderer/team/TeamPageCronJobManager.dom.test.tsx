@@ -266,6 +266,7 @@ function team(): TTeam {
         assistant_backend: 'codex',
         assistant_name: 'Leader',
         status: 'idle',
+        context_reset: { supported: false, availability: 'leader_not_targetable' },
       },
       {
         slot_id: 'member-slot',
@@ -274,6 +275,7 @@ function team(): TTeam {
         assistant_backend: 'codex',
         assistant_name: 'Member',
         status: 'idle',
+        context_reset: { supported: true, availability: 'ready' },
       },
     ],
   };

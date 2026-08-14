@@ -16,6 +16,28 @@ export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'fail
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
 
+export type TeamContextResetAvailability =
+  | 'ready'
+  | 'initializing'
+  | 'busy'
+  | 'dormant'
+  | 'failed'
+  | 'removing'
+  | 'session_stopped'
+  | 'unsupported'
+  | 'leader_not_targetable';
+
+export type TeamContextResetCapability = {
+  supported: boolean;
+  availability: TeamContextResetAvailability;
+};
+
+export type TeamContextResetResponse = {
+  reset_status: 'completed' | 'not_applied';
+  runtime_status: 'ready' | 'failed';
+  preserved_unread_count: number;
+};
+
 /** Persisted assistant configuration within a team */
 export type TeamAssistant = {
   slot_id: string;
@@ -29,6 +51,7 @@ export type TeamAssistant = {
   assistant_id?: string;
   model?: string;
   pending_confirmations?: number;
+  context_reset: TeamContextResetCapability;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */

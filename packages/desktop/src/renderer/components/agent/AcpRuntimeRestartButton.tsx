@@ -18,6 +18,57 @@ import { useTranslation } from 'react-i18next';
 
 export type RuntimeRestartAvailability = 'ready' | 'initializing' | 'unavailable';
 
+export const useAcpRuntimeRestart = ({
+  conversation_id,
+  team,
+}: {
+  conversation_id: string;
+  team?: { team_id: string; slot_id: string };
+}) => {
+  const { t } = useTranslation();
+  const [restarting, setRestarting] = useState(false);
+  const restartingRef = useRef(false);
+  const runtimeView = useConversationRuntimeView(conversation_id);
+
+  const restart = useCallback(async () => {
+    if (restartingRef.current) return;
+    restartingRef.current = true;
+    setRestarting(true);
+    if (!team) runtimeView.markRestartStarted();
+    try {
+      if (team) {
+        await ipcBridge.team.restartAgentRuntime.invoke({ team_id: team.team_id, slot_id: team.slot_id });
+      } else {
+        const response = await ipcBridge.conversation.restartRuntime.invoke({ conversation_id });
+        runtimeView.markRestartSucceeded(response.runtime);
+      }
+      await revalidateAcpConfigOptions(conversation_id);
+      Message.success(t('agent.runtimeRestart.success'));
+    } catch (error) {
+      if (!team) {
+        let runtime = null;
+        try {
+          runtime = (await getConversationOrNull(conversation_id))?.runtime ?? null;
+        } catch {
+          // The local gate still needs to recover if the follow-up refresh also fails.
+        }
+        runtimeView.markRestartFailed(runtime, parseError(error) || 'runtime restart failed');
+      }
+      if (isBackendHttpError(error) && error.code === 'TEAM_MEMBER_BUSY') {
+        Message.error(t('agent.runtimeRestart.processingTooltip'));
+      } else {
+        Message.error(t('agent.runtimeRestart.failed'));
+      }
+      throw error;
+    } finally {
+      restartingRef.current = false;
+      setRestarting(false);
+    }
+  }, [conversation_id, runtimeView, team, t]);
+
+  return { restart, restarting };
+};
+
 /**
  * Header button for ACP conversations that restarts the agent runtime: the
  * backend tears down the cached CLI agent process (cancelling any active
@@ -37,46 +88,7 @@ const AcpRuntimeRestartButton: React.FC<{
   disabledReason?: string;
 }> = ({ conversation_id, team, availability = 'ready', disabled, disabledReason }) => {
   const { t } = useTranslation();
-  const [restarting, setRestarting] = useState(false);
-  const restartingRef = useRef(false);
-  const runtimeView = useConversationRuntimeView(conversation_id);
-
-  const handleRestart = useCallback(async () => {
-    if (restartingRef.current) return;
-    restartingRef.current = true;
-    setRestarting(true);
-    if (!team) runtimeView.markRestartStarted();
-    try {
-      if (team) {
-        await ipcBridge.team.restartAgentRuntime.invoke({ team_id: team.team_id, slot_id: team.slot_id });
-      } else {
-        const response = await ipcBridge.conversation.restartRuntime.invoke({ conversation_id });
-        runtimeView.markRestartSucceeded(response.runtime);
-      }
-      // The runtime was rebuilt; pull the fresh config options so the model
-      // selector reflects the new process (channel/model) immediately.
-      await revalidateAcpConfigOptions(conversation_id);
-      Message.success(t('agent.runtimeRestart.success'));
-    } catch (error) {
-      if (!team) {
-        let runtime = null;
-        try {
-          runtime = (await getConversationOrNull(conversation_id))?.runtime ?? null;
-        } catch {
-          // The local gate still needs to recover if the follow-up refresh also fails.
-        }
-        runtimeView.markRestartFailed(runtime, parseError(error) || 'runtime restart failed');
-      }
-      if (isBackendHttpError(error) && error.code === 'TEAM_MEMBER_BUSY') {
-        Message.error(t('agent.runtimeRestart.processingTooltip'));
-      } else {
-        Message.error(t('agent.runtimeRestart.failed'));
-      }
-    } finally {
-      restartingRef.current = false;
-      setRestarting(false);
-    }
-  }, [conversation_id, runtimeView, team, t]);
+  const { restart, restarting } = useAcpRuntimeRestart({ conversation_id, team });
 
   if (availability === 'unavailable') {
     return null;
@@ -108,7 +120,9 @@ const AcpRuntimeRestartButton: React.FC<{
       content={t('agent.runtimeRestart.confirmContent')}
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
-      onOk={() => void handleRestart()}
+      onOk={() => {
+        void restart().catch((): void => undefined);
+      }}
     >
       <span className='inline-flex'>
         <Tooltip content={t('agent.runtimeRestart.tooltip')}>{button}</Tooltip>
