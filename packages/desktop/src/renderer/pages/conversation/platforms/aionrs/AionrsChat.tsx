@@ -42,6 +42,7 @@ const AionrsChat: React.FC<{
   teamRuntime?: TeamSendBoxRuntime;
   extraSlashCommands?: SlashCommandItem[];
   assistantId?: string;
+  forkCapability?: { at_turn: boolean };
 }> = ({
   conversation_id,
   workspace,
@@ -57,6 +58,7 @@ const AionrsChat: React.FC<{
   teamRuntime,
   extraSlashCommands,
   assistantId,
+  forkCapability,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -74,8 +76,18 @@ const AionrsChat: React.FC<{
       loadedMcpServers,
       loadedMcpStatuses,
       assistantId,
+      forkCapability,
     };
-  }, [conversation_id, workspace, cron_job_id, loadedSkills, loadedMcpServers, loadedMcpStatuses, assistantId]);
+  }, [
+    conversation_id,
+    workspace,
+    cron_job_id,
+    loadedSkills,
+    loadedMcpServers,
+    loadedMcpStatuses,
+    assistantId,
+    forkCapability,
+  ]);
 
   return (
     <ConversationProvider value={conversationValue}>
