@@ -9,14 +9,12 @@ import { setApplicationMainWindow } from '../bridge/applicationBridge';
 import { setNotificationMainWindow } from '../bridge/notificationBridge';
 import { setDeepLinkMainWindow } from './deepLink';
 import { setTrayMainWindow } from './tray';
-import { bindExternalLoginMainWindow } from '../auth';
 
 export const bindMainWindowReferences = (window: BrowserWindow): void => {
   setTrayMainWindow(window);
   setDeepLinkMainWindow(window);
   setApplicationMainWindow(window);
   setNotificationMainWindow(window);
-  bindExternalLoginMainWindow(window);
 };
 
 export const showAndFocusMainWindow = (window: BrowserWindow): void => {
