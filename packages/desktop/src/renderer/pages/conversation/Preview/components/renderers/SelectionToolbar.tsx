@@ -8,10 +8,12 @@ import React from 'react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { usePreviewContext } from '../../context/PreviewContext';
 import type { SelectionPosition } from '@/renderer/hooks/ui/useTextSelection';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { useTranslation } from 'react-i18next';
 
 interface SelectionToolbarProps {
   selectedText: string; // 选中的文本 / Selected text
+  selectedUrl: string | null; // 选中内容解析出的 http(s) 链接 / http(s) URL resolved from the selection
   position: SelectionPosition | null; // 选中文本的位置 / Position of selected text
   onClear: () => void; // 清除选择的回调 / Callback to clear selection
 }
@@ -23,9 +25,9 @@ interface SelectionToolbarProps {
  * 当用户选中文本时显示，提供"添加到会话"功能
  * Displays when user selects text, providing "Add to chat" functionality
  */
-const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, position, onClear }) => {
+const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, selectedUrl, position, onClear }) => {
   const { t } = useTranslation();
-  const { addToSendBox } = usePreviewContext();
+  const { addToSendBox, openBrowserTab } = usePreviewContext();
 
   // 使用 Floating UI 定位工具栏（跟随鼠标位置）/ Use Floating UI to position toolbar (follow mouse position)
   const { refs, floatingStyles } = useFloating({
@@ -59,25 +61,52 @@ const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, posit
   // 如果没有选中文本或位置，不渲染 / Don't render if no text or position
   if (!selectedText || !position) return null;
 
+  // 选中内容解析为 http(s) 链接时，追加打开方式 / When the selection resolves to an http(s) URL, offer open actions
+  const url = selectedUrl;
+
   // 处理"添加到会话"按钮点击 / Handle "Add to chat" button click
   // 使用 mousedown 而不是 click，因为 click 之前文本选择可能已被清除
   // Use mousedown instead of click because selection may be cleared before click fires
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleAddToChat = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToSendBox(selectedText);
     onClear(); // 清除选择状态 / Clear selection state
   };
 
+  const handleOpenBuiltin = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (url) openBrowserTab(url);
+    onClear();
+  };
+
+  const handleOpenSystem = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (url) void openExternalUrl(url).catch(console.error);
+    onClear();
+  };
+
+  const itemClassName =
+    'text-13px text-t-primary font-medium whitespace-nowrap leading-16px cursor-pointer hover:opacity-80 transition-opacity';
+
   return (
     <div ref={refs.setFloating} style={{ ...floatingStyles, zIndex: 99999 }}>
-      <div
-        className='flex items-center px-12px py-8px bg-[var(--color-bg-2)] rd-8px shadow-lg border-1 border-solid border-[var(--color-border-2)] cursor-pointer hover:opacity-80 transition-opacity'
-        onMouseDown={handleMouseDown}
-      >
-        <span className='text-13px text-t-primary font-medium whitespace-nowrap leading-16px'>
+      <div className='flex items-center gap-12px px-12px py-8px bg-[var(--color-bg-2)] rd-8px shadow-lg border-1 border-solid border-[var(--color-border-2)]'>
+        <span className={itemClassName} onMouseDown={handleAddToChat}>
           {t('preview.addToChat')}
         </span>
+        {url && (
+          <span className={itemClassName} onMouseDown={handleOpenBuiltin}>
+            {t('common.openInBuiltinBrowser')}
+          </span>
+        )}
+        {url && (
+          <span className={itemClassName} onMouseDown={handleOpenSystem}>
+            {t('common.openInSystemBrowser')}
+          </span>
+        )}
       </div>
     </div>
   );

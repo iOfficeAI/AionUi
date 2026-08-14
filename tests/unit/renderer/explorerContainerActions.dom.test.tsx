@@ -25,6 +25,11 @@ vi.mock('@/renderer/pages/conversation/explorer/monitorTransport', () => ({
 const emit = vi.fn();
 vi.mock('@/renderer/utils/emitter', () => ({ emitter: { emit: (...a: unknown[]) => emit(...a) } }));
 
+const copyText = vi.fn();
+vi.mock('@/renderer/utils/ui/clipboard', () => ({ copyText: (t: string) => copyText(t) }));
+
+const copyAbsolutePath = vi.fn<(p: { pe_id: string; relative_path: string }) => Promise<void>>();
+
 // Controllable active conversation id for add-to-chat targeting.
 let activeConversationId: string | null = null;
 vi.mock('@/renderer/pages/conversation/explorer/currentConversationStore', () => ({
@@ -40,17 +45,33 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
     onRemoveRoot,
     onOpenFile,
     onAddToChat,
+    onCopyRelativePath,
+    onCopyAbsolutePath,
     onImportFiles,
   }: {
     roots: Array<{ title: string }>;
     onRemoveRoot?: (id: string) => void;
     onOpenFile?: (pe: string, rel: string) => void;
     onAddToChat?: (pe: string, rel: string, name: string, isFile: boolean) => void;
+    onCopyRelativePath?: (pe: string, rel: string, name: string) => void;
+    onCopyAbsolutePath?: (pe: string, rel: string) => void;
     onImportFiles?: (pe: string, rel: string, paths: string[]) => void;
   }) => (
     <div>
       <span data-testid='roots'>{roots.map((r) => r.title).join(',')}</span>
       <span data-testid='add-to-chat-enabled'>{onAddToChat ? 'yes' : 'no'}</span>
+      <button data-testid='do-copy-rel' onClick={() => onCopyRelativePath?.('peA', 'src/main.ts', 'main.ts')}>
+        copy-rel
+      </button>
+      <button data-testid='do-copy-rel-root' onClick={() => onCopyRelativePath?.('peA', '', 'Root')}>
+        copy-rel-root
+      </button>
+      <button data-testid='do-copy-abs' onClick={() => onCopyAbsolutePath?.('peA', 'src/main.ts')}>
+        copy-abs
+      </button>
+      <button data-testid='do-copy-abs-root' onClick={() => onCopyAbsolutePath?.('peA', '')}>
+        copy-abs-root
+      </button>
       <button data-testid='do-remove' onClick={() => onRemoveRoot?.('peA')}>
         rm
       </button>
@@ -83,6 +104,7 @@ vi.mock('@/common', () => ({
     },
     fs: {
       copyFilesToProject: { invoke: (p: unknown) => copyFiles(p) },
+      copyAbsolutePath: { invoke: (p: { pe_id: string; relative_path: string }) => copyAbsolutePath(p) },
       readContent: { invoke: (p: unknown) => readContent(p) },
       // Opening a file goes through resolvePreviewPayload, which stats it first:
       // size decides whether the content is read at all, lastModified becomes the
@@ -128,6 +150,8 @@ beforeEach(() => {
   openPreview.mockReset();
   copyFiles.mockReset().mockResolvedValue({ copied_files: [], failed_files: [] });
   emit.mockReset();
+  copyText.mockReset().mockResolvedValue(undefined);
+  copyAbsolutePath.mockReset().mockResolvedValue(undefined);
   activeConversationId = null;
   fsRead.mockReset().mockResolvedValue({ content: 'hello', encoding: 'utf-8' });
   readContent.mockReset().mockResolvedValue('hello');
@@ -306,5 +330,51 @@ describe('ExplorerContainer A-paste import', () => {
     renderIt();
     fireEvent.click(await screen.findByTestId('do-import'));
     await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.importFailed'));
+  });
+
+  it('copy relative path: a child node copies its relative_path + success toast', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-rel'));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith('src/main.ts'));
+    await waitFor(() => expect(Message.success).toHaveBeenCalledWith('conversation.explorer.pathCopied'));
+  });
+
+  it('copy relative path: a pe-root (relative_path "") copies "." — not an empty string nor the node name', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-rel-root'));
+    await waitFor(() => expect(copyText).toHaveBeenCalledWith('.'));
+    // `name` may be a custom label or the internal pe_id — never copy it as a path.
+    expect(copyText).not.toHaveBeenCalledWith('');
+    expect(copyText).not.toHaveBeenCalledWith('Root');
+  });
+
+  it('copy relative path: a clipboard failure surfaces an error toast', async () => {
+    copyText.mockRejectedValueOnce(new Error('denied'));
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-rel'));
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.copyFailed'));
+  });
+
+  it('copy absolute path: calls the backend copy endpoint (which writes the clipboard) + success toast — front end never touches the abs', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-abs'));
+    await waitFor(() => expect(copyAbsolutePath).toHaveBeenCalledWith({ pe_id: 'peA', relative_path: 'src/main.ts' }));
+    await waitFor(() => expect(Message.success).toHaveBeenCalledWith('conversation.explorer.pathCopied'));
+    // The abs never reaches the front end, so it must NOT clipboard-copy locally.
+    expect(copyText).not.toHaveBeenCalled();
+  });
+
+  it('copy absolute path: a pe-root (relative_path "") is sent as-is; the backend resolves the root abs', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-abs-root'));
+    await waitFor(() => expect(copyAbsolutePath).toHaveBeenCalledWith({ pe_id: 'peA', relative_path: '' }));
+    await waitFor(() => expect(Message.success).toHaveBeenCalledWith('conversation.explorer.pathCopied'));
+  });
+
+  it('copy absolute path: a backend/clipboard failure surfaces an error toast', async () => {
+    copyAbsolutePath.mockRejectedValueOnce(new Error('not a local path'));
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-copy-abs'));
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.copyFailed'));
   });
 });

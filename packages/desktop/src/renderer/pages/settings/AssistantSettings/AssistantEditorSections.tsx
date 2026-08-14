@@ -10,6 +10,9 @@ import {
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useAgentLogos, resolveAgentAvatar } from '@/renderer/utils/model/agentLogo';
 import type { AvailableBackend } from './types';
+import { filterAssistantEditorBackends } from './assistantUtils';
+import { AionInlineSearchInput } from '@/renderer/components/base';
+import { DROPDOWN_SEARCH_THRESHOLD } from '@/renderer/components/agent/runtimeSelectorOptions';
 import { Avatar, Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
@@ -50,6 +53,17 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
   const editAgent = agent.value;
   const setEditAgent = agent.setValue;
   const availableBackends = agent.availableBackends;
+
+  // Agent search, matching the model picker's in-dropdown box: the trigger keeps
+  // showing the selection while a fixed search field sits above the list. Shown
+  // only past DROPDOWN_SEARCH_THRESHOLD (the same constant the model picker
+  // uses), so a two-agent install is not given a search box for two rows.
+  const [agentQuery, setAgentQuery] = useState('');
+  const showAgentSearch = availableBackends.length > DROPDOWN_SEARCH_THRESHOLD;
+  const filteredBackends = useMemo(
+    () => filterAssistantEditorBackends(availableBackends, agentQuery),
+    [availableBackends, agentQuery]
+  );
 
   // Render the agent's own avatar (icon/logo) for a dropdown row. Falls back to
   // a Robot glyph when the agent has neither an explicit icon nor a catalog logo.
@@ -437,6 +451,33 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
               onChange={(value) => setEditAgent(value as string)}
               disabled={isGenerated}
               data-testid='select-assistant-agent'
+              onVisibleChange={(visible) => {
+                // Reset on close so reopening starts from the full list rather
+                // than the last search, which would look like agents vanished.
+                if (!visible) setAgentQuery('');
+              }}
+              dropdownRender={(menu) =>
+                showAgentSearch ? (
+                  <div>
+                    <div className='px-6px pt-4px pb-6px' style={{ background: 'var(--color-bg-popup)' }}>
+                      <AionInlineSearchInput
+                        value={agentQuery}
+                        onChange={setAgentQuery}
+                        placeholder={t('settings.assistantSearchAgent', { defaultValue: 'Search agents' })}
+                        data-testid='assistant-agent-search'
+                      />
+                    </div>
+                    {menu}
+                  </div>
+                ) : (
+                  menu
+                )
+              }
+              notFoundContent={
+                <div className='px-12px py-10px text-12px text-t-tertiary text-center'>
+                  {t('settings.assistantNoMatchingAgent', { defaultValue: 'No matching agents' })}
+                </div>
+              }
               renderFormat={(_option, value) => {
                 const selected = availableBackends.find((item) => item.id === value);
                 if (!selected) return (value as string) ?? '';
@@ -448,7 +489,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
                 );
               }}
             >
-              {availableBackends.map((option) => (
+              {filteredBackends.map((option) => (
                 <Select.Option key={option.id} value={option.id}>
                   <span className='flex items-center gap-8px'>
                     {renderAgentAvatar(option)}

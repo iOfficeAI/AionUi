@@ -24,6 +24,8 @@
   "loading": "请稍候...",
   "copy": "复制",
   "reply": "引用",
+  "openInBuiltinBrowser": "内置浏览器打开",
+  "openInSystemBrowser": "系统浏览器打开",
   "copySuccess": "已复制",
   "copyFailed": "Copy failed",
   "download": "下载",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "诊断报告已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
+    },
+    "databaseNewerThanApp": {
+      "title": "需要更新 AionUi",
+      "description": "本地数据由更高版本的 AionUi 创建，当前版本无法打开。请将 AionUi 更新到最新版本即可继续使用，数据完好无损，无需重装或重置数据。",
+      "descriptionWithVersion": "本地数据由比当前版本 v{{currentVersion}} 更新的 AionUi 创建，当前版本无法打开。请将 AionUi 更新到最新版本即可继续使用，数据完好无损，无需重装或重置数据。"
     },
     "localDataRepair": {
       "title": "本地数据修复失败",

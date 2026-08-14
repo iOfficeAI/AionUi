@@ -219,10 +219,42 @@
   padding: 12px 16px;
 }
 
-/* Mermaid diagrams render statically — no pan/zoom/drag. Streamdown attaches an
-   unconditional wheel + pointer pan-zoom handler that its `controls` flag does NOT
-   disable; pointer-events:none (inherited by the inner pan-zoom layer) stops those
-   handlers from receiving events, so the page scrolls normally over the diagram. */
+/* Mermaid diagrams expose Streamdown's pan/zoom controls (zoom in/out, reset,
+   copy, download) enabled via the viewer's `controls` prop; fullscreen is off
+   (its Streamdown overlay ships only unbacked Tailwind classes). The block must
+   receive pointer events so the control buttons are clickable and the diagram
+   can be dragged. Wheel-zoom over a diagram is suppressed in MarkdownViewer
+   (capture-phase listener) so scrolling the doc scrolls the page; use the zoom
+   buttons to scale. */
 .aionui-markdown [data-streamdown='mermaid-block'] {
-  pointer-events: none;
+  pointer-events: auto;
+}
+
+/* Mermaid download dropdown (SVG / PNG / MMD). Streamdown styles the menu with
+   Tailwind classes (`min-w-[120px] border bg-background shadow-lg`, items
+   `w-full px-3 py-2`) that UnoCSS never emits — node_modules isn't scanned — so
+   the menu collapses to ~1ch wide and the labels wrap one character per line.
+   Back the box + items by class name (Streamdown is version-pinned; the menu
+   exposes no data-streamdown hook). */
+.aionui-markdown [class~='min-w-[120px]'] {
+  min-width: 120px;
+  overflow: hidden;
+  border: 1px solid var(--bg-3);
+  border-radius: 6px;
+  background: var(--bg-1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.aionui-markdown [class~='min-w-[120px]'] > button {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.aionui-markdown [class~='min-w-[120px]'] > button:hover {
+  background: var(--bg-2);
 }

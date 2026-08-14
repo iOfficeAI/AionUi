@@ -190,7 +190,9 @@ describe('action gating', () => {
     await screen.findByText('conflict.ts');
 
     expect(document.querySelector('[data-scm-group="blocked"] [data-scm-bulk]')).toBeNull();
-    expect(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk="stage"]')).not.toBeNull();
+    // Stage-all for the unstaged side now lives on the Changes section header, not on a
+    // (removed) unstaged group title row.
+    expect(document.querySelector('[data-scm-header-stage-all]')).not.toBeNull();
   });
 });
 
@@ -217,7 +219,7 @@ describe('dispatching an action', () => {
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('ok1.ts');
 
-    fireEvent.click(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk="stage"]')!);
+    fireEvent.click(document.querySelector('[data-scm-header-stage-all]')!);
     await waitFor(() => expect(actCalls).toHaveLength(1));
     expect(actCalls[0].files.map((f) => f.relative_path)).toEqual(['ok1.ts', 'ok2.ts']);
   });
@@ -266,7 +268,7 @@ describe('discard confirmation (the two consequences differ)', () => {
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('edited.ts');
 
-    fireEvent.click(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk-discard]')!);
+    fireEvent.click(document.querySelector('[data-scm-header-discard-all]')!);
     expect(confirmCalls).toHaveLength(1);
     const content = String(confirmCalls[0].content);
     expect(content).toContain('confirmDiscardMixed');
@@ -308,7 +310,7 @@ describe('outcome reporting', () => {
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('a.ts');
 
-    fireEvent.click(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk="stage"]')!);
+    fireEvent.click(document.querySelector('[data-scm-header-stage-all]')!);
     await waitFor(() => expect(document.querySelector('[data-scm-report="warning"]')).not.toBeNull());
 
     const banner = document.querySelector('[data-scm-report="warning"]')!;
@@ -329,7 +331,7 @@ describe('outcome reporting', () => {
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('a.ts');
 
-    fireEvent.click(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk="stage"]')!);
+    fireEvent.click(document.querySelector('[data-scm-header-stage-all]')!);
     await waitFor(() => expect(rowFor('a.ts').getAttribute('data-scm-failed')).toBe('true'));
     expect(rowFor('b.ts').getAttribute('data-scm-failed')).toBeNull();
   });
@@ -439,12 +441,14 @@ describe('discard is offered on the unstaged side only — all six cells', () =>
     expect(document.querySelector('[data-scm-group="staged"] [data-scm-bulk="unstage"]')).not.toBeNull();
   });
 
-  it('cell 4 — the UNSTAGED group HAS bulk discard', async () => {
+  it('cell 4 — the UNSTAGED side HAS a bulk discard (now on the section header)', async () => {
     install({ resources: [resource('a.ts', { staged: false }), resource('b.ts', { staged: false })] });
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('a.ts');
 
-    expect(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk-discard]')).not.toBeNull();
+    // The unstaged group's title row was removed as a duplicate of the section header;
+    // its bulk discard was hoisted onto that header.
+    expect(document.querySelector('[data-scm-header-discard-all]')).not.toBeNull();
   });
 
   it('cell 5 — a provider with NO staging area keeps discard (rows AND bulk)', async () => {
@@ -460,9 +464,11 @@ describe('discard is offered on the unstaged side only — all six cells', () =>
     render(<ScmPanel projectId='p1' />);
     await screen.findByText('a.ts');
 
+    // The `changes` group renders its rows but, like `unstaged`, no longer draws a
+    // duplicate title row; its bulk discard lives on the section header.
     expect(document.querySelector('[data-scm-group="changes"]')).not.toBeNull();
     expect(rowFor('a.ts').querySelector('[data-scm-action="discard"]')).not.toBeNull();
-    expect(document.querySelector('[data-scm-group="changes"] [data-scm-bulk-discard]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-header-discard-all]')).not.toBeNull();
   });
 
   it('cell 6 — a CONFLICTED row has no discard, though its `staged` is also undefined', async () => {
@@ -494,7 +500,7 @@ describe('discard is offered on the unstaged side only — all six cells', () =>
     expect(rowFor('edited.ts').querySelector('[data-scm-action="discard"]')).not.toBeNull();
   });
 
-  it('never sends a discard for a staged row, even via the unstaged group’s bulk button', async () => {
+  it('never sends a discard for a staged row, even via the header’s bulk discard', async () => {
     // Behavioural backstop for cells 1+3: whatever the UI does, no staged row may
     // reach the wire in a discard request.
     install({
@@ -503,7 +509,7 @@ describe('discard is offered on the unstaged side only — all six cells', () =>
     render(<ScmPanel projectId='p1' />);
     await waitFor(() => expect(document.querySelectorAll('[data-scm-resource]')).toHaveLength(2));
 
-    fireEvent.click(document.querySelector('[data-scm-group="unstaged"] [data-scm-bulk-discard]')!);
+    fireEvent.click(document.querySelector('[data-scm-header-discard-all]')!);
     await confirmCalls[0].onOk?.();
     await waitFor(() => expect(actCalls).toHaveLength(1));
     expect(actCalls[0].action).toBe('discard');

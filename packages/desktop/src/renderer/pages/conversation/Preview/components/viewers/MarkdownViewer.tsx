@@ -6,6 +6,7 @@
 
 import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
+import type { ChatFileRef } from '@/common/types/chatFile';
 import LocalFileLink from '@/renderer/components/Markdown/LocalFileLink';
 import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
@@ -29,6 +30,7 @@ interface MarkdownPreviewProps {
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
   file_path?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
   workspace?: string;
+  fileRef?: ChatFileRef; // 当前 Markdown 文件的 ChatFileRef（project 文档据此解析相对图片，无需绝对路径）/ The doc's ChatFileRef; project docs resolve relative images through it (no absolute path)
 }
 
 const isDataOrRemoteUrl = (value?: string): boolean => {
@@ -41,9 +43,30 @@ const isAbsoluteLocalPath = (value?: string): boolean => {
   return /^([a-zA-Z]:\\|\\\\|\/)/.test(value);
 };
 
+// Join a project-relative directory with a relative image src, resolving `.`/`..`
+// segments. Project `relative_path` is always POSIX ('/'-separated) regardless of
+// host OS, so this stays cross-platform (no node `path`, which would use '\' on win).
+const joinRelativePosix = (dir: string, rel: string): string => {
+  const out: string[] = [];
+  for (const seg of `${dir}/${rel}`.split('/')) {
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') {
+      out.pop();
+      continue;
+    }
+    out.push(seg);
+  }
+  return out.join('/');
+};
+
 interface MarkdownImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   baseDir?: string;
   workspace?: string;
+  // The markdown document's own ChatFileRef. For project docs the renderer never
+  // has an absolute path, so a relative image is resolved as a sibling project
+  // ref (same pe_id, joined relative_path) and read via /api/fs/content — the
+  // backend does the pe_id → absolute resolution. No absolute path in the renderer.
+  docFileRef?: ChatFileRef;
 }
 
 const useImageResolverCache = () => {
@@ -77,7 +100,7 @@ const useImageResolverCache = () => {
   return resolve;
 };
 
-const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, workspace, ...props }) => {
+const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, workspace, docFileRef, ...props }) => {
   const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined);
   const resolveImage = useImageResolverCache();
 
@@ -110,8 +133,32 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, worksp
         return;
       }
 
-      const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
       const cleanedSrc = src.replace(/\\/g, '/');
+
+      // Project doc: resolve the image as a sibling project ref and read it via
+      // /api/fs/content (backend does pe_id → absolute). The renderer never builds
+      // an absolute path here, matching the Explorer "no absolute path" contract.
+      if (docFileRef?.kind === 'project' && !isAbsoluteLocalPath(cleanedSrc)) {
+        const mdRel = docFileRef.relative_path.replace(/\\/g, '/');
+        const slash = mdRel.lastIndexOf('/');
+        const dir = slash === -1 ? '' : mdRel.slice(0, slash);
+        const imgRel = joinRelativePosix(dir, cleanedSrc);
+        const imgRef: ChatFileRef = { kind: 'project', pe_id: docFileRef.pe_id, relative_path: imgRel };
+        resolveImage(`project:${docFileRef.pe_id}:${imgRel}`, async () => {
+          const dataUrl = await ipcBridge.fs.readContent.invoke({ file: imgRef, encoding: 'dataurl' });
+          return dataUrl || src;
+        })
+          .then((dataUrl) => {
+            if (!cancelled) setResolvedSrc(dataUrl);
+          })
+          .catch((error) => {
+            console.error('[MarkdownPreview] Failed to load project image:', { src, imgRel, error });
+            if (!cancelled) setResolvedSrc(src);
+          });
+        return;
+      }
+
+      const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
       const absolutePath = isAbsoluteLocalPath(cleanedSrc)
         ? cleanedSrc
         : normalizedBase
@@ -145,7 +192,7 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, worksp
     return () => {
       cancelled = true;
     };
-  }, [src, baseDir, resolveImage, workspace]);
+  }, [src, baseDir, resolveImage, workspace, docFileRef]);
 
   if (!resolvedSrc) {
     return alt ? <span>{alt}</span> : null;
@@ -225,6 +272,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   onScroll: externalOnScroll,
   file_path,
   workspace,
+  fileRef,
 }) => {
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
@@ -245,7 +293,27 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   );
 
   // 监听文本选择 / Monitor text selection
-  const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
+  const { selectedText, selectedUrl, selectionPosition, clearSelection } = useTextSelection(containerRef);
+
+  // Streamdown binds an unconditional wheel-zoom handler ({ passive: false }) on each
+  // mermaid pan layer, so scrolling a long doc over a diagram zooms it instead of
+  // scrolling the page. Intercept wheel in the capture phase before it reaches that
+  // handler: stopPropagation() keeps Streamdown from zooming, and NOT calling
+  // preventDefault() lets the container scroll natively. Buttons (click) and drag-pan
+  // (pointer events) are untouched, so zoom controls and drag still work. Fullscreen
+  // portals the diagram out of this container, so wheel-zoom stays available there.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheelCapture = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-streamdown='mermaid-block']")) {
+        e.stopPropagation();
+      }
+    };
+    el.addEventListener('wheel', onWheelCapture, { capture: true });
+    return () => el.removeEventListener('wheel', onWheelCapture, { capture: true });
+  }, [containerRef]);
 
   const baseDir = useMemo(() => {
     if (!file_path) return undefined;
@@ -283,7 +351,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               mode='static'
               shikiTheme={getMarkdownShikiThemes()}
               mermaid={{ config: { theme: getMermaidTheme(currentTheme) } }}
-              controls={{ table: false, mermaid: false }}
+              controls={{ table: false, mermaid: { panZoom: true, fullscreen: false, copy: true, download: true } }}
               remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
               rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
               components={{
@@ -304,7 +372,16 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
                   );
                 },
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                  return <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} {...props} />;
+                  return (
+                    <MarkdownImage
+                      src={src}
+                      alt={alt}
+                      baseDir={baseDir}
+                      workspace={workspace}
+                      docFileRef={fileRef}
+                      {...props}
+                    />
+                  );
                 },
               }}
             >
@@ -316,7 +393,12 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
 
       {/* 文本选择浮动工具栏 / Text selection floating toolbar */}
       {selectedText && (
-        <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />
+        <SelectionToolbar
+          selectedText={selectedText}
+          selectedUrl={selectedUrl}
+          position={selectionPosition}
+          onClear={clearSelection}
+        />
       )}
     </div>
   );

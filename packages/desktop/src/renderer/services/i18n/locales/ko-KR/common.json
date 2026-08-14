@@ -24,6 +24,8 @@
   "loading": "기다려주세요...",
   "copy": "복사",
   "reply": "인용",
+  "openInBuiltinBrowser": "내장 브라우저로 열기",
+  "openInSystemBrowser": "시스템 브라우저로 열기",
   "copySuccess": "복사됨",
   "copyFailed": "복사 실패",
   "download": "다운로드",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "최신 버전의 AionUi가 필요합니다",
+      "description": "로컬 데이터가 더 최신 버전의 AionUi에서 생성되어 현재 버전에서는 열 수 없습니다. AionUi를 최신 버전으로 업데이트하면 계속 사용할 수 있습니다. 데이터는 그대로 유지되며 재설치나 초기화는 필요하지 않습니다.",
+      "descriptionWithVersion": "로컬 데이터가 현재 버전 v{{currentVersion}}보다 최신 버전의 AionUi에서 생성되어 현재 버전에서는 열 수 없습니다. AionUi를 최신 버전으로 업데이트하면 계속 사용할 수 있습니다. 데이터는 그대로 유지되며 재설치나 초기화는 필요하지 않습니다."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

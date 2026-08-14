@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ScmRepository, ScmResource, ScmStatus } from '@/renderer/pages/conversation/SourceControl/scmModel';
@@ -38,6 +38,11 @@ import {
   getScmInternalsForTest,
   resetScmStoreForTest,
 } from '@/renderer/pages/conversation/SourceControl/scmStore';
+import {
+  resetScmUiStoreForTest,
+  setSectionCollapsed,
+  setSectionHeight,
+} from '@/renderer/pages/conversation/SourceControl/scmUiStore';
 
 const repo = (over: Partial<ScmRepository> = {}): ScmRepository => ({
   repo_id: 'scm:pe1',
@@ -91,6 +96,8 @@ const installPort = (setup: PortSetup): void => {
 
 beforeEach(() => {
   resetScmStoreForTest();
+  resetScmUiStoreForTest();
+  localStorage.clear();
   diffCalls.length = 0;
   openPreviewMock.mockClear();
 });
@@ -98,6 +105,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   resetScmStoreForTest();
+  resetScmUiStoreForTest();
+  localStorage.clear();
 });
 
 describe('ScmPanel empty / failure states', () => {
@@ -565,5 +574,371 @@ describe('ScmPanel first-frame loading (protocol.md v10: `refreshing` is never p
 
     await screen.findByText('a.ts');
     expect(document.querySelector('[data-scm-loading]')).not.toBeNull();
+  });
+});
+
+describe('ScmPanel section framework (VS Code SCM parity)', () => {
+  const twoRepos: ScmRepository[] = [
+    repo(),
+    repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+  ];
+  const twoRepoFrames: Record<string, ScmStatus> = {
+    'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+    'scm:pe2': status('scm:pe2', 1, []),
+  };
+
+  it('always renders the Changes section header, even with a single repo', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+  });
+
+  it('does not render a Repositories section for a single-repo project', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="repositories"]')).toBeNull();
+  });
+
+  it('renders both section headers for a multi-repo project', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-header="repositories"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+  });
+
+  it('collapsing the Changes section hides its body but keeps the header visible', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    expect(header.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(header);
+
+    // Header stays; body content is gone.
+    expect(document.querySelector('[data-scm-section-header="changes"]')).not.toBeNull();
+    expect(header.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('a.ts')).toBeNull();
+  });
+
+  it('shows a divider only when both sections are open', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-section-divider]')).not.toBeNull();
+
+    fireEvent.click(document.querySelector('[data-scm-section-header="changes"]') as HTMLElement);
+    expect(document.querySelector('[data-scm-section-divider]')).toBeNull();
+  });
+});
+
+describe('ScmPanel view-as-tree / view-as-list toggle', () => {
+  const nested = [resource('src/app/main.ts'), resource('src/app/util.ts'), resource('readme.md')];
+
+  it('defaults to list view (flat rows, no directory nodes)', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    expect(document.querySelector('[data-scm-view-toggle="list"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-tree-dir]')).toBeNull();
+  });
+
+  it('switches to tree view, rendering directory nodes, and persists the preference', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    fireEvent.click(document.querySelector('[data-scm-view-toggle="list"]') as HTMLElement);
+
+    await waitFor(() => expect(document.querySelector('[data-scm-tree-dir]')).not.toBeNull());
+    // Files still present under their folders.
+    expect(screen.getByText('main.ts')).toBeInTheDocument();
+    expect(screen.getByText('util.ts')).toBeInTheDocument();
+    // Preference persisted for this project.
+    expect(localStorage.getItem('scm-ui:p1')).toContain('tree');
+  });
+
+  it('preserves click → openPreview diff in tree view', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, nested) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('main.ts');
+    fireEvent.click(document.querySelector('[data-scm-view-toggle="list"]') as HTMLElement);
+    await waitFor(() => expect(document.querySelector('[data-scm-tree-dir]')).not.toBeNull());
+
+    openPreviewMock.mockClear();
+    fireEvent.click(screen.getByText('main.ts'));
+
+    await waitFor(() => expect(openPreviewMock).toHaveBeenCalled());
+    expect(diffCalls.length).toBeGreaterThan(0);
+  });
+});
+
+describe('ScmPanel worktree aggregation in the Repositories section', () => {
+  // A primary repo with one nested worktree, plus a second plain repo so the
+  // Repositories section renders (multi-repo) and the primary's own changes show.
+  const worktreeWorkspace = (): PortSetup => ({
+    repositories: [
+      repo({ repo_id: 'scm:pe1', label: 'core', head: { name: 'main' } }),
+      repo({
+        repo_id: 'scm:pe1/feature',
+        root: { pe_id: 'pe1', relative_path: 'feature' },
+        label: 'feature',
+        head: { name: 'feature' },
+        is_worktree: true,
+        worktree_of: 'scm:pe1',
+      }),
+      repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+    ],
+    firstFrames: {
+      'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+      'scm:pe1/feature': status('scm:pe1/feature', 1, []),
+      'scm:pe2': status('scm:pe2', 1, []),
+    },
+  });
+
+  it('nests the worktree row under its primary and exposes an expand toggle', async () => {
+    installPort(worktreeWorkspace());
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).not.toBeNull();
+    // Only the primary with children carries a toggle.
+    const toggle = document.querySelector('[data-scm-repo-toggle="scm:pe1"]');
+    expect(toggle).not.toBeNull();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(document.querySelector('[data-scm-repo-toggle="scm:pe2"]')).toBeNull();
+  });
+
+  it('collapses and re-expands the worktree children via the toggle, and persists', async () => {
+    installPort(worktreeWorkspace());
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const toggle = document.querySelector('[data-scm-repo-toggle="scm:pe1"]') as HTMLElement;
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).toBeNull());
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // Primary row itself stays.
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1"]')).not.toBeNull();
+    // Collapse persisted for this project.
+    expect(localStorage.getItem('scm-ui:p1')).toContain('scm:pe1');
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')).not.toBeNull());
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('selecting a nested worktree row switches the body to that worktree', async () => {
+    installPort({
+      repositories: [
+        repo({ repo_id: 'scm:pe1', label: 'core', head: { name: 'main' } }),
+        repo({
+          repo_id: 'scm:pe1/feature',
+          root: { pe_id: 'pe1', relative_path: 'feature' },
+          label: 'feature',
+          head: { name: 'feature' },
+          is_worktree: true,
+          worktree_of: 'scm:pe1',
+        }),
+      ],
+      firstFrames: {
+        'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+        'scm:pe1/feature': status('scm:pe1/feature', 1, [resource('wt.ts')]),
+      },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    fireEvent.click(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]') as HTMLElement);
+
+    await screen.findByText('wt.ts');
+    expect(screen.queryByText('a.ts')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-scm-repo="scm:pe1/feature"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/feature"]')?.getAttribute('aria-current')).toBe('true');
+  });
+
+  it('renders an orphan worktree (primary out of view) flat at the outer level', async () => {
+    installPort({
+      repositories: [
+        repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other', head: { name: 'main' } }),
+        repo({
+          repo_id: 'scm:pe1/wt',
+          root: { pe_id: 'pe1', relative_path: 'wt' },
+          label: 'stray',
+          head: { name: 'stray' },
+          is_worktree: true,
+          worktree_of: 'scm:pe1',
+        }),
+      ],
+      firstFrames: {
+        'scm:pe2': status('scm:pe2', 1, [resource('a.ts')]),
+        'scm:pe1/wt': status('scm:pe1/wt', 1, []),
+      },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // The orphan sits at the outer level with no parent toggle anywhere.
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/wt"]')).not.toBeNull();
+    expect(document.querySelector('[data-scm-repo-toggle]')).toBeNull();
+    expect(document.querySelector('[data-scm-repo-item="scm:pe1/wt"]')?.style.paddingLeft).toBe('');
+  });
+});
+
+describe('ScmPanel Changes section header consolidates actions (VS Code parity)', () => {
+  it('hosts refresh and stage-all on the Changes header, not a separate top toolbar', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    // Refresh, stage-all and discard-all all live inside the Changes header row.
+    expect(header.querySelector('[data-scm-header-refresh]')).not.toBeNull();
+    expect(header.querySelector('[data-scm-header-stage-all]')).not.toBeNull();
+    expect(header.querySelector('[data-scm-header-discard-all]')).not.toBeNull();
+    // The view-as toggle is on the same row.
+    expect(header.querySelector('[data-scm-view-toggle]')).not.toBeNull();
+  });
+
+  it('drops the duplicate gray "changes" group title row but keeps the rows', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // The unstaged group still renders its rows (grouping intact)…
+    const group = document.querySelector('[data-scm-group="unstaged"]');
+    expect(group).not.toBeNull();
+    // …but no longer draws its own uppercase title row (it duplicated the section header).
+    expect(group?.querySelector('[data-scm-bulk]')).toBeNull();
+    expect(group?.querySelector('[data-scm-bulk-discard]')).toBeNull();
+  });
+
+  it('omits stage-all when there is nothing to stage', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, []) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('conversation.explorer.scm.noChanges');
+    const header = document.querySelector('[data-scm-section-header="changes"]') as HTMLElement;
+    expect(header.querySelector('[data-scm-header-stage-all]')).toBeNull();
+    // Refresh is always available.
+    expect(header.querySelector('[data-scm-header-refresh]')).not.toBeNull();
+  });
+});
+
+describe('ScmPanel bottom-anchored section stack', () => {
+  const twoRepos: ScmRepository[] = [
+    repo(),
+    repo({ repo_id: 'scm:pe2', root: { pe_id: 'pe2', relative_path: '' }, label: 'other' }),
+  ];
+  const twoRepoFrames: Record<string, ScmStatus> = {
+    'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]),
+    'scm:pe2': status('scm:pe2', 1, []),
+  };
+  const changesSlot = () => document.querySelector('[data-scm-section-slot="changes"]') as HTMLElement;
+  const repoSlot = () => document.querySelector('[data-scm-section-slot="repositories"]') as HTMLElement;
+
+  it('bottom-anchors Changes with an explicit height while Repositories fills', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // Repositories is the filler (flex-1, no fixed height); Changes carries a height.
+    expect(repoSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).not.toBe('');
+    expect(changesSlot().className).not.toContain('flex-1');
+  });
+
+  it('honours a persisted Changes height', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    // Header (24) + stored body (150) = 174px, clamped only by the (unmeasured) panel.
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+  });
+
+  it('makes Changes the filler when Repositories is collapsed (ignores its stored height)', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    act(() => setSectionCollapsed('repositories', true));
+
+    // Repositories collapsed to its header; Changes now flexes to fill and drops its height.
+    await waitFor(() => expect(repoSlot().className).toContain('flex-shrink-0'));
+    expect(changesSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).toBe('');
+    // No divider once the section above is collapsed.
+    expect(document.querySelector('[data-scm-section-divider]')).toBeNull();
+  });
+
+  it('single-repo project: Changes fills (no repositories section to anchor against)', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, [resource('a.ts')]) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    expect(repoSlot()).toBeNull();
+    expect(changesSlot().className).toContain('flex-1');
+    expect(changesSlot().style.height).toBe('');
+  });
+
+  it('applies the cumulative drag delta from the drag start, not just the last step', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+
+    const divider = document.querySelector('[data-scm-section-divider]') as HTMLElement;
+    // Multi-step drag upward by 120px total. Each move must build on the height at
+    // drag start (150 + 120), not re-base on a stale increment (which kept only the
+    // final 10px step — the regression this test pins down).
+    fireEvent.pointerDown(divider, { clientY: 400 });
+    for (let step = 1; step <= 12; step++) {
+      fireEvent.pointerMove(divider, { clientY: 400 - step * 10 });
+    }
+    fireEvent.pointerUp(divider, { clientY: 280 });
+
+    // Body 150 + 120 = 270, slot = 24 header + 270 = 294px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('294px'));
+
+    // A second drag re-captures the base from the new height (no leakage of the old base).
+    fireEvent.pointerDown(divider, { clientY: 300 });
+    fireEvent.pointerMove(divider, { clientY: 320 });
+    fireEvent.pointerMove(divider, { clientY: 340 });
+    fireEvent.pointerUp(divider, { clientY: 340 });
+    // Dragged down 40px: 270 - 40 = 230 body → 24 + 230 = 254px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('254px'));
+  });
+
+  it('double-clicking the divider clears the stored Changes height (reset to default)', async () => {
+    installPort({ repositories: twoRepos, firstFrames: twoRepoFrames });
+    render(<ScmPanel projectId='p1' />);
+    await screen.findByText('a.ts');
+
+    act(() => setSectionHeight('changes', 150));
+    await waitFor(() => expect(changesSlot().style.height).toBe('174px'));
+
+    fireEvent.doubleClick(document.querySelector('[data-scm-section-divider]') as HTMLElement);
+
+    // Stored override gone; height falls back to the panel-fraction default (240 fallback
+    // when the panel is unmeasured in jsdom) → 24 + 240 = 264px.
+    await waitFor(() => expect(changesSlot().style.height).toBe('264px'));
+    expect(localStorage.getItem('scm-ui:p1') ?? '').not.toContain('"changes":150');
   });
 });

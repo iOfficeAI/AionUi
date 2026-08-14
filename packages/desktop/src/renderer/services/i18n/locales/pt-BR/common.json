@@ -24,6 +24,8 @@
   "loading": "Por favor, aguarde...",
   "copy": "Copiar",
   "reply": "Responder",
+  "openInBuiltinBrowser": "Abrir no navegador integrado",
+  "openInSystemBrowser": "Abrir no navegador do sistema",
   "copySuccess": "Copiado",
   "copyFailed": "Falha ao copiar",
   "download": "Baixar",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "É necessária uma versão mais recente do AionUi",
+      "description": "Seus dados locais foram criados por uma versão mais recente do AionUi e esta versão não consegue abri-los. Atualize o AionUi para a versão mais recente para continuar; seus dados estão intactos e não é preciso reinstalar nem redefinir nada.",
+      "descriptionWithVersion": "Seus dados locais foram criados por uma versão do AionUi mais recente do que a instalada agora (v{{currentVersion}}), então esta versão não consegue abri-los. Atualize o AionUi para a versão mais recente para continuar; seus dados estão intactos e não é preciso reinstalar nem redefinir nada."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

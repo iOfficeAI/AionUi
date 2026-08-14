@@ -24,6 +24,8 @@
   "loading": "Lütfen bekleyin...",
   "copy": "Kopyala",
   "reply": "Alıntı",
+  "openInBuiltinBrowser": "Yerleşik tarayıcıda aç",
+  "openInSystemBrowser": "Sistem tarayıcısında aç",
   "copySuccess": "Kopyalandı",
   "copyFailed": "Kopyalama başarısız",
   "download": "İndir",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "Daha yeni bir AionUi sürümü gerekli",
+      "description": "Yerel verileriniz AionUi'nin daha yeni bir sürümü tarafından oluşturuldu ve bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez.",
+      "descriptionWithVersion": "Yerel verileriniz şu an yüklü olandan (v{{currentVersion}}) daha yeni bir AionUi sürümü tarafından oluşturuldu; bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

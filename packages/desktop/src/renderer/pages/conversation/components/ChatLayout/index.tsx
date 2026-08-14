@@ -72,7 +72,13 @@ const ChatLayout: React.FC<{
 
   // Preview panel state
   const { isOpen: isPreviewOpenRaw } = usePreviewContext();
-  const previewHosted = Boolean(props.previewHosted);
+  // Only hoist to the Layout host on desktop. On mobile (narrow width < 768) the
+  // host is not rendered (`previewRegionActive` in Layout.tsx is gated on
+  // `!isMobile`), so hoisting there would leave the preview with no renderer at
+  // all. Forcing `previewHosted` to false on mobile makes every conversation —
+  // including project conversations — fall back to ChatLayout's own mobile
+  // overlay path, exactly how non-project conversations still render today.
+  const previewHosted = Boolean(props.previewHosted) && !isMobile;
   // For project conversations the preview lives at the Layout host, so this
   // ChatLayout must behave as if there is no preview: chat fills, no split, no
   // preview panel. Everywhere below uses `isPreviewOpen` for that local decision.

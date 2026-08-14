@@ -7,11 +7,14 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { emitter } from '@/renderer/utils/emitter';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Quote } from '@icon-park/react';
+import { useOptionalPreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import { openExternalUrl } from '@/renderer/utils/platform';
+import { resolveSelectionHttpUrl } from '@/renderer/utils/url';
+import { Browser, Earth, Quote } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type ReplyPos = { top: number; left: number; text: string; msgId: string; msgPos: string };
+type ReplyPos = { top: number; left: number; text: string; msgId: string; msgPos: string; url: string | null };
 
 /**
  * Get the current selection, checking Shadow DOM roots if needed.
@@ -78,6 +81,7 @@ const BUTTON_HEIGHT = 32;
 const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
+  const preview = useOptionalPreviewContext();
   const isMobile = layout?.isMobile ?? false;
   const [pos, setPos] = useState<ReplyPos | null>(null);
   const messagesRef = useRef(messages);
@@ -121,6 +125,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
           text,
           msgId,
           msgPos: msg?.position ?? 'left',
+          // Resolve here while the live Selection (with its anchor/focus nodes) exists.
+          url: resolveSelectionHttpUrl(text, sel.anchorNode, sel.focusNode),
         });
       }, 20);
     };
@@ -151,10 +157,22 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
 
   if (!pos) return null;
 
+  // Resolved http(s) URL for the selection (single URL text, or a link anchor);
+  // when present, offer extra open actions.
+  const url = pos.url;
+
+  const dismiss = () => {
+    setPos(null);
+    window.getSelection()?.removeAllRanges();
+  };
+
+  const itemClassName =
+    'flex items-center gap-4px px-8px py-4px rd-6px cursor-pointer transition-colors whitespace-nowrap hover:bg-[var(--brand-hover)]';
+
   return (
     <div
       ref={buttonRef}
-      className='fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none'
+      className='fixed z-9999 flex items-center gap-2px px-4px py-4px rd-8px select-none'
       style={{
         top: pos.top,
         left: pos.left,
@@ -164,19 +182,48 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
         color: 'var(--brand)',
       }}
-      onMouseDown={(e) => {
-        e.preventDefault();
-        emitter.emit('sendbox.reply', {
-          messageId: pos.msgId,
-          content: pos.text,
-          position: pos.msgPos as 'left' | 'right' | 'center' | 'pop',
-        });
-        setPos(null);
-        window.getSelection()?.removeAllRanges();
-      }}
     >
-      <Quote theme='outline' size='14' fill='currentColor' />
-      <span className='text-12px font-medium whitespace-nowrap'>{t('common.reply', { defaultValue: 'Reply' })}</span>
+      <div
+        className={itemClassName}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          emitter.emit('sendbox.reply', {
+            messageId: pos.msgId,
+            content: pos.text,
+            position: pos.msgPos as 'left' | 'right' | 'center' | 'pop',
+          });
+          dismiss();
+        }}
+      >
+        <Quote theme='outline' size='14' fill='currentColor' />
+        <span className='text-12px font-medium'>{t('common.reply', { defaultValue: 'Reply' })}</span>
+      </div>
+      {url && preview && (
+        <div
+          className={itemClassName}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            preview.openBrowserTab(url);
+            dismiss();
+          }}
+        >
+          <Browser theme='outline' size='14' fill='currentColor' />
+          <span className='text-12px font-medium'>{t('common.openInBuiltinBrowser')}</span>
+        </div>
+      )}
+      {url && (
+        <div
+          className={itemClassName}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            void openExternalUrl(url).catch(console.error);
+            dismiss();
+          }}
+        >
+          <Earth theme='outline' size='14' fill='currentColor' />
+          <span className='text-12px font-medium'>{t('common.openInSystemBrowser')}</span>
+        </div>
+      )}
     </div>
   );
 };

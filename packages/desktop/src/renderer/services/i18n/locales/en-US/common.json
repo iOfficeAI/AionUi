@@ -24,6 +24,8 @@
   "loading": "Please wait...",
   "copy": "Copy",
   "reply": "Reply",
+  "openInBuiltinBrowser": "Open in built-in browser",
+  "openInSystemBrowser": "Open in system browser",
   "copySuccess": "Copied",
   "copyFailed": "Copy failed",
   "download": "Download",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "A newer version of AionUi is required",
+      "description": "Your local data was created by a newer version of AionUi, and this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed.",
+      "descriptionWithVersion": "Your local data was created by a version of AionUi newer than the one installed now (v{{currentVersion}}), so this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

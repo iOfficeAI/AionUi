@@ -146,6 +146,10 @@
   },
   "saveConflict": "Could not save: this file changed on disk since you opened it. Reload to see the other changes — your edits are still here, unsaved.",
   "persistQuotaExceeded": "Local storage is full, so open tabs can no longer be remembered for this project. Close some tabs or clear site data.",
+  "save": {
+    "tooltip": "Save changes (Ctrl/Cmd+S)",
+    "clean": "No unsaved changes"
+  },
   "refresh": {
     "label": "Refresh",
     "tooltip": "Reload from disk",
