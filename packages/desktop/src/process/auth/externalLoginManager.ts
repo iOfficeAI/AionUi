@@ -135,7 +135,9 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
           preload: preloadPath,
           contextIsolation: true,
           nodeIntegration: false,
-          sandbox: true,
+          // sandbox: true — would be ideal but currently breaks preload injection
+          // on this Electron build; revisit once the upstream bug is fixed.
+          sandbox: false,
           webSecurity: true,
         },
       });
@@ -179,6 +181,14 @@ export function startExternalLogin(): Promise<ExternalLoginOutcome> {
         message: `${errorCode} ${errorDescription}`,
         url: validatedURL,
       } satisfies ExternalLoginError);
+    });
+
+    win.webContents.on('preload-error', (_event, preloadPathErr, error) => {
+      console.error('[ExternalLogin] preload-error:', preloadPathErr, error);
+    });
+
+    win.webContents.on('console-message', (_event, level, message) => {
+      console.log(`[ExternalLogin][webContents:${level}] ${message}`);
     });
 
     win.on('closed', () => {
