@@ -58,6 +58,8 @@
     "exportFailed": "Export fehlgeschlagen",
     "pin": "Anheften",
     "unpin": "Loslösen",
+    "markAsUnread": "Als ungelesen markieren",
+    "markAsRead": "Als gelesen markieren",
     "pinned": "Angeheftet",
     "pinFailed": "Anheften fehlgeschlagen",
     "pinnedSection": "Angeheftet",

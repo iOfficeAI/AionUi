@@ -673,6 +673,8 @@ export type I18nKey =
   | 'conversation.history.exporting'
   | 'conversation.history.forkedConversation'
   | 'conversation.history.forkedFrom'
+  | 'conversation.history.markAsRead'
+  | 'conversation.history.markAsUnread'
   | 'conversation.history.newConversationInProject'
   | 'conversation.history.noHistory'
   | 'conversation.history.pin'
