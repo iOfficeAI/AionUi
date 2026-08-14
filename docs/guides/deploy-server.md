@@ -2,6 +2,8 @@
 
 Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, and containers — with proxy auto-fallback support.
 
+> **Recommended for new container deployments:** use the Electron-free [Docker Compose guide](docker.md) (`docker-compose.yml` pulls the GHCR release image; `docker-compose.dev.yml` builds from source). The guide below describes the packaged Electron application with Xvfb and remains useful for `.deb`-based server installations.
+
 **Translations**: [中文版](#中文版--chinese-version) below.
 
 ## Table of Contents

@@ -6,11 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import { mutateAccountCache as swrMutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { globalNavigate } from '@/renderer/utils/navigation';
 import { Message } from '@arco-design/web-react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mutate as swrMutate } from 'swr';
 
 /** Backend manifest id of the built-in AionUi Butler assistant. */
 const BUTLER_ASSISTANT_ID = 'aionui-assistant';

@@ -142,16 +142,26 @@ i18n
 // module load.
 async function initLanguage(): Promise<void> {
   try {
+    // Browser WebUI config is account-scoped and cannot be fetched until the
+    // authenticated user is known. Its subscription below applies the server
+    // value after login; the synchronous hint already avoids a flash here.
+    if (typeof window !== 'undefined' && !window.electronAPI) return;
+
     await configService.whenReady();
-    const savedLanguage = configService.get('language');
-    const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
-    await ensureAndSwitch(i18n, language, loadLocaleModules);
-    // Sync to localStorage so next page load can use it as a fast hint
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('i18nextLng', normalizeLanguageCode(language));
-    }
+    await applyLanguagePreference(configService.get('language'));
   } catch (error) {
     console.error('Failed to initialize language:', error);
+  }
+}
+
+async function applyLanguagePreference(value: unknown): Promise<void> {
+  const language =
+    typeof value === 'string' && value.trim() !== ''
+      ? value
+      : normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
+  await ensureAndSwitch(i18n, language, loadLocaleModules);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('i18nextLng', normalizeLanguageCode(language));
   }
 }
 
@@ -170,6 +180,15 @@ i18n.on('languageChanged', async (lang: string) => {
 
 // Initialize on module load
 void initLanguage();
+
+// Config subscribers survive account resets. When the next account's config
+// arrives, switch immediately; an undefined value selects the browser default
+// instead of leaking the previous account's preference.
+configService.subscribe('language', (value) => {
+  void applyLanguagePreference(value).catch((error) => {
+    console.error('Failed to apply language preference:', error);
+  });
+});
 
 // Listen for language changes broadcast by the main process (from other renderers).
 // This enables real-time sync between desktop and WebUI — when one changes language,

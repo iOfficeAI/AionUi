@@ -16,6 +16,7 @@
  */
 
 import { STREAM_SAMPLE_RATE } from './pcmRecorder';
+import { getLocalClientWebSocketProtocol } from '@/common/adapter/httpBridge';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -118,7 +119,8 @@ export const getSpeechStreamUrl = (): string => {
 // ---------------------------------------------------------------------------
 
 const defaultCreateSocket = (url: string): WebSocketLike => {
-  const socket = new WebSocket(url);
+  const localProtocol = getLocalClientWebSocketProtocol();
+  const socket = localProtocol ? new WebSocket(url, localProtocol) : new WebSocket(url);
   socket.binaryType = 'arraybuffer';
   return socket;
 };

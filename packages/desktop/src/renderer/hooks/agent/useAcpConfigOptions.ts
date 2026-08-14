@@ -12,9 +12,10 @@ import type {
   AcpConfigSelectOptionDto,
   SetConfigOptionResponse,
 } from '@/common/types/platform/acpTypes';
+import { mutateAccountCache as swrMutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR, { mutate as swrMutate } from 'swr';
+import useSWR from 'swr';
 
 export type AcpDerivedSelectOption = {
   value: string;

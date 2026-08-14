@@ -54,10 +54,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Synchronously fetch the aioncore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
+const backendClientSecret = ipcRenderer.sendSync('get-backend-client-secret') as string | null;
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__backendClientSecret', backendClientSecret ?? undefined);
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
 contextBridge.exposeInMainWorld('__aionuiE2ETest', process.env.AIONUI_E2E_TEST === '1');
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);

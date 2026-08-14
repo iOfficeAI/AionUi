@@ -22,7 +22,7 @@ WebUI mode starts AionUi with an embedded web server, allowing you to:
 - Use AionUi from remote devices on the same network (with `--remote` flag)
 - Run the application headless on servers
 
-Default access URL: `http://localhost:3000` (port may vary, check the application output)
+Default access URL: `http://localhost:25808` (port may vary, check the application output)
 
 ---
 
@@ -467,7 +467,7 @@ ip addr show
 
 Look for `inet` address (e.g., `192.168.1.100`).
 
-Access from other devices: `http://YOUR_IP_ADDRESS:3000`
+Access from other devices: `http://YOUR_IP_ADDRESS:25808`
 
 ---
 
@@ -475,7 +475,7 @@ Access from other devices: `http://YOUR_IP_ADDRESS:3000`
 
 ### Port Already in Use
 
-If port 3000 is already in use, the application will automatically try the next available port. Check the console output for the actual port number.
+If port 25808 is already in use, choose another port with `--port` or `AIONUI_PORT` and check the console output for the active URL.
 
 ### Cannot Access from Browser
 
@@ -494,13 +494,13 @@ If port 3000 is already in use, the application will automatically try the next 
 
 ```cmd
 # Allow through Windows Firewall
-netsh advfirewall firewall add rule name="AionUi WebUI" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="AionUi WebUI" dir=in action=allow protocol=TCP localport=25808
 ```
 
 **Linux (UFW):**
 
 ```bash
-sudo ufw allow 3000/tcp
+sudo ufw allow 25808/tcp
 ```
 
 **macOS:**
@@ -604,11 +604,11 @@ Settings from CLI flags take priority, followed by environment variables, then t
 
 ## Reset Admin Password
 
-If you forgot your admin password in WebUI mode, you can reset it using the `--resetpass` command.
+If you forgot the bootstrap administrator password in WebUI mode, you can reset it using the `--resetpass` command. Stop the running WebUI first so only one backend process opens the data directory.
 
 ### Using --resetpass Command
 
-**IMPORTANT:** The --resetpass command resets the password and generates a new random one. All existing JWT tokens will be invalidated.
+**IMPORTANT:** The command generates a new random password for the bootstrap administrator and invalidates that account's existing sessions. It is host-operator recovery, not a replacement for the authenticated administrator controls used to reset other users.
 
 **Windows:**
 
@@ -616,8 +616,6 @@ If you forgot your admin password in WebUI mode, you can reset it using the `--r
 # Using full path
 "C:\Program Files\AionUi\AionUi.exe" --resetpass
 
-# Or for a specific user
-"C:\Program Files\AionUi\AionUi.exe" --resetpass username
 ```
 
 **macOS:**
@@ -626,8 +624,6 @@ If you forgot your admin password in WebUI mode, you can reset it using the `--r
 # Using full path
 /Applications/AionUi.app/Contents/MacOS/AionUi --resetpass
 
-# Or for a specific user
-/Applications/AionUi.app/Contents/MacOS/AionUi --resetpass username
 ```
 
 **Linux:**
@@ -636,9 +632,6 @@ If you forgot your admin password in WebUI mode, you can reset it using the `--r
 # Using system path
 aionui --resetpass
 
-# Or for a specific user
-aionui --resetpass username
-
 # Or using full path
 /opt/AionUi/aionui --resetpass
 ```
@@ -646,10 +639,10 @@ aionui --resetpass username
 ### What happens when you run --resetpass:
 
 1. The command connects to the database
-2. Finds the specified user (default: `admin`)
-3. Generates a new random 12-character password
+2. Finds the instance's bootstrap administrator
+3. Generates a new strong random password
 4. Updates the password hash in the database
-5. Rotates the JWT secret (invalidating all previous tokens)
+5. Invalidates the bootstrap administrator's existing sessions
 6. Displays the new password in the terminal
 
 ### After running --resetpass:
@@ -661,14 +654,14 @@ aionui --resetpass username
 
 ### Development Environment Only
 
-If you're in a development environment with Node.js, you can also use:
+If you're in a development environment with Node.js, stop the running standalone WebUI before using the reset script. This avoids opening the same SQLite data directory from two AionCore processes:
 
 ```bash
-# In the project directory
+# Stop npm run webui / bun run webui first, then in the project directory:
 npm run resetpass
 
-# Or for a specific user
-npm run resetpass -- username
+# Restart the WebUI after copying the generated password
+npm run webui
 ```
 
 ---

@@ -59,6 +59,8 @@ export type ConversationRowProps = {
   onCreateCronTask: (conversation: TChatConversation) => void;
   onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
+  /** Multi-user WebUI only — opens the share dialog for this conversation. */
+  onShare?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
   /** Resolve a loaded conversation's name by id (fork-lineage badge tooltip). */

@@ -19,12 +19,18 @@
 
 import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 
+const COLD_IMPORT_TIMEOUT_MS = 30000;
+
 describe('OfficeWatchViewer module shape', () => {
-  it('module loads and exposes a default export', async () => {
-    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
-    expect(mod).toBeDefined();
-    expect(mod.default).toBeDefined();
-  });
+  it(
+    'module loads and exposes a default export',
+    async () => {
+      const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
+      expect(mod).toBeDefined();
+      expect(mod.default).toBeDefined();
+    },
+    COLD_IMPORT_TIMEOUT_MS
+  );
 
   it('default export is a function (React component)', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');

@@ -156,6 +156,21 @@ describe('buildSpawnArgs', () => {
     expect(args).not.toContain('--local');
   });
 
+  it('selects authenticated webui identity mode for browser-facing backends', () => {
+    const args = buildSpawnArgs({
+      port: 1,
+      dbPath: '/d',
+      local: false,
+      identityMode: 'webui',
+      appVersion: '0.0.1',
+      isPackaged: false,
+    });
+
+    expect(args).toContain('--identity-mode');
+    expect(args).toContain('webui');
+    expect(args).not.toContain('--local');
+  });
+
   it('passes prompt dump flag in development only when AIONUI_DUMP_PROMPTS is enabled', () => {
     const prev = process.env.AIONUI_DUMP_PROMPTS;
     process.env.AIONUI_DUMP_PROMPTS = '1';
@@ -239,6 +254,58 @@ describe('buildSpawnEnv', () => {
     expect(env.AIONUI_WORK_DIR).toBe('/w');
     expect(env.AIONUI_LOG_DIR).toBe('/l');
     expect(env.PATH).toBe(process.env.PATH); // inherits
+  });
+
+  it('allows the exact local development renderer origin automatically', () => {
+    const previousRendererUrl = process.env.ELECTRON_RENDERER_URL;
+    const previousAllowedOrigins = process.env.AIONCORE_ALLOWED_ORIGINS;
+    delete process.env.AIONCORE_ALLOWED_ORIGINS;
+    process.env.ELECTRON_RENDERER_URL = 'http://localhost:5173/nested';
+    try {
+      expect(buildSpawnEnv(undefined, 'local').AIONCORE_ALLOWED_ORIGINS).toBe('http://localhost:5173');
+    } finally {
+      if (previousRendererUrl === undefined) delete process.env.ELECTRON_RENDERER_URL;
+      else process.env.ELECTRON_RENDERER_URL = previousRendererUrl;
+      if (previousAllowedOrigins === undefined) delete process.env.AIONCORE_ALLOWED_ORIGINS;
+      else process.env.AIONCORE_ALLOWED_ORIGINS = previousAllowedOrigins;
+    }
+  });
+
+  it('preserves an explicit origin allowlist', () => {
+    const previousRendererUrl = process.env.ELECTRON_RENDERER_URL;
+    const previousAllowedOrigins = process.env.AIONCORE_ALLOWED_ORIGINS;
+    process.env.ELECTRON_RENDERER_URL = 'http://localhost:5173';
+    process.env.AIONCORE_ALLOWED_ORIGINS = 'https://trusted.example';
+    try {
+      expect(buildSpawnEnv(undefined, 'local').AIONCORE_ALLOWED_ORIGINS).toBe('https://trusted.example');
+    } finally {
+      if (previousRendererUrl === undefined) delete process.env.ELECTRON_RENDERER_URL;
+      else process.env.ELECTRON_RENDERER_URL = previousRendererUrl;
+      if (previousAllowedOrigins === undefined) delete process.env.AIONCORE_ALLOWED_ORIGINS;
+      else process.env.AIONCORE_ALLOWED_ORIGINS = previousAllowedOrigins;
+    }
+  });
+
+  it('passes the per-launch client secret only to a local backend', () => {
+    const secret = 'a'.repeat(43);
+
+    expect(buildSpawnEnv(undefined, 'local', secret).AIONCORE_LOCAL_CLIENT_SECRET).toBe(secret);
+    expect(buildSpawnEnv(undefined, 'webui', secret).AIONCORE_LOCAL_CLIENT_SECRET).toBeUndefined();
+  });
+});
+
+describe('BackendLifecycleManager local client authentication', () => {
+  it('generates one stable 256-bit base64url secret for local mode', () => {
+    const manager = new BackendLifecycleManager(APP_META, () => '/x', 'local');
+
+    expect(manager.localClientSecret).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(manager.localClientSecret).toBe(manager.localClientSecret);
+  });
+
+  it('does not create a local client secret for webui mode', () => {
+    const manager = new BackendLifecycleManager(APP_META, () => '/x', 'webui');
+
+    expect(manager.localClientSecret).toBeUndefined();
   });
 });
 

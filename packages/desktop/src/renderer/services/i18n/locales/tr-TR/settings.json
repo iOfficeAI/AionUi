@@ -454,7 +454,7 @@
   "installed": "Yüklü",
   "builtin": "Yerleşik",
   "channels": "Kanallar",
-  "webui.description": "AionUi'nizi \"7/24 Uzaktan Asistan\" olarak kullanın - görevleri istediğiniz zaman, istediğiniz yerden herhangi bir uzak cihazdan düzenleyin.",
+  "webui.description": "Masaüstü modu arka ucunu gizli tutar. Tarayıcı erişimi için kimliği doğrulanmış Docker veya bağımsız sunucuyu çalıştırın.",
   "webui.steps": "Adım 1. Web Arayüzünü açın; Adım 2. Erişim URL'sini kopyalayın; Adım 3. Uzak tarayıcıda açın",
   "webui.configuration": "Web Arayüzü Yapılandırması",
   "webui.enable": "Web Arayüzünü Etkinleştir",
@@ -462,7 +462,7 @@
   "webui.port": "Port",
   "webui.portDesc": "Web Arayüzü servis dinleme portu",
   "webui.allowRemote": "Uzaktan Erişime İzin Ver",
-  "webui.allowRemoteDesc": "Güvenli uzaktan erişim için uzak yazılım/sunucu kullan",
+  "webui.allowRemoteDesc": "Uzak ve çok kullanıcılı erişim, kimliği doğrulanmış Docker veya bağımsız sunucu üzerinden kullanılabilir.",
   "webui.viewGuide": "Rehberi Görüntüle",
   "webui.accessInfo": "Erişim URL'leri",
   "webui.localUrl": "Yerel URL",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "Şifre sadece ilk açılışta gösterilir ve sonrasında gizlenir",
   "webui.resetPasswordWarning": "Lütfen sıfırlanan şifreyi güvenli bir yerde saklayın!",
-  "webui.featureRemoteDesc": "WebUI'yi etkinleştirerek telefonunuzdan veya uzak tarayıcıdan AionUi'ye erişebilirsiniz.",
+  "webui.featureRemoteDesc": "Masaüstü işlemi içinde tarayıcı barındırma devre dışıdır. Docker veya bağımsız sunucu kişisel ve çok kullanıcılı dağıtımları destekler.",
   "webui.featureChannelsTitle": "Messaging Control",
   "webui.featureChannelsDesc": "Telegram, Lark, DingTalk ve WeChat'i bağlayarak IM uygulamalarından AionUi ile etkileşime geçin.",
   "webui.goToChannels": "Channels'a Git",
@@ -1341,5 +1341,165 @@
     "clearConfirmContent": "Uygulama içi tarayıcıdaki tüm sitelerden çıkış yapılacak. Bu işlem geri alınamaz.",
     "clearSuccess": "Tarama verileri temizlendi",
     "clearFailed": "Tarama verileri temizlenemedi"
+  },
+  "account": {
+    "navTitle": "Hesaplar",
+    "title": "Hesaplar ve erişim",
+    "description": "Hesabınızı, site kullanıcılarını ve güvenlik etkinliğini yönetin.",
+    "changePassword": "Parolayı değiştir",
+    "tabs": {
+      "account": "Hesabım",
+      "users": "Kullanıcılar",
+      "audit": "Denetim",
+      "channels": "Kanallar",
+      "collaboration": "İşbirliği"
+    },
+    "roles": {
+      "admin": "Yönetici",
+      "member": "Üye"
+    },
+    "statuses": {
+      "active": "Etkin",
+      "disabled": "Devre dışı"
+    },
+    "userTypes": {
+      "local": "Yerel hesap",
+      "aionpro": "AionPro hesabı"
+    },
+    "errors": {
+      "failed": "Hesap işlemi başarısız oldu. Lütfen tekrar deneyin.",
+      "adminRequired": "Yönetici erişimi gereklidir.",
+      "lastAdmin": "Son etkin yönetici değiştirilemez veya devre dışı bırakılamaz.",
+      "userNotFound": "Kullanıcı artık mevcut değil.",
+      "usernameTaken": "Bu kullanıcı adı zaten kullanılıyor.",
+      "passwordChangeRequired": "Devam etmeden önce geçici parolanızı değiştirin.",
+      "featureUnavailable": "Hesap yönetimi bu arka uç sürümünde kullanılamaz. Etkinleştirmek için AionCore'u güncelleyin.",
+      "rateLimited": "Çok fazla istek. Biraz bekleyip yenileyin."
+    },
+    "users": {
+      "title": "Site kullanıcıları",
+      "description": "Hesap oluşturun ve bu AionUi örneğine erişimlerini yönetin.",
+      "add": "Kullanıcı ekle",
+      "empty": "Kullanıcı bulunamadı",
+      "username": "Kullanıcı adı",
+      "usernamePlaceholder": "Bir kullanıcı adı girin",
+      "usernameRequired": "Bir kullanıcı adı girin",
+      "usernameLength": "Kullanıcı adı 3 ile 32 karakter arasında olmalıdır",
+      "usernameFormat": "Yalnızca harf, sayı, alt çizgi veya kısa çizgi kullanın",
+      "role": "Rol",
+      "passwordState": "Parola",
+      "changeRequired": "Değişiklik gerekli",
+      "passwordSet": "Ayarlandı",
+      "actions": "İşlemler",
+      "createTitle": "Kullanıcı oluştur",
+      "createSuccess": "Kullanıcı oluşturuldu",
+      "renameTitle": "Kullanıcı adını düzenle",
+      "renameSuccess": "Kullanıcı adı güncellendi",
+      "updateSuccess": "Kullanıcı güncellendi",
+      "resetPassword": "Parolayı sıfırla",
+      "resetConfirm": "{{username}} için yeni bir geçici parola oluşturulsun mu? Oturumları iptal edilecek.",
+      "resetSuccess": "Geçici parola oluşturuldu",
+      "revokeSessions": "Oturumları iptal et",
+      "revokeConfirm": "{{username}} tüm cihazlardan çıkarılsın mı?",
+      "revokeSuccess": "Oturumlar iptal edildi",
+      "temporaryPasswordTitle": "Geçici parola",
+      "temporaryPasswordNotice": "Bu parolayı şimdi kopyalayın. Tekrar gösterilmeyecek ve kullanıcı giriş yaptıktan sonra değiştirmelidir."
+    },
+    "audit": {
+      "title": "Güvenlik denetimi",
+      "description": "Son hesap ve erişim değişikliklerini inceleyin.",
+      "empty": "Denetim olayı bulunamadı",
+      "time": "Zaman",
+      "actor": "İşlemi yapan",
+      "action": "İşlem",
+      "target": "Hedef",
+      "details": "Ayrıntılar",
+      "loadMore": "Daha fazla yükle",
+      "actions": {
+        "userCreated": "Kullanıcı oluşturuldu",
+        "usernameChanged": "Kullanıcı adı değiştirildi",
+        "roleChanged": "Rol değiştirildi",
+        "statusChanged": "Durum değiştirildi",
+        "passwordReset": "Parola sıfırlandı",
+        "passwordChanged": "Parola değiştirildi",
+        "sessionsRevoked": "Oturumlar iptal edildi",
+        "bootstrapCredentialsSet": "İlk kimlik bilgileri ayarlandı"
+      }
+    },
+    "collaboration": {
+      "title": "İşbirliği",
+      "description": "Sizinle paylaşılan kaynakları görün ve oluşturduğunuz paylaşımları yönetin.",
+      "tabs": {
+        "received": "Benimle paylaşılan",
+        "granted": "Benim paylaştıklarım"
+      },
+      "emptyReceived": "Henüz sizinle paylaşılan bir kaynak yok",
+      "emptyGranted": "Henüz bir kaynak paylaşmadınız",
+      "revoke": "Geri al",
+      "revokeConfirm": "{{username}} erişimini geri al?",
+      "revokeSuccess": "Paylaşım geri alındı",
+      "columns": {
+        "resource": "Kaynak",
+        "permission": "İzin",
+        "owner": "Sahip",
+        "grantee": "Paylaşılan kişi",
+        "actions": "İşlemler"
+      },
+      "resourceTypes": {
+        "conversation": "Sohbet",
+        "project": "Proje",
+        "provider": "Bağlantı"
+      },
+      "permissions": {
+        "view": "Görüntüle",
+        "edit": "Düzenle"
+      },
+      "grantById": {
+        "title": "Kaynak paylaş",
+        "description": "Bağlam menüsü yoksa sohbet, proje veya sağlayıcı kimliğiyle paylaşım iletişim kutusunu açın.",
+        "resourceType": "Tür",
+        "resourceId": "Kaynak kimliği",
+        "resourceIdPlaceholder": "Kaynak kimliğini girin",
+        "resourceIdRequired": "Bir kaynak kimliği girin",
+        "open": "Paylaş"
+      },
+      "shareDialog": {
+        "title": "{{name}} paylaş",
+        "description": "Bir kullanıcı ve izin düzeyi seçin. Mevcut paylaşımlar aşağıda listelenir.",
+        "user": "Kişi",
+        "userPlaceholder": "Üye seç",
+        "userRequired": "Bir kişi seçin",
+        "noUsers": "Başka etkin kullanıcı yok",
+        "permission": "İzin",
+        "grant": "Erişim ver",
+        "grantSuccess": "Erişim verildi",
+        "existing": "Erişimi olan kişiler",
+        "existingEmpty": "Henüz kimseyle paylaşılmadı"
+      },
+      "errors": {
+        "failed": "Paylaşım işlemi başarısız oldu. Lütfen yeniden deneyin.",
+        "notFound": "Bu paylaşım artık yok.",
+        "alreadyShared": "Bu kaynak zaten bu kullanıcıyla paylaşılmış.",
+        "cannotShareSelf": "Bir kaynağı kendinizle paylaşamazsınız.",
+        "invalidPermission": "Bu izin geçerli değil.",
+        "invalidResource": "Bu kaynak paylaşılamadı.",
+        "forbidden": "Bu paylaşımı yönetme izniniz yok.",
+        "featureUnavailable": "Bu arka uç sürümünde kaynak paylaşımı kullanılamıyor. AionCore’u güncelleyin."
+      },
+      "shareConversation": "Sohbeti paylaş",
+      "shareConversationHint": "Sohbetlerinizden birini seçin, sonra erişecek kişiyi seçin.",
+      "pickConversation": "Sohbet seç",
+      "shareWithUser": "Paylaş…",
+      "shareResource": "Kaynak paylaş",
+      "shareResourceHint": "Bir sohbet, bağlantı (sağlayıcı) veya proje seçin, ardından erişecek kişiyi seçin.",
+      "pickResource": "Öğe seç",
+      "projectFromChat": "Proje · {{name}}",
+      "emptyPicker": {
+        "conversation": "Henüz sohbet yok",
+        "provider": "Henüz bağlantı yok — Modeller’den ekleyin",
+        "project": "Bağlı proje yok"
+      }
+    },
+    "signOut": "Çıkış yap"
   }
 }

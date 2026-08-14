@@ -9,12 +9,12 @@ import type {
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { mutateAccountCache as swrMutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { getSkillImportErrorMessage } from '@/renderer/pages/settings/SkillsSettings/skillImportMessages';
 import { emitter } from '@/renderer/utils/emitter';
 import { assistantOrderAfterToggle, selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mutate as swrMutate } from 'swr';
 
 type UseAssistantEditorParams = {
   localeKey: string;

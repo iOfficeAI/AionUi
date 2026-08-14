@@ -79,6 +79,24 @@ global.cancelAnimationFrame = (id: number) => {
 Element.prototype.scrollTo = () => {};
 Element.prototype.scrollIntoView = () => {};
 
+// jsdom does not implement matchMedia; Arco Grid/Modal subscribe to it on mount.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 // Mock localStorage (not always available in jsdom)
 if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage?.clear !== 'function') {
   const store = new Map<string, string>();

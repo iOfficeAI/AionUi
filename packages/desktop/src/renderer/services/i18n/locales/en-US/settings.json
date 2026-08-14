@@ -454,7 +454,7 @@
   "installed": "Installed",
   "builtin": "Built-in",
   "channels": "Channels",
-  "webui.description": "Use AionUi as your \"24/7 Remote Assistant\" - arrange tasks from any remote device, anytime, anywhere.",
+  "webui.description": "Desktop mode keeps its backend private. Run the authenticated Docker or standalone server for browser access.",
   "webui.steps": "Step 1. Turn on WebUI; Step 2. Copy the access URL; Step 3. Open in remote browser",
   "webui.configuration": "WebUI Configuration",
   "webui.enable": "Enable WebUI",
@@ -462,7 +462,7 @@
   "webui.port": "Port",
   "webui.portDesc": "WebUI service listening port",
   "webui.allowRemote": "Allow Remote Access",
-  "webui.allowRemoteDesc": "Use remote software/server for secure remote access",
+  "webui.allowRemoteDesc": "Remote and multi-user access is available through the authenticated Docker or standalone server.",
   "webui.viewGuide": "View Guide",
   "webui.accessInfo": "Access URLs",
   "webui.localUrl": "Local URL",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "Password is only shown on first startup and will be hidden afterwards",
   "webui.resetPasswordWarning": "Please keep the reset password safe!",
-  "webui.featureRemoteDesc": "Enable WebUI so your phone or remote browser can access AionUi.",
+  "webui.featureRemoteDesc": "Browser hosting is disabled inside the desktop process. Docker or the standalone server supports personal and multi-user deployments.",
   "webui.featureChannelsTitle": "Messaging Control",
   "webui.featureChannelsDesc": "Connect Telegram, Lark, DingTalk, and WeChat to interact with AionUi from IM apps.",
   "webui.goToChannels": "Go to Channels",
@@ -1341,5 +1341,165 @@
     "clearConfirmContent": "You will be signed out of every site in the in-app browser. This cannot be undone.",
     "clearSuccess": "Browsing data cleared",
     "clearFailed": "Failed to clear browsing data"
+  },
+  "account": {
+    "navTitle": "Accounts",
+    "title": "Accounts and access",
+    "description": "Manage your account, site users, and security activity.",
+    "changePassword": "Change password",
+    "tabs": {
+      "account": "My account",
+      "users": "Users",
+      "audit": "Audit",
+      "channels": "Channels",
+      "collaboration": "Collaboration"
+    },
+    "roles": {
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "statuses": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "userTypes": {
+      "local": "Local account",
+      "aionpro": "AionPro account"
+    },
+    "errors": {
+      "failed": "Could not complete that account action.",
+      "adminRequired": "Administrator access is required.",
+      "lastAdmin": "The last active administrator cannot be changed or disabled.",
+      "userNotFound": "The user no longer exists.",
+      "usernameTaken": "That username is already in use.",
+      "passwordChangeRequired": "Change your temporary password before continuing.",
+      "featureUnavailable": "Account administration is not available with this backend version. Update AionCore to enable it.",
+      "rateLimited": "Too many requests. Wait a moment and refresh."
+    },
+    "users": {
+      "title": "Site users",
+      "description": "Create accounts and control their access to this AionUi instance.",
+      "add": "Add user",
+      "empty": "No users found",
+      "username": "Username",
+      "usernamePlaceholder": "Enter a username",
+      "usernameRequired": "Enter a username",
+      "usernameLength": "Username must be 3 to 32 characters",
+      "usernameFormat": "Use letters, numbers, underscores, or hyphens only",
+      "role": "Role",
+      "passwordState": "Password",
+      "changeRequired": "Change required",
+      "passwordSet": "Set",
+      "actions": "Actions",
+      "createTitle": "Create user",
+      "createSuccess": "User created",
+      "renameTitle": "Edit username",
+      "renameSuccess": "Username updated",
+      "updateSuccess": "User updated",
+      "resetPassword": "Reset password",
+      "resetConfirm": "Generate a new temporary password for {{username}}? Their sessions will be revoked.",
+      "resetSuccess": "Temporary password generated",
+      "revokeSessions": "Revoke sessions",
+      "revokeConfirm": "Sign {{username}} out on every device?",
+      "revokeSuccess": "Sessions revoked",
+      "temporaryPasswordTitle": "Temporary password",
+      "temporaryPasswordNotice": "Copy this password now. It will not be shown again, and the user must change it after signing in."
+    },
+    "audit": {
+      "title": "Security audit",
+      "description": "Review recent account and access changes.",
+      "empty": "No audit events found",
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "details": "Details",
+      "loadMore": "Load more",
+      "actions": {
+        "userCreated": "User created",
+        "usernameChanged": "Username changed",
+        "roleChanged": "Role changed",
+        "statusChanged": "Status changed",
+        "passwordReset": "Password reset",
+        "passwordChanged": "Password changed",
+        "sessionsRevoked": "Sessions revoked",
+        "bootstrapCredentialsSet": "Bootstrap credentials set"
+      }
+    },
+    "collaboration": {
+      "title": "Collaboration",
+      "description": "See resources shared with you and manage grants you created.",
+      "tabs": {
+        "received": "Shared with me",
+        "granted": "Shared by me"
+      },
+      "emptyReceived": "No resources have been shared with you yet",
+      "emptyGranted": "You have not shared any resources yet",
+      "revoke": "Revoke",
+      "revokeConfirm": "Revoke access for {{username}}?",
+      "revokeSuccess": "Share revoked",
+      "columns": {
+        "resource": "Resource",
+        "permission": "Permission",
+        "owner": "Owner",
+        "grantee": "Shared with",
+        "actions": "Actions"
+      },
+      "resourceTypes": {
+        "conversation": "Conversation",
+        "project": "Project",
+        "provider": "Connection"
+      },
+      "permissions": {
+        "view": "View",
+        "edit": "Edit"
+      },
+      "grantById": {
+        "title": "Share a resource",
+        "description": "Open the share dialog for a conversation, project, or provider by its id when a context menu is not available.",
+        "resourceType": "Type",
+        "resourceId": "Resource id",
+        "resourceIdPlaceholder": "Enter resource id",
+        "resourceIdRequired": "Enter a resource id",
+        "open": "Share"
+      },
+      "shareDialog": {
+        "title": "Share {{name}}",
+        "description": "Choose a user and permission level. Existing grants for this resource are listed below.",
+        "user": "Person",
+        "userPlaceholder": "Select a teammate",
+        "userRequired": "Select a person",
+        "noUsers": "No other active users available",
+        "permission": "Permission",
+        "grant": "Grant access",
+        "grantSuccess": "Access granted",
+        "existing": "People with access",
+        "existingEmpty": "Not shared with anyone yet"
+      },
+      "errors": {
+        "failed": "The share operation failed. Please try again.",
+        "notFound": "This share no longer exists.",
+        "alreadyShared": "This resource is already shared with that user.",
+        "cannotShareSelf": "You cannot share a resource with yourself.",
+        "invalidPermission": "That permission is not valid.",
+        "invalidResource": "That resource could not be shared.",
+        "forbidden": "You do not have permission to manage this share.",
+        "featureUnavailable": "Resource sharing is not available with this backend version. Update AionCore to enable it."
+      },
+      "shareConversation": "Share a conversation",
+      "shareConversationHint": "Pick one of your conversations, then choose who can access it.",
+      "pickConversation": "Select a conversation",
+      "shareWithUser": "Share…",
+      "shareResource": "Share a resource",
+      "shareResourceHint": "Choose a conversation, connection (provider), or project, then pick who can access it.",
+      "pickResource": "Select an item",
+      "projectFromChat": "Project · {{name}}",
+      "emptyPicker": {
+        "conversation": "No conversations yet",
+        "provider": "No connections yet — add one under Models",
+        "project": "No projects linked to your chats yet"
+      }
+    },
+    "signOut": "Sign out"
   }
 }

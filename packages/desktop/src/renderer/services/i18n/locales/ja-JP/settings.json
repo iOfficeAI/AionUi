@@ -454,7 +454,7 @@
   "installed": "インストール済み",
   "builtin": "内蔵",
   "channels": "チャンネル",
-  "webui.description": "AionUi を「24時間365日のリモートアシスタント」として使用 - いつでもどこでもリモートデバイスからタスクを手配できます。",
+  "webui.description": "デスクトップモードではバックエンドを非公開に保ちます。ブラウザから利用する場合は、認証付き Docker またはスタンドアロンサーバーを起動してください。",
   "webui.steps": "ステップ 1. WebUI をオンにする；ステップ 2. アクセス URL をコピー；ステップ 3. リモートブラウザで開く",
   "webui.configuration": "WebUI 設定",
   "webui.enable": "WebUI を有効にする",
@@ -462,7 +462,7 @@
   "webui.port": "ポート",
   "webui.portDesc": "WebUI サービスのリスニングポート",
   "webui.allowRemote": "リモートアクセスを許可",
-  "webui.allowRemoteDesc": "リモートソフト/サーバーで安全にリモートアクセス",
+  "webui.allowRemoteDesc": "リモートおよびマルチユーザーアクセスは、認証付き Docker またはスタンドアロンサーバーで利用できます。",
   "webui.viewGuide": "ガイドを見る",
   "webui.accessInfo": "アクセスURL",
   "webui.localUrl": "ローカルURL",
@@ -536,7 +536,7 @@
   "webui.passwordHidden": "******",
   "webui.passwordOnlyFirstTime": "パスワードは初回起動時のみ表示され、その後は非表示になります",
   "webui.resetPasswordWarning": "リセット後のパスワードを大切に保管してください！",
-  "webui.featureRemoteDesc": "WebUI を有効にすると、スマホやリモートブラウザから AionUi にアクセスできます。",
+  "webui.featureRemoteDesc": "デスクトッププロセス内のブラウザホスティングは無効です。Docker またはスタンドアロンサーバーは、個人用とマルチユーザーのデプロイに対応します。",
   "webui.featureChannelsTitle": "Messaging Control",
   "webui.featureChannelsDesc": "Telegram、Lark、DingTalk、WeChat を接続して、IM アプリから AionUi とやり取りできます。",
   "webui.goToChannels": "Channels へ",
@@ -1343,5 +1343,165 @@
     "clearConfirmContent": "アプリ内ブラウザーのすべてのサイトからサインアウトされます。この操作は取り消せません。",
     "clearSuccess": "閲覧データを消去しました",
     "clearFailed": "閲覧データの消去に失敗しました"
+  },
+  "account": {
+    "navTitle": "アカウント",
+    "title": "アカウントとアクセス",
+    "description": "自分のアカウント、サイトユーザー、セキュリティ履歴を管理します。",
+    "changePassword": "パスワードを変更",
+    "tabs": {
+      "account": "マイアカウント",
+      "users": "ユーザー",
+      "audit": "監査",
+      "channels": "チャンネル",
+      "collaboration": "コラボレーション"
+    },
+    "roles": {
+      "admin": "管理者",
+      "member": "メンバー"
+    },
+    "statuses": {
+      "active": "有効",
+      "disabled": "無効"
+    },
+    "userTypes": {
+      "local": "ローカルアカウント",
+      "aionpro": "AionPro アカウント"
+    },
+    "errors": {
+      "failed": "アカウント操作に失敗しました。もう一度お試しください。",
+      "adminRequired": "管理者権限が必要です。",
+      "lastAdmin": "最後の有効な管理者は変更または無効化できません。",
+      "userNotFound": "ユーザーは存在しません。",
+      "usernameTaken": "このユーザー名は既に使用されています。",
+      "passwordChangeRequired": "続行する前に仮パスワードを変更してください。",
+      "featureUnavailable": "このバックエンドバージョンではアカウント管理を利用できません。AionCore を更新してください。",
+      "rateLimited": "リクエストが多すぎます。少し待ってから更新してください。"
+    },
+    "users": {
+      "title": "サイトユーザー",
+      "description": "アカウントを作成し、この AionUi インスタンスへのアクセスを管理します。",
+      "add": "ユーザーを追加",
+      "empty": "ユーザーが見つかりません",
+      "username": "ユーザー名",
+      "usernamePlaceholder": "ユーザー名を入力",
+      "usernameRequired": "ユーザー名を入力してください",
+      "usernameLength": "ユーザー名は 3～32 文字で入力してください",
+      "usernameFormat": "英数字、アンダースコア、ハイフンのみ使用できます",
+      "role": "ロール",
+      "passwordState": "パスワード",
+      "changeRequired": "変更が必要",
+      "passwordSet": "設定済み",
+      "actions": "操作",
+      "createTitle": "ユーザーを作成",
+      "createSuccess": "ユーザーを作成しました",
+      "renameTitle": "ユーザー名を編集",
+      "renameSuccess": "ユーザー名を更新しました",
+      "updateSuccess": "ユーザーを更新しました",
+      "resetPassword": "パスワードをリセット",
+      "resetConfirm": "{{username}} の新しい仮パスワードを生成しますか？セッションは無効になります。",
+      "resetSuccess": "仮パスワードを生成しました",
+      "revokeSessions": "セッションを無効化",
+      "revokeConfirm": "{{username}} をすべての端末からサインアウトさせますか？",
+      "revokeSuccess": "セッションを無効化しました",
+      "temporaryPasswordTitle": "仮パスワード",
+      "temporaryPasswordNotice": "このパスワードを今すぐコピーしてください。再表示されず、ユーザーはログイン後に変更する必要があります。"
+    },
+    "audit": {
+      "title": "セキュリティ監査",
+      "description": "最近のアカウントおよびアクセス変更を確認します。",
+      "empty": "監査イベントはありません",
+      "time": "日時",
+      "actor": "実行者",
+      "action": "操作",
+      "target": "対象",
+      "details": "詳細",
+      "loadMore": "さらに読み込む",
+      "actions": {
+        "userCreated": "ユーザー作成",
+        "usernameChanged": "ユーザー名変更",
+        "roleChanged": "ロール変更",
+        "statusChanged": "ステータス変更",
+        "passwordReset": "パスワードリセット",
+        "passwordChanged": "パスワード変更",
+        "sessionsRevoked": "セッション無効化",
+        "bootstrapCredentialsSet": "初期認証情報設定"
+      }
+    },
+    "collaboration": {
+      "title": "コラボレーション",
+      "description": "共有されたリソースを確認し、自分が作成した共有を管理します。",
+      "tabs": {
+        "received": "共有されたもの",
+        "granted": "自分が共有したもの"
+      },
+      "emptyReceived": "まだ共有されたリソースはありません",
+      "emptyGranted": "まだリソースを共有していません",
+      "revoke": "取り消し",
+      "revokeConfirm": "{{username}} のアクセスを取り消しますか？",
+      "revokeSuccess": "共有を取り消しました",
+      "columns": {
+        "resource": "リソース",
+        "permission": "権限",
+        "owner": "所有者",
+        "grantee": "共有先",
+        "actions": "操作"
+      },
+      "resourceTypes": {
+        "conversation": "会話",
+        "project": "プロジェクト",
+        "provider": "接続"
+      },
+      "permissions": {
+        "view": "閲覧",
+        "edit": "編集"
+      },
+      "grantById": {
+        "title": "リソースを共有",
+        "description": "コンテキストメニューがない場合、ID で会話・プロジェクト・プロバイダーの共有ダイアログを開けます。",
+        "resourceType": "種類",
+        "resourceId": "リソース ID",
+        "resourceIdPlaceholder": "リソース ID を入力",
+        "resourceIdRequired": "リソース ID を入力してください",
+        "open": "共有"
+      },
+      "shareDialog": {
+        "title": "{{name}} を共有",
+        "description": "ユーザーと権限を選択します。既存の共有は下に表示されます。",
+        "user": "ユーザー",
+        "userPlaceholder": "メンバーを選択",
+        "userRequired": "ユーザーを選択",
+        "noUsers": "他の有効なユーザーがいません",
+        "permission": "権限",
+        "grant": "アクセスを付与",
+        "grantSuccess": "アクセスを付与しました",
+        "existing": "アクセス権のある人",
+        "existingEmpty": "まだ誰とも共有していません"
+      },
+      "errors": {
+        "failed": "共有操作に失敗しました。もう一度お試しください。",
+        "notFound": "この共有はもう存在しません。",
+        "alreadyShared": "このリソースはすでにそのユーザーと共有されています。",
+        "cannotShareSelf": "自分自身とリソースを共有することはできません。",
+        "invalidPermission": "その権限は無効です。",
+        "invalidResource": "そのリソースは共有できませんでした。",
+        "forbidden": "この共有を管理する権限がありません。",
+        "featureUnavailable": "このバックエンド版ではリソース共有を利用できません。AionCore を更新してください。"
+      },
+      "shareConversation": "会話を共有",
+      "shareConversationHint": "自分の会話を選び、アクセスできる人を選択します。",
+      "pickConversation": "会話を選択",
+      "shareWithUser": "共有…",
+      "shareResource": "リソースを共有",
+      "shareResourceHint": "会話・接続（プロバイダー）・プロジェクトを選び、アクセスできる人を選択します。",
+      "pickResource": "項目を選択",
+      "projectFromChat": "プロジェクト · {{name}}",
+      "emptyPicker": {
+        "conversation": "会話がありません",
+        "provider": "接続がありません — モデル設定で追加",
+        "project": "関連プロジェクトがありません"
+      }
+    },
+    "signOut": "サインアウト"
   }
 }

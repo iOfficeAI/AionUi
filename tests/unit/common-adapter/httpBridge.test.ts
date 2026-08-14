@@ -25,6 +25,10 @@ import {
   wsMappedEmitter,
   stubEmitter,
   httpRequest,
+  getLocalClientSecret,
+  getLocalClientWebSocketProtocol,
+  LOCAL_CLIENT_SECRET_HEADER,
+  onAuthExpired,
 } from '@/common/adapter/httpBridge';
 
 type FakeSocketEventMap = {
@@ -49,7 +53,10 @@ class FakeWebSocket {
     error: [],
   };
 
-  constructor(readonly url: string) {
+  constructor(
+    readonly url: string,
+    readonly protocols?: string | string[]
+  ) {
     FakeWebSocket.instances.push(this);
   }
 
@@ -76,10 +83,53 @@ describe('httpBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    delete (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    delete (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret;
+  });
+
+  describe('local client authentication', () => {
+    it('uses only a valid 256-bit base64url secret outside WebUI mode', () => {
+      const secret = 'a'.repeat(43);
+      (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret = secret;
+
+      expect(getLocalClientSecret()).toBe(secret);
+      expect(getLocalClientWebSocketProtocol()).toBe(`aionui-local-v1.${secret}`);
+
+      (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret = 'too-short';
+      expect(getLocalClientSecret()).toBeUndefined();
+    });
+
+    it('attaches the secret to local HTTP requests without allowing caller override', async () => {
+      const secret = 'b'.repeat(43);
+      (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret = secret;
+      const fetchSpy = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      await httpRequest('GET', '/api/test', undefined, {
+        headers: { [LOCAL_CLIENT_SECRET_HEADER]: 'caller-value' },
+      });
+
+      expect(fetchSpy.mock.calls[0][1]?.headers).toMatchObject({ [LOCAL_CLIENT_SECRET_HEADER]: secret });
+    });
+
+    it('never forwards a process secret from WebUI browser mode', () => {
+      (globalThis as typeof globalThis & { __backendClientSecret?: string }).__backendClientSecret = 'c'.repeat(43);
+      vi.stubGlobal('window', {});
+      vi.stubGlobal('document', {});
+
+      expect(getLocalClientSecret()).toBeUndefined();
+      expect(getLocalClientWebSocketProtocol()).toBeUndefined();
+    });
   });
 
   describe('getBaseUrl', () => {
@@ -183,6 +233,79 @@ describe('httpBridge', () => {
 
       expect(fetchSpy.mock.calls[0][1]?.body).toBe('{"wrapped":"raw"}');
     });
+
+    it('redacts password fields from request diagnostics', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify({ data: { ok: true } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        )
+      );
+      const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      await httpPost('/api/auth/change-password').invoke({
+        current_password: 'old-secret',
+        new_password: 'new-secret',
+      });
+
+      const diagnostic = String(debugSpy.mock.calls[0]?.[1]);
+      expect(diagnostic).toContain('[REDACTED]');
+      expect(diagnostic).not.toContain('old-secret');
+      expect(diagnostic).not.toContain('new-secret');
+    });
+
+    it('sends AionCore double-submit CSRF token for browser mutations', async () => {
+      vi.stubGlobal('window', {});
+      vi.stubGlobal('document', { cookie: 'theme=dark; aionui-csrf-token=csrf%2Dtoken' });
+      const fetchSpy = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      await httpPost('/api/admin/users').invoke({ username: 'member', role: 'member' });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy.mock.calls[0][1]?.credentials).toBe('include');
+      expect(fetchSpy.mock.calls[0][1]?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        'x-csrf-token': 'csrf-token',
+      });
+    });
+
+    it('seeds the CSRF cookie before the first browser mutation', async () => {
+      vi.stubGlobal('window', {});
+      let cookie = '';
+      vi.stubGlobal('document', {
+        get cookie() {
+          return cookie;
+        },
+      });
+      const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+        if (url === '/api/auth/status') {
+          cookie = 'aionui-csrf-token=seeded-token';
+          return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      });
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      await httpPost('/api/admin/users').invoke({ username: 'member', role: 'member' });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(fetchSpy.mock.calls[0][0]).toBe('/api/auth/status');
+      expect(fetchSpy.mock.calls[1][1]?.headers).toMatchObject({ 'x-csrf-token': 'seeded-token' });
+    });
   });
 
   describe('path as function', () => {
@@ -203,6 +326,44 @@ describe('httpBridge', () => {
   });
 
   describe('error handling', () => {
+    it('publishes browser session expiry without treating domain-level 401 responses as logout', async () => {
+      vi.stubGlobal('window', {});
+      vi.stubGlobal('document', { cookie: '' });
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Invalid authentication session',
+              code: 'UNAUTHORIZED',
+            }),
+            { status: 401, headers: { 'Content-Type': 'application/json' } }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Agent requires authentication',
+              code: 'UNAUTHORIZED',
+            }),
+            { status: 401, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const events: unknown[] = [];
+      const unsubscribe = onAuthExpired((event) => events.push(event));
+
+      await expect(httpGet('/api/settings/client').invoke()).rejects.toBeInstanceOf(BackendHttpError);
+      await expect(httpGet('/api/agents/runtime').invoke()).rejects.toBeInstanceOf(BackendHttpError);
+
+      expect(events).toEqual([{ source: 'http', code: 'UNAUTHORIZED', path: '/api/settings/client' }]);
+      unsubscribe();
+    });
+
     it('non-2xx response throws BackendHttpError with code/status/backendMessage', async () => {
       const fetchSpy = vi.fn().mockResolvedValue(
         new Response(
@@ -365,7 +526,10 @@ describe('httpBridge', () => {
   describe('wsEmitter', () => {
     it('emits realtime.reconnected only after a prior websocket open', () => {
       vi.useFakeTimers();
-      vi.stubGlobal('window', { __backendPort: 13400 });
+      vi.stubGlobal('window', {
+        __backendPort: 13400,
+        __backendClientSecret: 'd'.repeat(43),
+      });
       vi.stubGlobal('WebSocket', FakeWebSocket as unknown as typeof WebSocket);
       vi.spyOn(console, 'debug').mockImplementation(() => {});
       FakeWebSocket.instances = [];
@@ -373,6 +537,7 @@ describe('httpBridge', () => {
       const events: unknown[] = [];
       const unsubscribe = wsEmitter('realtime.reconnected').on((payload: unknown) => events.push(payload));
 
+      expect(FakeWebSocket.instances[0]?.protocols).toBe(`aionui-local-v1.${'d'.repeat(43)}`);
       FakeWebSocket.instances[0].dispatchOpen();
       expect(events).toEqual([]);
 
@@ -465,6 +630,8 @@ describe('httpBridge', () => {
         method: 'GET',
         headers: {},
         body: undefined,
+        credentials: 'include',
+        cache: 'no-store',
       });
     });
 

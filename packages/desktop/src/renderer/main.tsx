@@ -46,14 +46,13 @@ import './components/workspace/registerWebFsPicker';
 import type { PropsWithChildren } from 'react';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { SWRConfig } from 'swr';
 import type { TFunction } from 'i18next';
 
 // Context providers
 import { AuthProvider } from './hooks/context/AuthContext';
+import { AccountScopedProviders } from './hooks/context/AuthContext/AccountScopedProviders';
 import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
-import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 
 // Arco Design
 import { ConfigProvider, Modal, Typography } from '@arco-design/web-react';
@@ -73,13 +72,14 @@ import './styles/arco-override.css';
 import './styles/themes/index.css';
 import './styles/markdown.css';
 
-// Config service — kick off initialization before i18n / theme modules load,
-// so their startup paths (which await configService.whenReady()) observe the
-// authoritative settings from the backend instead of the empty cache.
+// Desktop config is available before authentication. Browser WebUI config is
+// account-scoped and is initialized by Main only after login.
 import { configService } from '@/common/config/configService';
-configService.initialize().catch((err) => {
-  console.error('Failed to initialize config:', err);
-});
+if (window.electronAPI) {
+  configService.initialize().catch((err) => {
+    console.error('Failed to initialize config:', err);
+  });
+}
 
 // i18n
 import './services/i18n';
@@ -258,39 +258,25 @@ const RuntimeFailureDialogs: React.FC = () => {
   return <>{modalContextHolder}</>;
 };
 
-// Global SWR default: do NOT revalidate every query on window focus. Focus
-// refetch (SWR's default) made the app re-hit /api/assistants, /api/skills,
-// /api/conversations, etc. on every window focus — often twice (same endpoint
-// under different SWR keys) — even though those are kept fresh by WebSocket
-// events (conversation.listChanged, team events, extensions.state-changed) or
-// in-app `mutate` after edits. Queries that genuinely need focus refresh (e.g.
-// Google auth/subscription status, which change in an external browser) opt back
-// in per-hook with `revalidateOnFocus: true`.
-const SWR_DEFAULTS = { revalidateOnFocus: false } as const;
-
 const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
   React.createElement(
-    SWRConfig,
-    { value: SWR_DEFAULTS },
+    AuthProvider,
+    null,
     React.createElement(
-      AuthProvider,
+      ThemeProvider,
       null,
       React.createElement(
-        ThemeProvider,
+        AccountScopedProviders,
         null,
         React.createElement(
-          PreviewProvider,
+          FeedbackProvider,
           null,
           React.createElement(
-            FeedbackProvider,
+            React.Fragment,
             null,
-            React.createElement(
-              React.Fragment,
-              null,
-              React.createElement(RuntimeFailureDialogs, null),
-              React.createElement(GpuAutoDisableNotice, null),
-              children
-            )
+            React.createElement(RuntimeFailureDialogs, null),
+            React.createElement(GpuAutoDisableNotice, null),
+            children
           )
         )
       )
@@ -307,18 +293,35 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 };
 
 const Main = () => {
-  const { ready } = useAuth();
+  const { ready, status, user } = useAuth();
   const [configReady, setConfigReady] = useState(false);
+  const configIdentity =
+    status === 'authenticated' && !user?.must_change_password ? (user?.id ?? 'desktop-local') : null;
 
   useEffect(() => {
-    if (!ready) return;
-    void bootstrapRendererConfig().finally(() => setConfigReady(true));
-  }, [ready]);
+    if (!ready) {
+      setConfigReady(false);
+      return;
+    }
+    if (!configIdentity) {
+      setConfigReady(true);
+      return;
+    }
+
+    let active = true;
+    setConfigReady(false);
+    void bootstrapRendererConfig().finally(() => {
+      if (active) setConfigReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [configIdentity, ready]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!configIdentity) return;
     void repairAllCronJobTimeZonesOnce();
-  }, [ready]);
+  }, [configIdentity]);
 
   if (!ready || !configReady) {
     return null;

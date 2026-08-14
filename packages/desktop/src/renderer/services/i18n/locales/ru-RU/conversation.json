@@ -76,7 +76,8 @@
     "deleting": "Удаление...",
     "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед",
     "forkedFrom": "Ответвление от «{{name}}»",
-    "forkedConversation": "Ответвлённая беседа"
+    "forkedConversation": "Ответвлённая беседа",
+    "share": "Поделиться"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

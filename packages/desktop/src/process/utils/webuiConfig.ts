@@ -8,14 +8,11 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { networkInterfaces } from 'os';
-import { getSystemDir } from './initStorage';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { startWebHost, type WebHostHandle } from '@aionui/web-host';
-import { getDataPath } from './utils';
+import type { WebHostHandle } from '@aionui/web-host';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
-const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
 /**
@@ -37,7 +34,11 @@ async function readWebUIDesktopPreferences(): Promise<{
   try {
     const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
     const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
-    const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
+    // The interactive desktop process runs AionCore in trusted local mode.
+    // Publishing that backend would bypass browser authentication, so desktop
+    // auto-restore is intentionally loopback-only. Authenticated remote hosting
+    // uses the standalone WebUI/Docker runtime instead.
+    const allowRemote = false;
     const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
     const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
     return { enabled, allowRemote, port };
@@ -199,15 +200,6 @@ const getLanIP = (): string | null => {
   return null;
 };
 
-const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWebUIHandle => ({
-  port: handle.port,
-  allowRemote,
-  localUrl: handle.localUrl,
-  networkUrl: handle.networkUrl,
-  lanIP: handle.lanIP,
-  initialPassword: currentInitialPassword,
-});
-
 /**
  * Spawn a WebUI instance (static server + backend) and remember the handle so
  * callers can later stop it or query its status.
@@ -215,55 +207,8 @@ const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWe
  * Shared by the boot-time auto-restore path and the interactive
  * Settings → "Enable WebUI" IPC handler.
  */
-export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boolean }): Promise<DesktopWebUIHandle> {
-  // If already running, tear down first so we honour the new port / allowRemote.
-  if (currentHandle) {
-    await stopDesktopWebUI();
-  }
-
-  const allowRemote = opts.allowRemote === true;
-  const preferredPort = parsePortValue(opts.port) ?? DEFAULT_WEBUI_PORT;
-  const sysDir = getSystemDir();
-
-  // Reuse the backend already spawned by backendManager.start() in src/index.ts.
-  // Spawning a second backend here would race the first on the same SQLite file.
-  const backendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (!backendPort) {
-    throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
-  }
-
-  const handle = await startWebHost({
-    app: {
-      version: app.getVersion(),
-      isPackaged: app.isPackaged,
-      resourcesPath: app.getAppPath(),
-      // webui.config.json must live next to the backend SQLite DB so --resetpass
-      // CLI and the runtime settings path read/write the same user record.
-      // getDataPath() returns ~/.aionui[-dev] symlink on macOS to sidestep
-      // path-with-spaces issues under Application Support.
-      userDataPath: getDataPath(),
-    },
-    // After bundling, this file is out/main/index.js — renderer assets live at ../renderer.
-    staticDir: path.join(__dirname, '../renderer'),
-    port: preferredPort,
-    allowRemote,
-    // Must align with the desktop IPC path's backend dataDir (src/index.ts), otherwise
-    // users see divergent SQLite state between desktop app and bundled WebUI.
-    dataDir: getDataPath(),
-    logDir: sysDir.logDir,
-    dirs: {
-      cacheDir: sysDir.cacheDir,
-      workDir: sysDir.workDir,
-      logDir: sysDir.logDir,
-    },
-    backend: {
-      kind: 'useExistingBackend',
-      port: backendPort,
-    },
-  });
-
-  currentHandle = Object.assign(handle, { allowRemote });
-  return toDesktopHandle(handle, allowRemote);
+export async function startDesktopWebUI(_opts: { port?: number; allowRemote?: boolean }): Promise<DesktopWebUIHandle> {
+  throw new Error('[WebUI] Browser hosting requires the authenticated standalone WebUI or Docker deployment');
 }
 
 /**

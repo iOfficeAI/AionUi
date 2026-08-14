@@ -8,13 +8,9 @@
  * `bun run webui` host (independent of Electron).
  *
  * After the M6 auth cleanup, SQLite `users` is the single source of truth.
- * Two paths:
- *   1. A `bun run webui` is already running on the default port → reach its
- *      reverse-proxied /api/webui/reset-password directly. Users don't have to
- *      stop the server first; the just-reset password can be used immediately.
- *   2. No webui running → spawn a short-lived aioncore against the same
- *      data-dir, POST /api/webui/reset-password, and stop the backend. This is
- *      the offline / cold-start path.
+ * The public WebUI proxy intentionally blocks local-control routes, so the
+ * WebUI must be stopped before this script starts a short-lived aioncore
+ * against the same data-dir, resets the password, and stops the backend.
  *
  * Usage:
  *   bun run resetpass                 # default work dir
@@ -133,8 +129,11 @@ async function detectRunningWebUI(port: number): Promise<boolean> {
   }
 }
 
-async function resetPasswordVia(url: string): Promise<string> {
-  const res = await fetch(url, { method: 'POST' });
+async function resetPasswordVia(url: string, localClientSecret?: string): Promise<string> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: localClientSecret ? { 'x-aionui-local-secret': localClientSecret } : undefined,
+  });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`reset-password failed (${res.status}): ${body}`);
@@ -171,24 +170,13 @@ async function main(): Promise<void> {
   log.info(`Target user: ${username} (advisory — operates on system_default_user)`);
   log.info(`Work dir   : ${workDir}`);
 
-  // Fast path: a `bun run webui` is already up. Go through its proxy so the
-  // running server immediately sees the new password — no need for the user
-  // to stop the server or deal with two backends fighting over the same db.
+  // Never reset through the public WebUI proxy: local-control routes are
+  // intentionally blocked there. Starting a second backend against an open
+  // SQLite data directory is also unsafe, so require an explicit stop first.
   if (await detectRunningWebUI(webuiPort)) {
-    log.info(`Detected running WebUI at http://127.0.0.1:${webuiPort} — reusing it`);
-    try {
-      const newPassword = await resetPasswordVia(`http://127.0.0.1:${webuiPort}/api/webui/reset-password`);
-      log.success('Password reset successfully.');
-      log.info('New password:');
-      log.highlight(newPassword);
-      log.info('');
-      log.warning('Please change this password after next login.');
-      return;
-    } catch (error) {
-      log.error(error instanceof Error ? error.message : 'Password reset failed');
-      process.exitCode = 1;
-      return;
-    }
+    log.error(`WebUI is running at http://127.0.0.1:${webuiPort}. Stop it before resetting the password.`);
+    process.exitCode = 1;
+    return;
   }
 
   // Slow path: no webui running. Spawn a short-lived backend against the same
@@ -208,6 +196,7 @@ async function main(): Promise<void> {
       userDataPath: workDir,
     },
     resolveBackend: () => backendBin,
+    identityMode: 'local',
     dataDir: workDir,
     logDir,
     dirs: {
@@ -218,7 +207,10 @@ async function main(): Promise<void> {
   });
 
   try {
-    const newPassword = await resetPasswordVia(`http://127.0.0.1:${handle.port}/api/webui/reset-password`);
+    const newPassword = await resetPasswordVia(
+      `http://127.0.0.1:${handle.port}/api/webui/reset-password`,
+      handle.localClientSecret
+    );
     log.success('Password reset successfully.');
     log.info('New password:');
     log.highlight(newPassword);

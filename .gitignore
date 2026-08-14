@@ -238,3 +238,6 @@ graphify-out/
 .analysis/
 temp/
 .playwright-mcp/
+
+# Local multi-user aioncore for Docker builds (not published releases)
+docker/prebuilt/aioncore

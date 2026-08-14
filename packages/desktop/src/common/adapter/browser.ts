@@ -7,6 +7,7 @@
 import { bridge } from '@/common/platform/bridge';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/platform/electron';
+import { notifyAuthExpired } from './httpBridge';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
@@ -122,7 +123,7 @@ if (win.electronAPI) {
 
     try {
       socket = new WebSocket(socketUrl);
-    } catch (error) {
+    } catch {
       scheduleReconnect();
       return;
     }
@@ -164,6 +165,8 @@ if (win.electronAPI) {
         if (isRealtimeAuthTerminalError(payload)) {
           console.warn('[WebSocket] Authentication expired, stopping reconnection');
           shouldReconnect = false;
+          const code = isRecord(payload.data) && typeof payload.data.code === 'string' ? payload.data.code : undefined;
+          notifyAuthExpired({ source: 'realtime', code });
 
           // 清除所有待执行的重连定时器
           // Clear any pending reconnection timer
@@ -201,12 +204,12 @@ if (win.electronAPI) {
         }
 
         emitterRef.emit(payload.name, payload.data);
-      } catch (error) {
+      } catch {
         // 忽略格式错误的消息 / Ignore malformed payloads
       }
     });
 
-    currentSocket.addEventListener('close', (event: CloseEvent) => {
+    currentSocket.addEventListener('close', () => {
       // Only null the outer reference if it still points at this socket.
       if (socket === currentSocket) {
         socket = null;
@@ -237,7 +240,7 @@ if (win.electronAPI) {
         try {
           socket.send(JSON.stringify(message));
           return;
-        } catch (error) {
+        } catch {
           scheduleReconnect();
         }
       }

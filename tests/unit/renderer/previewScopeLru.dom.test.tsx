@@ -128,11 +128,17 @@ describe('a full storage quota is reported', () => {
   const flush = () => act(() => void vi.advanceTimersByTime(300));
 
   it('raises persistQuotaExceededAt when writes cannot succeed', () => {
-    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    // jsdom uses Storage.prototype; some Node runners expose a distinct
+    // localStorage instance. Spy both so the mock always intercepts writes.
+    const throwQuota = (): never => {
       const err = new Error('QuotaExceededError');
       err.name = 'QuotaExceededError';
       throw err;
-    });
+    };
+    const spies = [
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuota),
+      vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(throwQuota),
+    ];
 
     try {
       mount();
@@ -144,7 +150,7 @@ describe('a full storage quota is reported', () => {
       // The signal the UI turns into a visible warning. Silence was the bug.
       expect(ctx.persistQuotaExceededAt).not.toBeNull();
     } finally {
-      setItem.mockRestore();
+      for (const spy of spies) spy.mockRestore();
     }
   });
 

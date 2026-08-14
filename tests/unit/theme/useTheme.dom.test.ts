@@ -2,15 +2,17 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Theme } from '@/common/theme/types';
 
-const { changedOnMock, configGetMock, setActiveThemeMock } = vi.hoisted(() => ({
+const { changedOnMock, configGetMock, configSubscribeMock, setActiveThemeMock } = vi.hoisted(() => ({
   changedOnMock: vi.fn(() => vi.fn()),
   configGetMock: vi.fn(),
+  configSubscribeMock: vi.fn(() => vi.fn()),
   setActiveThemeMock: vi.fn(),
 }));
 
 vi.mock('@/common/config/configService', () => ({
   configService: {
     get: configGetMock,
+    subscribe: configSubscribeMock,
     whenReady: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -52,6 +54,27 @@ describe('useTheme selection', () => {
       return undefined;
     });
     setActiveThemeMock.mockReset();
+    configSubscribeMock.mockClear();
+  });
+
+  it('refreshes account-scoped themes when config changes', async () => {
+    const subscriptions = new Map<string, () => void>();
+    configSubscribeMock.mockImplementation((key: string, callback: () => void) => {
+      subscriptions.set(key, callback);
+      return vi.fn();
+    });
+    const { result } = renderHook(() => useTheme());
+    await waitFor(() => expect(result.current[0]?.appearance).toBe('light'));
+
+    configGetMock.mockImplementation((key: string) => {
+      if (key === 'theme.activeId') return 'dark';
+      if (key === 'theme.userThemes') return [];
+      return undefined;
+    });
+    act(() => subscriptions.get('theme.activeId')?.());
+
+    expect(result.current[0]?.appearance).toBe('dark');
+    expect(result.current[2]).toBe('dark');
   });
 
   it('updates local theme state without waiting for a cross-window event', async () => {

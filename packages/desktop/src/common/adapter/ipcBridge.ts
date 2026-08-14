@@ -95,6 +95,23 @@ import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
+import type {
+  AdminAuditPage,
+  AdminUser,
+  AdminUserList,
+  AuthAccountStatus,
+  AuthRole,
+  AuthUser,
+  TemporaryPasswordResult,
+} from '@/common/types/platform/auth';
+import type {
+  CreateShareRequest,
+  ShareList,
+  ShareRecord,
+  ShareResourceType,
+  UserDirectory,
+} from '@/common/types/platform/share';
+import { normalizeShareList, normalizeShareRecord, normalizeUserDirectory } from '@/common/types/platform/share';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   buildCreateConversationBody,
@@ -1487,6 +1504,81 @@ export const webui = {
   })),
   resetPassword: httpPost<{ new_password: string }, void>('/api/webui/reset-password'),
   generateQRToken: httpPost<{ token: string; expires_at_ms: number }, void>('/api/webui/generate-qr-token'),
+};
+
+// ---------------------------------------------------------------------------
+// Web account and site administration — authenticated browser endpoints.
+// The backend derives the caller from its HttpOnly session; callers never send
+// a user id for self-service operations.
+// ---------------------------------------------------------------------------
+
+export const authAccount = {
+  changePassword: httpPost<AuthUser, { current_password: string; new_password: string }>('/api/auth/change-password'),
+};
+
+export const adminUsers = {
+  list: httpGet<AdminUserList, void>('/api/admin/users'),
+  create: httpPost<TemporaryPasswordResult, { username: string; role: AuthRole }>('/api/admin/users'),
+  updateUsername: httpPatch<AdminUser, { id: string; username: string }>(
+    (p) => `/api/admin/users/${encodeURIComponent(p.id)}/username`,
+    (p) => ({ username: p.username })
+  ),
+  updateRole: httpPatch<AdminUser, { id: string; role: AuthRole }>(
+    (p) => `/api/admin/users/${encodeURIComponent(p.id)}/role`,
+    (p) => ({ role: p.role })
+  ),
+  updateStatus: httpPatch<AdminUser, { id: string; status: AuthAccountStatus }>(
+    (p) => `/api/admin/users/${encodeURIComponent(p.id)}/status`,
+    (p) => ({ status: p.status })
+  ),
+  resetPassword: httpPost<TemporaryPasswordResult, { id: string }>(
+    (p) => `/api/admin/users/${encodeURIComponent(p.id)}/reset-password`,
+    () => undefined
+  ),
+  revokeSessions: httpPost<AdminUser, { id: string }>(
+    (p) => `/api/admin/users/${encodeURIComponent(p.id)}/sessions/revoke`,
+    () => undefined
+  ),
+};
+
+export const adminAudit = {
+  list: httpGet<AdminAuditPage, { cursor?: string; limit?: number }>((p) => {
+    const query = new URLSearchParams();
+    if (p.cursor) query.set('cursor', p.cursor);
+    if (p.limit != null) query.set('limit', String(p.limit));
+    const suffix = query.toString();
+    return `/api/admin/audit${suffix ? `?${suffix}` : ''}`;
+  }),
+};
+
+// ---------------------------------------------------------------------------
+// Resource sharing (multi-user) — authenticated browser endpoints.
+// Hidden on single-user desktop; backend may return 404 until AionCore ships shares.
+// ---------------------------------------------------------------------------
+
+export const shares = {
+  create: withResponseMap(httpPost<unknown, CreateShareRequest>('/api/shares'), (raw): ShareRecord => {
+    const record = normalizeShareRecord(raw);
+    if (!record) throw new Error('Invalid share response');
+    return record;
+  }),
+  revoke: httpDelete<void, { id: string }>((p) => `/api/shares/${encodeURIComponent(p.id)}`),
+  listForResource: withResponseMap(
+    httpGet<unknown, { resource_type: ShareResourceType; resource_id: string }>((p) => {
+      const query = new URLSearchParams({
+        resource_type: p.resource_type,
+        resource_id: p.resource_id,
+      });
+      return `/api/shares?${query.toString()}`;
+    }),
+    normalizeShareList
+  ),
+  listReceived: withResponseMap(httpGet<unknown, void>('/api/shares/received'), normalizeShareList),
+  listGranted: withResponseMap(httpGet<unknown, void>('/api/shares/granted'), normalizeShareList),
+};
+
+export const userDirectory = {
+  list: withResponseMap(httpGet<unknown, void>('/api/users/directory'), normalizeUserDirectory),
 };
 
 // ---------------------------------------------------------------------------

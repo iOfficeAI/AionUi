@@ -1,0 +1,56 @@
+# Production / release deployment.
+# Pulls the published image from the upstream project (iOfficeAI), not a personal fork.
+#
+#   docker compose -f docker-compose.yml up -d
+#
+# Override the tag when needed:
+#   AIONUI_IMAGE_TAG=v2.1.53 docker compose -f docker-compose.yml up -d
+
+name: aionui
+
+services:
+  aionui:
+    image: ${AIONUI_IMAGE:-ghcr.io/iofficeai/aionui}:${AIONUI_IMAGE_TAG:-latest}
+    pull_policy: ${AIONUI_PULL_POLICY:-always}
+    init: true
+    read_only: true
+    restart: unless-stopped
+    stop_grace_period: 20s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    environment:
+      NODE_ENV: production
+      AIONUI_PORT: 25808
+      AIONUI_ALLOW_REMOTE: 'true'
+      AIONUI_DATA_DIR: /data
+      AIONUI_LOG_DIR: /data/logs
+      AIONUI_WORK_DIR: /workspace
+      AIONUI_BOOTSTRAP_WORKSPACE: /workspace
+      AIONUI_LOG_LEVEL: ${AIONUI_LOG_LEVEL:-info}
+      AIONUI_OPEN_BROWSER: 'false'
+      AIONUI_HTTPS: ${AIONUI_HTTPS:-false}
+      AIONUI_TRUST_PROXY: ${AIONUI_TRUST_PROXY:-false}
+      AIONUI_INITIAL_ADMIN_USERNAME: ${AIONUI_INITIAL_ADMIN_USERNAME:-admin}
+      AIONUI_INITIAL_ADMIN_CREDENTIALS_FILE: /data/initial-admin-credentials.json
+      TZ: ${TZ:-UTC}
+    ports:
+      - '${AIONUI_BIND_ADDRESS:-127.0.0.1}:${AIONUI_HOST_PORT:-25808}:25808'
+    volumes:
+      - aionui-data:/data
+      - ${AIONUI_WORKSPACE_PATH:-aionui-workspace}:/workspace
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl --fail --silent --show-error "http://127.0.0.1:25808/api/auth/status" > /dev/null'
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 5
+
+volumes:
+  aionui-data:
+  aionui-workspace:

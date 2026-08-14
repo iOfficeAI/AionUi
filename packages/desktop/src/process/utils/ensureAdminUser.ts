@@ -22,10 +22,11 @@ type AuthStatusResponse = {
   is_authenticated?: boolean;
 };
 
-export async function ensureAdminUser(backendPort: number): Promise<void> {
+export async function ensureAdminUser(backendPort: number, localClientSecret?: string): Promise<void> {
   try {
+    const authHeaders = localClientSecret ? { 'x-aionui-local-secret': localClientSecret } : undefined;
     // 1. Ask backend whether SQLite already has a real user.
-    const statusRes = await fetch(`http://127.0.0.1:${backendPort}/api/auth/status`);
+    const statusRes = await fetch(`http://127.0.0.1:${backendPort}/api/auth/status`, { headers: authHeaders });
     if (!statusRes.ok) {
       console.error(`[WebUI Migration] /api/auth/status returned ${statusRes.status}; skipping`);
       return;
@@ -55,7 +56,7 @@ export async function ensureAdminUser(backendPort: number): Promise<void> {
     });
     const seedRes = await fetch(`http://127.0.0.1:${backendPort}/api/auth/internal/users/system/credentials`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body,
     });
     if (!seedRes.ok) {

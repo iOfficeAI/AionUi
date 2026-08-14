@@ -5,11 +5,12 @@
  */
 
 import { ipcBridge } from '@/common';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { Alert, Button, Message, Modal, Switch } from '@arco-design/web-react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import PreferenceRow from './PreferenceRow';
 
 /**

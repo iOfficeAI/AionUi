@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { UNTRUSTED_WEBVIEW_PARTITION } from '@/renderer/components/media/WebviewHost';
 import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
@@ -685,6 +686,8 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
             key={webviewSrc}
             ref={webviewRef}
             src={webviewSrc}
+            partition={UNTRUSTED_WEBVIEW_PARTITION}
+            allowpopups={false}
             className='w-full border-0'
             style={{
               display: 'inline-flex',
@@ -695,7 +698,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
               bottom: 0,
               height: '100%',
             }}
-            webpreferences='allowRunningInsecureContent, javascript=yes'
+            webpreferences='contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=no, allowRunningInsecureContent=yes, javascript=yes'
           />
         </>
       ) : (

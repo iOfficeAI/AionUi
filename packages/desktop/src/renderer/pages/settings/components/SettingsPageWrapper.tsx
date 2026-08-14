@@ -72,7 +72,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     },
     webui: {
       id: 'webui',
-      label: t('settings.webui'),
+      label: isDesktop ? t('settings.webui') : t('settings.account.navTitle'),
       icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
       path: 'webui',
     },

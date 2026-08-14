@@ -46,6 +46,7 @@ describe('startWebHost', () => {
       backend: {
         kind: 'ownBackend',
         resolveBackend: () => '/bin/backend',
+        identityMode: 'webui',
       },
     });
 

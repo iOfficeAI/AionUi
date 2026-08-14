@@ -5,9 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import { mutateAccountCache as mutate } from '@/renderer/hooks/context/AuthContext/accountSWR';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 
 export type UseManagedAgentsResult = {
   agents: ManagedAgent[];

@@ -44,6 +44,9 @@ export interface WebviewHostProps {
   resolveUrlInput?: (raw: string) => string | null;
 }
 
+/** Non-persistent session shared by untrusted preview WebViews, never the app session. */
+export const UNTRUSTED_WEBVIEW_PARTITION = 'aionui-untrusted-preview';
+
 const MIN_ZOOM_FACTOR = 0.75;
 const MAX_ZOOM_FACTOR = 1.5;
 
@@ -61,7 +64,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   url,
   id: _id,
   showNavBar = false,
-  partition,
+  partition = UNTRUSTED_WEBVIEW_PARTITION,
   className,
   style,
   onDidFinishLoad,
@@ -612,9 +615,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     allowpopups: 'false',
     webpreferences: 'contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=no',
   };
-  if (partition) {
-    webviewAttrs.partition = partition;
-  }
+  webviewAttrs.partition = partition;
 
   return (
     <div ref={containerRef} className={`h-full w-full flex flex-col ${className ?? ''}`} style={style}>
