@@ -727,5 +727,11 @@
     "exited": "Saída {{code}}",
     "stop": "Parar",
     "truncated": "(saída anterior truncada)"
+  },
+  "retainedOutput": {
+    "loadFull": "Load full output ({{size}})",
+    "loading": "Loading full output...",
+    "loadFailed": "Failed to load full output",
+    "previewNote": "Showing a preview of the retained tool output ({{size}} total)"
   }
 }

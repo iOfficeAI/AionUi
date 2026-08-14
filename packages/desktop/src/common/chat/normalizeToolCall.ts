@@ -1,5 +1,6 @@
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup } from './chatLib';
 import { getAcpImagePath } from './acpToolCallOutput';
+import { parseRetainedToolOutput, type RetainedToolOutput } from './retainedToolOutput';
 
 export type NormalizedToolStatus = 'pending' | 'running' | 'completed' | 'error' | 'canceled';
 
@@ -14,6 +15,8 @@ export interface NormalizedToolCall {
   messageId?: string;
   conversationId?: string;
   imagePath?: string;
+  /** Present when AionCore spilled the full tool body to retained storage. */
+  retainedOutput?: RetainedToolOutput;
 }
 
 const TOOL_PREVIEW_FIELD_LIMIT = 8 * 1024;
@@ -170,6 +173,17 @@ export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedTo
       .join('\n');
   }
 
+  // Prefer content-text spill envelopes; fall back to raw_output spill object.
+  const retainedFromContent = parseRetainedToolOutput(output);
+  const retainedFromRaw = parseRetainedToolOutput(
+    (update as { raw_output?: unknown; rawOutput?: unknown }).raw_output ??
+      (update as { rawOutput?: unknown }).rawOutput
+  );
+  const retainedOutput = retainedFromContent ?? retainedFromRaw;
+  if (retainedOutput) {
+    output = retainedOutput.preview;
+  }
+
   const keyParam = buildParamSummary(update.kind, rawInput);
 
   return {
@@ -179,10 +193,11 @@ export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedTo
     description: keyParam || (rawInput?.command as string) || update.kind,
     input,
     output,
-    truncated: content?._compact?.truncated === true,
+    truncated: content?._compact?.truncated === true || Boolean(retainedOutput),
     messageId: message.id,
     conversationId: message.conversation_id,
     imagePath: getAcpImagePath(update),
+    retainedOutput: retainedOutput ?? undefined,
   };
 }
 
@@ -222,14 +237,21 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
       ? formatValue(args)
       : undefined;
 
+  const retainedOutput = parseRetainedToolOutput(output) ?? undefined;
+  const displayOutput = retainedOutput?.preview ?? output;
+
   return {
     key: call_id,
     name,
     status: normalizeToolCallStatus(status),
     description: description || undefined,
     input: displayInput,
-    output,
-    imagePath: getToolCallImagePath(name, output),
+    output: displayOutput,
+    truncated: Boolean(retainedOutput),
+    messageId: message.id,
+    conversationId: message.conversation_id,
+    imagePath: getToolCallImagePath(name, displayOutput),
+    retainedOutput,
   };
 }
 

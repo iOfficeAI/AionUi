@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
 import { getAcpImageFileName, getAcpImagePath } from '@/common/chat/acpToolCallOutput';
+import { formatRetainedOutputSize, parseRetainedToolOutput } from '@/common/chat/retainedToolOutput';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import LocalImageView from '@/renderer/components/media/LocalImageView';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
@@ -14,7 +16,7 @@ import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import { Button, Card, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { Download } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 
@@ -63,21 +65,82 @@ const DiffContentView: React.FC<{ old_text: string; new_text: string; path: stri
   );
 };
 
-const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
+const ContentView: React.FC<{
+  content: IMessageAcpToolCall['content']['update']['content'][0];
+  conversationId?: string;
+}> = ({ content, conversationId }) => {
+  const { t } = useTranslation();
+  const [fullText, setFullText] = useState<string | null>(null);
+  const [loadingFull, setLoadingFull] = useState(false);
+
   if (content.type === 'diff') {
+    const retainedOld = parseRetainedToolOutput(content.old_text);
+    const retainedNew = parseRetainedToolOutput(content.new_text);
     return (
-      <DiffContentView old_text={content.old_text || ''} new_text={content.new_text || ''} path={content.path || ''} />
+      <DiffContentView
+        old_text={retainedOld?.preview ?? content.old_text ?? ''}
+        new_text={retainedNew?.preview ?? content.new_text ?? ''}
+        path={content.path || ''}
+      />
     );
   }
 
-  // 处理 content 类型，包含 text 内容
+  // content 类型：text 可能是普通文本，也可能是 AionCore retained-output envelope
   if (content.type === 'content' && content.content && content.content.type === 'text' && content.content.text) {
+    const retained = parseRetainedToolOutput(content.content.text);
+    const text = fullText ?? retained?.preview ?? content.content.text;
+    const canLoadFull = Boolean(retained && conversationId && !fullText);
+
+    const handleLoadFull = async () => {
+      if (!retained || !conversationId || loadingFull) return;
+      try {
+        setLoadingFull(true);
+        const result = await ipcBridge.conversation.getRetainedOutput.invoke({
+          conversation_id: conversationId,
+          reference: retained.reference,
+        });
+        if (!result?.content) {
+          Message.error(t('conversation.retainedOutput.loadFailed'));
+          return;
+        }
+        setFullText(result.content);
+      } catch (error) {
+        console.error('[MessageAcpToolCall] load retained tool output failed:', error);
+        Message.error(t('conversation.retainedOutput.loadFailed'));
+      } finally {
+        setLoadingFull(false);
+      }
+    };
+
     return (
       <div className='mt-3'>
         <div className='bg-1 p-3 rounded border overflow-hidden'>
+          {retained && !fullText ? (
+            <div className='mb-6px text-12px text-t-secondary'>
+              {t('conversation.retainedOutput.previewNote', {
+                size: formatRetainedOutputSize(retained.size),
+              })}
+            </div>
+          ) : null}
           <div className='overflow-x-auto break-words'>
-            <MarkdownView>{content.content.text}</MarkdownView>
+            <MarkdownView>{text}</MarkdownView>
           </div>
+          {canLoadFull ? (
+            <Button
+              className='mt-8px'
+              size='mini'
+              type='outline'
+              loading={loadingFull}
+              onClick={() => void handleLoadFull()}
+              data-testid='btn-load-retained-acp-tool-output'
+            >
+              {loadingFull
+                ? t('conversation.retainedOutput.loading')
+                : t('conversation.retainedOutput.loadFull', {
+                    size: formatRetainedOutputSize(retained!.size),
+                  })}
+            </Button>
+          ) : null}
         </div>
       </div>
     );
@@ -131,7 +194,11 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
     return (
       <div className='w-full mb-2 flex flex-col gap-8px'>
         {diffContent.map((contentItem, index) => (
-          <ContentView key={`${contentItem.path || 'diff'}-${index}`} content={contentItem} />
+          <ContentView
+            key={`${contentItem.path || 'diff'}-${index}`}
+            content={contentItem}
+            conversationId={message.conversation_id}
+          />
         ))}
       </div>
     );
@@ -178,7 +245,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
           {diffContent && diffContent.length > 0 && (
             <div>
               {diffContent.map((item, index) => (
-                <ContentView key={index} content={item} />
+                <ContentView key={index} content={item} conversationId={message.conversation_id} />
               ))}
             </div>
           )}

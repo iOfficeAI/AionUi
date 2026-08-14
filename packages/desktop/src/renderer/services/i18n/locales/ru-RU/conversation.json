@@ -721,5 +721,11 @@
     "exited": "Код {{code}}",
     "stop": "Остановить",
     "truncated": "(ранний вывод усечён)"
+  },
+  "retainedOutput": {
+    "loadFull": "Load full output ({{size}})",
+    "loading": "Loading full output...",
+    "loadFailed": "Failed to load full output",
+    "previewNote": "Showing a preview of the retained tool output ({{size}} total)"
   }
 }

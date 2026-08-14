@@ -721,5 +721,11 @@
     "exited": "結束碼 {{code}}",
     "stop": "停止",
     "truncated": "(較早輸出已截斷)"
+  },
+  "retainedOutput": {
+    "loadFull": "載入完整輸出（{{size}}）",
+    "loading": "正在載入完整輸出...",
+    "loadFailed": "載入完整輸出失敗",
+    "previewNote": "目前顯示保留工具輸出的預覽（共 {{size}}）"
   }
 }

@@ -4,17 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { IMessageToolCall } from '@/common/chat/chatLib';
 import { normalizeToolCall } from '@/common/chat/normalizeToolCall';
 import type { NormalizedToolStatus } from '@/common/chat/normalizeToolCall';
+import { formatRetainedOutputSize } from '@/common/chat/retainedToolOutput';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import { Badge } from '@arco-design/web-react';
+import { Badge, Button, Message } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { createTwoFilesPatch } from 'diff';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { BadgeProps } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 import './MessageToolGroupSummary.css';
 
 const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
@@ -54,20 +57,42 @@ const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) =>
   );
 };
 
-const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
-  const { name } = message.content;
+const GenericToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [fullOutput, setFullOutput] = useState<string | null>(null);
+  const [loadingFull, setLoadingFull] = useState(false);
 
-  if (name === 'replace' || name === 'Edit') {
-    return <ReplacePreview message={message} />;
-  }
+  const normalized = useMemo(() => normalizeToolCall(message), [message]);
+  const retained = normalized?.retainedOutput;
+  const displayOutput = fullOutput ?? normalized?.output;
+  const hasDetail = Boolean(normalized?.input || displayOutput);
+  const canLoadFull = Boolean(retained && normalized?.conversationId && !fullOutput);
 
-  const normalized = normalizeToolCall(message);
+  const handleLoadFull = useCallback(async () => {
+    if (!retained || !normalized?.conversationId || loadingFull) return;
+    try {
+      setLoadingFull(true);
+      const result = await ipcBridge.conversation.getRetainedOutput.invoke({
+        conversation_id: normalized.conversationId,
+        reference: retained.reference,
+      });
+      if (!result?.content) {
+        Message.error(t('conversation.retainedOutput.loadFailed'));
+        return;
+      }
+      setFullOutput(result.content);
+    } catch (error) {
+      console.error('load retained tool output failed:', error);
+      Message.error(t('conversation.retainedOutput.loadFailed'));
+    } finally {
+      setLoadingFull(false);
+    }
+  }, [loadingFull, normalized?.conversationId, retained, t]);
+
   if (!normalized) {
-    return <div className='text-t-primary'>{name}</div>;
+    return <div className='text-t-primary'>{message.content.name}</div>;
   }
-
-  const hasDetail = normalized.input || normalized.output;
 
   return (
     <div className='flex flex-col'>
@@ -104,16 +129,47 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
               <pre className='tool-detail-content'>{normalized.input}</pre>
             </div>
           )}
-          {normalized.output && (
+          {displayOutput && (
             <div className='tool-detail-section'>
               <div className='tool-detail-label'>Output</div>
-              <pre className='tool-detail-content'>{normalized.output}</pre>
+              {retained && !fullOutput ? (
+                <div className='mb-6px text-12px text-t-secondary'>
+                  {t('conversation.retainedOutput.previewNote', {
+                    size: formatRetainedOutputSize(retained.size),
+                  })}
+                </div>
+              ) : null}
+              <pre className='tool-detail-content'>{displayOutput}</pre>
+              {canLoadFull ? (
+                <Button
+                  className='mt-8px'
+                  size='mini'
+                  type='outline'
+                  loading={loadingFull}
+                  onClick={() => void handleLoadFull()}
+                  data-testid='btn-load-retained-tool-output'
+                >
+                  {loadingFull
+                    ? t('conversation.retainedOutput.loading')
+                    : t('conversation.retainedOutput.loadFull', {
+                        size: formatRetainedOutputSize(retained!.size),
+                      })}
+                </Button>
+              ) : null}
             </div>
           )}
         </div>
       )}
     </div>
   );
+};
+
+const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
+  const { name } = message.content;
+  if (name === 'replace' || name === 'Edit') {
+    return <ReplacePreview message={message} />;
+  }
+  return <GenericToolCall message={message} />;
 };
 
 export default MessageToolCall;

@@ -721,5 +721,11 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "retainedOutput": {
+    "loadFull": "전체 출력 불러오기 ({{size}})",
+    "loading": "전체 출력을 불러오는 중...",
+    "loadFailed": "전체 출력을 불러오지 못했습니다",
+    "previewNote": "보존된 도구 출력 미리보기 (총 {{size}})"
   }
 }

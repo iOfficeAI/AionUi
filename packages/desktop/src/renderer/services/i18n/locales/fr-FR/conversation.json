@@ -720,5 +720,11 @@
     "exited": "Code {{code}}",
     "stop": "Arrêter",
     "truncated": "(sortie antérieure tronquée)"
+  },
+  "retainedOutput": {
+    "loadFull": "Load full output ({{size}})",
+    "loading": "Loading full output...",
+    "loadFailed": "Failed to load full output",
+    "previewNote": "Showing a preview of the retained tool output ({{size}} total)"
   }
 }
