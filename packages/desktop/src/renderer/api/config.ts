@@ -10,15 +10,25 @@
  */
 export const AIPAAS_BASE_URL = 'http://devops.badousoft.com/aipaas-service';
 
-/**
- * External login page URL. The hidden BrowserWindow loads this URL during
- * the external login flow.
- */
-export const EXTERNAL_LOGIN_URL = 'http://devops.badousoft.com/aipaas-front/';
+/** External login page URL base. The system browser loads this URL during
+ *  the external login flow. `aipaas-front` reads the `from` query flag and
+ *  redirects to the deep link below on SSO success. */
+export const EXTERNAL_LOGIN_URL_BASE = 'http://devops.badousoft.com/aipaas-front/';
 
-/**
- * Maximum time (ms) we wait for the external page to call
- * window.aionuiAuth.postToken() before destroying the login window and
- * rejecting the in-flight login Promise.
- */
+/** Query string appended to the external login URL so `aipaas-front` knows
+ *  to deep-link back to AionUi after SSO instead of staying on its own
+ *  success page. */
+export const EXTERNAL_LOGIN_FLAG = 'from=aionui';
+
+/** Deep-link action for the auth callback. `aipaas-front` redirects here:
+ *   aionui://auth/callback?token=<token>&userId=<id>&username=<name> */
+export const EXTERNAL_LOGIN_DEEPLINK_PATH = 'auth/callback';
+
+/** Maximum time (ms) the renderer waits for the deep-link callback before
+ *  showing a timeout error. */
 export const EXTERNAL_LOGIN_TIMEOUT_MS = 5 * 60_000;
+
+/** Build the URL passed to shell.openExternal(). */
+export function getExternalLoginUrl(): string {
+  return `${EXTERNAL_LOGIN_URL_BASE}?${EXTERNAL_LOGIN_FLAG}`;
+}
