@@ -15,7 +15,13 @@
     "renameOk": "Guardar",
     "renameCancel": "Cancelar",
     "renameSuccess": "Equipo renombrado",
-    "deleteSuccess": "Equipo eliminado"
+    "deleteSuccess": "Equipo eliminado",
+    "archive": "Archivar",
+    "unarchive": "Desarchivar",
+    "archiveSuccess": "Archivado",
+    "archiveFailed": "Error al archivar",
+    "unarchiveSuccess": "Restaurado",
+    "unarchiveFailed": "Error al restaurar"
   },
   "newAgent": "Nuevo agente",
   "noMessages": "Sin mensajes aún.",

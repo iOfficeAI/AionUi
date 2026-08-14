@@ -207,7 +207,7 @@ describe('useTeamActivityFeed (single-cursor pagination)', () => {
         fn({ team_id: 't1', change: 'created', message: message({ id: 'm9', created_at: 5000 }) })
       )
     );
-    expect(result.current.messages.map((m) => m.id).sort()).toEqual(['m1', 'm9']);
+    expect(result.current.messages.map((m) => m.id).toSorted()).toEqual(['m1', 'm9']);
     // Older unknown task (created_at below the loaded edge) is dropped.
     act(() => h.taskHandlers.forEach((fn) => fn({ team_id: 't1', change: 'created', task: taskOf('old', 10) })));
     expect(result.current.tasks).toHaveLength(0);

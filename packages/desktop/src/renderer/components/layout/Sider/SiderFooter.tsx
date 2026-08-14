@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/react';
+import { ArrowCircleLeft, CloseOne, Inbox, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -22,6 +22,10 @@ interface SiderFooterProps {
   onThemeToggle: () => void;
   showLogout?: boolean;
   onLogoutClick?: () => void;
+  /** Whether the archived-conversations page is currently open (drives active state). */
+  isArchivedActive?: boolean;
+  /** Navigate to the archived-conversations page. Only rendered inside Settings. */
+  onArchivedClick?: () => void;
 }
 
 const SiderFooter: React.FC<SiderFooterProps> = ({
@@ -34,6 +38,8 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   onThemeToggle,
   showLogout = false,
   onLogoutClick,
+  isArchivedActive = false,
+  onArchivedClick,
 }) => {
   const { t } = useTranslation();
 
@@ -59,6 +65,36 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
+      {/* Archived conversations — only inside Settings, rendered above the back row */}
+      {isSettings && onArchivedClick && (
+        <Tooltip {...siderTooltipProps} content={t('settings.archived.navLabel')} position='right'>
+          <div
+            onClick={onArchivedClick}
+            className={classNames(
+              'group h-34px flex items-center rd-0.5rem cursor-pointer transition-colors mb-2px',
+              collapsed ? 'w-full justify-center' : 'justify-start gap-8px pl-10px pr-8px',
+              isMobile && 'sider-footer-btn-mobile',
+              {
+                'bg-fill-3': isArchivedActive,
+                'hover:bg-fill-3 active:bg-fill-4': !isArchivedActive,
+              }
+            )}
+          >
+            <span className='size-22px flex items-center justify-center shrink-0 text-t-secondary'>
+              <Inbox
+                theme='outline'
+                size='16'
+                fill='currentColor'
+                className='block leading-none'
+                style={{ lineHeight: 0 }}
+              />
+            </span>
+            <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px truncate'>
+              {t('settings.archived.navLabel')}
+            </span>
+          </div>
+        </Tooltip>
+      )}
       <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div

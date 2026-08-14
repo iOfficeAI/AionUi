@@ -4,6 +4,9 @@
     "placeholder": "Envie uma mensagem, faça upload de arquivos, abra uma pasta, crie uma tarefa agendada ou digite / para comandos...",
     "linkFolder": "Abrir Pasta",
     "newConversation": "Novo Chat",
+    "startConversation": "Iniciar conversa",
+    "selectAssistant": "Selecionar assistente",
+    "createTeam": "Criar equipe",
     "selectModel": "Selecionar Modelo",
     "useCliModel": "Selecionar Modelo",
     "modelSwitchNotSupported": "A lista de modelos estará disponível após a primeira conexão. Envie uma mensagem para conectar e carregar os modelos disponíveis.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Gostou? Nos dê uma estrela!",
     "skillsMarket": "Mercado de Habilidades AionUi",
     "skillsMarketDesc": "Pesquise e ative as Habilidades da comunidade sob demanda. Configure uma vez, disponível para todos os agentes.",
-    "skillsMarketDetails": "Ver Mais >>"
+    "skillsMarketDetails": "Ver Mais >>",
+    "teamLabel": "Equipe",
+    "membersLabel": "Membros",
+    "teamNamePlaceholder": "Nome automático (editável, opcional)",
+    "setLeader": "Definir como líder",
+    "removeMember": "Remover membro",
+    "addAdvanced": "Adicionar / Avançado…"
   },
   "history": {
     "recents": "Recentes",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "Remover projeto",
     "removeProject": "Remover projeto",
     "removeProjectConfirm": "Remover o projeto \"{{name}}\"? Suas {{count}} conversa(s) também serão removidas.",
+    "removeProjectConfirmTeams": "Suas {{teams}} equipe(s) também serão removidas.",
+    "removeProjectListMore": "+{{count}} mais",
     "newConversationInProject": "Novo chat neste projeto",
     "deleting": "Excluindo...",
     "reorderPinned": "Arraste para reordenar a conversa fixada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversa bifurcada"
+    "forkedConversation": "Conversa bifurcada",
+    "loadMore": "Carregar mais",
+    "newTeamInProject": "Nova equipe neste projeto",
+    "projectCreateMenu": "Criar",
+    "collapseAllProjects": "Recolher todos os projetos",
+    "archive": "Arquivar",
+    "unarchive": "Desarquivar",
+    "archiveSuccess": "Arquivado",
+    "archiveFailed": "Falha ao arquivar",
+    "unarchiveSuccess": "Restaurado",
+    "unarchiveFailed": "Falha ao restaurar",
+    "archiveProject": "Arquivar projeto",
+    "archiveProjectConfirmTitle": "Arquivar projeto?",
+    "archiveProjectConfirmContent": "Arquivar todas as conversas e equipes em \"{{name}}\"? Você pode restaurá-las na página de arquivo.",
+    "archiveProjectSuccess": "Projeto arquivado",
+    "archiveProjectFailed": "Falha ao arquivar projeto"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",
@@ -725,5 +751,8 @@
     "exited": "Saída {{code}}",
     "stop": "Parar",
     "truncated": "(saída anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "Olá! Diga o que você precisa e eu já começo."
   }
 }

@@ -137,6 +137,10 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => locationMock,
 }));
 
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
@@ -211,6 +215,14 @@ vi.mock('@/renderer/pages/guid/components/GuidModelSelector', () => ({
 
 vi.mock('@/renderer/pages/guid/components/QuickActionButtons', () => ({
   default: () => <div data-testid='guid-quick-actions' />,
+}));
+
+vi.mock('@/renderer/pages/guid/components/GuidTeamMemberBar', () => ({
+  default: () => <div data-testid='guid-team-memberbar' />,
+}));
+
+vi.mock('@/renderer/pages/team/components/TeamCreateModal', () => ({
+  default: () => null,
 }));
 
 vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal', () => ({

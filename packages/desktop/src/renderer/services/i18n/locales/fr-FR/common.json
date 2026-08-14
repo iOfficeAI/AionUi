@@ -197,5 +197,6 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
-  }
+  },
+  "aiAssistant": "Assistant IA"
 }

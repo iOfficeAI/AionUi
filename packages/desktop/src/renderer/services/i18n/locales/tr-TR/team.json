@@ -15,7 +15,13 @@
     "renameOk": "Kaydet",
     "renameCancel": "İptal",
     "renameSuccess": "Takım yeniden adlandırıldı",
-    "deleteSuccess": "Takım silindi"
+    "deleteSuccess": "Takım silindi",
+    "archive": "Arşivle",
+    "unarchive": "Arşivden çıkar",
+    "archiveSuccess": "Arşivlendi",
+    "archiveFailed": "Arşivleme başarısız",
+    "unarchiveSuccess": "Geri yüklendi",
+    "unarchiveFailed": "Geri yükleme başarısız"
   },
   "newAgent": "Yeni Asistan",
   "noMessages": "No messages yet.",

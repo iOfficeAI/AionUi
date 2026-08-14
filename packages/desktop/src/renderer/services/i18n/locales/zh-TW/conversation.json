@@ -4,6 +4,9 @@
     "placeholder": "發送訊息、上傳檔案、開啟資料夾、建立定時任務，或輸入 / 喚起命令...",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
+    "startConversation": "開始對話",
+    "selectAssistant": "選擇助手",
+    "createTeam": "建立團隊",
     "selectModel": "選擇模型",
     "useCliModel": "選擇模型",
     "modelSwitchNotSupported": "首次連接後將顯示可用模型列表。請先發送訊息以連接並載入可用模型。",
@@ -17,7 +20,13 @@
     "quickActionStar": "喜歡我們？點個星吧",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
-    "skillsMarketDetails": "詳情 >>"
+    "skillsMarketDetails": "詳情 >>",
+    "teamLabel": "團隊",
+    "membersLabel": "成員",
+    "teamNamePlaceholder": "自動命名（可改，可留空）",
+    "setLeader": "設為隊長",
+    "removeMember": "移除成員",
+    "addAdvanced": "新增 / 進階…"
   },
   "history": {
     "recents": "最近",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "移除專案",
     "removeProject": "移除專案",
     "removeProjectConfirm": "確定要移除專案「{{name}}」嗎？專案下的 {{count}} 個對話也會被一起移除。",
+    "removeProjectConfirmTeams": "專案下的 {{teams}} 個團隊也會被一起移除。",
+    "removeProjectListMore": "還有 {{count}} 項",
     "newConversationInProject": "在此專案中新建對話",
     "deleting": "刪除中...",
     "reorderPinned": "拖動以調整置頂會話順序",
     "forkedFrom": "分叉自「{{name}}」",
-    "forkedConversation": "分叉對話"
+    "forkedConversation": "分叉對話",
+    "loadMore": "載入更多",
+    "newTeamInProject": "在此專案中新建團隊",
+    "projectCreateMenu": "新建",
+    "collapseAllProjects": "收合全部專案",
+    "archive": "封存",
+    "unarchive": "取消封存",
+    "archiveSuccess": "已封存",
+    "archiveFailed": "封存失敗",
+    "unarchiveSuccess": "已還原",
+    "unarchiveFailed": "還原失敗",
+    "archiveProject": "封存專案",
+    "archiveProjectConfirmTitle": "封存專案？",
+    "archiveProjectConfirmContent": "將「{{name}}」下的所有對話和團隊封存？你可以在封存頁面還原它們。",
+    "archiveProjectSuccess": "專案已封存",
+    "archiveProjectFailed": "封存專案失敗"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",
@@ -719,5 +745,8 @@
     "exited": "結束碼 {{code}}",
     "stop": "停止",
     "truncated": "(較早輸出已截斷)"
+  },
+  "emptyState": {
+    "greeting": "你好！說說你的需求，我這就開始。"
   }
 }

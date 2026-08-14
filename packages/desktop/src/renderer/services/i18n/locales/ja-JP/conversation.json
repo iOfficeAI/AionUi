@@ -4,6 +4,9 @@
     "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、スケジュールタスクの作成、または / でコマンド呼び出し...",
     "linkFolder": "フォルダを追加",
     "newConversation": "新しいチャット",
+    "startConversation": "チャットを開始",
+    "selectAssistant": "アシスタントを選択",
+    "createTeam": "チームを作成",
     "selectModel": "モデルを選択",
     "useCliModel": "モデルを選択",
     "modelSwitchNotSupported": "初回接続後に利用可能なモデルリストが表示されます。まずメッセージを送信して接続し、利用可能なモデルを読み込んでください。",
@@ -17,7 +20,13 @@
     "quickActionStar": "気に入った？スターをください！",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "コミュニティ Skills をオンデマンドで検索・有効化。一度設定すれば、すべてのAgentで利用可能。",
-    "skillsMarketDetails": "詳細 >>"
+    "skillsMarketDetails": "詳細 >>",
+    "teamLabel": "チーム",
+    "membersLabel": "メンバー",
+    "teamNamePlaceholder": "自動命名（変更可・空欄可）",
+    "setLeader": "リーダーに設定",
+    "removeMember": "メンバーを削除",
+    "addAdvanced": "追加 / 詳細…"
   },
   "history": {
     "recents": "最近",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "プロジェクトを削除",
     "removeProject": "プロジェクトを削除",
     "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
+    "removeProjectConfirmTeams": "プロジェクト内の {{teams}} 個のチームも削除されます。",
+    "removeProjectListMore": "ほか{{count}}件",
     "newConversationInProject": "このプロジェクト内で新しい会話",
     "deleting": "削除中...",
     "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
     "forkedFrom": "「{{name}}」から分岐",
-    "forkedConversation": "分岐した会話"
+    "forkedConversation": "分岐した会話",
+    "loadMore": "さらに読み込む",
+    "newTeamInProject": "このプロジェクトに新しいチーム",
+    "projectCreateMenu": "作成",
+    "collapseAllProjects": "すべてのプロジェクトを折りたたむ",
+    "archive": "アーカイブ",
+    "unarchive": "アーカイブ解除",
+    "archiveSuccess": "アーカイブしました",
+    "archiveFailed": "アーカイブに失敗しました",
+    "unarchiveSuccess": "復元しました",
+    "unarchiveFailed": "復元に失敗しました",
+    "archiveProject": "プロジェクトをアーカイブ",
+    "archiveProjectConfirmTitle": "プロジェクトをアーカイブしますか？",
+    "archiveProjectConfirmContent": "「{{name}}」内のすべての会話とチームをアーカイブしますか？アーカイブページから復元できます。",
+    "archiveProjectSuccess": "プロジェクトをアーカイブしました",
+    "archiveProjectFailed": "プロジェクトのアーカイブに失敗しました"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -719,5 +745,8 @@
     "exited": "終了コード {{code}}",
     "stop": "停止",
     "truncated": "(以前の出力は切り捨て)"
+  },
+  "emptyState": {
+    "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"
   }
 }

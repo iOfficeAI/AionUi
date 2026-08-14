@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import type { SidebarItem } from '@/common/types/sidebar';
 import { requestConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -89,36 +90,6 @@ export const useConversationActions = ({
     [id, navigate]
   );
 
-  const handleDeleteClick = useCallback(
-    (conversation_id: string) => {
-      Modal.confirm({
-        title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
-        okText: t('conversation.history.confirmDelete'),
-        cancelText: t('conversation.history.cancelDelete'),
-        okButtonProps: { status: 'warning' },
-        onOk: async () => {
-          try {
-            const success = await removeConversation(conversation_id);
-            if (success) {
-              emitter.emit('chat.history.refresh');
-              Message.success(t('conversation.history.deleteSuccess'));
-            } else {
-              Message.error(t('conversation.history.deleteFailed'));
-            }
-          } catch (error) {
-            console.error('Failed to remove conversation:', error);
-            Message.error(t('conversation.history.deleteFailed'));
-          }
-        },
-        style: { borderRadius: '12px' },
-        alignCenter: true,
-        getPopupContainer: () => document.body,
-      });
-    },
-    [removeConversation, t]
-  );
-
   const handleBatchDelete = useCallback(() => {
     if (selectedConversationIds.size === 0) {
       Message.warning(t('conversation.history.batchNoSelection'));
@@ -198,28 +169,40 @@ export const useConversationActions = ({
 
   const handleTogglePin = useCallback(
     async (conversation: TChatConversation) => {
+      // Pin truth lives in the backend `user_order` table (a row's existence),
+      // not `extra.pinned`. Toggling = insert/delete that row; both calls are
+      // idempotent and take no body. The sidebar refresh re-reads the derived
+      // `pinned` flag and re-groups server-side.
       const pinned = isConversationPinned(conversation);
 
       try {
-        const success = await ipcBridge.conversation.update.invoke({
-          id: conversation.id,
-          updates: {
-            extra: {
-              pinned: !pinned,
-              pinned_at: pinned ? undefined : Date.now(),
-            } as Partial<TChatConversation['extra']>,
-          } as Partial<TChatConversation>,
-          merge_extra: true,
-        });
-
-        if (success) {
-          emitter.emit('chat.history.refresh');
+        if (pinned) {
+          await ipcBridge.order.pinned.delete.invoke({ item_type: 'conversation', item_id: conversation.id });
         } else {
-          Message.error(t('conversation.history.pinFailed'));
+          await ipcBridge.order.pinned.put.invoke({ item_type: 'conversation', item_id: conversation.id });
         }
+        emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('Failed to toggle pin conversation:', error);
         Message.error(t('conversation.history.pinFailed'));
+      }
+    },
+    [t]
+  );
+
+  const handleArchive = useCallback(
+    async (conversation: TChatConversation) => {
+      // Archiving moves the conversation into the archived slice (backend also
+      // unpins it, D6). The non-`?archived` sidebar read no longer returns it,
+      // so the refresh makes the row drop out of the active list on its own.
+      setDropdownVisibleId(null);
+      try {
+        await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: conversation.id });
+        emitter.emit('chat.history.refresh');
+        Message.success(t('conversation.history.archiveSuccess'));
+      } catch (error) {
+        console.error('Failed to archive conversation:', error);
+        Message.error(t('conversation.history.archiveFailed'));
       }
     },
     [t]
@@ -258,50 +241,45 @@ export const useConversationActions = ({
     [id, navigate, onSessionClick, t]
   );
 
-  /**
-   * Remove project state — rendered via AionModal in the GroupedHistory component.
-   * Uses project's design system: AionModal component with danger-styled action button.
-   */
-  const [removeProjectTarget, setRemoveProjectTarget] = useState<{
-    name: string;
-    conversations: TChatConversation[];
-  } | null>(null);
-  const [removeProjectLoading, setRemoveProjectLoading] = useState(false);
-
-  const handleRemoveProject = useCallback((projectName: string, conversations: TChatConversation[]) => {
-    if (conversations.length === 0) return;
-    setRemoveProjectTarget({ name: projectName, conversations });
-  }, []);
-
-  const handleRemoveProjectCancel = useCallback(() => {
-    if (removeProjectLoading) return;
-    setRemoveProjectTarget(null);
-  }, [removeProjectLoading]);
-
-  const handleRemoveProjectConfirm = useCallback(async () => {
-    if (!removeProjectTarget) return;
-    setRemoveProjectLoading(true);
-    try {
-      const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
-      const successCount = results.filter(Boolean).length;
-      emitter.emit('chat.history.refresh');
-      if (successCount > 0) {
-        Message.success(
-          t('conversation.history.batchDeleteSuccess', {
-            count: successCount,
-          })
-        );
-      } else {
-        Message.error(t('conversation.history.deleteFailed'));
-      }
-      setRemoveProjectTarget(null);
-    } catch (error) {
-      console.error('Failed to remove project:', error);
-      Message.error(t('conversation.history.deleteFailed'));
-    } finally {
-      setRemoveProjectLoading(false);
-    }
-  }, [removeProjectTarget, removeConversation, t]);
+  const handleArchiveProject = useCallback(
+    (projectName: string, items: SidebarItem[], projectId?: string) => {
+      // Archiving is the sidebar's non-destructive "remove" — the whole project's
+      // units move into the archived slice (hard delete now lives on the archive
+      // page). A real project archives in one server-side sweep keyed by
+      // `project_id` (catches path-merged units the window may not show); a dir
+      // pseudo-group has no backing project, so it archives each visible unit.
+      Modal.confirm({
+        title: t('conversation.history.archiveProjectConfirmTitle'),
+        content: t('conversation.history.archiveProjectConfirmContent', { name: projectName }),
+        okText: t('conversation.history.archive'),
+        cancelText: t('conversation.history.cancelDelete'),
+        onOk: async () => {
+          try {
+            if (projectId) {
+              await ipcBridge.sidebar.archiveProject.invoke({ project_id: projectId });
+            } else {
+              await Promise.all(
+                items.map((item) =>
+                  item.type === 'team'
+                    ? ipcBridge.sidebar.archive.invoke({ item_type: 'team', item_id: item.team_id })
+                    : ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: item.conversation.id })
+                )
+              );
+            }
+            emitter.emit('chat.history.refresh');
+            Message.success(t('conversation.history.archiveProjectSuccess'));
+          } catch (error) {
+            console.error('Failed to archive project:', error);
+            Message.error(t('conversation.history.archiveProjectFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [t]
+  );
 
   return {
     renameModalVisible,
@@ -310,19 +288,15 @@ export const useConversationActions = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
-    handleDeleteClick,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
+    handleArchive,
     handleMenuVisibleChange,
     handleOpenMenu,
     handleCreateCronTask,
-    handleRemoveProject,
-    removeProjectTarget,
-    removeProjectLoading,
-    handleRemoveProjectCancel,
-    handleRemoveProjectConfirm,
+    handleArchiveProject,
   };
 };

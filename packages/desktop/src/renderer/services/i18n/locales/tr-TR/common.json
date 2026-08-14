@@ -199,5 +199,6 @@
     "second_short": "sn"
   },
   "selectedCount": "{{count}} seçili",
-  "selectedSkills": "Seçili beceriler"
+  "selectedSkills": "Seçili beceriler",
+  "aiAssistant": "Yapay Zekâ Asistanı"
 }

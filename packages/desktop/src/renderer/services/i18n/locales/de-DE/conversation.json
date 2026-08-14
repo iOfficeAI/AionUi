@@ -4,6 +4,9 @@
     "placeholder": "Nachricht senden, Dateien hochladen, Ordner öffnen, eine geplante Aufgabe erstellen oder / für Befehle eingeben...",
     "linkFolder": "Ordner öffnen",
     "newConversation": "Neuer Chat",
+    "startConversation": "Chat starten",
+    "selectAssistant": "Assistent auswählen",
+    "createTeam": "Team erstellen",
     "selectModel": "Modell auswählen",
     "useCliModel": "Modell auswählen",
     "modelSwitchNotSupported": "Die Modellliste ist nach der ersten Verbindung verfügbar. Sende eine Nachricht, um die Verbindung herzustellen und verfügbare Modelle zu laden.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Gefällt dir AionUi? Gib uns einen Stern!",
     "skillsMarket": "AionUi Skills-Markt",
     "skillsMarketDesc": "Community-Skills auf Abruf suchen und aktivieren. Einmal konfigurieren, für alle Agenten verfügbar.",
-    "skillsMarketDetails": "Mehr anzeigen >>"
+    "skillsMarketDetails": "Mehr anzeigen >>",
+    "teamLabel": "Team",
+    "membersLabel": "Mitglieder",
+    "teamNamePlaceholder": "Automatischer Name (änderbar, optional)",
+    "setLeader": "Als Leiter festlegen",
+    "removeMember": "Mitglied entfernen",
+    "addAdvanced": "Hinzufügen / Erweitert…"
   },
   "history": {
     "recents": "Zuletzt",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "Projekt entfernen",
     "removeProject": "Projekt entfernen",
     "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
+    "removeProjectConfirmTeams": "Außerdem werden {{teams}} zugehörige(s) Team(s) entfernt.",
+    "removeProjectListMore": "+{{count}} weitere",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
-    "forkedConversation": "Verzweigte Unterhaltung"
+    "forkedConversation": "Verzweigte Unterhaltung",
+    "loadMore": "Mehr laden",
+    "newTeamInProject": "Neues Team in diesem Projekt",
+    "projectCreateMenu": "Erstellen",
+    "collapseAllProjects": "Alle Projekte einklappen",
+    "archive": "Archivieren",
+    "unarchive": "Aus Archiv holen",
+    "archiveSuccess": "Archiviert",
+    "archiveFailed": "Archivieren fehlgeschlagen",
+    "unarchiveSuccess": "Wiederhergestellt",
+    "unarchiveFailed": "Wiederherstellen fehlgeschlagen",
+    "archiveProject": "Projekt archivieren",
+    "archiveProjectConfirmTitle": "Projekt archivieren?",
+    "archiveProjectConfirmContent": "Alle Unterhaltungen und Teams unter „{{name}}“ archivieren? Sie können sie auf der Archivseite wiederherstellen.",
+    "archiveProjectSuccess": "Projekt archiviert",
+    "archiveProjectFailed": "Projekt konnte nicht archiviert werden"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -720,5 +746,8 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "emptyState": {
+    "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."
   }
 }

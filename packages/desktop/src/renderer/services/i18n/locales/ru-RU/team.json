@@ -15,7 +15,13 @@
     "renameOk": "Сохранить",
     "renameCancel": "Отмена",
     "renameSuccess": "Команда переименована",
-    "deleteSuccess": "Команда удалена"
+    "deleteSuccess": "Команда удалена",
+    "archive": "Архивировать",
+    "unarchive": "Разархивировать",
+    "archiveSuccess": "Архивировано",
+    "archiveFailed": "Не удалось архивировать",
+    "unarchiveSuccess": "Восстановлено",
+    "unarchiveFailed": "Не удалось восстановить"
   },
   "newAgent": "Новый ассистент",
   "noMessages": "Пока нет сообщений.",

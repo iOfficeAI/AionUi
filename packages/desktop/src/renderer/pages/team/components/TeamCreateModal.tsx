@@ -1,19 +1,16 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { ipcBridge } from '@/common';
 import type { TTeam } from '@/common/types/team/teamTypes';
-import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
-import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { useTeamAssistantOptions } from '../hooks/useTeamAssistantOptions';
 import type { TeamAssistantOption } from './assistantSelectUtils';
-import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
+import { createTeam } from './createTeam';
 import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
 import TeamAssistantPickerDropdown from './memberPicker/TeamAssistantPickerDropdown';
 import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMemberDraftList';
@@ -30,9 +27,29 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onCreated: (team: TTeam) => void;
+  /** Prefill the workspace folder (e.g. when opened from a project's "+" menu). */
+  initialWorkspace?: string;
+  /**
+   * Prefill the member list from these assistant ids (e.g. when opened from the
+   * homepage multi-select). Ids not present in the supported-assistant catalog
+   * are silently dropped; the first resolved member becomes the leader.
+   */
+  initialAssistantIds?: string[];
+  /** Prefill the leader (by assistant id); falls back to the first member. */
+  initialLeaderAssistantId?: string;
+  /** Prefill the team-name field (e.g. the homepage memberbar draft). */
+  initialTeamName?: string;
 };
 
-const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+const TeamCreateModal: React.FC<Props> = ({
+  visible,
+  onClose,
+  onCreated,
+  initialWorkspace,
+  initialAssistantIds,
+  initialLeaderAssistantId,
+  initialTeamName,
+}) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const layout = useLayoutContext();
@@ -46,6 +63,41 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+
+  // Seed the workspace from the caller each time the modal opens (the modal is
+  // kept mounted, so useState's initializer would not re-run on reopen).
+  useEffect(() => {
+    if (visible) setWorkspace(initialWorkspace ?? '');
+  }, [visible, initialWorkspace]);
+
+  // Seed the team name from the caller each time the modal opens (kept mounted).
+  useEffect(() => {
+    if (visible) setName(initialTeamName ?? '');
+  }, [visible, initialTeamName]);
+
+  // Seed the member list from the caller's assistant ids when the modal opens
+  // (e.g. the homepage multi-select). Waits for the assistant catalog to load,
+  // filters to supported assistants, and only seeds while the list is still
+  // untouched so it never clobbers edits the user has already made.
+  useEffect(() => {
+    if (!visible) return;
+    if (!initialAssistantIds || initialAssistantIds.length === 0) return;
+    if (allAssistants.length === 0) return;
+    setSelectedMembers((prev) => {
+      if (prev.length > 0) return prev;
+      const drafts = initialAssistantIds
+        .map((id) => allAssistants.find((assistant) => assistant.id === id))
+        .filter((assistant): assistant is TeamAssistantOption => Boolean(assistant))
+        .map((assistant, index) => ({ selectionId: `${assistant.id}-seed-${index}`, assistant }));
+      if (drafts.length > 0) {
+        const leaderDraft = initialLeaderAssistantId
+          ? drafts.find((draft) => draft.assistant.id === initialLeaderAssistantId)
+          : undefined;
+        setLeaderSelectionId((leaderDraft ?? drafts[0]).selectionId);
+      }
+      return drafts;
+    });
+  }, [visible, initialAssistantIds, initialLeaderAssistantId, allAssistants]);
 
   const hasOneLeader = useMemo(
     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),
@@ -95,48 +147,22 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
-      const resolvedModels = await Promise.all(
-        selectedMembers.map(async (member) => {
-          try {
-            const model = await resolveDefaultTeamAgentModel({
-              assistant_id: member.assistant.id,
-              assistant_backend: member.assistant.backend,
-            });
-            return [member.selectionId, model] as const;
-          } catch (error) {
-            throw new Error(`${member.assistant.name}: ${getConversationCreateErrorMessage(error, t)}`, {
-              cause: error,
-            });
-          }
-        })
-      );
-      const modelBySelectionId = new Map(resolvedModels);
-      const agents: TeamAssistantInput[] = selectedMembers.map((member) => ({
-        role: member.selectionId === leaderSelectionId ? 'leader' : 'teammate',
-        assistant_name: member.assistant.name,
-        assistant_id: member.assistant.id,
-        model: modelBySelectionId.get(member.selectionId),
-      }));
-
-      const team = await ipcBridge.team.create.invoke({
-        user_id,
+      const result = await createTeam({
+        userId: user_id,
         name,
         workspace,
-        workspace_mode: 'shared',
-        agents,
+        members: selectedMembers.map((member) => ({
+          assistant: member.assistant,
+          isLeader: member.selectionId === leaderSelectionId,
+        })),
+        t,
       });
-
-      // The platform bridge swallows provider errors and returns a sentinel object
-      const result = team as unknown as { __bridgeError?: boolean; message?: string };
-      if (result.__bridgeError) {
-        Message.error(getConversationCreateErrorMessage(result.message ?? t('team.create.error'), t));
+      if (!result.ok) {
+        Message.error(result.message);
         return;
       }
-
-      onCreated(team);
+      onCreated(result.team);
       handleClose();
-    } catch (error) {
-      Message.error(getConversationCreateErrorMessage(error, t));
     } finally {
       setLoading(false);
     }

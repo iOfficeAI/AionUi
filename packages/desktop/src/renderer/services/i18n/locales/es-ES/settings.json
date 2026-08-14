@@ -1341,5 +1341,29 @@
     "clearConfirmContent": "Se cerrará tu sesión en todos los sitios del navegador integrado. Esta acción no se puede deshacer.",
     "clearSuccess": "Datos de navegación borrados",
     "clearFailed": "No se pudieron borrar los datos de navegación"
+  },
+  "archived": {
+    "navLabel": "Conversaciones archivadas",
+    "title": "Archivados",
+    "description": "Conversaciones y equipos que has archivado. Restáuralos en la barra lateral o vacía el archivo para eliminarlos permanentemente.",
+    "empty": "No hay elementos archivados",
+    "clearAll": "Vaciar archivo",
+    "clearConfirmTitle": "¿Vaciar archivo?",
+    "clearConfirmContent": "Esto elimina permanentemente todas las conversaciones y equipos archivados. No se puede deshacer.",
+    "clearSuccess": "Archivo vaciado",
+    "clearFailed": "No se pudo vaciar el archivo",
+    "restore": "Restaurar",
+    "restoreSuccess": "Restaurado",
+    "restoreFailed": "Error al restaurar",
+    "delete": "Eliminar",
+    "deleteConfirmTitle": "¿Eliminar permanentemente?",
+    "deleteConfirmContent": "\"{{name}}\" se eliminará permanentemente. Esta acción no se puede deshacer.",
+    "deleteSuccess": "Eliminado",
+    "deleteFailed": "Error al eliminar",
+    "teamMemberCount": "{{count}} miembros",
+    "restoreProject": "Restaurar todo",
+    "deleteProject": "Eliminar todo",
+    "deleteProjectConfirmTitle": "¿Eliminar todos los elementos archivados?",
+    "deleteProjectConfirmContent": "Todas las conversaciones y equipos archivados de \"{{name}}\" se eliminarán permanentemente. Esta acción no se puede deshacer."
   }
 }

@@ -115,6 +115,14 @@ type GuidActionRowProps = {
   isButtonDisabled: boolean;
   speechInputNode?: React.ReactNode;
   onSend: () => void;
+  // When set, the primary action renders as a labelled pill (e.g. "Start chat")
+  // instead of the circular send-arrow icon. Used by the homepage state machine
+  // to switch the button intent (start empty chat / create team) by label.
+  primaryLabel?: string;
+  // Locale-independent tag for the primary button's current intent
+  // ('select' | 'start' | 'team' | 'send'); surfaced as data-primary-mode so
+  // tests can assert the state machine without matching translated labels.
+  primaryMode?: string;
 };
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
@@ -146,6 +154,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   isButtonDisabled,
   speechInputNode,
   onSend,
+  primaryLabel,
+  primaryMode,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -650,20 +660,39 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         )}
 
         {speechInputNode}
-        <Button
-          shape='circle'
-          type='primary'
-          loading={loading}
-          disabled={isButtonDisabled}
-          className='send-button-custom'
-          style={{
-            backgroundColor: isButtonDisabled ? undefined : '#000000',
-            borderColor: isButtonDisabled ? undefined : '#000000',
-          }}
-          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-          onClick={onSend}
-          data-testid='guid-send-btn'
-        />
+        {primaryLabel ? (
+          <Button
+            type='primary'
+            loading={loading}
+            disabled={isButtonDisabled}
+            className='send-button-custom !w-auto !rounded-999px !px-16px'
+            style={{
+              backgroundColor: isButtonDisabled ? undefined : '#000000',
+              borderColor: isButtonDisabled ? undefined : '#000000',
+            }}
+            onClick={onSend}
+            data-testid='guid-send-btn'
+            data-primary-mode={primaryMode}
+          >
+            {primaryLabel}
+          </Button>
+        ) : (
+          <Button
+            shape='circle'
+            type='primary'
+            loading={loading}
+            disabled={isButtonDisabled}
+            className='send-button-custom'
+            style={{
+              backgroundColor: isButtonDisabled ? undefined : '#000000',
+              borderColor: isButtonDisabled ? undefined : '#000000',
+            }}
+            icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+            onClick={onSend}
+            data-testid='guid-send-btn'
+            data-primary-mode={primaryMode}
+          />
+        )}
       </div>
     </div>
   );

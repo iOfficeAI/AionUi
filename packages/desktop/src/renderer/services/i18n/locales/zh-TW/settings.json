@@ -1343,5 +1343,29 @@
     "clearConfirmContent": "應用內瀏覽器中所有網站的登入狀態都會被登出，且無法復原。",
     "clearSuccess": "瀏覽資料已清空",
     "clearFailed": "清空瀏覽資料失敗"
+  },
+  "archived": {
+    "navLabel": "已封存的對話",
+    "title": "封存",
+    "description": "你封存的對話和團隊。可以還原到側邊欄，或清空封存將其永久刪除。",
+    "empty": "暫無封存內容",
+    "clearAll": "清空封存",
+    "clearConfirmTitle": "清空封存？",
+    "clearConfirmContent": "此操作將永久刪除所有已封存的對話和團隊，且無法復原。",
+    "clearSuccess": "封存已清空",
+    "clearFailed": "清空封存失敗",
+    "restore": "還原",
+    "restoreSuccess": "已還原",
+    "restoreFailed": "還原失敗",
+    "delete": "刪除",
+    "deleteConfirmTitle": "永久刪除？",
+    "deleteConfirmContent": "「{{name}}」將被永久刪除，此操作無法復原。",
+    "deleteSuccess": "已刪除",
+    "deleteFailed": "刪除失敗",
+    "teamMemberCount": "{{count}} 個成員",
+    "restoreProject": "全部還原",
+    "deleteProject": "全部刪除",
+    "deleteProjectConfirmTitle": "刪除該專案下的全部封存項目？",
+    "deleteProjectConfirmContent": "「{{name}}」下的所有封存對話和團隊將被永久刪除，此操作無法復原。"
   }
 }

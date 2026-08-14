@@ -5,7 +5,7 @@
  * the removed mixed CLI-agent / preset-assistant option groups.
  */
 import { test, expect } from '../../fixtures';
-import { httpDelete, httpGet, httpPost, navigateTo } from '../../helpers';
+import { httpDelete, httpGet, httpPost, navigateTo, openTeamCreateModal } from '../../helpers';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 type AgentMetadata = {
@@ -46,11 +46,8 @@ test.describe('Team Assistant Leader Options', () => {
       await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     }
 
-    await expect(page.locator('[data-testid="team-create-btn"]').first()).toBeVisible({ timeout: 10000 });
-
     // Open Create Team modal
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await createBtn.click();
+    await openTeamCreateModal(page);
 
     const modal = page.locator('.team-create-modal');
     await expect(modal).toBeVisible({ timeout: 5000 });
@@ -132,9 +129,7 @@ test.describe('Team Assistant Leader Options', () => {
       expect(assistant.team_selectable, JSON.stringify(assistant)).toBe(true);
 
       await navigateTo(page, '#/team');
-      const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-      await expect(createBtn).toBeVisible({ timeout: 10_000 });
-      await createBtn.click();
+      await openTeamCreateModal(page);
 
       const modal = page.locator('.team-create-modal');
       await expect(modal).toBeVisible({ timeout: 10_000 });

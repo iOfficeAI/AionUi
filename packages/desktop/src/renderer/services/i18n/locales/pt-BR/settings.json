@@ -1344,5 +1344,29 @@
     "clearConfirmContent": "Você sairá de todos os sites no navegador interno. Isso não pode ser desfeito.",
     "clearSuccess": "Dados de navegação limpos",
     "clearFailed": "Falha ao limpar dados de navegação"
+  },
+  "archived": {
+    "navLabel": "Conversas arquivadas",
+    "title": "Arquivados",
+    "description": "Conversas e equipes que você arquivou. Restaure-as para a barra lateral ou esvazie o arquivo para excluí-las permanentemente.",
+    "empty": "Nenhum item arquivado",
+    "clearAll": "Esvaziar arquivo",
+    "clearConfirmTitle": "Esvaziar arquivo?",
+    "clearConfirmContent": "Isso exclui permanentemente todas as conversas e equipes arquivadas. Não é possível desfazer.",
+    "clearSuccess": "Arquivo esvaziado",
+    "clearFailed": "Falha ao esvaziar o arquivo",
+    "restore": "Restaurar",
+    "restoreSuccess": "Restaurado",
+    "restoreFailed": "Falha ao restaurar",
+    "delete": "Excluir",
+    "deleteConfirmTitle": "Excluir permanentemente?",
+    "deleteConfirmContent": "\"{{name}}\" será excluído permanentemente. Isso não pode ser desfeito.",
+    "deleteSuccess": "Excluído",
+    "deleteFailed": "Falha ao excluir",
+    "teamMemberCount": "{{count}} membros",
+    "restoreProject": "Restaurar tudo",
+    "deleteProject": "Excluir tudo",
+    "deleteProjectConfirmTitle": "Excluir todos os itens arquivados?",
+    "deleteProjectConfirmContent": "Todas as conversas e equipes arquivadas em \"{{name}}\" serão excluídas permanentemente. Isso não pode ser desfeito."
   }
 }

@@ -4,6 +4,9 @@
     "placeholder": "Отправьте сообщение, загрузите файлы, откройте папку, создайте запланированную задачу или введите / для команд...",
     "linkFolder": "Открыть папку",
     "newConversation": "Новый чат",
+    "startConversation": "Начать чат",
+    "selectAssistant": "Выбрать ассистента",
+    "createTeam": "Создать команду",
     "selectModel": "Выбрать модель",
     "useCliModel": "Выбрать модель",
     "modelSwitchNotSupported": "Список моделей будет доступен после первого подключения. Отправьте сообщение для подключения и загрузки доступных моделей.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Нравится? Поставьте нам звезду!",
     "skillsMarket": "Маркет навыков AionUi",
     "skillsMarketDesc": "Находите и активируйте навыки сообщества по запросу. Настройте один раз — доступно для всех агентов.",
-    "skillsMarketDetails": "Подробнее >>"
+    "skillsMarketDetails": "Подробнее >>",
+    "teamLabel": "Команда",
+    "membersLabel": "Участники",
+    "teamNamePlaceholder": "Автоимя (можно изменить, необязательно)",
+    "setLeader": "Назначить лидером",
+    "removeMember": "Удалить участника",
+    "addAdvanced": "Добавить / Дополнительно…"
   },
   "history": {
     "recents": "Недавние",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "Удалить проект",
     "removeProject": "Удалить проект",
     "removeProjectConfirm": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
+    "removeProjectConfirmTeams": "Команды в проекте тоже будут удалены: {{teams}}.",
+    "removeProjectListMore": "Ещё {{count}}",
     "newConversationInProject": "Новая беседа в этом проекте",
     "deleting": "Удаление...",
     "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед",
     "forkedFrom": "Ответвление от «{{name}}»",
-    "forkedConversation": "Ответвлённая беседа"
+    "forkedConversation": "Ответвлённая беседа",
+    "loadMore": "Загрузить ещё",
+    "newTeamInProject": "Новая команда в этом проекте",
+    "projectCreateMenu": "Создать",
+    "collapseAllProjects": "Свернуть все проекты",
+    "archive": "Архивировать",
+    "unarchive": "Разархивировать",
+    "archiveSuccess": "Архивировано",
+    "archiveFailed": "Не удалось архивировать",
+    "unarchiveSuccess": "Восстановлено",
+    "unarchiveFailed": "Не удалось восстановить",
+    "archiveProject": "Архивировать проект",
+    "archiveProjectConfirmTitle": "Архивировать проект?",
+    "archiveProjectConfirmContent": "Архивировать все чаты и команды в «{{name}}»? Вы можете восстановить их со страницы архива.",
+    "archiveProjectSuccess": "Проект архивирован",
+    "archiveProjectFailed": "Не удалось архивировать проект"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -719,5 +745,8 @@
     "exited": "Код {{code}}",
     "stop": "Остановить",
     "truncated": "(ранний вывод усечён)"
+  },
+  "emptyState": {
+    "greeting": "Здравствуйте! Расскажите, что нужно, и я начну."
   }
 }

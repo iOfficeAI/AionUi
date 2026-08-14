@@ -1341,5 +1341,29 @@
     "clearConfirmContent": "Uygulama içi tarayıcıdaki tüm sitelerden çıkış yapılacak. Bu işlem geri alınamaz.",
     "clearSuccess": "Tarama verileri temizlendi",
     "clearFailed": "Tarama verileri temizlenemedi"
+  },
+  "archived": {
+    "navLabel": "Arşivlenen sohbetler",
+    "title": "Arşiv",
+    "description": "Arşivlediğin sohbetler ve ekipler. Bunları kenar çubuğuna geri yükleyebilir veya arşivi boşaltarak kalıcı olarak silebilirsin.",
+    "empty": "Arşivlenmiş öğe yok",
+    "clearAll": "Arşivi boşalt",
+    "clearConfirmTitle": "Arşiv boşaltılsın mı?",
+    "clearConfirmContent": "Bu işlem, arşivlenmiş tüm sohbetleri ve ekipleri kalıcı olarak siler. Bu geri alınamaz.",
+    "clearSuccess": "Arşiv boşaltıldı",
+    "clearFailed": "Arşiv boşaltılamadı",
+    "restore": "Geri yükle",
+    "restoreSuccess": "Geri yüklendi",
+    "restoreFailed": "Geri yükleme başarısız",
+    "delete": "Sil",
+    "deleteConfirmTitle": "Kalıcı olarak silinsin mi?",
+    "deleteConfirmContent": "\"{{name}}\" kalıcı olarak silinecek. Bu geri alınamaz.",
+    "deleteSuccess": "Silindi",
+    "deleteFailed": "Silme başarısız",
+    "teamMemberCount": "{{count}} üye",
+    "restoreProject": "Tümünü geri yükle",
+    "deleteProject": "Tümünü sil",
+    "deleteProjectConfirmTitle": "Tüm arşivlenmiş öğeler silinsin mi?",
+    "deleteProjectConfirmContent": "\"{{name}}\" altındaki arşivlenmiş tüm sohbetler ve ekipler kalıcı olarak silinecek. Bu işlem geri alınamaz."
   }
 }

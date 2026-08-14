@@ -4,6 +4,9 @@
     "placeholder": "پیام بفرستید، فایل آپلود کنید، پوشه باز کنید، کار زمان‌بندی‌شده ایجاد کنید یا برای دستورات / را تایپ کنید...",
     "linkFolder": "باز کردن پوشه",
     "newConversation": "چت جدید",
+    "startConversation": "شروع گفتگو",
+    "selectAssistant": "انتخاب دستیار",
+    "createTeam": "ایجاد تیم",
     "selectModel": "انتخاب مدل",
     "useCliModel": "انتخاب مدل",
     "modelSwitchNotSupported": "لیست مدل‌ها پس از اولین اتصال در دسترس خواهد بود. برای اتصال و بارگذاری مدل‌های موجود، پیامی بفرستید.",
@@ -17,7 +20,13 @@
     "quickActionStar": "خوشتان آمد؟ به ما ستاره بدهید!",
     "skillsMarket": "بازار مهارت‌های AionUi",
     "skillsMarketDesc": "مهارت‌های جامعه را جستجو و فعال کنید. یک‌بار پیکربندی کنید، برای همه ایجنت‌ها در دسترس باشد.",
-    "skillsMarketDetails": "مشاهده بیشتر >>"
+    "skillsMarketDetails": "مشاهده بیشتر >>",
+    "teamLabel": "تیم",
+    "membersLabel": "اعضا",
+    "teamNamePlaceholder": "نام‌گذاری خودکار (قابل ویرایش، اختیاری)",
+    "setLeader": "تعیین به‌عنوان سرگروه",
+    "removeMember": "حذف عضو",
+    "addAdvanced": "افزودن / پیشرفته…"
   },
   "history": {
     "recents": "اخیر",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "حذف پروژه",
     "removeProject": "حذف پروژه",
     "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
+    "removeProjectConfirmTeams": "همچنین {{teams}} تیم مرتبط نیز حذف خواهند شد.",
+    "removeProjectListMore": "{{count}} مورد دیگر",
     "newConversationInProject": "چت جدید در این پروژه",
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
-    "forkedConversation": "گفتگوی منشعب"
+    "forkedConversation": "گفتگوی منشعب",
+    "loadMore": "بارگیری بیشتر",
+    "newTeamInProject": "تیم جدید در این پروژه",
+    "projectCreateMenu": "ایجاد",
+    "collapseAllProjects": "جمع کردن همه پروژه‌ها",
+    "archive": "بایگانی",
+    "unarchive": "خروج از بایگانی",
+    "archiveSuccess": "بایگانی شد",
+    "archiveFailed": "بایگانی ناموفق بود",
+    "unarchiveSuccess": "بازیابی شد",
+    "unarchiveFailed": "بازیابی ناموفق بود",
+    "archiveProject": "بایگانی پروژه",
+    "archiveProjectConfirmTitle": "پروژه بایگانی شود؟",
+    "archiveProjectConfirmContent": "همه گفتگوها و تیم‌های زیر «{{name}}» بایگانی شوند؟ می‌توانید آن‌ها را از صفحه بایگانی بازیابی کنید.",
+    "archiveProjectSuccess": "پروژه بایگانی شد",
+    "archiveProjectFailed": "بایگانی پروژه ناموفق بود"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -719,5 +745,8 @@
     "exited": "کد خروج {{code}}",
     "stop": "توقف",
     "truncated": "(خروجی قبلی کوتاه شد)"
+  },
+  "emptyState": {
+    "greeting": "سلام! بگویید چه نیاز دارید تا شروع کنم."
   }
 }

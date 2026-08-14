@@ -4,6 +4,9 @@
     "placeholder": "Envía un mensaje, sube archivos, abre una carpeta, crea una tarea programada o escribe / para ver los comandos...",
     "linkFolder": "Abrir carpeta",
     "newConversation": "Nuevo chat",
+    "startConversation": "Iniciar chat",
+    "selectAssistant": "Seleccionar asistente",
+    "createTeam": "Crear equipo",
     "selectModel": "Seleccionar modelo",
     "useCliModel": "Seleccionar modelo",
     "modelSwitchNotSupported": "La lista de modelos estará disponible después de la primera conexión. Envía un mensaje para conectar y cargar los modelos disponibles.",
@@ -17,7 +20,13 @@
     "quickActionStar": "¿Te gusta? ¡Danos una estrella!",
     "skillsMarket": "Mercado de habilidades de AionUi",
     "skillsMarketDesc": "Busca y activa habilidades de la comunidad según sea necesario. Configúralo una vez, disponible para todos los asistentes.",
-    "skillsMarketDetails": "Ver más >>"
+    "skillsMarketDetails": "Ver más >>",
+    "teamLabel": "Equipo",
+    "membersLabel": "Miembros",
+    "teamNamePlaceholder": "Nombre automático (editable, opcional)",
+    "setLeader": "Establecer como líder",
+    "removeMember": "Eliminar miembro",
+    "addAdvanced": "Añadir / Avanzado…"
   },
   "history": {
     "recents": "Recientes",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "Quitar proyecto",
     "removeProject": "Quitar proyecto",
     "removeProjectConfirm": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversación(es) también se quitarán.",
+    "removeProjectConfirmTeams": "También se quitarán {{teams}} equipo(s) del proyecto.",
+    "removeProjectListMore": "+{{count}} más",
     "newConversationInProject": "Nuevo chat en este proyecto",
     "deleting": "Eliminando...",
     "reorderPinned": "Arrastra para reordenar la conversación fijada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversación bifurcada"
+    "forkedConversation": "Conversación bifurcada",
+    "loadMore": "Cargar más",
+    "newTeamInProject": "Nuevo equipo en este proyecto",
+    "projectCreateMenu": "Crear",
+    "collapseAllProjects": "Contraer todos los proyectos",
+    "archive": "Archivar",
+    "unarchive": "Desarchivar",
+    "archiveSuccess": "Archivado",
+    "archiveFailed": "Error al archivar",
+    "unarchiveSuccess": "Restaurado",
+    "unarchiveFailed": "Error al restaurar",
+    "archiveProject": "Archivar proyecto",
+    "archiveProjectConfirmTitle": "¿Archivar proyecto?",
+    "archiveProjectConfirmContent": "¿Archivar todas las conversaciones y equipos de \"{{name}}\"? Puedes restaurarlos desde la página de archivo.",
+    "archiveProjectSuccess": "Proyecto archivado",
+    "archiveProjectFailed": "No se pudo archivar el proyecto"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",
@@ -720,5 +746,8 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."
   }
 }

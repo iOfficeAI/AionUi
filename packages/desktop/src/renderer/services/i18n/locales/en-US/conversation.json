@@ -4,6 +4,9 @@
     "placeholder": "Send a message, upload files, open a folder, create a scheduled task, or type / for commands...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
+    "startConversation": "Start chat",
+    "selectAssistant": "Select assistant",
+    "createTeam": "Create team",
     "selectModel": "Select Model",
     "useCliModel": "Select Model",
     "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
@@ -17,7 +20,13 @@
     "quickActionStar": "Like us? Give us a star!",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
-    "skillsMarketDetails": "View More >>"
+    "skillsMarketDetails": "View More >>",
+    "teamLabel": "Team",
+    "membersLabel": "Members",
+    "teamNamePlaceholder": "Auto-named (editable, optional)",
+    "setLeader": "Set as leader",
+    "removeMember": "Remove member",
+    "addAdvanced": "Add / Advanced…"
   },
   "history": {
     "recents": "Recents",
@@ -72,11 +81,28 @@
     "removeProjectTitle": "Remove project",
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
+    "removeProjectConfirmTeams": "{{teams}} team(s) in it will be removed too.",
+    "removeProjectListMore": "+{{count}} more",
     "newConversationInProject": "New chat in this project",
     "deleting": "Deleting...",
     "reorderPinned": "Drag to reorder pinned conversation",
     "forkedFrom": "Forked from “{{name}}”",
-    "forkedConversation": "Forked conversation"
+    "forkedConversation": "Forked conversation",
+    "loadMore": "Load more",
+    "newTeamInProject": "New team in this project",
+    "projectCreateMenu": "Create",
+    "collapseAllProjects": "Collapse all projects",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archiveSuccess": "Archived",
+    "archiveFailed": "Archive failed",
+    "unarchiveSuccess": "Restored",
+    "unarchiveFailed": "Restore failed",
+    "archiveProject": "Archive project",
+    "archiveProjectConfirmTitle": "Archive project?",
+    "archiveProjectConfirmContent": "Archive all conversations and teams under \"{{name}}\"? You can restore them from the archive page.",
+    "archiveProjectSuccess": "Project archived",
+    "archiveProjectFailed": "Failed to archive project"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -720,5 +746,8 @@
     "exited": "Exit {{code}}",
     "stop": "Stop",
     "truncated": "(earlier output truncated)"
+  },
+  "emptyState": {
+    "greeting": "Hi! Tell me what you need and I'll get started."
   }
 }

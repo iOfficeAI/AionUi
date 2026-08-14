@@ -4,7 +4,7 @@
  * Flow: sidebar "+" button -> Create Team modal -> fill form -> create -> verify navigation
  */
 import { test, expect } from '../../fixtures';
-import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../helpers';
+import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName, openTeamCreateModal } from '../../helpers';
 
 /**
  * UI label patterns for each backend. Used to match the assistant option in
@@ -26,15 +26,13 @@ test.describe('Team Create', () => {
     await page.screenshot({ path: 'tests/e2e/results/team-01-initial.png' });
 
     // Verify the "+" create button exists next to the Teams title
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
+    const createBtn = page.locator('[data-testid="sider-conversation-create-btn"]').first();
     await expect(createBtn).toBeVisible();
   });
 
   test('clicking + opens create team modal', async ({ page }) => {
-    // Wait for create button to be ready before clicking
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await expect(createBtn).toBeVisible({ timeout: 10000 });
-    await createBtn.click();
+    // Open the create-team menu entry from the sidebar "+" dropdown
+    await openTeamCreateModal(page);
 
     // Screenshot: modal open
     await page.screenshot({ path: 'tests/e2e/results/team-02-modal.png' });
@@ -68,10 +66,8 @@ test.describe('Team Create', () => {
   });
 
   test('can fill form and create team', async ({ page }) => {
-    // Wait for create button to be ready before clicking
-    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-    await expect(createBtn).toBeVisible({ timeout: 10000 });
-    await createBtn.click();
+    // Open the create-team menu entry from the sidebar "+" dropdown
+    await openTeamCreateModal(page);
 
     // Wait for modal to appear
     const modalTitle = page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队/ });
@@ -131,10 +127,8 @@ async function createTeamWithAgent(
   agentTextPattern: RegExp,
   screenshotPrefix: string
 ): Promise<void> {
-  // Wait for create button to be ready (sidebar may still be loading after previous test)
-  const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-  await expect(createBtn).toBeVisible({ timeout: 10000 });
-  await createBtn.click();
+  // Open the create-team menu entry from the sidebar "+" dropdown
+  await openTeamCreateModal(page);
 
   // Wait for modal to appear
   const modalTitle = page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队/ });

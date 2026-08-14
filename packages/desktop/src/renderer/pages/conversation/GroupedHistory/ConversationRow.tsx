@@ -12,7 +12,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { EditOne, Export, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -45,9 +45,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMenuVisibleChange,
     onEditStart,
     onCreateCronTask,
-    onDelete,
     onExport,
     onTogglePin,
+    onArchive,
     getJobStatus,
   } = props;
   const { t } = useTranslation();
@@ -234,6 +234,32 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               event.stopPropagation();
             }}
           >
+            {/* Inline pin toggle: hover-revealed on every row (pinned rows show
+                the "unpin" affordance). Kept in sync with the menu's pin item. */}
+            <Tooltip
+              content={isPinned ? t('conversation.history.unpin') : t('conversation.history.pin')}
+              position='top'
+              mini
+            >
+              <span
+                data-testid={`conversation-row-pin-${conversation.id}`}
+                className={classNames(
+                  'flex-center cursor-pointer transition-colors size-20px rd-4px sider-action-btn mr-2px',
+                  isPinned ? 'text-[rgb(var(--primary-6))]' : 'text-t-secondary hover:text-t-primary'
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onTogglePin(conversation);
+                }}
+              >
+                <Pushpin
+                  theme={isPinned ? 'filled' : 'outline'}
+                  size='14'
+                  fill='currentColor'
+                  className='block leading-none'
+                />
+              </span>
+            </Tooltip>
             <Dropdown
               droplist={
                 <Menu
@@ -254,8 +280,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onExport?.(conversation);
                       return;
                     }
-                    if (key === 'delete') {
-                      onDelete(conversation.id);
+                    if (key === 'archive') {
+                      onArchive(conversation);
                     }
                   }}
                 >
@@ -285,10 +311,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       </div>
                     </Menu.Item>
                   )}
-                  <Menu.Item key='delete'>
-                    <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
-                      <DeleteOne theme='outline' size='14' />
-                      <span>{t('conversation.history.deleteTitle')}</span>
+                  <Menu.Item key='archive'>
+                    <div className='flex items-center gap-8px'>
+                      <Inbox theme='outline' size='14' />
+                      <span>{t('conversation.history.archive')}</span>
                     </div>
                   </Menu.Item>
                 </Menu>

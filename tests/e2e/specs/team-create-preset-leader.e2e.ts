@@ -6,7 +6,7 @@
  * assistant identity.
  */
 import { test, expect } from '../fixtures';
-import { invokeBridge, navigateTo } from '../helpers';
+import { invokeBridge, navigateTo, openTeamCreateModal } from '../helpers';
 
 type TTeamBackendAgent = {
   role: string;
@@ -30,9 +30,7 @@ test.describe('Team Create - assistant leader', () => {
 
     try {
       await navigateTo(page, '#/team');
-      const createBtn = page.locator('[data-testid="team-create-btn"]').first();
-      await expect(createBtn).toBeVisible({ timeout: 10_000 });
-      await createBtn.click();
+      await openTeamCreateModal(page);
 
       const modal = page.locator('.team-create-modal');
       await expect(modal).toBeVisible({ timeout: 10_000 });
