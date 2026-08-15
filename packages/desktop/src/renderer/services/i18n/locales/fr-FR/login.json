@@ -7,8 +7,8 @@
   "password": "Mot de passe",
   "passwordPlaceholder": "Entrez votre mot de passe",
   "rememberMe": "Se souvenir de moi",
-  "submit": "Se connecter",
-  "submitting": "Connexion en cours...",
+  "submit": "Se connecter avec AIPaSS",
+  "submitting": "Ouverture de la page de connexion...",
   "success": "Connexion réussie ! Redirection...",
   "showPassword": "Afficher le mot de passe",
   "hidePassword": "Masquer le mot de passe",
@@ -25,7 +25,7 @@
     "networkError": "Connexion échouée, veuillez réessayer",
     "serverError": "Erreur serveur, veuillez réessayer plus tard",
     "timeout": "Délai de connexion dépassé. Veuillez réessayer.",
-    "loadFailed": "Service de connexion inaccessible. Veuillez vérifier votre réseau.",
+    "loadFailed": "Impossible d'ouvrir la page de connexion. Veuillez vérifier votre réseau.",
     "invalidCallback": "Rappel de connexion rejeté, veuillez réessayer",
     "unknown": "Échec de connexion, veuillez réessayer"
   }

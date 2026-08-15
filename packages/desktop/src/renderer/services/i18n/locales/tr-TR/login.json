@@ -7,8 +7,8 @@
   "password": "Şifre",
   "passwordPlaceholder": "Şifrenizi girin",
   "rememberMe": "Beni hatırla",
-  "submit": "Giriş Yap",
-  "submitting": "Giriş yapılıyor...",
+  "submit": "AIPaSS ile Giriş Yap",
+  "submitting": "Giriş sayfası açılıyor...",
   "success": "Giriş başarılı! Yönlendiriliyor...",
   "showPassword": "Şifreyi göster",
   "hidePassword": "Şifreyi gizle",
@@ -25,7 +25,7 @@
     "networkError": "Bağlantı başarısız, lütfen tekrar deneyin",
     "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
     "timeout": "Giriş zaman aşımına uğradı. Lütfen tekrar deneyin.",
-    "loadFailed": "Giriş hizmetine erişilemiyor. Lütfen ağınızı kontrol edin.",
+    "loadFailed": "Giriş sayfası açılamadı. Lütfen ağınızı kontrol edin.",
     "invalidCallback": "Giriş geri çağrısı reddedildi, lütfen tekrar deneyin",
     "unknown": "Giriş başarısız, lütfen tekrar deneyin"
   }

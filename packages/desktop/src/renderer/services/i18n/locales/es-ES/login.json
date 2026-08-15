@@ -7,8 +7,8 @@
   "password": "Contraseña",
   "passwordPlaceholder": "Ingresa tu contraseña",
   "rememberMe": "Recordarme",
-  "submit": "Iniciar sesión",
-  "submitting": "Iniciando sesión...",
+  "submit": "Iniciar sesión con AIPaSS",
+  "submitting": "Abriendo la página de inicio de sesión...",
   "success": "¡Sesión iniciada! Redirigiendo...",
   "showPassword": "Mostrar contraseña",
   "hidePassword": "Ocultar contraseña",
@@ -25,7 +25,7 @@
     "networkError": "Error de conexión, intenta de nuevo",
     "serverError": "Error del servidor, intenta más tarde",
     "timeout": "Se agotó el tiempo de inicio de sesión. Por favor, inténtelo de nuevo.",
-    "loadFailed": "No se puede acceder al servicio de inicio de sesión. Por favor, verifique su red.",
+    "loadFailed": "No se puede abrir la página de inicio de sesión. Por favor, verifique su red.",
     "invalidCallback": "Callback de inicio de sesión rechazado, inténtalo de nuevo",
     "unknown": "Error al iniciar sesión, intenta de nuevo"
   }
