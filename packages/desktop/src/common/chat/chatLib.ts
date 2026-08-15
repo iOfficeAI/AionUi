@@ -372,6 +372,10 @@ export const mergeTextMessageContent = (
 };
 
 export const preferTextMessageVersion = (primary: IMessageText, secondary: IMessageText): IMessageText => {
+  if (primary.hidden !== secondary.hidden) {
+    return primary.hidden ? secondary : primary;
+  }
+
   const primaryIsReplace = isTextContentReplacement(primary.content);
   const secondaryIsReplace = isTextContentReplacement(secondary.content);
 

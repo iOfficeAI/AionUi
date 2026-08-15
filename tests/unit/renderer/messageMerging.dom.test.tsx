@@ -114,6 +114,16 @@ function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
   );
 }
 
+function createCacheWrapper(initialMessages: IMessageText[]) {
+  return function InitialCacheWrapper({ children }: PropsWithChildren): JSX.Element {
+    return (
+      <MessageListLoadingProvider value={false}>
+        <MessageListProvider value={initialMessages}>{children}</MessageListProvider>
+      </MessageListLoadingProvider>
+    );
+  };
+}
+
 function useMessageHarness() {
   return {
     addOrUpdateMessage: useAddOrUpdateMessage(),
@@ -274,5 +284,43 @@ describe('message merging', () => {
       limit: 50,
       content_mode: 'compact',
     });
+  });
+
+  it('keeps a visible live reply when DB hydration has a hidden row with the same msg_id', async () => {
+    const liveMessage: IMessageText = {
+      ...createTextMessage('msg-1', 'progress status reply'),
+      id: 'live-message',
+      content: {
+        content: 'progress status reply',
+        teammateMessage: true,
+        senderName: 'Leader',
+      },
+    };
+    const hiddenDbMessage: IMessageText = {
+      ...createTextMessage('msg-1', JSON.stringify({ content: 'progress status reply', teammate_message: true })),
+      id: 'db-hidden-message',
+      hidden: true,
+    };
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({ items: [hiddenDbMessage], total: 1, has_more: false });
+
+    const { result } = renderHook(
+      () => {
+        useMessageLstCache(CONVERSATION_ID);
+        return useMessageList();
+      },
+      {
+        wrapper: createCacheWrapper([liveMessage]),
+      }
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].id).toBe('live-message');
+    expect(result.current[0].hidden).toBeUndefined();
+    expect((result.current[0] as IMessageText).content.content).toBe('progress status reply');
   });
 });
