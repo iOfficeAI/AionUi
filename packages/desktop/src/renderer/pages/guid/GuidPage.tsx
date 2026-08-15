@@ -11,6 +11,7 @@ import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
+import { useConfig } from '@renderer/hooks/config/useConfig';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
@@ -62,6 +63,7 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [sendKeyModifier] = useConfig('input.sendKeyModifier');
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -300,13 +302,29 @@ const GuidPage: React.FC = () => {
         return;
       }
 
-      if (event.key === 'Enter' && !event.shiftKey) {
+      if (sendKeyModifier) {
+        if (event.key === 'Enter') {
+          if (event.metaKey || event.ctrlKey) {
+            event.preventDefault();
+            if (guidInput.input.trim()) send.sendMessageHandler();
+          }
+          return;
+        }
+      }
+
+      if (event.key === 'Enter') {
+        if (event.shiftKey) return;
+        if (event.metaKey || event.ctrlKey) {
+          event.preventDefault();
+          document.execCommand('insertText', false, '\n');
+          return;
+        }
         event.preventDefault();
         if (!guidInput.input.trim()) return;
         send.sendMessageHandler();
       }
     },
-    [guidInput.input, send.sendMessageHandler, slashController]
+    [guidInput.input, send.sendMessageHandler, sendKeyModifier, slashController]
   );
 
   const handleSelectAssistant = useCallback(

@@ -19,7 +19,7 @@ import {
 } from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
+import { Alert, Collapse, Form, InputNumber, Message, Modal, Select, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -74,6 +74,19 @@ const SystemModalContent: React.FC = () => {
   const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
   const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [sendKeyModifier, setSendKeyModifier] = useState(false);
+
+  useEffect(() => {
+    setSendKeyModifier(configService.get('input.sendKeyModifier') ?? false);
+  }, []);
+
+  const handleSendKeyChange = useCallback((value: boolean) => {
+    setSendKeyModifier(value);
+    configService.set('input.sendKeyModifier', value).catch(() => {
+      setSendKeyModifier(!value);
+      configService.setLocal('input.sendKeyModifier', !value);
+    });
+  }, []);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -345,6 +358,20 @@ const SystemModalContent: React.FC = () => {
       description: startOnBoot.supported ? t('settings.startOnBootDesc') : t('settings.startOnBootUnsupported'),
       component: (
         <Switch checked={startOnBoot.enabled} onChange={handleStartOnBootChange} disabled={!startOnBoot.supported} />
+      ),
+    },
+    {
+      key: 'sendKey',
+      label: t('settings.sendKey'),
+      component: (
+        <Select
+          value={sendKeyModifier ? 'modifier' : 'enter'}
+          onChange={(val) => handleSendKeyChange(val === 'modifier')}
+          style={{ width: 200 }}
+        >
+          <Select.Option value='enter'>{t('settings.sendKeyEnter')}</Select.Option>
+          <Select.Option value='modifier'>{t('settings.sendKeyModifier')}</Select.Option>
+        </Select>
       ),
     },
     {

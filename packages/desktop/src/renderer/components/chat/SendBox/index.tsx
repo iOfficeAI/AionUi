@@ -39,6 +39,7 @@ import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMe
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
+import { useConfig } from '@renderer/hooks/config/useConfig';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
@@ -1049,6 +1050,11 @@ const SendBox: React.FC<{
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
+  const [sendKeyModifier] = useConfig('input.sendKeyModifier');
+
+  const insertNewline = useCallback(() => {
+    document.execCommand('insertText', false, '\n');
+  }, []);
 
   // 使用共享的PasteService集成
   const { onPaste, onFocus: handlePasteFocus } = usePasteService({
@@ -1718,9 +1724,14 @@ const SendBox: React.FC<{
               }}
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
-              })}
+              onKeyDown={createKeyDownHandler(
+                sendMessageHandler,
+                (event) => {
+                  return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+                },
+                sendKeyModifier,
+                insertNewline
+              )}
             ></Input.TextArea>
           </div>
           {isSingleLine && (
