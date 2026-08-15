@@ -8,9 +8,10 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
+import { useTextUndoRedo } from '@/renderer/hooks/chat/useTextUndoRedo';
 import { Input } from '@arco-design/web-react';
 import type { RefTextAreaType } from '@arco-design/web-react/es/Input';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import styles from '../index.module.css';
 import GuidWorkspaceFootnote from './GuidWorkspaceFootnote';
 
@@ -76,6 +77,24 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const inputRef = useRef<RefTextAreaType | null>(null);
   const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
 
+  // 受控 textarea 的原生撤销栈会被 React 重写打散，这里用自定义历史替换（与 SendBox 一致）。
+  const applyUndoRedoValue = useCallback(
+    (value: string, start: number, end: number) => {
+      const textarea = inputRef.current?.dom;
+      if (textarea) {
+        textarea.value = value;
+        textarea.setSelectionRange(start, end);
+      }
+      onInputChange(value);
+    },
+    [onInputChange]
+  );
+  const { handleUndoRedoKeyDown } = useTextUndoRedo({
+    getTextarea: () => inputRef.current?.dom ?? null,
+    applyValue: applyUndoRedoValue,
+    isComposing: () => isComposing.current,
+  });
+
   useEffect(() => {
     if (!focusRequestKey || isMobile) return;
     inputRef.current?.focus();
@@ -84,6 +103,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
+    if (handleUndoRedoKeyDown(e)) return;
     onKeyDown(e);
   };
 
