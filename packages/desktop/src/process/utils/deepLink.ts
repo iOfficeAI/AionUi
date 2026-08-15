@@ -67,6 +67,7 @@ export const clearPendingDeepLinkUrl = (): void => {
  * If the window isn't ready yet, queue it.
  */
 export const handleDeepLinkUrl = (url: string): void => {
+  console.log('[DeepLink] handleDeepLinkUrl:', url);
   const parsed = parseDeepLinkUrl(url);
   if (!parsed) return;
 
@@ -80,6 +81,7 @@ export const handleDeepLinkUrl = (url: string): void => {
   // contract is explicit and `useDeepLink` in the renderer doesn't see
   // it.
   if (isExternalLoginAction(parsed.action)) {
+    console.log('[DeepLink] routing to handleExternalLoginDeepLink');
     const result = handleExternalLoginDeepLink(parsed.params);
     if (!result.ok) {
       console.warn('[DeepLink] auth/callback rejected:', result.reason);
