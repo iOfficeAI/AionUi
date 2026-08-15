@@ -84,14 +84,11 @@ export function startExternalLogin(): Promise<ExternalLoginLaunchResult> {
  * payload — the caller (deepLink.ts) can log the reason.
  */
 export function handleExternalLoginDeepLink(params: Record<string, string>): { ok: boolean; reason?: string } {
-  console.log('[ExternalLogin] handleExternalLoginDeepLink called with params:', params);
   const parsed = parseDeepLinkParams(params);
   if (!parsed.success || !parsed.value) {
-    console.warn('[ExternalLogin] invalid deep-link payload:', parsed.reason);
     return { ok: false, reason: parsed.reason };
   }
 
-  console.log('[ExternalLogin] emitting externalLoginCompleted for user:', parsed.value.username);
   ipcBridge.auth.externalLoginCompleted.emit({
     token: parsed.value.token,
     user: { id: parsed.value.userId, username: parsed.value.username },

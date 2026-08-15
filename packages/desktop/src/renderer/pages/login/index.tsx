@@ -94,10 +94,8 @@ const LoginPage: React.FC = () => {
   // from the OS-routed `aionui://auth/callback` URL triggers login completion.
   useEffect(() => {
     let active = true;
-    console.log('[LoginPage] subscribing to externalLoginCompleted');
 
     const unsubscribe = ipcBridge.auth.externalLoginCompleted.on((payload) => {
-      console.log('[LoginPage] externalLoginCompleted received:', payload);
       if (!active) return;
       completeExternalLogin(payload.token, { id: payload.user.id, username: payload.user.username });
       // Navigation to /guid is driven by the `status === 'authenticated'` effect
@@ -105,7 +103,6 @@ const LoginPage: React.FC = () => {
     });
 
     return () => {
-      console.log('[LoginPage] unsubscribing from externalLoginCompleted');
       active = false;
       unsubscribe();
     };
