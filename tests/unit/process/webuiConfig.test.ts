@@ -135,6 +135,18 @@ describe('restoreDesktopWebUIFromPreferences', () => {
     expect(startWebHostMock).not.toHaveBeenCalled();
   });
 
+  it('does not retry non-backend errors', async () => {
+    httpRequestMock.mockRejectedValue(new Error('Network error'));
+
+    await restoreDesktopWebUIFromPreferences();
+
+    expect(httpRequestMock).toHaveBeenCalledTimes(1);
+    expect(startWebHostMock).not.toHaveBeenCalled();
+    expect(
+      httpRequestMock.mock.calls.filter(([method, path]) => method === 'PUT' && path === '/api/settings/client')
+    ).toHaveLength(0);
+  });
+
   it('does not start WebUI when the persisted preference is disabled', async () => {
     httpRequestMock.mockResolvedValue({
       'webui.desktop.enabled': false,
