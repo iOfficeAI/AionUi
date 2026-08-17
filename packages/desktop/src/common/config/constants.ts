@@ -104,3 +104,34 @@ export const TEAM_MODE_ENABLED = true;
 // Stable ID for the Google Auth virtual provider.
 // Shared between frontend (useModelProviderList) and backend (SystemActions).
 export const GOOGLE_AUTH_PROVIDER_ID = 'google-auth-gemini';
+
+// ===== 图像生成 API / Image generation API =====
+
+/**
+ * MiniMax 图像生成 API 的域名（按区域各一个，契约相同）。
+ *
+ * MiniMax 以通用 custom 平台的形式配置，platform 字段无法区分它，因此内置图像生成
+ * 工具只能依据 base_url 的域名来识别。
+ *
+ * Hosts serving the MiniMax image generation API — one per region, both exposing
+ * the same contract. MiniMax is configured as a generic custom platform, so the
+ * platform field cannot identify it and the built-in image generation tool has to
+ * key off the base URL host instead.
+ */
+export const MINIMAX_IMAGE_API_HOSTS = ['api.minimax.io', 'api.minimaxi.com'] as const;
+
+/** MiniMax 图像生成端点路径（相对于 API 域名） / MiniMax image generation endpoint path, relative to the API host */
+export const MINIMAX_IMAGE_GENERATION_PATH = '/v1/image_generation';
+
+/** MiniMax 图像生成端点支持的模型 / Models served by the MiniMax image generation endpoint */
+export const MINIMAX_IMAGE_MODELS = ['image-01', 'image-01-live'] as const;
+
+/** MiniMax 默认图像生成模型 / Default MiniMax image generation model */
+export const MINIMAX_DEFAULT_IMAGE_MODEL = 'image-01';
+
+/**
+ * 上面模型共有的名称前缀，用于识别同系列的新模型。
+ * Shared name prefix of the models above, used to recognise later models in the
+ * same family without pinning the list to a release.
+ */
+export const MINIMAX_IMAGE_MODEL_PREFIX = 'image-';
