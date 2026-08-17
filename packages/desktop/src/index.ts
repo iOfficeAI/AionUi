@@ -71,6 +71,7 @@ import {
   refreshTrayMenu,
   setCloseToTrayEnabled,
   setIsQuitting,
+  shouldShowMainWindowOnReady,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
@@ -495,7 +496,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   // combined with 'did-finish-load' as belt-and-suspenders approach.
   if (showOnReady) {
     const showWindow = () => {
-      if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      if (!mainWindow.isDestroyed() && shouldShowMainWindowOnReady(mainWindow.isVisible(), mainWindow.isMinimized())) {
         console.log('[AionUi] Showing main window');
         mainWindow.show();
         mainWindow.focus();
