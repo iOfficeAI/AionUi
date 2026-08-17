@@ -23,6 +23,7 @@ import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-desig
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatTime } from '@/renderer/services/i18n/format';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /**
@@ -71,7 +72,7 @@ const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
  * WebUI settings content component
  */
 const WebuiModalContent: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const talkToButler = useTalkToButler();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -536,8 +537,7 @@ const WebuiModalContent: React.FC = () => {
 
   // 格式化过期时间 / Format expiration time
   const formatExpiresAt = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return formatTime(timestamp, i18n.language, { hour: '2-digit', minute: '2-digit' });
   };
 
   // 获取实际密码 / Get actual password

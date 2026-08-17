@@ -26,6 +26,9 @@ const { useCronJobConversationsMock } = vi.hoisted(() => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    // The page formats next-run timestamps against the app language, so the
+    // mock has to expose `i18n` the way the real hook does.
+    i18n: { language: 'en-US' },
   }),
 }));
 

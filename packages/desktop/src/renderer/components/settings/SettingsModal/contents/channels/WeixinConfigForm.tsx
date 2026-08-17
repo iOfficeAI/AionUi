@@ -10,6 +10,7 @@ import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistan
 import { resolveLocaleKey } from '@/common/utils';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -59,8 +60,6 @@ const getRemainingTime = (expiresAt: number) => {
   const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
   return `${remaining} min`;
 };
-
-const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
 
 const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
@@ -592,7 +591,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                   <div className='flex-1'>
                     <div className='text-14px font-500 text-t-primary'>{user.display_name || 'Unknown User'}</div>
                     <div className='text-12px text-t-tertiary mt-4px'>
-                      {t('settings.assistant.authorizedAt', 'Authorized')}: {formatTime(user.authorizedAt)}
+                      {t('settings.assistant.authorizedAt', 'Authorized')}:{' '}
+                      {formatDateTime(user.authorizedAt, i18n.language)}
                     </div>
                   </div>
                   <Tooltip content={t('settings.assistant.revokeAccess', 'Revoke access')}>

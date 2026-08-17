@@ -21,6 +21,7 @@ import {
 } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
@@ -106,7 +107,7 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 };
 
 const ModelModalContent: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
@@ -544,7 +545,7 @@ const ModelModalContent: React.FC = () => {
                                       )}
                                       {model_health?.last_check && (
                                         <div className='text-12px mt-4px'>
-                                          {t('mcp.lastCheck')}: {new Date(model_health.last_check).toLocaleString()}
+                                          {t('mcp.lastCheck')}: {formatDateTime(model_health.last_check, i18n.language)}
                                         </div>
                                       )}
                                     </div>
