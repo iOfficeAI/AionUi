@@ -117,7 +117,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       data-testid={`team-tab-${slot_id}`}
       data-team-tab-role={isLeader ? 'leader' : 'teammate'}
       data-active={isActive ? 'true' : 'false'}
-      className='relative flex items-center gap-6px pl-6px pr-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)]'
+      className='relative flex items-center gap-6px ps-6px pe-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)]'
       style={{
         ['--mc' as string]: color,
         borderColor: isActive ? color : 'transparent',
@@ -183,7 +183,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
               warmupFailed ? (
                 <span
                   data-testid={`team-tab-failed-${slot_id}`}
-                  className='absolute -right-2px -bottom-2px w-12px h-12px rounded-full flex items-center justify-center text-9px font-700 text-white'
+                  className='absolute -end-2px -bottom-2px w-12px h-12px rounded-full flex items-center justify-center text-9px font-700 text-white'
                   style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-base)' }}
                 >
                   !
@@ -359,7 +359,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
         {/* 两侧渐隐提示「还有更多」，只覆盖滚动区、不盖固定的添加入口 */}
         {showLeftFade && (
           <div
-            className='pointer-events-none absolute left-0 top-0 bottom-0 w-28px z-10'
+            className='pointer-events-none absolute start-0 top-0 bottom-0 w-28px z-10'
             style={{ background: 'linear-gradient(90deg, var(--color-bg-1), transparent)' }}
           />
         )}
@@ -374,7 +374,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
         )}
         {/* 固定在最右、不随列表滚动的「添加成员」；左侧一根分隔线与成员列表隔开，按钮本身无边框。 */}
         {addAssistant ? (
-          <div className='flex items-center shrink-0 border-l border-solid border-[color:var(--border-base)] px-8px'>
+          <div className='flex items-center shrink-0 border-s border-solid border-[color:var(--border-base)] px-8px'>
             <TeamAddMemberPopover disabled={memberOpsDisabled}>
               <button
                 type='button'

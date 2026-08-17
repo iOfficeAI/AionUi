@@ -173,7 +173,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
                     stroke='currentColor'
                     strokeWidth='2.5'
                     viewBox='0 0 24 24'
-                    style={{ marginLeft: 'auto', flexShrink: 0 }}
+                    style={{ marginInlineStart: 'auto', flexShrink: 0 }}
                   >
                     <path d='M20 6L9 17l-5-5' />
                   </svg>

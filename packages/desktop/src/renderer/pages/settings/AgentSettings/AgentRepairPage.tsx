@@ -141,7 +141,7 @@ const AgentRepairPage: React.FC = () => {
             <Typography.Text className='mb-8px block text-13px font-medium text-t-primary'>
               {t('settings.agentManagement.boundAssistantsTitle')}
               {boundAssistants.length > 0 ? (
-                <span className='ml-4px text-t-tertiary'>{`（${boundAssistants.length}）`}</span>
+                <span className='ms-4px text-t-tertiary'>{`（${boundAssistants.length}）`}</span>
               ) : null}
             </Typography.Text>
             <BoundAssistantList assistants={boundAssistants} onOpenAssistant={handleOpenAssistant} />

@@ -83,6 +83,7 @@ configService.initialize().catch((err) => {
 
 // i18n
 import './services/i18n';
+import { isRtlLanguage } from './services/i18n/direction';
 import { registerPwa } from './services/registerPwa';
 
 import { ipcBridge } from '@/common';
@@ -303,7 +304,11 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
   } = useTranslation();
   const arcoLocale = arcoLocales[language] ?? enUS;
 
-  return React.createElement(ConfigProvider, { theme: { primaryColor: '#4E5969' }, locale: arcoLocale }, children);
+  return React.createElement(
+    ConfigProvider,
+    { theme: { primaryColor: '#4E5969' }, locale: arcoLocale, rtl: isRtlLanguage(language) },
+    children
+  );
 };
 
 const Main = () => {

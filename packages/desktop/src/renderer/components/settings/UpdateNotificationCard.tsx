@@ -53,7 +53,7 @@ const UpdateNotificationCard: React.FC = () => {
         data-mini-status={state.status}
         data-ring-stroke-width='8'
         aria-label={t('update.restoreUpdateNotification')}
-        className='fixed right-24px bottom-24px z-1000 w-52px h-52px rd-full bg-1 shadow-lg flex items-center justify-center cursor-pointer'
+        className='fixed end-24px bottom-24px z-1000 w-52px h-52px rd-full bg-1 shadow-lg flex items-center justify-center cursor-pointer'
         onClick={actions.restore}
       >
         <Progress
@@ -258,7 +258,7 @@ const UpdateNotificationCard: React.FC = () => {
     <>
       <section
         data-testid='update-notification-card'
-        className='fixed right-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+        className='fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
       >
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download

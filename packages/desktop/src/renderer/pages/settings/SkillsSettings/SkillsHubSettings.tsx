@@ -684,7 +684,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </p>
           )}
         </div>
-        <div className='shrink-0 sm:self-center flex items-center justify-end pl-4px'>
+        <div className='shrink-0 sm:self-center flex items-center justify-end ps-4px'>
           <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
         </div>
       </div>
@@ -870,7 +870,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </div>
 
               {!batchMode && (
-                <div className='shrink-0 sm:self-center flex items-center justify-end gap-10px mt-12px sm:mt-0 pl-4px'>
+                <div className='shrink-0 sm:self-center flex items-center justify-end gap-10px mt-12px sm:mt-0 ps-4px'>
                   <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
                   <button
                     data-testid={`btn-delete-${normalizeTestId(skill.name)}`}

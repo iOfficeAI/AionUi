@@ -829,7 +829,7 @@ const WebuiModalContent: React.FC = () => {
             >
               <Communication theme='outline' size='15' />
               <span>Channels</span>
-              <span className='inline-flex items-center gap-4px ml-2px'>
+              <span className='inline-flex items-center gap-4px ms-2px'>
                 {CHANNEL_LOGOS.map((item) => (
                   <span
                     key={item.alt}

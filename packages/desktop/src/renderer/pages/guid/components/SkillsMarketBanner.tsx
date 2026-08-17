@@ -68,7 +68,7 @@ const SkillsMarketBanner: React.FC = () => {
 
   return (
     <div
-      className='absolute right-12px z-10'
+      className='absolute end-12px z-10'
       style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

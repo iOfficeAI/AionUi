@@ -25,16 +25,16 @@ const BrowserNotificationGrant: React.FC = () => {
   }, [supported]);
 
   if (!supported) {
-    return <div className='pl-12px text-12px text-3'>{t('settings.browserNotification.insecureContext')}</div>;
+    return <div className='ps-12px text-12px text-3'>{t('settings.browserNotification.insecureContext')}</div>;
   }
   if (permission === 'granted') {
-    return <div className='pl-12px text-12px text-3'>{t('settings.browserNotification.granted')}</div>;
+    return <div className='ps-12px text-12px text-3'>{t('settings.browserNotification.granted')}</div>;
   }
   if (permission === 'denied') {
-    return <div className='pl-12px text-12px text-3'>{t('settings.browserNotification.denied')}</div>;
+    return <div className='ps-12px text-12px text-3'>{t('settings.browserNotification.denied')}</div>;
   }
   return (
-    <div className='pl-12px'>
+    <div className='ps-12px'>
       <Button type='outline' size='small' onClick={handleRequest}>
         {t('settings.browserNotification.enable')}
       </Button>

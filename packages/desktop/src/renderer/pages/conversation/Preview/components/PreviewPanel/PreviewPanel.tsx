@@ -815,7 +815,7 @@ const PreviewPanel: React.FC = () => {
                 />
               </div>
               {/* 拖动分割线 / Drag handle */}
-              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
+              {createDragHandle({ className: 'absolute end-0 top-0 bottom-0' })}
             </div>
 
             {/* 右侧：预览 / Right: Preview */}
@@ -892,7 +892,7 @@ const PreviewPanel: React.FC = () => {
                 />
               </div>
               {/* 拖动分割线 / Drag handle */}
-              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
+              {createDragHandle({ className: 'absolute end-0 top-0 bottom-0' })}
             </div>
 
             {/* 右侧：预览 / Right: Preview */}

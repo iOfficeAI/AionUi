@@ -51,7 +51,7 @@ const SkillUsedByStack: React.FC<{ assistants: Assistant[]; max?: number }> = ({
           <div
             key={assistant.id}
             className='overflow-hidden rounded-full border-2 border-solid border-bg-2'
-            style={{ marginLeft: index === 0 ? 0 : -7, zIndex: shown.length - index }}
+            style={{ marginInlineStart: index === 0 ? 0 : -7, zIndex: shown.length - index }}
           >
             <AssistantAvatar assistant={assistant} size={22} />
           </div>
@@ -59,7 +59,7 @@ const SkillUsedByStack: React.FC<{ assistants: Assistant[]; max?: number }> = ({
         {overflow > 0 && (
           <div
             className='flex items-center justify-center rounded-full border-2 border-solid border-bg-2 bg-fill-3 text-9px font-600 text-t-secondary'
-            style={{ width: 22, height: 22, marginLeft: -7 }}
+            style={{ width: 22, height: 22, marginInlineStart: -7 }}
           >
             +{overflow}
           </div>

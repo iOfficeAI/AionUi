@@ -38,7 +38,7 @@ const PreferenceRow: React.FC<{
       <div className='flex items-center gap-8px'>
         <span className='text-14px text-t-primary'>
           {label}
-          {required && <span className='text-red-500 ml-2px'>*</span>}
+          {required && <span className='text-red-500 ms-2px'>*</span>}
         </span>
         {extra}
       </div>
@@ -408,7 +408,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       {!hasExistingUsers && (
         <div className='flex justify-end'>
           {pluginStatus?.hasToken && !botId.trim() && !secret.trim() ? (
-            <span className='text-12px text-t-tertiary mr-12px self-center'>
+            <span className='text-12px text-t-tertiary me-12px self-center'>
               {t('settings.wecom.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
             </span>
           ) : null}
@@ -560,7 +560,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {/* Pending Pairings */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
@@ -635,7 +635,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {/* Authorized Users */}
       {authorizedUsers.length > 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={

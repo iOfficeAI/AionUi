@@ -189,7 +189,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
             className={classNames(
               'w-full max-w-full min-w-0',
               '![&_.line-num1]:hidden ![&_.line-num2]:w-30px',
-              '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px',
+              '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:ps-45px',
               '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]',
               '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3',
               {

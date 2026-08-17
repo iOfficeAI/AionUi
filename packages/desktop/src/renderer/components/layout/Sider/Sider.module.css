@@ -45,9 +45,9 @@
    hovered, the three-dot menu takes over that slot and the text reclaims
    the gap (18px), matching non-pinned rows. */
 .pinnedTextSlot {
-  padding-right: 28px;
+  padding-inline-end: 28px;
 }
 
 :global(.group):hover .pinnedTextSlot {
-  padding-right: 18px;
+  padding-inline-end: 18px;
 }

@@ -378,7 +378,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
               <Button
                 size='mini'
                 type='outline'
-                className='absolute top-2 right-2 z-10'
+                className='absolute top-2 end-2 z-10'
                 onClick={() => {
                   const copyToClipboard = async () => {
                     try {
@@ -428,7 +428,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
           content={
             <div>
               <div>{t('settings.mcpImportTips')}</div>
-              <ul className='list-disc pl-5 mt-2 space-y-1 text-sm'>
+              <ul className='list-disc ps-5 mt-2 space-y-1 text-sm'>
                 <li>{t('settings.mcpImportTip1')}</li>
                 <li>{t('settings.mcpImportTip2')}</li>
                 <li>{t('settings.mcpImportTip3')}</li>

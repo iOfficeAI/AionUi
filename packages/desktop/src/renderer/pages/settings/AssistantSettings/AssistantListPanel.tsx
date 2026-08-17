@@ -182,7 +182,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
         </div>
       </div>
       <div
-        className='ml-12px flex flex-shrink-0 items-center gap-8px text-t-secondary'
+        className='ms-12px flex flex-shrink-0 items-center gap-8px text-t-secondary'
         onClick={(e) => e.stopPropagation()}
       >
         <Switch

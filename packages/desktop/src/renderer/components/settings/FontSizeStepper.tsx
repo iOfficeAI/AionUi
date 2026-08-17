@@ -32,7 +32,7 @@ const FontSizeStepper: React.FC<FontSizeStepperProps> = ({
   // Defensive bound only; the parent already clamps via clampFontSize before persisting.
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
   return (
-    <div className='flex items-center gap-10px ml-auto'>
+    <div className='flex items-center gap-10px ms-auto'>
       <Button
         size='mini'
         type='secondary'

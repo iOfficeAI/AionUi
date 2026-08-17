@@ -56,7 +56,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
     >
       <div
         className={classNames(
-          'h-34px rd-8px flex items-center gap-8px pl-10px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
+          'h-34px rd-8px flex items-center gap-8px ps-10px pe-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
           {
             'hover:bg-fill-3': !selected,
             '!bg-fill-3': selected,
@@ -85,7 +85,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         </span>
 
         {/* Name with truncation — reserve room for the hover three-dot menu */}
-        <div className='h-24px min-w-0 flex-1 overflow-hidden pr-12px'>
+        <div className='h-24px min-w-0 flex-1 overflow-hidden pe-12px'>
           <div className='overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
             <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{name}</span>
           </div>
@@ -94,7 +94,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         {/* Hover/active actions: three-dot menu */}
         {hasMenu && (
           <div
-            className={classNames('absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end', {
+            className={classNames('absolute end-8px top-1/2 -translate-y-1/2 items-center justify-end', {
               flex: isMobile || menuVisible,
               'hidden group-hover:flex': !isMobile && !menuVisible,
             })}

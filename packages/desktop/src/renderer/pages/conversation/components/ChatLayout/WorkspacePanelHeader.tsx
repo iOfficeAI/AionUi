@@ -35,7 +35,7 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
     {showToggle && togglePlacement === 'left' && (
       <button
         type='button'
-        className='workspace-header__toggle mr-4px'
+        className='workspace-header__toggle me-4px'
         aria-label='Toggle workspace'
         onClick={onToggle}
       >

@@ -256,7 +256,7 @@ const VoiceInputSection: React.FC = () => {
                   return (
                     <AionSelect.Option key={model} value={model}>
                       {model}
-                      {badgeText !== null && <span className='text-12px text-t-tertiary ml-8px'>{badgeText}</span>}
+                      {badgeText !== null && <span className='text-12px text-t-tertiary ms-8px'>{badgeText}</span>}
                     </AionSelect.Option>
                   );
                 })}

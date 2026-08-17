@@ -533,7 +533,7 @@ const SlackConfigForm: React.FC<SlackConfigFormProps> = ({
               <strong>1.</strong>{' '}
               {t('settings.assistant.slackStep1', 'Open Slack and mention your bot in a channel, or send it a DM')}
               {pluginStatus.botUsername && (
-                <span className='ml-4px'>
+                <span className='ms-4px'>
                   <code className='bg-fill-2 px-6px py-2px rd-4px'>@{pluginStatus.botUsername}</code>
                 </span>
               )}
@@ -559,7 +559,7 @@ const SlackConfigForm: React.FC<SlackConfigFormProps> = ({
 
       {/* Pending Pairings - show when bot is enabled and no authorized users yet */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
@@ -634,7 +634,7 @@ const SlackConfigForm: React.FC<SlackConfigFormProps> = ({
 
       {/* Authorized Users - show when there are authorized users */}
       {authorizedUsers.length > 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={

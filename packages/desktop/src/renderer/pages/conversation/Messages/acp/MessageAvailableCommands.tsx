@@ -42,7 +42,7 @@ const MessageAvailableCommands: React.FC<MessageAvailableCommandsProps> = ({ mes
             >
               <div className='p-12px text-13px text-t-secondary'>
                 {command.description}
-                {command.hint && <span className='text-t-tertiary ml-4px'>({command.hint})</span>}
+                {command.hint && <span className='text-t-tertiary ms-4px'>({command.hint})</span>}
               </div>
             </AionCollapse.Item>
           ))}

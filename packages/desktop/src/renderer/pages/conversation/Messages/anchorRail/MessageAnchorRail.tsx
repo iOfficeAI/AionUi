@@ -221,7 +221,7 @@ const MessageAnchorRail: React.FC = () => {
   return (
     <div
       ref={setRailNode}
-      className={classNames(styles.rail, 'absolute left-0 top-0 bottom-0 z-20')}
+      className={classNames(styles.rail, 'absolute start-0 top-0 bottom-0 z-20')}
       data-testid='message-anchor-rail'
       aria-label={t('messages.anchorRail.label')}
       role='navigation'

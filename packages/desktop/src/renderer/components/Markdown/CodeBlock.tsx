@@ -123,6 +123,8 @@ function CodeBlock(props: CodeBlockProps) {
   return (
     <div
       ref={containerRef}
+      // Code is inherently left-to-right; keep it that way under an RTL document.
+      dir='ltr'
       style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...props.codeStyle }}
       className='group'
     >

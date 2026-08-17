@@ -15,8 +15,8 @@
 
 .sheet {
   position: fixed;
-  left: 0;
-  right: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
   bottom: 0;
   max-height: min(72vh, 560px);
   background: var(--color-bg-1, #ffffff);
@@ -214,7 +214,7 @@
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  margin-right: 56px;
+  margin-inline-end: 56px;
 }
 
 .radio {
@@ -223,7 +223,7 @@
   border-radius: 50%;
   border: 1.5px solid var(--color-border-3, #c9cdd4);
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .radio.checked {
@@ -240,7 +240,7 @@
   border-radius: 4px;
   border: 1.5px solid var(--color-border-3, #c9cdd4);
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
   position: relative;
 }
 
@@ -252,7 +252,7 @@
 .checkbox.checkboxChecked::after {
   content: '';
   position: absolute;
-  left: 5px;
+  inset-inline-start: 5px;
   top: 2px;
   width: 4px;
   height: 8px;

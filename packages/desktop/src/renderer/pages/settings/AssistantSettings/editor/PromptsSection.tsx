@@ -84,8 +84,8 @@ const PromptsSection: React.FC<PromptsSectionProps> = ({
                     <div
                       className={
                         isEditingPrompt
-                          ? 'w-24px pt-9px text-right text-12px font-500 leading-18px text-t-quaternary'
-                          : 'flex h-36px w-24px items-center justify-end text-right text-12px font-500 leading-18px text-t-quaternary'
+                          ? 'w-24px pt-9px text-end text-12px font-500 leading-18px text-t-quaternary'
+                          : 'flex h-36px w-24px items-center justify-end text-end text-12px font-500 leading-18px text-t-quaternary'
                       }
                     >
                       {index + 1}.

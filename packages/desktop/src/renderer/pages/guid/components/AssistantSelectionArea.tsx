@@ -266,7 +266,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     <div
       data-testid='assistant-overflow-panel'
       data-overflow-columns={overflowColumns}
-      className={`absolute left-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg ${styles.assistantOverflowPanel}`}
+      className={`absolute start-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg ${styles.assistantOverflowPanel}`}
       style={{ background: 'var(--bg-base, #fff)' }}
     >
       {showOverflowSearch ? (
@@ -308,7 +308,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
               <Button
                 data-testid='assistant-more-btn'
                 type='text'
-                className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
+                className={`!ms-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
                 onClick={() => setMoreVisible((visible) => !visible)}
               >
                 <span>{t('common.more', { defaultValue: 'More' })}</span>
