@@ -430,12 +430,7 @@ Please check your local CLI tool authentication status`,
   // Non-supporting agents can no longer send while the agent is replying —
   // that path is hard-blocked with a toast; the only way to queue a message
   // while busy is the explicit "add to queue" entry (handleAddToQueue below).
-  const onSendHandler = async (message: string) => {
-    const allFiles = collectChatFileRefs(uploadFile, atPath);
-
-    clearFiles();
-    emitter.emit('acp.selected.file.clear');
-
+  const onSendHandler = async (message: string): Promise<void | false> => {
     if (!supportsMidturnDelivery && isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -443,9 +438,12 @@ Please check your local CLI tool authentication status`,
             'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.',
         })
       );
-      return;
+      return false;
     }
 
+    const allFiles = collectChatFileRefs(uploadFile, atPath);
+    clearFiles();
+    emitter.emit('acp.selected.file.clear');
     await executeCommand({ input: message, files: allFiles });
   };
 

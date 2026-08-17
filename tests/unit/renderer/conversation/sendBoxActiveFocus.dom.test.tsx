@@ -137,7 +137,7 @@ const SendBoxHarness = ({
   onFocused?: () => void;
   disabled?: boolean;
   initialValue?: string;
-  onSend?: (message: string) => Promise<void>;
+  onSend?: (message: string) => Promise<void | false>;
   onAddToDraft?: () => void;
 }) => {
   const [value, setValue] = useState(initialValue);
@@ -169,6 +169,18 @@ describe('SendBox active-controlled focus', () => {
     fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
 
     expect(onSend).toHaveBeenCalledWith('queued draft');
+  });
+
+  it('restores the input when the parent blocks sending', async () => {
+    const onSend = vi.fn().mockResolvedValue(false);
+
+    render(<SendBoxHarness initialValue='blocked message' onSend={onSend} />);
+
+    const textarea = screen.getByTestId('sendbox-input') as HTMLTextAreaElement;
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
+
+    expect(onSend).toHaveBeenCalledWith('blocked message');
+    await waitFor(() => expect(textarea.value).toBe('blocked message'));
   });
 
   it('uses the platform primary Enter shortcut for Draft box without sending', () => {

@@ -209,7 +209,7 @@ function extractBtwQuestion(value: string): string | null {
 const SendBox: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
-  onSend: (message: string) => Promise<void>;
+  onSend: (message: string) => Promise<void | false>;
   onStop?: () => Promise<void>;
   disabled?: boolean;
   /**
@@ -1379,6 +1379,11 @@ const SendBox: React.FC<{
     setReplyQuote(null);
 
     onSend(finalMessage)
+      .then((result) => {
+        if (result === false) {
+          setInput(finalMessage);
+        }
+      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);

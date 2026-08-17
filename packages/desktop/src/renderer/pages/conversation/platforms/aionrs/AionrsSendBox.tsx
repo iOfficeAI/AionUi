@@ -378,11 +378,7 @@ const AionrsSendBox: React.FC<{
   // replying, sending is hard-blocked with a toast instead of implicitly
   // enqueuing. The only way to queue a message while busy is the explicit
   // "add to queue" entry (handleAddToQueue below).
-  const onSendHandler = async (message: string) => {
-    const filesToSend = collectChatFileRefs(uploadFile, atPath);
-    clearFiles();
-    emitter.emit('aionrs.selected.file.clear');
-
+  const onSendHandler = async (message: string): Promise<void | false> => {
     if (isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -390,9 +386,12 @@ const AionrsSendBox: React.FC<{
             'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.',
         })
       );
-      return;
+      return false;
     }
 
+    const filesToSend = collectChatFileRefs(uploadFile, atPath);
+    clearFiles();
+    emitter.emit('aionrs.selected.file.clear');
     await executeCommand({ input: message, files: filesToSend });
   };
 

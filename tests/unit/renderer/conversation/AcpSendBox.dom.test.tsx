@@ -823,6 +823,7 @@ describe('AcpSendBox', () => {
 
       expect(sendMessageInvokeMock).not.toHaveBeenCalled();
       expect(enqueueMock).not.toHaveBeenCalled();
+      expect(clearFilesMock).not.toHaveBeenCalled();
       expect(messageWarningMock).toHaveBeenCalledWith(
         'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.'
       );
