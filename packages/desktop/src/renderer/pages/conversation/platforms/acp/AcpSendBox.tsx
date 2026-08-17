@@ -167,7 +167,7 @@ const AcpSendBox: React.FC<{
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
     prepareSetRuntime: teamPermission?.warmupSession,
-    loadConfigOptions: teamPermission?.loadConfigOptions,
+    configOptionsPort: teamPermission?.configOptionsPort,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -187,7 +187,7 @@ const AcpSendBox: React.FC<{
     backend,
     prepareRuntime: prepareRuntimeConfig,
     prepareSetRuntime: teamPermission?.warmupSession,
-    loadConfigOptions: teamPermission?.loadConfigOptions,
+    configOptionsPort: teamPermission?.configOptionsPort,
     enabled: isMobile,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -783,7 +783,7 @@ Please check your local CLI tool authentication status`,
                 onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
                 beforeRuntimeSync={prepareRuntimeConfig}
                 beforeRuntimeSet={teamPermission?.warmupSession}
-                loadConfigOptions={teamPermission?.loadConfigOptions}
+                configOptionsPort={teamPermission?.configOptionsPort}
               />
             )}
           </div>

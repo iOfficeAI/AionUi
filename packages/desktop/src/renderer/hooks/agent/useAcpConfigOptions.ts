@@ -98,9 +98,15 @@ export function classifyConfigSetError(error: unknown): AcpConfigSetErrorKind {
   }
   if (isBackendHttpError(error)) {
     if (error.code === 'confirmation_timeout') return 'confirmation_timeout';
-    if (error.code === 'config_update_in_progress') return 'config_update_in_progress';
-    if (error.code === 'TEAM_MEMBER_RUNTIME_STARTING') return 'config_update_in_progress';
-    if (error.status === 409 && error.backendMessage.includes('runtime is restarting')) {
+    // All three mean "the runtime cannot take this change yet, try again":
+    // a config update already in flight, a member runtime still starting, or a
+    // runtime mid-restart. Matched by CODE only — never by message text, which
+    // is free to be reworded or localized.
+    if (
+      error.code === 'config_update_in_progress' ||
+      error.code === 'TEAM_MEMBER_RUNTIME_STARTING' ||
+      error.code === 'runtime_restarting'
+    ) {
       return 'config_update_in_progress';
     }
   }
@@ -116,6 +122,8 @@ export function revalidateAcpConfigOptions(conversation_id: string): Promise<Acp
   return swrMutate(getRuntimeConfigOptionsKey(conversation_id));
 }
 
+export type AcpConfigOptionLoad = (conversation_id: string) => Promise<AcpConfigOptionDto[] | null | undefined>;
+
 export type AcpConfigOptionSetter = (
   conversation_id: string,
   option_id: string,
@@ -124,8 +132,20 @@ export type AcpConfigOptionSetter = (
 
 export type AcpConfigOptionBlocker = (conversation_id: string, option_id: string, category: string) => boolean;
 
-export type AcpConfigOptionsLoader = ((conversation_id: string) => Promise<AcpConfigOptionDto[] | null | undefined>) & {
+/**
+ * How a conversation's runtime config options are read, written, and gated.
+ *
+ * An object rather than a callable with properties bolted on: this carries a
+ * write (`setConfigOption`) and a policy decision (`isConfigOptionBlocked`), not
+ * just a load, so a bare "loader" function was the wrong shape for it. Team
+ * members supply their own implementation so their config traffic goes through
+ * the team API instead of the per-conversation one.
+ */
+export type AcpConfigOptionsPort = {
+  load: AcpConfigOptionLoad;
+  /** Overrides the per-conversation setter. Team members route through the team API. */
   setConfigOption?: AcpConfigOptionSetter;
+  /** Reports an option as temporarily not settable (e.g. runtime still starting). */
   isConfigOptionBlocked?: AcpConfigOptionBlocker;
 };
 
@@ -213,20 +233,23 @@ function subscribeConversationPending(
   };
 }
 
-const ensureRuntimeConfigOptions: AcpConfigOptionsLoader = async (conversation_id: string) =>
-  (await ensureConversationRuntime(conversation_id)).config_options;
+/** Default port: talks to the conversation's own runtime. */
+const conversationConfigOptionsPort: AcpConfigOptionsPort = {
+  load: async (conversation_id: string) => (await ensureConversationRuntime(conversation_id)).config_options,
+};
 
 const configOptionsInFlight = new Map<string, Promise<AcpConfigOptionDto[] | null>>();
 
 function fetchConfigOptionsOnce(
   key: AcpConfigOptionsKey,
-  loadConfigOptions: AcpConfigOptionsLoader
+  port: AcpConfigOptionsPort
 ): Promise<AcpConfigOptionDto[] | null> {
   const [, conversation_id] = key;
   const existing = configOptionsInFlight.get(conversation_id);
   if (existing) return existing;
 
-  const promise = loadConfigOptions(conversation_id)
+  const promise = port
+    .load(conversation_id)
     .then((options) => options ?? null)
     .finally(() => {
       if (configOptionsInFlight.get(conversation_id) === promise) {
@@ -241,13 +264,13 @@ export function useAcpConfigOptions({
   conversation_id,
   prepareRuntime,
   prepareSetRuntime,
-  loadConfigOptions = ensureRuntimeConfigOptions,
+  configOptionsPort = conversationConfigOptionsPort,
   enabled = true,
 }: {
   conversation_id: string;
   prepareRuntime?: () => Promise<void>;
   prepareSetRuntime?: () => Promise<void>;
-  loadConfigOptions?: AcpConfigOptionsLoader;
+  configOptionsPort?: AcpConfigOptionsPort;
   enabled?: boolean;
 }) {
   const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
@@ -273,7 +296,7 @@ export function useAcpConfigOptions({
     isLoading,
   } = useSWR<AcpConfigOptionDto[] | null, unknown, AcpConfigOptionsKey | null>(
     enabled ? key : null,
-    (runtimeKey) => fetchConfigOptionsOnce(runtimeKey, loadConfigOptions),
+    (runtimeKey) => fetchConfigOptionsOnce(runtimeKey, configOptionsPort),
     {
       revalidateOnMount: false,
     }
@@ -307,10 +330,10 @@ export function useAcpConfigOptions({
       if (runtimeView.state === 'restarting') return true;
       const option = optionsRef.current?.find((candidate) => candidate.id === optionId);
       return Boolean(
-        loadConfigOptions.isConfigOptionBlocked?.(conversation_id, optionId, option?.category ?? optionId)
+        configOptionsPort.isConfigOptionBlocked?.(conversation_id, optionId, option?.category ?? optionId)
       );
     },
-    [conversation_id, loadConfigOptions, runtimeView.state]
+    [conversation_id, configOptionsPort, runtimeView.state]
   );
 
   const reload = useCallback(async () => {
@@ -318,7 +341,7 @@ export function useAcpConfigOptions({
     setIsReloading(true);
     try {
       await prepareRuntime?.();
-      const next = await fetchConfigOptionsOnce(key, loadConfigOptions);
+      const next = await fetchConfigOptionsOnce(key, configOptionsPort);
       if (next) {
         replaceSnapshot(next);
         if (runtimeGenerationRef.current === runtimeGeneration) {
@@ -331,7 +354,7 @@ export function useAcpConfigOptions({
       setIsReloading(false);
       throw error;
     }
-  }, [key, loadConfigOptions, prepareRuntime, replaceSnapshot]);
+  }, [key, configOptionsPort, prepareRuntime, replaceSnapshot]);
 
   const setConfigOption = useCallback(
     async (optionId: string, value: string) => {
@@ -342,11 +365,11 @@ export function useAcpConfigOptions({
       try {
         await (prepareSetRuntime ?? prepareRuntime)?.();
         if (isConfigOptionBlocked(optionId)) throw new Error('config_update_in_progress');
-        const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
+        const beforeSet = await fetchConfigOptionsOnce(key, configOptionsPort);
         if (beforeSet) replaceSnapshot(beforeSet);
         if (isConfigOptionBlocked(optionId)) throw new Error('config_update_in_progress');
-        const response = loadConfigOptions.setConfigOption
-          ? await loadConfigOptions.setConfigOption(conversation_id, optionId, value)
+        const response = configOptionsPort.setConfigOption
+          ? await configOptionsPort.setConfigOption(conversation_id, optionId, value)
           : await ipcBridge.acpConversation.setConfigOption.invoke({
               conversation_id,
               option_id: optionId,
@@ -373,7 +396,7 @@ export function useAcpConfigOptions({
         setConversationSetStatus(conversation_id, { state: 'idle' });
       }
     },
-    [conversation_id, isConfigOptionBlocked, key, loadConfigOptions, prepareRuntime, prepareSetRuntime, replaceSnapshot]
+    [conversation_id, isConfigOptionBlocked, key, configOptionsPort, prepareRuntime, prepareSetRuntime, replaceSnapshot]
   );
 
   useEffect(() => {

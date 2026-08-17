@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
-import { createTeamConfigOptionsLoader } from '@/renderer/pages/team/hooks/teamConfigOptions';
+import { createTeamConfigOptionsPort } from '@/renderer/pages/team/hooks/teamConfigOptions';
 
-describe('createTeamConfigOptionsLoader', () => {
+describe('createTeamConfigOptionsPort', () => {
   const configOptionsResponse = {
     config_options: [
       {
@@ -25,13 +25,13 @@ describe('createTeamConfigOptionsLoader', () => {
       calls.push(`get:${team_id}:${conversation_id}`);
       return configOptionsResponse;
     });
-    const loader = createTeamConfigOptionsLoader({
+    const port = createTeamConfigOptionsPort({
       team_id: 'team-1',
       warmupSession,
       getConfigOptions,
     });
 
-    const result = await loader('conversation-1');
+    const result = await port.load('conversation-1');
 
     expect(calls).toEqual(['get:team-1:conversation-1']);
     expect(warmupSession).not.toHaveBeenCalled();
@@ -47,14 +47,14 @@ describe('createTeamConfigOptionsLoader', () => {
       calls.push(`get:${team_id}:${conversation_id}`);
       return configOptionsResponse;
     });
-    const loader = createTeamConfigOptionsLoader({
+    const port = createTeamConfigOptionsPort({
       team_id: 'team-1',
       warmupSession,
       getConfigOptions,
     });
 
-    await loader.warmup();
-    const result = await loader.load('conversation-1');
+    await port.warmup();
+    const result = await port.load('conversation-1');
 
     expect(calls).toEqual(['warmup', 'get:team-1:conversation-1']);
     expect(result?.[0]?.current_value).toBe('gpt-5.5');
@@ -68,7 +68,7 @@ describe('createTeamConfigOptionsLoader', () => {
     const isConfigOptionBlocked = vi.fn(
       (conversation_id: string, _option_id: string, _category: string) => conversation_id === 'conversation-starting'
     );
-    const loader = createTeamConfigOptionsLoader({
+    const port = createTeamConfigOptionsPort({
       team_id: 'team-1',
       warmupSession: vi.fn(async () => {}),
       getConfigOptions: vi.fn(async () => configOptionsResponse),
@@ -76,12 +76,12 @@ describe('createTeamConfigOptionsLoader', () => {
       isConfigOptionBlocked,
     });
 
-    const response = await loader.setConfigOption?.('conversation-ready', 'model', 'gpt-5.5');
+    const response = await port.setConfigOption?.('conversation-ready', 'model', 'gpt-5.5');
 
     expect(setConfigOption).toHaveBeenCalledWith('conversation-ready', 'model', 'gpt-5.5');
     expect(response?.confirmation).toBe('observed');
-    expect(loader.isConfigOptionBlocked?.('conversation-starting', 'model', 'model')).toBe(true);
-    expect(loader.isConfigOptionBlocked?.('conversation-ready', 'model', 'model')).toBe(false);
+    expect(port.isConfigOptionBlocked?.('conversation-starting', 'model', 'model')).toBe(true);
+    expect(port.isConfigOptionBlocked?.('conversation-ready', 'model', 'model')).toBe(false);
   });
 
   it('surfaces team runtime-not-ready without retrying config loads', async () => {
@@ -100,13 +100,13 @@ describe('createTeamConfigOptionsLoader', () => {
       });
       const warmupSession = vi.fn(async () => {});
       const getConfigOptions = vi.fn().mockRejectedValue(runtimeNotReady);
-      const loader = createTeamConfigOptionsLoader({
+      const port = createTeamConfigOptionsPort({
         team_id: 'team-1',
         warmupSession,
         getConfigOptions,
       });
 
-      const resultPromise = loader.load('conversation-1');
+      const resultPromise = port.load('conversation-1');
       const expectation = expect(resultPromise).rejects.toBe(runtimeNotReady);
 
       await vi.advanceTimersByTimeAsync(31_000);
@@ -131,13 +131,13 @@ describe('createTeamConfigOptionsLoader', () => {
       },
     });
     const getConfigOptions = vi.fn().mockRejectedValue(error);
-    const loader = createTeamConfigOptionsLoader({
+    const port = createTeamConfigOptionsPort({
       team_id: 'team-1',
       warmupSession: vi.fn(async () => {}),
       getConfigOptions,
     });
 
-    await expect(loader.load('conversation-1')).rejects.toBe(error);
+    await expect(port.load('conversation-1')).rejects.toBe(error);
     expect(getConfigOptions).toHaveBeenCalledTimes(1);
   });
 });

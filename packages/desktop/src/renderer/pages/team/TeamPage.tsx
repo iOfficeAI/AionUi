@@ -92,7 +92,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareSetRuntime: teamPermission?.warmupSession,
-    loadConfigOptions: teamPermission?.loadConfigOptions,
+    configOptionsPort: teamPermission?.configOptionsPort,
     enabled: Boolean(conversation_id),
   });
   const handleThoughtLevelSetOption = useCallback(
@@ -402,10 +402,10 @@ const AssistantChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
-  const handleTeamModelChange = useCallback(
-    (model_id: string) => ipcBridge.team.updateAgentModel.invoke({ team_id, slot_id: assistant.slot_id, model_id }),
-    [assistant.slot_id, team_id]
-  );
+  // No model-change handler here on purpose: the team config-option request that
+  // switches the runtime also persists the selection onto the roster, so there is
+  // no second call to chain. Chaining one used to mean a failure after a
+  // successful switch reported the switch itself as failed.
   // Reuse the existing single-teammate attach/warmup path; withhold the trigger
   // while the whole team is warming so manual wake is gated by phase.
   const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
@@ -457,8 +457,7 @@ const AssistantChatSlot: React.FC<{
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
                 prepareSetRuntime={teamPermission?.warmupSession}
-                loadConfigOptions={teamPermission?.loadConfigOptions}
-                onModelChange={handleTeamModelChange}
+                configOptionsPort={teamPermission?.configOptionsPort}
                 warmup={warmup}
               />
             </div>

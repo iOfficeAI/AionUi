@@ -6,7 +6,7 @@
 
 import {
   classifyConfigSetError,
-  type AcpConfigOptionsLoader,
+  type AcpConfigOptionsPort,
   useAcpConfigOptions,
 } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
@@ -68,7 +68,7 @@ export interface AgentModeSelectorProps {
   /** Optional runtime preparation only before applying a runtime mode change. */
   beforeRuntimeSet?: () => Promise<void>;
   /** Optional config option loader for runtime owners such as team sessions. */
-  loadConfigOptions?: AcpConfigOptionsLoader;
+  configOptionsPort?: AcpConfigOptionsPort;
 }
 
 /**
@@ -99,7 +99,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   dynamicModes,
   beforeRuntimeSync,
   beforeRuntimeSet,
-  loadConfigOptions,
+  configOptionsPort,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -108,7 +108,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     conversation_id: conversation_id ?? '',
     prepareRuntime: beforeRuntimeSync,
     prepareSetRuntime: beforeRuntimeSet ?? beforeRuntimeSync,
-    loadConfigOptions,
+    configOptionsPort,
     enabled: Boolean(conversation_id),
   });
   const runtimeMode = runtimeConfig.mode;

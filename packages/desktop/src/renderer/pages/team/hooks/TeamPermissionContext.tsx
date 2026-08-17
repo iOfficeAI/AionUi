@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import React, { createContext, useCallback, useContext, useMemo, useRef } from 'react';
-import { createTeamConfigOptionsLoader, type TeamConfigOptionsLoader } from './teamConfigOptions';
+import { createTeamConfigOptionsPort, type TeamConfigOptionsPort } from './teamConfigOptions';
 
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
@@ -15,8 +15,8 @@ type TeamPermissionContextValue = {
   propagateMode: (mode: string) => void;
   /** Trigger session warmup (idempotent, returns cached promise) */
   warmupSession: () => Promise<void>;
-  /** Load runtime config options through the team-owned session */
-  loadConfigOptions: TeamConfigOptionsLoader;
+  /** Read/write runtime config options through the team-owned session */
+  configOptionsPort: TeamConfigOptionsPort;
 };
 
 const TeamPermissionContext = createContext<TeamPermissionContextValue | null>(null);
@@ -63,9 +63,9 @@ export const TeamPermissionProvider: React.FC<{
     return warmupPromiseRef.current;
   }, [team_id]);
 
-  const loadConfigOptions = useMemo(
+  const configOptionsPort = useMemo(
     () =>
-      createTeamConfigOptionsLoader({
+      createTeamConfigOptionsPort({
         team_id,
         warmupSession,
         getConfigOptions: (targetTeamId, conversation_id) =>
@@ -87,9 +87,9 @@ export const TeamPermissionProvider: React.FC<{
       allConversationIds,
       propagateMode,
       warmupSession,
-      loadConfigOptions,
+      configOptionsPort,
     }),
-    [isLeaderAgent, leaderConversationId, allConversationIds, propagateMode, warmupSession, loadConfigOptions]
+    [isLeaderAgent, leaderConversationId, allConversationIds, propagateMode, warmupSession, configOptionsPort]
   );
 
   return <TeamPermissionContext.Provider value={value}>{children}</TeamPermissionContext.Provider>;

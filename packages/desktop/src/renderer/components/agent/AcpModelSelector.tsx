@@ -5,7 +5,7 @@
  */
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
-import { classifyConfigSetError, type AcpConfigOptionsLoader } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { classifyConfigSetError, type AcpConfigOptionsPort } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -56,9 +56,8 @@ const AcpModelSelector: React.FC<{
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
   prepareSetRuntime?: () => Promise<void>;
-  loadConfigOptions?: AcpConfigOptionsLoader;
+  configOptionsPort?: AcpConfigOptionsPort;
   onRuntimeReadyChange?: (ready: boolean) => void;
-  onModelChange?: (model_id: string) => Promise<void> | void;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
   /**
@@ -76,9 +75,8 @@ const AcpModelSelector: React.FC<{
   initialModelId,
   prepareRuntime,
   prepareSetRuntime,
-  loadConfigOptions,
+  configOptionsPort,
   onRuntimeReadyChange,
-  onModelChange,
   warmup,
 }) => {
   const { t } = useTranslation();
@@ -101,11 +99,12 @@ const AcpModelSelector: React.FC<{
     initialModelId,
     prepareRuntime,
     prepareSetRuntime,
-    loadConfigOptions,
-    onSelectModelSuccess: async (model_id) => {
-      await onModelChange?.(model_id);
-      Message.success(t('agent.model.switchSuccess'));
-    },
+    configOptionsPort,
+    // Persistence is the backend's job: the same request that switches the
+    // runtime also records the selection (team members get their roster entry
+    // updated too). No follow-up call to chain here, so success means switched
+    // AND persisted.
+    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
 

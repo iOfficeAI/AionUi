@@ -261,6 +261,12 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
   const { t } = useTranslation();
+  // Stable identity: the selector reports readiness from an effect keyed on this
+  // callback, so an inline arrow would re-run it on every render.
+  const handleRuntimeReadyChange = useCallback(
+    (ready: boolean) => setRuntimeReadyConversationId(ready ? (conversation?.id ?? null) : null),
+    [conversation?.id]
+  );
   useActiveLease({ type: 'conversation', id: conversation?.id });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
@@ -354,7 +360,7 @@ const ChatConversation: React.FC<{
           conversation_id={conversation.id}
           backend={resolvedConversationBackend}
           initialModelId={extra.current_model_id}
-          onRuntimeReadyChange={(ready) => setRuntimeReadyConversationId(ready ? conversation.id : null)}
+          onRuntimeReadyChange={handleRuntimeReadyChange}
           waitForWarmup
         />
       );

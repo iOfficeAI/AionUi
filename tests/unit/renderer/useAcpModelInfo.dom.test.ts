@@ -150,20 +150,20 @@ describe('useAcpModelInfo', () => {
 
   it('uses an injected config option loader without starting standalone runtime', async () => {
     const prepareRuntime = vi.fn().mockResolvedValue(undefined);
-    const loadConfigOptions = vi.fn().mockResolvedValue(buildConfigOptions('opus-4'));
+    const load = vi.fn().mockResolvedValue(buildConfigOptions('opus-4'));
 
     const { result } = renderUseAcpModelInfo({
       conversation_id: 'conv-1',
       backend: 'claude',
       prepareRuntime,
-      loadConfigOptions,
+      configOptionsPort: { load },
     });
 
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
     expect(prepareRuntime).toHaveBeenCalled();
-    expect(loadConfigOptions).toHaveBeenCalledWith('conv-1');
+    expect(load).toHaveBeenCalledWith('conv-1');
     expect(ensureRuntimeInvokeMock).not.toHaveBeenCalled();
   });
 
@@ -172,7 +172,7 @@ describe('useAcpModelInfo', () => {
     const prepareSetRuntime = vi.fn(async () => {
       calls.push('prepare-set');
     });
-    const loadConfigOptions = vi.fn(async () => {
+    const load = vi.fn(async () => {
       calls.push('load');
       return buildConfigOptions('sonnet-4');
     });
@@ -188,7 +188,7 @@ describe('useAcpModelInfo', () => {
       conversation_id: 'conv-1',
       backend: 'claude',
       prepareSetRuntime,
-      loadConfigOptions,
+      configOptionsPort: { load },
     });
 
     await waitFor(() => {
@@ -212,7 +212,7 @@ describe('useAcpModelInfo', () => {
   });
 
   it('falls back to the persisted model when the initial config option snapshot fails', async () => {
-    const loadConfigOptions = vi
+    const load = vi
       .fn()
       .mockRejectedValueOnce(new Error('runtime not ready'))
       .mockResolvedValueOnce(buildConfigOptions('opus-4'));
@@ -221,11 +221,11 @@ describe('useAcpModelInfo', () => {
       conversation_id: 'conv-1',
       backend: 'claude',
       initialModelId: 'sonnet-4',
-      loadConfigOptions,
+      configOptionsPort: { load },
     });
 
     await waitFor(() => {
-      expect(loadConfigOptions).toHaveBeenCalledTimes(1);
+      expect(load).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
@@ -251,17 +251,17 @@ describe('useAcpModelInfo', () => {
 
   it('shows the persisted model while an injected config option snapshot is still loading', async () => {
     const configOptionsDeferred = deferred<AcpConfigOptionDto[]>();
-    const loadConfigOptions = vi.fn().mockReturnValue(configOptionsDeferred.promise);
+    const load = vi.fn().mockReturnValue(configOptionsDeferred.promise);
 
     const { result } = renderUseAcpModelInfo({
       conversation_id: 'conv-1',
       backend: 'claude',
       initialModelId: 'sonnet-4',
-      loadConfigOptions,
+      configOptionsPort: { load },
     });
 
     await waitFor(() => {
-      expect(loadConfigOptions).toHaveBeenCalledWith('conv-1');
+      expect(load).toHaveBeenCalledWith('conv-1');
     });
     expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
     expect(result.current.canSwitch).toBe(false);
@@ -281,7 +281,7 @@ describe('useAcpModelInfo', () => {
   it('does not mark a new conversation ready when the previous runtime load resolves late', async () => {
     const firstLoad = deferred<AcpConfigOptionDto[]>();
     const secondLoad = deferred<AcpConfigOptionDto[]>();
-    const loadConfigOptions = vi.fn((conversationId: string) =>
+    const load = vi.fn((conversationId: string) =>
       conversationId === 'conv-1' ? firstLoad.promise : secondLoad.promise
     );
     const wrapper = createSwrWrapper();
@@ -290,14 +290,14 @@ describe('useAcpModelInfo', () => {
         useAcpModelInfo({
           conversation_id: conversationId,
           backend: 'claude',
-          loadConfigOptions,
+          configOptionsPort: { load },
         }),
       { initialProps: { conversationId: 'conv-1' }, wrapper }
     );
 
-    await waitFor(() => expect(loadConfigOptions).toHaveBeenCalledWith('conv-1'));
+    await waitFor(() => expect(load).toHaveBeenCalledWith('conv-1'));
     rerender({ conversationId: 'conv-2' });
-    await waitFor(() => expect(loadConfigOptions).toHaveBeenCalledWith('conv-2'));
+    await waitFor(() => expect(load).toHaveBeenCalledWith('conv-2'));
 
     await act(async () => {
       firstLoad.resolve(buildConfigOptions());
@@ -441,9 +441,15 @@ describe('useAcpModelInfo', () => {
     expect(onSelectModelSuccess).not.toHaveBeenCalled();
   });
 
-  it('reports a rejected model persistence callback as a selection failure', async () => {
-    const persistenceError = new Error('team model persistence failed');
-    const onSelectModelSuccess = vi.fn().mockRejectedValue(persistenceError);
+  // Persistence is no longer a separate step the caller chains after the switch —
+  // the backend persists it in the same request. So a failure raised AFTER the
+  // switch landed must not be reported as a failed switch, which is what the
+  // caller-chained version used to do.
+  it('does not report a failure when the success callback itself throws', async () => {
+    const callbackError = new Error('toast blew up');
+    const onSelectModelSuccess = vi.fn(() => {
+      throw callbackError;
+    });
     const onSelectModelFailed = vi.fn();
     setConfigOptionInvokeMock.mockResolvedValue({
       confirmation: 'observed',
@@ -459,7 +465,11 @@ describe('useAcpModelInfo', () => {
 
     act(() => result.current.selectModel('opus-4'));
 
-    await waitFor(() => expect(onSelectModelFailed).toHaveBeenCalledWith('opus-4', persistenceError));
+    await waitFor(() => expect(onSelectModelSuccess).toHaveBeenCalledWith('opus-4'));
+    // The switch itself succeeded, so the model really did change...
+    await waitFor(() => expect(result.current.model_info?.current_model_id).toBe('opus-4'));
+    // ...and the user is never told it failed.
+    expect(onSelectModelFailed).not.toHaveBeenCalled();
   });
 
   it('shares observed model snapshots across hook instances for the same conversation', async () => {

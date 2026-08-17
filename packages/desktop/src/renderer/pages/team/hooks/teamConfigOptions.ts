@@ -2,17 +2,26 @@ import type { AcpConfigOptionDto, GetConfigOptionsResponse } from '@/common/type
 import type {
   AcpConfigOptionBlocker,
   AcpConfigOptionSetter,
-  AcpConfigOptionsLoader,
+  AcpConfigOptionsPort,
 } from '@/renderer/hooks/agent/useAcpConfigOptions';
 
 type TeamConfigOptionsLoad = (conversation_id: string) => Promise<AcpConfigOptionDto[] | null>;
 
-export type TeamConfigOptionsLoader = AcpConfigOptionsLoader & {
+/**
+ * A team member's config-options port. Reads and writes go through the team API
+ * so the team service can apply its own gating — and persist a model switch onto
+ * the member's roster entry — instead of the per-conversation endpoint.
+ *
+ * `warmup` is team-specific and deliberately NOT part of the shared port: it
+ * brings the whole team session up, which callers reading a single member's
+ * options do not want.
+ */
+export type TeamConfigOptionsPort = AcpConfigOptionsPort & {
   load: TeamConfigOptionsLoad;
   warmup: () => Promise<void>;
 };
 
-type CreateTeamConfigOptionsLoaderArgs = {
+type CreateTeamConfigOptionsPortArgs = {
   team_id: string;
   warmupSession: () => Promise<void>;
   getConfigOptions: (team_id: string, conversation_id: string) => Promise<GetConfigOptionsResponse>;
@@ -20,13 +29,13 @@ type CreateTeamConfigOptionsLoaderArgs = {
   isConfigOptionBlocked?: AcpConfigOptionBlocker;
 };
 
-export function createTeamConfigOptionsLoader({
+export function createTeamConfigOptionsPort({
   team_id,
   warmupSession,
   getConfigOptions,
   setConfigOption,
   isConfigOptionBlocked,
-}: CreateTeamConfigOptionsLoaderArgs): TeamConfigOptionsLoader {
+}: CreateTeamConfigOptionsPortArgs): TeamConfigOptionsPort {
   let warmupPromise: Promise<void> | null = null;
 
   const warmup = () => {
@@ -44,5 +53,5 @@ export function createTeamConfigOptionsLoader({
     return response.config_options ?? null;
   };
 
-  return Object.assign(load, { load, warmup, setConfigOption, isConfigOptionBlocked });
+  return { load, warmup, setConfigOption, isConfigOptionBlocked };
 }
