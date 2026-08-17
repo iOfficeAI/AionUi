@@ -28,7 +28,17 @@
  */
 
 import { Button, Tooltip } from '@arco-design/web-react';
-import { Branch, Down, ListView, Plus, Refresh, Right, Tree, TreeList, Undo } from '@icon-park/react';
+import {
+  BranchTwo,
+  FolderCode,
+  FolderCodeOne,
+  Plus,
+  Refresh,
+  RightBranchOne,
+  TreeList,
+  Undo,
+  ViewList,
+} from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -433,7 +443,7 @@ const ViewModeToggle: React.FC<{ mode: ScmViewMode; onChange: (mode: ScmViewMode
         size='mini'
         data-scm-view-toggle={mode}
         className='flex-shrink-0'
-        icon={next === 'tree' ? <Tree theme='outline' size='14' /> : <ListView theme='outline' size='14' />}
+        icon={next === 'tree' ? <TreeList theme='outline' size='14' /> : <ViewList theme='outline' size='14' />}
         aria-label={label}
         onClick={() => onChange(next)}
       />
@@ -546,7 +556,7 @@ const RepoRow: React.FC<{
         shows nothing rather than a lone icon. */}
     {repo.head?.name && (
       <span className='ml-auto flex items-center gap-2px min-w-0 flex-shrink text-t-tertiary text-12px'>
-        <Branch theme='outline' size='12' className='flex-shrink-0' />
+        <BranchTwo theme='outline' size='12' className='flex-shrink-0' />
         <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{repo.head.name}</span>
       </span>
     )}
@@ -557,7 +567,7 @@ const RepoRow: React.FC<{
 const WorktreeGlyph: React.FC<{ label: string }> = ({ label }) => (
   <Tooltip content={label} mini>
     <span className='flex-shrink-0 flex items-center' aria-label={label}>
-      <TreeList theme='outline' size='12' className='text-t-tertiary' />
+      <RightBranchOne theme='outline' size='12' className='text-t-tertiary' />
     </span>
   </Tooltip>
 );
@@ -635,7 +645,9 @@ const RepoGroupRows: React.FC<{
   }
 
   const hasWorktrees = group.worktrees.length > 0;
-  const Chevron = isCollapsed ? Right : Down;
+  // Collapsed (or non-expandable) shows the closed repo glyph; expanded shows the open
+  // one. A repo with worktrees toggles between the two on click.
+  const RepoIcon = isCollapsed ? FolderCode : FolderCodeOne;
   return (
     <>
       <RepoRow
@@ -655,9 +667,19 @@ const RepoGroupRows: React.FC<{
               }}
               className='flex-shrink-0 flex items-center justify-center w-14px h-14px text-t-tertiary hover:text-t-primary bg-transparent border-none p-0 cursor-pointer'
             >
-              <Chevron theme='outline' size='12' />
+              <RepoIcon theme='outline' size='12' />
             </button>
-          ) : undefined
+          ) : (
+            // A non-expandable repo (no worktrees) still occupies the same 14px leading
+            // slot the toggle would, so its name aligns with expandable rows instead of
+            // shifting a glyph-width to the left.
+            <span
+              data-scm-repo-glyph={group.repo.repo_id}
+              className='flex-shrink-0 flex items-center justify-center w-14px h-14px text-t-tertiary'
+            >
+              <FolderCode theme='outline' size='12' />
+            </span>
+          )
         }
       />
       {hasWorktrees &&
