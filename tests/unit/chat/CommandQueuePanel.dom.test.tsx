@@ -136,6 +136,22 @@ describe('CommandQueuePanel', () => {
     expect(screen.queryByRole('button', { name: 'Help' })).not.toBeInTheDocument();
   });
 
+  it('keeps long draft boxes internally scrollable instead of growing forever', () => {
+    const manyItems = Array.from({ length: 24 }, (_, index) => ({
+      ...item,
+      id: `queued-${index}`,
+      input: `queued follow-up ${index}`,
+      created_at: index,
+    }));
+
+    renderPanel({ items: manyItems });
+
+    const list = document.querySelector('[data-command-queue-list="true"]') as HTMLElement | null;
+    expect(list).not.toBeNull();
+    expect(list).toHaveStyle({ maxHeight: 'min(36vh, 320px)' });
+    expect(list).toHaveClass('overflow-y-auto');
+  });
+
   it('clears the draft box through a confirm dialog', () => {
     confirmMock.mockReset();
     const onClear = vi.fn();

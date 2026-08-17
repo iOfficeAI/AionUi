@@ -15,6 +15,76 @@
   filter: drop-shadow(0 0 0.5px currentColor);
 }
 
+.sendbox-draft-tooltip-anchor {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+.sendbox-draft-tool-action,
+.sendbox-draft-tool-action.arco-btn,
+.sendbox-draft-tool-action.arco-btn-secondary {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  flex: 0 0 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+.sendbox-draft-tool-action .arco-btn-icon,
+.sendbox-draft-tool-action .arco-icon {
+  margin: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.sendbox-draft-tool-action svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.sendbox-draft-tool-action--enabled,
+.sendbox-draft-tool-action--enabled.arco-btn,
+.sendbox-draft-tool-action--enabled.arco-btn-secondary {
+  background: rgb(var(--primary-6)) !important;
+  color: #fff !important;
+}
+
+.sendbox-draft-tool-action--enabled:not(:disabled):hover,
+.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):hover {
+  background: rgb(var(--primary-7)) !important;
+  color: #fff !important;
+}
+
+.sendbox-draft-tool-action--disabled,
+.sendbox-draft-tool-action--disabled:disabled,
+.sendbox-draft-tool-action--disabled.arco-btn:disabled,
+.sendbox-draft-tool-action--disabled.arco-btn-disabled,
+.sendbox-draft-tool-action--disabled.arco-btn-secondary:disabled {
+  background-color: #e4e6ed !important;
+  border-color: #e4e6ed !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
 /* Dark mode: adjust send button brightness */
 [data-theme='dark'] .send-button-custom:not(:disabled) {
   background-color: var(--aou-4) !important;
@@ -303,6 +373,25 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.sendbox-left-tool-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  width: auto !important;
+  max-width: max-content !important;
+  flex: 0 0 auto !important;
+  position: static !important;
+}
+
+.sendbox-left-tool-group > *,
+.sendbox-left-tool-group .arco-trigger,
+.sendbox-left-tool-group .arco-btn {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
 }
 
 /* Allow sendbox tools area to shrink so the send button stays visible */

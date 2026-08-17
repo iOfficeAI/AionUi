@@ -63,6 +63,8 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     rightTools,
     sendButtonPrefix,
     topRightOverlay,
+    onAddToDraft,
+    addToDraftDisabled,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -73,8 +75,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     rightTools?: React.ReactNode;
     sendButtonPrefix?: React.ReactNode;
     topRightOverlay?: React.ReactNode;
+    onAddToDraft?: () => void;
+    addToDraftDisabled?: boolean;
   }) => {
-    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled });
+    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled, onAddToDraft, addToDraftDisabled });
     return (
       <div>
         {rightTools}
@@ -424,7 +428,7 @@ describe('AionrsSendBox', () => {
       expect(sendMessageInvokeMock).not.toHaveBeenCalled();
       expect(enqueueMock).not.toHaveBeenCalled();
       expect(Message.warning).toHaveBeenCalledWith(
-        "Interjecting isn't supported while this agent is replying. Use Add to queue instead."
+        'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.'
       );
     });
 
@@ -448,16 +452,17 @@ describe('AionrsSendBox', () => {
       expect(Message.warning).not.toHaveBeenCalled();
     });
 
-    it('shows the add-to-queue entry with a non-empty draft while replying, and clicking it enqueues without executing', async () => {
+    it('shows the add-to-draft-box entry with a non-empty draft while replying, and clicking it enqueues without executing', async () => {
       runtimeViewIsProcessingRef.current = true;
       draftContentRef.current = 'hello world';
 
       render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
       await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
 
-      const queueButton = screen.getByRole('button', { name: 'Add to queue' });
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+      expect(props.onAddToDraft).toBeDefined();
       await act(async () => {
-        queueButton.click();
+        props.onAddToDraft?.();
       });
 
       expect(enqueueMock).toHaveBeenCalledWith({ input: 'hello world', files: [] });
@@ -467,7 +472,7 @@ describe('AionrsSendBox', () => {
       expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
     });
 
-    it('shows the add-to-queue entry while idle, as long as the draft is non-empty', async () => {
+    it('shows the add-to-draft-box option while idle, as long as the draft is non-empty', async () => {
       // Visibility is keyed only to the draft, not to the agent's busy state —
       // clicking while idle is semantically fine (the queue's own mode governs).
       runtimeViewIsProcessingRef.current = false;
@@ -476,17 +481,23 @@ describe('AionrsSendBox', () => {
       render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
       await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
 
-      expect(screen.getByRole('button', { name: 'Add to queue' })).toBeInTheDocument();
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+      expect(props.onAddToDraft).toBeDefined();
     });
 
-    it('hides the add-to-queue entry with an empty draft, even while replying', async () => {
+    it('disables the Draft box action with an empty draft, even while replying', async () => {
       runtimeViewIsProcessingRef.current = true;
       draftContentRef.current = '';
 
       render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
       await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
 
-      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as {
+        onAddToDraft?: () => void;
+        addToDraftDisabled?: boolean;
+      };
+      expect(props.onAddToDraft).toBeDefined();
+      expect(props.addToDraftDisabled).toBe(true);
     });
   });
 });

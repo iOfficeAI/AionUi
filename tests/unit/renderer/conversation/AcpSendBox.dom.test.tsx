@@ -104,6 +104,8 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onFocused,
     disabled,
     sendDisabled,
+    onAddToDraft,
+    addToDraftDisabled,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -114,8 +116,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onFocused?: () => void;
     disabled?: boolean;
     sendDisabled?: boolean;
+    onAddToDraft?: () => void;
+    addToDraftDisabled?: boolean;
   }) => {
-    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled });
+    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled, onAddToDraft, addToDraftDisabled });
     return (
       <div>
         {rightTools}
@@ -724,7 +728,7 @@ describe('AcpSendBox', () => {
   });
 
   describe('mid-turn interjection controls', () => {
-    it('shows the add-to-queue entry for a supporting agent with a non-empty draft, and clicking it enqueues without executing', async () => {
+    it('shows the add-to-draft-box entry for a supporting agent with a non-empty draft, and clicking it enqueues without executing', async () => {
       runtimeViewMock.supportsMidturnDelivery = true;
       runtimeViewMock.isProcessing = true;
       runtimeViewMock.canSendMessage = true;
@@ -739,9 +743,10 @@ describe('AcpSendBox', () => {
         />
       );
 
-      const queueButton = screen.getByRole('button', { name: 'Add to queue' });
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+      expect(props.onAddToDraft).toBeDefined();
       await act(async () => {
-        queueButton.click();
+        props.onAddToDraft?.();
       });
 
       expect(enqueueMock).toHaveBeenCalledWith({ input: 'hello world', files: [] });
@@ -752,7 +757,7 @@ describe('AcpSendBox', () => {
       expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
     });
 
-    it('shows the add-to-queue entry for a supporting agent that is idle, as long as the draft is non-empty', () => {
+    it('shows the add-to-draft-box option for a supporting agent that is idle, as long as the draft is non-empty', async () => {
       // Visibility is keyed only to the draft, not to the agent's busy state —
       // clicking while idle is semantically fine (the queue's own mode governs).
       runtimeViewMock.supportsMidturnDelivery = true;
@@ -768,10 +773,11 @@ describe('AcpSendBox', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: 'Add to queue' })).toBeInTheDocument();
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { onAddToDraft?: () => void };
+      expect(props.onAddToDraft).toBeDefined();
     });
 
-    it('hides the add-to-queue entry for a supporting agent with an empty draft, even while replying', () => {
+    it('disables the Draft box action for a supporting agent with an empty draft, even while replying', () => {
       runtimeViewMock.supportsMidturnDelivery = true;
       runtimeViewMock.isProcessing = true;
       draftContentRef.current = '';
@@ -785,7 +791,12 @@ describe('AcpSendBox', () => {
         />
       );
 
-      expect(screen.queryByRole('button', { name: 'Add to queue' })).not.toBeInTheDocument();
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as {
+        onAddToDraft?: () => void;
+        addToDraftDisabled?: boolean;
+      };
+      expect(props.onAddToDraft).toBeDefined();
+      expect(props.addToDraftDisabled).toBe(true);
     });
 
     it('disables the send button and blocks Enter with a toast for a non-supporting agent while replying, without implicitly enqueuing', async () => {
@@ -813,7 +824,7 @@ describe('AcpSendBox', () => {
       expect(sendMessageInvokeMock).not.toHaveBeenCalled();
       expect(enqueueMock).not.toHaveBeenCalled();
       expect(messageWarningMock).toHaveBeenCalledWith(
-        "Interjecting isn't supported while this agent is replying. Use Add to queue instead."
+        'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.'
       );
     });
 

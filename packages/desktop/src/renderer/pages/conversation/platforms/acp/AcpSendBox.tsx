@@ -43,7 +43,7 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
-import { Button, Message, Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -439,7 +439,8 @@ Please check your local CLI tool authentication status`,
     if (!supportsMidturnDelivery && isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
-          defaultValue: "Interjecting isn't supported while this agent is replying. Use Add to queue instead.",
+          defaultValue:
+            'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.',
         })
       );
       return;
@@ -741,18 +742,6 @@ Please check your local CLI tool authentication status`,
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
-  const addToQueueEntry = canQueueCurrentDraft ? (
-    <Button
-      type='text'
-      size='mini'
-      className='sendbox-add-to-queue-btn bg-dialog-fill-0 rd-8px'
-      onClick={handleAddToQueue}
-      data-testid='sendbox-add-to-queue-btn'
-    >
-      {t('conversation.commandQueue.addToQueue', { defaultValue: 'Add to queue' })}
-    </Button>
-  ) : undefined;
-
   return (
     <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
       <CommandQueuePanel
@@ -777,9 +766,7 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
-
       <SendBox
-        topRightOverlay={addToQueueEntry}
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
@@ -793,6 +780,14 @@ Please check your local CLI tool authentication status`,
         onFocused={teamRuntime?.onFocus}
         disabled={false}
         sendDisabled={!supportsMidturnDelivery && isBusy}
+        sendDisabledTooltip={
+          !supportsMidturnDelivery && isBusy
+            ? t('conversation.commandQueue.midturnBlockedSendHint', {
+                defaultValue:
+                  'The current agent is still working and cannot receive another message yet. Add it to Draft box instead.',
+              })
+            : undefined
+        }
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || backend,
           defaultValue: `Send message to {{backend}}...`,
@@ -883,6 +878,15 @@ Please check your local CLI tool authentication status`,
           // popover shows the raw count — never a percentage against a
           // guessed denominator. No usage report at all → nothing.
           tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
+        }
+        onAddToDraft={handleAddToQueue}
+        addToDraftDisabled={!canQueueCurrentDraft}
+        addToDraftTooltip={
+          isBusy
+            ? t('conversation.commandQueue.addToQueueBusyHint', {
+                defaultValue: 'Save to Draft box and send it later.',
+              })
+            : t('conversation.commandQueue.addToQueue', { defaultValue: 'Save to Draft box' })
         }
       ></SendBox>
       {isMobile && (
