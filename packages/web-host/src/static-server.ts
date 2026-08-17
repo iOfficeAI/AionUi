@@ -114,6 +114,15 @@ function spliceToTcpEndpoint(client: Socket, targetPort: number, initialBytes: B
   client.setNoDelay(true);
   client.setKeepAlive(true);
   client.setTimeout(0);
+  // The peek phase left `client` in flowing mode (it had a 'data' listener),
+  // but that listener is now removed and the real consumer — `client.pipe(upstream)`
+  // — is only wired inside the async 'connect' handler below. Pause here so any
+  // body bytes arriving in the gap are buffered by the socket instead of being
+  // dropped for lack of a consumer; `pipe()` resumes the socket once connected.
+  // Without this, large/buffered uploads (e.g. reverse-proxied POST bodies that
+  // span multiple TCP segments) lose their tail bytes and the backend hangs
+  // forever waiting for the missing Content-Length (issue #4058).
+  client.pause();
   const upstream = net.connect({ host: '127.0.0.1', port: targetPort });
   upstream.setNoDelay(true);
   upstream.setKeepAlive(true);
