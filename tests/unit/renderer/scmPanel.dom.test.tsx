@@ -720,6 +720,20 @@ describe('ScmPanel worktree aggregation in the Repositories section', () => {
     expect(document.querySelector('[data-scm-repo-toggle="scm:pe2"]')).toBeNull();
   });
 
+  it('gives a non-expandable repo a leading glyph slot so its name stays aligned', async () => {
+    installPort(worktreeWorkspace());
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('a.ts');
+    // pe2 has no worktrees → no toggle button, but it must still occupy the same
+    // leading slot the toggle would, otherwise its name shifts a glyph-width left
+    // and misaligns with the expandable rows above it.
+    expect(document.querySelector('[data-scm-repo-toggle="scm:pe2"]')).toBeNull();
+    expect(document.querySelector('[data-scm-repo-glyph="scm:pe2"]')).not.toBeNull();
+    // The expandable primary uses the toggle for its slot, not the static glyph.
+    expect(document.querySelector('[data-scm-repo-glyph="scm:pe1"]')).toBeNull();
+  });
+
   it('collapses and re-expands the worktree children via the toggle, and persists', async () => {
     installPort(worktreeWorkspace());
     render(<ScmPanel projectId='p1' />);

@@ -445,13 +445,12 @@ const CssThemeSettings: React.FC = () => {
         </Button>
       </div>
 
-      {/* 主题卡片列表 / Theme card list */}
-      <div
-        className='grid w-full gap-12px'
-        style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        }}
-      >
+      {/* 主题卡片列表 / Theme card list.
+          Fixed-width cards that wrap: a full row packs several cards, while a
+          short list (e.g. just Light/Dark/Follow System) stays at its natural
+          size and leaves the trailing space empty instead of stretching each
+          card across the whole row. */}
+      <div className='flex flex-wrap gap-12px'>
         {displayThemes.map((theme) => {
           const previewPalette =
             themePreviewPalettes.get(theme.id) ||
@@ -470,7 +469,7 @@ const CssThemeSettings: React.FC = () => {
               key={theme.id}
               data-testid={`theme-card-${theme.id}`}
               data-active={activeThemeId === theme.id}
-              className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-full ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`}
+              className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-200px flex-shrink-0 ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`}
               style={cardStyle}
               onClick={() => handleSelectTheme(theme)}
               onMouseEnter={() => setHoveredThemeId(theme.id)}
