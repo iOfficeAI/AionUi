@@ -58,6 +58,8 @@
     "exportFailed": "导出失败",
     "pin": "置顶",
     "unpin": "取消置顶",
+    "markAsUnread": "标为未读",
+    "markAsRead": "标为已读",
     "pinned": "已置顶",
     "pinFailed": "置顶操作失败",
     "pinnedSection": "置顶",
@@ -509,7 +511,14 @@
     "mode": {
       "auto": "自动发送",
       "manual": "手动发送"
-    }
+    },
+    "addToQueue": "存到草稿箱",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "addToQueueBusyHint": "先存到草稿箱，稍后发送。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用",
@@ -593,11 +602,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "本轮有 {{count}} 个步骤失败且未生效。agy 仍会把这类轮次标记为成功，请核对实际结果而非回复内容。"
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "已安装的 agy {{reported}} 低于本集成验证过的 {{verified}}，部分功能可能缺失，建议升级 agy。"
+      "CLI_VERSION_OLDER": {
+        "body": "已安装的 {{cli}} 低于 AionUi 验证过的版本，部分功能可能缺失。建议升级 {{cli}}。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "已安装的 agy {{reported}} 高于本集成验证过的 {{verified}}。通常仍可正常使用；如遇异常行为请反馈。"
+      "CLI_VERSION_NEWER": {
+        "body": "已安装的 {{cli}} 高于 AionUi 验证过的版本。通常仍可正常使用；如遇异常行为请反馈。 （本地 {{reported}} / AionUi 验证过 {{verified}}）"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}}（累计第 {{attempts}} 次重试，已等待 {{elapsed}}——Agent 的服务方反复中断连接，AionUi 正在等待重连。）"
       }
     }
   },
@@ -611,7 +623,9 @@
     "removeFailed": "移除文件夹失败",
     "contextMenu": {
       "rename": "重命名",
-      "addToChat": "添加到聊天"
+      "addToChat": "添加到聊天",
+      "copyRelativePath": "复制相对路径",
+      "copyAbsolutePath": "复制绝对路径"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
@@ -642,6 +656,15 @@
         "changes": "变更",
         "blocked": "需先解决"
       },
+      "sections": {
+        "repositories": "仓库",
+        "changes": "变更"
+      },
+      "viewAsTree": "以树状视图显示",
+      "viewAsList": "以列表视图显示",
+      "worktree": "工作树",
+      "expandWorktrees": "显示工作树",
+      "collapseWorktrees": "隐藏工作树",
       "state": {
         "created": "新增",
         "modified": "已修改",
@@ -696,7 +719,9 @@
         "outcomeUnknown": "连接在收到答复前已重置——此操作可能已完成，也可能未完成。请刷新并核对文件列表，确认后再决定是否重试。",
         "allFailed": "{{count}} 个文件都未能处理"
       }
-    }
+    },
+    "pathCopied": "已复制路径",
+    "copyFailed": "复制路径失败"
   },
   "terminal": {
     "running": "运行中",

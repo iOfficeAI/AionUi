@@ -1,3 +1,5 @@
+import { isMacOS } from '@/renderer/utils/platform';
+
 const EMBEDDED_EDITOR_SELECTOR = ['.cm-editor', '.cm-content', '.monaco-editor', '.xterm', 'webview', 'iframe'].join(
   ','
 );
@@ -14,6 +16,11 @@ type PrimaryShortcutOptions = {
   key: string;
   shiftKey?: boolean;
   targetGuard?: 'all-editable' | 'embedded-editor';
+};
+
+/** Match the platform-native primary modifier without accepting mixed chords. */
+export const isPlatformPrimaryModifier = (event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey'>): boolean => {
+  return isMacOS() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
 };
 
 const isBlockingElement = (
@@ -48,7 +55,7 @@ export const isShortcutBlockedByTarget = (
   return typeof document !== 'undefined' && isBlockingElement(document.activeElement, targetGuard);
 };
 
-/** Match an exact Cmd/Ctrl application shortcut without consuming editor input. */
+/** Match an exact platform-native Cmd/Ctrl shortcut without consuming editor input. */
 export const isPrimaryApplicationShortcut = (
   event: KeyboardEvent,
   { key, shiftKey = false, targetGuard = 'all-editable' }: PrimaryShortcutOptions
@@ -57,9 +64,7 @@ export const isPrimaryApplicationShortcut = (
     return false;
   }
 
-  // Exactly one primary modifier avoids treating Ctrl+Cmd as either platform's
-  // normal shortcut chord.
-  if (event.metaKey === event.ctrlKey || event.shiftKey !== shiftKey) {
+  if (!isPlatformPrimaryModifier(event) || event.shiftKey !== shiftKey) {
     return false;
   }
 

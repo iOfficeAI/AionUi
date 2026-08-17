@@ -21,6 +21,7 @@ import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
+import { buildTurnClipboardText } from '@renderer/utils/chat/turnCopy';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 import { isForkEnabled } from '@/common/chat/forkConversation';
 import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
@@ -152,7 +153,10 @@ const MessageText: React.FC<{
   showCopyRow?: boolean;
   isLastMessage?: boolean;
   hasForkAnchor?: boolean;
-}> = ({ message, showCopyRow = true, isLastMessage = false, hasForkAnchor = false }) => {
+  /** All text segments of this message's turn, in order — the copy button
+   * copies the whole reply, not just the segment it happens to sit on. */
+  turnTexts?: string[];
+}> = ({ message, showCopyRow = true, isLastMessage = false, hasForkAnchor = false, turnTexts }) => {
   const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
@@ -174,6 +178,11 @@ const MessageText: React.FC<{
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  // Delivered-but-not-yet-consumed marker for messages sent mid-turn to a
+  // supporting backend (claude/codex). The message already reached the
+  // server (it's rendered); this only answers "has the agent picked it up
+  // yet" — an IM delivered/read style badge, never a ghost/dashed bubble.
+  const isPendingDelivery = isUserMessage && message.status === 'pending';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const { text, files } = useMemo(
     () => parseFileMarker(contentToRender, isUserMessage),
@@ -199,7 +208,9 @@ const MessageText: React.FC<{
   const handleCopy = () => {
     const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
-    const textToCopy = fileList + baseText;
+    // An AI turn split by tool calls / thinking stores several text messages;
+    // the row sits on the last one but must copy the whole reply.
+    const textToCopy = turnTexts?.length ? buildTurnClipboardText(turnTexts) : fileList + baseText;
     copyText(textToCopy)
       .then(() => {
         setShowCopyAlert(true);
@@ -323,6 +334,11 @@ const MessageText: React.FC<{
             </div>
           )}
         </div>
+        {isPendingDelivery && (
+          <div className='text-12px text-t-secondary mt-4px select-none' data-testid='message-status-badge'>
+            {t('messages.delivery.pending', { defaultValue: 'Unread' })}
+          </div>
+        )}
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies.
             For AI replies split across several text messages, only the last text

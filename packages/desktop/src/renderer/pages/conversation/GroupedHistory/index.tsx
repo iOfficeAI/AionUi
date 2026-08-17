@@ -46,6 +46,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
+    isManualUnread,
+    markManualUnread,
+    clearManualUnread,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
@@ -115,6 +118,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleToggleManualUnread,
     handleCreateCronTask,
     handleRemoveProject,
     removeProjectTarget,
@@ -129,6 +133,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     setSelectedConversationIds,
     toggleSelectedConversation,
     markAsRead,
+    markManualUnread,
+    clearManualUnread,
+    isManualUnread,
   });
 
   const { sensors, handleDragEnd, isDragEnabled } = useDragAndDrop({
@@ -156,7 +163,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
       isGenerating: isConversationGenerating(conversation.id),
-      hasCompletionUnread: hasCompletionUnread(conversation.id),
+      hasUnread: hasCompletionUnread(conversation.id) || isManualUnread(conversation.id),
+      isManualUnread: isManualUnread(conversation.id),
       collapsed,
       tooltipEnabled,
       batchMode,
@@ -171,6 +179,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onCreateCronTask: handleCreateCronTask,
       onDelete: handleDeleteClick,
       onTogglePin: handleTogglePin,
+      onToggleManualUnread: handleToggleManualUnread,
       getJobStatus,
       resolveConversationName,
     }),
@@ -180,6 +189,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       batchMode,
       isConversationGenerating,
       hasCompletionUnread,
+      isManualUnread,
       selectedConversationIds,
       id,
       dropdownVisibleId,
@@ -191,6 +201,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleCreateCronTask,
       handleDeleteClick,
       handleTogglePin,
+      handleToggleManualUnread,
       getJobStatus,
       resolveConversationName,
     ]

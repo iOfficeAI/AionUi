@@ -17,5 +17,6 @@
   "permission": "Permiso",
   "switchMode": "Modo de permiso",
   "switchSuccess": "Modo cambiado correctamente",
+  "switchPendingNextTurn": "Se aplicará en el próximo turno",
   "switchFailed": "Error al cambiar modo"
 }

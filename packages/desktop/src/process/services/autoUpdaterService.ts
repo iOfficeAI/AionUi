@@ -16,7 +16,7 @@ import log from 'electron-log';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
-import { parse } from 'semver';
+import { gt, parse } from 'semver';
 import {
   recordAutoUpdateNativeInstallError,
   recordAutoUpdateNativeInstallReady,
@@ -326,8 +326,9 @@ class AutoUpdaterService extends EventEmitter {
   }
 
   /**
-   * Set whether to allow prerelease/dev updates
-   * When enabled, also sets allowDowngrade to true
+   * Set whether to allow prerelease/dev updates.
+   * Only tracks the flag; prerelease filtering is handled by the manual GitHub
+   * API check. Does not touch `autoUpdater.allowDowngrade` (see note below).
    */
   setAllowPrerelease(allow: boolean): void {
     this._allowPrerelease = allow;
@@ -633,6 +634,20 @@ class AutoUpdaterService extends EventEmitter {
       if (!result.isUpdateAvailable) {
         log.debug('[auto-update] no update available from CDN feed', {
           version: result.updateInfo.version,
+        });
+        return { success: true };
+      }
+
+      // Defense-in-depth: never surface a same-or-older feed version as an update.
+      // electron-updater's isUpdateAvailable can be true for a downgrade when a
+      // channel is rolled back or allowDowngrade drifts on; require strict semver
+      // greater-than against the installed version before reporting it.
+      const feedVersion = parse(result.updateInfo.version);
+      const installedVersion = parse(app.getVersion());
+      if (feedVersion && installedVersion && !gt(feedVersion, installedVersion)) {
+        log.debug('[auto-update] feed version not newer than installed; ignoring', {
+          feedVersion: feedVersion.version,
+          installedVersion: installedVersion.version,
         });
         return { success: true };
       }

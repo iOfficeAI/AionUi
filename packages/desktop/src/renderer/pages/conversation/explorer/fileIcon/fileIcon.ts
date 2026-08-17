@@ -9,126 +9,136 @@ import { getFileExtension } from '@/renderer/pages/conversation/Preview/fileUtil
 
 type IconNode = Pick<IDirOrFile, 'name' | 'relativePath'>;
 
-export const ICON_PREFIX = 'vscode-icons';
-const DEFAULT_FILE_ICON = 'default-file';
-const FOLDER_ICON = 'default-folder';
-const FOLDER_OPEN_ICON = 'default-folder-opened';
+/**
+ * The catppuccin file-icon theme ships one flavor per palette. Iconify only
+ * hosts the dark "Macchiato" flavor, whose neutral (folder/file) icons wash out
+ * on a light background; the light "Latte" flavor is derived from it by a
+ * palette color remap (see the bundled JSONs). The two share identical icon
+ * names, so only the prefix differs — the caller picks by the active theme.
+ */
+export const ICON_PREFIX_LIGHT = 'catppuccin-latte';
+export const ICON_PREFIX_DARK = 'catppuccin-macchiato';
+const DEFAULT_FILE_ICON = 'file';
+const FOLDER_ICON = 'folder';
+const FOLDER_OPEN_ICON = 'folder-open';
 
 /**
- * Map a lowercase file extension to a vscode-icons icon name (without prefix).
- * Only the icons bundled in `vscodeIconsData.json` may be referenced here.
+ * Map a lowercase file extension to a catppuccin icon name (without prefix).
+ * Only icons bundled in both flavor JSONs (`catppuccinLatte.json` /
+ * `catppuccinMacchiato.json`) may be referenced here — the names are identical
+ * across flavors.
  */
 const EXTENSION_TO_ICON: Record<string, string> = {
   // TypeScript / JavaScript
-  ts: 'file-type-typescript',
-  mts: 'file-type-typescript',
-  cts: 'file-type-typescript',
-  tsx: 'file-type-reactts',
-  js: 'file-type-js',
-  mjs: 'file-type-js',
-  cjs: 'file-type-js',
-  jsx: 'file-type-reactjs',
+  ts: 'typescript',
+  mts: 'typescript',
+  cts: 'typescript',
+  tsx: 'typescript-react',
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'javascript-react',
   // Web
-  json: 'file-type-json',
-  html: 'file-type-html',
-  htm: 'file-type-html',
-  css: 'file-type-css',
-  scss: 'file-type-scss',
-  sass: 'file-type-scss',
-  vue: 'file-type-vue',
+  json: 'json',
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  scss: 'sass',
+  sass: 'sass',
+  vue: 'vue',
   // Docs / markup
-  md: 'file-type-markdown',
-  markdown: 'file-type-markdown',
-  mdown: 'file-type-markdown',
-  mkd: 'file-type-markdown',
-  txt: 'file-type-text',
-  log: 'file-type-log',
-  xml: 'file-type-xml',
-  yaml: 'file-type-yaml',
-  yml: 'file-type-yaml',
-  toml: 'file-type-toml',
-  ini: 'file-type-ini',
-  cfg: 'file-type-ini',
-  conf: 'file-type-ini',
-  sql: 'file-type-sql',
-  diff: 'file-type-diff',
-  patch: 'file-type-diff',
+  md: 'markdown',
+  markdown: 'markdown',
+  mdown: 'markdown',
+  mkd: 'markdown',
+  txt: 'text',
+  log: 'log',
+  xml: 'xml',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'toml',
+  ini: 'config',
+  cfg: 'config',
+  conf: 'config',
+  sql: 'database',
+  diff: 'diff',
+  patch: 'diff',
   // Office
-  pdf: 'file-type-pdf2',
-  doc: 'file-type-word',
-  docx: 'file-type-word',
-  odt: 'file-type-word',
-  xls: 'file-type-excel',
-  xlsx: 'file-type-excel',
-  ods: 'file-type-excel',
-  csv: 'file-type-excel',
-  ppt: 'file-type-powerpoint',
-  pptx: 'file-type-powerpoint',
-  odp: 'file-type-powerpoint',
+  pdf: 'pdf',
+  doc: 'ms-word',
+  docx: 'ms-word',
+  odt: 'ms-word',
+  xls: 'ms-excel',
+  xlsx: 'ms-excel',
+  ods: 'ms-excel',
+  csv: 'ms-excel',
+  ppt: 'ms-powerpoint',
+  pptx: 'ms-powerpoint',
+  odp: 'ms-powerpoint',
   // Images
-  png: 'file-type-image',
-  jpg: 'file-type-image',
-  jpeg: 'file-type-image',
-  gif: 'file-type-image',
-  bmp: 'file-type-image',
-  ico: 'file-type-image',
-  tif: 'file-type-image',
-  tiff: 'file-type-image',
-  avif: 'file-type-image',
-  webp: 'file-type-image',
-  svg: 'file-type-svg',
+  png: 'image',
+  jpg: 'image',
+  jpeg: 'image',
+  gif: 'image',
+  bmp: 'image',
+  ico: 'image',
+  tif: 'image',
+  tiff: 'image',
+  avif: 'image',
+  webp: 'image',
+  svg: 'svg',
   // Languages
-  py: 'file-type-python',
-  go: 'file-type-go',
-  rs: 'file-type-rust',
-  java: 'file-type-java',
-  c: 'file-type-c',
-  h: 'file-type-cheader',
-  cpp: 'file-type-cpp',
-  cc: 'file-type-cpp',
-  cxx: 'file-type-cpp',
-  hpp: 'file-type-cpp',
-  cs: 'file-type-csharp',
-  php: 'file-type-php',
-  rb: 'file-type-ruby',
-  swift: 'file-type-swift',
-  kt: 'file-type-kotlin',
-  kts: 'file-type-kotlin',
-  sh: 'file-type-shell',
-  bash: 'file-type-shell',
-  zsh: 'file-type-shell',
+  py: 'python',
+  go: 'go',
+  rs: 'rust',
+  java: 'java',
+  c: 'c',
+  h: 'c-header',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hpp: 'cpp',
+  cs: 'csharp',
+  php: 'php',
+  rb: 'ruby',
+  swift: 'swift',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
   // Git
-  gitignore: 'file-type-git',
-  gitattributes: 'file-type-git',
-  gitmodules: 'file-type-git',
+  gitignore: 'git',
+  gitattributes: 'git',
+  gitmodules: 'git',
   // Archives
-  zip: 'file-type-zip',
-  tar: 'file-type-zip',
-  gz: 'file-type-zip',
-  rar: 'file-type-zip',
-  '7z': 'file-type-zip',
+  zip: 'zip',
+  tar: 'zip',
+  gz: 'zip',
+  rar: 'zip',
+  '7z': 'zip',
   // Media
-  mp4: 'file-type-video',
-  mov: 'file-type-video',
-  avi: 'file-type-video',
-  mkv: 'file-type-video',
-  webm: 'file-type-video',
-  mp3: 'file-type-audio',
-  wav: 'file-type-audio',
-  flac: 'file-type-audio',
-  ogg: 'file-type-audio',
-  m4a: 'file-type-audio',
+  mp4: 'video',
+  mov: 'video',
+  avi: 'video',
+  mkv: 'video',
+  webm: 'video',
+  mp3: 'audio',
+  wav: 'audio',
+  flac: 'audio',
+  ogg: 'audio',
+  m4a: 'audio',
   // Fonts / binary
-  ttf: 'file-type-font',
-  otf: 'file-type-font',
-  woff: 'file-type-font',
-  woff2: 'file-type-font',
-  exe: 'file-type-binary',
-  bin: 'file-type-binary',
-  dll: 'file-type-binary',
-  so: 'file-type-binary',
-  dylib: 'file-type-binary',
-  wasm: 'file-type-binary',
+  ttf: 'font',
+  otf: 'font',
+  woff: 'font',
+  woff2: 'font',
+  exe: 'binary',
+  bin: 'binary',
+  dll: 'binary',
+  so: 'binary',
+  dylib: 'binary',
+  wasm: 'binary',
 };
 
 /**
@@ -140,7 +150,7 @@ export const getNodeIconExtension = (node: IconNode): string => {
 };
 
 /**
- * vscode-icons icon name (without the `vscode-icons:` prefix) for a file node.
+ * catppuccin icon name (without the `catppuccin:` prefix) for a file node.
  * Unknown extensions fall back to the generic file icon.
  */
 export const getFileIconName = (node: IconNode): string => {
@@ -148,7 +158,7 @@ export const getFileIconName = (node: IconNode): string => {
   return EXTENSION_TO_ICON[ext] ?? DEFAULT_FILE_ICON;
 };
 
-/** vscode-icons folder icon name, reflecting expanded state. */
+/** catppuccin folder icon name, reflecting expanded state. */
 export const getFolderIconName = (expanded: boolean): string => {
   return expanded ? FOLDER_OPEN_ICON : FOLDER_ICON;
 };

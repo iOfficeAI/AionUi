@@ -15,6 +15,7 @@ import {
   select,
   setExpanded,
   setExpandedKeys,
+  subscribeExplorer,
 } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const flush = async (): Promise<void> => {
@@ -445,7 +446,7 @@ describe('collapse while subscribe is in flight (runReconcile .then guard)', () 
 });
 
 describe('subscribe rejection (offline) path', () => {
-  it('advances current despite a rejected subscribe, then reconnect re-declares with no gap', async () => {
+  it('rolls a rejected subscribe back out of current so it is not stranded as falsely-declared', async () => {
     const rejecting: MonitorPort = {
       subscribe: async () => {
         throw new Error('offline');
@@ -456,10 +457,50 @@ describe('subscribe rejection (offline) path', () => {
     openProject('proj1', roots);
     await flush();
 
-    // current advanced to want even though the subscribe rejected (no retry gap);
-    // the cache is empty because no snapshot came back.
-    expect(getExplorerInternalsForTest().current).toContain(peKey('pe1', ''));
+    // The rejected root subscribe must NOT leave the root sitting in `current`.
+    // If it did, reconcileDiff would treat the root as already-declared and never
+    // re-add it — the dir would go silently stale. Rolled back, it is eligible to
+    // retry. (The cache is empty because no snapshot came back.)
+    expect(getExplorerInternalsForTest().current).not.toContain(peKey('pe1', ''));
     expect(getExplorerInternalsForTest().cacheKeys).toEqual([]);
+  });
+
+  it('retries a rejected subscribe on the very next reconcile — no reconnect needed', async () => {
+    const rejecting: MonitorPort = {
+      subscribe: async () => {
+        throw new Error('offline');
+      },
+      unsubscribe: () => {},
+    };
+    configureExplorerStore(rejecting);
+    openProject('proj1', roots);
+    await flush();
+    expect(getExplorerInternalsForTest().current).not.toContain(peKey('pe1', ''));
+
+    // Socket healthy again, but NO reconnect event fires. A plain user action
+    // (expanding a dir) triggers a reconcile; because the root was rolled back out
+    // of `current`, it re-enters `toAdd` and is re-subscribed. This is the whole
+    // point of the fix: recovery no longer depends solely on the reconnect path.
+    const good = makePort({ [peKey('pe1', '')]: [dir('a')] });
+    configureExplorerStore(good.port);
+    setExpanded(peKey('pe1', ''), true); // root already expanded → benign, just reconciles
+    await flush();
+
+    expect(good.subscribed.flat().map(refToKey)).toContain(peKey('pe1', ''));
+    expect(getExplorerInternalsForTest().current).toContain(peKey('pe1', ''));
+    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))).toEqual(['a']);
+  });
+
+  it('reconnect still re-declares the whole want set after an offline gap', async () => {
+    const rejecting: MonitorPort = {
+      subscribe: async () => {
+        throw new Error('offline');
+      },
+      unsubscribe: () => {},
+    };
+    configureExplorerStore(rejecting);
+    openProject('proj1', roots);
+    await flush();
 
     // Reconnect: current resets to ∅ and the whole want set is re-declared. This
     // time the port answers, filling the gap left by the earlier rejection.
@@ -767,5 +808,79 @@ describe('selection + misc edge paths', () => {
     applyMonitorNotification('fs/bogus', { target: { pe_id: 'pe1', relative_path: '' }, whatever: true });
 
     expect(getExplorerInternalsForTest()).toEqual(before);
+  });
+});
+
+describe('commit coalescing (render-storm bound)', () => {
+  it('a burst of no-op deltas (modified + duplicate add) triggers zero notifications and keeps the snapshot reference stable', async () => {
+    const h = makePort({ [peKey('pe1', '')]: [file('a.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+
+    let notifications = 0;
+    const unsub = subscribeExplorer(() => {
+      notifications++;
+    });
+    const snapBefore = getExplorerSnapshot();
+
+    // `modified` changes contents, not the listing → the projected tree is
+    // identical, so none of these should reach React.
+    for (let i = 0; i < 50; i++) {
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'modified', name: 'a.ts' }],
+      });
+    }
+    // Re-adding an entry already in the listing is likewise a no-op for the tree.
+    for (let i = 0; i < 50; i++) {
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'added', name: 'a.ts', kind: 'file' }],
+      });
+    }
+    await flush();
+
+    expect(notifications).toBe(0); // no visible change → no re-render
+    expect(getExplorerSnapshot()).toBe(snapBefore); // stable reference kept
+    unsub();
+  });
+
+  it('bounds notifications to the number of genuinely-changing deltas in a burst, not the notification volume', async () => {
+    const h = makePort({ [peKey('pe1', '')]: [file('a.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+
+    let notifications = 0;
+    const unsub = subscribeExplorer(() => {
+      notifications++;
+    });
+
+    // Three distinct adds, each padded with five no-op `modified` deltas. Only the
+    // three adds change the listing, so the render count follows the real changes
+    // (3), not the 18 delta notifications.
+    for (const name of ['b.ts', 'c.ts', 'd.ts']) {
+      for (let k = 0; k < 5; k++) {
+        applyMonitorNotification('fs/delta', {
+          target: { pe_id: 'pe1', relative_path: '' },
+          changes: [{ op: 'modified', name: 'a.ts' }],
+        });
+      }
+      applyMonitorNotification('fs/delta', {
+        target: { pe_id: 'pe1', relative_path: '' },
+        changes: [{ op: 'added', name, kind: 'file' }],
+      });
+    }
+    await flush();
+
+    expect(notifications).toBe(3);
+    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))?.toSorted()).toEqual([
+      'a.ts',
+      'b.ts',
+      'c.ts',
+      'd.ts',
+    ]);
+    unsub();
   });
 });

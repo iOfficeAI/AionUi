@@ -125,8 +125,12 @@ import {
 } from './teamMapper';
 import {
   absoluteToRelativePath,
+  fromBackendSkillFileNodes,
   fromBackendWorkspaceFlatFiles,
   fromBackendWorkspaceList,
+  resolveWebSkillFile,
+  resolveWebSkillRoot,
+  type RawSkillFileNode,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
 
@@ -322,12 +326,29 @@ export const conversation = {
   userCreated: wsEmitter<{
     conversation_id: string;
     msg_id: string;
+    /** Present when the send request carried a client-generated id, letting
+     * callers correlate this row with the outgoing send without matching on
+     * text/time. Not the canonical id — `msg_id` (the server-assigned id) is
+     * what the message list keys on. */
+    client_msg_id?: string;
     content: string;
     position: 'right';
-    status: 'finish';
+    /** 'pending' for a message delivered mid-turn that the agent hasn't
+     * consumed yet (see `message.statusChanged`); 'finish' otherwise. */
+    status: 'finish' | 'pending';
     hidden: boolean;
     created_at: number;
   }>('message.userCreated'),
+  /** Fired when the agent actually consumes a mid-turn-delivered message
+   * (claude command_lifecycle Started; codex synthetic receipt). Flips the
+   * message row from 'pending' to 'finish'; correlate by `msg_id`, never by
+   * text/time. */
+  statusChanged: wsEmitter<{
+    user_id: string;
+    conversation_id: string;
+    msg_id: string;
+    status: 'finish' | 'pending' | 'error';
+  }>('message.statusChanged'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
@@ -354,6 +375,9 @@ export const conversation = {
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
       turn_id: (rawRuntime.turn_id ?? rawRuntime.turnId ?? null) as string | null,
+      supports_midturn_delivery: (rawRuntime.supports_midturn_delivery ??
+        rawRuntime.supportsMidturnDelivery ??
+        false) as boolean,
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -666,12 +690,15 @@ export const registerWebShowOpenHandler = (handler: ShowOpenHandler | null): voi
 
 const nativeShowOpen = bridge.buildProvider<string[] | undefined, ShowOpenOptions>('show-open');
 
+/** Detect Electron at call time because this adapter is shared by Electron and WebUI renderers. */
+const isElectronRenderer = (): boolean =>
+  typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
+
 export const dialog = {
   showOpen: {
     provider: nativeShowOpen.provider,
     invoke: ((options?: ShowOpenOptions) => {
-      const hasElectron = typeof window !== 'undefined' && Boolean((window as { electronAPI?: unknown }).electronAPI);
-      if (!hasElectron && webShowOpenHandler) {
+      if (!isElectronRenderer() && webShowOpenHandler) {
         return webShowOpenHandler(options);
       }
       return nativeShowOpen.invoke(options);
@@ -689,6 +716,15 @@ export type SkillFileNode = {
   type: 'directory' | 'file';
   children?: SkillFileNode[];
 };
+
+// Keep both transports available: Electron owns dedicated skill-file IPC channels,
+// while WebUI must use the backend's workspace-scoped filesystem endpoints.
+const webListSkillFiles = httpPost<RawSkillFileNode[], { dir: string; root: string }>('/api/fs/dir');
+const webReadSkillFile = httpPost<string | null, { path: string; workspace: string }>('/api/fs/read');
+const nativeListSkillFiles = bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list');
+const nativeReadSkillFile = bridge.buildProvider<string, { skill_location: string; relative_path: string }>(
+  'skills.files.read'
+);
 
 /** Raw metadata as the backend serializes it (snake_case). */
 type RawFileMetadata = {
@@ -719,6 +755,12 @@ export const fs = {
   // calls shell.showItemInFolder — the front end never builds the absolute path
   // (avoids the Windows verbatim `\\?\` pitfall). Electron-only at the call site.
   reveal: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/reveal'),
+  // Copy a project-scoped entry's absolute device path to the OS clipboard, for
+  // the Explorer "copy absolute path" action. Mirrors reveal: the backend resolves
+  // the path AND writes the clipboard itself, returning void — the front end never
+  // receives the absolute path. Electron desktop-only (a remote WebUI must not use
+  // it). Errors come back as codes only, never a message containing a path.
+  copyAbsolutePath: httpPost<void, { pe_id: string; relative_path: string }>('/api/fs/copy-absolute-path'),
   // Open a file in the OS default application, addressed by ChatFileRef so it
   // works for all three ref kinds (project / local / upload). The backend
   // resolves the ref and shells out; the front end never receives an absolute
@@ -862,8 +904,27 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
-  listSkillFiles: bridge.buildProvider<SkillFileNode[], { skill_location: string }>('skills.files.list'),
-  readSkillFile: bridge.buildProvider<string, { skill_location: string; relative_path: string }>('skills.files.read'),
+  listSkillFiles: {
+    provider: nativeListSkillFiles.provider,
+    invoke: async ({ skill_location }: { skill_location: string }) => {
+      if (isElectronRenderer()) return nativeListSkillFiles.invoke({ skill_location });
+
+      // The generic WebUI directory endpoint returns backend-shaped nodes, so
+      // normalize them to the same contract consumed from native IPC.
+      const root = resolveWebSkillRoot(skill_location);
+      const nodes = await webListSkillFiles.invoke({ dir: root, root });
+      return fromBackendSkillFileNodes(nodes);
+    },
+  },
+  readSkillFile: {
+    provider: nativeReadSkillFile.provider,
+    invoke: async ({ skill_location, relative_path }: { skill_location: string; relative_path: string }) => {
+      if (isElectronRenderer()) return nativeReadSkillFile.invoke({ skill_location, relative_path });
+      const content = await webReadSkillFile.invoke(resolveWebSkillFile(skill_location, relative_path));
+      if (content === null) throw new Error('Skill file could not be read');
+      return content;
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1800,6 +1861,10 @@ export interface IConversationTurnCompletedEvent {
     is_processing: boolean;
     pending_confirmations: number;
     turn_id: string | null;
+    /** Whether a message sent right now reaches the agent without waiting for
+     * the current turn to end. The ONLY capability bit the frontend may gate
+     * mid-turn UI on. */
+    supports_midturn_delivery: boolean;
   };
   workspace: string;
   model: {

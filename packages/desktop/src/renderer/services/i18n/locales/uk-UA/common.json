@@ -24,6 +24,8 @@
   "loading": "Будь ласка, зачекайте...",
   "copy": "Копіювати",
   "reply": "Відповісти",
+  "openInBuiltinBrowser": "Відкрити у вбудованому браузері",
+  "openInSystemBrowser": "Відкрити в системному браузері",
   "copySuccess": "Скопійовано",
   "copyFailed": "Не вдалося скопіювати",
   "download": "Завантажити",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "Потрібна новіша версія AionUi",
+      "description": "Ваші локальні дані створено новішою версією AionUi, і ця версія не може їх відкрити. Оновіть AionUi до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні.",
+      "descriptionWithVersion": "Ваші локальні дані створено версією AionUi, новішою за встановлену зараз (v{{currentVersion}}), тому ця версія не може їх відкрити. Оновіть AionUi до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні."
     },
     "localDataRepair": {
       "title": "Local data repair failed",

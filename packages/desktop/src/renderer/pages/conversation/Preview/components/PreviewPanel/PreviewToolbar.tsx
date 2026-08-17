@@ -95,6 +95,18 @@ interface PreviewToolbarProps {
   onRefresh?: () => void;
 
   /**
+   * 是否显示保存按钮（仅可编辑类型且有可渲染内容时）。
+   * Whether to show the save button (only editable types with renderable content).
+   */
+  showSave?: boolean;
+
+  /** 保存按钮是否可点（有未保存修改时）/ Whether the save control accepts a click (has unsaved edits) */
+  saveActionable?: boolean;
+
+  /** 点击保存 / Save the current tab */
+  onSave?: () => void;
+
+  /**
    * 设置视图模式
    * Set view mode
    */
@@ -170,6 +182,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   refreshState,
   refreshActionable = false,
   onRefresh,
+  showSave = false,
+  saveActionable = false,
+  onSave,
   onViewModeChange,
   onSplitScreenToggle,
   onOpenInSystem,
@@ -396,6 +411,34 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
                 <path d='M13 13l6 6' />
               </svg>
               <span>{inspectMode ? t('preview.html.inspecting') : t('preview.html.inspectElement')}</span>
+            </div>
+          )}
+
+          {/* 保存：可编辑类型才出现，放在这一栏最后、最靠右；无未保存修改时置灰不可点。
+              Save: appears only for editable types, placed last (rightmost) in this row;
+              greyed out and non-clickable when there is nothing unsaved. */}
+          {showSave && (
+            <div
+              data-testid='preview-save'
+              className={`${toolbarBtn} ${saveActionable ? '!text-warning-6' : '!cursor-not-allowed opacity-50'}`}
+              onClick={saveActionable ? onSave : undefined}
+              title={saveActionable ? t('preview.save.tooltip') : t('preview.save.clean')}
+            >
+              <svg
+                width={toolbarIconSize}
+                height={toolbarIconSize}
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+              >
+                <path d='M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z' />
+                <polyline points='17 21 17 13 7 13 7 21' />
+                <polyline points='7 3 7 8 15 8' />
+              </svg>
+              <span>{t('common.save')}</span>
             </div>
           )}
         </div>

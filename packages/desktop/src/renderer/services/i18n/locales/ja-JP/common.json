@@ -24,6 +24,8 @@
   "loading": "お待ちください...",
   "copy": "コピー",
   "reply": "引用",
+  "openInBuiltinBrowser": "内蔵ブラウザで開く",
+  "openInSystemBrowser": "システムブラウザで開く",
   "copySuccess": "コピーしました",
   "copyFailed": "コピーに失敗しました",
   "download": "ダウンロード",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "新しいバージョンの AionUi が必要です",
+      "description": "ローカルデータはより新しいバージョンの AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。",
+      "descriptionWithVersion": "ローカルデータは現在のバージョン v{{currentVersion}} より新しい AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。"
     },
     "localDataRepair": {
       "title": "Local data repair failed",

@@ -17,5 +17,6 @@
   "permission": "Permissão",
   "switchMode": "Modo de Permissão",
   "switchSuccess": "Modo alternado com sucesso",
+  "switchPendingNextTurn": "Entra em vigor no próximo turno",
   "switchFailed": "Falha ao alternar modo"
 }

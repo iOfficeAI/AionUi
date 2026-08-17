@@ -24,6 +24,8 @@
   "loading": "請稍候...",
   "copy": "複製",
   "reply": "引用",
+  "openInBuiltinBrowser": "內建瀏覽器開啟",
+  "openInSystemBrowser": "系統瀏覽器開啟",
   "copySuccess": "已複製",
   "copyFailed": "複製失敗",
   "download": "下載",
@@ -99,6 +101,11 @@
       "diagnosticsSent": "診斷報告已傳送",
       "diagnosticsReportSuccess": "診斷報告已傳送",
       "diagnosticsReportFailed": "診斷報告傳送失敗"
+    },
+    "databaseNewerThanApp": {
+      "title": "需要更新 AionUi",
+      "description": "本機資料由較新版本的 AionUi 建立，目前版本無法開啟。請將 AionUi 更新至最新版本即可繼續使用，資料完好無損，無需重新安裝或重設資料。",
+      "descriptionWithVersion": "本機資料由比目前版本 v{{currentVersion}} 更新的 AionUi 建立，目前版本無法開啟。請將 AionUi 更新至最新版本即可繼續使用，資料完好無損，無需重新安裝或重設資料。"
     },
     "localDataRepair": {
       "title": "本機資料修復失敗",

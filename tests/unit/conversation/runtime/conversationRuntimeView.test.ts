@@ -478,6 +478,60 @@ describe('conversationRuntimeViewStore', () => {
     });
   });
 
+  it('keeps the input box usable mid-turn when the backend delivers mid-turn', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: true,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(true);
+  });
+
+  it('keeps the input box locked mid-turn for agents that cannot deliver mid-turn', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: false,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(false);
+  });
+
+  it('keeps the input box locked while a confirmation is pending even for mid-turn-capable backends', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'waiting_confirmation',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: true,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(false);
+  });
+
   it('defaults to an idle view before hydration', () => {
     expect(createDefaultConversationRuntimeView(conversation_id)).toMatchObject({
       state: 'idle',

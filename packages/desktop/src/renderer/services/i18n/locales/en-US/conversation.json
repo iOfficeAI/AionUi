@@ -58,6 +58,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "Mark as unread",
+    "markAsRead": "Mark as read",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
@@ -509,7 +511,14 @@
     "mode": {
       "auto": "Auto send",
       "manual": "Manual send"
-    }
+    },
+    "addToQueue": "Save to Draft box",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "context used",
@@ -593,11 +602,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} step(s) failed and did NOT take effect. agy ends such turns as successful, so check the result rather than the reply."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "agy {{reported}} is older than the {{verified}} this integration was verified against; some features may be missing. Consider upgrading agy."
+      "CLI_VERSION_OLDER": {
+        "body": "The installed {{cli}} is older than the version AionUi verified; some features may be missing. Consider upgrading {{cli}}. (installed {{reported}} / verified by AionUi: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "agy {{reported}} is newer than the {{verified}} this integration was verified against. It should still work; report anything that behaves oddly."
+      "CLI_VERSION_NEWER": {
+        "body": "The installed {{cli}} is newer than the version AionUi verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; AionUi is waiting it out.)"
       }
     }
   },
@@ -611,7 +623,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Rename",
-      "addToChat": "Add to chat"
+      "addToChat": "Add to chat",
+      "copyRelativePath": "Copy relative path",
+      "copyAbsolutePath": "Copy absolute path"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -642,6 +656,15 @@
         "changes": "Changes",
         "blocked": "Needs resolving"
       },
+      "sections": {
+        "repositories": "Repositories",
+        "changes": "Changes"
+      },
+      "viewAsTree": "View as tree",
+      "viewAsList": "View as list",
+      "worktree": "Worktree",
+      "expandWorktrees": "Show worktrees",
+      "collapseWorktrees": "Hide worktrees",
       "state": {
         "created": "Added",
         "modified": "Modified",
@@ -696,7 +719,9 @@
         "outcomeUnknown": "The connection reset before a reply arrived — this action may or may not have completed. Refresh and check the file list before retrying.",
         "allFailed": "None of the {{count}} file(s) could be processed"
       }
-    }
+    },
+    "pathCopied": "Path copied",
+    "copyFailed": "Failed to copy path"
   },
   "terminal": {
     "running": "Running",

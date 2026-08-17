@@ -58,6 +58,8 @@
     "exportFailed": "Помилка експорту",
     "pin": "Закріпити",
     "unpin": "Відкріпити",
+    "markAsUnread": "Позначити як непрочитане",
+    "markAsRead": "Позначити як прочитане",
     "pinned": "Закріплено",
     "pinFailed": "Не вдалося закріпити",
     "pinnedSection": "Закріплені",
@@ -508,7 +510,14 @@
     "mode": {
       "auto": "Авто-надсилання",
       "manual": "Ручне надсилання"
-    }
+    },
+    "addToQueue": "Додати до чернеток",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Втручання не підтримується, поки цей агент відповідає. Використайте «Додати до чернеток».",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "контексту використано",
@@ -592,11 +601,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "Кроків завершилося невдало: {{count}}; вони НЕ були виконані. agy все одно позначає такі ходи як успішні — перевіряйте фактичний результат, а не відповідь."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "Встановлена версія agy {{reported}} старіша за перевірену для цієї інтеграції {{verified}}; частина можливостей може бути відсутня. Радимо оновити agy."
+      "CLI_VERSION_OLDER": {
+        "body": "Встановлена версія {{cli}} старіша за перевірену AionUi; деякі можливості можуть бути відсутні. Радимо оновити {{cli}}. (встановлено: {{reported}} / перевірено AionUi: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "Встановлена версія agy {{reported}} новіша за перевірену для цієї інтеграції {{verified}}. Зазвичай усе працює; повідомляйте про дивну поведінку."
+      "CLI_VERSION_NEWER": {
+        "body": "Встановлена версія {{cli}} новіша за перевірену AionUi. Зазвичай усе працює; повідомте про дивну поведінку. (встановлено: {{reported}} / перевірено AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (спроба {{attempts}}, минуло {{elapsed}} — провайдер агента постійно обриває з'єднання, AionUi очікує відновлення.)"
       }
     }
   },
@@ -610,7 +622,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Перейменувати",
-      "addToChat": "Додати в чат"
+      "addToChat": "Додати в чат",
+      "copyRelativePath": "Копіювати відносний шлях",
+      "copyAbsolutePath": "Копіювати абсолютний шлях"
     },
     "namePlaceholder": "Назва",
     "deleteConfirm": "Видалити «{{name}}»? Цю дію не можна скасувати.",
@@ -641,6 +655,15 @@
         "changes": "Зміни",
         "blocked": "Потребує розв’язання"
       },
+      "sections": {
+        "repositories": "Репозиторії",
+        "changes": "Зміни"
+      },
+      "viewAsTree": "Показати деревом",
+      "viewAsList": "Показати списком",
+      "worktree": "Робоче дерево",
+      "expandWorktrees": "Показати робочі дерева",
+      "collapseWorktrees": "Приховати робочі дерева",
       "state": {
         "created": "Додано",
         "modified": "Змінено",
@@ -695,7 +718,9 @@
         "outcomeUnknown": "З’єднання скинуто до отримання відповіді — операція могла завершитися, а могла й ні. Оновіть і перевірте список файлів, перш ніж повторювати.",
         "allFailed": "Жоден із {{count}} файл(ів) не вдалося обробити"
       }
-    }
+    },
+    "pathCopied": "Шлях скопійовано",
+    "copyFailed": "Не вдалося скопіювати шлях"
   },
   "terminal": {
     "running": "Виконується",

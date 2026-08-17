@@ -1,5 +1,154 @@
 # Changelog
 
+## [2.1.56](https://github.com/iOfficeAI/AionUi/compare/v2.1.55...v2.1.56) (2026-08-14)
+
+### Desktop
+
+#### Features
+
+- **sidebar:** allow marking a conversation as unread (#4028)
+- **agent:** show a deferred mode switch as pending instead of switched (#4031)
+
+#### Refactoring
+
+- **theme:** remove deprecated community themes, keep official (#3922)
+
+### Core ([v0.1.67](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.67))
+
+#### Features
+
+- **session:** report a deferred mode switch as pending instead of observed (#846)
+
+#### Bug Fixes
+
+- restore direct CLI Team MCP capabilities (#853)
+
+---
+
+## [2.1.55](https://github.com/iOfficeAI/AionUi/compare/v2.1.54...v2.1.55) (2026-08-13)
+
+### Desktop
+
+#### Features
+
+- **conversation:** surface fork entry point in aionrs chats
+
+#### Bug Fixes
+
+- **update:** reject downgrade offers in update check (#4010)
+
+### Core ([v0.1.66](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.66))
+
+#### Features
+
+- **conversation:** support forking aionrs conversations
+
+#### Bug Fixes
+
+- **session:** retry claude session-title generation with timeout and observability (#843)
+
+---
+
+## [2.1.54](https://github.com/iOfficeAI/AionUi/compare/v2.1.53...v2.1.54) (2026-08-12)
+
+### Desktop
+
+#### Features
+
+- **backend:** honor AIONUI_BACKEND_BIN override in desktop resolver (#3988)
+- **channel:** add Discord channel configuration UI (#3956)
+- **conversation:** open selected links in built-in or system browser (#3959)
+- **preview:** add save button to editable file toolbar (#3964)
+- **preview:** enable mermaid pan/zoom controls in markdown viewer (#3958)
+- **startup:** dedicated dialog for database created by newer AionUi (downgrade) (#3998)
+
+#### Bug Fixes
+
+- **explorer:** stop React #185 loadMore loop (#3966)
+- **preview:** download PDF, DOCX, XLSX, and PPTX (#3973)
+
+### Core ([v0.1.65](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.65))
+
+#### Features
+
+- **db:** dedicated startup stage for database created by a newer app (downgrade) (#834)
+
+#### Bug Fixes
+
+- **antigravity:** parse TSV output from `agy models` (#797)
+- **conversation:** tell the client when a turn is cancelled before its agent exists (#827)
+
+---
+
+## [2.1.53](https://github.com/iOfficeAI/AionUi/compare/v2.1.52...v2.1.53) (2026-08-10)
+
+### Desktop
+
+#### Features
+
+- **channel:** add Slack channel configuration UI (#3935)
+- **explorer:** add copy relative/absolute path context-menu items (#3929)
+- **scm:** add collapsible sections and tree/list view to SCM panel (#3926)
+
+#### Bug Fixes
+
+- **assistants:** let the editor drive Antigravity (#3951)
+- **build:** merge React vendors into one chunk to fix white screen (#3938)
+- **chat:** copy button copies the whole AI turn, not just its last text segment (#3949)
+- **conversation:** render preview on narrow width for project chats (#3934)
+- **explorer:** re-subscribe a rejected fs subscribe instead of stranding it (#3954)
+- **packaging:** stop requiring bundled claude/codex, generalize drift copy (#3916)
+- **preview:** resolve project markdown relative images via fileRef (#3948)
+- **sendbox:** let a folder / pe root added to chat produce a chip (#3869)
+- **skills:** support skill file browsing in webui (#3946)
+
+#### Refactoring
+
+- **theme:** drop legacy theme migration (#3918)
+
+### Core ([v0.1.63](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.63))
+
+#### Features
+
+- **channel:** add Slack Socket Mode plugin (#806)
+- **fs:** add copy-absolute-path endpoint that writes the clipboard server-side (#803)
+- **scm:** one-level repository discovery for workspace roots (#800)
+
+#### Bug Fixes
+
+- **agent:** stop the idle scanner from killing agents with live background tasks (#811)
+- **project:** emit real-case absolute path to agents, not folded canonical (#809)
+
+#### Refactoring
+
+- **session:** run the user's own claude/codex, with one shared version-drift path (#799)
+
+---
+
+## [2.1.52](https://github.com/iOfficeAI/AionUi/compare/v2.1.50...v2.1.52) (2026-08-07)
+
+### Desktop
+
+#### Features
+
+- **scm:** Changes panel with multi-repo switcher and repo labels (#3894)
+
+#### Bug Fixes
+
+- **guid:** align assistant dropdown search fields with Agent settings (#3903)
+- **security:** prevent path traversal in image generation MCP tool (#3906)
+- **shortcuts:** use platform-native primary modifier (#3909)
+- **theme:** converge appearance attributes and defer arco-theme (#3917)
+- **theme:** parse custom CSS via postcss instead of regex (#3915)
+
+### Core ([v0.1.62](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.62))
+
+#### Features
+
+- **scm:** live repository-set changes + pe_name (#790)
+
+---
+
 ## [2.1.50](https://github.com/iOfficeAI/AionUi/compare/v2.1.49...v2.1.50) (2026-08-06)
 
 ### Desktop

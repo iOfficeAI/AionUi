@@ -17,5 +17,6 @@
   "permission": "Berechtigung",
   "switchMode": "Modus wechseln",
   "switchSuccess": "Modus erfolgreich gewechselt",
+  "switchPendingNextTurn": "Wird ab der nächsten Runde wirksam",
   "switchFailed": "Moduswechsel fehlgeschlagen"
 }

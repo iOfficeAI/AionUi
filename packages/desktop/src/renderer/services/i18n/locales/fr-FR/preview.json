@@ -146,6 +146,10 @@
   },
   "saveConflict": "Échec de l'enregistrement : ce fichier a changé sur le disque depuis que vous l'avez ouvert. Rechargez pour voir les autres modifications — vos modifications sont toujours là, non enregistrées.",
   "persistQuotaExceeded": "Le stockage local est plein : les onglets ouverts de ce projet ne peuvent plus être mémorisés. Fermez des onglets ou effacez les données du site.",
+  "save": {
+    "tooltip": "Enregistrer les modifications (Ctrl/Cmd+S)",
+    "clean": "Aucune modification non enregistrée"
+  },
   "refresh": {
     "label": "Actualiser",
     "tooltip": "Recharger depuis le disque",

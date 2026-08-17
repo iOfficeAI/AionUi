@@ -87,5 +87,8 @@
   "askDeclined": "已跳過",
   "askOther": "其它",
   "askOtherPlaceholder": "輸入你的回答",
-  "requestDetails": "請求內容："
+  "requestDetails": "請求內容：",
+  "delivery": {
+    "pending": "未讀"
+  }
 }

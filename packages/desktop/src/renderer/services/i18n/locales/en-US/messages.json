@@ -87,5 +87,8 @@
   "askDeclined": "Dismissed",
   "askOther": "Other",
   "askOtherPlaceholder": "Type your answer",
-  "requestDetails": "Request details:"
+  "requestDetails": "Request details:",
+  "delivery": {
+    "pending": "Unread"
+  }
 }

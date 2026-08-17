@@ -135,6 +135,65 @@ function subscribeConversationSetStatus(
   };
 }
 
+/**
+ * Values the backend ACCEPTED but has not applied yet, keyed by option id.
+ *
+ * Conversation-scoped and shared exactly like `setStatus`, so every selector mounted on
+ * the same conversation (send box, mobile action sheet) agrees on what is pending.
+ *
+ * Cleared when the confirmation lands — the pump pushes an `acp_config_option` frame once
+ * the agent really applies the value, and the snapshot it carries resolves the entry.
+ */
+const pendingByConversation = new Map<string, Record<string, string>>();
+const pendingListeners = new Map<string, Set<(pending: Record<string, string>) => void>>();
+
+const EMPTY_PENDING: Record<string, string> = {};
+
+function getConversationPending(conversation_id: string): Record<string, string> {
+  return pendingByConversation.get(conversation_id) ?? EMPTY_PENDING;
+}
+
+function setConversationPending(conversation_id: string, pending: Record<string, string>): void {
+  if (Object.keys(pending).length === 0) pendingByConversation.delete(conversation_id);
+  else pendingByConversation.set(conversation_id, pending);
+  const next = getConversationPending(conversation_id);
+  pendingListeners.get(conversation_id)?.forEach((listener) => listener(next));
+}
+
+function markPending(conversation_id: string, optionId: string, value: string): void {
+  setConversationPending(conversation_id, { ...getConversationPending(conversation_id), [optionId]: value });
+}
+
+/** Drop any pending entry whose value the snapshot now reports as current. */
+function resolvePendingFromSnapshot(conversation_id: string, options: AcpConfigOptionDto[]): void {
+  const pending = getConversationPending(conversation_id);
+  const ids = Object.keys(pending);
+  if (ids.length === 0) return;
+  const next = { ...pending };
+  let changed = false;
+  for (const id of ids) {
+    const option = options.find((candidate) => candidate.id === id);
+    if (option && getOptionCurrentValue(option) === pending[id]) {
+      delete next[id];
+      changed = true;
+    }
+  }
+  if (changed) setConversationPending(conversation_id, next);
+}
+
+function subscribeConversationPending(
+  conversation_id: string,
+  listener: (pending: Record<string, string>) => void
+): () => void {
+  const listeners = pendingListeners.get(conversation_id) ?? new Set<(pending: Record<string, string>) => void>();
+  listeners.add(listener);
+  pendingListeners.set(conversation_id, listeners);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) pendingListeners.delete(conversation_id);
+  };
+}
+
 const ensureRuntimeConfigOptions: AcpConfigOptionsLoader = async (conversation_id: string) =>
   (await ensureConversationRuntime(conversation_id)).config_options;
 
@@ -173,6 +232,9 @@ export function useAcpConfigOptions({
   enabled?: boolean;
 }) {
   const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
+  const [pendingValues, setPendingValues] = useState<Record<string, string>>(() =>
+    getConversationPending(conversation_id)
+  );
   const [isReloading, setIsReloading] = useState(false);
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
   const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
@@ -196,6 +258,11 @@ export function useAcpConfigOptions({
   useEffect(() => {
     setSetStatus(getConversationSetStatus(conversation_id));
     return subscribeConversationSetStatus(conversation_id, setSetStatus);
+  }, [conversation_id]);
+
+  useEffect(() => {
+    setPendingValues(getConversationPending(conversation_id));
+    return subscribeConversationPending(conversation_id, setPendingValues);
   }, [conversation_id]);
 
   const replaceSnapshot = useCallback(
@@ -236,9 +303,20 @@ export function useAcpConfigOptions({
           value,
         });
         const confirmation = response.confirmation;
+        // Accepted, but the agent applies it only from the next turn. NOT an error: the
+        // request landed, it just is not governing yet. Record it as pending so the
+        // picker can show the target alongside the mode still in force, and keep the
+        // snapshot the backend returned — which deliberately still reports the OLD value.
+        if (confirmation === 'pending_next_turn') {
+          markPending(conversation_id, optionId, value);
+          if (response.config_options) replaceSnapshot(response.config_options);
+          return response.config_options;
+        }
         if (!hasObservedValue(response, optionId, value)) {
           throw new Error(confirmation === 'command_ack' ? 'command_ack' : 'config_not_observed');
         }
+        // A switch that landed supersedes any pending entry for the same option.
+        resolvePendingFromSnapshot(conversation_id, response.config_options);
         replaceSnapshot(response.config_options);
         return response.config_options;
       } finally {
@@ -260,7 +338,13 @@ export function useAcpConfigOptions({
       if (message.type === 'acp_config_option' && message.data) {
         const optionPayload = message.data as { config_options?: AcpConfigOptionDto[] } | AcpConfigOptionDto[];
         const next = Array.isArray(optionPayload) ? optionPayload : optionPayload.config_options;
-        if (Array.isArray(next)) replaceSnapshot(next);
+        if (Array.isArray(next)) {
+          // This frame is the agent's own confirmation (the pump re-projects the whole
+          // snapshot when it sees `ConfigChanged`), so anything it now reports as current
+          // is no longer pending.
+          resolvePendingFromSnapshot(conversation_id, next);
+          replaceSnapshot(next);
+        }
       }
       if (message.type === 'agent_status') {
         const statusPayload = message.data as { status?: string } | undefined;
@@ -274,6 +358,7 @@ export function useAcpConfigOptions({
     configOptions,
     isLoading: enabled && !configOptions && (isLoading || isReloading),
     setStatus,
+    pendingValues,
     mode: deriveSelectOption(configOptions, 'mode', ['mode']),
     model: deriveSelectOption(configOptions, 'model', ['model']),
     thoughtLevel: deriveSelectOption(configOptions, 'thought_level', ['thought_level', 'reasoning_effort']),

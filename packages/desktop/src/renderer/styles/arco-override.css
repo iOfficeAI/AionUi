@@ -575,6 +575,18 @@ body[arco-theme='dark'] .arco-message-error {
   overflow: visible;
 }
 
+/* Explorer file-tree right-click menu: show every item, no height cap / scroll.
+   Arco caps .arco-dropdown-menu at 200px (overflow:auto), so a 6+ item menu
+   (add-to-chat / reveal / copy rel / copy abs / rename / delete) grows a
+   scrollbar. This menu has few, fixed items and the user wants them all
+   visible. Scoped by the `explorer-context-menu` class on <Menu> so other
+   200px-capped dropdowns keep their scroll. Higher specificity than the base
+   rule, so no !important is needed. */
+.arco-dropdown-menu.explorer-context-menu {
+  max-height: none;
+  overflow: visible;
+}
+
 /* Provider group titles pin to the top of the inner scroll container. It has no
  * top padding, so top:0 hugs the edge with no gap for items to peek through.
  * Only relevant for the grouped (aionrs) list; harmless for flat lists. */

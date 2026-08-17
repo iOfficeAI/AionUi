@@ -87,5 +87,8 @@
   "askDeclined": "Übersprungen",
   "askOther": "Andere",
   "askOtherPlaceholder": "Antwort eingeben",
-  "requestDetails": "Anfragedetails:"
+  "requestDetails": "Anfragedetails:",
+  "delivery": {
+    "pending": "Ungelesen"
+  }
 }

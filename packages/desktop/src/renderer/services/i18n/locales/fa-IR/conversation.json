@@ -58,6 +58,8 @@
     "exportFailed": "خروجی ناموفق بود",
     "pin": "سنجاق",
     "unpin": "برداشتن سنجاق",
+    "markAsUnread": "علامت‌گذاری به عنوان خوانده‌نشده",
+    "markAsRead": "علامت‌گذاری به عنوان خوانده‌شده",
     "pinned": "سنجاق‌شده",
     "pinFailed": "عملیات سنجاق ناموفق بود",
     "pinnedSection": "سنجاق‌شده",
@@ -508,7 +510,14 @@
     "mode": {
       "auto": "ارسال خودکار",
       "manual": "ارسال دستی"
-    }
+    },
+    "addToQueue": "افزودن به جعبه پیش‌نویس",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "وقتی این عامل در حال پاسخ‌دهی است، مداخله پشتیبانی نمی‌شود. در عوض از «افزودن به جعبه پیش‌نویس» استفاده کنید.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "زمینه استفاده‌شده",
@@ -592,11 +601,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} مرحله ناموفق بود و اعمال نشد. agy چنین نوبت‌هایی را همچنان موفق پایان می‌دهد؛ بنابراین به‌جای پاسخ، نتیجهٔ واقعی را بررسی کنید."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "نسخهٔ نصب‌شدهٔ agy {{reported}} قدیمی‌تر از نسخهٔ {{verified}} است که این یکپارچه‌سازی با آن بررسی شده؛ ممکن است برخی قابلیت‌ها موجود نباشد. ارتقای agy توصیه می‌شود."
+      "CLI_VERSION_OLDER": {
+        "body": "نسخهٔ نصب‌شدهٔ {{cli}} قدیمی‌تر از نسخهٔ تأییدشده توسط AionUi است؛ ممکن است برخی قابلیت‌ها نباشند. ارتقای {{cli}} توصیه می‌شود. (نصب‌شده: {{reported}} / تأییدشده توسط AionUi: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "نسخهٔ نصب‌شدهٔ agy {{reported}} جدیدتر از نسخهٔ {{verified}} است که این یکپارچه‌سازی با آن بررسی شده. معمولاً کار می‌کند؛ هر رفتار غیرعادی را گزارش دهید."
+      "CLI_VERSION_NEWER": {
+        "body": "نسخهٔ نصب‌شدهٔ {{cli}} جدیدتر از نسخهٔ تأییدشده توسط AionUi است. معمولاً کار می‌کند؛ رفتار غیرعادی را گزارش کنید. (نصب‌شده: {{reported}} / تأییدشده توسط AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (تلاش {{attempts}}، {{elapsed}} سپری شده — ارائه‌دهنده ایجنت مدام اتصال را قطع می‌کند؛ AionUi در حال انتظار است.)"
       }
     }
   },
@@ -610,7 +622,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "تغییر نام",
-      "addToChat": "افزودن به گفتگو"
+      "addToChat": "افزودن به گفتگو",
+      "copyRelativePath": "کپی کردن مسیر نسبی",
+      "copyAbsolutePath": "کپی کردن مسیر مطلق"
     },
     "namePlaceholder": "نام",
     "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
@@ -641,6 +655,15 @@
         "changes": "تغییرات",
         "blocked": "نیازمند رفع"
       },
+      "sections": {
+        "repositories": "مخازن",
+        "changes": "تغییرات"
+      },
+      "viewAsTree": "نمایش درختی",
+      "viewAsList": "نمایش فهرستی",
+      "worktree": "درخت‌کاری",
+      "expandWorktrees": "نمایش درخت‌کاری‌ها",
+      "collapseWorktrees": "پنهان کردن درخت‌کاری‌ها",
       "state": {
         "created": "افزوده‌شده",
         "modified": "تغییریافته",
@@ -695,7 +718,9 @@
         "outcomeUnknown": "پیش از رسیدن پاسخ، اتصال بازنشانی شد — این عمل ممکن است کامل شده باشد یا نه. پیش از تلاش دوباره، بازخوانی کنید و فهرست پرونده‌ها را بررسی کنید.",
         "allFailed": "هیچ‌یک از {{count}} پرونده پردازش نشد"
       }
-    }
+    },
+    "pathCopied": "مسیر کپی شد",
+    "copyFailed": "کپی مسیر ناموفق بود"
   },
   "terminal": {
     "running": "در حال اجرا",

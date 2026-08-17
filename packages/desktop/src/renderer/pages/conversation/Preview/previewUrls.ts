@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getBaseUrl } from '@/common/adapter/httpBridge';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import { buildFileStreamUrl } from '@/renderer/utils/file/fileUrls';
 
 /**
  * Build the backend stream URL for a ChatFileRef-addressed file.
@@ -17,14 +17,7 @@ import type { ChatFileRef } from '@/common/types/chatFile';
  * percent-encodes each value; the backend's serde_urlencoded Query decodes it.
  */
 export const buildStreamUrl = (ref: ChatFileRef): string => {
-  const params = new URLSearchParams({ kind: ref.kind });
-  if (ref.kind === 'project') {
-    params.set('pe_id', ref.pe_id);
-    params.set('relative_path', ref.relative_path);
-  } else {
-    params.set('path', ref.path);
-  }
-  return `${getBaseUrl()}/api/fs/stream?${params.toString()}`;
+  return buildFileStreamUrl(ref);
 };
 
 /**

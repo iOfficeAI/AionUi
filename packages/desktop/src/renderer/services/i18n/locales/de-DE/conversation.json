@@ -58,6 +58,8 @@
     "exportFailed": "Export fehlgeschlagen",
     "pin": "Anheften",
     "unpin": "Loslösen",
+    "markAsUnread": "Als ungelesen markieren",
+    "markAsRead": "Als gelesen markieren",
     "pinned": "Angeheftet",
     "pinFailed": "Anheften fehlgeschlagen",
     "pinnedSection": "Angeheftet",
@@ -509,7 +511,14 @@
     "mode": {
       "auto": "Auto senden",
       "manual": "Manuell senden"
-    }
+    },
+    "addToQueue": "Zum Entwurfsfach hinzufügen",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Ein Einwurf wird nicht unterstützt, während dieser Agent antwortet. Verwende stattdessen „Zum Entwurfsfach hinzufügen“.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "Kontext verwendet",
@@ -593,11 +602,14 @@
       "ANTIGRAVITY_STEPS_FAILED": {
         "body": "{{count}} Schritt(e) sind fehlgeschlagen und wurden NICHT ausgeführt. agy schließt solche Durchläufe trotzdem als erfolgreich ab – prüfe daher das tatsächliche Ergebnis statt der Antwort."
       },
-      "ANTIGRAVITY_VERSION_OLDER": {
-        "body": "Das installierte agy {{reported}} ist älter als die für diese Integration geprüfte Version {{verified}}; einzelne Funktionen fehlen möglicherweise. Ein Update wird empfohlen."
+      "CLI_VERSION_OLDER": {
+        "body": "Das installierte {{cli}} ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade von {{cli}} wird empfohlen. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
       },
-      "ANTIGRAVITY_VERSION_NEWER": {
-        "body": "Das installierte agy {{reported}} ist neuer als die für diese Integration geprüfte Version {{verified}}. Es sollte weiterhin funktionieren – melde bitte alles, was sich seltsam verhält."
+      "CLI_VERSION_NEWER": {
+        "body": "Das installierte {{cli}} ist neuer als die von AionUi verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AionUi wartet ab.)"
       }
     }
   },
@@ -611,7 +623,9 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Umbenennen",
-      "addToChat": "Zum Chat hinzufügen"
+      "addToChat": "Zum Chat hinzufügen",
+      "copyRelativePath": "Relativen Pfad kopieren",
+      "copyAbsolutePath": "Absoluten Pfad kopieren"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -642,6 +656,15 @@
         "changes": "Änderungen",
         "blocked": "Muss gelöst werden"
       },
+      "sections": {
+        "repositories": "Repositorys",
+        "changes": "Änderungen"
+      },
+      "viewAsTree": "Als Baum anzeigen",
+      "viewAsList": "Als Liste anzeigen",
+      "worktree": "Worktree",
+      "expandWorktrees": "Worktrees anzeigen",
+      "collapseWorktrees": "Worktrees ausblenden",
       "state": {
         "created": "Hinzugefügt",
         "modified": "Geändert",
@@ -696,7 +719,9 @@
         "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
         "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
       }
-    }
+    },
+    "pathCopied": "Pfad kopiert",
+    "copyFailed": "Pfad konnte nicht kopiert werden"
   },
   "terminal": {
     "running": "Läuft",

@@ -146,6 +146,10 @@
   },
   "saveConflict": "Speichern fehlgeschlagen: Diese Datei wurde auf der Festplatte geändert, nachdem Sie sie geöffnet haben. Neu laden, um die anderen Änderungen zu sehen — Ihre Bearbeitungen sind noch da, ungespeichert.",
   "persistQuotaExceeded": "Der lokale Speicher ist voll, offene Tabs dieses Projekts können nicht mehr gemerkt werden. Schließen Sie einige Tabs oder löschen Sie die Websitedaten.",
+  "save": {
+    "tooltip": "Änderungen speichern (Strg/Cmd+S)",
+    "clean": "Keine ungespeicherten Änderungen"
+  },
   "refresh": {
     "label": "Aktualisieren",
     "tooltip": "Von der Festplatte neu laden",

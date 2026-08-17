@@ -22,18 +22,18 @@
 
 **渠道列表与排序**：
 
-| 顺序 | 渠道          | pluginId                | 状态        |
-| ---- | ------------- | ----------------------- | ----------- |
-| 1    | Telegram      | `telegram_default`      | active      |
-| 2    | Lark / Feishu | `lark_default`          | active      |
-| 3    | DingTalk      | `dingtalk_default`      | active      |
-| 4    | WeChat        | `weixin_default`        | active      |
-| 5    | WeCom         | `wecom_default`         | active      |
-| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active      |
-| 末尾 | Slack         | -                       | coming_soon |
-| 末尾 | Discord       | -                       | coming_soon |
+| 顺序 | 渠道          | pluginId                | 状态   |
+| ---- | ------------- | ----------------------- | ------ |
+| 1    | Telegram      | `telegram_default`      | active |
+| 2    | Slack         | `slack_default`         | active |
+| 3    | Discord       | `discord`               | active |
+| 4    | Lark / Feishu | `lark_default`          | active |
+| 5    | DingTalk      | `dingtalk_default`      | active |
+| 6    | WeChat        | `weixin_default`        | active |
+| 7    | WeCom         | `wecom_default`         | active |
+| 8+   | 扩展渠道      | 动态（`extensionMeta`） | active |
 
-**说明**：Slack/Discord 若已被扩展渠道实现（`extensionTypeSet` 包含 `slack`/`discord`），则隐藏对应 coming_soon 占位卡片。
+**说明**：Discord 已从占位（coming_soon）升级为内置 active 渠道，`comingSoonChannels` 占位列表已随之移除。
 
 **异常情况**：
 
@@ -48,8 +48,7 @@
 - [ ] Switch 开关可在卡片 header 直接操作
 - [ ] 渠道状态（Connected/未连接）实时更新
 - [ ] 非桌面端直接显示 Channels 内容（无 Tab 切换）
-- [ ] Slack/Discord 显示"coming soon"占位文案
-- [ ] 已被扩展实现的 coming_soon 渠道自动隐藏
+- [ ] Discord 作为内置 active 渠道显示，可展开配置面板
 
 ---
 
@@ -90,6 +89,90 @@
 - [ ] 授权用户列表显示用户名、平台、授权时间
 - [ ] 可撤销已授权用户
 - [ ] 有授权用户时 Token 和 Test 按钮禁用
+- [ ] 配对请求和授权用户列表支持手动刷新
+
+---
+
+## (F-WEBUI-13b) Slack 渠道配置 [已实现]
+
+**用户故事**：作为用户，我希望通过输入 Slack Bot Token 和 App-Level Token 连接 Slack（Socket Mode），并管理通过 Slack 与 AionUi 交互的授权用户。
+
+**前置条件**：用户已在 Slack 创建应用、安装到工作区并获取 Bot User OAuth Token（`xoxb-`），且已开启 Socket Mode 并生成带 `connections:write` 权限的 App-Level Token（`xapp-`）。
+
+**正常流程**（用户视角）：
+
+1. 展开 Slack 卡片，显示配置面板
+2. **Bot Token 输入**：Password 类型输入框（260px 宽），带可见性切换，placeholder `xoxb-...`
+3. **App-Level Token 输入**：Password 类型输入框（260px 宽），带可见性切换，placeholder `xapp-...`
+4. 点击"Test"按钮测试连接（测试仅通过 `auth.test` 校验 Bot Token；App-Level Token 仅在建立 Socket Mode 连接时使用）
+5. 测试成功：toast 提示"Connected! Bot: @xxx"，自动启用插件（`enablePlugin`，携带 `credentials.token` + `credentials.app_token` 两个 token），刷新状态
+6. 启用成功后 header 的 Switch 变为 ON，状态徽标变为 Connected
+7. 下方出现"Next Steps"引导卡片（4 步操作指引），引导用户在 Slack 中 @Bot 或发送 DM 触发配对
+8. 用户在 Slack 发送消息后，"Pending Pairing Requests"区域实时出现配对请求（通过 `channel.pairingRequested.on` 事件推送）
+9. 点击"Approve"批准配对，用户移入"Authorized Users"列表
+10. 授权后两个 Token 输入框和 Test 按钮变为 disabled（`tokenLocked` tooltip："请先关闭渠道并删除所有授权用户后才能修改配置"）
+
+**异常情况**：
+
+- Bot Token 为空点击 Test：warning toast "Please enter a Bot Token (xoxb-)"
+- App-Level Token 为空点击 Test：warning toast "Please enter an App-Level Token (xapp-)"
+- Token 前缀不符（软校验）：warning toast 提示应以 `xoxb-` / `xapp-` 开头
+- 测试失败（Token 无效/网络错误）：error toast 显示后端错误信息或"Connection failed"
+- 启用无 Token（Switch 直接打开）：warning toast "Please enter and test your Slack tokens first"
+- 批准配对失败：error toast
+- 拒绝配对：info toast "Pairing rejected"
+- 撤销用户失败：error toast
+
+**验收标准**：
+
+- [ ] Bot Token 与 App-Level Token 输入框均支持 Password 可见性切换
+- [ ] Test 按钮仅校验 Bot Token，成功后携带双 token 自动启用插件
+- [ ] 启用后显示 4 步操作引导
+- [ ] 实时接收并显示配对请求
+- [ ] 可批准/拒绝配对请求
+- [ ] 授权用户列表显示用户名、平台、授权时间
+- [ ] 可撤销已授权用户
+- [ ] 有授权用户时两个 Token 输入框和 Test 按钮禁用
+- [ ] 配对请求和授权用户列表支持手动刷新
+
+---
+
+## (F-WEBUI-13c) Discord 渠道配置 [已实现]
+
+**用户故事**：作为用户，我希望通过输入 Discord Bot Token 连接 Discord，并管理通过 Discord 与 AionUi 交互的授权用户。
+
+**前置条件**：用户已在 Discord Developer Portal 创建应用、添加 Bot、开启 MESSAGE CONTENT intent（消息内容权限）并获取 Bot Token。
+
+**正常流程**（用户视角）：
+
+1. 展开 Discord 卡片，显示配置面板
+2. **Bot Token 输入**：Password 类型输入框，带可见性切换，placeholder `MTAx...`
+3. 点击"Test"按钮测试连接（后端通过 `GET /users/@me` 校验 Bot Token）
+4. 测试成功：toast 提示"Connected! Bot: @xxx"，自动启用插件（`enablePlugin`，携带 `credentials.token` 单个 token），刷新状态
+5. 启用成功后 header 的 Switch 变为 ON，状态徽标变为 Connected
+6. 下方出现"Next Steps"引导卡片（4 步操作指引），引导用户在 Discord 中 @Bot 或发送 DM 触发配对
+7. 用户在 Discord 发送消息后，"Pending Pairing Requests"区域实时出现配对请求（通过 `channel.pairingRequested.on` 事件推送）
+8. 点击"Approve"批准配对，用户移入"Authorized Users"列表
+9. 授权后 Token 输入框和 Test 按钮变为 disabled（`tokenLocked` tooltip："请先关闭渠道并删除所有授权用户后才能修改配置"）
+
+**异常情况**：
+
+- Token 为空点击 Test：warning toast "Please enter a bot token"
+- 测试失败（Token 无效/网络错误）：error toast 显示后端错误信息或"Connection failed"
+- 批准配对失败：error toast
+- 拒绝配对：info toast "Pairing rejected"
+- 撤销用户失败：error toast
+
+**验收标准**：
+
+- [ ] Bot Token 输入框支持 Password 可见性切换
+- [ ] Test 按钮仅校验 Bot Token，成功后携带单 token 自动启用插件
+- [ ] 启用后显示 4 步操作引导
+- [ ] 实时接收并显示配对请求
+- [ ] 可批准/拒绝配对请求
+- [ ] 授权用户列表显示用户名、平台、授权时间
+- [ ] 可撤销已授权用户
+- [ ] 有授权用户时 Token 输入框和 Test 按钮禁用
 - [ ] 配对请求和授权用户列表支持手动刷新
 
 ---
@@ -323,7 +406,7 @@ idle → loading_qr → showing_qr → scanned → connected
 
 **用户故事**：作为用户，我希望通过配对码机制控制哪些 IM 用户可以与我的 AionUi 交互，保证安全性。
 
-**适用渠道**：Telegram、Lark、DingTalk、WeChat、WeCom（全部 5 个已实现渠道共享此流程）
+**适用渠道**：Telegram、Slack、Discord、Lark、DingTalk、WeChat、WeCom（全部 7 个已实现内置渠道共享此流程）
 
 **正常流程**（用户视角）：
 
@@ -342,7 +425,7 @@ idle → loading_qr → showing_qr → scanned → connected
    - "Revoke access"删除按钮（红色危险态）
 7. 点击 Revoke：`channel.revokeUser.invoke({ userId })` → 成功 toast → 用户从列表移除
 
-**凭据锁定机制**：当 `authorizedUsers.length > 0` 时，凭据输入框和测试按钮变为 disabled，tooltip 提示"请先关闭渠道并删除所有授权用户后才能修改配置"。此规则适用于 Telegram（Token）、Lark（AppID/Secret）、DingTalk（ClientID/Secret）、WeCom（BotID/Secret）。
+**凭据锁定机制**：当 `authorizedUsers.length > 0` 时，凭据输入框和测试按钮变为 disabled，tooltip 提示"请先关闭渠道并删除所有授权用户后才能修改配置"。此规则适用于 Telegram（Token）、Slack（Bot Token + App-Level Token）、Discord（Token）、Lark（AppID/Secret）、DingTalk（ClientID/Secret）、WeCom（BotID/Secret）。
 
 **异常情况**：
 
