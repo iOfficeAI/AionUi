@@ -28,7 +28,6 @@ import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import {
-  shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
@@ -229,7 +228,7 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
   const runtimeView = useConversationRuntimeView(conversation_id);
-  const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
+  const { markSendStarted, markSendAccepted, markSendFailed, supportsMidturnDelivery } = runtimeView;
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -403,7 +402,6 @@ Please check your local CLI tool authentication status`,
     items: queuedCommands,
     mode: queueMode,
     isInteractionLocked: isQueueInteractionLocked,
-    hasPendingCommands,
     enqueue,
     remove,
     prioritize,
@@ -416,31 +414,54 @@ Please check your local CLI tool authentication status`,
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversation_id: conversation_id,
+    // The queue (panel, runner, auto-send) is always live: backends that can
+    // deliver mid-turn (supports_midturn_delivery) still need a working
+    // enqueue for the explicit "add to queue" entry, and queued items must
+    // keep auto-sending once their turn arrives, same as non-supporting
+    // backends. What changed is who can trigger enqueue implicitly — see
+    // onSendHandler below.
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
     onExecute: executeCommand,
   });
 
-  const onSendHandler = async (message: string) => {
-    const allFiles = collectChatFileRefs(uploadFile, atPath);
-
-    clearFiles();
-    emitter.emit('acp.selected.file.clear');
-
-    if (
-      shouldEnqueueConversationCommand({
-        enabled: true,
-        isBusy,
-        hasPendingCommands,
-      })
-    ) {
-      enqueue({ input: message, files: allFiles });
-      return;
+  // Supporting agents (mid-turn delivery) send immediately, busy or not.
+  // Non-supporting agents can no longer send while the agent is replying —
+  // that path is hard-blocked with a toast; the only way to queue a message
+  // while busy is the explicit "add to queue" entry (handleAddToQueue below).
+  const onSendHandler = async (message: string): Promise<void | false> => {
+    if (!supportsMidturnDelivery && isBusy) {
+      Message.warning(
+        t('conversation.commandQueue.midturnBlocked', {
+          defaultValue:
+            'This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.',
+        })
+      );
+      return false;
     }
 
+    const allFiles = collectChatFileRefs(uploadFile, atPath);
+    clearFiles();
+    emitter.emit('acp.selected.file.clear');
     await executeCommand({ input: message, files: allFiles });
   };
+
+  // Explicit "add to queue" entry — visibility is keyed only to the user's
+  // own input (non-empty draft), never to the agent's busy/replying state:
+  // tying it to that racy, async signal made the entry appear/disappear
+  // unpredictably. Clicking while idle is semantically fine — the queue's own
+  // mode governs (auto drains immediately, manual holds). Shown for both
+  // supporting and non-supporting backends. Clears the draft the same way a
+  // send would.
+  const canQueueCurrentDraft = content.trim().length > 0;
+  const handleAddToQueue = useCallback(() => {
+    const allFiles = collectChatFileRefs(uploadFile, atPath);
+    enqueue({ input: content, files: allFiles });
+    setContent('');
+    clearFiles();
+    emitter.emit('acp.selected.file.clear');
+  }, [atPath, clearFiles, content, enqueue, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -683,6 +704,30 @@ Please check your local CLI tool authentication status`,
   const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
   const handleSendNowQueued = useCallback(
     async (item: ConversationCommandQueueItem) => {
+      if (supportsMidturnDelivery) {
+        // Supporting agents can deliver directly into the running turn — no
+        // need to stop/restart. Remove the item BEFORE executing (rather than
+        // after success) so the queue's own auto-drain effect can never
+        // double-pick it: send-now can be clicked while the turn is still
+        // busy (isProcessing → canExecute stays false, drain naturally
+        // skips) or while idle (canExecute true, drain WOULD race to dequeue
+        // the same front-of-queue item concurrently with this manual send).
+        // Removing first closes that race in both cases.
+        remove(item.id);
+        try {
+          await executeCommand({ input: item.input, files: item.files });
+        } catch {
+          // executeCommand already surfaces the failure (busy-conflict toast,
+          // error message card, etc.) via its own catch path — don't show a
+          // second one. Restore the user's content instead of dropping it:
+          // enqueue appends to the end, so promote it back to the front to
+          // match "send now" intent (it was already next in line).
+          const restored = enqueue({ input: item.input, files: item.files });
+          if (restored) prioritize(restored.id);
+        }
+        return;
+      }
+
       // Stop the current reply (best-effort), then promote the chosen command
       // to the front of the queue in auto mode.  The drain effect will fire it
       // once the execution gate shows canExecute — avoiding the 409 race that
@@ -691,7 +736,7 @@ Please check your local CLI tool authentication status`,
       await effectiveHandleStop();
       prioritize(item.id);
     },
-    [effectiveHandleStop, prioritize]
+    [effectiveHandleStop, enqueue, executeCommand, prioritize, remove, supportsMidturnDelivery]
   );
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
@@ -719,7 +764,6 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
-
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
@@ -733,6 +777,15 @@ Please check your local CLI tool authentication status`,
         active={teamRuntime?.isActive}
         onFocused={teamRuntime?.onFocus}
         disabled={false}
+        sendDisabled={!supportsMidturnDelivery && isBusy}
+        sendDisabledTooltip={
+          !supportsMidturnDelivery && isBusy
+            ? t('conversation.commandQueue.midturnBlockedSendHint', {
+                defaultValue:
+                  'The current agent is still working and cannot receive another message yet. Add it to Draft box instead.',
+              })
+            : undefined
+        }
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || backend,
           defaultValue: `Send message to {{backend}}...`,
@@ -823,6 +876,15 @@ Please check your local CLI tool authentication status`,
           // popover shows the raw count — never a percentage against a
           // guessed denominator. No usage report at all → nothing.
           tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined
+        }
+        onAddToDraft={handleAddToQueue}
+        addToDraftDisabled={!canQueueCurrentDraft}
+        addToDraftTooltip={
+          isBusy
+            ? t('conversation.commandQueue.addToQueueBusyHint', {
+                defaultValue: 'Save to Draft box and send it later.',
+              })
+            : t('conversation.commandQueue.addToQueue', { defaultValue: 'Save to Draft box' })
         }
       ></SendBox>
       {isMobile && (

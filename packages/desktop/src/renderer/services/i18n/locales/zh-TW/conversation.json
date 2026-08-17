@@ -510,7 +510,14 @@
     "mode": {
       "auto": "自動發送",
       "manual": "手動發送"
-    }
+    },
+    "addToQueue": "存到草稿箱",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "目前 Agent 正在處理，暫時不能直接傳送。可以先存到草稿箱，稍後傳送。",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "目前 Agent 正在處理，暫時不能直接傳送。可以先存到草稿箱，稍後傳送。",
+    "addToQueueBusyHint": "先存到草稿箱，稍後傳送。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用",

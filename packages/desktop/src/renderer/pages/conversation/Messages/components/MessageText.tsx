@@ -178,6 +178,11 @@ const MessageText: React.FC<{
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  // Delivered-but-not-yet-consumed marker for messages sent mid-turn to a
+  // supporting backend (claude/codex). The message already reached the
+  // server (it's rendered); this only answers "has the agent picked it up
+  // yet" — an IM delivered/read style badge, never a ghost/dashed bubble.
+  const isPendingDelivery = isUserMessage && message.status === 'pending';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const { text, files } = useMemo(
     () => parseFileMarker(contentToRender, isUserMessage),
@@ -329,6 +334,11 @@ const MessageText: React.FC<{
             </div>
           )}
         </div>
+        {isPendingDelivery && (
+          <div className='text-12px text-t-secondary mt-4px select-none' data-testid='message-status-badge'>
+            {t('messages.delivery.pending', { defaultValue: 'Unread' })}
+          </div>
+        )}
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies.
             For AI replies split across several text messages, only the last text

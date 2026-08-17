@@ -669,6 +669,53 @@ describe('MessageText attachment paths', () => {
   });
 });
 
+describe('MessageText delivery status badge', () => {
+  const statusMessage = (status?: IMessageText['status']): IMessageText => ({
+    id: 'msg-status',
+    msg_id: 'msg-status',
+    conversation_id: 'conv-1',
+    type: 'text',
+    position: 'right',
+    status,
+    createdAt: Date.now(),
+    content: {
+      content: 'sent mid-turn',
+    },
+  });
+
+  it('shows a pending-delivery badge on a user message the agent has not consumed yet', () => {
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={statusMessage('pending')} />
+      </ConversationProvider>
+    );
+
+    expect(screen.getByTestId('message-status-badge')).toHaveTextContent('Unread');
+  });
+
+  it('shows no badge once the agent has consumed the message', () => {
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={statusMessage('finish')} />
+      </ConversationProvider>
+    );
+
+    expect(screen.queryByTestId('message-status-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows no badge for an assistant message even if status happens to be pending', () => {
+    const message = { ...statusMessage('pending'), position: 'left' as const };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+    expect(screen.queryByTestId('message-status-badge')).not.toBeInTheDocument();
+  });
+});
+
 describe('MessageText fork entry point', () => {
   const forkMessage = (overrides: Partial<IMessageText> = {}): IMessageText => ({
     id: 'msg-fork-1',

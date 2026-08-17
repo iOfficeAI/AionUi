@@ -89,5 +89,8 @@
   "askDeclined": "Пропущено",
   "askOther": "Інше",
   "askOtherPlaceholder": "Введіть свою відповідь",
-  "requestDetails": "Деталі запиту:"
+  "requestDetails": "Деталі запиту:",
+  "delivery": {
+    "pending": "Непрочитано"
+  }
 }
