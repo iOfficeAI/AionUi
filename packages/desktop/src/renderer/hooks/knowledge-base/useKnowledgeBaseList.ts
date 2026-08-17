@@ -32,12 +32,27 @@ type SharedKnowledgeBaseRemoteRow = {
   status?: number;
 };
 
-type SharedKnowledgeBaseResponse = {
-  Total?: number;
-  Rows?: SharedKnowledgeBaseRemoteRow[];
+/**
+ * 后端个人知识库原始记录结构。
+ * 与共享列表共用同一字段子集；若服务端字段差异较大，后续按需扩展。
+ */
+type PersonalKnowledgeBaseRemoteRow = {
+  id: string;
+  name: string;
+  flgPublicDesc?: string;
+  statusDesc?: string;
+  storageBaseDesc?: string;
+  fileCount?: number | null;
+  createTime?: string;
+  shareObject?: string;
 };
 
-const mapRemoteRowToItem = (row: SharedKnowledgeBaseRemoteRow): KnowledgeBaseItem => ({
+type ListEnvelope<TRow> = {
+  Total?: number;
+  Rows?: TRow[];
+};
+
+const mapSharedRemoteRowToItem = (row: SharedKnowledgeBaseRemoteRow): KnowledgeBaseItem => ({
   id: row.id,
   name: row.name,
   isShared: true,
@@ -48,72 +63,93 @@ const mapRemoteRowToItem = (row: SharedKnowledgeBaseRemoteRow): KnowledgeBaseIte
   createdAt: row.createTime,
 });
 
+const mapPersonalRemoteRowToItem = (row: PersonalKnowledgeBaseRemoteRow): KnowledgeBaseItem => ({
+  id: row.id,
+  name: row.name,
+  isShared: false,
+  source: 'user',
+  description: row.flgPublicDesc ?? row.storageBaseDesc ?? '',
+  owner: row.shareObject,
+  documentCount: typeof row.fileCount === 'number' ? row.fileCount : undefined,
+  createdAt: row.createTime,
+});
+
 /**
- * Manages the knowledge base list: loading from backend, tracking active selection.
- * Personal items remain mocked; shared items are fetched from the AIPaaS backend.
+ * Manages the knowledge base list: loading personal + shared entries from the
+ * AIPaaS backend, tracking active selection. Both lists are fetched in
+ * parallel on mount and on `loadKnowledgeBases()`.
  */
 export const useKnowledgeBaseList = () => {
   const { user } = useAuth();
   const token = user?.token;
 
-  const [personalItems, setPersonalItems] = useState<KnowledgeBaseItem[]>([
-    {
-      id: 'p1',
-      name: '产品文档',
-      description: '产品相关的需求文档和设计稿',
-      isShared: false,
-      source: 'user',
-      documentCount: 12,
-      updatedAt: '2026-07-15',
-    },
-    {
-      id: 'p2',
-      name: '学习笔记',
-      description: '读书笔记和技术学习记录',
-      isShared: false,
-      source: 'user',
-      documentCount: 8,
-      updatedAt: '2026-07-10',
-    },
-  ]);
+  const [personalItems, setPersonalItems] = useState<KnowledgeBaseItem[]>([]);
   const [sharedItems, setSharedItems] = useState<KnowledgeBaseItem[]>([]);
+  const [personalLoading, setPersonalLoading] = useState(false);
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [personalError, setPersonalError] = useState<string | null>(null);
   const [sharedError, setSharedError] = useState<string | null>(null);
   const [activeKnowledgeBaseId, setActiveKnowledgeBaseId] = useState<string | null>(null);
 
-  const loadSharedKnowledgeBases = useCallback(async (authToken: string) => {
-    setSharedLoading(true);
-    setSharedError(null);
+  const fetchList = async <TRow>(
+    authToken: string,
+    url: string,
+    setLoading: (loading: boolean) => void,
+    setError: (error: string | null) => void,
+    setItems: (items: KnowledgeBaseItem[]) => void,
+    map: (row: TRow) => KnowledgeBaseItem
+  ) => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(
-        `${AIPAAS_BASE_URL}/jdbc/common/basecommonlist/listJSON.do?mdCode=share_knowledge_base`,
-        {
-          method: 'GET',
-          headers: {
-            Token: authToken,
-          },
-          credentials: 'include',
-        }
-      );
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Token: authToken,
+        },
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const data = (await response.json()) as SharedKnowledgeBaseResponse;
+      const data = (await response.json()) as ListEnvelope<TRow>;
       const rows = Array.isArray(data?.Rows) ? data.Rows : [];
-      setSharedItems(rows.map(mapRemoteRowToItem));
+      setItems(rows.map(map));
     } catch (error) {
-      console.error('[useKnowledgeBaseList] failed to load shared knowledge bases:', error);
-      setSharedError((error as Error).message || 'unknown error');
-      setSharedItems([]);
+      console.error('[useKnowledgeBaseList] failed to load knowledge bases:', error);
+      setError((error as Error).message || 'unknown error');
+      setItems([]);
     } finally {
-      setSharedLoading(false);
+      setLoading(false);
     }
+  };
+
+  const loadSharedKnowledgeBases = useCallback(async (authToken: string) => {
+    await fetchList<SharedKnowledgeBaseRemoteRow>(
+      authToken,
+      `${AIPAAS_BASE_URL}/jdbc/common/basecommonlist/listJSON.do?mdCode=share_knowledge_base`,
+      setSharedLoading,
+      setSharedError,
+      setSharedItems,
+      mapSharedRemoteRowToItem
+    );
+  }, []);
+
+  const loadPersonalKnowledgeBases = useCallback(async (authToken: string) => {
+    await fetchList<PersonalKnowledgeBaseRemoteRow>(
+      authToken,
+      `${AIPAAS_BASE_URL}/project/aiknowledge/aiknowledgebaselist/listJSON.do?mdCode=view_knowledge_user`,
+      setPersonalLoading,
+      setPersonalError,
+      setPersonalItems,
+      mapPersonalRemoteRowToItem
+    );
   }, []);
 
   const loadKnowledgeBases = useCallback(async () => {
     if (!token) return;
-    await loadSharedKnowledgeBases(token);
-  }, [loadSharedKnowledgeBases, token]);
+    await Promise.all([loadPersonalKnowledgeBases(token), loadSharedKnowledgeBases(token)]);
+  }, [loadPersonalKnowledgeBases, loadSharedKnowledgeBases, token]);
 
   useEffect(() => {
     void loadKnowledgeBases();
@@ -127,7 +163,9 @@ export const useKnowledgeBaseList = () => {
     setPersonalItems,
     sharedItems,
     setSharedItems,
+    personalLoading,
     sharedLoading,
+    personalError,
     sharedError,
     activeKnowledgeBaseId,
     setActiveKnowledgeBaseId,
