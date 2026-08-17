@@ -112,7 +112,22 @@
     "noSearchResults": "Nenhuma habilidade correspondente.",
     "customHint": "Importe uma pasta de habilidade, pasta principal ou zip; até {{maxFileSize}} por arquivo e {{maxTotalSize}} por habilidade; importar o mesmo nome substitui a habilidade existente.",
     "officialHint": "Habilidades oficiais incluídas no AionUi — prontas para uso, somente leitura e atualizadas a cada versão.",
-    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working.",
+    "skillTypes": {
+      "security": "Segurança",
+      "implementation": "Implementação",
+      "planning": "Planejamento",
+      "productivity": "Produtividade",
+      "other": "Outros"
+    },
+    "createGroup": "Criar grupo",
+    "groupNamePlaceholder": "Nome do grupo",
+    "groupsAction": "Grupos",
+    "addToGroup": "Adicionar a {{name}}",
+    "removeFromGroup": "Remover de {{name}}",
+    "groupLoadError": "Falha ao carregar grupos de habilidades",
+    "groupSaveError": "Falha ao salvar grupos de habilidades",
+    "all": "Todos"
   },
   "authMethod": "Autenticação",
   "geminiApiKey": "Chave de API Gemini",

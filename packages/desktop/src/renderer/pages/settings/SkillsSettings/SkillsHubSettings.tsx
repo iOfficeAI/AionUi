@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Button, Checkbox, Message, Modal } from '@arco-design/web-react';
+import { Button, Checkbox, Dropdown, Input, Menu, Message, Modal } from '@arco-design/web-react';
 import { Delete, Help, Lightning, Puzzle } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,16 @@ import SettingsPageHeader from '../components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
+import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
+import {
+  type SkillGroup,
+  type SkillOrganization,
+  type SkillType,
+  classifySkill,
+  createSkillGroup,
+  filterAndSortSkills,
+  parseSkillOrganization,
+} from './skillOrganization';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -129,6 +139,9 @@ interface SkillsHubSettingsProps {
 }
 
 type SkillsTab = 'custom' | 'official';
+type SkillFilter = 'all' | SkillType | `group:${string}`;
+
+const SKILL_TYPE_FILTERS: SkillType[] = ['security', 'implementation', 'planning', 'productivity', 'other'];
 
 const getSkillsTabFromState = (state: unknown): SkillsTab => {
   if (typeof state === 'object' && state !== null && 'skillsTab' in state && state.skillsTab === 'official') {
@@ -158,6 +171,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   // Batch management (Custom tab only): multi-select skills for bulk deletion.
   const [batchMode, setBatchMode] = useState(false);
   const [selectedSkillNames, setSelectedSkillNames] = useState<Set<string>>(new Set());
+  const [organization, setOrganization] = useState<SkillOrganization>({ groups: [] });
+  const [activeFilter, setActiveFilter] = useState<SkillFilter>('all');
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [savingOrganization, setSavingOrganization] = useState(false);
   // Assistant catalog for the "used by" avatar stacks on skill cards.
   const { data: assistantCatalog } = useSWR<Assistant[]>('assistants.list', () => ipcBridge.assistants.list.invoke());
 
@@ -180,23 +198,26 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
   const importHistoryGroups = useMemo(() => buildImportHistoryGroups(importHistory), [importHistory]);
 
-  const matchesQuery = useCallback(
-    (list: SkillInfo[]) => {
-      if (!search_query.trim()) return list;
-      const lowerQuery = search_query.toLowerCase();
-      return list.filter(
-        (s) =>
-          s.name.toLowerCase().includes(lowerQuery) ||
-          (s.description && s.description.toLowerCase().includes(lowerQuery))
-      );
-    },
-    [search_query]
+  const selectedGroup = useMemo(
+    () =>
+      activeFilter.startsWith('group:')
+        ? organization.groups.find((group) => group.id === activeFilter.slice(6))
+        : undefined,
+    [activeFilter, organization.groups]
   );
-
-  const filteredSkills = useMemo(() => matchesQuery(mySkills), [matchesQuery, mySkills]);
-  const filteredOfficialSkills = useMemo(() => matchesQuery(officialSkills), [matchesQuery, officialSkills]);
-  const filteredExtensionSkills = useMemo(() => matchesQuery(extensionSkills), [matchesQuery, extensionSkills]);
-  const filteredAutoSkills = useMemo(() => matchesQuery(builtinAutoSkills), [matchesQuery, builtinAutoSkills]);
+  const filterSkills = useCallback(
+    (list: SkillInfo[]) => {
+      const type: SkillType | undefined =
+        activeFilter === 'all' || activeFilter.startsWith('group:') ? undefined : (activeFilter as SkillType);
+      const filtered = filterAndSortSkills(list, search_query, type);
+      return selectedGroup ? filtered.filter((skill) => selectedGroup.skillNames.includes(skill.name)) : filtered;
+    },
+    [activeFilter, search_query, selectedGroup]
+  );
+  const filteredSkills = useMemo(() => filterSkills(mySkills), [filterSkills, mySkills]);
+  const filteredOfficialSkills = useMemo(() => filterSkills(officialSkills), [filterSkills, officialSkills]);
+  const filteredExtensionSkills = useMemo(() => filterSkills(extensionSkills), [filterSkills, extensionSkills]);
+  const filteredAutoSkills = useMemo(() => filterSkills(builtinAutoSkills), [filterSkills, builtinAutoSkills]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -220,6 +241,60 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    let active = true;
+    void getClientBusinessSetting('skills.organization')
+      .then((storedOrganization) => {
+        if (active) setOrganization(parseSkillOrganization(storedOrganization));
+      })
+      .catch((error) => {
+        console.error('Failed to load skill organization:', error);
+        Message.error(t('settings.skillsHub.groupLoadError', { defaultValue: 'Failed to load skill groups' }));
+      });
+    return () => {
+      active = false;
+    };
+  }, [t]);
+
+  const persistOrganization = useCallback(
+    async (nextOrganization: SkillOrganization) => {
+      setSavingOrganization(true);
+      try {
+        await setClientBusinessSetting('skills.organization', nextOrganization);
+        setOrganization(nextOrganization);
+      } catch (error) {
+        console.error('Failed to save skill organization:', error);
+        Message.error(t('settings.skillsHub.groupSaveError', { defaultValue: 'Failed to save skill groups' }));
+      } finally {
+        setSavingOrganization(false);
+      }
+    },
+    [t]
+  );
+
+  const createGroup = useCallback(async () => {
+    const name = newGroupName.trim();
+    if (!name) return;
+    const group = createSkillGroup(name, crypto.randomUUID());
+    await persistOrganization({ groups: [...organization.groups, group] });
+    setNewGroupName('');
+    setIsGroupModalOpen(false);
+  }, [newGroupName, organization.groups, persistOrganization]);
+
+  const toggleSkillInGroup = useCallback(
+    async (group: SkillGroup, skillName: string) => {
+      const skillNames = group.skillNames.includes(skillName)
+        ? group.skillNames.filter((name) => name !== skillName)
+        : [...group.skillNames, skillName];
+      await persistOrganization({
+        groups: organization.groups.map((currentGroup) =>
+          currentGroup.id === group.id ? { ...currentGroup, skillNames } : currentGroup
+        ),
+      });
+    },
+    [organization.groups, persistOrganization]
+  );
 
   // When deep-linked to a specific skill, open the tab that actually contains it
   // so the highlight/scroll below can find its rendered card.
@@ -641,6 +716,54 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     </div>
   );
 
+  const renderGroupPicker = (skill: SkillInfo) => {
+    if (organization.groups.length === 0) return null;
+    return (
+      <Dropdown
+        trigger='click'
+        droplist={
+          <Menu>
+            {organization.groups.map((group) => (
+              <Menu.Item key={group.id} onClick={() => void toggleSkillInGroup(group, skill.name)}>
+                {group.skillNames.includes(skill.name)
+                  ? t('settings.skillsHub.removeFromGroup', {
+                      name: group.name,
+                      defaultValue: `Remove from ${group.name}`,
+                    })
+                  : t('settings.skillsHub.addToGroup', { name: group.name, defaultValue: `Add to ${group.name}` })}
+              </Menu.Item>
+            ))}
+          </Menu>
+        }
+      >
+        <Button
+          size='mini'
+          type='text'
+          disabled={savingOrganization}
+          data-testid={`btn-skill-groups-${normalizeTestId(skill.name)}`}
+        >
+          {t('settings.skillsHub.groupsAction', { defaultValue: 'Groups' })}
+        </Button>
+      </Dropdown>
+    );
+  };
+
+  const renderGroupedSkills = (skills: SkillInfo[], renderCard: (skill: SkillInfo) => React.ReactNode) => {
+    if (activeFilter !== 'all') return skills.map(renderCard);
+    return SKILL_TYPE_FILTERS.map((type) => {
+      const skillsOfType = skills.filter((skill) => classifySkill(skill) === type);
+      if (skillsOfType.length === 0) return null;
+      return (
+        <section key={type} data-testid={`skill-type-group-${type}`} className='flex flex-col gap-6px'>
+          <h3 className='m-0 text-12px font-600 text-t-secondary'>
+            {t(`settings.skillsHub.skillTypes.${type}`, { defaultValue: type })}
+          </h3>
+          {skillsOfType.map(renderCard)}
+        </section>
+      );
+    });
+  };
+
   // Read-only skill card used by the Official / Extension / Auto-injected sections.
   const renderReadonlySkillCard = (skill: SkillInfo, variant: 'official' | 'extension' | 'auto', testId?: string) => {
     const isAuto = variant === 'auto';
@@ -683,8 +806,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </p>
           )}
         </div>
-        <div className='shrink-0 sm:self-center flex items-center justify-end pl-4px'>
+        <div className='shrink-0 sm:self-center flex items-center justify-end gap-4px pl-4px'>
           <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
+          {renderGroupPicker(skill)}
         </div>
       </div>
     );
@@ -724,7 +848,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       </div>
       <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
         {skills.length > 0 ? (
-          skills.map((skill) => renderReadonlySkillCard(skill, variant))
+          renderGroupedSkills(skills, (skill) => renderReadonlySkillCard(skill, variant))
         ) : (
           <div className='text-center text-t-secondary text-13px py-32px bg-fill-1 rd-12px border border-border-2 border-dashed'>
             {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills.' })}
@@ -831,7 +955,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills.' })}
             </div>
           )}
-          {filteredSkills.map((skill) => (
+          {renderGroupedSkills(filteredSkills, (skill) => (
             <div
               key={skill.name}
               data-testid={`my-skill-card-${normalizeTestId(skill.name)}`}
@@ -871,6 +995,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               {!batchMode && (
                 <div className='shrink-0 sm:self-center flex items-center justify-end gap-10px mt-12px sm:mt-0 pl-4px'>
                   <SkillUsedByStack assistants={getAssistantsUsingSkill(skill.name, assistantCatalog ?? [])} />
+                  {renderGroupPicker(skill)}
                   <button
                     data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
                     className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity'
@@ -937,7 +1062,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills.' })}
               </div>
             )}
-            {filteredOfficialSkills.map((skill) =>
+            {renderGroupedSkills(filteredOfficialSkills, (skill) =>
               renderReadonlySkillCard(skill, 'official', `official-skill-card-${normalizeTestId(skill.name)}`)
             )}
           </div>
@@ -1031,7 +1156,93 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
           exitBatchMode();
         }}
       />
+      {isMobile && (
+        <AionSearchInput
+          className='w-full md:hidden'
+          data-testid='input-search-skills-mobile'
+          placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
+          value={search_query}
+          onChange={setSearchQuery}
+        />
+      )}
+      <div data-testid='skill-filters' className='flex flex-wrap items-center gap-6px'>
+        <Button
+          size='mini'
+          type={activeFilter === 'all' ? 'primary' : 'secondary'}
+          data-testid='skill-type-filter-all'
+          onClick={() => setActiveFilter('all')}
+        >
+          {t('settings.skillsHub.all', { defaultValue: 'All' })}
+        </Button>
+        {SKILL_TYPE_FILTERS.map((type) => (
+          <Button
+            key={type}
+            size='mini'
+            type={activeFilter === type ? 'primary' : 'secondary'}
+            data-testid={`skill-type-filter-${type}`}
+            onClick={() => setActiveFilter(type)}
+          >
+            {t(`settings.skillsHub.skillTypes.${type}`, { defaultValue: type })}
+          </Button>
+        ))}
+        {organization.groups.map((group) => (
+          <Button
+            key={group.id}
+            size='mini'
+            type={activeFilter === `group:${group.id}` ? 'primary' : 'secondary'}
+            data-testid={`skill-group-filter-${normalizeTestId(group.id)}`}
+            onClick={() => setActiveFilter(`group:${group.id}`)}
+          >
+            {group.name}
+          </Button>
+        ))}
+        <Button
+          size='mini'
+          type='outline'
+          data-testid='btn-create-skill-group'
+          onClick={() => setIsGroupModalOpen(true)}
+        >
+          {t('settings.skillsHub.createGroup', { defaultValue: 'Create group' })}
+        </Button>
+      </div>
       {activeTab === 'custom' ? customPane : officialPane}
+      <Modal
+        title={t('settings.skillsHub.createGroup', { defaultValue: 'Create group' })}
+        visible={isGroupModalOpen}
+        onCancel={() => {
+          setIsGroupModalOpen(false);
+          setNewGroupName('');
+        }}
+        footer={
+          <>
+            <Button
+              onClick={() => {
+                setIsGroupModalOpen(false);
+                setNewGroupName('');
+              }}
+            >
+              {t('common.cancel', { defaultValue: 'Cancel' })}
+            </Button>
+            <Button
+              type='primary'
+              loading={savingOrganization}
+              disabled={!newGroupName.trim()}
+              data-testid='btn-save-skill-group'
+              onClick={() => void createGroup()}
+            >
+              {t('common.create', { defaultValue: 'Create' })}
+            </Button>
+          </>
+        }
+      >
+        <Input
+          data-testid='input-skill-group-name'
+          value={newGroupName}
+          maxLength={80}
+          placeholder={t('settings.skillsHub.groupNamePlaceholder', { defaultValue: 'Group name' })}
+          onChange={setNewGroupName}
+        />
+      </Modal>
     </div>
   );
 

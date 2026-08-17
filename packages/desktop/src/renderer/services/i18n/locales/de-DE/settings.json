@@ -112,7 +112,22 @@
     "noSearchResults": "Keine passenden Skills.",
     "customHint": "Importiere einen Skill-Ordner, übergeordneten Ordner oder eine Zip-Datei; max. {{maxFileSize}} pro Datei und {{maxTotalSize}} pro Skill; ein gleichnamiger Import überschreibt den vorhandenen Skill.",
     "officialHint": "Offizielle, mit AionUi gebündelte Skills – sofort einsatzbereit, schreibgeschützt und mit jedem Release aktualisiert.",
-    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working.",
+    "skillTypes": {
+      "security": "Sicherheit",
+      "implementation": "Implementierung",
+      "planning": "Planung",
+      "productivity": "Produktivität",
+      "other": "Andere"
+    },
+    "createGroup": "Gruppe erstellen",
+    "groupNamePlaceholder": "Gruppenname",
+    "groupsAction": "Gruppen",
+    "addToGroup": "Zu {{name}} hinzufügen",
+    "removeFromGroup": "Aus {{name}} entfernen",
+    "groupLoadError": "Skill-Gruppen konnten nicht geladen werden",
+    "groupSaveError": "Skill-Gruppen konnten nicht gespeichert werden",
+    "all": "Alle"
   },
   "authMethod": "Authentifizierung",
   "geminiApiKey": "Gemini-API-Schlüssel",

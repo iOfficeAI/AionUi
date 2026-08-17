@@ -112,7 +112,22 @@
     "noSearchResults": "Нет подходящих навыков.",
     "customHint": "Импортируйте папку навыка, родительскую папку или zip; до {{maxFileSize}} на файл и {{maxTotalSize}} на навык; импорт с тем же именем перезаписывает существующий навык.",
     "officialHint": "Официальные навыки, входящие в состав AionUi, — готовы к использованию, только для чтения и обновляются с каждым релизом.",
-    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working."
+    "deleteAffectsNewOnlyHint": "Deleting only affects new conversations. Skills already selected in existing conversations keep working.",
+    "skillTypes": {
+      "security": "Безопасность",
+      "implementation": "Реализация",
+      "planning": "Планирование",
+      "productivity": "Продуктивность",
+      "other": "Другое"
+    },
+    "createGroup": "Создать группу",
+    "groupNamePlaceholder": "Название группы",
+    "groupsAction": "Группы",
+    "addToGroup": "Добавить в {{name}}",
+    "removeFromGroup": "Удалить из {{name}}",
+    "groupLoadError": "Не удалось загрузить группы навыков",
+    "groupSaveError": "Не удалось сохранить группы навыков",
+    "all": "Все"
   },
   "authMethod": "Аутентификация",
   "geminiApiKey": "API-ключ Gemini",
