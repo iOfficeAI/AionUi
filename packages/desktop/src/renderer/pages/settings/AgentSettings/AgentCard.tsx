@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { Avatar, Button, Switch, Tag, Tooltip, Typography } from '@arco-design/web-react';
-import { Delete, EditTwo, Robot } from '@icon-park/react';
+import { Avatar, Button, Message, Switch, Tag, Tooltip, Typography } from '@arco-design/web-react';
+import { CopyOne, Delete, EditTwo, LinkTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveAgentAvatar, useAgentLogos } from '@/renderer/utils/model/agentLogo';
@@ -15,6 +15,10 @@ import {
   type ManagedAgent,
   formatManagedAgentDiagnosticMessage,
 } from '@/renderer/utils/model/agentTypes';
+import { copyText } from '@/renderer/utils/ui/clipboard';
+import { openExternalUrl } from '@/renderer/utils/platform';
+import { getAgentInstallCommand, getAgentInstallGuidance, type AgentInstallGuidance } from './agentInstallCommands';
+import { detectAgentPlatform } from './agentInstallPlatform';
 import { BoundAssistantStack } from './BoundAssistants';
 
 type AgentCardProps =
@@ -109,6 +113,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const isDisabled = isCustom && agent.enabled === false;
   const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
   const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
+  // Install affordance: only for official built-in backends with pinned guidance.
+  const installGuidance = displayStatus === 'missing' ? getAgentInstallGuidance(agent.backend) : undefined;
 
   const avatar = resolveAgentAvatar(logos, {
     icon: agent.avatar || agent.icon,
@@ -118,6 +124,22 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   });
 
   const stop = (event: React.MouseEvent) => event.stopPropagation();
+
+  // Handlers take the guidance as an argument — they are only mounted (and
+  // clicked) when `installGuidance` is set, so there is no unreachable guard.
+  const handleCopyInstallCommand = async (guidance: AgentInstallGuidance) => {
+    const command = getAgentInstallCommand(guidance, detectAgentPlatform());
+    try {
+      await copyText(command);
+      Message.success(t('settings.agentManagement.installCommandCopied'));
+    } catch {
+      Message.error(t('settings.agentManagement.installCommandCopyFailed'));
+    }
+  };
+
+  const handleOpenInstallDocs = (guidance: AgentInstallGuidance) => {
+    void openExternalUrl(guidance.docsUrl).catch(console.error);
+  };
 
   return (
     <div
@@ -160,6 +182,34 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       </div>
 
       <div className='ml-12px flex flex-shrink-0 items-center gap-8px' onClick={stop}>
+        {installGuidance && (
+          <>
+            <Tooltip
+              content={t('settings.agentManagement.copyInstallCommand', { defaultValue: 'Copy install command' })}
+            >
+              <Button
+                data-testid={`agent-row-install-${agent.id}`}
+                size='small'
+                type='outline'
+                icon={<CopyOne theme='outline' size='14' />}
+                onClick={() => void handleCopyInstallCommand(installGuidance)}
+                className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+              >
+                {t('settings.agentManagement.install', { defaultValue: 'Install' })}
+              </Button>
+              <Tooltip content={t('settings.agentManagement.installDocs', { defaultValue: 'Official install docs' })}>
+                <Button
+                  data-testid={`agent-row-docs-${agent.id}`}
+                  size='small'
+                  type='outline'
+                  icon={<LinkTwo theme='outline' size='14' />}
+                  onClick={() => handleOpenInstallDocs(installGuidance)}
+                  className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+                />
+              </Tooltip>
+            </Tooltip>
+          </>
+        )}
         <BoundAssistantStack assistants={boundAssistants} />
         <Button
           data-testid={`agent-row-test-${agent.id}`}
