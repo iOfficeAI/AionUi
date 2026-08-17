@@ -33,14 +33,47 @@ export type StaticServerHandle = {
 
 const DEFAULT_PORT = 25808;
 
-function getLanIP(): string | null {
-  const nets = networkInterfaces();
+// Ranges that are non-internal IPv4 yet never a reachable LAN address, so we
+// must never advertise them as the WebUI access URL even when they are the only
+// non-loopback interface present:
+//   169.254.0.0/16  link-local / APIPA (host got no DHCP lease)
+//   198.18.0.0/15   RFC 2544 benchmarking range — handed out by utility tunnels
+//                   such as Cloudflare WARP; this is the address that showed up
+//                   on a multi-NIC machine instead of the real LAN IP.
+const isUnreachableLanRange = (addr: string): boolean => addr.startsWith('169.254.') || /^198\.(18|19)\./.test(addr);
+
+// Rank candidate LAN addresses by how likely they are the network the user
+// actually reaches the desktop on. Lower is better. Private (RFC 1918) home /
+// office ranges win over anything else; 192.168/16 is the most common LAN, then
+// the 172.16/12 block, then 10/8 (frequently carved up by VPNs / corp routing).
+const rankLanCandidate = (addr: string): number => {
+  if (addr.startsWith('192.168.')) return 0;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(addr)) return 1;
+  if (addr.startsWith('10.')) return 2;
+  return 3;
+};
+
+// Pick the best LAN IPv4 to advertise. Pure over the interface map so it can be
+// unit-tested against real multi-NIC layouts. Iterating and returning the first
+// non-internal hit (the old behavior) picks whatever the OS lists first, which
+// on a multi-NIC box can be a VPN / benchmark adapter rather than the LAN.
+export function pickLanIP(nets: ReturnType<typeof networkInterfaces>): string | null {
+  const candidates: string[] = [];
   for (const name of Object.keys(nets)) {
     for (const iface of nets[name] || []) {
-      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+      if (iface.family !== 'IPv4' || iface.internal) continue;
+      if (isUnreachableLanRange(iface.address)) continue;
+      candidates.push(iface.address);
     }
   }
-  return null;
+  // Stable sort keeps OS interface order among equally-ranked addresses (e.g. a
+  // physical NIC listed before a VPN when both are 10/8).
+  candidates.sort((a, b) => rankLanCandidate(a) - rankLanCandidate(b));
+  return candidates[0] ?? null;
+}
+
+function getLanIP(): string | null {
+  return pickLanIP(networkInterfaces());
 }
 
 function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
