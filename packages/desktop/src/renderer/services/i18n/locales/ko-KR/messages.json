@@ -87,5 +87,8 @@
   "askDeclined": "건너뜀",
   "askOther": "기타",
   "askOtherPlaceholder": "답변을 입력하세요",
-  "requestDetails": "요청 내용:"
+  "requestDetails": "요청 내용:",
+  "delivery": {
+    "pending": "읽지 않음"
+  }
 }

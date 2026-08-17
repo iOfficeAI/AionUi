@@ -495,7 +495,14 @@
     "mode": {
       "auto": "Otomatik gönder",
       "manual": "Elle gönder"
-    }
+    },
+    "addToQueue": "Taslak kutusuna ekle",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Bu aracı yanıt verirken araya girmek desteklenmiyor. Bunun yerine Taslak kutusuna ekle'yi kullanın.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı",

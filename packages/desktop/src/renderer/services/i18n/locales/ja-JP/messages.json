@@ -87,5 +87,8 @@
   "askDeclined": "スキップ済み",
   "askOther": "その他",
   "askOtherPlaceholder": "回答を入力",
-  "requestDetails": "リクエスト内容:"
+  "requestDetails": "リクエスト内容:",
+  "delivery": {
+    "pending": "未読"
+  }
 }

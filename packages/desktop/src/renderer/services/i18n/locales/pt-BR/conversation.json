@@ -516,7 +516,14 @@
     "mode": {
       "auto": "Envio automático",
       "manual": "Envio manual"
-    }
+    },
+    "addToQueue": "Adicionar à caixa de rascunhos",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Não é possível interromper enquanto este agente está respondendo. Use Adicionar à caixa de rascunhos.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "contexto usado",

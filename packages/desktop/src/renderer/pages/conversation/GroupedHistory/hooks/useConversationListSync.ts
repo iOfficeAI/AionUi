@@ -23,6 +23,11 @@ const isGeneratingStreamMessage = (type: string): boolean => {
     type === 'thought' ||
     type === 'thinking' ||
     type === 'tool_group' ||
+    // Direct-CLI (non-ACP) sessions stream individual `tool_call` frames
+    // instead of `tool_group` — measured live: 31 of 34 frames in a 55s tool
+    // stretch were `tool_call`. Without this, long tool runs on direct-CLI
+    // backends can leave the sidebar spinner dark for the whole stretch.
+    type === 'tool_call' ||
     type === 'acp_tool_call' ||
     type === 'acp_permission' ||
     type === 'permission' ||
@@ -254,16 +259,34 @@ const refreshConversations = () => {
     });
 };
 
-const markGenerating = (conversation_id: string) => {
+/** Source of a generating-state transition, logged for field diagnosis. */
+type GeneratingTransitionSource = 'stream' | 'reconcile' | 'terminal' | 'turnCompleted' | 'deleted';
+
+const logGeneratingTransition = (conversation_id: string, next: boolean, source: GeneratingTransitionSource) => {
+  void ipcBridge.application.writeRendererLog
+    .invoke({
+      level: 'info',
+      tag: 'conversationListSync',
+      message: next ? 'sidebar_generating_on' : 'sidebar_generating_off',
+      data: {
+        conversation_id,
+        source,
+      },
+    })
+    .catch(() => {});
+};
+
+const markGenerating = (conversation_id: string, source: GeneratingTransitionSource = 'stream') => {
   if (generatingConversationIdsState.has(conversation_id)) {
     return;
   }
 
   generatingConversationIdsState = new Set(generatingConversationIdsState).add(conversation_id);
+  logGeneratingTransition(conversation_id, true, source);
   emitStoreChange();
 };
 
-const clearGenerating = (conversation_id: string) => {
+const clearGenerating = (conversation_id: string, source: GeneratingTransitionSource = 'terminal') => {
   if (!generatingConversationIdsState.has(conversation_id)) {
     return;
   }
@@ -271,7 +294,33 @@ const clearGenerating = (conversation_id: string) => {
   const next = new Set(generatingConversationIdsState);
   next.delete(conversation_id);
   generatingConversationIdsState = next;
+  logGeneratingTransition(conversation_id, false, source);
   emitStoreChange();
+};
+
+/**
+ * Pure decision helper: whether a runtime summary's `is_processing` bit
+ * should light the sidebar spinner. Clearing is intentionally NOT handled
+ * here (and never by this reconcile path) — an idle-looking runtime summary
+ * must not fight a live background stream that's still mid-flight; only
+ * terminal stream frames / turn.completed are allowed to clear the flag.
+ */
+export const shouldReconcileMarkGenerating = (isProcessing: boolean): boolean => isProcessing === true;
+
+/**
+ * Reconciles the sidebar spinner with authoritative runtime state (e.g. a
+ * per-conversation hydrate or send-accepted response). Call this whenever a
+ * runtime summary's `is_processing` bit is in hand for a conversation — it
+ * covers the case where a WS stream frame was missed (window reload/reconnect
+ * race) and the store would otherwise never know the turn is still running.
+ */
+export const reconcileGeneratingFromRuntime = (conversation_id: string, isProcessing: boolean): void => {
+  if (!conversation_id) {
+    return;
+  }
+  if (shouldReconcileMarkGenerating(isProcessing)) {
+    markGenerating(conversation_id, 'reconcile');
+  }
 };
 
 const markCompletionUnread = (conversation_id: string) => {
@@ -365,7 +414,7 @@ const initializeConversationListSyncStore = () => {
   addEventListener('chat.history.refresh', refreshConversations);
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
-      clearGenerating(event.conversation_id);
+      clearGenerating(event.conversation_id, 'deleted');
       clearCompletionUnreadState(event.conversation_id);
       clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
@@ -387,7 +436,7 @@ const initializeConversationListSyncStore = () => {
       if (wasGenerating && activeConversationIdState !== conversation_id) {
         markCompletionUnread(conversation_id);
       }
-      clearGenerating(conversation_id);
+      clearGenerating(conversation_id, 'terminal');
       return;
     }
 
@@ -405,7 +454,7 @@ const initializeConversationListSyncStore = () => {
       return;
     }
     if (decision.markGenerating) {
-      markGenerating(conversation_id);
+      markGenerating(conversation_id, 'stream');
     }
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
@@ -413,7 +462,7 @@ const initializeConversationListSyncStore = () => {
       markCompletionUnread(event.session_id);
     }
     markCompleted(event.session_id, event.turn_id);
-    clearGenerating(event.session_id);
+    clearGenerating(event.session_id, 'turnCompleted');
     refreshConversations();
   });
 };

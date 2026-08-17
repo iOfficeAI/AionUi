@@ -335,6 +335,69 @@ describe('static-server', () => {
     expect(status).toMatch(/HTTP\/1\.1 101/i);
   });
 
+  it('POST body with a large payload is fully forwarded to backend (no byte drop during splice)', async () => {
+    // Regression for #4058: WebUI uploads hang forever at 100%. When the routing
+    // decision fired on the first chunk, the pre-router removed its 'data'
+    // listener but left the socket in flowing mode; body bytes arriving before
+    // the async `client.pipe(upstream)` was wired had no consumer and were
+    // silently dropped. The backend then waited forever for the missing bytes,
+    // so the browser upload sat at 100% and never returned. A body large enough
+    // to span multiple TCP segments reproduces the race deterministically.
+    const BODY_LEN = 512 * 1024; // 512 KB — spans several TCP segments
+
+    const backend = await startMockBackend((req, res) => {
+      let received = 0;
+      req.on('data', (chunk: Buffer) => {
+        received += chunk.length;
+      });
+      req.on('end', () => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ received }));
+      });
+    });
+    stopBackend = backend.close;
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
+
+    const { port: publicPort } = handle;
+    const body = Buffer.alloc(BODY_LEN, 0x61); // 512 KB of 'a'
+
+    const received: number = await new Promise((resolve, reject) => {
+      const request = http.request(
+        {
+          host: '127.0.0.1',
+          port: publicPort,
+          method: 'POST',
+          path: '/api/fs/upload',
+          headers: {
+            'content-type': 'application/octet-stream',
+            'content-length': BODY_LEN,
+          },
+        },
+        (res) => {
+          let raw = '';
+          res.setEncoding('utf8');
+          res.on('data', (c) => {
+            raw += c;
+          });
+          res.on('end', () => {
+            try {
+              resolve((JSON.parse(raw) as { received: number }).received);
+            } catch (e) {
+              reject(e as Error);
+            }
+          });
+        }
+      );
+      request.on('error', reject);
+      request.setTimeout(5000, () => {
+        request.destroy(new Error('timeout: backend never received the full body (bytes dropped in splice)'));
+      });
+      request.end(body);
+    });
+
+    expect(received).toBe(BODY_LEN);
+  });
+
   it('network URL populated only when allowRemote=true', async () => {
     const backend = await startMockBackend((_req, res) => res.end('nope'));
     stopBackend = backend.close;

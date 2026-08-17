@@ -87,5 +87,8 @@
   "askDeclined": "رد شد",
   "askOther": "سایر",
   "askOtherPlaceholder": "پاسخ خود را بنویسید",
-  "requestDetails": "جزئیات درخواست:"
+  "requestDetails": "جزئیات درخواست:",
+  "delivery": {
+    "pending": "خوانده‌نشده"
+  }
 }

@@ -30,7 +30,9 @@ import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/
 import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
-import { Button, Input, Message, Tag } from '@arco-design/web-react';
+import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
+import { isMacOS } from '@/renderer/utils/platform';
+import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
@@ -64,6 +66,35 @@ const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
+
+const DraftBoxActionIcon: React.FC<{ size?: number; color?: string; strokeWidth?: number }> = ({
+  size = 16,
+  color = 'currentColor',
+  strokeWidth = 1.3,
+}) => (
+  <svg width={size} height={size} viewBox='0 0 24 24' fill='none' aria-hidden='true'>
+    <path
+      d='M8.2 6.2h7.6l1.45 5.55v4.45A2.45 2.45 0 0 1 14.8 18.65H9.2a2.45 2.45 0 0 1-2.45-2.45v-4.45L8.2 6.2Z'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinejoin='round'
+    />
+    <path
+      d='M7 11.75h3.2l1.05 1.55h1.5l1.05-1.55H17'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    />
+    <path
+      d='M12 7.35v4.15m0 0 1.65-1.65M12 11.5l-1.65-1.65'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    />
+  </svg>
+);
 
 const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   if (typeof item === 'string') {
@@ -178,9 +209,17 @@ function extractBtwQuestion(value: string): string | null {
 const SendBox: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
-  onSend: (message: string) => Promise<void>;
+  onSend: (message: string) => Promise<void | false>;
   onStop?: () => Promise<void>;
   disabled?: boolean;
+  /**
+   * Disables only the send button's click affordance (visual + non-clickable)
+   * without swapping it for the stop button while loading — used to hard-block
+   * interjection on backends that can't accept a mid-turn send. Enter still
+   * reaches `onSend`; the caller is responsible for rejecting it there (so it
+   * can show its own toast/copy).
+   */
+  sendDisabled?: boolean;
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
@@ -192,6 +231,10 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
+  onAddToDraft?: () => void;
+  addToDraftDisabled?: boolean;
+  addToDraftTooltip?: React.ReactNode;
+  sendDisabledTooltip?: React.ReactNode;
   slash_commands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
@@ -211,6 +254,15 @@ const SendBox: React.FC<{
   active?: boolean;
   /** Called when the textarea gains focus, so the team layer can sync tab selection. */
   onFocused?: () => void;
+  /**
+   * Floats at the send box's top-right corner with zero flow impact (rendered
+   * inside the box's own root, absolutely positioned, so it never reflows the
+   * box or any sibling above it). Anchored to the box's own top edge — unlike
+   * anchoring from an ancestor's bottom, this tracks correctly through
+   * multi-line growth. Paints inside the root's own stacking context, so it
+   * sits above both the box's surface and a preceding ThoughtDisplay bar.
+   */
+  topRightOverlay?: React.ReactNode;
 }> = ({
   onSend,
   onStop,
@@ -220,6 +272,7 @@ const SendBox: React.FC<{
   tools,
   rightTools,
   disabled,
+  sendDisabled = false,
   placeholder,
   value: input = '',
   onChange: setInput = constVoid,
@@ -228,6 +281,10 @@ const SendBox: React.FC<{
   defaultMultiLine = false,
   lockMultiLine = false,
   sendButtonPrefix,
+  onAddToDraft,
+  addToDraftDisabled = false,
+  addToDraftTooltip,
+  sendDisabledTooltip,
   slash_commands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
@@ -240,6 +297,7 @@ const SendBox: React.FC<{
   onMobilePlusClick,
   active = true,
   onFocused,
+  topRightOverlay,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -721,6 +779,10 @@ const SendBox: React.FC<{
 
   const handleOverlayKeyDown = (event: React.KeyboardEvent) => {
     return conversationExport.handleKeyDown(event) || slashController.onKeyDown(event);
+  };
+
+  const handleTextAreaKeyUp = (event: React.KeyboardEvent) => {
+    syncCaretPosition(event.currentTarget);
   };
 
   const renderExportFileNamePanel = () => {
@@ -1317,6 +1379,11 @@ const SendBox: React.FC<{
     setReplyQuote(null);
 
     onSend(finalMessage)
+      .then((result) => {
+        if (result === false) {
+          setInput(finalMessage);
+        }
+      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);
@@ -1358,23 +1425,84 @@ const SendBox: React.FC<{
 
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
-  // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
+  const addToDraftLabel = t('conversation.commandQueue.addToQueue', { defaultValue: 'Save to Draft box' });
+  const sendNowLabel = t('conversation.commandQueue.sendNow', { defaultValue: 'Send now' });
+  const enterShortcutLabel = t('conversation.commandQueue.enterShortcut', { defaultValue: 'Enter' });
+  const addToDraftShortcutLabel = t('conversation.commandQueue.addToQueueShortcut', {
+    defaultValue: isMacOS() ? '⌘ + Enter' : 'Ctrl + Enter',
+  });
+  const sendActionTooltip =
+    sendDisabled && sendDisabledTooltip ? sendDisabledTooltip : `${sendNowLabel} · ${enterShortcutLabel}`;
+  const draftActionBaseTooltip = addToDraftTooltip ?? addToDraftLabel;
 
-  // Reusable send button component
-  const sendButton = (
-    <Button
-      shape='circle'
-      type='primary'
-      disabled={isButtonDisabled}
-      className='send-button-custom'
-      icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-      onClick={() => {
-        sendMessageHandler();
-      }}
-      data-testid='sendbox-send-btn'
-    />
+  const handlePrimaryAction = () => {
+    sendMessageHandler();
+  };
+
+  const handleAddToDraftClick = () => {
+    if (disabled || addToDraftDisabled || isUploading || !hasDraftToSend || !onAddToDraft) return;
+    onAddToDraft();
+  };
+
+  const handleAddToDraftShortcut = (event: React.KeyboardEvent) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.altKey ||
+      event.repeat ||
+      !isPlatformPrimaryModifier(event.nativeEvent)
+    ) {
+      return false;
+    }
+
+    event.preventDefault();
+    handleAddToDraftClick();
+    return true;
+  };
+
+  const isSendActionDisabled = disabled || sendDisabled || isUploading || !hasDraftToSend;
+  const isDraftActionDisabled = disabled || addToDraftDisabled || isUploading || !hasDraftToSend || !onAddToDraft;
+  const hasDraftAction = Boolean(onAddToDraft);
+
+  const primaryActionButton = (
+    <Tooltip content={sendActionTooltip} position='top'>
+      <Button
+        shape='circle'
+        type='primary'
+        disabled={isSendActionDisabled}
+        className='send-button-custom'
+        icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+        onClick={handlePrimaryAction}
+        data-testid='sendbox-send-btn'
+        aria-label={typeof sendActionTooltip === 'string' ? sendActionTooltip : sendNowLabel}
+      />
+    </Tooltip>
   );
+
+  const draftActionTooltip =
+    typeof draftActionBaseTooltip === 'string'
+      ? `${draftActionBaseTooltip} · ${addToDraftShortcutLabel}`
+      : draftActionBaseTooltip;
+  const draftActionTitle = typeof draftActionTooltip === 'string' ? draftActionTooltip : addToDraftLabel;
+  const draftActionIcon = <DraftBoxActionIcon size={20} strokeWidth={1.25} />;
+  const draftActionButton = hasDraftAction ? (
+    <Tooltip content={draftActionTooltip} position='top'>
+      <span className='sendbox-draft-tooltip-anchor'>
+        <Button
+          shape='circle'
+          type='secondary'
+          disabled={isDraftActionDisabled}
+          className={`sendbox-draft-tool-action ${
+            isDraftActionDisabled ? 'sendbox-draft-tool-action--disabled' : 'sendbox-draft-tool-action--enabled'
+          }`}
+          icon={draftActionIcon}
+          onClick={handleAddToDraftClick}
+          data-testid='sendbox-add-to-draft-btn'
+          aria-label={draftActionTitle}
+        />
+      </span>
+    </Tooltip>
+  ) : null;
 
   const stopButton = (
     <Button
@@ -1393,14 +1521,14 @@ const SendBox: React.FC<{
       if (compactActions || !hasDraftToSend || disabled || isUploading) {
         return stopButton;
       }
-      return sendButton;
+      return primaryActionButton;
     }
 
     if (isLoading || loading) {
       return stopButton;
     }
 
-    return sendButton;
+    return primaryActionButton;
   };
 
   const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
@@ -1466,7 +1594,18 @@ const SendBox: React.FC<{
   }, [allAtFileQueries, input]);
 
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`.trim()}>
+      {topRightOverlay && (
+        // Zero-height overlay: absolutely positioned inside the box's own
+        // root, so it never reflows the box or a preceding ThoughtDisplay
+        // bar. Anchored to the box's own top edge (not an ancestor's bottom),
+        // so it tracks correctly through multi-line growth. It paints inside
+        // this root's own stacking context (the root already carries the
+        // caller's z-index, e.g. z-10, which is how the box's surface covers
+        // ThoughtDisplay's tucked band) — z-3 here only needs to beat the
+        // panel's own untouched content, not re-fight that outer stacking.
+        <div className='absolute right-12px top--28px z-3 pointer-events-auto'>{topRightOverlay}</div>
+      )}
       <div
         ref={containerRef}
         className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
@@ -1641,7 +1780,10 @@ const SendBox: React.FC<{
                     : 'flex-shrink-0 sendbox-tools'
               }
             >
-              {renderedTools}
+              <span className='sendbox-left-tool-group'>
+                {renderedTools}
+                {draftActionButton}
+              </span>
             </div>
           )}
           <div
@@ -1707,9 +1849,7 @@ const SendBox: React.FC<{
               }}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
-              onKeyUp={(event) => {
-                syncCaretPosition(event.currentTarget);
-              }}
+              onKeyUp={handleTextAreaKeyUp}
               onSelect={(event) => {
                 syncCaretPosition(event.currentTarget);
               }}
@@ -1718,8 +1858,13 @@ const SendBox: React.FC<{
               }}
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+              onKeyDown={createKeyDownHandler(handlePrimaryAction, (event) => {
+                return (
+                  handleAddToDraftShortcut(event) ||
+                  handleAtFileMenuKeyDown(event) ||
+                  handleOverlayKeyDown(event) ||
+                  handleHistoryKeyDown(event)
+                );
               })}
             ></Input.TextArea>
           </div>
@@ -1742,7 +1887,10 @@ const SendBox: React.FC<{
                     : 'sendbox-tools'
               }
             >
-              {renderedTools}
+              <span className='sendbox-left-tool-group'>
+                {renderedTools}
+                {draftActionButton}
+              </span>
             </div>
             <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}

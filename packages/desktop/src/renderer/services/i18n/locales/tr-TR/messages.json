@@ -87,5 +87,8 @@
   "askDeclined": "Atlandı",
   "askOther": "Diğer",
   "askOtherPlaceholder": "Yanıtınızı yazın",
-  "requestDetails": "İstek ayrıntıları:"
+  "requestDetails": "İstek ayrıntıları:",
+  "delivery": {
+    "pending": "Okunmadı"
+  }
 }

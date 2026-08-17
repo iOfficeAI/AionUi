@@ -929,8 +929,17 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
+  const list = useMessageList();
   const setLoading = useUpdateMessageListLoading();
   const setPagination = useUpdateMessagePaginationState();
+  // Mirrors the current list into a ref so the turnCompleted handler below
+  // can inspect it synchronously without re-subscribing to the WS event on
+  // every list change (useState's functional updater runs asynchronously,
+  // so update((list) => ...) can't be used for a synchronous read here).
+  const listRef = useRef(list);
+  useEffect(() => {
+    listRef.current = list;
+  }, [list]);
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
     const result = await loadLatestConversationMessages(key, {
       limit: DEFAULT_MESSAGE_PAGE_LIMIT,
@@ -1003,6 +1012,58 @@ export const useMessageLstCache = (key: string) => {
       });
     });
   }, [key, update]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    // Flips a mid-turn-delivered user message's badge from "unread" to
+    // consumed once the agent actually picks it up (claude command_lifecycle
+    // Started; codex synthetic receipt). Correlates by msg_id — the same
+    // server-assigned id message.userCreated used to add the row — never by
+    // text/time.
+    return ipcBridge.conversation.statusChanged.on((payload) => {
+      if (payload.conversation_id !== key) {
+        return;
+      }
+
+      update((list) =>
+        list.map((message) => (message.msg_id === payload.msg_id ? { ...message, status: payload.status } : message))
+      );
+    });
+  }, [key, update]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    // Reconciliation backstop at every turn boundary. The live statusChanged
+    // flip above is best-effort — a live window can miss the event (codex
+    // ack-timeout, a WS gap, or a row left orphaned by a server restart) and
+    // then never self-heal because the conversation stays mounted and never
+    // reloads. The DB row is the authoritative source of truth, so once a
+    // turn for this conversation finishes we re-pull the latest page if (and
+    // only if) a right-position text message is still showing 'pending' —
+    // loadMessages's merge (preferPersistedOrLiveMessage) lets DB truth win
+    // without disturbing anything else in the list.
+    return ipcBridge.conversation.turnCompleted.on((payload) => {
+      if (payload.session_id !== key) {
+        return;
+      }
+
+      const hasPendingDelivery = listRef.current.some(
+        (message) => message.type === 'text' && message.position === 'right' && message.status === 'pending'
+      );
+
+      if (hasPendingDelivery) {
+        void loadMessages().catch((error) => {
+          console.error('[useMessageLstCache] Failed to reconcile pending messages after turn completion:', error);
+        });
+      }
+    });
+  }, [key, loadMessages]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

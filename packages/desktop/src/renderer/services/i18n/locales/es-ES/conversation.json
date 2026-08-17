@@ -511,7 +511,14 @@
     "mode": {
       "auto": "Envío automático",
       "manual": "Envío manual"
-    }
+    },
+    "addToQueue": "Añadir al buzón de borradores",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "No se admite interrumpir mientras este agente está respondiendo. Usa Añadir al buzón de borradores en su lugar.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "contexto usado",

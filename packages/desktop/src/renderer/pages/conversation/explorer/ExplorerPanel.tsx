@@ -19,7 +19,7 @@ import { Caution, MoreOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// File-tree icons (VSCode "vscode-icons" theme), now owned by the explorer.
+// File-tree icons (catppuccin file-icon theme), now owned by the explorer.
 import FileTypeIcon from './fileIcon/FileTypeIcon';
 
 import { getFilesFromDropEvent } from '@/renderer/services/FileService';

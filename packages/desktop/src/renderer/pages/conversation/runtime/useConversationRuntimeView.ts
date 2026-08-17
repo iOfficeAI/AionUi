@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
+import { reconcileGeneratingFromRuntime } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
@@ -37,6 +38,7 @@ type UseConversationRuntimeViewReturn = {
   isProcessing: boolean;
   canSendMessage: boolean;
   activeTurnId: string | null;
+  supportsMidturnDelivery: boolean;
   markSendStarted: () => void;
   markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
   markSendFailed: (failure: ConversationRuntimeSendFailure) => void;
@@ -90,7 +92,14 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
         if (cancelled) {
           return;
         }
-        flushRuntimeViewLogs(hydrateSucceeded(conversation_id, getRuntimeOrNull(conversation?.runtime)));
+        const runtime = getRuntimeOrNull(conversation?.runtime);
+        flushRuntimeViewLogs(hydrateSucceeded(conversation_id, runtime));
+        // Reconcile the sidebar spinner against authoritative runtime state:
+        // a missed WS frame (window reload/reconnect race) can otherwise
+        // leave the row dark even though the runtime is still processing.
+        if (runtime) {
+          reconcileGeneratingFromRuntime(conversation_id, runtime.is_processing === true);
+        }
       })
       .catch((error: unknown) => {
         if (cancelled) {
@@ -143,6 +152,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   const markSendAccepted = useCallback(
     (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => {
       flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, runtime, msg_id));
+      reconcileGeneratingFromRuntime(conversation_id, runtime.is_processing === true);
     },
     [conversation_id]
   );
@@ -205,6 +215,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     isProcessing: view.isProcessing,
     canSendMessage: view.canSendMessage,
     activeTurnId: view.activeTurnId,
+    supportsMidturnDelivery: view.supportsMidturnDelivery,
     markSendStarted,
     markSendAccepted,
     markSendFailed,
