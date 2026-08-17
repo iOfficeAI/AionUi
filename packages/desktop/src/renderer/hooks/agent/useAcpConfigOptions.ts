@@ -76,6 +76,59 @@ export function deriveSelectOption(
   };
 }
 
+/**
+ * Fallback option ids for the thought-level axis, matched only when no option
+ * carries `category: 'thought_level'` (the category stays authoritative).
+ * Covers every id the known backends emit: our Core's `reasoning_effort`, the
+ * legacy ACP aliases `effort`/`thinking_budget`, and `thinking` (also the id
+ * upstream PR #3597 matches, so the two changes stay compatible).
+ */
+export const THOUGHT_LEVEL_FALLBACK_IDS = [
+  'thought_level',
+  'reasoning_effort',
+  'effort',
+  'thinking',
+  'thinking_budget',
+];
+
+/**
+ * Anti-flicker merge for whole-snapshot replaces (`acp_config_option` push /
+ * REST reload): keep a known non-null `current_value` when the incoming frame
+ * carries NO current information at all.
+ *
+ * A frame where EVERY option's `current_value` is null is "informationless" —
+ * the backend simply had nothing selected to report yet (e.g. an early catalog
+ * push before its currents landed, or an older Core that never stamped
+ * currents) — and letting it clobber a current the UI already observed makes
+ * the picker flash Model-only. For those frames the previous per-option
+ * current is preserved (matched by category, then id).
+ *
+ * A frame with AT LEAST ONE non-null current is an informed snapshot: its
+ * nulls are authoritative and pass through. This is what keeps the Core's
+ * reject re-push working — after a backend refuses an effort set, the
+ * corrected frame still carries the model current, so its effort null WIPES
+ * the stale highlight instead of being "protected".
+ */
+export function mergeSnapshotPreservingKnownCurrents(
+  previous: AcpConfigOptionDto[] | null | undefined,
+  next: AcpConfigOptionDto[]
+): AcpConfigOptionDto[] {
+  if (!previous?.length) return next;
+  const informed = next.some((option) => option.current_value != null);
+  if (informed) return next;
+  return next.map((option) => {
+    if (option.current_value != null) return option;
+    const prior = previous.find((candidate) =>
+      option.category ? candidate.category === option.category : candidate.id === option.id
+    );
+    if (prior?.current_value == null) return option;
+    // Only revive a current the incoming option can still represent — a stale
+    // value outside the new choice list would be its own lie.
+    const stillSelectable = option.options?.some((choice) => choice.value === prior.current_value);
+    return stillSelectable ? { ...option, current_value: prior.current_value } : option;
+  });
+}
+
 export function hasObservedValue(
   response: SetConfigOptionResponse,
   optionId: string,
@@ -267,8 +320,9 @@ export function useAcpConfigOptions({
 
   const replaceSnapshot = useCallback(
     (next: AcpConfigOptionDto[]) => {
-      optionsRef.current = next;
-      void mutate(next, false);
+      const merged = mergeSnapshotPreservingKnownCurrents(optionsRef.current, next);
+      optionsRef.current = merged;
+      void mutate(merged, false);
     },
     [mutate]
   );
@@ -361,7 +415,7 @@ export function useAcpConfigOptions({
     pendingValues,
     mode: deriveSelectOption(configOptions, 'mode', ['mode']),
     model: deriveSelectOption(configOptions, 'model', ['model']),
-    thoughtLevel: deriveSelectOption(configOptions, 'thought_level', ['thought_level', 'reasoning_effort']),
+    thoughtLevel: deriveSelectOption(configOptions, 'thought_level', THOUGHT_LEVEL_FALLBACK_IDS),
     reload,
     setConfigOption,
   };

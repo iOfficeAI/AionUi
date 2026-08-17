@@ -99,17 +99,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       fallbackLabel: defaultModelLabel,
     });
   }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
-  const selectedThoughtLevelValue = thoughtLevelOption?.currentValue || thoughtLevelOption?.options[0]?.value || '';
-  const normalizedThoughtLevelOption =
-    thoughtLevelOption && thoughtLevelOption.options.length > 0
-      ? {
-          ...thoughtLevelOption,
-          currentValue: selectedThoughtLevelValue || null,
-        }
-      : null;
+  // The thought-level current is HONEST: only a real known value (user pick or
+  // backend-reported current) highlights; an unknown current renders as the
+  // localized "Default" instead of pretending options[0] is active — the
+  // backend resolves the actual default (assistant fixed default / its own
+  // launch default), and options[0] may not be it.
+  const defaultThoughtLevelLabel = t('common.default');
+  const visibleThoughtLevelOption =
+    thoughtLevelOption && thoughtLevelOption.options.length > 0 ? thoughtLevelOption : null;
   const combinedAcpButtonLabel = composeRuntimeSelectorLabel({
     modelLabel: acpButtonLabel,
-    thoughtLevel: normalizedThoughtLevelOption,
+    thoughtLevel: visibleThoughtLevelOption,
+    defaultThoughtLevelLabel,
   });
 
   if (isGeminiMode) {
@@ -208,7 +209,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           trigger='click'
           droplist={
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
-              {normalizedThoughtLevelOption ? (
+              {visibleThoughtLevelOption ? (
                 <>
                   {/* Two-level layout: model row on top, thought-level row below;
                       each expands into a left-side submenu. */}
@@ -230,18 +231,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     title={
                       <RuntimeSelectorSubMenuTitle
                         label={t('agent.thoughtLevel.label')}
-                        value={getCurrentThoughtLevelLabel(normalizedThoughtLevelOption)}
+                        value={getCurrentThoughtLevelLabel(visibleThoughtLevelOption, defaultThoughtLevelLabel)}
                       />
                     }
                   >
-                    {normalizedThoughtLevelOption.options.map((item) => (
+                    {visibleThoughtLevelOption.options.map((item) => (
                       <Menu.Item
                         key={item.value}
-                        className={item.value === normalizedThoughtLevelOption.currentValue ? '!bg-2' : ''}
+                        className={item.value === visibleThoughtLevelOption.currentValue ? '!bg-2' : ''}
                         onClick={() => onThoughtLevelSelect?.(item.value)}
                       >
                         <RuntimeSelectorCheckedItem
-                          selected={item.value === normalizedThoughtLevelOption.currentValue}
+                          selected={item.value === visibleThoughtLevelOption.currentValue}
                           description={item.description}
                         >
                           {item.label}

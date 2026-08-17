@@ -32,6 +32,7 @@ vi.mock('react-i18next', () => ({
       if (key === 'common.model') return 'Model';
       if (key === 'conversation.welcome.modelSwitchNotSupported') return 'Model switch is not supported';
       if (key === 'agent.thoughtLevel.label') return 'Thinking Level';
+      if (key === 'common.default') return 'Default';
       return key;
     },
   }),
@@ -186,6 +187,35 @@ describe('GuidModelSelector', () => {
 
     expect(setSelectedAcpModel).toHaveBeenCalledWith('gpt-5.4-codex');
     expect(onThoughtLevelSelect).toHaveBeenCalledWith('high');
+  });
+
+  it('renders the honest Default when no thought level current is known', () => {
+    // No user pick and no backend-reported current: the selector must NOT
+    // pretend options[0] ("Low") is active — the backend resolves the real
+    // default. Pill and submenu title both fall back to the localized Default.
+    render(
+      <GuidModelSelector
+        isGeminiMode={false}
+        modelList={[]}
+        current_model={undefined}
+        setCurrentModel={vi.fn()}
+        currentAcpCachedModelInfo={{
+          current_model_id: 'gpt-5.3-codex',
+          current_model_label: 'gpt-5.3-codex',
+          available_models: [{ id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' }],
+        }}
+        selectedAcpModel='gpt-5.3-codex'
+        setSelectedAcpModel={vi.fn()}
+        thoughtLevelOption={{ ...thoughtLevelOption, currentValue: null }}
+        onThoughtLevelSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('gpt-5.3-codex · Default')).toBeInTheDocument();
+    const titles = screen.getAllByTestId('submenu-title');
+    expect(titles[1]).toHaveTextContent('Thinking Level');
+    expect(titles[1]).toHaveTextContent('Default');
+    expect(titles[1]).not.toHaveTextContent('Low');
   });
 
   it('does not add thought level options to the Aion CLI provider model menu', () => {

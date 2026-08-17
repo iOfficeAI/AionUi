@@ -287,10 +287,6 @@ export const useGuidAssistantSelection = ({
   const thoughtLevelSelectionScopeRef = useRef<string | null>(null);
   useEffect(() => {
     const optionValues = new Set(selectedAgentRuntimeThoughtLevelOption?.options.map((option) => option.value) ?? []);
-    const fallbackThoughtLevel =
-      selectedAgentRuntimeThoughtLevelOption?.currentValue ||
-      selectedAgentRuntimeThoughtLevelOption?.options[0]?.value ||
-      '';
     const selectionScope = selectedAssistantId ?? '';
 
     _setSelectedThoughtLevelValue((previousValue) => {
@@ -305,7 +301,15 @@ export const useGuidAssistantSelection = ({
         return previousValue;
       }
 
-      return fallbackThoughtLevel;
+      // No implicit selection: `''` means the user has not picked a level, so
+      // the create request sends NO thought_level override and the backend
+      // resolves the real default (assistant fixed default / auto preference /
+      // its own launch default). The old fallback pre-selected `currentValue`
+      // or even `options[0]` here, which the send path then SENT as an explicit
+      // conversation override — silently defeating the assistant's default.
+      // Display-wise the selector falls back to the catalog current or the
+      // localized "Default" (see GuidModelSelector).
+      return '';
     });
   }, [selectedAgentRuntimeThoughtLevelOption, selectedAssistantId]);
 

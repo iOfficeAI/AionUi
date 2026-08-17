@@ -97,7 +97,12 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
-  const combinedLabel = composeRuntimeSelectorLabel({ modelLabel: display_label, thoughtLevel });
+  const defaultThoughtLevelLabel = t('common.default');
+  const combinedLabel = composeRuntimeSelectorLabel({
+    modelLabel: display_label,
+    thoughtLevel,
+    defaultThoughtLevelLabel,
+  });
   const isRuntimeSetting = isConfigSetting(setStatus);
   const handleThoughtLevelSelect = useCallback(
     async (value: string) => {
@@ -218,7 +223,7 @@ const AcpModelSelector: React.FC<{
                 title={
                   <RuntimeSelectorSubMenuTitle
                     label={t('agent.thoughtLevel.label')}
-                    value={getCurrentThoughtLevelLabel(thoughtLevel)}
+                    value={getCurrentThoughtLevelLabel(thoughtLevel, defaultThoughtLevelLabel)}
                   />
                 }
               >

@@ -24,23 +24,39 @@ export type RuntimeSelectorModelGroup = { key: string; title: string; models: Ru
 const matchesModelQuery = (model: RuntimeSelectorModel, keyword: string): boolean =>
   (model.label || model.id).toLowerCase().includes(keyword);
 
-export const getCurrentThoughtLevelLabel = (thoughtLevel: AcpDerivedOption | null | undefined): string => {
+/** Structural subset both AcpDerivedOption and AgentRuntimeDerivedOption satisfy. */
+type ThoughtLevelLike = Pick<AcpDerivedOption, 'options'> & { currentValue?: string | null };
+
+/**
+ * Resolve the display label for the ACTIVE thinking level. The backend's
+ * `current_value` is the single source of truth: a known value maps to its
+ * option label (or itself). When the axis exists but no current is known,
+ * return `defaultLabel` (the caller passes the localized "Default") — an
+ * honest neutral, never a guess like `options[0]`, which may not be what the
+ * backend actually runs. No axis at all → empty (no suffix).
+ */
+export const getCurrentThoughtLevelLabel = (
+  thoughtLevel: ThoughtLevelLike | null | undefined,
+  defaultLabel = ''
+): string => {
   if (!thoughtLevel) return '';
+  if (!thoughtLevel.currentValue) return defaultLabel;
   return (
-    thoughtLevel.options.find((item) => item.value === thoughtLevel.currentValue)?.label ||
-    thoughtLevel.currentValue ||
-    ''
+    thoughtLevel.options.find((item) => item.value === thoughtLevel.currentValue)?.label || thoughtLevel.currentValue
   );
 };
 
 export const composeRuntimeSelectorLabel = ({
   modelLabel,
   thoughtLevel,
+  defaultThoughtLevelLabel,
 }: {
   modelLabel: string;
-  thoughtLevel?: AcpDerivedOption | null;
+  thoughtLevel?: ThoughtLevelLike | null;
+  /** Localized "Default" shown when the thought axis exists but no current is known. */
+  defaultThoughtLevelLabel?: string;
 }): string => {
-  const thoughtLevelLabel = getCurrentThoughtLevelLabel(thoughtLevel);
+  const thoughtLevelLabel = getCurrentThoughtLevelLabel(thoughtLevel, defaultThoughtLevelLabel);
   if (!thoughtLevelLabel) return modelLabel;
   return `${modelLabel} · ${thoughtLevelLabel}`;
 };
