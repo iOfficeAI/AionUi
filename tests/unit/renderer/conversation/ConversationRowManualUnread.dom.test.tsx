@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -42,8 +42,8 @@ import ConversationRow from '@/renderer/pages/conversation/GroupedHistory/Conver
 import type { ConversationRowProps } from '@/renderer/pages/conversation/GroupedHistory/types';
 
 const conversation = {
-  id: 'cron-menu-conversation',
-  name: 'Scheduled task source',
+  id: 'unread-menu-conversation',
+  name: 'Unread source',
   type: 'acp',
   created_at: 1,
   modified_at: 1,
@@ -55,6 +55,7 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   conversation,
   isGenerating: false,
   hasUnread: false,
+  isManualUnread: false,
   collapsed: false,
   tooltipEnabled: false,
   batchMode: false,
@@ -69,35 +70,41 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   onCreateCronTask: vi.fn(),
   onDelete: vi.fn(),
   onTogglePin: vi.fn(),
+  onToggleManualUnread: vi.fn(),
   getJobStatus: () => 'none',
   ...overrides,
 });
 
-describe('conversation scheduled-task menu item', () => {
-  it('renders the Timer action between Rename and Delete and invokes it for the selected row', async () => {
-    const onCreateCronTask = vi.fn();
-    const onEditStart = vi.fn();
-    const onDelete = vi.fn();
-    render(<ConversationRow {...makeProps({ onCreateCronTask, onDelete, onEditStart })} />);
+describe('conversation mark-as-unread menu item', () => {
+  it('offers "Mark as unread" when the conversation is not manually unread', async () => {
+    render(<ConversationRow {...makeProps({ isManualUnread: false })} />);
 
-    const rename = await screen.findByText('conversation.history.rename');
-    const createCronTask = screen.getByText('conversation.history.createCronTask');
-    const deleteItem = screen.getByText('conversation.history.deleteTitle');
-
-    expect(rename.compareDocumentPosition(createCronTask) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(createCronTask.compareDocumentPosition(deleteItem) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-    fireEvent.click(rename);
-    await waitFor(() => expect(onEditStart).toHaveBeenCalledWith(conversation));
-    fireEvent.click(deleteItem);
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(conversation.id));
-    fireEvent.click(createCronTask);
-    await waitFor(() => expect(onCreateCronTask).toHaveBeenCalledWith(conversation));
+    const item = await screen.findByText('conversation.history.markAsUnread');
+    expect(item).toBeInTheDocument();
+    expect(screen.queryByText('conversation.history.markAsRead')).not.toBeInTheDocument();
   });
 
-  it('keeps row actions hidden while batch selection is active', () => {
+  it('offers "Mark as read" when the conversation is manually unread', async () => {
+    render(<ConversationRow {...makeProps({ isManualUnread: true })} />);
+
+    const item = await screen.findByText('conversation.history.markAsRead');
+    expect(item).toBeInTheDocument();
+    expect(screen.queryByText('conversation.history.markAsUnread')).not.toBeInTheDocument();
+  });
+
+  it('invokes onToggleManualUnread with the conversation on click', async () => {
+    const onToggleManualUnread = vi.fn();
+    render(<ConversationRow {...makeProps({ onToggleManualUnread })} />);
+
+    const item = await screen.findByText('conversation.history.markAsUnread');
+    fireEvent.click(item);
+    await waitFor(() => expect(onToggleManualUnread).toHaveBeenCalledWith(conversation));
+  });
+
+  it('keeps the unread actions hidden while batch selection is active', () => {
     render(<ConversationRow {...makeProps({ batchMode: true, menuVisible: false })} />);
 
-    expect(screen.queryByText('conversation.history.createCronTask')).not.toBeInTheDocument();
+    expect(screen.queryByText('conversation.history.markAsUnread')).not.toBeInTheDocument();
+    expect(screen.queryByText('conversation.history.markAsRead')).not.toBeInTheDocument();
   });
 });

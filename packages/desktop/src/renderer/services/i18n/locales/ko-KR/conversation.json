@@ -62,6 +62,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "읽지 않음으로 표시",
+    "markAsRead": "읽음으로 표시",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",

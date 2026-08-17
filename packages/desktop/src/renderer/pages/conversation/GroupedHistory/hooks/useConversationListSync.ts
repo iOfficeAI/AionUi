@@ -128,6 +128,35 @@ type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
+  manualUnreadConversationIds: Set<string>;
+};
+
+/**
+ * Renderer-local, persisted manual "mark as unread" set. Unlike the transient
+ * completion-unread set (session-only, auto-cleared on open), this survives app
+ * restarts so a user can deliberately flag a conversation to return to later.
+ * Stored in localStorage, matching the existing collapsed-sections / workspace
+ * expansion / team-pinned persistence pattern.
+ */
+const MANUAL_UNREAD_STORAGE_KEY = 'conversation-manual-unread-ids';
+
+const readStoredManualUnread = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(MANUAL_UNREAD_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    return new Set(Array.isArray(arr) ? arr.filter((id): id is string => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const persistManualUnread = () => {
+  try {
+    localStorage.setItem(MANUAL_UNREAD_STORAGE_KEY, JSON.stringify([...manualUnreadConversationIdsState]));
+  } catch {
+    // ignore
+  }
 };
 
 const listeners = new Set<() => void>();
@@ -136,6 +165,7 @@ let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
 let generatingConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
+let manualUnreadConversationIdsState = readStoredManualUnread();
 let completedConversationIdsState = new Set<string>();
 let conversation_idsState = new Set<string>();
 // Full id → owning project_id map over ALL loaded conversations (incl. the team
@@ -151,6 +181,7 @@ let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
+  manualUnreadConversationIds: manualUnreadConversationIdsState,
 };
 
 const emitStoreChange = () => {
@@ -158,6 +189,7 @@ const emitStoreChange = () => {
     conversations: conversationsState,
     generatingConversationIds: generatingConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
+    manualUnreadConversationIds: manualUnreadConversationIdsState,
   };
   listeners.forEach((listener) => listener());
 };
@@ -311,6 +343,28 @@ const clearCompletionUnreadState = (conversation_id: string) => {
   emitStoreChange();
 };
 
+const markManualUnreadState = (conversation_id: string) => {
+  if (manualUnreadConversationIdsState.has(conversation_id)) {
+    return;
+  }
+
+  manualUnreadConversationIdsState = new Set(manualUnreadConversationIdsState).add(conversation_id);
+  persistManualUnread();
+  emitStoreChange();
+};
+
+const clearManualUnreadState = (conversation_id: string) => {
+  if (!manualUnreadConversationIdsState.has(conversation_id)) {
+    return;
+  }
+
+  const next = new Set(manualUnreadConversationIdsState);
+  next.delete(conversation_id);
+  manualUnreadConversationIdsState = next;
+  persistManualUnread();
+  emitStoreChange();
+};
+
 /** Turn id that put a conversation into the `completed` set (for turn-aware
  *  late-frame detection). */
 const completedTurnIdByConversation = new Map<string, string | null>();
@@ -362,6 +416,7 @@ const initializeConversationListSyncStore = () => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id, 'deleted');
       clearCompletionUnreadState(event.conversation_id);
+      clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
     }
     refreshConversations();
@@ -417,14 +472,23 @@ export const useConversationListSync = () => {
     initializeConversationListSyncStore();
   }, []);
 
-  const { conversations, generatingConversationIds, completionUnreadConversationIds } = useSyncExternalStore(
-    subscribeConversationListSync,
-    getConversationListSyncSnapshot,
-    getConversationListSyncSnapshot
-  );
+  const { conversations, generatingConversationIds, completionUnreadConversationIds, manualUnreadConversationIds } =
+    useSyncExternalStore(
+      subscribeConversationListSync,
+      getConversationListSyncSnapshot,
+      getConversationListSyncSnapshot
+    );
 
   const clearCompletionUnread = useCallback((conversation_id: string) => {
     clearCompletionUnreadState(conversation_id);
+  }, []);
+
+  const markManualUnread = useCallback((conversation_id: string) => {
+    markManualUnreadState(conversation_id);
+  }, []);
+
+  const clearManualUnread = useCallback((conversation_id: string) => {
+    clearManualUnreadState(conversation_id);
   }, []);
 
   const setActiveConversation = useCallback((conversation_id: string | null) => {
@@ -445,11 +509,21 @@ export const useConversationListSync = () => {
     [completionUnreadConversationIds]
   );
 
+  const isManualUnread = useCallback(
+    (conversation_id: string) => {
+      return manualUnreadConversationIds.has(conversation_id);
+    },
+    [manualUnreadConversationIds]
+  );
+
   return {
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
     clearCompletionUnread,
+    isManualUnread,
+    markManualUnread,
+    clearManualUnread,
     setActiveConversation,
   };
 };

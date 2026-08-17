@@ -62,6 +62,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "Okunmadı olarak işaretle",
+    "markAsRead": "Okundu olarak işaretle",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",

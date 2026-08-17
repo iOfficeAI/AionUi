@@ -48,7 +48,7 @@ const onConversationClick = vi.fn();
 const rowProps: ConversationRowProps = {
   conversation: pinnedConversation,
   isGenerating: false,
-  hasCompletionUnread: false,
+  hasUnread: false,
   collapsed: false,
   tooltipEnabled: false,
   batchMode: false,

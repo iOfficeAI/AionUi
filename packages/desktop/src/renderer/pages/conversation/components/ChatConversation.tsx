@@ -248,6 +248,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         }
         agent_name={presetAssistantInfo?.name}
         assistantId={aionrsAssistantId}
+        forkCapability={conversation.fork_capability}
       />
     </ChatLayout>
   );
