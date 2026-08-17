@@ -23,11 +23,9 @@ import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContain
 import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
 import { useProjectPreviewRegionWidth } from '@renderer/hooks/ui/useProjectPreviewRegionWidth';
 import { useProjectPanelCollapse } from '@renderer/hooks/ui/useProjectPanelCollapse';
-import { isMacEnvironment } from '@renderer/pages/conversation/utils/detectPlatform';
 import { dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import { MIN_PREVIEW_PANEL_PX } from '@renderer/pages/conversation/utils/layoutCalc';
 import { PreviewPanel } from '@renderer/pages/conversation/Preview';
-import { ExpandLeft } from '@icon-park/react';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
@@ -190,7 +188,6 @@ const Layout: React.FC<{
     isMobile,
     active: Boolean(currentProject),
   });
-  const isMacRuntime = isMacEnvironment();
   const toggleExplorer = useCallback(() => {
     dispatchWorkspaceToggleEvent();
   }, []);
@@ -580,8 +577,6 @@ const Layout: React.FC<{
                 <ProjectPanelHost
                   widthPx={explorerWidthPx}
                   collapsed={explorerCollapsed}
-                  onToggle={toggleExplorer}
-                  showChevron={!isMacRuntime}
                   dragHandle={createExplorerDragHandle({
                     className: 'absolute left-0 top-0 bottom-0 z-20',
                     reverse: true,
@@ -589,30 +584,6 @@ const Layout: React.FC<{
                 />
               )}
             </div>
-
-            {/* Desktop expand button when the explorer is collapsed. Not on mac
-                (the Titlebar workspace button owns the toggle there). */}
-            {!isMobile && !isMacRuntime && Boolean(currentProject) && explorerCollapsed && (
-              <button
-                type='button'
-                className='workspace-toggle-floating fixed z-101 flex items-center justify-center'
-                style={{
-                  top: '50%',
-                  right: '0px',
-                  transform: 'translateY(-50%)',
-                  width: '20px',
-                  height: '64px',
-                  borderTopLeftRadius: '10px',
-                  borderBottomLeftRadius: '10px',
-                  backgroundColor: 'var(--bg-2)',
-                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
-                }}
-                onClick={toggleExplorer}
-                aria-label='Expand explorer'
-              >
-                <ExpandLeft size={16} />
-              </button>
-            )}
 
             {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
             {isMobile && Boolean(currentProject) && (
