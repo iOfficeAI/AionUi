@@ -867,6 +867,24 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   /**
+   * 确保 Agent 有可见的浏览器目标：复用并聚焦已有 tab，或创建一个空白 tab。
+   *
+   * Ensure the agent has a visible browser target: reuse and focus an existing tab, or
+   * create a blank one. This stays in the renderer because only PreviewContext owns the
+   * React state that materializes the webview CDP will later attach to.
+   */
+  const ensureBrowserPanelOpen = useCallback(() => {
+    const browserTab = tabsRef.current.find((tab) => tab.content_type === 'browser');
+    if (!browserTab) {
+      openBrowserTab();
+      return;
+    }
+
+    setIsOpen(true);
+    setActiveTabId(browserTab.id);
+  }, [openBrowserTab]);
+
+  /**
    * Hide the preview panel, keeping its tabs.
    *
    * Only visibility changes. The tabs stay in memory and stay persisted, so the
@@ -1245,6 +1263,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       metadata?: PreviewMetadata;
     }) => {
       if (data && data.content) {
+        if (data.contentType === 'browser') {
+          ensureBrowserPanelOpen();
+          return;
+        }
         openPreview(data.content, data.contentType, data.metadata);
       }
     };
@@ -1255,6 +1277,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       metadata?: PreviewMetadata;
     }) => {
       if (data && data.content) {
+        if (data.content_type === 'browser') {
+          ensureBrowserPanelOpen();
+          return;
+        }
         openPreview(data.content, data.content_type, data.metadata);
       }
     };
@@ -1269,7 +1295,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       emitter.off('preview.open', handleEmitterPreviewOpen);
       unsubscribeIpc();
     };
-  }, [openPreview]);
+  }, [ensureBrowserPanelOpen, openPreview]);
 
   /**
    * 跟踪 Agent 对应用内浏览器的操作，并驱动两件事：
@@ -1321,6 +1347,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const unsubscribe = stream.on((message) => {
       if (isBrowserMcpActivity(message.type, message.data)) {
+        ensureBrowserPanelOpen();
         markBrowserTabs(true);
         maybeNotifyFirstAgentBrowserUse();
         return;
@@ -1331,7 +1358,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     return unsubscribe;
-  }, []);
+  }, [ensureBrowserPanelOpen]);
 
   const previewContextValue = useMemo(() => {
     return {

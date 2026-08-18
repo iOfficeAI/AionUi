@@ -1283,7 +1283,7 @@ export const database = {
 
 // Preview panel
 export const preview = {
-  open: wsEmitter<{
+  open: bridge.buildEmitter<{
     content: string;
     content_type: import('../types/office/preview').PreviewContentType;
     metadata?: {
