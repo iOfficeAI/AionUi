@@ -171,5 +171,7 @@ export const useKnowledgeBaseList = () => {
     setActiveKnowledgeBaseId,
     activeKnowledgeBase,
     loadKnowledgeBases,
+    loadPersonalKnowledgeBases,
+    loadSharedKnowledgeBases,
   };
 };
