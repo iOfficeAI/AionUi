@@ -163,5 +163,8 @@
     "confirmMessage": "This tab has unsaved changes. Reloading replaces them with what is on disk.",
     "discardAndRefresh": "Discard changes and reload",
     "officeNotWired": "Refreshing Office documents is not available yet — close and reopen the file to see changes."
-  }
+  },
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "zoomReset": "Reset view"
 }

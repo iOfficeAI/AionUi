@@ -314,7 +314,10 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   const components = useMemo(
     () => ({
       ...HEADING_COMPONENTS,
-      code: (props: Record<string, unknown>) => <CodeBlock {...(props as Parameters<typeof CodeBlock>[0])} />,
+      // Enable Mermaid drag-to-pan + zoom in the preview panel (chat diagrams stay static).
+      code: (props: Record<string, unknown>) => (
+        <CodeBlock {...(props as Parameters<typeof CodeBlock>[0])} mermaidPanZoom />
+      ),
       a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
         const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
         if (localFileReference) {

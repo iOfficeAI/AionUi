@@ -163,5 +163,8 @@
     "confirmMessage": "이 탭에는 저장하지 않은 변경이 있습니다. 다시 불러오면 디스크의 내용으로 대체됩니다.",
     "discardAndRefresh": "변경을 버리고 새로 고침",
     "officeNotWired": "Office 문서 새로 고침은 아직 지원되지 않습니다 — 파일을 닫고 다시 열면 변경 내용이 보입니다."
-  }
+  },
+  "zoomIn": "확대",
+  "zoomOut": "축소",
+  "zoomReset": "보기 재설정"
 }
