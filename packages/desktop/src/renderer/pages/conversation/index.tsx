@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import { Message, Spin } from '@arco-design/web-react';
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -12,14 +12,11 @@ import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/c
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
-import { KbModeConversation } from './kb-chat/KbModeConversation';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isKbMode = new URLSearchParams(location.search).get('mode') === 'kb';
   const { closePreviewIfScopeChanged } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle();
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
@@ -110,10 +107,6 @@ const ChatConversationIndex: React.FC = () => {
   }, [id, isLoading, data, navigate, t]);
 
   if (isLoading) return <Spin loading></Spin>;
-  if (isKbMode) {
-    const kbName = (location.state as { kbName?: string } | null)?.kbName ?? id ?? '';
-    return <KbModeConversation kbId={id ?? ''} kbName={kbName} />;
-  }
   return <ChatConversation conversation={data ?? undefined}></ChatConversation>;
 };
 

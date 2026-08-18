@@ -6,19 +6,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input } from '@arco-design/web-react';
+import { useLocation, useParams } from 'react-router-dom';
 import { KbChatHeader } from '@/renderer/components/kb-chat/KbChatHeader';
 import { useKbChat } from '@/renderer/hooks/kb-chat/useKbChat';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
-import styles from './KbModeConversation.module.css';
+import styles from './KbChatPage.module.css';
 
-type KbModeConversationProps = {
-  kbId: string;
-  kbName: string;
-};
-
-export const KbModeConversation: React.FC<KbModeConversationProps> = ({ kbId, kbName }) => {
+export const KbChatPage: React.FC = () => {
   const { user } = useAuth();
   const token = user?.token ?? null;
+  const { kbId = '' } = useParams<{ kbId: string }>();
+  const location = useLocation();
+  const kbName = (location.state as { kbName?: string } | null)?.kbName ?? kbId;
   const { status, messages, send, abort, retry, lastError } = useKbChat({ kbId, token });
   const { t } = useTranslation();
 
@@ -87,3 +86,5 @@ const KbChatInput: React.FC<KbChatInputProps> = ({ disabled, streaming, onSend, 
     </div>
   );
 };
+
+export default KbChatPage;

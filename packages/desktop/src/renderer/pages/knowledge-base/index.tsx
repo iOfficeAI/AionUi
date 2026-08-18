@@ -105,7 +105,7 @@ const KnowledgeBasePage: React.FC = () => {
   // TODO: API - 知识库直接打开对话：根据 KB 的 agentId 跳转到 /guid
   const handleStartChat = useCallback(
     (item: KnowledgeBaseItem) => {
-      navigate(`/conversation/${encodeURIComponent(item.id)}?mode=kb`, {
+      navigate(`/kb-chat/${encodeURIComponent(item.id)}`, {
         state: { kbName: item.name },
       });
     },

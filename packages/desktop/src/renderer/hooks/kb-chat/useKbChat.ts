@@ -42,6 +42,8 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
   const lastQuestionRef = useRef<string | null>(null);
   const tokenRef = useRef<string | null | undefined>(token);
   tokenRef.current = token;
+  const kbIdRef = useRef<string>(kbId);
+  kbIdRef.current = kbId;
 
   useEffect(() => {
     const offChunk = ipcBridge.kbChat.streamChunk.on((p: unknown) => {
@@ -87,43 +89,40 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
     void ipcBridge.kbChat.abort.invoke({ requestId });
   }, []);
 
-  const send = useCallback(
-    async (question: string) => {
-      const trimmed = question.trim();
-      if (!trimmed) return;
-      const currentToken = tokenRef.current;
-      if (!currentToken) {
-        setLastError({ code: 'no_token', message: 'Please sign in first' });
-        setStatus('error');
-        return;
-      }
-      const previous = requestIdRef.current;
-      if (previous) {
-        void ipcBridge.kbChat.abort.invoke({ requestId: previous });
-      }
+  const send = useCallback(async (question: string) => {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    const currentToken = tokenRef.current;
+    if (!currentToken) {
+      setLastError({ code: 'no_token', message: 'Please sign in first' });
+      setStatus('error');
+      return;
+    }
+    const previous = requestIdRef.current;
+    if (previous) {
+      void ipcBridge.kbChat.abort.invoke({ requestId: previous });
+    }
 
-      const requestId = newRequestId();
-      requestIdRef.current = requestId;
-      lastQuestionRef.current = trimmed;
-      setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
-      setStatus('streaming');
-      setLastError(undefined);
+    const requestId = newRequestId();
+    requestIdRef.current = requestId;
+    lastQuestionRef.current = trimmed;
+    setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
+    setStatus('streaming');
+    setLastError(undefined);
 
-      const result = await ipcBridge.kbChat.send.invoke({
-        requestId,
-        kbId,
-        question: trimmed,
-        token: currentToken,
-      });
+    const result = await ipcBridge.kbChat.send.invoke({
+      requestId,
+      kbId: kbIdRef.current,
+      question: trimmed,
+      token: currentToken,
+    });
 
-      if (!result.ok && requestIdRef.current === requestId) {
-        const message = (result as { message?: string }).message ?? 'unknown';
-        setStatus('error');
-        setLastError({ code: 'send_failed', message });
-      }
-    },
-    [kbId]
-  );
+    if (!result.ok && requestIdRef.current === requestId) {
+      const message = (result as { message?: string }).message ?? 'unknown';
+      setStatus('error');
+      setLastError({ code: 'send_failed', message });
+    }
+  }, []);
 
   const retry = useCallback(() => {
     const last = lastQuestionRef.current;
