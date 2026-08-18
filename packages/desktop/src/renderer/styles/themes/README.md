@@ -2,118 +2,107 @@
 
 ## Architecture Overview 架构概览
 
-The theme system separates light/dark mode from color schemes for better extensibility.
-主题系统将明暗模式与配色方案分离，以提供更好的扩展性。
+A theme is described by a single unified model, `Theme`
+(`common/theme/types.ts`). Every theme carries an `appearance` (`'light'` | `'dark'`) plus two optional, layered override channels:
 
-### Two Dimensions 两个维度
+- **`tokens`** — a structured, validated map of CSS custom properties. This is the preferred way to re-tint the app. Only keys in the token contract (`common/theme/tokenContract.ts`) are honored.
+- **`css`** — a raw CSS escape hatch for decorative / user themes. It is sandboxed by `customCssProcessor.ts` (auto-`!important`, scoped) before being injected.
 
-1. **Light/Dark Mode 明暗模式** (`theme`)
-   - Controlled by `useTheme` hook
-   - Values: `'light'` | `'dark'`
-   - Controls: `[data-theme]` attribute on `<html>` and `arco-theme` attribute on `<body>`
-   - 由 `useTheme` Hook 控制
-   - 取值：`'light'` | `'dark'`
-   - 控制：`<html>` 的 `[data-theme]` 属性和 `<body>` 的 `arco-theme` 属性
+一个主题由统一模型 `Theme`（`common/theme/types.ts`）描述。每个主题都带有 `appearance`（`'light'` | `'dark'`），并可选地携带两条分层覆盖通道：结构化的 `tokens`（推荐）与原始 `css`（转义出口，经 `customCssProcessor.ts` 沙箱化）。
 
-2. **Color Scheme 配色方案** (`colorScheme`)
-   - Controlled by `useColorScheme` hook
-   - Values: `'default'`
-   - Controls: `[data-color-scheme]` attribute on `<html>`
-   - 由 `useColorScheme` Hook 控制
-   - 取值：`'default'`
-   - 控制：`<html>` 的 `[data-color-scheme]` 属性
+### Runtime dimensions 运行时维度
 
-### File Structure 文件结构
+Applying a theme (`utils/theme/applyTheme.ts`) drives two DOM attributes and appends up to two `<style>` elements, kept last in `<head>`:
+
+| Dimension         | Attribute                       | Set on   | Source                                           |
+| ----------------- | ------------------------------- | -------- | ------------------------------------------------ |
+| Appearance 明暗   | `[data-theme]`                  | `<html>` | `theme.appearance` (System resolves via OS)      |
+| Arco Design       | `arco-theme`                    | `<body>` | mirrors appearance                               |
+| Color scheme 配色 | `[data-color-scheme='default']` | `<html>` | baseline variables in `default-color-scheme.css` |
+| Token overrides   | `<style id="theme-tokens">`     | `<head>` | `theme.tokens` → `tokensToCss.ts`                |
+| Decoration        | `<style id="theme-decoration">` | `<head>` | `theme.css` (sandboxed)                          |
+
+Baseline colors live in `default-color-scheme.css`. A theme's `tokens` / `css` are layered on top of that baseline; they override, they do not replace it.
+
+## File structure 文件结构
 
 ```
-styles/themes/
-├── index.css                 # Entry point 入口文件
-├── base.css                  # Theme-independent base styles 主题无关的基础样式
-└── color-schemes/            # Color scheme definitions 配色方案定义
-    └── default.css           # Default color scheme (AOU brand) 默认配色方案
+common/theme/
+├── types.ts            # Theme / ThemeTokens / TokenMap models 主题模型
+├── constants.ts        # Built-in theme ids (light/dark/system) 内置主题 id
+├── tokenContract.ts    # Authoritative overridable token list 可覆盖 token 契约
+└── resolveTheme.ts     # activeId → concrete Theme 解析激活主题
+
+renderer/
+├── theme/builtinThemes.ts             # BUILTIN_THEMES (Light / Dark)
+├── utils/theme/applyTheme.ts          # Apply a Theme to the DOM 应用主题
+├── utils/theme/tokensToCss.ts         # tokens → scoped CSS 结构化 token 转 CSS
+├── utils/theme/customCssProcessor.ts  # Sandbox raw css 沙箱化原始 css
+└── styles/themes/
+    ├── index.css                       # Entry point 入口
+    ├── base.css                        # Appearance-independent base 基础样式
+    └── default-color-scheme.css        # Baseline variables 基线变量
 ```
 
-## How to Add a New Color Scheme 如何添加新配色方案
+## The token contract 主题 token 契约
 
-When you need to add a new color scheme in the future, follow these steps:
-当需要添加新配色方案时，请遵循以下步骤：
+`common/theme/tokenContract.ts` is the single source of truth for which CSS custom properties a theme may override. `tokensToCss` silently drops any key not in the contract, so unknown / typo'd variables never leak into the DOM.
 
-1. Create a new CSS file in `color-schemes/` directory (e.g., `blue.css`)
-   在 `color-schemes/` 目录下创建新的 CSS 文件（如 `blue.css`）
+`tokenContract.ts` 是"哪些 CSS 变量可被主题覆盖"的唯一事实来源；不在契约中的 key 会被 `tokensToCss` 静默丢弃。
 
-2. Define CSS variables for both light and dark modes, following the structure in `default.css`
-   定义明暗两种模式的 CSS 变量，参考 `default.css` 的结构
+Each token declares a `scope`:
 
-3. Import the new file in `index.css`
-   在 `index.css` 中导入新文件
+- **`appearance-invariant`** — same value in light and dark. Put it under `tokens.root`; it is emitted at `:root`.
+- **`appearance-scoped`** — different per mode. Put it under `tokens.light` / `tokens.dark`; it is emitted under `:root[data-theme='light' | 'dark']`.
 
-4. Update the `ColorScheme` type in `hooks/useColorScheme.ts`
-   更新 `hooks/useColorScheme.ts` 中的 `ColorScheme` 类型
+> ⚠️ Appearance selectors deliberately use `:root[data-theme='…']` (specificity `0,2,0`) so they can win against the baseline dark block (`[data-color-scheme='default'][data-theme='dark']`, also `0,2,0`). A bare `[data-theme='dark']` would silently lose in dark mode.
 
-5. Add UI selector option and translations
-   添加 UI 选择器选项和翻译
+### Overridable tokens 可覆盖 token 一览
 
-## CSS Variable Naming Convention CSS 变量命名规范
+Grouped as in `tokenContract.ts` (`i` = appearance-invariant, otherwise appearance-scoped):
 
-### Brand Colors 品牌色
+- **Background**: `--bg-base` `--bg-1` `--bg-2` `--bg-3` `--bg-6` `--bg-hover` `--bg-active`
+- **Text**: `--text-primary` `--text-secondary` `--text-disabled` `--text-white` (i)
+- **Border**: `--border-base` `--border-light` `--border-special`
+- **Semantic**: `--primary` `--success` `--warning` `--danger` `--info`
+- **Brand**: `--brand` `--brand-light` `--brand-hover`
+- **Component**: `--message-user-bg` `--message-tips-bg` `--workspace-btn-bg` `--thought-gradient`
+- **Special**: `--fill` `--fill-0` `--dialog-fill-0` `--inverse` (i)
 
-- `--aou-1` to `--aou-10`: Brand color palette (1=lightest, 10=darkest)
-- `--aou-1` 到 `--aou-10`：品牌色调色板（1=最浅，10=最深）
+Arco Design's own scales (`--color-*`, `--primary-6`, …) are intentionally **not** part of the contract — they are driven by the `arco-theme` attribute, not by user themes.
 
-### Background Colors 背景色
+## How to add a built-in theme 如何新增内置主题
 
-- `--bg-base`: Main background 主背景
-- `--bg-1`: Secondary background 次级背景
-- `--bg-2`: Tertiary background 三级背景
-- `--bg-3`: Border/divider 边框/分隔线
-- `--bg-hover`: Hover state 悬停状态
-- `--bg-active`: Active/pressed state 激活/按下状态
+Prefer the `tokens` channel over raw CSS: keep the Light/Dark neutrals and only
+re-tint what you need, split per appearance.
 
-### Text Colors 文字色
+优先使用 `tokens` 通道而非裸 CSS：保留明暗中性色，只按需重新着色，并按明暗分层。
 
-- `--text-primary`: Primary text 主要文字
-- `--text-secondary`: Secondary text 次要文字
-- `--text-disabled`: Disabled text 禁用文字
+1. Add an id constant in `common/theme/constants.ts`.
+2. Append a `Theme` to `BUILTIN_THEMES` in `renderer/theme/builtinThemes.ts`, filling `tokens.light` / `tokens.dark` (and `tokens.root` for invariant keys).
+3. Only use keys from the token contract; add a new key to `tokenContract.ts` **and** `default-color-scheme.css` first if you genuinely need one.
+4. Test both light and dark before finalizing.
 
-### Semantic Colors 语义色
+## How to add a custom (user) theme 如何添加自定义主题
 
-- `--primary`: Primary action color 主要操作色
-- `--success`: Success state 成功状态
-- `--warning`: Warning state 警告状态
-- `--danger`: Danger state 危险状态
+End users create themes without touching code, via
+**Settings → Appearance → add a custom theme**. That flow uses the raw **`css`**
+channel: pick a name + light/dark, then paste CSS overriding the contract
+variables under `:root { … }` and (optionally) `[data-theme='dark'] { … }`.
 
-### Brand-specific Colors 品牌专用色
+终端用户无需改代码，通过 **设置 → 外观 → 添加自定义主题** 创建；该入口走 `css`
+通道。完整步骤与示例见 [`docs/guides/custom-theme.md`](../../../../../../docs/guides/custom-theme.md)。
 
-- `--brand`: Main brand color 主品牌色
-- `--brand-light`: Light brand background 浅色品牌背景
-- `--brand-hover`: Brand hover state 品牌悬停状态
+## Best practices 最佳实践
 
-### Component-specific Colors 组件专用色
+1. Reach for **`tokens`** first; use raw **`css`** only for decoration that the contract cannot express. 优先 `tokens`，`css` 仅用于契约无法表达的装饰。
+2. For appearance-scoped tokens, **always provide both light and dark values**. 随明暗变化的 token 必须同时给出明暗两套值。
+3. **Never hardcode colors in components** — use semantic tokens / variables so custom themes take effect. 组件内禁止硬编码颜色。
+4. Keep background colors neutral for readability. 背景色保持中性以维持可读性。
 
-- `--message-user-bg`: User message background 用户消息背景
-- `--message-tips-bg`: Tips message background 提示消息背景
-- `--workspace-btn-bg`: Workspace button background 工作区按钮背景
+## Current status 当前状态
 
-## Best Practices 最佳实践
-
-1. **Always define both light and dark variants** for each color scheme
-   每个配色方案都要定义浅色和暗色两个变体
-
-2. **Maintain consistent lightness progression** in brand color scales (1→10)
-   保持品牌色阶的明度递进一致性（1→10）
-
-3. **Test in both light and dark modes** before finalizing
-   在确定前测试浅色和暗色两种模式
-
-4. **Use semantic names** for component-specific colors
-   组件专用色使用语义化命名
-
-5. **Keep background colors neutral** (grays) to maintain readability
-   保持背景色中性（灰色系）以维持可读性
-
-## Current Status 当前状态
-
-- ✅ Infrastructure ready 基础架构就绪
-- ✅ Default color scheme implemented 默认配色方案已实现
-- ⏸️ Additional color schemes pending designer input 其他配色方案等待设计师输入
-- 💡 UI selector commented out, ready to enable 界面选择器已注释，可随时启用
+- ✅ Unified `Theme` model with structured `tokens` + sandboxed `css` channels
+- ✅ Token contract enforced by `tokensToCss` (unknown keys dropped)
+- ✅ Built-in themes: Light / Dark (+ System sentinel)
+- ✅ Per-appearance token layering (`:root` / `:root[data-theme]`)

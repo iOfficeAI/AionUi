@@ -15,7 +15,9 @@ below (driven by `appearance` → `data-theme`); decorative & user themes use `c
   - `:root, [data-color-scheme='default']` → light values
   - `[data-color-scheme='default'][data-theme='dark']` → dark values
 - **`appearance`** (`'light' | 'dark'`) on the active theme sets `<html data-theme>` + `<body arco-theme>`, which selects the light/dark block above.
-- **`theme.tokens`** (optional): `applyTheme()` writes them into `<style id="theme-tokens">:root { … }</style>`. Keys MUST include the `--` prefix, e.g. `{ "--primary": "#7c3aed" }`.
+- **`theme.tokens`** (optional): a structured, validated override channel. `applyTheme()` renders it into `<style id="theme-tokens">` via `tokensToCss()`. Keys MUST include the `--` prefix, e.g. `{ "--primary": "#7c3aed" }`, and only keys in the [token contract](../../packages/desktop/src/common/theme/tokenContract.ts) are honored (unknown keys are dropped). It accepts two shapes:
+  - **Flat** `{ "--primary": "#7c3aed" }` → emitted at `:root` (applies to both appearances).
+  - **Layered** `{ root?, light?, dark? }` → `root` at `:root`, `light` / `dark` scoped to `:root[data-theme='light' | 'dark']` so per-mode values only apply to the matching appearance.
 - **`theme.css`** (optional): raw decoration CSS injected as `<style id="theme-decoration">` (auto `!important`). Used by decorative presets & user themes.
 - **UnoCSS bridge:** utility classes map to these vars (e.g. `bg-1` → `background: var(--bg-1)`, `text-t-secondary` → `var(--text-secondary)`), wired in `uno.config.ts`. Override a token and every utility/component using it follows.
 
@@ -61,32 +63,32 @@ Layered surface scale — higher number = stronger/darker separation in light mo
 
 ### Text / 文字 (`--text-*`, `--color-text-1`)
 
-| Token              | Light     | Dark      | Purpose / 用途                                                                                                 |
-| ------------------ | --------- | --------- | -------------------------------------------------------------------------------------------------------------- |
-| `--text-primary`   | `#000000` | `#ffffff` | Primary text / 主要文字                                                                                        |
-| `--color-text-1`   | `#000000` | `#ffffff` | Arco primary text — kept aligned with `--text-primary`                                                         |
-| `--text-secondary` | `#454d5f` | `#ced3da` | Secondary text (tuned for ~7.5:1 / ~11:1 contrast) / 次要文字                                                  |
-| `--text-disabled`  | `#c9cdd4` | `#737373` | Disabled text / 禁用文字                                                                                       |
-| `--text-0`         | `#000000` | `#ffffff` | "Pure black" text — flips to white in dark / 纯黑文字 · ⚠️ **currently unused** (legacy; use `--text-primary`) |
-| `--text-white`     | `#ffffff` | `#ffffff` | Always-white text (on colored fills) / 纯白文字                                                                |
+| Token              | Light     | Dark      | Purpose / 用途                                                                                                              |
+| ------------------ | --------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `--text-primary`   | `#000000` | `#ffffff` | Primary text / 主要文字                                                                                                     |
+| `--color-text-1`   | `#000000` | `#ffffff` | Arco primary text — kept aligned with `--text-primary`                                                                      |
+| `--text-secondary` | `#454d5f` | `#ced3da` | Secondary text (tuned for ~7.5:1 / ~11:1 contrast) / 次要文字                                                               |
+| `--text-disabled`  | `#c9cdd4` | `#737373` | Disabled text / 禁用文字                                                                                                    |
+| `--text-0`         | `#000000` | `#ffffff` | "Pure black" text — flips to white in dark / 纯黑文字 · same value as `--text-primary`; prefer `text-t-primary` in new code |
+| `--text-white`     | `#ffffff` | `#ffffff` | Always-white text (on colored fills) / 纯白文字                                                                             |
 
 ### Semantic state / 语义状态
 
-| Token       | Light     | Dark      | Purpose / 用途                                                                          |
-| ----------- | --------- | --------- | --------------------------------------------------------------------------------------- |
-| `--primary` | `#165dff` | `#4d9fff` | Primary action / accent / 主色                                                          |
-| `--success` | `#00b42a` | `#23c343` | Success / 成功                                                                          |
-| `--warning` | `#ff7d00` | `#ff9a2e` | Warning / 警告                                                                          |
-| `--danger`  | `#f53f3f` | `#f76560` | Error / destructive / 危险                                                              |
-| `--info`    | `#165dff` | `#4d9fff` | Informational (= primary) / 信息 · ⚠️ **currently unused** — components use `--primary` |
+| Token       | Light     | Dark      | Purpose / 用途                                                                                               |
+| ----------- | --------- | --------- | ------------------------------------------------------------------------------------------------------------ |
+| `--primary` | `#165dff` | `#4d9fff` | Primary action / accent / 主色                                                                               |
+| `--success` | `#00b42a` | `#23c343` | Success / 成功                                                                                               |
+| `--warning` | `#ff7d00` | `#ff9a2e` | Warning / 警告                                                                                               |
+| `--danger`  | `#f53f3f` | `#f76560` | Error / destructive / 危险                                                                                   |
+| `--info`    | `#165dff` | `#4d9fff` | Informational (= primary) / 信息 · has `bg-info`/`text-info`/… UnoCSS classes but no component uses them yet |
 
 ### Borders / 边框
 
-| Token              | Light         | Dark      | Purpose / 用途                                                                               |
-| ------------------ | ------------- | --------- | -------------------------------------------------------------------------------------------- |
-| `--border-base`    | `#e5e6eb`     | `#333333` | Default border / 基础边框                                                                    |
-| `--border-light`   | `#f2f3f5`     | `#262626` | Subtle border / 浅色边框                                                                     |
-| `--border-special` | `var(--bg-3)` | `#60677e` | Emphasized/special border / 特殊边框 · ⚠️ **currently unused** (legacy; use `--border-base`) |
+| Token              | Light         | Dark      | Purpose / 用途                                                                                          |
+| ------------------ | ------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| `--border-base`    | `#e5e6eb`     | `#333333` | Default border / 基础边框                                                                               |
+| `--border-light`   | `#f2f3f5`     | `#262626` | Subtle border / 浅色边框                                                                                |
+| `--border-special` | `var(--bg-3)` | `#60677e` | Emphasized/special border / 特殊边框 · has a `border-special` UnoCSS class but no component uses it yet |
 
 ### Brand accents / 品牌强调
 
@@ -108,12 +110,13 @@ Layered surface scale — higher number = stronger/darker separation in light mo
 
 ### Component-specific / 组件专用
 
-| Token                    | Light     | Dark           | Purpose / 用途                                         |
-| ------------------------ | --------- | -------------- | ------------------------------------------------------ |
-| `--message-user-bg`      | `#e9efff` | `#1e2a3a`      | User chat bubble background / 用户消息气泡             |
-| `--message-tips-bg`      | `#f0f4ff` | `#1a2333`      | Tip/notice background / 提示信息背景                   |
-| `--workspace-btn-bg`     | `#eff0f1` | `#1f1f1f`      | Workspace button background / 工作区按钮               |
-| `--color-guid-agent-bar` | `#eaecf7` | `var(--aou-2)` | Home Agent-selector bar background / 首页 Agent 选择条 |
+| Token                    | Light                                    | Dark                                      | Purpose / 用途                                         |
+| ------------------------ | ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| `--message-user-bg`      | `#e9efff`                                | `#1e2a3a`                                 | User chat bubble background / 用户消息气泡             |
+| `--message-tips-bg`      | `#f0f4ff`                                | `#1a2333`                                 | Tip/notice background / 提示信息背景                   |
+| `--workspace-btn-bg`     | `#eff0f1`                                | `#1f1f1f`                                 | Workspace button background / 工作区按钮               |
+| `--thought-gradient`     | `linear-gradient(90deg,#f0f3ff,#f2f2f2)` | `linear-gradient(135deg,#464767,#323232)` | Thinking panel background gradient / 思考面板背景渐变  |
+| `--color-guid-agent-bar` | `#eaecf7`                                | `var(--aou-2)`                            | Home Agent-selector bar background / 首页 Agent 选择条 |
 
 ### Arco `--color-*` aliases / Arco 别名
 
@@ -142,6 +145,7 @@ Most components do **not** write `var(--token)` directly — they use **UnoCSS u
 | `--message-user-bg`/`--message-tips-bg`/`--workspace-btn-bg` | `bg-message-user`/`bg-message-tips`/`bg-workspace-btn`            |
 | `--fill`, `--inverse`                                        | `bg-fill`/`text-fill`, `bg-inverse`/`text-inverse`                |
 | `--color-text-1..4` (Arco)                                   | `text-1`…`text-4` (custom rule)                                   |
+| `--text-0`                                                   | `text-0` (custom rule)                                            |
 
 Override a token (via `tokens` or `css`) and every utility/component using it follows automatically.
 
@@ -151,13 +155,15 @@ Measured across `packages/desktop/src/renderer` (raw `var()` + UnoCSS class refe
 
 - **Heavy** — used everywhere: `--text-primary`, `--text-secondary`, `--color-text-1`, `--bg-1`, `--bg-2`, `--bg-3`, `--bg-base`, `--bg-6` (as tertiary text), `--border-base`, `--fill`, `--primary`, `--success`/`--warning`/`--danger`.
 - **Moderate** — real but scoped scenarios: `--aou-1..10` (brand surfaces, home Agent bar), `--bg-4/5/8/9/10` (neutral ramp, scrollbars, disabled/high-contrast), `--bg-hover`/`--bg-active` (interaction states), `--message-user-bg`/`--message-tips-bg`/`--workspace-btn-bg` (chat & workspace), `--brand`/`--brand-light`/`--brand-hover`, `--inverse`, `--dialog-fill-0`, `--text-white`, `--text-disabled`, `--border-light`, `--fill-white-to-black`, `--color-guid-agent-bar`.
-- **Currently unused (legacy, kept for compatibility — see ⚠️ rows above):** `--info` (components use `--primary`), `--text-0` (use `--text-primary`), `--border-special` (use `--border-base`). Safe to prune in a future cleanup; harmless to leave.
+- **Light** — one usage each: `--text-0` (home welcome title; same value as `--text-primary`, prefer `text-t-primary` in new code).
+- **No component call yet, but a class exists:** `--info` (`bg-info`/`text-info`/… map to it; components currently use `--primary` instead) and `--border-special` (`border-special` class exists but is unused). These are wired-up extension points, **not** dead tokens — don't prune them.
 
 > A theme author only needs to set the tokens relevant to the surfaces they care about; unset tokens fall back to the base stylesheet values.
 
 ## Authoring a theme / 编写主题
 
-**Token-based (structured):**
+**Token-based (structured).** Only keys in the token contract are honored;
+Arco `--color-*` aliases are **not** in the contract and are dropped. A flat `tokens` map applies at `:root` (both appearances):
 
 ```json
 {
@@ -170,8 +176,24 @@ Measured across `packages/desktop/src/renderer` (raw `var()` + UnoCSS class refe
   "tokens": {
     "--primary": "#7c3aed",
     "--bg-1": "#faf5ff",
-    "--text-primary": "#2e1065",
-    "--color-primary": "#7c3aed"
+    "--text-primary": "#2e1065"
+  }
+}
+```
+
+Use the layered form to give light and dark distinct values:
+
+```json
+{
+  "id": "violet",
+  "name": "Violet",
+  "appearance": "light",
+  "builtin": false,
+  "created_at": 0,
+  "updated_at": 0,
+  "tokens": {
+    "light": { "--primary": "#7c3aed" },
+    "dark": { "--primary": "#a78bfa" }
   }
 }
 ```
@@ -190,4 +212,4 @@ Measured across `packages/desktop/src/renderer` (raw `var()` + UnoCSS class refe
 }
 ```
 
-User themes created in **Settings → Appearance → 手动添加** are always CSS-based (`tokens` omitted).
+User themes created in **Settings → Appearance → 手动添加** are always CSS-based (`tokens` omitted). For an end-user, step-by-step walkthrough of that flow, see [../guides/custom-theme.md](../guides/custom-theme.md).
