@@ -117,8 +117,9 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
       });
 
       if (!result.ok && requestIdRef.current === requestId) {
+        const message = (result as { message?: string }).message ?? 'unknown';
         setStatus('error');
-        setLastError({ code: 'send_failed', message: result.message });
+        setLastError({ code: 'send_failed', message });
       }
     },
     [kbId]
