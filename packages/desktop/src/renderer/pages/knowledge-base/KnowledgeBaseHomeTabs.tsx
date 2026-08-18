@@ -27,6 +27,7 @@ type KnowledgeBaseHomeTabsProps = {
   onStartChat: (item: KnowledgeBaseItem) => void;
   initialTab?: KnowledgeBaseTab;
   onTabChange?: (tab: KnowledgeBaseTab) => void;
+  onRefresh?: (tab: KnowledgeBaseTab) => void;
 };
 
 const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
@@ -42,6 +43,7 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onStartChat,
   initialTab = 'personal',
   onTabChange,
+  onRefresh,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -49,8 +51,10 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   const [tab, setTab] = useState<KnowledgeBaseTab>(initialTab);
 
   const selectTab = (next: KnowledgeBaseTab) => {
+    if (next === tab) return;
     setTab(next);
     onTabChange?.(next);
+    onRefresh?.(next);
   };
 
   const counts = {
