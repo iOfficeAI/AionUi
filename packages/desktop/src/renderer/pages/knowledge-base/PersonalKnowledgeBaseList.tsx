@@ -13,6 +13,9 @@ import { useTranslation } from 'react-i18next';
 
 type PersonalKnowledgeBaseListProps = {
   items: KnowledgeBaseItem[];
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
   onOpen: (item: KnowledgeBaseItem) => void;
@@ -22,6 +25,9 @@ type PersonalKnowledgeBaseListProps = {
 
 const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
   items,
+  loading = false,
+  error = null,
+  onRetry,
   onEdit,
   onDelete,
   onOpen,
@@ -29,6 +35,44 @@ const PersonalKnowledgeBaseList: React.FC<PersonalKnowledgeBaseListProps> = ({
   onStartChat,
 }) => {
   const { t } = useTranslation();
+
+  if (loading) {
+    return (
+      <div
+        className='flex items-center justify-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
+        data-testid='personal-kb-loading'
+      >
+        <div className='text-13px text-t-tertiary'>
+          {t('settings.knowledgeBasePersonalLoading', { defaultValue: 'Loading personal knowledge bases…' })}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-20px text-center'
+        data-testid='personal-kb-error'
+      >
+        <div className='mb-6px text-13px font-600 text-t-primary'>
+          {t('settings.knowledgeBasePersonalLoadFailed', { defaultValue: 'Failed to load personal knowledge bases' })}
+        </div>
+        <div className='mb-10px text-12px text-t-tertiary'>{error}</div>
+        {onRetry ? (
+          <Button
+            type='primary'
+            size='small'
+            className='!h-28px !rounded-9px'
+            onClick={onRetry}
+            data-testid='personal-kb-retry'
+          >
+            {t('common.retry', { defaultValue: 'Retry' })}
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

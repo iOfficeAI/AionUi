@@ -6,32 +6,58 @@
 
 import { Message } from '@arco-design/web-react';
 import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '@/renderer/hooks/knowledge-base';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { resolveIconImageSrc } from './knowledgeBaseUtils';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
 import KnowledgeBaseHomeTabs from './KnowledgeBaseHomeTabs';
 import DeleteKnowledgeBaseModal from './DeleteKnowledgeBaseModal';
-import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem } from './types';
-import React, { useCallback, useMemo } from 'react';
+import type { KnowledgeBaseEditorViewModel, KnowledgeBaseItem, KnowledgeBaseTab } from './types';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const KnowledgeBasePage: React.FC = () => {
   const [message, messageContext] = Message.useMessage({ maxCount: 10 });
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const tokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    tokenRef.current = user?.token ?? null;
+  }, [user?.token]);
 
   const {
     personalItems,
     setPersonalItems,
     sharedItems,
     setSharedItems,
+    personalLoading,
+    personalError,
     sharedLoading,
     sharedError,
     activeKnowledgeBaseId,
     setActiveKnowledgeBaseId,
     activeKnowledgeBase,
     loadKnowledgeBases,
+    loadPersonalKnowledgeBases,
+    loadSharedKnowledgeBases,
   } = useKnowledgeBaseList();
+
+  const handleTabRefresh = useCallback(
+    (next: KnowledgeBaseTab) => {
+      const token = tokenRef.current;
+      if (!token) return;
+      if (next === 'personal') void loadPersonalKnowledgeBases(token);
+      else void loadSharedKnowledgeBases(token);
+    },
+    [loadPersonalKnowledgeBases, loadSharedKnowledgeBases]
+  );
+
+  const handleRetryLoadPersonal = useCallback(() => {
+    const token = tokenRef.current;
+    if (!token) return;
+    void loadPersonalKnowledgeBases(token);
+  }, [loadPersonalKnowledgeBases]);
 
   const editor = useKnowledgeBaseEditor({
     activeKnowledgeBase,
@@ -127,9 +153,13 @@ const KnowledgeBasePage: React.FC = () => {
             <KnowledgeBaseHomeTabs
               personalItems={personalItems}
               sharedItems={sharedItems}
+              personalLoading={personalLoading}
+              personalError={personalError}
               sharedLoading={sharedLoading}
               sharedError={sharedError}
+              onRetryLoadPersonal={handleRetryLoadPersonal}
               onRetryLoadShared={() => void loadKnowledgeBases()}
+              onRefresh={handleTabRefresh}
               onEdit={(item) => void editor.handleEdit(item)}
               onDelete={(item) => editor.handleDeleteRequest(item)}
               onOpen={handleOpen}

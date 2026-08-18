@@ -16,10 +16,14 @@ import { useTranslation } from 'react-i18next';
 
 type KnowledgeBaseHomeTabsProps = {
   personalItems: KnowledgeBaseItem[];
+  personalLoading?: boolean;
+  personalError?: string | null;
   sharedItems: KnowledgeBaseItem[];
   sharedLoading?: boolean;
   sharedError?: string | null;
+  onRetryLoadPersonal?: () => void;
   onRetryLoadShared?: () => void;
+  onRefresh?: (tab: KnowledgeBaseTab) => void;
   onEdit: (item: KnowledgeBaseItem) => void;
   onDelete: (item: KnowledgeBaseItem) => void;
   onOpen: (item: KnowledgeBaseItem) => void;
@@ -27,15 +31,18 @@ type KnowledgeBaseHomeTabsProps = {
   onStartChat: (item: KnowledgeBaseItem) => void;
   initialTab?: KnowledgeBaseTab;
   onTabChange?: (tab: KnowledgeBaseTab) => void;
-  onRefresh?: (tab: KnowledgeBaseTab) => void;
 };
 
 const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   personalItems,
+  personalLoading = false,
+  personalError = null,
   sharedItems,
   sharedLoading = false,
   sharedError = null,
+  onRetryLoadPersonal,
   onRetryLoadShared,
+  onRefresh,
   onEdit,
   onDelete,
   onOpen,
@@ -43,7 +50,6 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
   onStartChat,
   initialTab = 'personal',
   onTabChange,
-  onRefresh,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -139,6 +145,9 @@ const KnowledgeBaseHomeTabs: React.FC<KnowledgeBaseHomeTabsProps> = ({
           {tab === 'personal' ? (
             <PersonalKnowledgeBaseList
               items={personalItems}
+              loading={personalLoading}
+              error={personalError}
+              onRetry={onRetryLoadPersonal}
               onEdit={onEdit}
               onDelete={onDelete}
               onOpen={onOpen}
