@@ -625,13 +625,28 @@ export const useConversationCommandQueue = ({
       return;
     }
 
+    if (waitingForTurnStartRef.current && executionGate.hydrated && executionGate.canExecute) {
+      waitingForTurnStartRef.current = false;
+      waitingForTurnCompletionRef.current = false;
+      observedBusyBlockedGateRef.current = false;
+      logCommandQueue(conversation_id, 'turn-finished-without-observed-start', {
+        pendingItemCount: stateRef.current.items.length,
+      });
+    }
+
     if (waitingForTurnCompletionRef.current && executionGate.hydrated && executionGate.canExecute) {
       waitingForTurnCompletionRef.current = false;
       logCommandQueue(conversation_id, 'turn-finished', {
         pendingItemCount: stateRef.current.items.length,
       });
     }
-  }, [conversation_id, executionGate.canExecute, executionGate.hydrated, executionGate.isProcessing]);
+  }, [
+    conversation_id,
+    data.items.length,
+    executionGate.canExecute,
+    executionGate.hydrated,
+    executionGate.isProcessing,
+  ]);
 
   useEffect(() => {
     pausedRef.current = data.isPaused;

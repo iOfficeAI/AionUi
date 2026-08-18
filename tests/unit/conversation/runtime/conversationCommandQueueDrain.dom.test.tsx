@@ -236,6 +236,31 @@ describe('useConversationCommandQueue drain', () => {
     );
   });
 
+  it('continues auto-draining when a send finishes before a busy state is observed', async () => {
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    sessionStorage.setItem(
+      storageKey('conv-fast-finish'),
+      JSON.stringify({
+        items: [
+          { id: 'queued-fast-1', input: 'first fast command', files: [], created_at: 1 },
+          { id: 'queued-fast-2', input: 'second fast command', files: [], created_at: 2 },
+        ],
+        isPaused: false,
+        mode: 'auto',
+      })
+    );
+
+    renderQueue({
+      conversation_id: 'conv-fast-finish',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+    expect(onExecute).toHaveBeenNthCalledWith(1, expect.objectContaining({ input: 'first fast command' }));
+    expect(onExecute).toHaveBeenNthCalledWith(2, expect.objectContaining({ input: 'second fast command' }));
+  });
+
   it('continues draining queued commands after the active conversation hook unmounts', async () => {
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result, unmount } = renderQueue({
@@ -411,12 +436,12 @@ describe('useConversationCommandQueue drain', () => {
   });
 
   it('retries after release when the blocked gate was observed before the busy catch', async () => {
-    let rerenderQueue: ReturnType<typeof renderQueue>['rerender'] = () => undefined;
+    const rerenderQueueRef: { current: ReturnType<typeof renderQueue>['rerender'] } = { current: () => undefined };
     let attempts = 0;
     const onExecute = vi.fn(async () => {
       attempts += 1;
       if (attempts === 1) {
-        rerenderQueue({ gate: processingGate, busy: true });
+        rerenderQueueRef.current({ gate: processingGate, busy: true });
         await new Promise((resolve) => setTimeout(resolve, 0));
         throw busyError();
       }
@@ -426,7 +451,7 @@ describe('useConversationCommandQueue drain', () => {
       runtimeGate: idleGate,
       onExecute,
     });
-    rerenderQueue = rerender;
+    rerenderQueueRef.current = rerender;
 
     act(() => {
       result.current.toggleMode();
