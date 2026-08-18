@@ -274,6 +274,39 @@ const createInitStyle = (
 let katexStyleSheet: CSSStyleSheet | null = null;
 
 /**
+ * Collect every KaTeX-related CSS rule from the given stylesheets.
+ *
+ * KaTeX ships as a single `katex.min.css`, but the bundler inlines it as an
+ * anonymous `<style>` with no `href`/`data-katex` marker, so it cannot be located
+ * by attribute. Other sheets (e.g. the preview `.aionui-markdown` theme) merely
+ * *reference* `.katex` selectors — picking the first sheet that mentions `.katex`
+ * can grab such a partial sheet, which lacks KaTeX's `.katex-mathml`
+ * accessibility-hide rule and `@font-face` declarations. Adopting that partial
+ * sheet into a Shadow DOM leaves the raw MathML annotation visible right next to
+ * the rendered formula (the "formula shows twice" bug in chat). Aggregating every
+ * katex-referencing rule across all sheets guarantees the hide rule and fonts are
+ * always included regardless of how many sheets the rules are spread across.
+ */
+export const collectKatexCssRules = (styleSheets: Iterable<CSSStyleSheet>): string[] => {
+  const collected: string[] = [];
+  for (const sheet of styleSheets) {
+    let rules: CSSRule[];
+    try {
+      rules = [...sheet.cssRules];
+    } catch {
+      // CORS may block access to cssRules for cross-origin stylesheets
+      continue;
+    }
+    for (const rule of rules) {
+      if (rule.cssText.toLowerCase().includes('katex')) {
+        collected.push(rule.cssText);
+      }
+    }
+  }
+  return collected;
+};
+
+/**
  * Get or create a shared KaTeX CSSStyleSheet for Shadow DOM adoption.
  * This extracts KaTeX styles from the document and creates a constructable stylesheet.
  */
@@ -281,35 +314,11 @@ const getKatexStyleSheet = (): CSSStyleSheet | null => {
   if (katexStyleSheet) return katexStyleSheet;
 
   try {
-    // Find the KaTeX stylesheet in the document
-    const katexSheet = [...document.styleSheets].find(
-      (sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex
-    );
-
-    if (katexSheet) {
-      const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
+    const cssRules = collectKatexCssRules([...document.styleSheets]);
+    if (cssRules.length > 0) {
       katexStyleSheet = new CSSStyleSheet();
-      katexStyleSheet.replaceSync(cssRules);
+      katexStyleSheet.replaceSync(cssRules.join('\n'));
       return katexStyleSheet;
-    }
-
-    // Fallback: try to find KaTeX styles by checking style tags
-    const styleSheets = [...document.styleSheets];
-    for (const sheet of styleSheets) {
-      try {
-        const rules = [...sheet.cssRules];
-        // Check if this stylesheet contains KaTeX rules
-        const hasKatexRules = rules.some((rule) => rule.cssText.includes('.katex'));
-        if (hasKatexRules) {
-          const cssRules = rules.map((rule) => rule.cssText).join('\n');
-          katexStyleSheet = new CSSStyleSheet();
-          katexStyleSheet.replaceSync(cssRules);
-          return katexStyleSheet;
-        }
-      } catch {
-        // CORS may block access to cssRules for external stylesheets
-        continue;
-      }
     }
   } catch (error) {
     console.warn('Failed to create KaTeX stylesheet for Shadow DOM:', error);
