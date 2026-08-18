@@ -6,6 +6,7 @@
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { messagesAfterForkBoundary } from '@/common/chat/forkBoundary';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
@@ -352,19 +353,12 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const contentElementRef = useRef<HTMLDivElement | null>(null);
 
-  // Side-dock fork children: hide the history copied from the parent. The
-  // fork anchor (`sideForkBoundaryMsgId`) is the LAST copied row, so drop
-  // everything up to and including it — the thread then shows only its own
-  // turns while the backend session keeps the full forked context. When the
-  // anchor is older than the loaded window, every loaded row is a side turn
-  // and nothing needs hiding.
-  const visibleList = useMemo(() => {
-    const boundary = conversationContext?.sideForkBoundaryMsgId;
-    if (!boundary) return list;
-    const boundaryIndex = list.findIndex((message) => message.msg_id === boundary || message.id === boundary);
-    if (boundaryIndex === -1) return list;
-    return list.slice(boundaryIndex + 1);
-  }, [conversationContext?.sideForkBoundaryMsgId, list]);
+  // Side-dock fork children hide the history copied from the parent (see
+  // messagesAfterForkBoundary): only the thread's own turns render.
+  const visibleList = useMemo(
+    () => messagesAfterForkBoundary(list, conversationContext?.sideForkBoundaryMsgId),
+    [conversationContext?.sideForkBoundaryMsgId, list]
+  );
 
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {

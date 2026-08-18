@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { buildSideSnapshotClone } from '@/common/chat/buildSideSnapshotClone';
 import { loadParentReferenceTranscript } from '@/common/chat/loadParentReferenceTranscript';
 import { isSideChildOf, resolveSideConversationMode, type SideConversationMode } from '@/common/chat/sideConversation';
 import { resolveParentForkMsgId, resolveParentForkMsgIdFromMessages } from '@/common/chat/resolveParentForkMsgId';
@@ -15,7 +16,6 @@ import type { TChatConversation } from '@/common/config/storage';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildSideSnapshotClone } from './buildSideSnapshotClone';
 
 export type SideTab = {
   childId: string;

@@ -17,7 +17,7 @@ import type { TChatConversation } from '@/common/config/storage';
  * treatment as the "new conversation in workspace" clone flow).
  */
 export function buildSideSnapshotClone(parent: TChatConversation): TChatConversation {
-  const clone = {
+  return {
     ...parent,
     id: uuid(),
     name: parent.name.trim() ? `↳ ${parent.name}` : 'Side',
@@ -44,5 +44,4 @@ export function buildSideSnapshotClone(parent: TChatConversation): TChatConversa
       pinned_at: undefined,
     },
   } as TChatConversation;
-  return clone;
 }

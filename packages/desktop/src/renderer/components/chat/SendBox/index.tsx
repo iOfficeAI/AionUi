@@ -1682,6 +1682,7 @@ const SendBox: React.FC<{
           size='mini'
           type='text'
           className='side-btn-text'
+          data-testid='sendbox-side-trigger'
           onClick={() => void effectiveOnOpenSide()}
           aria-label={t('conversation.sideConversation.trigger')}
           icon={<Comments theme='outline' size={16} fill='currentColor' />}
