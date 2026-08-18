@@ -1,0 +1,24 @@
+{
+  "header": {
+    "title": "知识库对话",
+    "subtitle": "基于 \"{{name}}\" 的智能问答",
+    "back": "返回"
+  },
+  "input": {
+    "placeholder": "向知识库提问…"
+  },
+  "actions": {
+    "send": "发送",
+    "stop": "停止",
+    "retry": "重试"
+  },
+  "error": {
+    "network": "连接中断,请重试",
+    "timeout_first_byte": "响应超时,请稍后再试",
+    "timeout_total": "响应超时,请稍后再试",
+    "incomplete": "响应被截断",
+    "business": "{{message}}",
+    "no_token": "请先登录"
+  },
+  "empty": "开始提问,获取基于知识库的答案"
+}

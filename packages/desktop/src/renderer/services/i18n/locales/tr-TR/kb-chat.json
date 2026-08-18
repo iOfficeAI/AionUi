@@ -1,0 +1,24 @@
+{
+  "header": {
+    "title": "Knowledge Base Chat",
+    "subtitle": "Ask anything about \"{{name}}\"",
+    "back": "Back"
+  },
+  "input": {
+    "placeholder": "Ask the knowledge base…"
+  },
+  "actions": {
+    "send": "Send",
+    "stop": "Stop",
+    "retry": "Retry"
+  },
+  "error": {
+    "network": "Connection lost. Please retry.",
+    "timeout_first_byte": "Response timed out. Please try again.",
+    "timeout_total": "Response timed out. Please try again.",
+    "incomplete": "Response was truncated",
+    "business": "{{message}}",
+    "no_token": "Please sign in first"
+  },
+  "empty": "Start by asking a question to get an answer grounded in the knowledge base."
+}

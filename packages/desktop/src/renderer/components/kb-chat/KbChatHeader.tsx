@@ -25,11 +25,11 @@ export const KbChatHeader = ({ kbName }: KbChatHeaderProps) => {
         icon={<ArrowLeft />}
         onClick={() => navigate('/knowledge-base')}
       >
-        {t('kbChat.header.back')}
+        {t('kb-chat.header.back')}
       </Button>
       <div className={styles.text}>
-        <div className={styles.title}>{t('kbChat.header.title')}</div>
-        <div className={styles.subtitle}>{t('kbChat.header.subtitle', { name: kbName })}</div>
+        <div className={styles.title}>{t('kb-chat.header.title')}</div>
+        <div className={styles.subtitle}>{t('kb-chat.header.subtitle', { name: kbName })}</div>
       </div>
     </div>
   );
