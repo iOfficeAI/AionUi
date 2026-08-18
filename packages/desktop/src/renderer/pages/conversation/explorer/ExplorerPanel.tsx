@@ -23,8 +23,19 @@ import { useTranslation } from 'react-i18next';
 import FileTypeIcon from './fileIcon/FileTypeIcon';
 
 import { getFilesFromDropEvent } from '@/renderer/services/FileService';
-import type { RootRef, TreeNode } from './explorerModel';
-import { canRemoveRoot, keyToRef, parentRel } from './explorerModel';
+import { isMacOS } from '@/renderer/utils/platform';
+import type { DragPeRef, RootRef, TransferOp, TreeNode } from './explorerModel';
+import {
+  PE_REF_DRAG_MIME,
+  canRemoveRoot,
+  isCopyModifierPressed,
+  isTransferAllowed,
+  keyToRef,
+  parentRel,
+  parsePeRef,
+  resolveTransferOp,
+  serializePeRef,
+} from './explorerModel';
 import { openProject, select, setExpandedKeys } from './explorerStore';
 import { initExplorerRuntime } from './monitorTransport';
 import { useExplorerView } from './useExplorerView';
@@ -62,6 +73,11 @@ export type ExplorerPanelProps = {
    * (Electron only — empty in the browser, where the drop is ignored). Omit to
    * disable drop import. */
   onImportFiles?: (targetPeId: string, targetRelativePath: string, filePaths: string[]) => void;
+  /** Copy/move a tree node (source B/C) dropped onto a directory node. `source`
+   * is the dragged node's identity; the drop lands in `targetRelativePath` under
+   * `targetPeId` (a file target routes to its parent dir). `op` is resolved from
+   * same-pe/cross-pe + the modifier key. Omit to disable internal drag transfer. */
+  onTransfer?: (source: DragPeRef, targetPeId: string, targetRelativePath: string, op: TransferOp) => void;
 };
 
 export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
@@ -77,11 +93,17 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   onCopyRelativePath,
   onCopyAbsolutePath,
   onImportFiles,
+  onTransfer,
 }) => {
   const view = useExplorerView();
   const { t } = useTranslation();
-  // Key of the node currently under an OS-file drag (for the drop highlight).
+  // Key of the node currently under a drag (for the drop highlight).
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  // The node being dragged internally (set on dragStart, cleared on dragEnd).
+  // dragover cannot read the drag data (only drop can), so we stash the source
+  // here to compute the op + guard the drop cursor while hovering. Internal
+  // drags are same-window, so a ref is sufficient (no cross-window handoff).
+  const dragSourceRef = useRef<DragPeRef | null>(null);
   // Scroll container + the last selection we already scrolled to (so we scroll
   // once when a selection's node first appears, not on every tree delta).
   const containerRef = useRef<HTMLDivElement>(null);
@@ -176,27 +198,74 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       const ref = keyToRef(key);
       const peId = ref.pe_id;
       const rel = ref.relative_path;
+      const isRoot = Boolean(data?.role);
 
-      // A-paste drop: files land in this node's dir (a file node routes to its
-      // parent). Handlers only wire up when import is enabled; the highlight
-      // tracks the node currently under the drag.
+      // Drop target: a dir node accepts into itself; a file node routes to its
+      // parent dir (same rule for OS-file import and internal drag transfer).
       const dropTargetRel = isFile ? parentRel(rel) : rel;
-      const dropProps = onImportFiles
+
+      // Internal drag source (B/C): every non-root node is draggable, carrying
+      // its identity on a custom MIME so a drop can tell it apart from an OS-file
+      // drop (which carries `Files`). Pe roots are bindings, not entries — not
+      // draggable.
+      const dragProps =
+        onTransfer && !isRoot
+          ? {
+              draggable: true,
+              onDragStart: (e: React.DragEvent) => {
+                const payload: DragPeRef = { pe_id: peId, relative_path: rel, name, isDir: !isFile };
+                e.dataTransfer.setData(PE_REF_DRAG_MIME, serializePeRef(payload));
+                e.dataTransfer.effectAllowed = 'copyMove';
+                dragSourceRef.current = payload;
+              },
+              onDragEnd: () => {
+                dragSourceRef.current = null;
+                setDragOverKey(null);
+              },
+            }
+          : {};
+
+      // Drop handling: an internal drag (source stashed in dragSourceRef) resolves
+      // copy/move by same-pe + modifier and is guarded (no drop into self/own
+      // subtree, no move into own parent); otherwise fall back to OS-file import.
+      // The highlight tracks the hovered node only while the drop is legal.
+      const acceptsDrop = Boolean(onImportFiles || onTransfer);
+      const dropProps = acceptsDrop
         ? {
             onDragOver: (e: React.DragEvent) => {
               e.preventDefault();
               e.stopPropagation();
-              if (dragOverKey !== key) setDragOverKey(key);
+              const src = dragSourceRef.current;
+              if (src && onTransfer) {
+                const target = { pe_id: peId, relative_path: dropTargetRel };
+                const op = resolveTransferOp(src.pe_id === peId, isCopyModifierPressed(e, isMacOS()));
+                const allowed = isTransferAllowed(src, target, op);
+                e.dataTransfer.dropEffect = allowed ? op : 'none';
+                setDragOverKey(allowed ? key : null);
+              } else if (onImportFiles) {
+                e.dataTransfer.dropEffect = 'copy';
+                if (dragOverKey !== key) setDragOverKey(key);
+              }
             },
             onDragLeave: () => setDragOverKey((prev) => (prev === key ? null : prev)),
             onDrop: (e: React.DragEvent) => {
               e.preventDefault();
               e.stopPropagation();
               setDragOverKey(null);
-              const paths = getFilesFromDropEvent(e.nativeEvent)
-                .map((f) => f.path)
-                .filter(Boolean);
-              if (paths.length) onImportFiles(peId, dropTargetRel, paths);
+              const raw = e.dataTransfer.getData(PE_REF_DRAG_MIME);
+              const src = raw ? parsePeRef(raw) : null;
+              if (src && onTransfer) {
+                const target = { pe_id: peId, relative_path: dropTargetRel };
+                const op = resolveTransferOp(src.pe_id === peId, isCopyModifierPressed(e, isMacOS()));
+                if (isTransferAllowed(src, target, op)) onTransfer(src, peId, dropTargetRel, op);
+                return;
+              }
+              if (onImportFiles) {
+                const paths = getFilesFromDropEvent(e.nativeEvent)
+                  .map((f) => f.path)
+                  .filter(Boolean);
+                if (paths.length) onImportFiles(peId, dropTargetRel, paths);
+              }
             },
           }
         : {};
@@ -206,6 +275,7 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           data-runtime-status={status}
           data-drop-target={dragOverKey === key || undefined}
           className={`flex items-center gap-4px min-w-0${degraded ? ' text-t-secondary' : ''}${dragOverKey === key ? ' bg-aou-2 rd-4px' : ''}`}
+          {...dragProps}
           {...dropProps}
         >
           <FileTypeIcon node={{ name, relativePath: keyToRef(key).relative_path, isFile }} expanded={isExpanded} />
@@ -216,7 +286,6 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           {degraded && <Caution theme='outline' size='14' className='flex-shrink-0' />}
         </span>
       );
-      const isRoot = Boolean(data?.role);
       const removable = isRoot && data?.role ? canRemoveRoot(data.role, peId, workspacePeId) : false;
 
       // Root nodes only expose "remove from project" + (when available) "add to
@@ -308,7 +377,18 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         </Dropdown>
       );
     },
-    [onRemoveRoot, onRename, onDelete, onAddToChat, onImportFiles, dragOverKey, workspacePeId, t, view.expanded]
+    [
+      onRemoveRoot,
+      onRename,
+      onDelete,
+      onAddToChat,
+      onImportFiles,
+      onTransfer,
+      dragOverKey,
+      workspacePeId,
+      t,
+      view.expanded,
+    ]
   );
 
   // Container-level import target: the workspace root ('' rel). Node drops set
@@ -318,29 +398,58 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
     if (onImportFiles && workspacePeId && filePaths.length) onImportFiles(workspacePeId, '', filePaths);
   };
 
-  const containerProps = onImportFiles
-    ? {
-        onDragOver: (e: React.DragEvent) => e.preventDefault(),
-        onDrop: (e: React.DragEvent) => {
-          e.preventDefault();
-          importToWorkspaceRoot(
-            getFilesFromDropEvent(e.nativeEvent)
-              .map((f) => f.path)
-              .filter(Boolean)
-          );
-        },
-        onPaste: (e: React.ClipboardEvent) => {
-          const files = e.clipboardData?.files;
-          if (!files?.length) return;
-          const paths: string[] = [];
-          for (let i = 0; i < files.length; i += 1) {
-            const p = (files[i] as File & { path?: string }).path;
-            if (p) paths.push(p);
-          }
-          if (paths.length) importToWorkspaceRoot(paths);
-        },
-      }
-    : {};
+  // Internal drag dropped on empty space (not on a node — node drops
+  // stopPropagation) lands at the workspace root, resolving copy/move + guarding
+  // exactly like a node drop.
+  const transferToWorkspaceRoot = (src: DragPeRef, op: TransferOp): void => {
+    if (!onTransfer || !workspacePeId) return;
+    const target = { pe_id: workspacePeId, relative_path: '' };
+    if (isTransferAllowed(src, target, op)) onTransfer(src, workspacePeId, '', op);
+  };
+
+  const containerProps =
+    onImportFiles || onTransfer
+      ? {
+          onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+            const src = dragSourceRef.current;
+            if (src && onTransfer && workspacePeId) {
+              const op = resolveTransferOp(src.pe_id === workspacePeId, isCopyModifierPressed(e, isMacOS()));
+              e.dataTransfer.dropEffect = isTransferAllowed(src, { pe_id: workspacePeId, relative_path: '' }, op)
+                ? op
+                : 'none';
+            }
+          },
+          onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            const raw = e.dataTransfer.getData(PE_REF_DRAG_MIME);
+            const src = raw ? parsePeRef(raw) : null;
+            if (src && onTransfer) {
+              transferToWorkspaceRoot(
+                src,
+                resolveTransferOp(src.pe_id === workspacePeId, isCopyModifierPressed(e, isMacOS()))
+              );
+              return;
+            }
+            importToWorkspaceRoot(
+              getFilesFromDropEvent(e.nativeEvent)
+                .map((f) => f.path)
+                .filter(Boolean)
+            );
+          },
+          onPaste: (e: React.ClipboardEvent) => {
+            const files = e.clipboardData?.files;
+            if (!files?.length) return;
+            const paths: string[] = [];
+            for (let i = 0; i < files.length; i += 1) {
+              // Electron 32+ 移除 File.path，优先走 preload 的 getPathForFile。
+              const p = window.electronAPI?.getPathForFile?.(files[i]) || (files[i] as File & { path?: string }).path;
+              if (p) paths.push(p);
+            }
+            if (paths.length) importToWorkspaceRoot(paths);
+          },
+        }
+      : {};
 
   return (
     <div className='h-full' tabIndex={-1} ref={containerRef} {...containerProps}>

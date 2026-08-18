@@ -42,7 +42,16 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 import { ExplorerPanel } from './ExplorerPanel';
-import { buildRemoveRequest, buildRenameRequest, parentRel, peKey, type RenameRequest } from './explorerModel';
+import {
+  buildRemoveRequest,
+  buildRenameRequest,
+  buildTransferRequest,
+  parentRel,
+  peKey,
+  type DragPeRef,
+  type RenameRequest,
+  type TransferOp,
+} from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
 import { reveal, select } from './explorerStore';
@@ -355,6 +364,36 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
+  // Drag transfer (B/C): copy/move a tree node into a directory node via the WS
+  // fs/copy / fs/move command. The panel resolved the op + guarded the drop; here
+  // we dispatch and, on success, reveal + select the landed (possibly
+  // auto-renamed) entry so the user sees where it went. The destination's own WS
+  // subscription delivers the delta that materializes the node in the tree.
+  const handleTransfer = async (
+    source: DragPeRef,
+    targetPeId: string,
+    targetRel: string,
+    op: TransferOp
+  ): Promise<void> => {
+    const request = buildTransferRequest(
+      op,
+      { pe_id: source.pe_id, relative_path: source.relative_path },
+      { pe_id: targetPeId, relative_path: targetRel }
+    );
+    try {
+      const result = (await initExplorerRuntime().request(request.method, request.params)) as {
+        to?: { pe_id?: string; relative_path?: string };
+      };
+      const to = result?.to;
+      if (to?.pe_id && typeof to.relative_path === 'string') {
+        reveal({ pe_id: to.pe_id, relative_path: parentRel(to.relative_path) });
+        select(peKey(to.pe_id, to.relative_path));
+      }
+    } catch {
+      Message.error(t(op === 'copy' ? 'conversation.explorer.copyNodeFailed' : 'conversation.explorer.moveNodeFailed'));
+    }
+  };
+
   if (!projectId) return null;
   // Spin only while the CURRENT project's detail is still loading. A stale value
   // for a different project (detail undefined) falls through to empty roots, not
@@ -462,6 +501,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onCopyRelativePath={handleCopyRelativePath}
             onCopyAbsolutePath={handleCopyAbsolutePath}
             onImportFiles={handleImportFiles}
+            onTransfer={handleTransfer}
           />
         </SearchPanel>
       </div>
