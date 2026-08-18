@@ -33,10 +33,12 @@ vi.mock('@/common', () => ({
   },
 }));
 
+const arcoMessageError = vi.fn();
 vi.mock('@arco-design/web-react', () => ({
-  Message: { error: vi.fn(), info: vi.fn() },
+  Message: { error: (...args: unknown[]) => arcoMessageError(...args), info: vi.fn() },
 }));
 
+import { emitter } from '@/renderer/utils/emitter';
 import { useSideConversation } from '@/renderer/pages/conversation/components/SideConversationPanel/useSideConversation';
 import type { TChatConversation } from '@/common/config/storage';
 
@@ -332,6 +334,182 @@ describe('useSideConversation — snapshot mode', () => {
 
     expect(sendMessage).not.toHaveBeenCalled();
     expect(result.current.tabs).toEqual([{ childId: 'c1', mode: 'snapshot', hasTurn: false }]);
+  });
+});
+
+describe('useSideConversation — panel state transitions', () => {
+  it('collapse hides the dock and persists, reopen restores it', async () => {
+    getUserConversations.mockResolvedValue({
+      items: [childConversation('c1', 1, true)],
+      total: 1,
+      has_more: false,
+    });
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+    await waitFor(() => {
+      expect(result.current.state).toBe('active');
+    });
+
+    act(() => {
+      result.current.collapse();
+    });
+    expect(result.current.state).toBe('collapsed');
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'p1',
+        updates: { extra: expect.objectContaining({ active_side_id: 'c1', side_panel_hidden: true }) },
+        merge_extra: true,
+      })
+    );
+
+    act(() => {
+      result.current.reopen();
+    });
+    expect(result.current.state).toBe('active');
+    expect(update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: 'p1',
+        updates: { extra: expect.objectContaining({ side_panel_hidden: false }) },
+        merge_extra: true,
+      })
+    );
+  });
+
+  it('selectTab switches the active tab and un-hides the dock', async () => {
+    getUserConversations.mockResolvedValue({
+      items: [childConversation('c1', 1, true), childConversation('c2', 2, true)],
+      total: 2,
+      has_more: false,
+    });
+    const { result } = renderHook(() =>
+      useSideConversation({
+        parent: { ...forkParent, extra: { ...forkParent.extra, side_panel_hidden: true } } as TChatConversation,
+      })
+    );
+    await waitFor(() => {
+      expect(result.current.state).toBe('collapsed');
+    });
+
+    act(() => {
+      result.current.selectTab('c1');
+    });
+
+    expect(result.current.activeTabId).toBe('c1');
+    expect(result.current.state).toBe('active');
+  });
+
+  it('discard() removes the active tab', async () => {
+    getUserConversations.mockResolvedValue({
+      items: [childConversation('c1', 1, true)],
+      total: 1,
+      has_more: false,
+    });
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+    await waitFor(() => {
+      expect(result.current.tabs).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.discard();
+    });
+
+    expect(remove).toHaveBeenCalledWith({ id: 'c1' });
+    expect(result.current.state).toBe('none');
+  });
+});
+
+describe('useSideConversation — failure paths', () => {
+  it('shows a fork error toast when the fork API rejects', async () => {
+    fork.mockRejectedValue(new Error('FORK_POINT_UNSUPPORTED: nope'));
+
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+
+    await act(async () => {
+      await result.current.open();
+    });
+
+    expect(result.current.state).toBe('none');
+    expect(arcoMessageError).toHaveBeenCalled();
+  });
+
+  it('warns without crashing when the restore list fetch fails', async () => {
+    getUserConversations.mockRejectedValue(new Error('offline'));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.state).toBe('none');
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+});
+
+describe('useSideConversation — composer delivery retries', () => {
+  it('retries the scoped fill until the side send box acks', async () => {
+    vi.useFakeTimers();
+    try {
+      fork.mockResolvedValue(childConversation('c1', 1, false, 'agent_fork'));
+      const fills: Array<{ conversation_id: string; text: string }> = [];
+      emitter.on('sendbox.fill.scoped', (payload) => fills.push(payload));
+
+      const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+
+      await act(async () => {
+        await result.current.fillComposer('catch me up');
+      });
+      // No send box is mounted, so the fill retries on its interval.
+      act(() => {
+        vi.advanceTimersByTime(130);
+      });
+      expect(fills.length).toBeGreaterThanOrEqual(2);
+
+      // The ack stops the retry loop.
+      act(() => {
+        emitter.emit('sendbox.fill.scoped.handled', { conversation_id: 'c1', text: 'catch me up' });
+      });
+      const settled = fills.length;
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(fills.length).toBe(settled);
+      emitter.off('sendbox.fill.scoped', () => undefined);
+      emitter.off('sendbox.fill.scoped.handled', () => undefined);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries scoped quotes until acked', async () => {
+    vi.useFakeTimers();
+    try {
+      fork.mockResolvedValue(childConversation('c1', 1, false, 'agent_fork'));
+      const quotes: Array<{ conversation_id: string }> = [];
+      emitter.on('sendbox.reply.scoped', (payload) => quotes.push(payload));
+
+      const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+
+      await act(async () => {
+        await result.current.quoteComposer({ messageId: 'm1', content: 'selected', position: 'left' });
+      });
+      act(() => {
+        vi.advanceTimersByTime(130);
+      });
+      expect(quotes.length).toBeGreaterThanOrEqual(2);
+
+      act(() => {
+        emitter.emit('sendbox.reply.scoped.handled', { conversation_id: 'c1', content: 'selected' });
+      });
+      const settled = quotes.length;
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(quotes.length).toBe(settled);
+      emitter.off('sendbox.reply.scoped', () => undefined);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -6,9 +6,17 @@
 
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { render, renderHook } from '@testing-library/react';
 
 const useSideConversationMock = vi.fn();
+
+const dockPropsMock = vi.fn();
+vi.mock('@/renderer/pages/conversation/components/SideConversationPanel/SideConversationDock', () => ({
+  default: (props: Record<string, unknown>) => {
+    dockPropsMock(props);
+    return <div data-testid='side-dock' />;
+  },
+}));
 
 vi.mock('@/renderer/pages/conversation/components/SideConversationPanel/useSideConversation', () => ({
   useSideConversation: (options: unknown) => useSideConversationMock(options),
@@ -112,6 +120,32 @@ describe('useSideConversationWiring', () => {
     result.current.sideControlValue.onAskInSide(quote);
 
     expect(side.quoteComposer).toHaveBeenCalledWith(quote);
+  });
+
+  it('wires the dock callbacks to the side state hook', () => {
+    const side = baseSide({ tabs: [{ childId: 'c1', mode: 'fork', hasTurn: true }], childId: 'c1', state: 'active' });
+    useSideConversationMock.mockReturnValue(side);
+
+    const { result } = renderHook(() => useSideConversationWiring(conversation, false));
+    expect(result.current.sideDock).toBeTruthy();
+    // renderHook does not mount the returned node — render it to capture props.
+    render(result.current.sideDock as React.ReactElement);
+    const dockProps = dockPropsMock.mock.calls[0][0] as Record<string, (arg?: unknown) => void>;
+
+    dockProps.onSelectTab('c1');
+    expect(side.selectTab).toHaveBeenCalledWith('c1');
+
+    dockProps.onCloseTab('c1');
+    expect(side.discardTab).toHaveBeenCalledWith('c1');
+
+    dockProps.onNewTab();
+    expect(side.openNewTab).toHaveBeenCalledWith();
+
+    dockProps.onCollapse();
+    expect(side.collapse).toHaveBeenCalledTimes(1);
+
+    dockProps.onPromote();
+    expect(side.promote).toHaveBeenCalledTimes(1);
   });
 
   it('renders the dock node only when a child is active and not collapsed', () => {
