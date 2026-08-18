@@ -12,13 +12,17 @@ import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/ma
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import remarkBreaks from 'remark-breaks';
-import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import CodeBlock from '@/renderer/components/Markdown/CodeBlock';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
-import { useLocalFilePreview, useThemeDetection } from '../../hooks';
-import { getMarkdownShikiThemes, getMermaidTheme } from '../../theme';
+import { useLocalFilePreview } from '../../hooks';
 import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 
 interface MarkdownPreviewProps {
@@ -276,7 +280,6 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
 }) => {
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
-  const currentTheme = useThemeDetection();
   const handleLocalFileLink = useLocalFilePreview(workspace);
 
   // 使用滚动同步 Hooks / Use scroll sync hooks
@@ -323,6 +326,62 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     return normalized.slice(0, lastSlash);
   }, [file_path]);
 
+  const remarkPlugins = useMemo(() => [remarkGfm, remarkMath, remarkBreaks], []);
+
+  const rehypePlugins = useMemo(() => [rehypeRaw, rehypeKatex], []);
+
+  const components = useMemo(
+    () => ({
+      ...HEADING_COMPONENTS,
+      code: (props: Record<string, unknown>) => <CodeBlock {...(props as Parameters<typeof CodeBlock>[0])} />,
+      a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+        const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
+        if (localFileReference) {
+          return (
+            <LocalFileLink reference={localFileReference} onOpen={handleLocalFileLink}>
+              {children}
+            </LocalFileLink>
+          );
+        }
+        return (
+          <a href={href} target='_blank' rel='noreferrer' {...props}>
+            {children}
+          </a>
+        );
+      },
+      img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+        return (
+          <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} docFileRef={fileRef} {...props} />
+        );
+      },
+      table: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <table
+            {...(rest as React.TableHTMLAttributes<HTMLTableElement>)}
+            style={{
+              ...(rest as { style?: React.CSSProperties }).style,
+              borderCollapse: 'collapse',
+              border: '1px solid var(--bg-3)',
+              minWidth: '100%',
+            }}
+          />
+        </div>
+      ),
+      td: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        <td
+          {...(rest as React.TdHTMLAttributes<HTMLTableCellElement>)}
+          style={{
+            ...(rest as { style?: React.CSSProperties }).style,
+            padding: '8px',
+            border: '1px solid var(--bg-3)',
+            minWidth: '120px',
+          }}
+        />
+      ),
+    }),
+    [handleLocalFileLink, baseDir, workspace, fileRef]
+  );
+
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
       {/* 内容区域 / Content area */}
@@ -335,7 +394,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
-          // 预览模式：Streamdown 原生渲染 / Preview mode: native Streamdown
+          // 预览模式：ReactMarkdown 结合 KaTeX / Preview mode: ReactMarkdown with KaTeX
           <div
             className='aionui-markdown'
             style={{
@@ -347,46 +406,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               boxSizing: 'border-box',
             }}
           >
-            <Streamdown
-              mode='static'
-              shikiTheme={getMarkdownShikiThemes()}
-              mermaid={{ config: { theme: getMermaidTheme(currentTheme) } }}
-              controls={{ table: false, mermaid: { panZoom: true, fullscreen: false, copy: true, download: true } }}
-              remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
-              rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
-              components={{
-                ...HEADING_COMPONENTS,
-                a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-                  const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
-                  if (localFileReference) {
-                    return (
-                      <LocalFileLink reference={localFileReference} onOpen={handleLocalFileLink}>
-                        {children}
-                      </LocalFileLink>
-                    );
-                  }
-                  return (
-                    <a href={href} target='_blank' rel='noreferrer' {...props}>
-                      {children}
-                    </a>
-                  );
-                },
-                img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                  return (
-                    <MarkdownImage
-                      src={src}
-                      alt={alt}
-                      baseDir={baseDir}
-                      workspace={workspace}
-                      docFileRef={fileRef}
-                      {...props}
-                    />
-                  );
-                },
-              }}
-            >
+            <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={components}>
               {previewSource}
-            </Streamdown>
+            </ReactMarkdown>
           </div>
         )}
       </div>
