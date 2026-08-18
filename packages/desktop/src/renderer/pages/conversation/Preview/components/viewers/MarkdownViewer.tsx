@@ -7,18 +7,19 @@
 import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import CodeBlock from '@/renderer/components/Markdown/CodeBlock';
 import LocalFileLink from '@/renderer/components/Markdown/LocalFileLink';
+import {
+  MARKDOWN_REMARK_PLUGINS,
+  MarkdownTable,
+  MarkdownTd,
+  SANITIZED_HTML_REHYPE_PLUGINS,
+} from '@/renderer/components/Markdown/markdownComponents';
 import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
-import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import CodeBlock from '@/renderer/components/Markdown/CodeBlock';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
@@ -232,10 +233,9 @@ const normalizeLocalFileSchemeLinks = (markdown: string): string => {
   return markdown.replace(/file:\/\//gi, '');
 };
 
-// Streamdown's built-in heading components are memoized by node position only
-// (children are ignored), so headings keep stale text when content re-renders —
-// especially with rehype-raw, which drops positions. Plain overrides keep the
-// built-in classes but always render the current text.
+// Plain heading overrides that apply consistent spacing/size classes and always
+// render the current text. Defining them once (memoized at module scope) keeps a
+// stable component identity across re-renders so React does not remount headings.
 const HEADING_COMPONENTS = Object.fromEntries(
   (
     [
@@ -253,7 +253,7 @@ const HEADING_COMPONENTS = Object.fromEntries(
         tag,
         {
           className: ['mt-6 mb-2 font-semibold', size, className].filter(Boolean).join(' '),
-          'data-streamdown': `heading-${index + 1}`,
+          'data-heading-level': index + 1,
           ...props,
         },
         children
@@ -265,8 +265,10 @@ const HEADING_COMPONENTS = Object.fromEntries(
  * Markdown 预览组件
  * Markdown preview component
  *
- * 使用 Streamdown 原生渲染 Markdown（Shiki 代码高亮、Mermaid、KaTeX），支持原文/预览切换
- * Uses Streamdown native rendering (Shiki code highlight, Mermaid, KaTeX), supports source/preview toggle
+ * 使用 react-markdown + KaTeX 渲染 Markdown，代码块/Mermaid 复用共享 CodeBlock，
+ * 原始 HTML 经 rehype-sanitize 脱敏后渲染，支持原文/预览切换。
+ * Renders markdown with react-markdown + KaTeX; code/Mermaid reuse the shared
+ * CodeBlock, raw HTML is sanitized via rehype-sanitize, source/preview toggle.
  */
 const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   content,
@@ -298,26 +300,6 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectedUrl, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
-  // Streamdown binds an unconditional wheel-zoom handler ({ passive: false }) on each
-  // mermaid pan layer, so scrolling a long doc over a diagram zooms it instead of
-  // scrolling the page. Intercept wheel in the capture phase before it reaches that
-  // handler: stopPropagation() keeps Streamdown from zooming, and NOT calling
-  // preventDefault() lets the container scroll natively. Buttons (click) and drag-pan
-  // (pointer events) are untouched, so zoom controls and drag still work. Fullscreen
-  // portals the diagram out of this container, so wheel-zoom stays available there.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onWheelCapture = (e: WheelEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-streamdown='mermaid-block']")) {
-        e.stopPropagation();
-      }
-    };
-    el.addEventListener('wheel', onWheelCapture, { capture: true });
-    return () => el.removeEventListener('wheel', onWheelCapture, { capture: true });
-  }, [containerRef]);
-
   const baseDir = useMemo(() => {
     if (!file_path) return undefined;
     const normalized = file_path.replace(/\\/g, '/');
@@ -326,10 +308,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     return normalized.slice(0, lastSlash);
   }, [file_path]);
 
-  const remarkPlugins = useMemo(() => [remarkGfm, remarkMath, remarkBreaks], []);
-
-  const rehypePlugins = useMemo(() => [rehypeRaw, rehypeKatex], []);
-
+  // Memoize component overrides so React keeps a stable identity across re-renders.
+  // Code fences and Mermaid diagrams reuse the shared CodeBlock (chat/preview parity);
+  // tables reuse the shared table/cell overrides.
   const components = useMemo(
     () => ({
       ...HEADING_COMPONENTS,
@@ -354,30 +335,8 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} docFileRef={fileRef} {...props} />
         );
       },
-      table: ({ node: _node, ...rest }: Record<string, unknown>) => (
-        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <table
-            {...(rest as React.TableHTMLAttributes<HTMLTableElement>)}
-            style={{
-              ...(rest as { style?: React.CSSProperties }).style,
-              borderCollapse: 'collapse',
-              border: '1px solid var(--bg-3)',
-              minWidth: '100%',
-            }}
-          />
-        </div>
-      ),
-      td: ({ node: _node, ...rest }: Record<string, unknown>) => (
-        <td
-          {...(rest as React.TdHTMLAttributes<HTMLTableCellElement>)}
-          style={{
-            ...(rest as { style?: React.CSSProperties }).style,
-            padding: '8px',
-            border: '1px solid var(--bg-3)',
-            minWidth: '120px',
-          }}
-        />
-      ),
+      table: MarkdownTable,
+      td: MarkdownTd,
     }),
     [handleLocalFileLink, baseDir, workspace, fileRef]
   );
@@ -394,7 +353,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
-          // 预览模式：ReactMarkdown 结合 KaTeX / Preview mode: ReactMarkdown with KaTeX
+          // 预览模式：react-markdown + KaTeX / Preview mode: react-markdown + KaTeX
           <div
             className='aionui-markdown'
             style={{
@@ -406,7 +365,11 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               boxSizing: 'border-box',
             }}
           >
-            <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={components}>
+            <ReactMarkdown
+              remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+              rehypePlugins={SANITIZED_HTML_REHYPE_PLUGINS}
+              components={components}
+            >
               {previewSource}
             </ReactMarkdown>
           </div>
