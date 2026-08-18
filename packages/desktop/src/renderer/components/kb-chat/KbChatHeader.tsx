@@ -19,12 +19,7 @@ export const KbChatHeader = ({ kbName }: KbChatHeaderProps) => {
   const { t } = useTranslation();
   return (
     <div className={styles.root}>
-      <Button
-        type='text'
-        size='small'
-        icon={<ArrowLeft />}
-        onClick={() => navigate('/knowledge-base')}
-      >
+      <Button type='text' size='small' icon={<ArrowLeft />} onClick={() => navigate('/knowledge-base')}>
         {t('kb-chat.header.back')}
       </Button>
       <div className={styles.text}>

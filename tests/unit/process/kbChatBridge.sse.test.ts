@@ -90,9 +90,6 @@ describe('createSseParser', () => {
     const parser = createSseParser((e) => events.push(e));
     const src = 'data: {"type":"delta","content":"a"}\n\ndata: {"type":"done"}\n\n';
     for (const ch of src) parser.feed(ch);
-    expect(events).toEqual([
-      { type: 'delta', content: 'a' },
-      { type: 'done' },
-    ]);
+    expect(events).toEqual([{ type: 'delta', content: 'a' }, { type: 'done' }]);
   });
 });

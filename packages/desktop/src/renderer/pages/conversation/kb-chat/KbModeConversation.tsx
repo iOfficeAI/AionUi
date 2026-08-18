@@ -41,12 +41,7 @@ export const KbModeConversation: React.FC<KbModeConversationProps> = ({ kbId, kb
           </div>
         )}
       </div>
-      <KbChatInput
-        disabled={status === 'streaming'}
-        streaming={status === 'streaming'}
-        onSend={send}
-        onStop={abort}
-      />
+      <KbChatInput disabled={status === 'streaming'} streaming={status === 'streaming'} onSend={send} onStop={abort} />
     </div>
   );
 };

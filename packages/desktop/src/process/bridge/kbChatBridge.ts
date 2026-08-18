@@ -7,7 +7,11 @@ import http from 'node:http';
 import https from 'node:https';
 import { URL } from 'node:url';
 import { ipcBridge } from '@/common';
-import { KB_CHAT_FIRST_BYTE_TIMEOUT_MS, KB_CHAT_TOTAL_TIMEOUT_MS, getKbChatSseUrl } from '@/common/config/kbChat.config';
+import {
+  KB_CHAT_FIRST_BYTE_TIMEOUT_MS,
+  KB_CHAT_TOTAL_TIMEOUT_MS,
+  getKbChatSseUrl,
+} from '@/common/config/kbChat.config';
 import { createSseParser, type SseEvent } from './kbChatBridge.sse';
 
 export type KbChatSendParams = { requestId: string; kbId: string; question: string; token: string };
