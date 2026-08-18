@@ -39,6 +39,8 @@
   "expandMore": "Voir plus",
   "collapse": "Réduire",
   "viewMoreLines": "Voir plus ({{count}} lignes)",
+  "viewMoreLines_one": "Voir plus ({{count}} ligne)",
+  "viewMoreLines_other": "Voir plus ({{count}} lignes)",
   "success": "Succès",
   "error": "Erreur",
   "saveSuccess": "Enregistré avec succès",

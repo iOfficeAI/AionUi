@@ -136,6 +136,8 @@
     "read": "既読",
     "unread": "未読",
     "attachments": "{{count}} 件の添付",
+    "attachments_one": "{{count}} 件の添付",
+    "attachments_other": "{{count}} 件の添付",
     "expand": "展開",
     "collapse": "折りたたむ",
     "blockedBy": "#{{id}} によりブロック",

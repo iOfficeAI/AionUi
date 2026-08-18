@@ -24,6 +24,8 @@
   "closeTabMessage": "The current content has not been saved. Do you want to save before closing?",
   "closeTabsTitle": "Close Tabs",
   "closeTabsMessage": "{{count}} tabs have unsaved changes. Save them before closing?",
+  "closeTabsMessage_one": "{{count}} tab has unsaved changes. Save it before closing?",
+  "closeTabsMessage_other": "{{count}} tabs have unsaved changes. Save them before closing?",
   "saveAndClose": "Save and Close",
   "closeWithoutSave": "Don't Save",
   "pptTitle": "PowerPoint Presentation",

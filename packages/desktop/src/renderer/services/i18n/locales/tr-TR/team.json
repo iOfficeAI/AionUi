@@ -136,6 +136,8 @@
     "read": "Okundu",
     "unread": "Okunmadı",
     "attachments": "{{count}} dosya",
+    "attachments_one": "{{count}} dosya",
+    "attachments_other": "{{count}} dosya",
     "expand": "Genişlet",
     "collapse": "Daralt",
     "blockedBy": "#{{id}} tarafından engellendi",

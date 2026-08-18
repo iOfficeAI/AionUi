@@ -1,6 +1,8 @@
 {
   "fileChanges": "Modifications de fichiers",
   "fileChangesCount": "{{count}} modification(s) de fichiers",
+  "fileChangesCount_one": "{{count}} modification de fichiers",
+  "fileChangesCount_other": "{{count}} modifications de fichiers",
   "conversationInProgress": "Une conversation est en cours...",
   "confirm": "Confirmer",
   "canceledExecution": "Exécution annulée",
@@ -22,6 +24,8 @@
     "searchAria": "Rechercher dans la conversation"
   },
   "availableCommands": "{{count}} commandes disponibles",
+  "availableCommands_one": "{{count}} commande disponible",
+  "availableCommands_other": "{{count}} commandes disponibles",
   "atFile.hint": "Tapez pour rechercher des fichiers",
   "atFile.menuLabel": "Mentions de fichiers",
   "atFile.loading": "Chargement...",

@@ -1,6 +1,8 @@
 {
   "fileChanges": "File Changes",
   "fileChangesCount": "{{count}} File Changes",
+  "fileChangesCount_one": "{{count}} File Change",
+  "fileChangesCount_other": "{{count}} File Changes",
   "conversationInProgress": "A conversation is currently in progress...",
   "confirm": "Confirm",
   "canceledExecution": "Execution canceled",
@@ -22,6 +24,8 @@
     "searchAria": "Search conversation"
   },
   "availableCommands": "{{count}} Available Commands",
+  "availableCommands_one": "{{count}} Available Command",
+  "availableCommands_other": "{{count}} Available Commands",
   "atFile.hint": "Type to search for files",
   "atFile.menuLabel": "File mentions",
   "atFile.loading": "Loading...",

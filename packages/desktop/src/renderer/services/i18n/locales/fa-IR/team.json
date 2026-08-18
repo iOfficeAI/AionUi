@@ -136,6 +136,8 @@
     "read": "خوانده‌شده",
     "unread": "خوانده‌نشده",
     "attachments": "{{count}} پیوست",
+    "attachments_one": "{{count}} پیوست",
+    "attachments_other": "{{count}} پیوست",
     "expand": "گسترش",
     "collapse": "جمع کردن",
     "blockedBy": "مسدود شده توسط #{{id}}",

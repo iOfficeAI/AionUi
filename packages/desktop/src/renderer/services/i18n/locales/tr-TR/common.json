@@ -39,6 +39,8 @@
   "expandMore": "Daha Fazla",
   "collapse": "Daralt",
   "viewMoreLines": "Daha Fazla Göster ({{count}} satır)",
+  "viewMoreLines_one": "Daha Fazla Göster ({{count}} satır)",
+  "viewMoreLines_other": "Daha Fazla Göster ({{count}} satır)",
   "success": "Başarılı",
   "error": "Hata",
   "saveSuccess": "Başarıyla kaydedildi",

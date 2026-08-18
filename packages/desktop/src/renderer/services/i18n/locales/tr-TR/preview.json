@@ -24,6 +24,8 @@
   "closeTabMessage": "Mevcut içerik kaydedilmedi. Kapatmadan önce kaydetmek ister misiniz?",
   "closeTabsTitle": "Sekmeleri Kapat",
   "closeTabsMessage": "{{count}} sekmede kaydedilmemiş değişiklik var. Kapatmadan önce kaydedilsin mi?",
+  "closeTabsMessage_one": "{{count}} sekmede kaydedilmemiş değişiklik var. Kapatmadan önce kaydedilsin mi?",
+  "closeTabsMessage_other": "{{count}} sekmede kaydedilmemiş değişiklik var. Kapatmadan önce kaydedilsin mi?",
   "saveAndClose": "Kaydet ve Kapat",
   "closeWithoutSave": "Kaydetme",
   "pptTitle": "PowerPoint Sunumu",

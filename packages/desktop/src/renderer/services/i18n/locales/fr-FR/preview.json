@@ -24,6 +24,8 @@
   "closeTabMessage": "Le contenu actuel n'a pas été enregistré. Voulez-vous enregistrer avant de fermer ?",
   "closeTabsTitle": "Fermer les onglets",
   "closeTabsMessage": "{{count}} onglets contiennent des modifications non enregistrées. Les enregistrer avant de fermer ?",
+  "closeTabsMessage_one": "{{count}} onglet contient des modifications non enregistrées. L'enregistrer avant de fermer ?",
+  "closeTabsMessage_other": "{{count}} onglets contiennent des modifications non enregistrées. Les enregistrer avant de fermer ?",
   "saveAndClose": "Enregistrer et fermer",
   "closeWithoutSave": "Ne pas enregistrer",
   "pptTitle": "Présentation PowerPoint",

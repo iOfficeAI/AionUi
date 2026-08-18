@@ -136,6 +136,8 @@
     "read": "읽음",
     "unread": "안 읽음",
     "attachments": "첨부 {{count}}개",
+    "attachments_one": "첨부 {{count}}개",
+    "attachments_other": "첨부 {{count}}개",
     "expand": "펼치기",
     "collapse": "접기",
     "blockedBy": "#{{id}}에 의해 차단됨",

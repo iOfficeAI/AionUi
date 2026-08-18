@@ -24,6 +24,8 @@
   "closeTabMessage": "当前内容还未保存，是否保存后再关闭？",
   "closeTabsTitle": "关闭标签页",
   "closeTabsMessage": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
+  "closeTabsMessage_one": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
+  "closeTabsMessage_other": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
   "saveAndClose": "保存并关闭",
   "closeWithoutSave": "不保存",
   "pptTitle": "PowerPoint 演示文稿",

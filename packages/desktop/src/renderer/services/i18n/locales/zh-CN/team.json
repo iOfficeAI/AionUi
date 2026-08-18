@@ -136,6 +136,8 @@
     "read": "已读",
     "unread": "未读",
     "attachments": "{{count}} 个附件",
+    "attachments_one": "{{count}} 个附件",
+    "attachments_other": "{{count}} 个附件",
     "expand": "展开",
     "collapse": "收起",
     "blockedBy": "被 #{{id}} 阻塞",

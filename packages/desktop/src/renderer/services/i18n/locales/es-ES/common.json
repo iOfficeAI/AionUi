@@ -38,6 +38,8 @@
   "expandMore": "Ver más",
   "collapse": "Contraer",
   "viewMoreLines": "Ver más ({{count}} líneas)",
+  "viewMoreLines_one": "Ver más ({{count}} línea)",
+  "viewMoreLines_other": "Ver más ({{count}} líneas)",
   "success": "Éxito",
   "error": "Error",
   "saveSuccess": "Guardado correctamente",
