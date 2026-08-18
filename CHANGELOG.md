@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.1.58](https://github.com/iOfficeAI/AionUi/compare/v2.1.57...v2.1.58) (2026-08-18)
+
+### Desktop
+
+#### Features
+
+- **renderer:** add math formula rendering support for markdown viewer (#4079)
+- **theme:** activate structured token channel and add custom-theme guide (#4081)
+- **team:** runtime restart controls, model refresh button and team UX fixes (#3893)
+- **i18n:** right-to-left layout for Persian (fa-IR) (#4069)
+
+#### Bug Fixes
+
+- **chat:** align compose actions and draft queue draining (#4082)
+- **i18n:** align directory paths to the page direction, not hardcoded end (#4086)
+- **web-host:** stop leaking PREBUILDS_ONLY into aioncore agent subprocesses (#4078)
+- **i18n:** RTL polish pass — LTR paths/file names, shorthand paddings, mirrored chevrons (#4077)
+- **i18n:** locale-aware cron titles and byte sizes, Traditional Chinese mapping (#4075)
+- **i18n:** adopt i18next plural forms for count-bearing strings (#4074)
+- **i18n:** backfill every missing translation and wire webFsPicker into i18n (#4072)
+- **i18n:** quick-wins batch — Arco locales, tray French, hardcoded strings, stale title (#4071)
+- **i18n:** format numbers and dates against the app language, not the host locale (#4068)
+
+### Core ([v0.1.69](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.69))
+
+#### Features
+
+- **claude:** label tool steps by what they do (#870)
+- **team:** team mode reliability improvements, model switch persistence and runtime restart (#787)
+
+#### Bug Fixes
+
+- **claude:** three follow-ups to the tool-step labels (#872)
+
+---
+
 ## [2.1.57](https://github.com/iOfficeAI/AionUi/compare/v2.1.56...v2.1.57) (2026-08-17)
 
 ### Desktop
