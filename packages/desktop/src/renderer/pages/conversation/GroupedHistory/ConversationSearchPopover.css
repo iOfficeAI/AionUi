@@ -171,7 +171,9 @@ body[arco-theme='dark'] .conversation-search-modal {
   border: 1px solid var(--conversation-search-input-border) !important;
   box-shadow: none !important;
   border-radius: 10px;
-  padding: 0 10px 0 12px;
+  padding-block: 0;
+  padding-inline-start: 12px;
+  padding-inline-end: 10px;
 }
 
 .conversation-search-modal__searchbar:focus-within {

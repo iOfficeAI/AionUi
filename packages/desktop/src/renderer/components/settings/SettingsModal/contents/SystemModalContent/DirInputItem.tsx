@@ -56,7 +56,8 @@ const DirInputItem: React.FC<{
             onKeyDown={handleKeyDown}
           >
             <Tooltip content={current_value || t('settings.dirNotConfigured')} position='top'>
-              <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>
+              {/* Paths are code-like; without dir=ltr the leading slash flips to the end under RTL. */}
+              <div dir='ltr' className='flex-1 min-w-0 text-13px text-t-primary truncate text-end'>
                 {current_value || t('settings.dirNotConfigured')}
               </div>
             </Tooltip>
@@ -64,7 +65,13 @@ const DirInputItem: React.FC<{
               <Button
                 type='text'
                 aria-label={actionTooltip}
-                style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
+                style={{
+                  borderInlineStart: '1px solid var(--color-border-2)',
+                  borderStartStartRadius: 0,
+                  borderStartEndRadius: 8,
+                  borderEndEndRadius: 8,
+                  borderEndStartRadius: 0,
+                }}
                 icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
                 onClick={(e) => {
                   e.stopPropagation();
