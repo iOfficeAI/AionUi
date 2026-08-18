@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "사용 가능한 공유 지식 베이스가 없습니다",
   "knowledgeBaseSharedLoading": "공유 지식 베이스를 불러오는 중…",
   "knowledgeBaseSharedLoadFailed": "공유 지식 베이스를 불러오지 못했습니다",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "소유자",
   "knowledgeBaseDocumentCount": "문서 {{count}}개",
   "knowledgeBaseIdentitySection": "기본 정보",

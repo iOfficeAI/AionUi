@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "Kullanılabilir paylaşılan bilgi bankası yok",
   "knowledgeBaseSharedLoading": "Paylaşılan bilgi bankaları yükleniyor…",
   "knowledgeBaseSharedLoadFailed": "Paylaşılan bilgi bankaları yüklenemedi",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "Sahibi",
   "knowledgeBaseDocumentCount": "{{count}} belge",
   "knowledgeBaseIdentitySection": "Kimlik",

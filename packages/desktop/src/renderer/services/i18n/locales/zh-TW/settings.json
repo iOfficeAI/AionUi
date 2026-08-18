@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "暫無可用的共享知識庫",
   "knowledgeBaseSharedLoading": "正在載入共享知識庫…",
   "knowledgeBaseSharedLoadFailed": "載入共享知識庫失敗",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "所有者",
   "knowledgeBaseDocumentCount": "{{count}} 篇文檔",
   "knowledgeBaseIdentitySection": "基本資訊",

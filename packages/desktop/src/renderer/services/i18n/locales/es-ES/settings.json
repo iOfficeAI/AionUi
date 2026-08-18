@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "No hay bases de conocimiento compartidas disponibles",
   "knowledgeBaseSharedLoading": "Cargando bases de conocimiento compartidas…",
   "knowledgeBaseSharedLoadFailed": "Error al cargar las bases de conocimiento compartidas",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "Propietario",
   "knowledgeBaseDocumentCount": "{{count}} documentos",
   "knowledgeBaseIdentitySection": "Identidad",

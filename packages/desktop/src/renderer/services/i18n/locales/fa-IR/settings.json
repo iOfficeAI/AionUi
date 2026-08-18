@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "هیچ پایگاه دانش اشتراکی موجود نیست",
   "knowledgeBaseSharedLoading": "در حال بارگذاری پایگاه‌های دانش اشتراکی…",
   "knowledgeBaseSharedLoadFailed": "بارگذاری پایگاه‌های دانش اشتراکی ناموفق بود",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "مالک",
   "knowledgeBaseDocumentCount": "{{count}} سند",
   "knowledgeBaseIdentitySection": "هویت",

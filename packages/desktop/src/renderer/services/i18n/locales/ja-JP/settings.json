@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "利用可能な共有ナレッジベースがありません",
   "knowledgeBaseSharedLoading": "共有ナレッジベースを読み込み中…",
   "knowledgeBaseSharedLoadFailed": "共有ナレッジベースの読み込みに失敗しました",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "所有者",
   "knowledgeBaseDocumentCount": "{{count}} 件のドキュメント",
   "knowledgeBaseIdentitySection": "基本情報",

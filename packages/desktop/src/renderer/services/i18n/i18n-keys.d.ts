@@ -1821,6 +1821,8 @@ export type I18nKey =
   | 'settings.knowledgeBaseNameRequired'
   | 'settings.knowledgeBaseNoAvailableAgent'
   | 'settings.knowledgeBaseOwner'
+  | 'settings.knowledgeBasePersonalLoadFailed'
+  | 'settings.knowledgeBasePersonalLoading'
   | 'settings.knowledgeBaseRules'
   | 'settings.knowledgeBaseRulesPlaceholder'
   | 'settings.knowledgeBaseSelectAgent'

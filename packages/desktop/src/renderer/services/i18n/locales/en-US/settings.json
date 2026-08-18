@@ -140,6 +140,8 @@
   "knowledgeBaseSharedEmpty": "No shared knowledge bases available",
   "knowledgeBaseSharedLoading": "Loading shared knowledge bases…",
   "knowledgeBaseSharedLoadFailed": "Failed to load shared knowledge bases",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "Owner",
   "knowledgeBaseDocumentCount": "{{count}} docs",
   "knowledgeBaseIdentitySection": "Identity",

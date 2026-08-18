@@ -165,6 +165,8 @@
   "knowledgeBaseSharedEmpty": "Keine geteilten Wissensdatenbanken verfügbar",
   "knowledgeBaseSharedLoading": "Geteilte Wissensdatenbanken werden geladen…",
   "knowledgeBaseSharedLoadFailed": "Geteilte Wissensdatenbanken konnten nicht geladen werden",
+  "knowledgeBasePersonalLoading": "Loading personal knowledge bases…",
+  "knowledgeBasePersonalLoadFailed": "Failed to load personal knowledge bases",
   "knowledgeBaseOwner": "Eigentümer",
   "knowledgeBaseDocumentCount": "{{count}} Dokumente",
   "knowledgeBaseIdentitySection": "Identität",
