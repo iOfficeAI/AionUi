@@ -15,6 +15,7 @@ export type SiderMenuItem = {
   icon: React.ReactNode;
   label: string;
   danger?: boolean;
+  disabled?: boolean;
 };
 
 export type SiderItemProps = {
@@ -109,7 +110,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
                   }}
                 >
                   {menuItems.map((item) => (
-                    <Menu.Item key={item.key}>
+                    <Menu.Item key={item.key} disabled={item.disabled}>
                       <div
                         className={classNames('flex items-center gap-8px', {
                           'text-[rgb(var(--warning-6))]': item.danger,

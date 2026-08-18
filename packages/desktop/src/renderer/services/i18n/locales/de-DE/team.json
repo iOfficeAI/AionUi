@@ -15,7 +15,8 @@
     "renameOk": "Speichern",
     "renameCancel": "Abbrechen",
     "renameSuccess": "Team umbenannt",
-    "deleteSuccess": "Team gelöscht"
+    "deleteSuccess": "Team gelöscht",
+    "adHocTooltip": "Ad-hoc-Team"
   },
   "newAgent": "Neuer Agent",
   "noMessages": "Noch keine Nachrichten.",
@@ -34,6 +35,7 @@
     "placeholder": "Nachricht an Dispatch-Agenten..."
   },
   "create": {
+    "assistantsTab": "Assistenten",
     "title": "New Team",
     "namePlaceholder": "Teamname",
     "dispatchAgentPlaceholder": "Teamleiter auswählen",
@@ -152,5 +154,35 @@
       "idle_notification": "Leerlaufhinweis",
       "shutdown_request": "Stopp-Anfrage"
     }
+  },
+  "presets": {
+    "title": "Expertenteams",
+    "newPreset": "Neu",
+    "searchPlaceholder": "Expertenteams suchen",
+    "emptyDescription": "Wiederverwendbare Teams erstellen.",
+    "createPreset": "Expertenteam erstellen",
+    "invoke": "Verwenden",
+    "invokeThisTeam": "Dieses Team verwenden",
+    "leaderLabel": "Leitung",
+    "memberMissing": "Fehlt",
+    "membersLabel": "Mitglieder",
+    "examplesLabel": "Beispielaufgaben",
+    "missingWarning": "Einige Assistenten sind nicht verfügbar.",
+    "selectHint": "Team auswählen, um Details zu sehen.",
+    "nameRequired": "Name eingeben",
+    "memberRequired": "Mitglied hinzufügen",
+    "leaderRequired": "Leitung auswählen",
+    "saveFailed": "Speichern fehlgeschlagen",
+    "createTitle": "Neues Expertenteam",
+    "editTitle": "Expertenteam bearbeiten",
+    "nameLabel": "Name",
+    "namePlaceholder": "Name des Presets",
+    "categoryLabel": "Kategorie",
+    "categoryPlaceholder": "z. B. Technik",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Was macht dieses Team?",
+    "tagsLabel": "Fachkenntnisse",
+    "tagPlaceholder": "Tag hinzufügen",
+    "examplePlaceholder": "Beispielaufgabe hinzufügen"
   }
 }

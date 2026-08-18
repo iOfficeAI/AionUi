@@ -11,6 +11,7 @@ import type { TChatConversation, TokenUsageData } from '@/common/config/storage'
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useTeammateBackflow } from '@/renderer/pages/conversation/hooks/useTeammateBackflow';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -34,6 +35,7 @@ export const useAionrsMessage = (
   const onConfigChanged = options?.onConfigChanged;
   const onConfigChangedRef = useRef(onConfigChanged);
   const mergeLiveMessage = useMergeLiveMessage();
+  const handleTeammateMessage = useTeammateBackflow(conversation_id);
   const [streamRunning, setStreamRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
   const [waitingResponse, setWaitingResponse] = useState(false);
@@ -341,6 +343,9 @@ export const useAionrsMessage = (
             mergeLiveMessage(transformMessage(message));
           }
           break;
+        case 'teammate_message':
+          handleTeammateMessage(message);
+          break;
         case 'permission':
         case 'acp_permission':
           if (!streamRunningRef.current) {
@@ -385,7 +390,7 @@ export const useAionrsMessage = (
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, mergeLiveMessage, onError, processCompletedAssistantMessage]);
+  }, [conversation_id, mergeLiveMessage, handleTeammateMessage, onError, processCompletedAssistantMessage]);
 
   useEffect(() => {
     let cancelled = false;

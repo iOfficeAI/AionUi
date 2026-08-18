@@ -123,4 +123,41 @@ describe('ipcBridge team adapter', () => {
     });
     expect(JSON.stringify(httpBridgeMocks.calls.at(-1)?.body)).not.toContain('assistants');
   });
+
+  it('team.sendMessage forwards ChatFileRef[] without flattening refs', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+    const files = [
+      { kind: 'project' as const, pe_id: 'pe-1', relative_path: 'src/index.ts' },
+      { kind: 'upload' as const, path: '/uploads/spec.pdf' },
+      { kind: 'local' as const, path: '/tmp/notes.md' },
+    ];
+
+    await team.sendMessage.invoke({ team_id: 'team-1', input: 'Review these', files });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'POST',
+      path: '/api/teams/team-1/messages',
+      body: { content: 'Review these', files },
+    });
+  });
+
+  it('team.fromConversation maps the v0.1.62 route and payload', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+
+    await team.fromConversation.invoke({
+      conversation_id: 'conv-1',
+      user_id: 'user-1',
+      target_assistant_id: 'assistant-2',
+    });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'POST',
+      path: '/api/teams/from-conversation',
+      body: {
+        conversation_id: 'conv-1',
+        user_id: 'user-1',
+        target_assistant_id: 'assistant-2',
+      },
+    });
+  });
 });

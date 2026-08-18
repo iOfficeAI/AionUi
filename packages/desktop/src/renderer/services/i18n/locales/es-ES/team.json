@@ -15,7 +15,8 @@
     "renameOk": "Guardar",
     "renameCancel": "Cancelar",
     "renameSuccess": "Equipo renombrado",
-    "deleteSuccess": "Equipo eliminado"
+    "deleteSuccess": "Equipo eliminado",
+    "adHocTooltip": "Equipo temporal"
   },
   "newAgent": "Nuevo agente",
   "noMessages": "Sin mensajes aún.",
@@ -34,6 +35,7 @@
     "placeholder": "Mensaje al agente coordinador..."
   },
   "create": {
+    "assistantsTab": "Asistentes",
     "title": "New Team",
     "namePlaceholder": "Nombre del equipo",
     "dispatchAgentPlaceholder": "Seleccionar líder del equipo",
@@ -152,5 +154,35 @@
       "idle_notification": "Aviso de inactividad",
       "shutdown_request": "Solicitud de cierre"
     }
+  },
+  "presets": {
+    "title": "Equipos expertos",
+    "newPreset": "Nuevo",
+    "searchPlaceholder": "Buscar equipos expertos",
+    "emptyDescription": "Crea equipos reutilizables.",
+    "createPreset": "Crear equipo experto",
+    "invoke": "Usar",
+    "invokeThisTeam": "Usar este equipo",
+    "leaderLabel": "Líder",
+    "memberMissing": "Falta",
+    "membersLabel": "Miembros",
+    "examplesLabel": "Tareas de ejemplo",
+    "missingWarning": "Algunos asistentes no están disponibles.",
+    "selectHint": "Selecciona un equipo para ver detalles.",
+    "nameRequired": "Introduce un nombre",
+    "memberRequired": "Añade un miembro",
+    "leaderRequired": "Selecciona un líder",
+    "saveFailed": "Error al guardar",
+    "createTitle": "Nuevo equipo experto",
+    "editTitle": "Editar equipo experto",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Nombre del preset",
+    "categoryLabel": "Categoría",
+    "categoryPlaceholder": "p. ej. Ingeniería",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "¿Qué hace este equipo?",
+    "tagsLabel": "Especialidades",
+    "tagPlaceholder": "Añadir etiqueta",
+    "examplePlaceholder": "Añadir tarea de ejemplo"
   }
 }

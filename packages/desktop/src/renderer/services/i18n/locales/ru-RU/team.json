@@ -15,7 +15,8 @@
     "renameOk": "Сохранить",
     "renameCancel": "Отмена",
     "renameSuccess": "Команда переименована",
-    "deleteSuccess": "Команда удалена"
+    "deleteSuccess": "Команда удалена",
+    "adHocTooltip": "Временная команда"
   },
   "newAgent": "Новый ассистент",
   "noMessages": "Пока нет сообщений.",
@@ -34,6 +35,7 @@
     "placeholder": "Сообщение ассистенту-лидеру команды..."
   },
   "create": {
+    "assistantsTab": "Ассистенты",
     "title": "New Team",
     "namePlaceholder": "Название команды",
     "dispatchAgentPlaceholder": "Выбрать лидера команды",
@@ -152,5 +154,35 @@
       "idle_notification": "Уведомление о простое",
       "shutdown_request": "Запрос на остановку"
     }
+  },
+  "presets": {
+    "title": "Команды экспертов",
+    "newPreset": "Новая",
+    "searchPlaceholder": "Поиск команд",
+    "emptyDescription": "Создавайте повторно используемые команды.",
+    "createPreset": "Создать команду экспертов",
+    "invoke": "Использовать",
+    "invokeThisTeam": "Использовать эту команду",
+    "leaderLabel": "Лидер",
+    "memberMissing": "Нет",
+    "membersLabel": "Участники",
+    "examplesLabel": "Примеры задач",
+    "missingWarning": "Некоторые ассистенты недоступны.",
+    "selectHint": "Выберите команду для просмотра деталей.",
+    "nameRequired": "Введите название",
+    "memberRequired": "Добавьте участника",
+    "leaderRequired": "Выберите лидера",
+    "saveFailed": "Не удалось сохранить",
+    "createTitle": "Новая команда экспертов",
+    "editTitle": "Редактировать команду",
+    "nameLabel": "Название",
+    "namePlaceholder": "Название пресета",
+    "categoryLabel": "Категория",
+    "categoryPlaceholder": "например, разработка",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Чем занимается эта команда?",
+    "tagsLabel": "Навыки",
+    "tagPlaceholder": "Добавить тег",
+    "examplePlaceholder": "Добавить пример задачи"
   }
 }

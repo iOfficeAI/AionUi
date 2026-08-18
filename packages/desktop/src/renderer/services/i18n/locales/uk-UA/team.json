@@ -15,7 +15,8 @@
     "renameOk": "Зберегти",
     "renameCancel": "Скасувати",
     "renameSuccess": "Команду перейменовано",
-    "deleteSuccess": "Команду видалено"
+    "deleteSuccess": "Команду видалено",
+    "adHocTooltip": "Тимчасова команда"
   },
   "newAgent": "Новий асистент",
   "noMessages": "Повідомлень ще немає.",
@@ -34,6 +35,7 @@
     "placeholder": "Повідомлення для диспетчера..."
   },
   "create": {
+    "assistantsTab": "Асистенти",
     "title": "New Team",
     "namePlaceholder": "Назва команди",
     "dispatchAgentPlaceholder": "Виберіть лідера команди",
@@ -152,5 +154,35 @@
       "idle_notification": "Сповіщення про простій",
       "shutdown_request": "Запит на зупинку"
     }
+  },
+  "presets": {
+    "title": "Експертні команди",
+    "newPreset": "Нова",
+    "searchPlaceholder": "Пошук команд",
+    "emptyDescription": "Створюйте повторно використовувані команди.",
+    "createPreset": "Створити експертну команду",
+    "invoke": "Використати",
+    "invokeThisTeam": "Використати цю команду",
+    "leaderLabel": "Лідер",
+    "memberMissing": "Відсутній",
+    "membersLabel": "Учасники",
+    "examplesLabel": "Приклади завдань",
+    "missingWarning": "Деякі асистенти недоступні.",
+    "selectHint": "Виберіть команду для перегляду деталей.",
+    "nameRequired": "Введіть назву",
+    "memberRequired": "Додайте учасника",
+    "leaderRequired": "Виберіть лідера",
+    "saveFailed": "Не вдалося зберегти",
+    "createTitle": "Нова експертна команда",
+    "editTitle": "Редагувати експертну команду",
+    "nameLabel": "Назва",
+    "namePlaceholder": "Назва пресету",
+    "categoryLabel": "Категорія",
+    "categoryPlaceholder": "наприклад, інженерія",
+    "descriptionLabel": "Опис",
+    "descriptionPlaceholder": "Чим займається ця команда?",
+    "tagsLabel": "Навички",
+    "tagPlaceholder": "Додати тег",
+    "examplePlaceholder": "Додати приклад завдання"
   }
 }

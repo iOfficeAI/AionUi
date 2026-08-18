@@ -36,6 +36,10 @@ import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import { useActiveLease } from '../hooks/useActiveLease';
+import { useAdHocTeamFromConversation } from '../hooks/useAdHocTeamFromConversation';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
+import { isTeamRelatedConversation } from '../utils/conversationTeamOwnership';
+import { AdHocTeamSection } from './AdHocTeam/AdHocTeamSection';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const configErrorMessageKey = (error: unknown) => {
@@ -177,6 +181,9 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
+  const { user } = useAuth();
+  const isTeamConversation = isTeamRelatedConversation(conversation);
+  const adHocTeam = useAdHocTeamFromConversation(conversation.id, user?.id ?? 'system_default_user', conversation.name);
   const layout = useLayoutContext();
   // Mobile: model selection moved into the sendbox `+` action sheet to free up
   // header space; the dropdown stays available on desktop and tablets ≥768px.
@@ -215,6 +222,13 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
             onSetThoughtLevel={handleThoughtLevelSetOption}
           />
         )}
+        <AdHocTeamSection
+          conversationId={conversation.id}
+          userId={user?.id ?? 'system_default_user'}
+          isMobile={isMobile}
+          isTeamConversation={isTeamConversation}
+          adHocTeam={adHocTeam}
+        />
       </div>
     ),
     workspaceEnabled,
@@ -278,6 +292,14 @@ const ChatConversation: React.FC<{
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
+
+  const { user } = useAuth();
+  const isTeamConversation = conversation ? isTeamRelatedConversation(conversation) : false;
+  const adHocTeam = useAdHocTeamFromConversation(
+    conversation?.id,
+    user?.id ?? 'system_default_user',
+    conversation?.name
+  );
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
@@ -384,6 +406,16 @@ const ChatConversation: React.FC<{
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {conversation && (
+        <AdHocTeamSection
+          conversationId={conversation.id}
+          userId={user?.id ?? 'system_default_user'}
+          isMobile={isMobile}
+          isReadOnly={isLegacyReadOnlyConversation}
+          isTeamConversation={isTeamConversation}
+          adHocTeam={adHocTeam}
+        />
+      )}
     </div>
   );
 

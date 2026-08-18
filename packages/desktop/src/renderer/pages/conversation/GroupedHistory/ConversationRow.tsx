@@ -261,7 +261,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       return;
                     }
                     if (key === 'delete') {
-                      onDelete(conversation.id);
+                      onDelete(conversation.id, conversation.extra);
                     }
                   }}
                 >

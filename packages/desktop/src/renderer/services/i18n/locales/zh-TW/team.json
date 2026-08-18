@@ -15,7 +15,8 @@
     "renameOk": "儲存",
     "renameCancel": "取消",
     "renameSuccess": "團隊已重新命名",
-    "deleteSuccess": "團隊已刪除"
+    "deleteSuccess": "團隊已刪除",
+    "adHocTooltip": "臨時團隊"
   },
   "newAgent": "新助手",
   "noMessages": "No messages yet.",
@@ -34,6 +35,7 @@
     "placeholder": "向團隊 Leader 助手發訊息..."
   },
   "create": {
+    "assistantsTab": "助手",
     "title": "新建團隊",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "選擇團隊 Leader 助手",
@@ -152,5 +154,35 @@
       "idle_notification": "閒置通知",
       "shutdown_request": "關閉請求"
     }
+  },
+  "presets": {
+    "title": "專家團",
+    "newPreset": "新增",
+    "searchPlaceholder": "搜尋專家團",
+    "emptyDescription": "建立可重複使用的專家團，加快團隊組建。",
+    "createPreset": "建立專家團",
+    "invoke": "使用",
+    "invokeThisTeam": "使用此專家團",
+    "leaderLabel": "隊長",
+    "memberMissing": "缺少",
+    "membersLabel": "成員",
+    "examplesLabel": "範例任務",
+    "missingWarning": "此專家團部分助手無法使用，建立前請替換。",
+    "selectHint": "選擇專家團以預覽詳情。",
+    "nameRequired": "請輸入專家團名稱",
+    "memberRequired": "請至少新增一名成員",
+    "leaderRequired": "請選擇隊長",
+    "saveFailed": "儲存專家團失敗",
+    "createTitle": "新增專家團",
+    "editTitle": "編輯專家團",
+    "nameLabel": "名稱",
+    "namePlaceholder": "專家團名稱",
+    "categoryLabel": "分類",
+    "categoryPlaceholder": "例如：工程",
+    "descriptionLabel": "描述",
+    "descriptionPlaceholder": "這個團隊做什麼？",
+    "tagsLabel": "專長標籤",
+    "tagPlaceholder": "新增標籤",
+    "examplePlaceholder": "新增範例任務"
   }
 }

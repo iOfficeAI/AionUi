@@ -46,6 +46,8 @@ export type TTeam = {
   agents?: TeamAssistant[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned assistants inherit it. */
   session_mode?: string;
+  /** Source conversation for ad-hoc teams created from a normal conversation. */
+  origin_conversation_id?: string;
   created_at: number;
   updated_at: number;
 };
@@ -305,4 +307,35 @@ export type ITeamSessionChangedEvent = {
   team_id: string;
   status?: string;
   error?: string;
+};
+
+// ---------------------------------------------------------------------------
+// Team presets (reusable expert-team rosters)
+// ---------------------------------------------------------------------------
+
+/** A single member slot inside a reusable Team preset. */
+export type TeamPresetMember = {
+  assistant_backend: string;
+  assistant_id?: string;
+  model?: string;
+  assistant_name: string;
+  role: string;
+  order: number;
+};
+
+/** A reusable Team preset describing an expert-team roster and metadata. */
+export type TeamPreset = {
+  id: string;
+  user_id: string;
+  name: string;
+  icon?: string;
+  category?: string;
+  description: string;
+  expertise_tags: string[];
+  example_prompts: string[];
+  leader: TeamPresetMember;
+  members: TeamPresetMember[];
+  version: number;
+  created_at: string;
+  updated_at: string;
 };

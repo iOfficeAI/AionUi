@@ -15,7 +15,8 @@
     "renameOk": "保存",
     "renameCancel": "キャンセル",
     "renameSuccess": "チーム名を変更しました",
-    "deleteSuccess": "チームを削除しました"
+    "deleteSuccess": "チームを削除しました",
+    "adHocTooltip": "アドホックチーム"
   },
   "newAgent": "新しいアシスタント",
   "noMessages": "No messages yet.",
@@ -34,6 +35,7 @@
     "placeholder": "チームリーダーアシスタントにメッセージを送信..."
   },
   "create": {
+    "assistantsTab": "アシスタント",
     "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
@@ -152,5 +154,35 @@
       "idle_notification": "アイドル通知",
       "shutdown_request": "停止リクエスト"
     }
+  },
+  "presets": {
+    "title": "エキスパートチーム",
+    "newPreset": "新規",
+    "searchPlaceholder": "エキスパートチームを検索",
+    "emptyDescription": "再利用可能なチームを作成します。",
+    "createPreset": "チームを作成",
+    "invoke": "使用",
+    "invokeThisTeam": "このチームを使用",
+    "leaderLabel": "リーダー",
+    "memberMissing": "不足",
+    "membersLabel": "メンバー",
+    "examplesLabel": "例",
+    "missingWarning": "利用できないアシスタントがあります。",
+    "selectHint": "チームを選択して詳細を表示します。",
+    "nameRequired": "名前を入力してください",
+    "memberRequired": "メンバーを追加してください",
+    "leaderRequired": "リーダーを選択してください",
+    "saveFailed": "保存に失敗しました",
+    "createTitle": "新しいエキスパートチーム",
+    "editTitle": "エキスパートチームを編集",
+    "nameLabel": "名前",
+    "namePlaceholder": "プリセット名",
+    "categoryLabel": "カテゴリ",
+    "categoryPlaceholder": "例：エンジニアリング",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "このチームの役割は？",
+    "tagsLabel": "専門分野",
+    "tagPlaceholder": "タグを追加",
+    "examplePlaceholder": "例示タスクを追加"
   }
 }

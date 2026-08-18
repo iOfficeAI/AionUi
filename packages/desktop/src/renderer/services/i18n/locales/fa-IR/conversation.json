@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "به‌جای {{field}} از assistant_id استفاده کنید."
     }
   },
+  "collaboration": {
+    "launchTooltip": "همکاری تیمی",
+    "selectAgentTitle": "انتخاب عامل",
+    "createdSuccess": "همکاری تیمی آغاز شد",
+    "joinedSuccess": "{{agentName}} به تیم پیوست",
+    "joinedHint": "پیوست",
+    "fallbackAgentName": "ایجنت",
+    "createFailed": "راه‌اندازی همکاری تیمی ناموفق بود",
+    "statusTitle": "تیم",
+    "statusAria": "باز کردن تیم",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "منحل شده",
+    "running": "در حال اجرا",
+    "runDetail": "{{count}} نوبت فعال"
+  },
   "agentError": {
     "fallbackTitle": "ایجنت نتوانست پاسخ دهد",
     "errorCode": "کد خطا",

@@ -13,6 +13,8 @@ import type {
   SetConfigOptionResponse,
 } from '@/common/types/platform/acpTypes';
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isTeamMemberConversation } from '@/renderer/pages/conversation/utils/conversationTeamOwnership';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as swrMutate } from 'swr';
 
@@ -237,6 +239,7 @@ export function useAcpConfigOptions({
   );
   const [isReloading, setIsReloading] = useState(false);
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
+  const teamMemberConversationRef = useRef(false);
   const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
   const {
     data: snapshotData,
@@ -295,6 +298,8 @@ export function useAcpConfigOptions({
       setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
       try {
         await (prepareSetRuntime ?? prepareRuntime)?.();
+        const conversation = await getConversationOrNull(conversation_id);
+        teamMemberConversationRef.current = Boolean(conversation && isTeamMemberConversation(conversation));
         const beforeSet = await fetchConfigOptionsOnce(key, loadConfigOptions);
         if (beforeSet) replaceSnapshot(beforeSet);
         const response = await ipcBridge.acpConversation.setConfigOption.invoke({
@@ -308,6 +313,10 @@ export function useAcpConfigOptions({
         // picker can show the target alongside the mode still in force, and keep the
         // snapshot the backend returned — which deliberately still reports the OLD value.
         if (confirmation === 'pending_next_turn') {
+          if (teamMemberConversationRef.current) {
+            if (response.config_options) replaceSnapshot(response.config_options);
+            return response.config_options;
+          }
           markPending(conversation_id, optionId, value);
           if (response.config_options) replaceSnapshot(response.config_options);
           return response.config_options;
@@ -316,6 +325,10 @@ export function useAcpConfigOptions({
           throw new Error(confirmation === 'command_ack' ? 'command_ack' : 'config_not_observed');
         }
         // A switch that landed supersedes any pending entry for the same option.
+        if (teamMemberConversationRef.current) {
+          replaceSnapshot(response.config_options);
+          return response.config_options;
+        }
         resolvePendingFromSnapshot(conversation_id, response.config_options);
         replaceSnapshot(response.config_options);
         return response.config_options;
@@ -339,6 +352,10 @@ export function useAcpConfigOptions({
         const optionPayload = message.data as { config_options?: AcpConfigOptionDto[] } | AcpConfigOptionDto[];
         const next = Array.isArray(optionPayload) ? optionPayload : optionPayload.config_options;
         if (Array.isArray(next)) {
+          if (teamMemberConversationRef.current) {
+            replaceSnapshot(next);
+            return;
+          }
           // This frame is the agent's own confirmation (the pump re-projects the whole
           // snapshot when it sees `ConfigChanged`), so anything it now reports as current
           // is no longer pending.

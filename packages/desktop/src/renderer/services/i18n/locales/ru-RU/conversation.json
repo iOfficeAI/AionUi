@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Используйте assistant_id вместо {{field}}."
     }
   },
+  "collaboration": {
+    "launchTooltip": "Командное взаимодействие",
+    "selectAgentTitle": "Выбрать агента",
+    "createdSuccess": "Командное взаимодействие запущено",
+    "joinedSuccess": "{{agentName}} присоединился к команде",
+    "joinedHint": "присоединился",
+    "fallbackAgentName": "Агент",
+    "createFailed": "Не удалось запустить командное взаимодействие",
+    "statusTitle": "Команда",
+    "statusAria": "Открыть команду",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Расформирована",
+    "running": "Выполняется",
+    "runDetail": "{{count}} активных ходов"
+  },
   "agentError": {
     "fallbackTitle": "Агент не смог ответить",
     "errorCode": "Код ошибки",

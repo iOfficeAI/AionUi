@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
+  "collaboration": {
+    "launchTooltip": "Team collaboration",
+    "selectAgentTitle": "Select agent",
+    "createdSuccess": "Team collaboration started",
+    "joinedSuccess": "{{agentName}} joined the team",
+    "joinedHint": "joined",
+    "fallbackAgentName": "Agent",
+    "createFailed": "Failed to start team collaboration",
+    "statusTitle": "Team",
+    "statusAria": "Open team",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Disbanded",
+    "running": "Running",
+    "runDetail": "{{count}} active turn(s)"
+  },
   "agentError": {
     "fallbackTitle": "The agent could not reply",
     "errorCode": "Error code",

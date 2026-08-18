@@ -109,6 +109,7 @@ export function fromBackendTeam(raw: unknown): TTeam {
     leader_agent_id: leaderAssistantId,
     agents: assistants,
     session_mode: r.session_mode as string | undefined,
+    origin_conversation_id: r.origin_conversation_id as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,
     updated_at: (r.updated_at as number | undefined) ?? 0,
   };

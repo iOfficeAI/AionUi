@@ -15,7 +15,8 @@
     "renameOk": "저장",
     "renameCancel": "취소",
     "renameSuccess": "팀 이름이 변경되었습니다",
-    "deleteSuccess": "팀이 삭제되었습니다"
+    "deleteSuccess": "팀이 삭제되었습니다",
+    "adHocTooltip": "임시 팀"
   },
   "newAgent": "새 어시스턴트",
   "noMessages": "No messages yet.",
@@ -34,6 +35,7 @@
     "placeholder": "팀 리더 어시스턴트에게 메시지 보내기..."
   },
   "create": {
+    "assistantsTab": "어시스턴트",
     "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "팀 리더 선택",
@@ -152,5 +154,35 @@
       "idle_notification": "유휴 알림",
       "shutdown_request": "종료 요청"
     }
+  },
+  "presets": {
+    "title": "전문가 팀",
+    "newPreset": "새로 만들기",
+    "searchPlaceholder": "전문가 팀 검색",
+    "emptyDescription": "재사용 가능한 팀을 만드세요.",
+    "createPreset": "전문가 팀 만들기",
+    "invoke": "사용",
+    "invokeThisTeam": "이 팀 사용",
+    "leaderLabel": "리더",
+    "memberMissing": "없음",
+    "membersLabel": "멤버",
+    "examplesLabel": "예시 작업",
+    "missingWarning": "사용할 수 없는 어시스턴트가 있습니다.",
+    "selectHint": "팀을 선택해 상세 정보를 보세요.",
+    "nameRequired": "이름을 입력하세요",
+    "memberRequired": "멤버를 추가하세요",
+    "leaderRequired": "리더를 선택하세요",
+    "saveFailed": "저장 실패",
+    "createTitle": "새 전문가 팀",
+    "editTitle": "전문가 팀 편집",
+    "nameLabel": "이름",
+    "namePlaceholder": "프리셋 이름",
+    "categoryLabel": "카테고리",
+    "categoryPlaceholder": "예: 엔지니어링",
+    "descriptionLabel": "설명",
+    "descriptionPlaceholder": "이 팀의 역할은 무엇인가요?",
+    "tagsLabel": "전문 분야",
+    "tagPlaceholder": "태그 추가",
+    "examplePlaceholder": "예시 작업 추가"
   }
 }

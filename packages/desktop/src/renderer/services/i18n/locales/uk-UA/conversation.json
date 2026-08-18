@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
+  "collaboration": {
+    "launchTooltip": "Командна взаємодія",
+    "selectAgentTitle": "Вибрати агента",
+    "createdSuccess": "Командну взаємодію розпочато",
+    "joinedSuccess": "{{agentName}} приєднався до команди",
+    "joinedHint": "приєднався",
+    "fallbackAgentName": "Агент",
+    "createFailed": "Не вдалося розпочати командну взаємодію",
+    "statusTitle": "Команда",
+    "statusAria": "Відкрити команду",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "Розформовано",
+    "running": "Виконується",
+    "runDetail": "{{count}} активних ходів"
+  },
   "agentError": {
     "fallbackTitle": "Агент не зміг відповісти",
     "errorCode": "Код помилки",

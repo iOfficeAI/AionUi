@@ -15,7 +15,8 @@
     "renameOk": "Save",
     "renameCancel": "Cancel",
     "renameSuccess": "Team renamed",
-    "deleteSuccess": "Team deleted"
+    "deleteSuccess": "Team deleted",
+    "adHocTooltip": "Ad-hoc team"
   },
   "newAgent": "New Assistant",
   "noMessages": "No messages yet.",
@@ -34,6 +35,7 @@
     "placeholder": "Message the team leader assistant..."
   },
   "create": {
+    "assistantsTab": "Assistants",
     "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Select team leader assistant",
@@ -152,5 +154,35 @@
       "idle_notification": "Idle notice",
       "shutdown_request": "Shutdown request"
     }
+  },
+  "presets": {
+    "title": "Expert teams",
+    "newPreset": "New",
+    "searchPlaceholder": "Search expert teams",
+    "emptyDescription": "Create reusable expert teams to speed up team setup.",
+    "createPreset": "Create expert team",
+    "invoke": "Invoke",
+    "invokeThisTeam": "Invoke this expert team",
+    "leaderLabel": "Leader",
+    "memberMissing": "Missing",
+    "membersLabel": "Members",
+    "examplesLabel": "Example tasks",
+    "missingWarning": "Some assistants in this preset are unavailable. Replace them before creating the team.",
+    "selectHint": "Select an expert team to preview its details.",
+    "nameRequired": "Please enter a preset name",
+    "memberRequired": "Please add at least one member",
+    "leaderRequired": "Please select a leader",
+    "saveFailed": "Failed to save preset",
+    "createTitle": "New expert team",
+    "editTitle": "Edit expert team",
+    "nameLabel": "Name",
+    "namePlaceholder": "Preset name",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "e.g. Engineering",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What does this team do?",
+    "tagsLabel": "Expertise tags",
+    "tagPlaceholder": "Add a tag",
+    "examplePlaceholder": "Add an example task"
   }
 }

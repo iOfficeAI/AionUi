@@ -15,7 +15,8 @@
     "renameOk": "Kaydet",
     "renameCancel": "İptal",
     "renameSuccess": "Takım yeniden adlandırıldı",
-    "deleteSuccess": "Takım silindi"
+    "deleteSuccess": "Takım silindi",
+    "adHocTooltip": "Geçici takım"
   },
   "newAgent": "Yeni Asistan",
   "noMessages": "No messages yet.",
@@ -34,6 +35,7 @@
     "placeholder": "Takım lideri asistana mesaj gönder..."
   },
   "create": {
+    "assistantsTab": "Asistanlar",
     "title": "New Team",
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
@@ -152,5 +154,35 @@
       "idle_notification": "Boşta bildirimi",
       "shutdown_request": "Kapatma isteği"
     }
+  },
+  "presets": {
+    "title": "Uzman ekipler",
+    "newPreset": "Yeni",
+    "searchPlaceholder": "Uzman ekipleri ara",
+    "emptyDescription": "Yeniden kullanılabilir ekipler oluşturun.",
+    "createPreset": "Uzman ekip oluştur",
+    "invoke": "Kullan",
+    "invokeThisTeam": "Bu ekibi kullan",
+    "leaderLabel": "Lider",
+    "memberMissing": "Eksik",
+    "membersLabel": "Üyeler",
+    "examplesLabel": "Örnek görevler",
+    "missingWarning": "Bazı asistanlar kullanılamıyor.",
+    "selectHint": "Ayrıntıları görmek için ekip seçin.",
+    "nameRequired": "Ad girin",
+    "memberRequired": "Üye ekleyin",
+    "leaderRequired": "Lider seçin",
+    "saveFailed": "Kaydetme başarısız",
+    "createTitle": "Yeni uzman ekip",
+    "editTitle": "Uzman ekibi düzenle",
+    "nameLabel": "Ad",
+    "namePlaceholder": "Ön ayar adı",
+    "categoryLabel": "Kategori",
+    "categoryPlaceholder": "ör. Mühendislik",
+    "descriptionLabel": "Açıklama",
+    "descriptionPlaceholder": "Bu ekip ne yapar?",
+    "tagsLabel": "Uzmanlıklar",
+    "tagPlaceholder": "Etiket ekle",
+    "examplePlaceholder": "Örnek görev ekle"
   }
 }

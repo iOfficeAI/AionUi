@@ -15,7 +15,8 @@
     "renameOk": "Enregistrer",
     "renameCancel": "Annuler",
     "renameSuccess": "Équipe renommée",
-    "deleteSuccess": "Équipe supprimée"
+    "deleteSuccess": "Équipe supprimée",
+    "adHocTooltip": "Équipe temporaire"
   },
   "newAgent": "Nouvel agent",
   "noMessages": "Aucun message pour l'instant.",
@@ -34,6 +35,7 @@
     "placeholder": "Envoyer un message à l'agent coordinateur..."
   },
   "create": {
+    "assistantsTab": "Assistants",
     "title": "Créer une équipe",
     "namePlaceholder": "Nom de l'équipe",
     "dispatchAgentPlaceholder": "Sélectionner le chef d'équipe",
@@ -106,5 +108,35 @@
       "idle_notification": "Notif. d’inactivité",
       "shutdown_request": "Demande d’arrêt"
     }
+  },
+  "presets": {
+    "title": "Équipes expertes",
+    "newPreset": "Nouveau",
+    "searchPlaceholder": "Rechercher des équipes",
+    "emptyDescription": "Créez des équipes réutilisables.",
+    "createPreset": "Créer une équipe experte",
+    "invoke": "Utiliser",
+    "invokeThisTeam": "Utiliser cette équipe",
+    "leaderLabel": "Chef",
+    "memberMissing": "Manquant",
+    "membersLabel": "Membres",
+    "examplesLabel": "Exemples",
+    "missingWarning": "Certains assistants sont indisponibles.",
+    "selectHint": "Sélectionnez une équipe pour voir les détails.",
+    "nameRequired": "Saisissez un nom",
+    "memberRequired": "Ajoutez un membre",
+    "leaderRequired": "Sélectionnez un chef",
+    "saveFailed": "Échec de l’enregistrement",
+    "createTitle": "Nouvelle équipe experte",
+    "editTitle": "Modifier l’équipe experte",
+    "nameLabel": "Nom",
+    "namePlaceholder": "Nom du preset",
+    "categoryLabel": "Catégorie",
+    "categoryPlaceholder": "ex. Ingénierie",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Quel est le rôle de cette équipe ?",
+    "tagsLabel": "Compétences",
+    "tagPlaceholder": "Ajouter un tag",
+    "examplePlaceholder": "Ajouter une tâche exemple"
   }
 }

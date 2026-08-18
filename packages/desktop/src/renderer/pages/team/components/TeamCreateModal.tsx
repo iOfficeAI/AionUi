@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Button, Input, Message } from '@arco-design/web-react';
+import { Button, Input, Message, Tabs } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam } from '@/common/types/team/teamTypes';
+import type { TeamPreset, TeamPresetMember } from '@/common/types/team/teamTypes';
 import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -17,6 +18,10 @@ import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 import TeamAssistantPicker from './memberPicker/TeamAssistantPicker';
 import TeamAssistantPickerDropdown from './memberPicker/TeamAssistantPickerDropdown';
 import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMemberDraftList';
+import TeamPresetPicker from './TeamPresetPicker';
+import TeamPresetPreview from './TeamPresetPreview';
+import useSWR from 'swr';
+import TeamPresetEditorModal from './TeamPresetEditorModal';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
 // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts、team-whitelist.e2e.ts、
@@ -45,6 +50,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [loading, setLoading] = useState(false);
   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
+  const [mode, setMode] = useState<'assistants' | 'presets'>('assistants');
+  const [selectedPreset, setSelectedPreset] = useState<TeamPreset | null>(null);
+  const { data: presets = [], mutate: mutatePresets } = useSWR<TeamPreset[]>(
+    ['team-presets-create', user?.id ?? 'system_default_user'],
+    () => ipcBridge.teamPreset.list.invoke({ user_id: user?.id ?? 'system_default_user' })
+  );
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [editingPreset, setEditingPreset] = useState<TeamPreset | null>(null);
   const nameInputRef = useRef<RefInputType | null>(null);
 
   const hasOneLeader = useMemo(
@@ -52,13 +65,44 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     [leaderSelectionId, selectedMembers]
   );
 
+  // 缺失成员 = 预设成员在当前助手目录中找不到（或无 assistant_id），用于预览警示条与禁用调用（旧版 e3f154559 同规则）。
+  const missingPresetMembers = useMemo<TeamPresetMember[]>(() => {
+    if (!selectedPreset) return [];
+    return selectedPreset.members.filter((member) =>
+      member.assistant_id ? !allAssistants.some((assistant) => assistant.id === member.assistant_id) : true
+    );
+  }, [selectedPreset, allAssistants]);
+
   const handleClose = () => {
     setName('');
     setSelectedMembers([]);
     setLeaderSelectionId(undefined);
     setWorkspace('');
     setAssistantDropdownOpen(false);
+    setMode('assistants');
+    setSelectedPreset(null);
+    setEditorVisible(false);
+    setEditingPreset(null);
     onClose();
+  };
+
+  const handleSavePreset = async (
+    input: import('@/common/adapter/teamPresetBridge').CreateTeamPresetInput,
+    presetId?: string
+  ) => {
+    const userId = user?.id ?? 'system_default_user';
+    if (presetId) await ipcBridge.teamPreset.update.invoke({ id: presetId, input });
+    else await ipcBridge.teamPreset.create.invoke({ ...input, user_id: userId });
+    await mutatePresets();
+    setEditorVisible(false);
+    setEditingPreset(null);
+    setMode('presets');
+  };
+
+  const handleRemovePreset = async (preset: TeamPreset) => {
+    await ipcBridge.teamPreset.delete.invoke({ id: preset.id });
+    if (selectedPreset?.id === preset.id) setSelectedPreset(null);
+    await mutatePresets();
   };
 
   const handleSelectAssistant = (assistant: TeamAssistantOption) => {
@@ -76,6 +120,26 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     if (leaderSelectionId === selectionId) {
       setLeaderSelectionId(nextMembers[0]?.selectionId);
     }
+  };
+
+  const handleInvokePreset = (preset: TeamPreset) => {
+    const drafts = preset.members
+      .toSorted((a, b) => a.order - b.order)
+      .map((member) => allAssistants.find((assistant) => assistant.id === member.assistant_id))
+      .filter((assistant): assistant is TeamAssistantOption => Boolean(assistant))
+      .map((assistant) => ({
+        selectionId: `${assistant.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        assistant,
+      }));
+    if (drafts.length === 0) {
+      Message.warning(t('team.presets.memberRequired', { defaultValue: 'Please add at least one member' }));
+      return;
+    }
+    setSelectedMembers(drafts);
+    const leader = drafts.find((draft) => draft.assistant.id === preset.leader.assistant_id) ?? drafts[0];
+    setLeaderSelectionId(leader?.selectionId);
+    setName(preset.name);
+    setMode('assistants');
   };
 
   const handleCreate = async () => {
@@ -274,52 +338,103 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     </div>
   );
 
+  // 专家团编辑器必须与创建弹窗同级挂载（旧版 e3f154559 的结构）：作为 AionModal 的 children 会被
+  // 关进父弹窗 wrap（zIndex 10000 + overflow:hidden）的层叠上下文，数值再大的 z-index 也逃不出来，
+  // 表现为“新建团队弹窗盖住新建专家团”、父子两层同时可操作；兄弟节点各自独立 portal 才能正确叠放。
   return (
-    <AionModal
-      variant='standard'
-      visible={visible}
-      onCancel={handleClose}
-      className='team-create-modal'
-      style={{
-        width: isMobile ? 'calc(100vw - 32px)' : 900,
-        maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
-      }}
-      wrapStyle={{ zIndex: 10000 }}
-      maskStyle={{ zIndex: 9999 }}
-      autoFocus={false}
-      unmountOnExit={false}
-      // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
-      // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
-      contentStyle={{ padding: 0, overflow: 'hidden' }}
-      header={{
-        title: t('team.create.title', { defaultValue: 'New Team' }),
-        subtitle: t('team.create.subtitle', {
-          defaultValue:
-            'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
-        }),
-        showClose: true,
-      }}
-      footer={{
-        render: () => (
-          <div className='flex justify-end gap-10px'>
-            <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
-              {t('common.cancel', { defaultValue: 'Cancel' })}
-            </Button>
-            <Button
-              type='primary'
-              onClick={handleCreate}
-              loading={loading}
-              disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
-              className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
+    <>
+      <AionModal
+        variant='standard'
+        visible={visible}
+        onCancel={handleClose}
+        className='team-create-modal'
+        style={{
+          width: isMobile ? 'calc(100vw - 32px)' : 900,
+          maxWidth: isMobile ? 'calc(100vw - 32px)' : 'calc(100vw - 72px)',
+        }}
+        wrapStyle={{ zIndex: 10000 }}
+        maskStyle={{ zIndex: 9999 }}
+        autoFocus={false}
+        unmountOnExit={false}
+        // 桌面通栏双栏是团队创建独有的布局：关闭内容区默认内边距，让中间竖分隔线贴边贯穿。
+        // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
+        contentStyle={{ padding: 0, overflow: 'hidden' }}
+        header={{
+          title: t('team.create.title', { defaultValue: 'New Team' }),
+          subtitle: t('team.create.subtitle', {
+            defaultValue:
+              'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+          }),
+          showClose: true,
+        }}
+        footer={{
+          render: () => (
+            <div className='flex justify-end gap-10px'>
+              <Button onClick={handleClose} className='!h-38px min-w-84px !rounded-8px !px-18px !text-13px'>
+                {t('common.cancel', { defaultValue: 'Cancel' })}
+              </Button>
+              <Button
+                type='primary'
+                onClick={handleCreate}
+                loading={loading}
+                disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
+                className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
+              >
+                {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
+              </Button>
+            </div>
+          ),
+        }}
+      >
+        <Tabs
+          activeTab={mode}
+          onChange={(key) => setMode(key as 'assistants' | 'presets')}
+          data-testid='team-create-mode-tabs'
+        >
+          <Tabs.TabPane key='assistants' title={t('team.create.assistantsTab', { defaultValue: 'Assistants' })}>
+            {isMobile ? mobileBody : desktopBody}
+          </Tabs.TabPane>
+          <Tabs.TabPane key='presets' title={t('team.presets.title', { defaultValue: 'Expert teams' })}>
+            {/* 与旧版同高（min(54vh,470px)/min 390）；窄屏上下堆叠 Picker/Preview（spec 01 §7） */}
+            <div
+              className={isMobile ? 'flex flex-col gap-16px p-16px' : 'grid grid-cols-2 gap-16px p-16px'}
+              style={isMobile ? undefined : { height: 'min(54vh, 470px)', minHeight: 390 }}
+              data-testid='team-create-presets-pane'
             >
-              {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
-            </Button>
-          </div>
-        ),
-      }}
-    >
-      {isMobile ? mobileBody : desktopBody}
-    </AionModal>
+              <TeamPresetPicker
+                presets={presets}
+                selectedId={selectedPreset?.id}
+                onSelect={setSelectedPreset}
+                onInvoke={handleInvokePreset}
+                onCreate={() => {
+                  setEditingPreset(null);
+                  setEditorVisible(true);
+                }}
+                onEdit={(preset) => {
+                  setEditingPreset(preset);
+                  setEditorVisible(true);
+                }}
+                onRemove={(preset) => void handleRemovePreset(preset)}
+              />
+              <TeamPresetPreview
+                preset={selectedPreset}
+                missingMembers={missingPresetMembers}
+                onInvoke={handleInvokePreset}
+              />
+            </div>
+          </Tabs.TabPane>
+        </Tabs>
+      </AionModal>
+      <TeamPresetEditorModal
+        visible={editorVisible}
+        preset={editingPreset}
+        onCancel={() => {
+          setEditorVisible(false);
+          setEditingPreset(null);
+        }}
+        onSaved={handleSavePreset}
+      />
+    </>
   );
 };
 

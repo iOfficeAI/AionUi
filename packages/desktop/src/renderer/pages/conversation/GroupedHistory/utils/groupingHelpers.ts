@@ -8,6 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
+import { isTeamMemberConversation } from '../../utils/conversationTeamOwnership';
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
@@ -88,18 +89,13 @@ export const groupConversationsByWorkspace = (
   ];
 };
 
-/** Check whether a conversation belongs to a team (should be hidden from sidebar). */
-const isTeamConversation = (conversation: TChatConversation): boolean => {
-  const extra = conversation.extra as { team_id?: string; teamId?: string } | undefined;
-  return Boolean(extra?.team_id || extra?.teamId);
-};
-
 export const buildGroupedHistory = (
   conversations: TChatConversation[],
   t: (key: string) => string
 ): GroupedHistoryResult => {
-  // Filter out team-owned conversations; they are only visible via the Teams panel
-  const visibleConversations = conversations.filter((conv) => !isTeamConversation(conv));
+  // Team member conversations are only visible via the Team page; promoted
+  // source conversations remain visible so users can return to the origin.
+  const visibleConversations = conversations.filter((conv) => !isTeamMemberConversation(conv));
 
   const pinnedConversations = visibleConversations
     .filter((conversation) => isConversationPinned(conversation))

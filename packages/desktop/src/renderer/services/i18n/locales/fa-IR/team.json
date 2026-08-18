@@ -15,7 +15,8 @@
     "renameOk": "ذخیره",
     "renameCancel": "لغو",
     "renameSuccess": "نام تیم تغییر کرد",
-    "deleteSuccess": "تیم حذف شد"
+    "deleteSuccess": "تیم حذف شد",
+    "adHocTooltip": "تیم موقت"
   },
   "newAgent": "عامل جدید",
   "noMessages": "هنوز پیامی وجود ندارد.",
@@ -34,6 +35,7 @@
     "placeholder": "ارسال پیام به عامل ارسال..."
   },
   "create": {
+    "assistantsTab": "دستیارها",
     "title": "New Team",
     "namePlaceholder": "نام تیم",
     "dispatchAgentPlaceholder": "انتخاب سرتیم",
@@ -152,5 +154,35 @@
       "idle_notification": "اعلان بی‌کاری",
       "shutdown_request": "درخواست توقف"
     }
+  },
+  "presets": {
+    "title": "تیم‌های تخصصی",
+    "newPreset": "جدید",
+    "searchPlaceholder": "جستجوی تیم‌ها",
+    "emptyDescription": "تیم‌های قابل استفاده مجدد بسازید.",
+    "createPreset": "ساخت تیم تخصصی",
+    "invoke": "استفاده",
+    "invokeThisTeam": "استفاده از این تیم",
+    "leaderLabel": "رهبر",
+    "memberMissing": "مفقود",
+    "membersLabel": "اعضا",
+    "examplesLabel": "نمونه کارها",
+    "missingWarning": "برخی دستیارها در دسترس نیستند.",
+    "selectHint": "برای دیدن جزئیات تیمی انتخاب کنید.",
+    "nameRequired": "نام را وارد کنید",
+    "memberRequired": "عضوی اضافه کنید",
+    "leaderRequired": "رهبر را انتخاب کنید",
+    "saveFailed": "ذخیره ناموفق بود",
+    "createTitle": "تیم تخصصی جدید",
+    "editTitle": "ویرایش تیم تخصصی",
+    "nameLabel": "نام",
+    "namePlaceholder": "نام پیش‌تنظیم",
+    "categoryLabel": "دسته‌بندی",
+    "categoryPlaceholder": "مثلاً مهندسی",
+    "descriptionLabel": "توضیحات",
+    "descriptionPlaceholder": "این تیم چه کاری انجام می‌دهد؟",
+    "tagsLabel": "مهارت‌ها",
+    "tagPlaceholder": "افزودن برچسب",
+    "examplePlaceholder": "افزودن نمونه کار"
   }
 }

@@ -123,6 +123,9 @@ import {
   fromBackendTeamOptional,
   toBackendAssistant,
 } from './teamMapper';
+export { teamPreset } from './teamPresetBridge';
+import { teamPreset } from './teamPresetBridge';
+import { adHocTeam } from './adHocTeamBridge';
 import {
   absoluteToRelativePath,
   fromBackendSkillFileNodes,
@@ -2119,6 +2122,8 @@ export const team = {
     })),
     fromBackendTeam
   ),
+  fromConversation: adHocTeam.fromConversation,
+  getByConversation: adHocTeam.getByConversation,
   list: withResponseMap(
     httpGet<TTeam[], { user_id: string }>((p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`),
     fromBackendTeamList

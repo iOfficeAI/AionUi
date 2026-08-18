@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Use assistant_id instead of {{field}}."
     }
   },
+  "collaboration": {
+    "launchTooltip": "팀 협업",
+    "selectAgentTitle": "에이전트 선택",
+    "createdSuccess": "팀 협업이 시작되었습니다",
+    "joinedSuccess": "{{agentName}}님이 팀에 참여했습니다",
+    "joinedHint": "참여함",
+    "fallbackAgentName": "에이전트",
+    "createFailed": "팀 협업 시작 실패",
+    "statusTitle": "팀",
+    "statusAria": "팀 열기",
+    "latestMessage": "Latest: {{message}}",
+    "disbanded": "해산됨",
+    "running": "실행 중",
+    "runDetail": "활성 턴 {{count}}개"
+  },
   "agentError": {
     "fallbackTitle": "에이전트가 응답하지 못했습니다",
     "errorCode": "오류 코드",

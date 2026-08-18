@@ -108,6 +108,21 @@
       "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "请使用 assistant_id，不要再传 {{field}}。"
     }
   },
+  "collaboration": {
+    "launchTooltip": "团队协作",
+    "selectAgentTitle": "选择智能体",
+    "createdSuccess": "团队协作已启动",
+    "joinedSuccess": "{{agentName}} 已加入团队",
+    "joinedHint": "已加入",
+    "fallbackAgentName": "智能体",
+    "createFailed": "团队协作启动失败",
+    "statusTitle": "团队",
+    "statusAria": "打开团队",
+    "latestMessage": "最新：{{message}}",
+    "disbanded": "已解散",
+    "running": "运行中",
+    "runDetail": "{{count}} 个活跃轮次"
+  },
   "agentError": {
     "fallbackTitle": "Agent 未能回复",
     "errorCode": "错误码",
