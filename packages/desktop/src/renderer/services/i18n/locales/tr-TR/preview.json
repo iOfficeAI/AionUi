@@ -163,5 +163,8 @@
     "confirmMessage": "Bu sekmede kaydedilmemiş değişiklikler var. Yeniden yükleme onları diskteki içerikle değiştirir.",
     "discardAndRefresh": "Değişiklikleri sil ve yenile",
     "officeNotWired": "Office belgelerini yenileme henüz kullanılamıyor — değişiklikleri görmek için dosyayı kapatıp yeniden açın."
-  }
+  },
+  "zoomIn": "Yakınlaştır",
+  "zoomOut": "Uzaklaştır",
+  "zoomReset": "Görünümü sıfırla"
 }

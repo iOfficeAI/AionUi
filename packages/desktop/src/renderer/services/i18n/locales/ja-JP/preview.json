@@ -163,5 +163,8 @@
     "confirmMessage": "このタブには未保存の変更があります。再読み込みするとディスクの内容で置き換えられます。",
     "discardAndRefresh": "変更を破棄して再読み込み",
     "officeNotWired": "Office 文書の再読み込みは未対応です——ファイルを閉じて開き直すと変更が反映されます。"
-  }
+  },
+  "zoomIn": "拡大",
+  "zoomOut": "縮小",
+  "zoomReset": "表示をリセット"
 }
