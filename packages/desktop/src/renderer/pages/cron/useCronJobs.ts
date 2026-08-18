@@ -27,9 +27,14 @@ const renameLatestNewConversationRun = async (job: ICronJob): Promise<void> => {
     const latestConversation = (conversations ?? []).toSorted((a, b) => getActivityTime(b) - getActivityTime(a))[0];
     if (!latestConversation) return;
 
+    // Background rename outside any component: <html lang> is kept in step
+    // with the app language by the i18n service, and importing the i18next
+    // singleton here would drag its module-scope IPC listeners into tests.
+    const language = typeof document !== 'undefined' ? document.documentElement.lang : undefined;
     const nextName = formatCronRunConversationTitle(
       job.name,
-      latestConversation.created_at || job.state.last_run_at_ms
+      latestConversation.created_at || job.state.last_run_at_ms,
+      language || undefined
     );
     if (latestConversation.name === nextName) return;
 

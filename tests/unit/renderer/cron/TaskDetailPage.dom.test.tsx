@@ -199,7 +199,7 @@ describe('TaskDetailPage', () => {
     await waitFor(() =>
       expect(updateConversationInvokeMock).toHaveBeenCalledWith({
         id: 'conv-run',
-        updates: { name: '问好 01-07-26' },
+        updates: { name: '问好 07/01/26' },
       })
     );
     expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-run');

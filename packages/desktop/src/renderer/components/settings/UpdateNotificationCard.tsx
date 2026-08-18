@@ -22,7 +22,7 @@ const renderNotificationLayer = (node: React.ReactElement) => {
 };
 
 const UpdateNotificationCard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { state, versionLabel, actions } = useUpdateNotificationController();
   const { openFeedback } = useFeedback();
   const [releaseLogVisible, setReleaseLogVisible] = React.useState(false);
@@ -85,7 +85,8 @@ const UpdateNotificationCard: React.FC = () => {
         <div className='flex justify-between gap-12px text-12px text-t-tertiary'>
           <span>{percent}%</span>
           <span>
-            {formatUpdateSize(state.progress.transferred)} / {formatUpdateSize(state.progress.total)}
+            {formatUpdateSize(state.progress.transferred, i18n.language)} /{' '}
+            {formatUpdateSize(state.progress.total, i18n.language)}
           </span>
           <span className='text-[rgb(var(--primary-6))] font-500'>{state.progress.speed}</span>
         </div>

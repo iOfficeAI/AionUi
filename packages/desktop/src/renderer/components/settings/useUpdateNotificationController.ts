@@ -9,6 +9,7 @@ import type { AutoUpdateStatus, UpdateDownloadProgressEvent } from '@/common/upd
 import { uuid } from '@/common/utils';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatByteRate, formatByteSize } from '@/renderer/services/i18n/format';
 import {
   initialUpdateNotificationState,
   updateNotificationReducer,
@@ -29,35 +30,23 @@ export const UPDATE_AVAILABLE_EVENT = 'aionui-update-available';
 
 declare const __APP_VERSION__: string;
 
-const formatSpeed = (bytesPerSecond: number) => {
-  if (bytesPerSecond > 1024 * 1024) {
-    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
-  }
-  return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
-};
+export const formatUpdateSize = (bytes: number, language?: string) => formatByteSize(bytes, language);
 
-export const formatUpdateSize = (bytes: number) => {
-  if (bytes >= 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-  return `${(bytes / 1024).toFixed(1)} KB`;
-};
-
-const toAutoProgress = (evt: AutoUpdateStatus): UpdateNotificationProgress | null => {
+const toAutoProgress = (evt: AutoUpdateStatus, language?: string): UpdateNotificationProgress | null => {
   if (!evt.progress) return null;
   return {
     percent: Math.round(evt.progress.percent),
     transferred: evt.progress.transferred,
     total: evt.progress.total,
-    speed: formatSpeed(evt.progress.bytesPerSecond),
+    speed: formatByteRate(evt.progress.bytesPerSecond, language),
   };
 };
 
-const toManualProgress = (evt: UpdateDownloadProgressEvent): UpdateNotificationProgress => ({
+const toManualProgress = (evt: UpdateDownloadProgressEvent, language?: string): UpdateNotificationProgress => ({
   percent: Math.round(evt.percent ?? 0),
   transferred: evt.receivedBytes ?? 0,
   total: evt.totalBytes ?? 0,
-  speed: formatSpeed(evt.bytesPerSecond ?? 0),
+  speed: formatByteRate(evt.bytesPerSecond ?? 0, language),
 });
 
 const createInitialState = (): UpdateNotificationState => ({
@@ -76,7 +65,7 @@ const getVersionLabelFromState = (state: UpdateNotificationState): string =>
   state.updateInfo?.version || state.autoUpdateInfo?.version || '';
 
 export const useUpdateNotificationController = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [state, dispatchState] = useReducer(reduceNotificationState, undefined, createInitialState);
   const stateRef = useRef(state);
   const restoreDownloadedPendingRef = useRef(true);
@@ -291,7 +280,7 @@ export const useUpdateNotificationController = () => {
           dispatchAutoAvailable(evt);
           break;
         case 'downloading': {
-          const progress = toAutoProgress(evt);
+          const progress = toAutoProgress(evt, i18n.language);
           if (progress) {
             dispatch({ type: 'autoProgress', progress });
           }
@@ -314,7 +303,7 @@ export const useUpdateNotificationController = () => {
     });
 
     return () => removeListener();
-  }, [dispatchAutoAvailable, t]);
+  }, [dispatchAutoAvailable, t, i18n.language]);
 
   useEffect(() => {
     const removeProgressListener = ipcBridge.update.downloadProgress.on((evt: UpdateDownloadProgressEvent) => {
@@ -323,14 +312,14 @@ export const useUpdateNotificationController = () => {
         type: 'manualProgress',
         downloadId: evt.downloadId,
         status: evt.status,
-        progress: toManualProgress(evt),
+        progress: toManualProgress(evt, i18n.language),
         filePath: evt.file_path,
         error: evt.error || t('update.downloadFailed'),
       });
     });
 
     return () => removeProgressListener();
-  }, [t]);
+  }, [t, i18n.language]);
 
   const openReleasePage = useCallback(() => {
     if (!state.releasePageUrl) return;

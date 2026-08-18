@@ -36,6 +36,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+    // The panel formats byte sizes against the app language.
+    i18n: { language: 'en-US' },
   }),
 }));
 

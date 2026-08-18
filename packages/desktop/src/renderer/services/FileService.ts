@@ -120,15 +120,6 @@ export async function uploadFileViaHttp(
     xhr.send(formData);
   });
 }
-// Simple formatBytes implementation moved from deleted updateConfig
-function formatBytes(bytes: number, decimals = 2): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
 
 // ===== 文件类型支持配置 =====
 // 注意：当前为预先设计的架构，支持所有文件类型
@@ -205,6 +196,7 @@ export function getFileExtension(file_name: string): string {
 }
 
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
+import { formatByteSize } from '@/renderer/services/i18n/format';
 
 // 清理AionUI时间戳后缀，返回原始文件名
 export function cleanAionUITimestamp(file_name: string): string {
@@ -265,12 +257,12 @@ export function getTextFromDropEvent(event: DragEvent): string {
   return event.dataTransfer?.getData('text/plain') || '';
 }
 
-// 格式化文件大小（使用统一的formatBytes实现）
+// 格式化文件大小（统一走 i18n 感知的 formatByteSize）
 // `decimals` defaults to 2 to preserve the previous behaviour; callers that must
 // distinguish two nearby sizes (e.g. "just over the 1 MB limit" vs "1 MB") can ask
-// for more precision.
-export function formatFileSize(bytes: number, decimals = 2): string {
-  return formatBytes(bytes, decimals);
+// for more precision. Pass the app language so the decimal separator follows it.
+export function formatFileSize(bytes: number, decimals = 2, language?: string): string {
+  return formatByteSize(bytes, language, decimals);
 }
 
 /**
