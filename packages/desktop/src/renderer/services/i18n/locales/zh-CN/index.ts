@@ -46,5 +46,5 @@ export default {
   team,
   pet,
   workbench,
-  kbChat,
+  'kb-chat': kbChat,
 };
