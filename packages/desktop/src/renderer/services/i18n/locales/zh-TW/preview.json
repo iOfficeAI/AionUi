@@ -163,5 +163,8 @@
     "confirmMessage": "此標籤頁有未儲存的變更，重新載入會以磁碟上的內容覆蓋它們。",
     "discardAndRefresh": "放棄變更並重新整理",
     "officeNotWired": "Office 文件的重新整理尚未接入——請關閉後重新開啟檔案以查看變更。"
-  }
+  },
+  "zoomIn": "放大",
+  "zoomOut": "縮小",
+  "zoomReset": "重設視圖"
 }

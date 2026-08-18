@@ -245,43 +245,17 @@ describe('MarkdownViewer', () => {
     expect(link).toHaveAttribute('href', 'https://aionui.com/docs');
   });
 
-  it('suppresses Streamdown wheel-zoom over an inline mermaid diagram without blocking page scroll', () => {
-    const { container } = render(<MarkdownViewer content='# doc' />);
-    // The scroll container (parent of .aionui-markdown) owns the capture-phase
-    // wheel interceptor installed by MarkdownViewer.
-    const scroll = container.querySelector('.aionui-markdown')?.parentElement as HTMLElement;
-    expect(scroll).toBeTruthy();
-
-    // Simulate Streamdown's mermaid pan layer: a mermaid-block with a nested
-    // element carrying the unconditional wheel-zoom listener Streamdown attaches.
-    const block = document.createElement('div');
-    block.setAttribute('data-streamdown', 'mermaid-block');
-    const panLayer = document.createElement('div');
-    block.appendChild(panLayer);
-    scroll.appendChild(block);
-    const streamdownWheel = vi.fn();
-    panLayer.addEventListener('wheel', streamdownWheel);
-
-    const wheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 });
-    const notPrevented = panLayer.dispatchEvent(wheel);
-
-    // Propagation stopped in the capture phase → Streamdown's zoom handler never fires...
-    expect(streamdownWheel).not.toHaveBeenCalled();
-    // ...and default is not prevented, so the container scrolls the page natively.
-    expect(notPrevented).toBe(true);
+  it('sanitizes raw HTML in preview mode (drops <script>, keeps benign markup)', () => {
+    const { container } = render(
+      <MarkdownViewer content={'before<script>window.__xss = 1</script>after and <b>bold</b>'} />
+    );
+    expect(container.querySelectorAll('script')).toHaveLength(0);
+    expect(container.querySelector('b')?.textContent).toBe('bold');
   });
 
-  it('leaves wheel events outside a mermaid diagram untouched', () => {
-    const { container } = render(<MarkdownViewer content='# doc' />);
-    const scroll = container.querySelector('.aionui-markdown')?.parentElement as HTMLElement;
-    const plain = document.createElement('div');
-    scroll.appendChild(plain);
-    const spy = vi.fn();
-    plain.addEventListener('wheel', spy);
-
-    plain.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 120 }));
-
-    expect(spy).toHaveBeenCalledTimes(1);
+  it('renders math via KaTeX in preview mode', () => {
+    const { container } = render(<MarkdownViewer content='inline $x + y = z$ done' />);
+    expect(container.querySelectorAll('.katex')).toHaveLength(1);
   });
 
   it('continues rendering local image markdown inline', async () => {

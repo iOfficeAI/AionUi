@@ -1,11 +1,65 @@
 /* Sendbox component styles */
 
-/* Send button disabled state - override Arco Design default disabled styles */
-.send-button-custom:disabled,
-.send-button-custom.arco-btn:disabled,
-.send-button-custom.arco-btn-primary:disabled {
-  background-color: #d3d4d9 !important;
-  border-color: #d3d4d9 !important;
+/* Send button layout - keep Arco primary states from drawing a square block */
+.send-button-custom,
+.send-button-custom.arco-btn,
+.send-button-custom.arco-btn-primary {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  outline: none !important;
+  flex: 0 0 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  clip-path: circle(50% at 50% 50%) !important;
+}
+
+.send-button-custom::before,
+.send-button-custom::after,
+.send-button-custom.arco-btn::before,
+.send-button-custom.arco-btn::after {
+  background: transparent !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  content: none !important;
+}
+
+.send-button-custom--enabled,
+.send-button-custom--enabled.arco-btn {
+  background-color: rgb(var(--primary-6)) !important;
+  border-color: rgb(var(--primary-6)) !important;
+  color: var(--text-white) !important;
+}
+
+.send-button-custom--enabled:not(:disabled):hover,
+.send-button-custom--enabled.arco-btn:not(:disabled):hover,
+.send-button-custom--enabled:not(:disabled):active,
+.send-button-custom--enabled.arco-btn:not(:disabled):active,
+.send-button-custom--enabled:not(:disabled):focus,
+.send-button-custom--enabled.arco-btn:not(:disabled):focus,
+.send-button-custom--enabled:not(:disabled):focus-visible,
+.send-button-custom--enabled.arco-btn:not(:disabled):focus-visible {
+  background-color: rgb(var(--primary-7)) !important;
+  border-color: rgb(var(--primary-7)) !important;
+  color: var(--text-white) !important;
+}
+
+/* Send button disabled state - keep it synchronized with the draft action. */
+.send-button-custom--disabled,
+.send-button-custom--disabled:disabled,
+.send-button-custom--disabled.arco-btn:disabled,
+.send-button-custom--disabled.arco-btn-disabled {
+  background-color: var(--color-fill-3) !important;
+  border-color: var(--color-fill-3) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  color: var(--text-white) !important;
   opacity: 1 !important;
 }
 
@@ -13,6 +67,20 @@
 .send-button-custom .arco-icon > svg {
   stroke-width: 5 !important;
   filter: drop-shadow(0 0 0.5px currentColor);
+}
+
+.sendbox-send-tooltip-anchor {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  clip-path: circle(50% at 50% 50%) !important;
 }
 
 .sendbox-draft-tooltip-anchor {
@@ -63,14 +131,22 @@
 .sendbox-draft-tool-action--enabled,
 .sendbox-draft-tool-action--enabled.arco-btn,
 .sendbox-draft-tool-action--enabled.arco-btn-secondary {
-  background: rgb(var(--primary-6)) !important;
-  color: #fff !important;
+  background-color: rgb(var(--primary-6)) !important;
+  border-color: rgb(var(--primary-6)) !important;
+  color: var(--text-white) !important;
 }
 
 .sendbox-draft-tool-action--enabled:not(:disabled):hover,
-.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):hover {
-  background: rgb(var(--primary-7)) !important;
-  color: #fff !important;
+.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):hover,
+.sendbox-draft-tool-action--enabled:not(:disabled):active,
+.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):active,
+.sendbox-draft-tool-action--enabled:not(:disabled):focus,
+.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):focus,
+.sendbox-draft-tool-action--enabled:not(:disabled):focus-visible,
+.sendbox-draft-tool-action--enabled.arco-btn:not(:disabled):focus-visible {
+  background-color: rgb(var(--primary-7)) !important;
+  border-color: rgb(var(--primary-7)) !important;
+  color: var(--text-white) !important;
 }
 
 .sendbox-draft-tool-action--disabled,
@@ -78,24 +154,49 @@
 .sendbox-draft-tool-action--disabled.arco-btn:disabled,
 .sendbox-draft-tool-action--disabled.arco-btn-disabled,
 .sendbox-draft-tool-action--disabled.arco-btn-secondary:disabled {
-  background-color: #e4e6ed !important;
-  border-color: #e4e6ed !important;
-  color: #fff !important;
+  background-color: var(--color-fill-3) !important;
+  border-color: var(--color-fill-3) !important;
+  color: var(--text-white) !important;
   opacity: 1 !important;
   cursor: not-allowed !important;
 }
 
-/* Dark mode: adjust send button brightness */
-[data-theme='dark'] .send-button-custom:not(:disabled) {
-  background-color: var(--aou-4) !important;
-  border-color: var(--aou-4) !important;
+html[data-theme='dark'] body .sendbox-panel .sendbox-draft-tool-action--disabled,
+html[data-theme='dark'] body .sendbox-panel .sendbox-draft-tool-action--disabled:disabled,
+html[data-theme='dark'] body .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn:disabled,
+html[data-theme='dark'] body .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn-disabled,
+html[data-theme='dark'] body .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn-secondary:disabled,
+body[arco-theme='dark'] .sendbox-panel .sendbox-draft-tool-action--disabled,
+body[arco-theme='dark'] .sendbox-panel .sendbox-draft-tool-action--disabled:disabled,
+body[arco-theme='dark'] .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn:disabled,
+body[arco-theme='dark'] .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn-disabled,
+body[arco-theme='dark'] .sendbox-panel .sendbox-draft-tool-action--disabled.arco-btn-secondary:disabled {
+  background-color: var(--bg-4) !important;
+  border-color: var(--bg-4) !important;
+  color: var(--text-disabled) !important;
 }
 
-[data-theme='dark'] .send-button-custom:disabled,
-[data-theme='dark'] .send-button-custom.arco-btn:disabled,
-[data-theme='dark'] .send-button-custom.arco-btn-primary:disabled {
-  background-color: color-mix(in srgb, var(--color-fill-4) 82%, var(--color-bg-2)) !important;
-  border-color: color-mix(in srgb, var(--color-fill-4) 88%, var(--color-bg-2)) !important;
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled,
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled:disabled,
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled.arco-btn:disabled,
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled.arco-btn-disabled,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled:disabled,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled.arco-btn:disabled,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled.arco-btn-disabled {
+  background-color: var(--bg-4) !important;
+  border-color: var(--bg-4) !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  color: var(--text-disabled) !important;
+}
+
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled svg,
+html[data-theme='dark'] body .sendbox-panel .send-button-custom--disabled svg *,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled svg,
+body[arco-theme='dark'] .sendbox-panel .send-button-custom--disabled svg * {
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
 .sendbox-stop-button,
@@ -595,4 +696,14 @@
   .speech-input-feedback__label {
     min-width: 28px;
   }
+}
+
+.sendbox-actions .arco-trigger:has(.send-button-custom),
+.sendbox-tools .arco-trigger:has(.send-button-custom),
+.arco-trigger:has(.send-button-custom),
+span:has(> .send-button-custom),
+span:has(.send-button-custom) {
+  background: transparent !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
 }
