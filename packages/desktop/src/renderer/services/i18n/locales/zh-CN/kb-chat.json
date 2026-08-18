@@ -18,7 +18,10 @@
     "timeout_total": "响应超时,请稍后再试",
     "incomplete": "响应被截断",
     "business": "{{message}}",
-    "no_token": "请先登录"
+    "no_token": "请先登录",
+    "http": "服务器返回错误({message})",
+    "http_bad_content_type": "服务器返回了非预期的内容类型",
+    "send_failed": "请求未发出"
   },
   "empty": "开始提问,获取基于知识库的答案"
 }

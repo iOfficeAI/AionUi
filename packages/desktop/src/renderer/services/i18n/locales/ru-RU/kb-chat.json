@@ -18,7 +18,10 @@
     "timeout_total": "Response timed out. Please try again.",
     "incomplete": "Response was truncated",
     "business": "{{message}}",
-    "no_token": "Please sign in first"
+    "no_token": "Please sign in first",
+    "http": "Server error: {message}",
+    "http_bad_content_type": "Server returned an unexpected content type",
+    "send_failed": "Failed to send request"
   },
   "empty": "Start by asking a question to get an answer grounded in the knowledge base."
 }

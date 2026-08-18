@@ -33,7 +33,7 @@ export const KbChatPage: React.FC = () => {
         ))}
         {status === 'error' && lastError && (
           <div className={styles.error}>
-            {t(`kb-chat.error.${lastError.code}`, { message: lastError.message })}
+            {t(`kb-chat.error.${lastError.code}`, { message: lastError.message, defaultValue: lastError.message })}
             <Button onClick={retry} size='mini'>
               {t('kb-chat.actions.retry')}
             </Button>
