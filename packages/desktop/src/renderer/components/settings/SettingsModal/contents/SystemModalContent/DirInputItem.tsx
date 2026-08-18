@@ -57,7 +57,7 @@ const DirInputItem: React.FC<{
           >
             <Tooltip content={current_value || t('settings.dirNotConfigured')} position='top'>
               {/* Paths are code-like; without dir=ltr the leading slash flips to the end under RTL. */}
-              <div dir='ltr' className='flex-1 min-w-0 text-13px text-t-primary truncate text-end'>
+              <div dir='ltr' className='flex-1 min-w-0 text-13px text-t-primary truncate rtl-text-right'>
                 {current_value || t('settings.dirNotConfigured')}
               </div>
             </Tooltip>
