@@ -240,6 +240,46 @@ describe('buildSpawnEnv', () => {
     expect(env.AIONUI_LOG_DIR).toBe('/l');
     expect(env.PATH).toBe(process.env.PATH); // inherits
   });
+
+  it('strips PREBUILDS_ONLY so agent CLIs spawned under aioncore can load their build/Release natives (#4070)', () => {
+    const prev = process.env.PREBUILDS_ONLY;
+    process.env.PREBUILDS_ONLY = '1';
+    try {
+      const env = buildSpawnEnv({
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+      expect(env).not.toHaveProperty('PREBUILDS_ONLY');
+    } finally {
+      if (prev === undefined) delete process.env.PREBUILDS_ONLY;
+      else process.env.PREBUILDS_ONLY = prev;
+    }
+  });
+
+  it('strips PREBUILDS_ONLY and injects no dir vars when no dir config is provided', () => {
+    const keys = ['PREBUILDS_ONLY', 'AIONUI_CACHE_DIR', 'AIONUI_WORK_DIR', 'AIONUI_LOG_DIR'] as const;
+    const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+    process.env.PREBUILDS_ONLY = '1';
+    // Dir vars may be inherited from a dev shell; clear them so the assertion
+    // below observes injection behavior, not passthrough.
+    delete process.env.AIONUI_CACHE_DIR;
+    delete process.env.AIONUI_WORK_DIR;
+    delete process.env.AIONUI_LOG_DIR;
+    try {
+      const env = buildSpawnEnv();
+      expect(env).not.toHaveProperty('PREBUILDS_ONLY');
+      expect(env).not.toHaveProperty('AIONUI_CACHE_DIR');
+      expect(env).not.toHaveProperty('AIONUI_WORK_DIR');
+      expect(env).not.toHaveProperty('AIONUI_LOG_DIR');
+      expect(env.PATH).toBe(process.env.PATH); // inherits
+    } finally {
+      for (const k of keys) {
+        if (saved[k] === undefined) delete process.env[k];
+        else process.env[k] = saved[k];
+      }
+    }
+  });
 });
 
 describe('findAvailablePort', () => {
