@@ -78,7 +78,7 @@
 .composerRail {
   width: 100%;
   margin: -4px auto 7px;
-  padding: 12px 0 2px;
+  padding: 10px 0 4px;
   border-top: 1px solid var(--bg-3);
   transform: translateY(-4px);
 }

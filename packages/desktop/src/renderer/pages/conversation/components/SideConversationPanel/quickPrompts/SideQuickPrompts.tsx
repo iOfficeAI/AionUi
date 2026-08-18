@@ -27,7 +27,7 @@ import {
   Target,
   User,
 } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   SIDE_QUICK_PROMPT_KEYS,
@@ -80,9 +80,13 @@ function pickVisibleKeys(offset: number): SideQuickPromptKey[] {
 const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
+  // Pause the rotation while the user is reading or aiming at the chips, so
+  // the visible window is never yanked away mid-interaction.
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
+      if (pausedRef.current) return;
       setOffset((current) => (current + SIDE_QUICK_PROMPT_VISIBLE_COUNT) % SIDE_QUICK_PROMPT_KEYS.length);
     }, SIDE_QUICK_PROMPT_ROTATE_MS);
     return () => window.clearInterval(timer);
@@ -91,7 +95,21 @@ const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
   const visibleKeys = useMemo(() => pickVisibleKeys(offset), [offset]);
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      onMouseEnter={() => {
+        pausedRef.current = true;
+      }}
+      onMouseLeave={() => {
+        pausedRef.current = false;
+      }}
+      onFocus={() => {
+        pausedRef.current = true;
+      }}
+      onBlur={() => {
+        pausedRef.current = false;
+      }}
+    >
       {/* key on the row remounts the chips on rotation so the entrance animation plays. */}
       <div
         key={offset}
@@ -107,7 +125,7 @@ const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
               size='mini'
               type='secondary'
               className={styles.chip}
-              style={{ animationDelay: `${index * 45}ms` }}
+              style={{ animationDelay: `${index * 40}ms` }}
               title={label}
               onClick={() => onPick(label)}
             >

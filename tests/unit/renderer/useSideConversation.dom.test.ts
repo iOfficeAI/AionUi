@@ -224,6 +224,32 @@ describe('useSideConversation — fork mode', () => {
     expect(result.current.tabs.map((tab) => tab.childId)).toEqual(['c1', 'c2']);
   });
 
+  it('fillComposer creates a tab when none exists (quick prompt path)', async () => {
+    fork.mockResolvedValue(childConversation('c1', 1, false, 'agent_fork'));
+
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+
+    await act(async () => {
+      await result.current.fillComposer('catch me up');
+    });
+
+    expect(fork).toHaveBeenCalledTimes(1);
+    expect(result.current.tabs).toHaveLength(1);
+  });
+
+  it('quoteComposer creates a tab and stages the quote chip for delivery', async () => {
+    fork.mockResolvedValue(childConversation('c1', 1, false, 'agent_fork'));
+
+    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
+
+    await act(async () => {
+      await result.current.quoteComposer({ messageId: 'm1', content: 'selected text', position: 'left' });
+    });
+
+    expect(fork).toHaveBeenCalledTimes(1);
+    expect(result.current.tabs).toHaveLength(1);
+  });
+
   it('surfaces SIDE_PARENT_EMPTY when the parent has no messages to fork from', async () => {
     getConversationMessages.mockResolvedValue({
       items: [],
