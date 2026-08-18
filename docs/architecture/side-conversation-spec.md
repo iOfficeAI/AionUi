@@ -12,7 +12,7 @@
   - `snapshot`：不支持 fork 但可对话的 agent（hermes / pi / 任意 ACP 自定义 agent）→
     `createWithConversation` 克隆父会话（同 agent 身份、清空历史）+ 一条框定的只读
     转录参考消息（`loadParentReferenceTranscript`，仅文本、40 条/2000 字符上限）。
-  没有 per-backend 白名单；gemini/openclaw/nanobot/remote 等上游只读类型两种模式都不适用。
+    没有 per-backend 白名单；gemini/openclaw/nanobot/remote 等上游只读类型两种模式都不适用。
 - **视觉上是干净的新线程**：fork 子会话继承的历史消息在 dock 里隐藏——子会话
   `extra.forked_at_msg_id` 作为边界（fork 拷贝的最后一行），MessageList 按
   `ConversationContext.sideForkBoundaryMsgId` 过滤掉边界及之前的所有行；上下文完整保留
