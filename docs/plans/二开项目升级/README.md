@@ -2,7 +2,7 @@
 
 > 本目录是二开资产化的唯一权威落点。目标：把二开代码划出**可携带边界**——逐文件/逐组件/逐接口给出风险分级、上游依赖、变化触发器、接入点和验证方法，并定义未来源码扩展包的目录与 manifest/adapter 结构。
 >
-> 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。本文档集只做调研与归档，不修改任何产品代码。
+> 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。2026-08-17～18 已补充 v2.1.56 / v0.1.67 升级审计、实施设计与实装修复复盘；其中 `07` 为下一次升级必须优先阅读的实施后 runbook。
 
 ## 文档构成
 
@@ -11,6 +11,10 @@
 | [01-原版二开资产清单.md](./01-原版二开资产清单.md) + [01-原版二开资产清单.manifest.json](./01-原版二开资产清单.manifest.json) | **原版清单**：仅以固定证据树（PIN-UI `adf8dfaa4` / PIN-CORE `eb0c884e` / `e3f154559`）核验的 A-D 分级、来源 commit、职责、依赖、契约、触发器、缺陷；机读 manifest 为 `originalSource`/`adapterTarget` 双层（schema `aionui-2dev-asset-inventory/2`） |
 | [02-v2.1.52适配矩阵.md](./02-v2.1.52适配矩阵.md) | **适配矩阵**：v2.1.52 重做线的提交对应、B/C 级插入点、移植判定、迁移窗口（038/039/040、repair 脚本）与 P7 修复记录（`d0beccbf8`/`21d73ba45`） |
 | [03-扩展包与adapter决策.md](./03-扩展包与adapter决策.md) | **adapter 决策层**：未来二开源码扩展包的目录边界、manifest 字段、adapter 分层、宿主接点收敛策略与形态决策记录（DR-1） |
+| [04-v2.1.56适配矩阵.md](./04-v2.1.56适配矩阵.md) | **v2.1.56 / v0.1.67 升级前差异审计**：A/B/C/D 资产在新宿主中的复用、adapter、上游替代与 migration 窗口判定 |
+| [05-P4-AionCore-v0.1.67适配设计.md](./05-P4-AionCore-v0.1.67适配设计.md) | **Core 实施设计**：ad-hoc origin、Team Presets、migration/repair、provisioning/service 的 v0.1.67 适配边界 |
+| [06-P5-AionUi-v2.1.56适配设计.md](./06-P5-AionUi-v2.1.56适配设计.md) | **UI 实施设计**：shared contracts、i18n、AdHocTeam、GroupedHistory、Team Presets 与 runtime seam 的分层重放方案 |
+| [07-v2.1.56实装修复与下次升级复用清单.md](./07-v2.1.56实装修复与下次升级复用清单.md) | **实施后补遗 / 下次升级 runbook**：后 PIN 修复扫描、5 个实测缺陷根因与修复、WS/cache 一致性、migration 042、最终 binary build 陷阱、完整生命周期 checklist；对应可重放代码维护在权威资产仓 `AionTeamSuite/packages/adaptations/v2.1.56-v0.1.67/` |
 | [设计规格归档/](./设计规格归档/) | 专家团/创建弹窗等 e3 原版 UI 设计规格与验收清单（P8-2 维护） |
 | [审计报告/](./审计报告/) | 来源审计报告原样归档（不篡改结论）：`adhoc-team-design-source-audit-2026-08-10.md`（设计规格归档来源审计）、`audit-2dev-docs-provenance-20260810.md`（二开文档来源审计，P8-1 分层依据） |
 | [原始源码包/](./原始源码包/) | 临时团队与专家团两个原版 UI 源码快照，以及共同的 AionCore 原版配套；仅来自固定原始提交，不含新版重写代码 |

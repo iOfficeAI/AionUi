@@ -5,6 +5,8 @@
 >
 > 目标：把 01 清单中的二开资产收敛为一个**可携带的源码扩展包**，使未来上游基线升级 = "替换宿主基线 → 重放扩展包 → 跑验证矩阵"，而非逐文件考古。
 > 方案不新造概念：全部模式均已在当前 delta 中验证过（bridge 隔离、尾部追加块、锚点插入），本方案是把它们规范化、声明化。
+>
+> **落地状态（2026-08-18）**：真正的权威插件化资产仓是同级仓库 `AionTeamSuite`。原始固定 PIN curated 包保留在 `AionTeamSuite/packages/aionui` / `packages/aioncore`，本轮 v2.1.56 / v0.1.67 已验证增量维护在 `AionTeamSuite/packages/adaptations/v2.1.56-v0.1.67/`。后续升级应优先读取 AionTeamSuite，而不是在 AionUi 仓内另建一套扩展目录。
 
 ## 1. 设计原则
 
@@ -17,7 +19,7 @@
 ## 2. 目录结构（提案）
 
 ```
-extensions/team-suite/                    # 二开扩展包根（名字待定，可先放仓内 extensions/）
+AionTeamSuite/                            # 权威二开资产仓（独立仓库）
 ├── manifest.json                         # 包清单（见 §3）
 ├── modules/                              # A 级：纯自有模块（整目录搬运）
 │   ├── ad-hoc-team/
@@ -167,7 +169,7 @@ extensions/team-suite/                    # 二开扩展包根（名字待定，
 
 ## 6. 落地路径（两步走，不阻塞当前窗口）
 
-1. **仓内模拟（当前即可做，零构建改动）**：按 §2 目录约定整理文档与测试映射；把 01 清单的 B/C 接点逐一补写 `slots/*.slot.patch` 与锚点描述；v2.1.52 worktree 收口时优先将 AdHocTeam 组件按本结构归位（未提交部分已随 `d0beccbf8` 收口）。
-2. **抽包（下一个产品窗口）**：引入 `@ext/team-suite/*` path alias 与构建期拷贝；写 manifest 生成/校验脚本（hostDeps 符号核对、contracts 字符串扫描）；把 `verification` 接入 `just push` 前置检查。
+1. **权威资产仓已落地**：`AionTeamSuite` 已包含原始 curated modules/adapters/slots/tests/migrations；本轮新增 `packages/adaptations/v2.1.56-v0.1.67/` 保存经过新版宿主适配与验收后的增量。后续每次升级继续追加新的 validated adaptation 层，原始 PIN 证据层不覆盖。
+2. **抽包（后续产品窗口）**：引入 `@ext/team-suite/*` path alias 与构建期拷贝；写 manifest 生成/校验脚本（hostDeps 符号核对、contracts 字符串扫描）；把 `verification` 接入发布前检查。
 
 不做的事（防范围扩张）：不改宿主构建系统、不引入插件运行时、不动 web-host/mobile 包、不把 D 级实体迁入包内。
