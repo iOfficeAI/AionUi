@@ -222,4 +222,62 @@ describe('useKnowledgeBaseList', () => {
     await waitFor(() => expect(result.current.personalItems[0]?.id).toBe('p_2'));
     expect(personalCallCount).toBe(2);
   });
+
+  it('loadPersonalKnowledgeBases fetches only the personal endpoint', async () => {
+    let personalCallCount = 0;
+    let sharedCallCount = 0;
+    stubFetch(async (url) => {
+      if (url.includes(PERSONAL_URL_FRAGMENT)) {
+        personalCallCount += 1;
+        return jsonResponse({ Rows: [{ ...personalRow, id: `p_${personalCallCount}` }] });
+      }
+      if (url.includes(SHARED_URL_FRAGMENT)) {
+        sharedCallCount += 1;
+        return jsonResponse({ Rows: [sharedRow] });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { result } = renderHook(() => useKnowledgeBaseList());
+
+    await waitFor(() => expect(result.current.personalItems[0]?.id).toBe('p_1'));
+    const sharedCountAfterMount = sharedCallCount;
+
+    await act(async () => {
+      await result.current.loadPersonalKnowledgeBases('test-token');
+    });
+
+    await waitFor(() => expect(result.current.personalItems[0]?.id).toBe('p_2'));
+    expect(personalCallCount).toBe(2);
+    expect(sharedCallCount).toBe(sharedCountAfterMount);
+  });
+
+  it('loadSharedKnowledgeBases fetches only the shared endpoint', async () => {
+    let sharedCallCount = 0;
+    let personalCallCount = 0;
+    stubFetch(async (url) => {
+      if (url.includes(SHARED_URL_FRAGMENT)) {
+        sharedCallCount += 1;
+        return jsonResponse({ Rows: [{ ...sharedRow, id: `s_${sharedCallCount}` }] });
+      }
+      if (url.includes(PERSONAL_URL_FRAGMENT)) {
+        personalCallCount += 1;
+        return jsonResponse({ Rows: [personalRow] });
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { result } = renderHook(() => useKnowledgeBaseList());
+
+    await waitFor(() => expect(result.current.sharedItems[0]?.id).toBe('s_1'));
+    const personalCountAfterMount = personalCallCount;
+
+    await act(async () => {
+      await result.current.loadSharedKnowledgeBases('test-token');
+    });
+
+    await waitFor(() => expect(result.current.sharedItems[0]?.id).toBe('s_2'));
+    expect(sharedCallCount).toBe(2);
+    expect(personalCallCount).toBe(personalCountAfterMount);
+  });
 });
