@@ -46,6 +46,7 @@
       "defaultPrompt": "می‌خواهم این Skill را بهبود دهم: {{skillName}}\n\nلطفاً محتوای آن را بررسی کنید و برای بهبودش به من کمک کنید. پیشنهادهای من برای تغییر عبارت‌اند از:"
     },
     "usedByCount": "{{count}} دستیار در حال استفاده",
+    "usedByTooltip": "{{count}} دستیار در حال استفاده: {{names}}",
     "manageInHub": "مدیریت در مرکز مهارت‌ها",
     "recommend": "پیشنهاد مهارت‌ها",
     "recommendSuccess": "پیشنهاد با موفقیت انجام شد: {{count}} مهارت بر اساس قوانین انتخاب شد",
@@ -966,6 +967,7 @@
     "noPendingPairings": "درخواست جفت‌شدن در انتظاری وجود ندارد",
     "pairingCode": "کد",
     "expiresIn": "انقضا در",
+    "expiresInMinutes": "انقضا در: {{count}} دقیقه",
     "approve": "تأیید",
     "reject": "رد",
     "pairingApproved": "جفت‌شدن تأیید شد",
@@ -1203,6 +1205,7 @@
     },
     "boundAssistantsTitle": "دستیارهای استفاده‌کننده از این ایجنت",
     "boundAssistantsCount": "{{count}} دستیار",
+    "boundAssistantsTooltip": "{{count}} دستیار: {{names}}",
     "boundAssistantsEmpty": "هنوز دستیاری به این ایجنت متصل نیست.",
     "viewAssistant": "مشاهده",
     "searchPlaceholder": "جستجوی ایجنت‌ها...",

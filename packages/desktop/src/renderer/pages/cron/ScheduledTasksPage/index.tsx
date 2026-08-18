@@ -208,7 +208,7 @@ const ScheduledTasksPage: React.FC = () => {
                     : t('cron.page.form.existingConversation');
                 const nextRun = job.state.next_run_at_ms ? formatNextRun(job.state.next_run_at_ms) : '-';
                 const errorHint = job.state.last_error
-                  ? `${t('cron.lastError')}：${job.state.last_error}`
+                  ? t('cron.lastErrorWithDetail', { error: job.state.last_error })
                   : t('cron.status.error');
 
                 return (

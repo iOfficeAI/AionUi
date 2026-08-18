@@ -46,6 +46,7 @@
       "defaultPrompt": "Я хочу покращити цей Skill: {{skillName}}\n\nБудь ласка, перегляньте його вміст і допоможіть мені внести покращення. Мої пропозиції:"
     },
     "usedByCount": "Використовують асистентів: {{count}}",
+    "usedByTooltip": "Використовують асистентів: {{count}} — {{names}}",
     "manageInHub": "Керувати в Центрі навичок",
     "recommend": "Рекомендувати навички",
     "recommendSuccess": "Рекомендовано успішно: вибрано {{count}} навичок на основі правил",
@@ -905,6 +906,7 @@
     "noPendingPairings": "Немає очікуваних запитів",
     "pairingCode": "Код",
     "expiresIn": "Закінчується через",
+    "expiresInMinutes": "Закінчується через: {{count}} хв",
     "approve": "Схвалити",
     "reject": "Відхилити",
     "pairingApproved": "Сполучення схвалено",
@@ -1103,6 +1105,7 @@
     },
     "boundAssistantsTitle": "Асистенти, що використовують цей агент",
     "boundAssistantsCount": "Асистентів: {{count}}",
+    "boundAssistantsTooltip": "Асистентів: {{count}} — {{names}}",
     "boundAssistantsEmpty": "До цього агента ще не приєднано жодного асистента.",
     "viewAssistant": "Переглянути",
     "searchPlaceholder": "Пошук агентів...",

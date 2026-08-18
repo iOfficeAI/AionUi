@@ -5,6 +5,7 @@
   "nextRun": "Следующий запуск",
   "lastRun": "Последний запуск",
   "lastError": "Ошибка",
+  "lastErrorWithDetail": "Последняя ошибка: {{error}}",
   "message": "Сообщение",
   "goToConversation": "Перейти к диалогу",
   "status": {

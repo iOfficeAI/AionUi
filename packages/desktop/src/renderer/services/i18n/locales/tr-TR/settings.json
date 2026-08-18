@@ -46,6 +46,7 @@
       "defaultPrompt": "Bu Skill'i geliştirmek istiyorum: {{skillName}}\n\nLütfen içeriğini inceleyip geliştirmeme yardımcı olun. Değişiklik önerilerim:"
     },
     "usedByCount": "{{count}} asistan kullanıyor",
+    "usedByTooltip": "{{count}} asistan kullanıyor: {{names}}",
     "manageInHub": "Beceri Merkezinde Yönet",
     "recommend": "Akıllı Öneri",
     "recommendSuccess": "Öneri başarılı: Kurallara göre {{count}} beceri seçildi",
@@ -954,6 +955,7 @@
     "noPendingPairings": "No pending pairing requests",
     "pairingCode": "Code",
     "expiresIn": "Expires in",
+    "expiresInMinutes": "Süre sonu: {{count}} dk",
     "approve": "Approve",
     "reject": "Reject",
     "pairingApproved": "Pairing approved",
@@ -1191,6 +1193,7 @@
     },
     "boundAssistantsTitle": "Bu ajanı kullanan asistanlar",
     "boundAssistantsCount": "{{count}} asistan",
+    "boundAssistantsTooltip": "{{count}} asistan: {{names}}",
     "boundAssistantsEmpty": "Bu ajana henüz bağlı asistan yok.",
     "viewAssistant": "Görüntüle",
     "searchPlaceholder": "Agent ara...",

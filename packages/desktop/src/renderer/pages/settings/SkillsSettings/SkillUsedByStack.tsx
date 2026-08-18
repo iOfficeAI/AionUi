@@ -16,6 +16,7 @@ import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/Assista
 import { Tooltip } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatNameList } from '@/renderer/services/i18n/list';
 
 /**
  * Assistants that have this skill attached (enabled or custom list).
@@ -33,18 +34,18 @@ const SkillUsedByStack: React.FC<{ assistants: Assistant[]; max?: number }> = ({
 
   const shown = assistants.slice(0, max);
   const overflow = assistants.length - shown.length;
-  const names = assistants.map((a) => a.name_i18n?.[localeKey] || a.name).join('、');
+  const names = formatNameList(
+    assistants.map((a) => a.name_i18n?.[localeKey] || a.name),
+    i18n.language
+  );
 
   return (
     <Tooltip
-      content={
-        t('settings.skillsHub.usedByCount', {
-          count: assistants.length,
-          defaultValue: `Used by ${assistants.length} assistant(s)`,
-        }) +
-        '：' +
-        names
-      }
+      content={t('settings.skillsHub.usedByTooltip', {
+        count: assistants.length,
+        names,
+        defaultValue: `Used by ${assistants.length} assistant(s): ${names}`,
+      })}
     >
       <div className='flex items-center' data-testid='skill-used-by-stack'>
         {shown.map((assistant, index) => (

@@ -46,6 +46,7 @@
       "defaultPrompt": "Я хочу улучшить этот Skill: {{skillName}}\n\nПожалуйста, просмотрите его содержимое и помогите мне внести улучшения. Мои предложения:"
     },
     "usedByCount": "Используется ассистентами: {{count}}",
+    "usedByTooltip": "Используется ассистентами: {{count}} — {{names}}",
     "manageInHub": "Управление в Центре навыков",
     "recommend": "Рекомендовать навыки",
     "recommendSuccess": "Рекомендовано: выбрано {{count}} навыков по правилам",
@@ -946,6 +947,7 @@
     "noPendingPairings": "Нет ожидающих запросов",
     "pairingCode": "Код",
     "expiresIn": "Истекает",
+    "expiresInMinutes": "Истекает через: {{count}} мин",
     "approve": "Одобрить",
     "reject": "Отклонить",
     "pairingApproved": "Сопряжение одобрено",
@@ -1183,6 +1185,7 @@
     },
     "boundAssistantsTitle": "Ассистенты, использующие этого агента",
     "boundAssistantsCount": "Ассистентов: {{count}}",
+    "boundAssistantsTooltip": "Ассистентов: {{count}} — {{names}}",
     "boundAssistantsEmpty": "С этим агентом пока не связан ни один ассистент.",
     "viewAssistant": "Открыть",
     "searchPlaceholder": "Поиск агентов...",
