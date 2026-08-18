@@ -8,12 +8,13 @@
  * AIPaaS 后端服务的基础地址。
  * 多个业务模块（登录、注销、共享知识库等）共享此前缀，集中改动便于切换环境。
  */
-export const AIPAAS_BASE_URL = 'http://devops.badousoft.com/aipaas-service';
+// export const AIPAAS_BASE_URL = 'http://devops.badousoft.com/aipaas-service';
+export const AIPAAS_BASE_URL = 'http://localhost:8081';
 
 /** External login page URL base. The system browser loads this URL during
  *  the external login flow. `aipaas-front` reads the `from` query flag and
  *  redirects to the deep link below on SSO success. */
-export const EXTERNAL_LOGIN_URL_BASE = 'http://devops.badousoft.com/aipaas-front/';
+export const EXTERNAL_LOGIN_URL_BASE = 'http://localhost:8910/';
 
 /** Query string appended to the external login URL so `aipaas-front` knows
  *  to deep-link back to AionUi after SSO instead of staying on its own

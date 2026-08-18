@@ -34,7 +34,7 @@ import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
-import { ArrowRightUp } from '@icon-park/react';
+import { ArrowRightUp, Experiment } from '@icon-park/react';
 import { Button, ConfigProvider } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -609,6 +609,12 @@ const GuidPage: React.FC = () => {
     },
     [guidInput.setInput]
   );
+
+  // 调试入口：跳到 /test/browser-demo，复用现有 <WebviewHost> + partition
+  // 临时页，验证通过后会迁到正式入口。
+  const handleOpenBrowserDemo = useCallback(() => {
+    void navigate('/test/browser-demo');
+  }, [navigate]);
   const { handleLiveTranscript } = useLiveTranscriptInsertion(guidInput.setInput);
 
   // Build the action row
@@ -668,6 +674,14 @@ const GuidPage: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
+          {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
+          <div className={styles.devEntryRow} data-testid='guid-dev-entry'>
+            <button type='button' className={styles.devEntryChip} onClick={handleOpenBrowserDemo} title='打开应用内浏览器 Demo'>
+              <Experiment theme='outline' size={14} />
+              <span>浏览器 Demo</span>
+            </button>
+          </div>
+
           <div className={styles.heroHeader}>
             <p className='text-2xl font-semibold mb-0 text-0 text-center'>
               {t('conversation.welcome.title', { name: user?.username || '' })}

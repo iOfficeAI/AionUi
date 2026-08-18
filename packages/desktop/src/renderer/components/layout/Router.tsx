@@ -24,6 +24,8 @@ const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTa
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
 const KnowledgeBasePage = React.lazy(() => import('@renderer/pages/knowledge-base'));
 const NotesPage = React.lazy(() => import('@renderer/pages/notes'));
+const WorkbenchPage = React.lazy(() => import('@renderer/pages/workbench/WorkbenchPage'));
+const InAppBrowserDemo = React.lazy(() => import('@renderer/pages/_dev/InAppBrowserDemo'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -105,6 +107,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
           <Route path='/knowledge-base' element={withRouteFallback(KnowledgeBasePage)} />
           <Route path='/notes' element={withRouteFallback(NotesPage)} />
+          <Route path='/workbench' element={withRouteFallback(WorkbenchPage)} />
+          <Route path='/test/browser-demo' element={withRouteFallback(InAppBrowserDemo)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>

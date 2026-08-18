@@ -35,6 +35,7 @@
     "guid",
     "agent",
     "team",
-    "pet"
+    "pet",
+    "workbench"
   ]
 }

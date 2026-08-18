@@ -14,6 +14,7 @@ import {
   SiderAssistantEntry,
   SiderKnowledgeEntry,
   SiderNoteEntry,
+  SiderWorkbenchEntry,
 } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import TeamSiderSection from './TeamSiderSection';
@@ -142,6 +143,19 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     }
   };
 
+  const handleWorkbenchClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate('/workbench')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
   const handleQuickThemeToggle = () => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -256,6 +270,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleNoteClick}
+            />
+            {/* Workbench nav entry - opens external PM center in-app webview */}
+            <SiderWorkbenchEntry
+              isMobile={isMobile}
+              isActive={pathname.startsWith('/workbench')}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleWorkbenchClick}
             />
             {/* Scheduled tasks nav entry - fixed above scroll */}
             <SiderScheduledEntry

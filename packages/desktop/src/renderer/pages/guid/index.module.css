@@ -13,6 +13,36 @@
   margin-bottom: 16px;
 }
 
+/* 调试入口条：水平居中一条小按钮组，只在首页加载 */
+.devEntryRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.devEntryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--color-border-3, rgba(128, 128, 128, 0.35));
+  background: var(--color-bg-2, transparent);
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.devEntryChip:hover {
+  color: var(--color-text-1);
+  border-color: rgb(var(--primary-6));
+  background: var(--color-fill-2);
+}
+
 .assistantPromptHint {
   color: var(--color-text-3);
   font-size: 13px;

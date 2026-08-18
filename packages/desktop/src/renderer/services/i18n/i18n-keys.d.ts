@@ -2691,7 +2691,12 @@ export type I18nKey =
   | 'update.restoreUpdateNotification'
   | 'update.showInFolder'
   | 'update.upToDateTitle'
-  | 'update.viewRelease';
+  | 'update.viewRelease'
+  | 'workbench.empty'
+  | 'workbench.noToken'
+  | 'workbench.openFailed'
+  | 'workbench.subtitle'
+  | 'workbench.title';
 
 export type I18nModule =
   | 'common'
@@ -2712,4 +2717,5 @@ export type I18nModule =
   | 'guid'
   | 'agent'
   | 'team'
-  | 'pet';
+  | 'pet'
+  | 'workbench';
