@@ -163,5 +163,8 @@
     "confirmMessage": "Dieser Tab hat ungespeicherte Änderungen. Neuladen ersetzt sie durch den Inhalt der Festplatte.",
     "discardAndRefresh": "Änderungen verwerfen und aktualisieren",
     "officeNotWired": "Das Neuladen von Office-Dokumenten ist noch nicht verfügbar — schließen Sie die Datei und öffnen Sie sie erneut."
-  }
+  },
+  "zoomIn": "Vergrößern",
+  "zoomOut": "Verkleinern",
+  "zoomReset": "Ansicht zurücksetzen"
 }
