@@ -128,6 +128,28 @@ export function formatDate(
   return formatDateTime(value, language, options ?? { year: 'numeric', month: 'numeric', day: 'numeric' });
 }
 
+const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
+
+/**
+ * Format a byte count as "12.5 MB", with the number in the app language
+ * (de-DE renders "12,5 MB"). Binary (1024) units, matching the rest of the app.
+ */
+export function formatByteSize(bytes: number, language?: string | null, maximumFractionDigits = 1): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return `0 ${BYTE_UNITS[0]}`;
+  }
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), BYTE_UNITS.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${formatNumber(value, language, { maximumFractionDigits })} ${BYTE_UNITS[exponent]}`;
+}
+
+/**
+ * Format a transfer rate as "1.2 MB/s" in the app language.
+ */
+export function formatByteRate(bytesPerSecond: number, language?: string | null): string {
+  return `${formatByteSize(bytesPerSecond, language)}/s`;
+}
+
 /**
  * Format the time part only — the `toLocaleTimeString()` replacement.
  */
