@@ -32,7 +32,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
 import { isMacOS } from '@/renderer/utils/platform';
 import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, Plus, Quote } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Comments, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
@@ -1636,15 +1636,16 @@ const SendBox: React.FC<{
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
   const sideTriggerButton =
     canOpenSide && effectiveOnOpenSide ? (
-      <Button
-        size='mini'
-        type='text'
-        className='side-btn-text'
-        onClick={() => void effectiveOnOpenSide()}
-        aria-label={t('conversation.sideConversation.trigger')}
-      >
-        {t('conversation.sideConversation.trigger')}
-      </Button>
+      <Tooltip content={t('conversation.sideConversation.trigger')} mini>
+        <Button
+          size='mini'
+          type='text'
+          className='side-btn-text'
+          onClick={() => void effectiveOnOpenSide()}
+          aria-label={t('conversation.sideConversation.trigger')}
+          icon={<Comments theme='outline' size={16} fill='currentColor' />}
+        />
+      </Tooltip>
     ) : null;
   const renderedRightTools = isMobileCompact ? null : (
     <>
