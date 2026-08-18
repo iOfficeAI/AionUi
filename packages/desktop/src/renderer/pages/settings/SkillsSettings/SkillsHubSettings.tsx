@@ -12,6 +12,7 @@ import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import SettingsPageHeader from '../components/SettingsPageHeader';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
 
 // Skill 信息类型 / Skill info type
@@ -138,7 +139,7 @@ const getSkillsTabFromState = (state: unknown): SkillsTab => {
 };
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
@@ -622,7 +623,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                           </span>
                         </div>
                         <div className='mt-5px flex flex-wrap gap-x-8px gap-y-2px text-12px text-t-tertiary'>
-                          <span>{new Date(group.createdAt).toLocaleString()}</span>
+                          <span>{formatDateTime(group.createdAt, i18n.language)}</span>
                           {importedNames && <span>{importedNames}</span>}
                         </div>
                       </div>

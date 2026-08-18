@@ -10,6 +10,7 @@ import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistan
 import { resolveLocaleKey } from '@/common/utils';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -274,7 +275,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
   // Format timestamp
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+    return formatDateTime(timestamp, i18n.language);
   };
 
   // Calculate remaining time

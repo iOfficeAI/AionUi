@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { AionSearchInput } from '@/renderer/components/base';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
@@ -80,14 +81,14 @@ const renderHighlightedText = (text: string, keyword: string) => {
   });
 };
 
-const formatTime = (timestamp: number): string => {
+const formatTime = (timestamp: number, locale: string): string => {
   if (!timestamp) return '';
-  return new Intl.DateTimeFormat(undefined, {
+  return formatDateTime(timestamp, locale, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(timestamp);
+  });
 };
 
 interface ConversationSearchPopoverProps {
@@ -137,7 +138,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   fullWidth = false,
   renderTrigger,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -402,7 +403,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                       </div>
                     </div>
                   </div>
-                  <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.message_created_at)}</span>
+                  <span className='shrink-0 text-11px text-t-secondary'>
+                    {formatTime(item.message_created_at, i18n.language)}
+                  </span>
                 </div>
                 <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
                   {renderHighlightedText(snippet, debouncedKeyword)}

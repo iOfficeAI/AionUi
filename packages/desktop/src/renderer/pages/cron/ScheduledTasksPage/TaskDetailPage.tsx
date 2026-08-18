@@ -35,7 +35,7 @@ const resolveTeamId = (conversation: TChatConversation): string | undefined => {
 };
 
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { job_id } = useParams<{ job_id: string }>();
   const [job, setJob] = useState<ICronJob | null>(null);
@@ -389,7 +389,7 @@ const TaskDetailPage: React.FC = () => {
             )}
             {job.state.next_run_at_ms && (
               <span className='text-14px text-t-secondary'>
-                {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
+                {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms, i18n.language)}
               </span>
             )}
           </div>
@@ -470,7 +470,7 @@ const TaskDetailPage: React.FC = () => {
                         )}
                         <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{conv.name || conv.id}</span>
                         <span className='shrink-0 text-13px text-t-secondary'>
-                          {formatNextRun(getActivityTime(conv))}
+                          {formatNextRun(getActivityTime(conv), i18n.language)}
                         </span>
                       </div>
                       {index < conversations.length - 1 && <div className='h-1px w-full bg-[var(--color-border-2)]' />}
@@ -482,7 +482,7 @@ const TaskDetailPage: React.FC = () => {
                   <span>{t('cron.detail.noHistory')}</span>
                   {job.enabled && job.state.next_run_at_ms && (
                     <span className='ml-4px'>
-                      · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
+                      · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms, i18n.language)}
                     </span>
                   )}
                 </div>
