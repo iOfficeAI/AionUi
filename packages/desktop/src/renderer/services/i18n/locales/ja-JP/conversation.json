@@ -447,6 +447,7 @@
     "switchAgentFailed": "エージェントの切り替えに失敗しました",
     "speech": {
       "recordTooltip": "音声入力を開始",
+      "recordTooltipWithShortcut": "音声入力 cmd+M",
       "pickFileTooltip": "音声ファイルを選択",
       "stopTooltip": "録音を停止",
       "processing": "音声を文字起こし中...",

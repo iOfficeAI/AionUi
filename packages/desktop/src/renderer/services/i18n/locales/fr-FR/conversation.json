@@ -447,6 +447,7 @@
     "switchAgentFailed": "Échec du changement d'agent",
     "speech": {
       "recordTooltip": "Démarrer la saisie vocale",
+      "recordTooltipWithShortcut": "Saisie vocale cmd+M",
       "pickFileTooltip": "Sélectionner un fichier audio",
       "stopTooltip": "Arrêter l'enregistrement",
       "processing": "Transcription audio...",
@@ -568,7 +569,8 @@
       "loaded": "Chargé",
       "failed": "Échoué",
       "unsupported": "Non pris en charge"
-    }
+    },
+    "selected": "MCP sélectionnés"
   },
   "runtimePreparing": {
     "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."

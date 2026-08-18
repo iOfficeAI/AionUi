@@ -447,6 +447,7 @@
     "switchAgentFailed": "Не вдалося переключити агента",
     "speech": {
       "recordTooltip": "Почати голосове введення",
+      "recordTooltipWithShortcut": "Голосове введення cmd+M",
       "pickFileTooltip": "Вибрати аудіофайл",
       "stopTooltip": "Зупинити запис",
       "processing": "Транскрибування аудіо...",

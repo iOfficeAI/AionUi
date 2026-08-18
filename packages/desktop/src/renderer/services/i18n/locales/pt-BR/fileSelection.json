@@ -2,5 +2,14 @@
   "selectFile": "Selecionar Arquivo",
   "selectDirectory": "Selecionar Diretório",
   "pleaseSelectFile": "Por favor, selecione um arquivo",
-  "pleaseSelectDirectory": "Por favor, selecione um diretório"
+  "pleaseSelectDirectory": "Por favor, selecione um diretório",
+  "webFsPicker": {
+    "loadFailed": "Não foi possível abrir este diretório",
+    "titleDirectory": "Selecione uma pasta no servidor",
+    "titleFile": "Selecione um arquivo no servidor",
+    "selectedCount": "{{count}} selecionado(s)",
+    "up": "Acima",
+    "go": "Ir",
+    "empty": "Nada aqui"
+  }
 }

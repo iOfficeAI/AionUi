@@ -448,6 +448,7 @@
     "switchAgentFailed": "Agentenwechsel fehlgeschlagen",
     "speech": {
       "recordTooltip": "Spracheingabe starten",
+      "recordTooltipWithShortcut": "Spracheingabe cmd+M",
       "pickFileTooltip": "Audiodatei auswählen",
       "stopTooltip": "Aufnahme stoppen",
       "processing": "Audio wird transkribiert...",

@@ -432,6 +432,7 @@
     "switchAgentFailed": "Ajan değiştirilemedi",
     "speech": {
       "recordTooltip": "Sesli girişi başlat",
+      "recordTooltipWithShortcut": "Sesli giriş cmd+M",
       "pickFileTooltip": "Ses dosyası seç",
       "stopTooltip": "Kaydı durdur",
       "processing": "Ses yazıya dönüştürülüyor...",
