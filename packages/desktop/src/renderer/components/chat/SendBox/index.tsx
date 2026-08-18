@@ -33,7 +33,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
 import { isMacOS } from '@/renderer/utils/platform';
 import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
@@ -66,6 +66,13 @@ const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
+
+const SendArrowIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' aria-hidden='true'>
+    <path d='M12 19V5' strokeWidth='2.7' strokeLinecap='round' />
+    <path d='M6.5 10.5 12 5l5.5 5.5' strokeWidth='2.7' strokeLinecap='round' strokeLinejoin='round' />
+  </svg>
+);
 
 const DraftBoxActionIcon: React.FC<{ size?: number; color?: string; strokeWidth?: number }> = ({
   size = 16,
@@ -1463,19 +1470,35 @@ const SendBox: React.FC<{
   const isSendActionDisabled = disabled || sendDisabled || isUploading || !hasDraftToSend;
   const isDraftActionDisabled = disabled || addToDraftDisabled || isUploading || !hasDraftToSend || !onAddToDraft;
   const hasDraftAction = Boolean(onAddToDraft);
+  const sendButtonShapeStyle: React.CSSProperties = {
+    width: 32,
+    minWidth: 32,
+    height: 32,
+    minHeight: 32,
+    padding: 0,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    clipPath: 'circle(50% at 50% 50%)',
+    boxShadow: 'none',
+  };
 
   const primaryActionButton = (
     <Tooltip content={sendActionTooltip} position='top'>
-      <Button
-        shape='circle'
-        type='primary'
-        disabled={isSendActionDisabled}
-        className='send-button-custom'
-        icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-        onClick={handlePrimaryAction}
-        data-testid='sendbox-send-btn'
-        aria-label={typeof sendActionTooltip === 'string' ? sendActionTooltip : sendNowLabel}
-      />
+      <span className='sendbox-send-tooltip-anchor' style={sendButtonShapeStyle}>
+        <Button
+          shape='circle'
+          type='text'
+          disabled={isSendActionDisabled}
+          className={`send-button-custom ${
+            isSendActionDisabled ? 'send-button-custom--disabled' : 'send-button-custom--enabled'
+          }`}
+          style={sendButtonShapeStyle}
+          icon={<SendArrowIcon size={16} />}
+          onClick={handlePrimaryAction}
+          data-testid='sendbox-send-btn'
+          aria-label={typeof sendActionTooltip === 'string' ? sendActionTooltip : sendNowLabel}
+        />
+      </span>
     </Tooltip>
   );
 
