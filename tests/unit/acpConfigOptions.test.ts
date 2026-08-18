@@ -1,5 +1,10 @@
 import type { AcpConfigOptionDto, SetConfigOptionResponse } from '@/common/types/platform/acpTypes';
-import { deriveSelectOption, hasObservedValue } from '@/renderer/hooks/agent/useAcpConfigOptions';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
+import {
+  classifyConfigSetError,
+  deriveSelectOption,
+  hasObservedValue,
+} from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { describe, expect, it } from 'vitest';
 
 const options: AcpConfigOptionDto[] = [
@@ -73,5 +78,20 @@ describe('ACP config option derivation', () => {
     };
 
     expect(hasObservedValue(response, 'model', 'gpt-5.5')).toBe(false);
+  });
+
+  it('classifies a team runtime Starting conflict as a busy config update', () => {
+    const error = new BackendHttpError({
+      method: 'PUT',
+      path: '/api/teams/team-1/conversations/conv-1/config-options/model',
+      status: 409,
+      body: {
+        success: false,
+        error: 'Team member runtime is starting',
+        code: 'TEAM_MEMBER_RUNTIME_STARTING',
+      },
+    });
+
+    expect(classifyConfigSetError(error)).toBe('config_update_in_progress');
   });
 });

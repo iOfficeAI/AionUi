@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "Haz clic para activar este miembro"
+  },
+  "runtimeRestart": {
+    "tooltip": "Reconectar agente",
+    "confirmContent": "Reinicia el proceso del agente para que adopte los cambios externos de configuración de la CLI (como un cambio de canal). El historial del chat se conserva y la sesión se reanuda cuando es posible.",
+    "success": "Agente reconectado",
+    "failed": "Error al reconectar el agente",
+    "initializingTooltip": "El agente se está inicializando. Reconéctalo cuando esté listo",
+    "processingTooltip": "Espera a que termine la respuesta actual antes de reconectar"
   }
 }

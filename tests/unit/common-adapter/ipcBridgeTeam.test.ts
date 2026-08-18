@@ -87,6 +87,41 @@ describe('ipcBridge team adapter', () => {
     });
   });
 
+  it('updateAgentModel persists the observed model through the team agent route', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+
+    await team.updateAgentModel.invoke({ team_id: 'team-1', slot_id: 'worker-1', model_id: 'gpt-5.6-sol' });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'PATCH',
+      path: '/api/teams/team-1/agents/worker-1/model',
+      body: { model_id: 'gpt-5.6-sol' },
+    });
+  });
+
+  it('interruptAgent posts the durable replacement message to the member interrupt route', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+
+    await team.interruptAgent.invoke({
+      team_id: 'team-1',
+      slot_id: 'worker-1',
+      input: 'Use the corrected requirement',
+      files: [{ kind: 'local', path: '/tmp/spec.md' }],
+      reason: 'leader_intervention',
+    });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'POST',
+      path: '/api/teams/team-1/agents/worker-1/interrupt',
+      body: {
+        message: 'Use the corrected requirement',
+        files: [{ kind: 'local', path: '/tmp/spec.md' }],
+        reason: 'leader_intervention',
+        queued_policy: 'retain',
+      },
+    });
+  });
+
   it('team.create posts canonical agents payload', async () => {
     const { team } = await import('@/common/adapter/ipcBridge');
 

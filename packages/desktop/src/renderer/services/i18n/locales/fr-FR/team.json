@@ -99,6 +99,38 @@
     "tellLeaderPrefill": "Aide-moi à ajouter à l'équipe un membre doué pour ___"
   },
   "reorderMember": "Faites glisser pour réorganiser le membre",
+  "interruptAndSend": "Interrompre et envoyer",
+  "interruptAgentFailed": "Impossible d’interrompre l’agent. Veuillez réessayer.",
+  "agentActions": {
+    "label": "Actions de l’agent",
+    "reconnectDescription": "Redémarre le processus de l’agent et conserve le contexte actuel.",
+    "disabled": {
+      "initializing": "L’agent est en cours d’initialisation.",
+      "busy": "Attendez la fin de la réponse actuelle et des travaux en attente.",
+      "dormant": "Réveillez d’abord ce membre.",
+      "failed": "Réessayez d’abord de démarrer ce membre.",
+      "removing": "Ce membre est en cours de suppression.",
+      "sessionStopped": "La session d’équipe est arrêtée.",
+      "unsupported": "Cet agent ne permet pas de démarrer un nouveau contexte.",
+      "leaderNotTargetable": "Un nouveau contexte ne peut pas être démarré pour le responsable d’équipe."
+    },
+    "contextReset": {
+      "title": "Démarrer un nouveau contexte",
+      "description": "Crée une nouvelle session backend. L’historique et les tâches sont conservés.",
+      "confirmTitle": "Démarrer un nouveau contexte pour {{memberName}} ?",
+      "confirmContent": "La session actuelle de l’agent sera arrêtée et une nouvelle session backend sera créée avec le prochain message. L’historique, les tâches, les fichiers, le modèle et les réglages du membre seront conservés, mais l’agent perdra le contexte de raisonnement de la session précédente.",
+      "confirm": "Démarrer un nouveau contexte",
+      "success": "Un nouveau contexte a été démarré pour {{memberName}}.",
+      "partialSuccess": "Le contexte de {{memberName}} a été réinitialisé, mais l’agent n’a pas redémarré. Utilisez « Réessayer le démarrage ».",
+      "notApplied": "Impossible de démarrer un nouveau contexte. Le contexte actuel a été conservé.",
+      "failed": "Impossible de démarrer un nouveau contexte. Veuillez réessayer."
+    }
+  },
+  "systemNotice": {
+    "sender": "Équipe",
+    "contextResetSuccess": "Un nouveau contexte a été démarré pour {{memberName}}.",
+    "contextResetRuntimeFailed": "Le contexte de {{memberName}} a été réinitialisé, mais l’agent n’a pas redémarré."
+  },
   "view": {
     "label": "Vue",
     "parallel": "Parallèle",

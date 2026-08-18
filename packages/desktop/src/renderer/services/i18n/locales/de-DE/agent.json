@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "Klicken, um dieses Mitglied zu aktivieren"
+  },
+  "runtimeRestart": {
+    "tooltip": "Agent neu verbinden",
+    "confirmContent": "Startet den Agentenprozess neu, damit externe CLI-Konfigurationsänderungen (z. B. Kanalwechsel) übernommen werden. Der Chat-Verlauf bleibt erhalten; die Sitzung wird nach Möglichkeit fortgesetzt.",
+    "success": "Agent neu verbunden",
+    "failed": "Agent konnte nicht neu verbunden werden",
+    "initializingTooltip": "Der Agent wird initialisiert. Verbinden Sie ihn erneut, sobald er bereit ist",
+    "processingTooltip": "Warten Sie auf das Ende der aktuellen Antwort, bevor Sie neu verbinden"
   }
 }

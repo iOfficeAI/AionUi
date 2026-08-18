@@ -73,12 +73,15 @@ import type {
   ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
+  IInterruptTeamAgentParams,
   IPauseTeamSlotParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
+  ITeamInterruptAgentResponse,
   TTeam,
   TeamAssistant,
+  TeamContextResetResponse,
 } from '../types/team/teamTypes';
 import type {
   AutoUpdateReadyResult,
@@ -258,6 +261,17 @@ export const conversation = {
   ),
   ensureRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
+    () => undefined
+  ),
+  /**
+   * Restart the conversation's agent runtime: tears down the cached CLI agent
+   * process (cancelling any active turn) and respawns it, resuming the session
+   * when possible. Chat history is preserved. Used after external CLI config
+   * changes (e.g. a ccswitch channel switch) that a running process cannot
+   * pick up on its own.
+   */
+  restartRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/runtime/restart`,
     () => undefined
   ),
   activeLease: httpPost<void, { conversation_id: string }>(
@@ -2167,6 +2181,14 @@ export const team = {
   getConfigOptions: httpGet<GetConfigOptionsResponse, { team_id: string; conversation_id: string }>(
     (p) => `/api/teams/${p.team_id}/conversations/${encodeURIComponent(p.conversation_id)}/config-options`
   ),
+  setConfigOption: httpPut<
+    SetConfigOptionResponse,
+    { team_id: string; conversation_id: string; option_id: string; value: string }
+  >(
+    (p) =>
+      `/api/teams/${p.team_id}/conversations/${encodeURIComponent(p.conversation_id)}/config-options/${encodeURIComponent(p.option_id)}`,
+    (p): SetConfigOptionRequest => ({ value: p.value })
+  ),
   activeLease: httpPost<void, { team_id: string }>(
     (p) => `/api/teams/${p.team_id}/active-lease`,
     () => undefined
@@ -2174,6 +2196,10 @@ export const team = {
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })
+  ),
+  updateAgentModel: httpPatch<void, { team_id: string; slot_id: string; model_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/model`,
+    (p) => ({ model_id: p.model_id })
   ),
   renameTeam: httpPatch<void, { id: string; name: string }>(
     (p) => `/api/teams/${p.id}/name`,
@@ -2223,8 +2249,29 @@ export const team = {
       files: p.files,
     })
   ),
+  interruptAgent: httpPost<ITeamInterruptAgentResponse, IInterruptTeamAgentParams>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/interrupt`,
+    (p) => ({
+      message: p.input,
+      files: p.files,
+      reason: p.reason,
+      queued_policy: p.queued_policy ?? 'retain',
+    })
+  ),
   attachAgent: httpPost<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/attach`
+  ),
+  /**
+   * Force-restart a team member's agent runtime (kill the cached CLI process
+   * and rebuild it via the team attach chain, preserving the resume anchor).
+   * Synchronous: resolves once the member is Ready again. Returns HTTP 409
+   * with code TEAM_MEMBER_BUSY while the member is mid-reply.
+   */
+  restartAgentRuntime: httpPost<void, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/runtime/restart`
+  ),
+  resetAgentContext: httpPost<TeamContextResetResponse, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/context/reset`
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,

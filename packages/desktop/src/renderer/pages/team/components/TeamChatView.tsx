@@ -13,7 +13,8 @@ import {
   buildTeamStopHandler,
   buildTeamWorkStatusText,
 } from './teamSendRuntime';
-import type { TeamRunViewState } from '../hooks/useTeamRunView';
+import type { TeamSendBoxRuntime } from './teamSendRuntime';
+import type { TeamRunReconcileResult, TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 import { useTeamTabs } from '@/renderer/pages/team/hooks/TeamTabsContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -112,7 +113,8 @@ type TeamChatViewProps = {
   isLeader?: boolean;
   teamRunView?: TeamRunViewState;
   onTeamRunAck?: (ack: ITeamRunAck) => void;
-  onRunStateStale?: () => Promise<boolean>;
+  onRunStateStale?: () => Promise<TeamRunReconcileResult>;
+  onTeamSlotPaused?: (slot_id: string) => void;
 };
 
 /**
@@ -131,6 +133,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   teamRunView = EMPTY_TEAM_RUN_VIEW,
   onTeamRunAck,
   onRunStateStale,
+  onTeamSlotPaused,
 }) => {
   const { t } = useTranslation();
   const { activeSlotId, switchTab } = useTeamTabs();
@@ -190,6 +193,25 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
         sessionStopped: () => t('team.work.sessionStopped', { defaultValue: 'The team session has stopped.' }),
       });
   const isRuntimeFailed = slot_id ? slotWork?.blocked_reason === 'runtime_failed' : false;
+  const interruptAndSend =
+    team_id && slot_id && !isLeader && slotWork?.active_turn_id
+      ? async ({ input, files }: Parameters<NonNullable<TeamSendBoxRuntime['onInterruptSend']>>[0]) => {
+          try {
+            await ipcBridge.team.interruptAgent.invoke({
+              team_id,
+              slot_id,
+              input,
+              files,
+              reason: 'leader_intervention',
+              queued_policy: 'retain',
+            });
+          } catch (error) {
+            console.error('[TeamChatView] interrupt agent failed', error);
+            Message.error(t('team.interruptAgentFailed'));
+            throw error;
+          }
+        }
+      : undefined;
   const teamRuntime =
     team_id && slot_id
       ? {
@@ -203,6 +225,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
               slot_id,
               runView: teamRunView,
               pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+              onStopSucceeded: () => onTeamSlotPaused?.(slot_id),
               onStopFailed: () => {
                 Message.error(
                   t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
@@ -214,6 +237,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           // Only offer "retry start" when this slot's runtime failed; it triggers
           // a directed per-member attach (not warmupSession/ensure_session).
           onRetryStart: isRuntimeFailed ? buildTeamRetryStartHandler({ team_id, slot_id }) : undefined,
+          onInterruptSend: interruptAndSend,
           // Focus coordination: the active tab owns its column's sendbox focus,
           // and focusing that sendbox syncs the active tab back.
           isActive: slot_id === activeSlotId,
