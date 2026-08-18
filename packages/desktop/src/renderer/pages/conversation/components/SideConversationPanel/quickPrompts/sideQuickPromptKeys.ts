@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** i18n keys under `conversation.sideConversation.quickPrompts.*` (≥12 for rotation). */
+/**
+ * i18n keys under `conversation.sideConversation.quickPrompts.*` (20 keys = 5
+ * full rotation windows of 4; each key keeps a distinct intent, no overlaps).
+ */
 export const SIDE_QUICK_PROMPT_KEYS = [
   // 📊 Just came back
-  'currentStatus',
   'catchMeUp',
   'changedFiles',
   // 💡 Don't understand
@@ -16,15 +18,12 @@ export const SIDE_QUICK_PROMPT_KEYS = [
   'explainError',
   // 🛡️ Hesitant to approve
   'safeToContinue',
-  'beforeApproving',
   'confidenceLevel',
   // 😰 Uneasy
   'didIForget',
   'stillWorks',
-  'rippleEffect',
   // 🤔 Doubting the approach
   'isOffTrack',
-  'worthDoing',
   'existingSolution',
   // ⚖️ Facing a choice
   'whichIsBetter',
@@ -33,7 +32,6 @@ export const SIDE_QUICK_PROMPT_KEYS = [
   'moreIdeas',
   'yourWay',
   // 📋 Make it clear
-  'listRisks',
   'useTable',
   'stepByStep',
   // 🎯 Verify
@@ -41,7 +39,6 @@ export const SIDE_QUICK_PROMPT_KEYS = [
   'worstCase',
   // 🗣️ Communicate
   'explainToOthers',
-  'othersPerspective',
 ] as const;
 
 export type SideQuickPromptKey = (typeof SIDE_QUICK_PROMPT_KEYS)[number];

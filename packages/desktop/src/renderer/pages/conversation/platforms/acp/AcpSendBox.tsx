@@ -2,6 +2,7 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError, uuid } from '@/common/utils';
+import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -798,6 +799,7 @@ Please check your local CLI tool authentication status`,
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
+        enableBtw={!isSideMode && isSideQuestionSupported({ type: 'acp', backend })}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
           emitter.emit('acp.selected.file', items, conversation_id);

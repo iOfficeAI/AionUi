@@ -6,8 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
+import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
+import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
@@ -32,7 +34,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
 import { isMacOS } from '@/renderer/utils/platform';
 import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Comments, Plus, Quote } from '@icon-park/react';
+import { CloseSmall, Comments, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
@@ -60,6 +62,7 @@ const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
+const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
 const SIDE_COMMAND_RE = /^\/side(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
@@ -207,6 +210,11 @@ const buildOwnedSelectionItems = (
   return nextItems;
 };
 
+function extractBtwQuestion(value: string): string | null {
+  const match = value.trim().match(BTW_COMMAND_RE);
+  return match ? match[1] || '' : null;
+}
+
 function extractSideSlashQuestion(value: string): string | null {
   const match = value.trim().match(SIDE_COMMAND_RE);
   return match ? match[1] || '' : null;
@@ -244,6 +252,7 @@ const SendBox: React.FC<{
   slash_commands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
+  enableBtw?: boolean;
   /**
    * Side conversation entry for THIS send box. Omit to inherit from the
    * surrounding `SideConversationControlContext` (main chat surface).
@@ -306,6 +315,7 @@ const SendBox: React.FC<{
   slash_commands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
+  enableBtw = false,
   enableSide: enableSideProp,
   onOpenSide: onOpenSideProp,
   conversationScopeId,
@@ -533,6 +543,8 @@ const SendBox: React.FC<{
     Boolean(effectiveEnableSide) && !isSideComposer && !conversationContext?.isSideConversation && !isMobileCompact;
   const effectiveOnOpenSide = onOpenSideProp ?? sideControl?.onOpenSide;
   const sideSlashQuestion = useMemo(() => (canOpenSide ? extractSideSlashQuestion(input) : null), [canOpenSide, input]);
+  const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
+  const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
   // Scoped composer fill: only the side child composer whose conversation id
   // matches consumes the event, then acks so the sender stops retrying.
   // Re-subscribes when the scope changes (side tab switch).
@@ -605,6 +617,15 @@ const SendBox: React.FC<{
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const commands: SlashCommandItem[] = [];
+    if (enableBtw) {
+      commands.push({
+        name: 'btw',
+        description: t('conversation.sideQuestion.description'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
+    }
     if (canOpenSide) {
       commands.push({
         name: 'side',
@@ -635,7 +656,7 @@ const SendBox: React.FC<{
       // kept intact for a future per-platform re-enable.
     }
     return commands;
-  }, [canOpenSide, conversationContext?.conversation_id, onSlashBuiltinCommand, t]);
+  }, [canOpenSide, conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
 
   // Skills loaded into this conversation are also invokable via slash. We reuse
   // the global skills index (shared SWR key `skills-index`) purely to attach a
@@ -727,7 +748,7 @@ const SendBox: React.FC<{
     }
     return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
   }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
-  const isOverlayOpen = isCommandMenuOpen || isAtFileMenuOpen;
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
     const textarea = containerRef.current?.querySelector('textarea');
@@ -1386,6 +1407,26 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (isUploading) return;
+    if (enableBtw && btwQuestion !== null) {
+      const normalizedQuestion = btwQuestion.trim();
+      if (!normalizedQuestion) {
+        message.warning(t('conversation.sideQuestion.emptyQuestion'));
+        return;
+      }
+      if (btwCommand.isLoading) {
+        message.warning(t('conversation.sideQuestion.alreadyRunning'));
+        return;
+      }
+      if (hasPendingAttachments || domSnippets.length > 0) {
+        message.warning(t('conversation.sideQuestion.attachmentsNotAllowed'));
+        return;
+      }
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
+      setInput('');
+      void btwCommand.ask(normalizedQuestion);
+      return;
+    }
     // `/side [question]` opens a forked side thread seeded with the question
     // instead of sending into the main conversation.
     if (canOpenSide && sideSlashQuestion !== null) {
@@ -1733,6 +1774,15 @@ const SendBox: React.FC<{
         }}
         {...dragHandlers}
       >
+        <BtwOverlay
+          answer={btwCommand.answer}
+          anchorEl={containerRef.current}
+          isLoading={btwCommand.isLoading}
+          isOpen={btwCommand.isOpen}
+          onDismiss={btwCommand.dismiss}
+          parentTaskRunning={Boolean(loading || isLoading)}
+          question={btwCommand.question}
+        />
         {isAtFileMenuOpen && (
           <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu

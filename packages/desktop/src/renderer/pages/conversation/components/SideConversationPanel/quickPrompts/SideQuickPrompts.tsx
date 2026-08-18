@@ -5,6 +5,28 @@
  */
 
 import { Button } from '@arco-design/web-react';
+import {
+  Aiming,
+  Attention,
+  Caution,
+  CheckCorrect,
+  Comment,
+  Copy,
+  DocSearch,
+  ErrorPrompt,
+  Exchange,
+  FileText,
+  Helpcenter,
+  Light,
+  MindmapList,
+  Refresh,
+  Shield,
+  SortAmountUp,
+  Success,
+  Table,
+  Target,
+  User,
+} from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,6 +39,34 @@ import styles from './SideQuickPrompts.module.css';
 
 type Props = {
   onPick: (text: string) => void;
+};
+
+/**
+ * Per-prompt category icon. The visible label already carries the meaning, so
+ * icons are decorative (`aria-hidden`) — they exist to make the rotating set
+ * scannable at a glance.
+ */
+const PROMPT_ICONS: Record<SideQuickPromptKey, React.ReactNode> = {
+  catchMeUp: <Refresh />,
+  changedFiles: <FileText />,
+  inPlainTerms: <Helpcenter />,
+  explainSelection: <DocSearch />,
+  explainError: <ErrorPrompt />,
+  safeToContinue: <Shield />,
+  confidenceLevel: <Target />,
+  didIForget: <Attention />,
+  stillWorks: <Success />,
+  isOffTrack: <Aiming />,
+  existingSolution: <Copy />,
+  whichIsBetter: <Exchange />,
+  whyThisApproach: <MindmapList />,
+  moreIdeas: <Light />,
+  yourWay: <User />,
+  useTable: <Table />,
+  stepByStep: <SortAmountUp />,
+  howToVerify: <CheckCorrect />,
+  worstCase: <Caution />,
+  explainToOthers: <Comment />,
 };
 
 function pickVisibleKeys(offset: number): SideQuickPromptKey[] {
@@ -42,8 +92,14 @@ const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.row} role='group' aria-label={t('conversation.sideConversation.quickPrompts.label')}>
-        {visibleKeys.map((key) => {
+      {/* key on the row remounts the chips on rotation so the entrance animation plays. */}
+      <div
+        key={offset}
+        className={styles.row}
+        role='group'
+        aria-label={t('conversation.sideConversation.quickPrompts.label')}
+      >
+        {visibleKeys.map((key, index) => {
           const label = t(`conversation.sideConversation.quickPrompts.${key}`);
           return (
             <Button
@@ -51,10 +107,14 @@ const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
               size='mini'
               type='secondary'
               className={styles.chip}
+              style={{ animationDelay: `${index * 45}ms` }}
               title={label}
               onClick={() => onPick(label)}
             >
-              {label}
+              <span className={styles.chipIcon} aria-hidden='true'>
+                {PROMPT_ICONS[key]}
+              </span>
+              <span className={styles.chipText}>{label}</span>
             </Button>
           );
         })}

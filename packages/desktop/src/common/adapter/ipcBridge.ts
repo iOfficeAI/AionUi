@@ -311,6 +311,10 @@ export const conversation = {
     } | null,
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/usage`),
+  askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/side-question`,
+    (p) => ({ question: p.question })
+  ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
@@ -1896,6 +1900,13 @@ export interface IConversationListChangedEvent {
   action: 'created' | 'updated' | 'deleted';
   source?: string;
 }
+
+export type ConversationSideQuestionResult =
+  | { status: 'ok'; answer: string }
+  | { status: 'noAnswer' }
+  | { status: 'unsupported' }
+  | { status: 'invalid'; reason: 'emptyQuestion' }
+  | { status: 'toolsRequired' };
 
 interface IBridgeResponse<D = {}> {
   success: boolean;
