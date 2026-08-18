@@ -266,3 +266,9 @@
 [dir='rtl'] .rtl-mirror {
   transform: scaleX(-1);
 }
+
+/* LTR islands (paths, file names) inside an RTL layout: pin the text to the
+   page's reading edge. LTR pages keep the island's natural left alignment. */
+[dir='rtl'] .rtl-text-right {
+  text-align: right;
+}
