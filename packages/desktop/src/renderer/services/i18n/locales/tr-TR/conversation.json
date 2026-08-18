@@ -459,22 +459,6 @@
       "genericError": "Sesli giriş başarısız oldu. Lütfen tekrar deneyin"
     }
   },
-  "sideQuestion": {
-    "title": "Kısa Soru",
-    "description": "Mevcut konuşma hakkında hızlı bir yan soru sor",
-    "started": "Yan soru başlatılıyor...",
-    "answered": "Yan soru yanıtlandı.",
-    "noAnswer": "Geçerli konuşma bağlamında net bir yanıt yok.",
-    "loading": "Düşünüyor...",
-    "parentTaskRunning": "Ana görev arka planda çalışmaya devam ediyor.",
-    "dismissHint": "Kapatmak için Escape, Enter veya Space tuşuna basın",
-    "unsupported": "Bu konuşma için yan sorular kullanılamıyor.",
-    "alreadyRunning": "Zaten çalışan bir yan soru var.",
-    "attachmentsNotAllowed": "Yan sorular dosya veya DOM parçacıkları içeremez.",
-    "emptyQuestion": "/btw sonrasına bir soru yazın.",
-    "toolsRequired": "/btw yalnızca bu konuşmada zaten mevcut olan bilgilere dayanarak yanıt verebilir. Arama yapma, göz atma veya yeni bilgi getirme erişimi yoktur.",
-    "error": "Yan soru yanıtlanamadı."
-  },
   "commandQueue": {
     "title": "Taslak kutusu",
     "clear": "Taslak kutusunu temizle",
@@ -751,5 +735,50 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "sideConversation": {
+    "title": "Yan konuşma",
+    "description": "Konuşmayı çatallayıp yan bir iş parçacığında sor",
+    "trigger": "Yan",
+    "placeholder": "Yan iş parçacığında sor…",
+    "reopen": "Yan paneli yeniden aç",
+    "close": "Katla",
+    "closeTab": "Bu yan sekmeyi kapat",
+    "newTab": "Yeni yan sekme",
+    "tabLabel": "Yan {{index}}",
+    "askInSide": "Yan iş parçacığında sor",
+    "promote": "Sakla",
+    "promoteHint": "Bu iş parçacığını geçmişte normal konuşma olarak sakla",
+    "openFailed": "Yan konuşma açılamadı. Konsolu kontrol et veya tekrar dene.",
+    "parentEmpty": "Önce ana konuşmada bir mesaj gönder — yan iş parçacıkları son mesajdan çatallanır.",
+    "quickPrompts": {
+      "label": "Hızlı sorular",
+      "currentStatus": "Ana akışın durumu ne?",
+      "catchMeUp": "Ana akışı özetle",
+      "changedFiles": "Hangi dosyalar değişti?",
+      "inPlainTerms": "Basitçe anlat",
+      "explainSelection": "Bu ne demek?",
+      "explainError": "Hata ne anlama geliyor?",
+      "safeToContinue": "Güvenle devam edebilir miyim?",
+      "beforeApproving": "Onaylamadan önce ne kontrol etmeliyim?",
+      "confidenceLevel": "Ne kadar eminsin?",
+      "didIForget": "Bir şey unuttum mu?",
+      "stillWorks": "Değişikliklerden sonra çalışır mı?",
+      "rippleEffect": "Başka bir şeyi etkiler mi?",
+      "isOffTrack": "Yoldan sapıldı mı?",
+      "worthDoing": "Gerçekten gerekli mi?",
+      "existingSolution": "Hazır bir çözüm var mı?",
+      "whichIsBetter": "Hangi seçenek daha iyi?",
+      "whyThisApproach": "Neden bu yaklaşım?",
+      "moreIdeas": "Başka fikir var mı?",
+      "yourWay": "Sen olsan ne yapardın?",
+      "listRisks": "Riskleri listele",
+      "useTable": "Tablo ile açıkla",
+      "stepByStep": "Adım adım anlat",
+      "howToVerify": "Nasıl doğrularım?",
+      "worstCase": "En kötü senaryo ne?",
+      "explainToOthers": "Başkalarına nasıl açıklarım?",
+      "othersPerspective": "Başkaları nasıl görür?"
+    }
   }
 }

@@ -474,22 +474,6 @@
       "genericError": "Échec de la saisie vocale. Veuillez réessayer"
     }
   },
-  "sideQuestion": {
-    "title": "Question secondaire",
-    "description": "Poser une question rapide sur la conversation actuelle",
-    "started": "Démarrage de la question secondaire...",
-    "answered": "Question secondaire répondue.",
-    "noAnswer": "La question secondaire n'a pas eu de réponse claire dans la conversation actuelle.",
-    "loading": "Réflexion...",
-    "parentTaskRunning": "La tâche principale s'exécute toujours en arrière-plan.",
-    "dismissHint": "Appuyez sur Échap, Entrée ou Espace pour fermer",
-    "unsupported": "Les questions secondaires ne sont pas disponibles pour cette conversation.",
-    "alreadyRunning": "Une question secondaire est déjà en cours.",
-    "attachmentsNotAllowed": "Les questions secondaires ne peuvent pas inclure de fichiers ou de fragments DOM.",
-    "emptyQuestion": "Veuillez entrer une question secondaire après /btw.",
-    "toolsRequired": "/btw ne peut répondre qu'aux questions basées sur ce qui est déjà dans cette conversation. Il n'a pas accès à la recherche, la navigation ou la récupération de nouvelles informations.",
-    "error": "Échec de la réponse à la question secondaire."
-  },
   "commandQueue": {
     "title": "Commandes en file d'attente",
     "clear": "Vider la file",
@@ -749,5 +733,50 @@
     "exited": "Code {{code}}",
     "stop": "Arrêter",
     "truncated": "(sortie antérieure tronquée)"
+  },
+  "sideConversation": {
+    "title": "Conversation latérale",
+    "description": "Bifurquer la conversation et poser une question dans un fil latéral",
+    "trigger": "Latéral",
+    "placeholder": "Poser une question dans le fil latéral…",
+    "reopen": "Rouvrir le panneau latéral",
+    "close": "Replier",
+    "closeTab": "Fermer cet onglet latéral",
+    "newTab": "Nouvel onglet latéral",
+    "tabLabel": "Latéral {{index}}",
+    "askInSide": "Demander dans le fil latéral",
+    "promote": "Conserver",
+    "promoteHint": "Conserver ce fil comme conversation normale dans l’historique",
+    "openFailed": "Impossible d’ouvrir une conversation latérale. Vérifiez la console ou réessayez.",
+    "parentEmpty": "Envoyez d’abord un message dans la conversation principale — les fils latéraux se bifurquent depuis le dernier message.",
+    "quickPrompts": {
+      "label": "Questions rapides",
+      "currentStatus": "C’est où, le statut ?",
+      "catchMeUp": "Remets-moi au courant",
+      "changedFiles": "Quels fichiers ont changé ?",
+      "inPlainTerms": "En termes simples",
+      "explainSelection": "Qu’est-ce que ça veut dire ?",
+      "explainError": "Que signifie l’erreur ?",
+      "safeToContinue": "Peut-on continuer sans risque ?",
+      "beforeApproving": "À vérifier avant de valider",
+      "confidenceLevel": "Tu es sûr à quel point ?",
+      "didIForget": "Ai-je oublié quelque chose ?",
+      "stillWorks": "Ça marchera encore ?",
+      "rippleEffect": "Est-ce que ça impacte autre chose ?",
+      "isOffTrack": "Ça ne déraille pas ?",
+      "worthDoing": "Est-ce vraiment nécessaire ?",
+      "existingSolution": "Y a-t-il une solution existante ?",
+      "whichIsBetter": "Laquelle est la meilleure ?",
+      "whyThisApproach": "Pourquoi cette approche ?",
+      "moreIdeas": "D’autres idées ?",
+      "yourWay": "Toi, tu ferais quoi ?",
+      "listRisks": "Liste les risques",
+      "useTable": "Mets ça en tableau",
+      "stepByStep": "Étape par étape",
+      "howToVerify": "Comment vérifier ?",
+      "worstCase": "Le pire cas ?",
+      "explainToOthers": "Comment l’expliquer aux autres ?",
+      "othersPerspective": "Comment les autres le voient ?"
+    }
   }
 }

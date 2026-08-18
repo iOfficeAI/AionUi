@@ -5,8 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isSideConversationSupported } from '@/common/chat/sideConversation';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
+import { SideConversationControlProvider } from './SideConversationPanel/SideConversationControlContext';
+import { SideConversationDock, useSideConversation } from './SideConversationPanel';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
@@ -145,6 +148,81 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 
+/**
+ * Placeholder parent so the side hook can mount before the conversation
+ * detail loads; the hook's restore effect is a no-op while `id` is empty.
+ */
+const SIDE_PARENT_STUB = {
+  id: '',
+  type: 'acp',
+  name: '',
+  created_at: 0,
+  modified_at: 0,
+  extra: { backend: 'claude' },
+  model: { id: 'side-stub', platform: 'stub', name: 'stub', base_url: '', api_key: '', use_model: 'stub' },
+} as unknown as TChatConversation;
+
+type SideConversationWiring = {
+  enableSide: boolean;
+  sideControlValue: {
+    enableSide: boolean;
+    onOpenSide: (firstQuestion?: string) => void;
+    onAskInSide: (text: string) => void;
+    sideCollapsed: boolean;
+    onReopenSide: () => void;
+  };
+  sideDock: React.ReactNode;
+  sideDockOpen: boolean;
+  side: ReturnType<typeof useSideConversation>;
+};
+
+/**
+ * Side conversation wiring shared by the ACP and Aionrs panels: mounts the
+ * side state hook, builds the control context value for send box / selection
+ * entry points, and derives the dock node ChatLayout renders.
+ */
+const useSideConversationWiring = (
+  conversation: TChatConversation | undefined,
+  isMobile: boolean
+): SideConversationWiring => {
+  const enableSide =
+    Boolean(conversation?.id) &&
+    !isMobile &&
+    isSideConversationSupported({
+      type: conversation.type,
+      fork_capability: conversation.fork_capability,
+    });
+  const side = useSideConversation({ parent: conversation ?? SIDE_PARENT_STUB });
+  const sideControlValue = {
+    enableSide,
+    onOpenSide: (firstQuestion?: string) => {
+      if (firstQuestion?.trim() || side.tabs.length > 0) {
+        void side.openNewTab(firstQuestion);
+      } else {
+        void side.open();
+      }
+    },
+    onAskInSide: (text: string): void => void side.fillComposer(text),
+    sideCollapsed: side.state === 'collapsed',
+    onReopenSide: side.reopen,
+  };
+  const sideDockOpen = side.state === 'empty' || side.state === 'active' || side.state === 'promoted';
+  const sideDock =
+    side.childId && sideDockOpen ? (
+      <SideConversationDock
+        childId={side.childId}
+        tabs={side.tabs}
+        activeTabId={side.activeTabId}
+        onSelectTab={side.selectTab}
+        onCloseTab={(tabId) => void side.discardTab(tabId)}
+        onNewTab={() => void side.openNewTab()}
+        onCollapse={side.collapse}
+        onPromote={() => void side.promote()}
+      />
+    ) : null;
+  return { enableSide, sideControlValue, sideDock, sideDockOpen, side };
+};
+
 const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; sliderTitle: React.ReactNode }> = ({
   conversation,
   sliderTitle,
@@ -201,6 +279,8 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     [runtimeConfig, t]
   );
 
+  const sideWiring = useSideConversationWiring(conversation, isMobile);
+
   const chatLayoutProps = {
     title: conversation.name,
     siderTitle: sliderTitle,
@@ -208,6 +288,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
+        {sideWiring.enableSide && sideWiring.side.state === 'collapsed' && (
+          <Button size='mini' type='text' className='side-btn-text' onClick={sideWiring.side.reopen}>
+            {t('conversation.sideConversation.reopen')}
+          </Button>
+        )}
         {!isMobile && (
           <AionrsModelSelector
             selection={modelSelection}
@@ -232,26 +317,30 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       ?.is_temporary_workspace,
     backend: 'aionrs' as const,
     presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: aionrsAssistantId } : undefined,
+    sideDock: sideWiring.sideDock,
+    sideDockOpen: sideWiring.sideDockOpen,
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
-      <AionrsChat
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        modelSelection={modelSelection}
-        session_mode={conversation.extra?.session_mode}
-        cron_job_id={cronJobId}
-        loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-        loadedMcpStatuses={
-          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-        }
-        agent_name={presetAssistantInfo?.name}
-        assistantId={aionrsAssistantId}
-        forkCapability={conversation.fork_capability}
-      />
-    </ChatLayout>
+    <SideConversationControlProvider value={sideWiring.sideControlValue}>
+      <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
+        <AionrsChat
+          conversation_id={conversation.id}
+          workspace={conversation.extra.workspace}
+          modelSelection={modelSelection}
+          session_mode={conversation.extra?.session_mode}
+          cron_job_id={cronJobId}
+          loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+          loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+          loadedMcpStatuses={
+            (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+          }
+          agent_name={presetAssistantInfo?.name}
+          assistantId={aionrsAssistantId}
+          forkCapability={conversation.fork_capability}
+        />
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 
@@ -276,6 +365,7 @@ const ChatConversation: React.FC<{
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
   const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation?.type);
+  const sideWiring = useSideConversationWiring(conversation, isMobile);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -392,6 +482,13 @@ const ChatConversation: React.FC<{
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
+      {sideWiring.enableSide && sideWiring.side.state === 'collapsed' && (
+        <div className='shrink-0'>
+          <Button size='mini' type='text' className='side-btn-text' onClick={sideWiring.side.reopen}>
+            {t('conversation.sideConversation.reopen')}
+          </Button>
+        </div>
+      )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
       {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
         <div className='shrink-0'>
@@ -405,23 +502,27 @@ const ChatConversation: React.FC<{
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      previewHosted={Boolean(conversation?.project_id)}
-      workspacePath={conversation?.extra?.workspace}
-      workspacePreferenceKey={conversation?.project_id}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    <SideConversationControlProvider value={sideWiring.sideControlValue}>
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        previewHosted={Boolean(conversation?.project_id)}
+        workspacePath={conversation?.extra?.workspace}
+        workspacePreferenceKey={conversation?.project_id}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+        sideDock={sideWiring.sideDock}
+        sideDockOpen={sideWiring.sideDockOpen}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 

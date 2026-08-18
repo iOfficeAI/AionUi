@@ -474,22 +474,6 @@
       "genericError": "Voice input failed. Please try again"
     }
   },
-  "sideQuestion": {
-    "title": "Side Question",
-    "description": "Ask a quick question about the current conversation",
-    "started": "Starting side question...",
-    "answered": "Side question answered.",
-    "noAnswer": "The side question did not have a clear answer in the current conversation.",
-    "loading": "Thinking...",
-    "parentTaskRunning": "Main task still running in the background.",
-    "dismissHint": "Press Escape, Enter, or Space to dismiss",
-    "unsupported": "Side questions are not available for this conversation.",
-    "alreadyRunning": "A side question is already running.",
-    "attachmentsNotAllowed": "Side questions cannot include files or DOM snippets.",
-    "emptyQuestion": "Please enter a side question after /btw.",
-    "toolsRequired": "/btw can only answer questions based on what's already in this conversation. It doesn't have access to search, browse, or fetch new information.",
-    "error": "Failed to answer the side question."
-  },
   "commandQueue": {
     "title": "Draft box",
     "clear": "Clear draft box",
@@ -749,5 +733,50 @@
     "exited": "Exit {{code}}",
     "stop": "Stop",
     "truncated": "(earlier output truncated)"
+  },
+  "sideConversation": {
+    "title": "Side conversation",
+    "description": "Fork the conversation and ask in a side thread",
+    "trigger": "Side",
+    "placeholder": "Ask in the side thread…",
+    "reopen": "Reopen side",
+    "close": "Collapse",
+    "closeTab": "Close this side tab",
+    "newTab": "New side tab",
+    "tabLabel": "Side {{index}}",
+    "askInSide": "Ask in side thread",
+    "promote": "Keep",
+    "promoteHint": "Keep this thread as a normal conversation in history",
+    "openFailed": "Could not open a side conversation. Check the console or try again.",
+    "parentEmpty": "Send a message in the main conversation first — side threads fork from the latest message.",
+    "quickPrompts": {
+      "label": "Side quick prompts",
+      "currentStatus": "What's the status?",
+      "catchMeUp": "Catch me up",
+      "changedFiles": "What files were changed?",
+      "inPlainTerms": "In plain terms",
+      "explainSelection": "What does this mean?",
+      "explainError": "What does the error mean?",
+      "safeToContinue": "Is it safe to continue?",
+      "beforeApproving": "What to check before approving",
+      "confidenceLevel": "How confident are you?",
+      "didIForget": "Did I forget anything?",
+      "stillWorks": "Will it still work?",
+      "rippleEffect": "Will this affect anything else?",
+      "isOffTrack": "Is it going off track?",
+      "worthDoing": "Is this really necessary?",
+      "existingSolution": "Is there an existing solution?",
+      "whichIsBetter": "Which of these is better?",
+      "whyThisApproach": "Why this approach?",
+      "moreIdeas": "What other ideas are there?",
+      "yourWay": "What would you do?",
+      "listRisks": "List the risks",
+      "useTable": "Put it in a table",
+      "stepByStep": "Step by step",
+      "howToVerify": "How do I verify this?",
+      "worstCase": "What's the worst case?",
+      "explainToOthers": "How to explain this to others?",
+      "othersPerspective": "How would others see this?"
+    }
   }
 }

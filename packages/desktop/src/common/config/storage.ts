@@ -148,6 +148,23 @@ export type TConversationAssistantIdentity = {
   backend: string;
 };
 
+/**
+ * Side-conversation marker fields riding `extra`. Renderer-minted via
+ * `conversation.update` (`merge_extra: true`) right after a native fork:
+ * `side_mode` distinguishes docked side threads from user-visible "fork to
+ * new conversation" forks, and `ephemeral` keeps unpromoted threads out of
+ * the history list. `active_side_id` / `side_panel_hidden` are parent-side UI
+ * state (active tab + dock collapse) persisted on the parent row.
+ */
+export type SideConversationExtra = {
+  parent_conversation_id?: string;
+  side_mode?: boolean;
+  ephemeral?: boolean;
+  forked_at_msg_id?: string;
+  active_side_id?: string;
+  side_panel_hidden?: boolean;
+};
+
 interface IChatConversation<T, Extra> {
   created_at: number;
   modified_at: number;
@@ -155,7 +172,7 @@ interface IChatConversation<T, Extra> {
   desc?: string;
   id: string;
   type: T;
-  extra: Extra;
+  extra: Extra & SideConversationExtra;
   model: TProviderWithModel;
   status?: TChatConversationStatus | undefined;
   runtime?: TConversationRuntimeSummary;

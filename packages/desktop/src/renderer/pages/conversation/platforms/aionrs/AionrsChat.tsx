@@ -41,6 +41,10 @@ const AionrsChat: React.FC<{
   teamRuntime?: TeamSendBoxRuntime;
   assistantId?: string;
   forkCapability?: { at_turn: boolean };
+  /** Side-dock mode: compact paddings, composer prefix slot, side send box. */
+  isSideMode?: boolean;
+  /** Rendered above the send box (side dock quick prompts). */
+  composerPrefix?: React.ReactNode;
 }> = ({
   conversation_id,
   workspace,
@@ -56,6 +60,8 @@ const AionrsChat: React.FC<{
   teamRuntime,
   assistantId,
   forkCapability,
+  isSideMode = false,
+  composerPrefix,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -74,6 +80,7 @@ const AionrsChat: React.FC<{
       loadedMcpStatuses,
       assistantId,
       forkCapability,
+      isSideConversation: isSideMode,
     };
   }, [
     conversation_id,
@@ -84,15 +91,19 @@ const AionrsChat: React.FC<{
     loadedMcpStatuses,
     assistantId,
     forkCapability,
+    isSideMode,
   ]);
 
   return (
     <ConversationProvider value={conversationValue}>
       <ConversationArtifactProvider conversation_id={conversation_id}>
-        <div className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col px-20px min-h-0`}>
+        <div
+          className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col ${isSideMode ? 'px-12px' : 'px-20px'} min-h-0`}
+        >
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
+          {composerPrefix}
           <AionrsSendBox
             conversation_id={conversation_id}
             modelSelection={modelSelection}
@@ -100,6 +111,7 @@ const AionrsChat: React.FC<{
             agent_name={agent_name}
             teamSendMessage={teamSendMessage}
             teamRuntime={teamRuntime}
+            isSideMode={isSideMode}
           />
         </div>
       </ConversationArtifactProvider>

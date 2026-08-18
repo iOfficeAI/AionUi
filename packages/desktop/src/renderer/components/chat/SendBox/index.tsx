@@ -6,13 +6,12 @@
 
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
-import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
-import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useSideConversationControlSafe } from '@/renderer/pages/conversation/components/SideConversationPanel/SideConversationControlContext';
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
@@ -61,7 +60,7 @@ const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
-const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+const SIDE_COMMAND_RE = /^\/side(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
@@ -208,8 +207,8 @@ const buildOwnedSelectionItems = (
   return nextItems;
 };
 
-function extractBtwQuestion(value: string): string | null {
-  const match = value.trim().match(BTW_COMMAND_RE);
+function extractSideSlashQuestion(value: string): string | null {
+  const match = value.trim().match(SIDE_COMMAND_RE);
   return match ? match[1] || '' : null;
 }
 
@@ -245,7 +244,19 @@ const SendBox: React.FC<{
   slash_commands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
-  enableBtw?: boolean;
+  /**
+   * Side conversation entry for THIS send box. Omit to inherit from the
+   * surrounding `SideConversationControlContext` (main chat surface).
+   */
+  enableSide?: boolean;
+  onOpenSide?: (firstQuestion?: string) => void;
+  /**
+   * When set, this instance is the only handler for scoped composer fills
+   * targeting this conversation (side dock child composers).
+   */
+  conversationScopeId?: string;
+  /** Marks this box as a side-dock child composer (no nested side triggers). */
+  isSideComposer?: boolean;
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
@@ -295,7 +306,10 @@ const SendBox: React.FC<{
   slash_commands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
-  enableBtw = false,
+  enableSide: enableSideProp,
+  onOpenSide: onOpenSideProp,
+  conversationScopeId,
+  isSideComposer = false,
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
@@ -483,8 +497,40 @@ const SendBox: React.FC<{
     t,
     messageApi: message,
   });
-  const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
-  const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  // Side conversation entry: an explicit prop wins (direct wiring), otherwise
+  // inherit from the surface's SideConversationControlContext. Side-dock child
+  // composers and already-side surfaces never open nested side threads.
+  const sideControl = useSideConversationControlSafe();
+  const effectiveEnableSide = enableSideProp || sideControl?.enableSide;
+  const canOpenSide =
+    Boolean(effectiveEnableSide) && !isSideComposer && !conversationContext?.isSideConversation && !isMobileCompact;
+  const effectiveOnOpenSide = onOpenSideProp ?? sideControl?.onOpenSide;
+  const sideSlashQuestion = useMemo(() => (canOpenSide ? extractSideSlashQuestion(input) : null), [canOpenSide, input]);
+  // Scoped composer fill: only the side child composer whose conversation id
+  // matches consumes the event, then acks so the sender stops retrying.
+  // Re-subscribes when the scope changes (side tab switch).
+  useAddEventListener(
+    'sendbox.fill.scoped',
+    ({ conversation_id, text }) => {
+      if (!conversationScopeId || conversation_id !== conversationScopeId) return;
+      setInputRef.current(text);
+      setIsSingleLine(false);
+      emitter.emit('sendbox.fill.scoped.handled', { conversation_id, text });
+    },
+    [conversationScopeId]
+  );
+  // Ctrl/Cmd + Shift + S opens the side conversation dock.
+  useEffect(() => {
+    if (!canOpenSide || !effectiveOnOpenSide) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.shiftKey && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        effectiveOnOpenSide();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canOpenSide, effectiveOnOpenSide]);
   const activeAtFileQuery = useMemo(() => {
     if (!conversationContext?.workspace) {
       return null;
@@ -532,10 +578,10 @@ const SendBox: React.FC<{
 
   const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
     const commands: SlashCommandItem[] = [];
-    if (enableBtw) {
+    if (canOpenSide) {
       commands.push({
-        name: 'btw',
-        description: t('conversation.sideQuestion.description'),
+        name: 'side',
+        description: t('conversation.sideConversation.description'),
         kind: 'builtin',
         source: 'builtin',
         selectionBehavior: 'insert',
@@ -562,7 +608,7 @@ const SendBox: React.FC<{
       // kept intact for a future per-platform re-enable.
     }
     return commands;
-  }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
+  }, [canOpenSide, conversationContext?.conversation_id, onSlashBuiltinCommand, t]);
 
   // Skills loaded into this conversation are also invokable via slash. We reuse
   // the global skills index (shared SWR key `skills-index`) purely to attach a
@@ -654,7 +700,7 @@ const SendBox: React.FC<{
     }
     return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
   }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
-  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
+  const isOverlayOpen = isCommandMenuOpen || isAtFileMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
     const textarea = containerRef.current?.querySelector('textarea');
@@ -1313,24 +1359,14 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (isUploading) return;
-    if (enableBtw && btwQuestion !== null) {
-      const normalizedQuestion = btwQuestion.trim();
-      if (!normalizedQuestion) {
-        message.warning(t('conversation.sideQuestion.emptyQuestion'));
-        return;
-      }
-      if (btwCommand.isLoading) {
-        message.warning(t('conversation.sideQuestion.alreadyRunning'));
-        return;
-      }
-      if (hasPendingAttachments || domSnippets.length > 0) {
-        message.warning(t('conversation.sideQuestion.attachmentsNotAllowed'));
-        return;
-      }
+    // `/side [question]` opens a forked side thread seeded with the question
+    // instead of sending into the main conversation.
+    if (canOpenSide && sideSlashQuestion !== null) {
+      const question = sideSlashQuestion.trim();
       historyDraftRef.current = null;
       setHistoryNavigationIndex(null);
       setInput('');
-      void btwCommand.ask(normalizedQuestion);
+      void effectiveOnOpenSide?.(question || undefined);
       return;
     }
 
@@ -1571,7 +1607,24 @@ const SendBox: React.FC<{
   // On mobile compact mode, the parent supplies the action sheet — collapse
   // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
-  const renderedRightTools = isMobileCompact ? null : rightTools;
+  const sideTriggerButton =
+    canOpenSide && effectiveOnOpenSide ? (
+      <Button
+        size='mini'
+        type='text'
+        className='side-btn-text'
+        onClick={() => void effectiveOnOpenSide()}
+        aria-label={t('conversation.sideConversation.trigger')}
+      >
+        {t('conversation.sideConversation.trigger')}
+      </Button>
+    ) : null;
+  const renderedRightTools = isMobileCompact ? null : (
+    <>
+      {sideTriggerButton}
+      {rightTools}
+    </>
+  );
   const renderedSpeechButton = (
     <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
@@ -1631,7 +1684,11 @@ const SendBox: React.FC<{
       )}
       <div
         ref={containerRef}
-        className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
+        className={
+          isSideComposer
+            ? `sendbox-panel sendbox-panel--side relative flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`
+            : `sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`
+        }
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
@@ -1648,15 +1705,6 @@ const SendBox: React.FC<{
         }}
         {...dragHandlers}
       >
-        <BtwOverlay
-          answer={btwCommand.answer}
-          anchorEl={containerRef.current}
-          isLoading={btwCommand.isLoading}
-          isOpen={btwCommand.isOpen}
-          onDismiss={btwCommand.dismiss}
-          parentTaskRunning={Boolean(loading || isLoading)}
-          question={btwCommand.question}
-        />
         {isAtFileMenuOpen && (
           <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu

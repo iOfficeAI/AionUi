@@ -7,10 +7,12 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { emitter } from '@/renderer/utils/emitter';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useSideConversationControlSafe } from '@/renderer/pages/conversation/components/SideConversationPanel/SideConversationControlContext';
 import { useOptionalPreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveSelectionHttpUrl } from '@/renderer/utils/url';
-import { Browser, Earth, Quote } from '@icon-park/react';
+import { Browser, Communication, Earth, Quote } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -82,7 +84,13 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const preview = useOptionalPreviewContext();
+  const conversationContext = useConversationContextSafe();
+  const sideControl = useSideConversationControlSafe();
   const isMobile = layout?.isMobile ?? false;
+  // Ask in side fills the side composer — never offered inside a side thread.
+  const showAskInSide = Boolean(
+    sideControl?.enableSide && sideControl.onAskInSide && !conversationContext?.isSideConversation
+  );
   const [pos, setPos] = useState<ReplyPos | null>(null);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -198,6 +206,19 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         <Quote theme='outline' size='14' fill='currentColor' />
         <span className='text-12px font-medium'>{t('common.reply', { defaultValue: 'Reply' })}</span>
       </div>
+      {showAskInSide && (
+        <div
+          className={itemClassName}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            sideControl?.onAskInSide?.(pos.text);
+            dismiss();
+          }}
+        >
+          <Communication theme='outline' size='14' fill='currentColor' />
+          <span className='text-12px font-medium'>{t('conversation.sideConversation.askInSide')}</span>
+        </div>
+      )}
       {url && preview && (
         <div
           className={itemClassName}

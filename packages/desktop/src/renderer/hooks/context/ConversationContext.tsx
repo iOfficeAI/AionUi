@@ -76,6 +76,13 @@ export interface ConversationContextValue {
    * attachments reach the agent as file paths, and the send box hints so.
    */
   promptCapability?: { image: boolean; audio: boolean };
+
+  /**
+   * Ephemeral side-thread composer — set by the side dock when this surface
+   * renders a forked side child. Disables nested side triggers in the send
+   * box and selection UI.
+   */
+  isSideConversation?: boolean;
 }
 
 /**

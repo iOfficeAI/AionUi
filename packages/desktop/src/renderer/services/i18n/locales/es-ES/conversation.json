@@ -475,22 +475,6 @@
       "genericError": "Error en la entrada de voz. Por favor intenta de nuevo"
     }
   },
-  "sideQuestion": {
-    "title": "Pregunta lateral",
-    "description": "Haz una pregunta rápida sobre la conversación actual",
-    "started": "Iniciando pregunta lateral...",
-    "answered": "Pregunta lateral respondida.",
-    "noAnswer": "La pregunta lateral no tuvo una respuesta clara en la conversación actual.",
-    "loading": "Pensando...",
-    "parentTaskRunning": "La tarea principal aún se está ejecutando en segundo plano.",
-    "dismissHint": "Presiona Escape, Enter o Espacio para cerrar",
-    "unsupported": "Las preguntas laterales no están disponibles para esta conversación.",
-    "alreadyRunning": "Ya hay una pregunta lateral en ejecución.",
-    "attachmentsNotAllowed": "Las preguntas laterales no pueden incluir archivos o fragmentos DOM.",
-    "emptyQuestion": "Por favor ingresa una pregunta lateral después de /btw.",
-    "toolsRequired": "/btw solo puede responder preguntas basadas en lo que ya está en esta conversación. No tiene acceso a buscar, navegar u obtener nueva información.",
-    "error": "Error al responder la pregunta lateral."
-  },
   "commandQueue": {
     "title": "Borradores",
     "clear": "Vaciar borradores",
@@ -750,5 +734,50 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "sideConversation": {
+    "title": "Conversación lateral",
+    "description": "Bifurcar la conversación y preguntar en un hilo lateral",
+    "trigger": "Lateral",
+    "placeholder": "Pregunta en el hilo lateral…",
+    "reopen": "Reabrir lateral",
+    "close": "Plegar",
+    "closeTab": "Cerrar esta pestaña lateral",
+    "newTab": "Nueva pestaña lateral",
+    "tabLabel": "Lateral {{index}}",
+    "askInSide": "Preguntar en hilo lateral",
+    "promote": "Conservar",
+    "promoteHint": "Conservar este hilo como conversación normal en el historial",
+    "openFailed": "No se pudo abrir la conversación lateral. Revisa la consola o inténtalo de nuevo.",
+    "parentEmpty": "Envía primero un mensaje en la conversación principal: los hilos laterales se bifurcan desde el último mensaje.",
+    "quickPrompts": {
+      "label": "Preguntas rápidas",
+      "currentStatus": "¿Cuál es el estado?",
+      "catchMeUp": "Ponme al día",
+      "changedFiles": "¿Qué archivos cambiaron?",
+      "inPlainTerms": "En términos llanos",
+      "explainSelection": "¿Qué significa esto?",
+      "explainError": "¿Qué significa el error?",
+      "safeToContinue": "¿Es seguro continuar?",
+      "beforeApproving": "Qué revisar antes de aprobar",
+      "confidenceLevel": "¿Cuánta confianza tienes?",
+      "didIForget": "¿Olvidé algo?",
+      "stillWorks": "¿Seguirá funcionando?",
+      "rippleEffect": "¿Afectará a algo más?",
+      "isOffTrack": "¿Se está desviando?",
+      "worthDoing": "¿Es realmente necesario?",
+      "existingSolution": "¿Existe una solución previa?",
+      "whichIsBetter": "¿Cuál opción es mejor?",
+      "whyThisApproach": "¿Por qué este enfoque?",
+      "moreIdeas": "¿Qué otras ideas hay?",
+      "yourWay": "¿Qué harías tú?",
+      "listRisks": "Enumera los riesgos",
+      "useTable": "Ponlo en una tabla",
+      "stepByStep": "Paso a paso",
+      "howToVerify": "¿Cómo lo verifico?",
+      "worstCase": "¿El peor caso?",
+      "explainToOthers": "Cómo explicarlo a otros",
+      "othersPerspective": "¿Cómo lo verían otros?"
+    }
   }
 }

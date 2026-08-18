@@ -474,22 +474,6 @@
       "genericError": "音声入力に失敗しました。もう一度お試しください"
     }
   },
-  "sideQuestion": {
-    "title": "ちょっと質問",
-    "description": "現在の会話について短い補足質問をする",
-    "started": "補足質問を開始しています...",
-    "answered": "補足質問に回答しました。",
-    "noAnswer": "現在の会話コンテキストには明確な答えがありません。",
-    "loading": "考え中...",
-    "parentTaskRunning": "メインのタスクはバックグラウンドで実行中です。",
-    "dismissHint": "Escape、Enter、Space で閉じる",
-    "unsupported": "この会話では補足質問を利用できません。",
-    "alreadyRunning": "補足質問はすでに実行中です。",
-    "attachmentsNotAllowed": "補足質問にはファイルや DOM スニペットを含められません。",
-    "emptyQuestion": "/btw の後に質問を入力してください。",
-    "toolsRequired": "/btw はこの会話にすでにある内容に基づいてのみ回答できます。検索や閲覧、新しい情報の取得はできません。",
-    "error": "補足質問への回答に失敗しました。"
-  },
   "commandQueue": {
     "title": "ドラフトボックス",
     "clear": "ドラフトボックスをクリア",
@@ -749,5 +733,50 @@
     "exited": "終了コード {{code}}",
     "stop": "停止",
     "truncated": "(以前の出力は切り捨て)"
+  },
+  "sideConversation": {
+    "title": "サイド会話",
+    "description": "会話をフォークしてサイドスレッドで質問",
+    "trigger": "サイド",
+    "placeholder": "サイドスレッドで質問…",
+    "reopen": "サイドを再表示",
+    "close": "折りたたむ",
+    "closeTab": "このサイドタブを閉じる",
+    "newTab": "新しいサイドタブ",
+    "tabLabel": "サイド {{index}}",
+    "askInSide": "サイドスレッドで質問",
+    "promote": "保持",
+    "promoteHint": "このスレッドを履歴に通常の会話として残す",
+    "openFailed": "サイド会話を開けませんでした。コンソールを確認するか再試行してください。",
+    "parentEmpty": "まずメイン会話でメッセージを送信してください — サイドスレッドは最新メッセージから分岐します。",
+    "quickPrompts": {
+      "label": "サイドクイック質問",
+      "currentStatus": "メインスレッドの状況は？",
+      "catchMeUp": "メインスレッドを振り返って",
+      "changedFiles": "どのファイルが変更された？",
+      "inPlainTerms": "わかりやすく言って",
+      "explainSelection": "ここどういう意味？",
+      "explainError": "エラーの意味は？",
+      "safeToContinue": "安心して進めていい？",
+      "beforeApproving": "承認前に確認すべきこと",
+      "confidenceLevel": "どのくらい自信がある？",
+      "didIForget": "何か忘れてない？",
+      "stillWorks": "変更後も動く？",
+      "rippleEffect": "他に影響しない？",
+      "isOffTrack": "方向がずれてない？",
+      "worthDoing": "本当にやる必要ある？",
+      "existingSolution": "既存の方法はない？",
+      "whichIsBetter": "どの案がいい？",
+      "whyThisApproach": "なぜこの方法？",
+      "moreIdeas": "他にアイデアは？",
+      "yourWay": "あなたならどうする？",
+      "listRisks": "リスクを列挙して",
+      "useTable": "表でまとめて",
+      "stepByStep": "順を追って説明して",
+      "howToVerify": "どうやって検証する？",
+      "worstCase": "最悪のケースは？",
+      "explainToOthers": "他人にどう説明する？",
+      "othersPerspective": "他人はどう見る？"
+    }
   }
 }

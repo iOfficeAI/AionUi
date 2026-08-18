@@ -474,22 +474,6 @@
       "genericError": "음성 입력에 실패했습니다. 다시 시도해 주세요"
     }
   },
-  "sideQuestion": {
-    "title": "잠깐 질문",
-    "description": "현재 대화에 대해 짧은 보조 질문을 합니다",
-    "started": "보조 질문을 시작하는 중...",
-    "answered": "보조 질문에 답변했습니다.",
-    "noAnswer": "현재 대화 맥락에는 분명한 답이 없습니다.",
-    "loading": "생각 중...",
-    "parentTaskRunning": "메인 작업은 백그라운드에서 계속 실행 중입니다.",
-    "dismissHint": "Escape, Enter, Space로 닫기",
-    "unsupported": "이 대화에서는 보조 질문을 사용할 수 없습니다.",
-    "alreadyRunning": "보조 질문이 이미 실행 중입니다.",
-    "attachmentsNotAllowed": "보조 질문에는 파일이나 DOM 스니펫을 첨부할 수 없습니다.",
-    "emptyQuestion": "/btw 뒤에 질문을 입력해 주세요.",
-    "toolsRequired": "/btw는 이 대화에 이미 있는 내용만으로 답변할 수 있습니다. 검색, 탐색 또는 새로운 정보를 가져올 수 없습니다.",
-    "error": "보조 질문에 답하지 못했습니다."
-  },
   "commandQueue": {
     "title": "임시함",
     "clear": "임시함 비우기",
@@ -749,5 +733,50 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "sideConversation": {
+    "title": "사이드 대화",
+    "description": "대화를 포크해 사이드 스레드에서 질문",
+    "trigger": "사이드",
+    "placeholder": "사이드 스레드에서 질문…",
+    "reopen": "사이드 다시 열기",
+    "close": "접기",
+    "closeTab": "이 사이드 탭 닫기",
+    "newTab": "새 사이드 탭",
+    "tabLabel": "사이드 {{index}}",
+    "askInSide": "사이드 스레드에서 질문",
+    "promote": "보관",
+    "promoteHint": "이 스레드를 기록의 일반 대화로 보관",
+    "openFailed": "사이드 대화를 열지 못했습니다. 콘솔을 확인하거나 다시 시도하세요.",
+    "parentEmpty": "먼저 메인 대화에 메시지를 보내세요 — 사이드 스레드는 최신 메시지에서 분기합니다.",
+    "quickPrompts": {
+      "label": "사이드 빠른 질문",
+      "currentStatus": "메인 스레드 상황 어때?",
+      "catchMeUp": "메인 스레드 요약해줘",
+      "changedFiles": "어떤 파일이 바뀌었어?",
+      "inPlainTerms": "쉽게 설명해줘",
+      "explainSelection": "이거 무슨 뜻이야?",
+      "explainError": "에러가 무슨 뜻이야?",
+      "safeToContinue": "계속 진행해도 될까?",
+      "beforeApproving": "승인 전에 봐야 할 것",
+      "confidenceLevel": "얼마나 확신해?",
+      "didIForget": "놓친 거 없어?",
+      "stillWorks": "바꾸고도 잘 돌아가?",
+      "rippleEffect": "다른 곳에 영향 없어?",
+      "isOffTrack": "방향이 틀린 건 아닌가?",
+      "worthDoing": "꼭 해야 하는 거야?",
+      "existingSolution": "기존 방법 없어?",
+      "whichIsBetter": "어떤 방안이 나아?",
+      "whyThisApproach": "왜 이 방법이야?",
+      "moreIdeas": "다른 아이디어 있어?",
+      "yourWay": "너라면 어떻게 할래?",
+      "listRisks": "리스크 정리해줘",
+      "useTable": "표로 정리해줘",
+      "stepByStep": "하나씩 설명해줘",
+      "howToVerify": "어떻게 검증해?",
+      "worstCase": "최악의 경우는?",
+      "explainToOthers": "남에게 어떻게 설명해?",
+      "othersPerspective": "남들은 어떻게 볼까?"
+    }
   }
 }

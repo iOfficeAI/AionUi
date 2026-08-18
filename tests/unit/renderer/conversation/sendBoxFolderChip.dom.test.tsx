@@ -102,17 +102,6 @@ vi.mock('@/renderer/hooks/file/useConversationExport', () => ({
   }),
 }));
 
-vi.mock('@/renderer/components/chat/BtwOverlay/useBtwCommand', () => ({
-  useBtwCommand: () => ({
-    answer: '',
-    question: '',
-    isLoading: false,
-    isOpen: false,
-    ask: vi.fn(),
-    dismiss: vi.fn(),
-  }),
-}));
-
 vi.mock('@/renderer/hooks/file/useDragUpload', () => ({
   useDragUpload: () => ({ isFileDragging: false, dragHandlers: {} }),
 }));
@@ -140,7 +129,6 @@ vi.mock('@/renderer/hooks/system/useLiveTranscriptInsertion', async (importOrigi
 // NOTE: the emitter is intentionally NOT mocked — this test drives the real
 // append lane end to end.
 
-vi.mock('@/renderer/components/chat/BtwOverlay', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/SpeechInputButton', () => ({ default: () => null }));
 vi.mock('@/renderer/components/media/UploadProgressBar', () => ({ default: () => null }));
 

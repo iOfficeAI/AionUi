@@ -1,7 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
@@ -110,7 +109,18 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
+  /** Side-dock mode: compact layout, scoped composer fill, no side triggers. */
+  isSideMode?: boolean;
+}> = ({
+  conversation_id,
+  backend,
+  session_mode,
+  agent_name,
+  messageState,
+  teamSendMessage,
+  teamRuntime,
+  isSideMode = false,
+}) => {
   const {
     aiProcessing,
     setAiProcessing,
@@ -757,7 +767,11 @@ Please check your local CLI tool authentication status`,
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
-    <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
+    <div
+      className={
+        isSideMode ? 'w-full flex flex-col mt-auto mb-12px' : `${sendBoxWidthClass} flex flex-col mt-auto mb-16px`
+      }
+    >
       <CommandQueuePanel
         items={queuedCommands}
         mode={queueMode}
@@ -802,15 +816,20 @@ Please check your local CLI tool authentication status`,
               })
             : undefined
         }
-        placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || backend,
-          defaultValue: `Send message to {{backend}}...`,
-        })}
+        placeholder={
+          isSideMode
+            ? t('conversation.sideConversation.placeholder')
+            : t('acp.sendbox.placeholder', {
+                backend: agent_name || backend,
+                defaultValue: `Send message to {{backend}}...`,
+              })
+        }
         onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
-        enableBtw={isSideQuestionSupported({ type: 'acp', backend })}
+        conversationScopeId={isSideMode ? conversation_id : undefined}
+        isSideComposer={isSideMode}
         supportedExts={allSupportedExts}
         defaultMultiLine={!isMobile}
         lockMultiLine={!isMobile}
@@ -885,7 +904,8 @@ Please check your local CLI tool authentication status`,
         slash_commands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
-        compactActions={false}
+        compactActions={isSideMode}
+        bottomHint={isSideMode ? '' : undefined}
         sendButtonPrefix={
           // Agents reporting a window size (UsageUpdate.size) get a progress
           // ring; agents reporting only a token count get a hollow ring whose

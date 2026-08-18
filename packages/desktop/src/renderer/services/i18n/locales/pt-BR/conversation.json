@@ -480,22 +480,6 @@
       "genericError": "Falha na entrada de voz. Por favor, tente novamente"
     }
   },
-  "sideQuestion": {
-    "title": "Pergunta Paralela",
-    "description": "Faça uma pergunta rápida sobre a conversa atual",
-    "started": "Iniciando a pergunta paralela...",
-    "answered": "Pergunta paralela respondida.",
-    "noAnswer": "A pergunta paralela não teve uma resposta clara na conversa atual.",
-    "loading": "Pensando...",
-    "parentTaskRunning": "A tarefa principal ainda está executando no plano de fundo.",
-    "dismissHint": "Pressione Esc, Enter, ou Espaço para dispensar",
-    "unsupported": "As perguntas paralelas não estão disponíveis para esta conversa.",
-    "alreadyRunning": "Uma pergunta paralela já está em execução.",
-    "attachmentsNotAllowed": "Perguntas paralelas não podem incluir arquivos ou trechos do DOM.",
-    "emptyQuestion": "Por favor, digite uma pergunta paralela depois de /btw.",
-    "toolsRequired": "O /btw apenas pode responder perguntas com base no que já está na conversa. Ele não tem acesso a busca, navegação ou extração de novas informações.",
-    "error": "Falha ao responder à pergunta paralela."
-  },
   "commandQueue": {
     "title": "Rascunhos",
     "clear": "Limpar rascunhos",
@@ -755,5 +739,50 @@
     "exited": "Saída {{code}}",
     "stop": "Parar",
     "truncated": "(saída anterior truncada)"
+  },
+  "sideConversation": {
+    "title": "Conversa lateral",
+    "description": "Bifurcar a conversa e perguntar em uma thread lateral",
+    "trigger": "Lateral",
+    "placeholder": "Pergunte na thread lateral…",
+    "reopen": "Reabrir lateral",
+    "close": "Recolher",
+    "closeTab": "Fechar esta aba lateral",
+    "newTab": "Nova aba lateral",
+    "tabLabel": "Lateral {{index}}",
+    "askInSide": "Perguntar na thread lateral",
+    "promote": "Manter",
+    "promoteHint": "Manter esta thread como conversa normal no histórico",
+    "openFailed": "Não foi possível abrir uma conversa lateral. Verifique o console ou tente novamente.",
+    "parentEmpty": "Envie primeiro uma mensagem na conversa principal — as threads laterais bifurcam a partir da última mensagem.",
+    "quickPrompts": {
+      "label": "Perguntas rápidas",
+      "currentStatus": "Qual o status?",
+      "catchMeUp": "Me coloca em dia",
+      "changedFiles": "Quais arquivos mudaram?",
+      "inPlainTerms": "Em termos simples",
+      "explainSelection": "O que isso significa?",
+      "explainError": "O que significa o erro?",
+      "safeToContinue": "É seguro continuar?",
+      "beforeApproving": "O que verificar antes de aprovar",
+      "confidenceLevel": "Qual sua confiança?",
+      "didIForget": "Esqueci algo?",
+      "stillWorks": "Vai continuar funcionando?",
+      "rippleEffect": "Isso afeta algo mais?",
+      "isOffTrack": "Está saindo do trilho?",
+      "worthDoing": "Isso é realmente necessário?",
+      "existingSolution": "Existe solução pronta?",
+      "whichIsBetter": "Qual opção é melhor?",
+      "whyThisApproach": "Por que essa abordagem?",
+      "moreIdeas": "Que outras ideias?",
+      "yourWay": "O que você faria?",
+      "listRisks": "Liste os riscos",
+      "useTable": "Coloque em uma tabela",
+      "stepByStep": "Passo a passo",
+      "howToVerify": "Como verifico?",
+      "worstCase": "O pior caso?",
+      "explainToOthers": "Como explicar aos outros?",
+      "othersPerspective": "Como os outros veriam?"
+    }
   }
 }

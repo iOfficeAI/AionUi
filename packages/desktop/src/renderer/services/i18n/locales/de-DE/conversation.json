@@ -475,22 +475,6 @@
       "genericError": "Spracheingabe fehlgeschlagen. Bitte erneut versuchen"
     }
   },
-  "sideQuestion": {
-    "title": "Nebenfrage",
-    "description": "Eine kurze Frage zum aktuellen Gespräch stellen",
-    "started": "Nebenfrage wird gestartet...",
-    "answered": "Nebenfrage beantwortet.",
-    "noAnswer": "Die Nebenfrage hatte keine klare Antwort im aktuellen Gespräch.",
-    "loading": "Wird gedacht...",
-    "parentTaskRunning": "Hauptaufgabe läuft noch im Hintergrund.",
-    "dismissHint": "Escape, Enter oder Leertaste zum Schließen drücken",
-    "unsupported": "Nebenfragen sind für dieses Gespräch nicht verfügbar.",
-    "alreadyRunning": "Eine Nebenfrage läuft bereits.",
-    "attachmentsNotAllowed": "Nebenfragen können keine Dateien oder DOM-Snippets enthalten.",
-    "emptyQuestion": "Bitte eine Nebenfrage nach /btw eingeben.",
-    "toolsRequired": "/btw kann nur Fragen basierend auf dem beantworten, was bereits in diesem Gespräch vorhanden ist. Es hat keinen Zugriff auf Suche, Browsen oder neue Informationen.",
-    "error": "Nebenfrage konnte nicht beantwortet werden."
-  },
   "commandQueue": {
     "title": "Entwurfsbox",
     "clear": "Entwurfsbox leeren",
@@ -750,5 +734,50 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "sideConversation": {
+    "title": "Side-Konversation",
+    "description": "Konversation forken und in einem Side-Thread fragen",
+    "trigger": "Side",
+    "placeholder": "Im Side-Thread fragen…",
+    "reopen": "Side-Thread wieder öffnen",
+    "close": "Einklappen",
+    "closeTab": "Diesen Side-Tab schließen",
+    "newTab": "Neuer Side-Tab",
+    "tabLabel": "Side {{index}}",
+    "askInSide": "Im Side-Thread fragen",
+    "promote": "Behalten",
+    "promoteHint": "Diesen Thread als normale Konversation im Verlauf behalten",
+    "openFailed": "Side-Konversation konnte nicht geöffnet werden. Konsole prüfen oder erneut versuchen.",
+    "parentEmpty": "Sende zuerst eine Nachricht in der Hauptkonversation – Side-Threads gabeln sich an der letzten Nachricht.",
+    "quickPrompts": {
+      "label": "Schnellfragen",
+      "currentStatus": "Was ist der Status?",
+      "catchMeUp": "Hol mich auf den Stand",
+      "changedFiles": "Welche Dateien wurden geändert?",
+      "inPlainTerms": "Einfach gesagt",
+      "explainSelection": "Was bedeutet das?",
+      "explainError": "Was bedeutet der Fehler?",
+      "safeToContinue": "Kann ich sicher fortfahren?",
+      "beforeApproving": "Was vor der Freigabe prüfen?",
+      "confidenceLevel": "Wie sicher bist du?",
+      "didIForget": "Habe ich etwas vergessen?",
+      "stillWorks": "Funktioniert es danach noch?",
+      "rippleEffect": "Wirkt sich das woanders aus?",
+      "isOffTrack": "Gerät das vom Weg ab?",
+      "worthDoing": "Ist das wirklich nötig?",
+      "existingSolution": "Gibt es eine fertige Lösung?",
+      "whichIsBetter": "Welche Variante ist besser?",
+      "whyThisApproach": "Warum dieser Ansatz?",
+      "moreIdeas": "Welche weiteren Ideen gibt es?",
+      "yourWay": "Was würdest du tun?",
+      "listRisks": "Risiken auflisten",
+      "useTable": "Als Tabelle darstellen",
+      "stepByStep": "Schritt für Schritt",
+      "howToVerify": "Wie verifiziere ich das?",
+      "worstCase": "Worst Case?",
+      "explainToOthers": "Wie erkläre ich es anderen?",
+      "othersPerspective": "Wie sehen es andere?"
+    }
   }
 }

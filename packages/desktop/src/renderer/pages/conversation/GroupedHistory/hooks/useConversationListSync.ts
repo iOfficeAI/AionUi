@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isEphemeralSideConversation } from '@/common/chat/sideConversation';
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
@@ -231,7 +232,10 @@ const refreshConversations = () => {
           // Legacy rows from the pre-provider-probe health check flow are hidden
           // from normal history. New health checks must not create conversations.
           const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+          if (extra?.is_health_check === true || extra?.team_id || extra?.teamId) return false;
+          // Ephemeral side threads live in the side dock, not the history list
+          // (they surface here once promoted from the dock header).
+          return !isEphemeralSideConversation(conv);
         });
         conversationsState = filteredData;
         // Use ALL conversation IDs (including team/legacy health-check rows) so the

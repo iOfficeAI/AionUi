@@ -1,0 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export { default as SideConversationDock } from './SideConversationDock';
+export { useSideConversation } from './useSideConversation';
+export type { SideTab, SidePanelState } from './useSideConversation';

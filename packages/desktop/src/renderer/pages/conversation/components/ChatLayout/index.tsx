@@ -49,6 +49,13 @@ const ChatLayout: React.FC<{
   conversation_id?: string;
   /** Custom tabs slot; when provided, replaces the default ConversationTabs */
   tabsSlot?: React.ReactNode;
+  /**
+   * Side conversation dock: rendered as a resizable column between the chat
+   * area and the workspace sider (desktop only). `sideDockOpen` gates the
+   * column; callers derive it from the side panel state machine.
+   */
+  sideDock?: React.ReactNode;
+  sideDockOpen?: boolean;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
   /** Authoritative temp-workspace flag from `conversation.extra.is_temporary_workspace`. */
@@ -119,6 +126,14 @@ const ChatLayout: React.FC<{
     minWidth: MIN_WORKSPACE_PANEL_PX,
     maxWidth: MAX_WORKSPACE_PANEL_PX,
     storageKey: 'chat-workspace-width-px',
+  });
+
+  const { splitRatio: sideDockWidthPx, createDragHandle: createSideDockDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: 480,
+    minWidth: 240,
+    maxWidth: 720,
+    storageKey: 'side-conversation-width-px',
   });
 
   // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
@@ -310,6 +325,23 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
+        {/* Side conversation dock - resizable column between chat and workspace */}
+        {Boolean(props.sideDockOpen && props.sideDock) && isDesktop && (
+          <div
+            className='!bg-1 relative chat-layout-side-dock layout-sider flex flex-col overflow-hidden'
+            style={{
+              flexGrow: 0,
+              flexShrink: 0,
+              flexBasis: `${Math.round(sideDockWidthPx)}px`,
+              width: `${Math.round(sideDockWidthPx)}px`,
+              minWidth: '240px',
+              borderLeft: '1px solid var(--bg-3)',
+            }}
+          >
+            {createSideDockDragHandle({ className: 'absolute start-0 top-0 bottom-0', reverse: true })}
+            {props.sideDock}
+          </div>
+        )}
         {workspaceEnabled && !layout?.isMobile && (
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
