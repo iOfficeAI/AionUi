@@ -61,4 +61,22 @@ describe('applyTheme', () => {
     applyTheme({ ...base, id: 't', name: 'T', appearance: 'light', tokens: { '--primary': '#abc' } } as Theme);
     expect(document.getElementById('theme-tokens')?.textContent).toContain('--primary: #abc');
   });
+  it('injects layered light/dark tokens under :root[data-theme] and removes them when absent', () => {
+    applyTheme({
+      ...base,
+      id: 'layered',
+      name: 'Layered',
+      appearance: 'light',
+      tokens: { light: { '--primary': '#0a7ea4' }, dark: { '--primary': '#38bdf8' } },
+    } as Theme);
+    const css = document.getElementById('theme-tokens')?.textContent ?? '';
+    expect(css).toContain(":root[data-theme='light']");
+    expect(css).toContain('--primary: #0a7ea4');
+    expect(css).toContain(":root[data-theme='dark']");
+    expect(css).toContain('--primary: #38bdf8');
+
+    // Switching to a theme without tokens must clear the block.
+    applyTheme({ ...base, id: 'light', name: 'Light', appearance: 'light' } as Theme);
+    expect(document.getElementById('theme-tokens')).toBeNull();
+  });
 });
