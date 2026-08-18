@@ -24,6 +24,8 @@
   "closeTabMessage": "현재 내용이 저장되지 않았습니다. 닫기 전에 저장하시겠습니까?",
   "closeTabsTitle": "탭 닫기",
   "closeTabsMessage": "저장되지 않은 탭이 {{count}}개 있습니다. 저장한 후 닫을까요?",
+  "closeTabsMessage_one": "저장되지 않은 탭이 {{count}}개 있습니다. 저장한 후 닫을까요?",
+  "closeTabsMessage_other": "저장되지 않은 탭이 {{count}}개 있습니다. 저장한 후 닫을까요?",
   "saveAndClose": "저장하고 닫기",
   "closeWithoutSave": "저장하지 않음",
   "pptTitle": "PowerPoint 프레젠테이션",

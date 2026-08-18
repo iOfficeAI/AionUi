@@ -1,6 +1,8 @@
 {
   "fileChanges": "파일 변경 사항",
   "fileChangesCount": "{{count}}개 파일 변경 사항",
+  "fileChangesCount_one": "{{count}}개 파일 변경 사항",
+  "fileChangesCount_other": "{{count}}개 파일 변경 사항",
   "conversationInProgress": "현재 대화가 진행 중입니다...",
   "confirm": "확인",
   "canceledExecution": "실행 취소됨",
@@ -22,6 +24,8 @@
     "searchAria": "대화 검색"
   },
   "availableCommands": "{{count}}개의 사용 가능한 명령어",
+  "availableCommands_one": "{{count}}개의 사용 가능한 명령어",
+  "availableCommands_other": "{{count}}개의 사용 가능한 명령어",
   "atFile.hint": "파일을 검색하려면 입력하세요",
   "atFile.menuLabel": "파일 멘션",
   "atFile.loading": "불러오는 중...",

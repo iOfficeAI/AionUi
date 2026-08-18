@@ -39,6 +39,8 @@
   "expandMore": "더 보기",
   "collapse": "접기",
   "viewMoreLines": "더 보기 ({{count}}줄)",
+  "viewMoreLines_one": "더 보기 ({{count}}줄)",
+  "viewMoreLines_other": "더 보기 ({{count}}줄)",
   "success": "성공",
   "error": "오류",
   "saveSuccess": "저장 성공",

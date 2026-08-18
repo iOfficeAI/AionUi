@@ -1,6 +1,10 @@
 {
   "fileChanges": "Изменения файлов",
   "fileChangesCount": "{{count}} изменений файлов",
+  "fileChangesCount_one": "{{count}} изменение файлов",
+  "fileChangesCount_other": "{{count}} изменений файлов",
+  "fileChangesCount_few": "{{count}} изменения файлов",
+  "fileChangesCount_many": "{{count}} изменений файлов",
   "conversationInProgress": "Диалог в процессе...",
   "confirm": "Подтвердить",
   "canceledExecution": "Выполнение отменено",
@@ -22,6 +26,10 @@
     "searchAria": "Поиск по переписке"
   },
   "availableCommands": "{{count}} доступных команд",
+  "availableCommands_one": "{{count}} доступная команда",
+  "availableCommands_other": "{{count}} доступных команд",
+  "availableCommands_few": "{{count}} доступные команды",
+  "availableCommands_many": "{{count}} доступных команд",
   "slash.title": "Команды",
   "slash.hint": "Введите / для открытия меню команд",
   "slash.empty": "Команды не найдены",

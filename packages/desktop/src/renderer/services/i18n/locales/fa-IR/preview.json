@@ -24,6 +24,8 @@
   "closeTabMessage": "محتوای فعلی ذخیره نشده است. آیا می‌خواهید قبل از بستن ذخیره کنید؟",
   "closeTabsTitle": "بستن تب‌ها",
   "closeTabsMessage": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
+  "closeTabsMessage_one": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
+  "closeTabsMessage_other": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
   "saveAndClose": "ذخیره و بستن",
   "closeWithoutSave": "ذخیره نکن",
   "pptTitle": "ارائه PowerPoint",

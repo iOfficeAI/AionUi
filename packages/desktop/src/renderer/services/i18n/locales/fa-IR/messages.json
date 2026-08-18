@@ -1,6 +1,8 @@
 {
   "fileChanges": "تغییرات فایل",
   "fileChangesCount": "{{count}} تغییر فایل",
+  "fileChangesCount_one": "{{count}} تغییر فایل",
+  "fileChangesCount_other": "{{count}} تغییر فایل",
   "conversationInProgress": "در حال حاضر گفتگویی در جریان است...",
   "confirm": "تأیید",
   "canceledExecution": "اجرا لغو شد",
@@ -22,6 +24,8 @@
     "searchAria": "جست‌وجو در گفتگو"
   },
   "availableCommands": "{{count}} دستور موجود",
+  "availableCommands_one": "{{count}} دستور موجود",
+  "availableCommands_other": "{{count}} دستور موجود",
   "atFile.hint": "برای جستجوی فایل‌ها تایپ کنید",
   "atFile.menuLabel": "اشاره به فایل‌ها",
   "atFile.loading": "در حال بارگذاری...",

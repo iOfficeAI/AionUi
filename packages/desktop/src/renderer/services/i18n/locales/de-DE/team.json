@@ -136,6 +136,8 @@
     "read": "Gelesen",
     "unread": "Ungelesen",
     "attachments": "{{count}} Dateien",
+    "attachments_one": "{{count}} Datei",
+    "attachments_other": "{{count}} Dateien",
     "expand": "Aufklappen",
     "collapse": "Einklappen",
     "blockedBy": "blockiert von #{{id}}",

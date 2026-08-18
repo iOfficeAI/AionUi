@@ -1,6 +1,10 @@
 {
   "fileChanges": "Зміни у файлах",
   "fileChangesCount": "Зміни у файлах: {{count}}",
+  "fileChangesCount_one": "Зміни у файлах: {{count}}",
+  "fileChangesCount_other": "Зміни у файлах: {{count}}",
+  "fileChangesCount_few": "Зміни у файлах: {{count}}",
+  "fileChangesCount_many": "Зміни у файлах: {{count}}",
   "conversationInProgress": "Наразі триває діалог...",
   "confirm": "Підтвердити",
   "canceledExecution": "Виконання скасовано",
@@ -21,6 +25,10 @@
     "searchAria": "Пошук у розмові"
   },
   "availableCommands": "Доступні команди: {{count}}",
+  "availableCommands_one": "Доступні команди: {{count}}",
+  "availableCommands_other": "Доступні команди: {{count}}",
+  "availableCommands_few": "Доступні команди: {{count}}",
+  "availableCommands_many": "Доступні команди: {{count}}",
   "atFile.hint": "Введіть, щоб знайти файли",
   "atFile.menuLabel": "Згадки файлів",
   "atFile.loading": "Завантаження...",

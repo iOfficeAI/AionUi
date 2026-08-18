@@ -24,6 +24,8 @@
   "closeTabMessage": "Der aktuelle Inhalt wurde nicht gespeichert. Vor dem Schließen speichern?",
   "closeTabsTitle": "Tabs schließen",
   "closeTabsMessage": "{{count}} Tabs haben ungespeicherte Änderungen. Vor dem Schließen speichern?",
+  "closeTabsMessage_one": "{{count}} Tab hat ungespeicherte Änderungen. Vor dem Schließen speichern?",
+  "closeTabsMessage_other": "{{count}} Tabs haben ungespeicherte Änderungen. Vor dem Schließen speichern?",
   "saveAndClose": "Speichern und schließen",
   "closeWithoutSave": "Nicht speichern",
   "pptTitle": "PowerPoint-Präsentation",
