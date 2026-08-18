@@ -128,7 +128,7 @@ describe('a full storage quota is reported', () => {
   const flush = () => act(() => void vi.advanceTimersByTime(300));
 
   it('raises persistQuotaExceededAt when writes cannot succeed', () => {
-    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       const err = new Error('QuotaExceededError');
       err.name = 'QuotaExceededError';
       throw err;
