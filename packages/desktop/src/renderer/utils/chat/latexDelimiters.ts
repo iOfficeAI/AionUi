@@ -9,6 +9,7 @@
  * is preserved unchanged.
  */
 export function convertLatexDelimiters(text: string): string {
+  if (!text || typeof text !== 'string') return text || '';
   const segments: string[] = [];
   let pos = 0;
 
