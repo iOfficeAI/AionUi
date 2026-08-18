@@ -199,6 +199,26 @@ export const auth = {
 };
 
 // ---------------------------------------------------------------------------
+// KB Chat — Electron-native (main-process SSE proxy)
+// ---------------------------------------------------------------------------
+
+export const kbChat = {
+  /** Renderer → main: start an SSE streaming request for the given KB + question. */
+  send: bridge.buildProvider<
+    { requestId: string; ok: true } | { ok: false; message: string },
+    { requestId: string; kbId: string; question: string; token: string }
+  >('kbChat.send'),
+  /** Renderer → main: cancel an in-flight SSE request by requestId. */
+  abort: bridge.buildProvider<{ ok: true }, { requestId: string }>('kbChat.abort'),
+  /** Main → renderer: a chunk of incremental assistant text. */
+  streamChunk: bridge.buildEmitter<{ requestId: string; content: string }>('kbChat.streamChunk'),
+  /** Main → renderer: the stream has ended (done / aborted / error). */
+  streamEnd: bridge.buildEmitter<{ requestId: string; reason: 'done' | 'aborted' | 'error' }>('kbChat.streamEnd'),
+  /** Main → renderer: an error event surfaced from the upstream SSE. */
+  streamError: bridge.buildEmitter<{ requestId: string; code: string; message: string }>('kbChat.streamError'),
+};
+
+// ---------------------------------------------------------------------------
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
 
