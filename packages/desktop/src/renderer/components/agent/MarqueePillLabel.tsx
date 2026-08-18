@@ -110,8 +110,8 @@ const MarqueePillLabel: React.FC<{
         ref={marqueeRef}
         className={
           active
-            ? 'whitespace-nowrap leading-none absolute left-0 top-0'
-            : 'invisible whitespace-nowrap leading-none absolute left-0 top-0'
+            ? 'whitespace-nowrap leading-none absolute start-0 top-0'
+            : 'invisible whitespace-nowrap leading-none absolute start-0 top-0'
         }
       >
         {children}

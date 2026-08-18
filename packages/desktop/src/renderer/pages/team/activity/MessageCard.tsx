@@ -69,7 +69,7 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
         ) : (
           <MemberChip name={toName} color={identity.colorOf(message.to_agent_id)} />
         )}
-        <span className='ml-auto flex items-center gap-6px'>
+        <span className='ms-auto flex items-center gap-6px'>
           {isSystemMessageType(message.msg_type) && (
             <Tag size='small' color='gray'>
               {t(`team.activity.msgType.${message.msg_type}`, { defaultValue: message.msg_type })}
@@ -125,7 +125,7 @@ const MessageCard: React.FC<Props> = ({ message, identity }) => {
             </span>
           </Tooltip>
         )}
-        <span className='ml-auto shrink-0' title={time.full}>
+        <span className='ms-auto shrink-0' title={time.full}>
           {time.label}
         </span>
       </div>

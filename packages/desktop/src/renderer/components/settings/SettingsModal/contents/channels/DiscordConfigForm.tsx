@@ -468,7 +468,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
                 'Open Discord and mention your bot in a server channel, or send it a DM'
               )}
               {pluginStatus.botUsername && (
-                <span className='ml-4px'>
+                <span className='ms-4px'>
                   <code className='bg-fill-2 px-6px py-2px rd-4px'>@{pluginStatus.botUsername}</code>
                 </span>
               )}
@@ -497,7 +497,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
 
       {/* Pending Pairings - show when bot is enabled and no authorized users yet */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
@@ -572,7 +572,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
 
       {/* Authorized Users - show when there are authorized users */}
       {authorizedUsers.length > 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={

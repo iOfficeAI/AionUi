@@ -116,7 +116,7 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
           </Tag>
         </div>
       </div>
-      <div className='ml-10px flex flex-shrink-0 items-center gap-8px sm:gap-14px' onClick={(e) => e.stopPropagation()}>
+      <div className='ms-10px flex flex-shrink-0 items-center gap-8px sm:gap-14px' onClick={(e) => e.stopPropagation()}>
         {assistant.enabled !== false ? (
           <Button
             type='text'

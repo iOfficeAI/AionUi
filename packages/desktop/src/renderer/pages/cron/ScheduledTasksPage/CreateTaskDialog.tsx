@@ -711,7 +711,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     value={option.value}
                     className={`m-0 min-w-0 text-14px text-t-secondary ${isExecutionModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
+                    <span className='ps-4px text-14px font-medium text-t-primary'>{option.label}</span>
                   </Radio>
                 );
               })}

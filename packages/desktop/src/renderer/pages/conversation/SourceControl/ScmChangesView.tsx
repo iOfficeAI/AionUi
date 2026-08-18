@@ -140,7 +140,7 @@ const TreeNode: React.FC<{
       <div
         data-scm-tree-dir={node.key}
         className='flex items-center gap-4px px-8px py-3px rd-4px cursor-pointer hover:bg-2 min-w-0'
-        style={{ paddingLeft: 8 + depth * INDENT_STEP }}
+        style={{ paddingInlineStart: 8 + depth * INDENT_STEP }}
         onClick={() => onToggleDir(node.key)}
         role='button'
         aria-expanded={isOpen}

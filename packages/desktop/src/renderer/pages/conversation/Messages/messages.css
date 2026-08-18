@@ -14,8 +14,8 @@
   .chat-surface-fluid {
     width: calc(100% - clamp(80px, 10cqw, 240px));
     max-width: none;
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
   }
 }
 

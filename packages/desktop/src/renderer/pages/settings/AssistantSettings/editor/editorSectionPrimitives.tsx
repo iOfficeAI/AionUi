@@ -38,11 +38,11 @@ export const SectionCard: React.FC<SectionCardProps> = ({
           </span>
         ) : null}
         {readOnly && readOnlyLabel ? (
-          <span className='ml-auto rounded-8px bg-fill-1 px-8px py-3px text-10px font-500 text-t-tertiary'>
+          <span className='ms-auto rounded-8px bg-fill-1 px-8px py-3px text-10px font-500 text-t-tertiary'>
             {readOnlyLabel}
           </span>
         ) : null}
-        {extra ? <div className='ml-auto'>{extra}</div> : null}
+        {extra ? <div className='ms-auto'>{extra}</div> : null}
       </div>
       {children}
     </section>

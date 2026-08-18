@@ -159,7 +159,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         </div>
       </div>
 
-      <div className='ml-12px flex flex-shrink-0 items-center gap-8px' onClick={stop}>
+      <div className='ms-12px flex flex-shrink-0 items-center gap-8px' onClick={stop}>
         <BoundAssistantStack assistants={boundAssistants} />
         <Button
           data-testid={`agent-row-test-${agent.id}`}

@@ -124,11 +124,8 @@ const ScaleControl: React.FC = () => {
             +
           </Button>
         </div>
-        <div className='flex items-center gap-10px ml-auto'>
-          <span
-            className='text-13px text-t-primary text-right min-w-56px'
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
+        <div className='flex items-center gap-10px ms-auto'>
+          <span className='text-13px text-t-primary text-end min-w-56px' style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formattedValue}
           </span>
           <Button

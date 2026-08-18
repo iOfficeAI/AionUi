@@ -58,7 +58,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
           style={stickyEnabled ? { top: stickyTop ?? 0 } : undefined}
         >
           <div
-            className='flex items-center gap-8px h-34px pl-10px pr-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
+            className='flex items-center gap-8px h-34px ps-10px pe-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
             onClick={onToggle}
           >
             <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>

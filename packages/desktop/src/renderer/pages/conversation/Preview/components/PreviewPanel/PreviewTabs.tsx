@@ -250,7 +250,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
           {/* 新建浏览器 tab / New browser tab */}
           {onNewBrowserTab && (
             <div
-              className='flex items-center justify-center w-24px h-24px ml-4px rd-4px cursor-pointer flex-shrink-0 hover:bg-bg-3 transition-colors'
+              className='flex items-center justify-center w-24px h-24px ms-4px rd-4px cursor-pointer flex-shrink-0 hover:bg-bg-3 transition-colors'
               onClick={onNewBrowserTab}
               title={t('preview.browser.newTab')}
             >
@@ -261,7 +261,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
 
         {/* 收起面板按钮 / Collapse panel button */}
         {onClosePanel && (
-          <div className='flex items-center h-full px-10px flex-shrink-0 rounded-tr-[16px]'>
+          <div className='flex items-center h-full px-10px flex-shrink-0 rounded-se-[16px]'>
             <div
               className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
               onClick={onClosePanel}
@@ -276,7 +276,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
       {/* 左侧渐变指示器 / Left gradient indicator */}
       {showLeftFade && (
         <div
-          className='pointer-events-none absolute left-0 top-0 bottom-0 w-32px rounded-tl-[16px]'
+          className='pointer-events-none absolute start-0 top-0 bottom-0 w-32px rounded-ss-[16px]'
           style={{
             background: 'linear-gradient(90deg, var(--bg-2) 0%, transparent 100%)',
           }}
@@ -286,7 +286,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
       {/* 右侧渐变指示器 / Right gradient indicator */}
       {showRightFade && (
         <div
-          className='pointer-events-none absolute right-0 top-0 bottom-0 w-32px rounded-tr-[16px]'
+          className='pointer-events-none absolute end-0 top-0 bottom-0 w-32px rounded-se-[16px]'
           style={{
             background: 'linear-gradient(270deg, var(--bg-2) 0%, transparent 100%)',
           }}

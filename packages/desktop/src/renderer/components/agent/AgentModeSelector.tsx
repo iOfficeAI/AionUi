@@ -360,12 +360,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   // If mode switching is not supported, just render the content without dropdown
   if (!can_switchMode) {
-    return <div className='ml-16px'>{content}</div>;
+    return <div className='ms-16px'>{content}</div>;
   }
 
   // Render dropdown with mode selection menu
   return (
-    <div className='ml-16px'>
+    <div className='ms-16px'>
       <Dropdown
         trigger='click'
         popupVisible={dropdownVisible}

@@ -63,7 +63,7 @@
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  margin-right: 0;
+  margin-inline-end: 0;
 }
 
 /* 方案E：模型 + 权限各自独立 tb-btn，中间有竖线分隔 */
@@ -128,7 +128,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
   min-width: 0;
 }
 
@@ -212,7 +212,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  margin-right: 2px;
+  margin-inline-end: 2px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -392,7 +392,7 @@
   }
 
   .actionEntry {
-    margin-right: 0;
+    margin-inline-end: 0;
   }
 
   .actionConfigGroup {
@@ -404,13 +404,13 @@
   }
 
   .actionConfigGroupWithDivider > :first-child::after {
-    right: -6px;
+    inset-inline-end: -6px;
     height: 16px;
   }
 
   .actionSubmit {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-inline-start: 8px;
   }
 }
 

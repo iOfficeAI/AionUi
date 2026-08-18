@@ -402,7 +402,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           text / search icon / tree arrow) starts at 20px. 12px is not arbitrary —
           the sider's resize handle covers the leftmost 12px and sits above this
           content, so anything placed to its left cannot be clicked. */}
-      <div className='flex items-center gap-4px pl-12px pr-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
+      <div className='flex items-center gap-4px ps-12px pe-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
         <div className='flex items-center gap-2px overflow-x-auto flex-1 min-w-0'>
           {tabButton('files', t('conversation.explorer.tabs.files'))}
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}

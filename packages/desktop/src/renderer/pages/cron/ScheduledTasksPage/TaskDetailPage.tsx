@@ -481,7 +481,7 @@ const TaskDetailPage: React.FC = () => {
                 <div className='text-14px text-t-secondary'>
                   <span>{t('cron.detail.noHistory')}</span>
                   {job.enabled && job.state.next_run_at_ms && (
-                    <span className='ml-4px'>
+                    <span className='ms-4px'>
                       · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms, i18n.language)}
                     </span>
                   )}

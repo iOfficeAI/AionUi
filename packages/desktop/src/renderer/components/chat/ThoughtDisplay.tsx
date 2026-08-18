@@ -150,7 +150,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
             parallel-view column. */}
         <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
           {statusText ?? t('conversation.chat.processing')}
-          {showElapsed && <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
+          {showElapsed && <span className='ms-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
         </span>
         {onRetryStart && (
           <Button className='flex-shrink-0' size='mini' type='text' onClick={onRetryStart}>

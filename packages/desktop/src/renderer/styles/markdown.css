@@ -74,8 +74,8 @@
 }
 
 .aionui-markdown :where(blockquote) {
-  border-left: 3px solid var(--bg-3);
-  padding-left: 12px;
+  border-inline-start: 3px solid var(--bg-3);
+  padding-inline-start: 12px;
   color: var(--text-primary);
   margin: 16px 0;
 }
@@ -251,7 +251,7 @@
   border: none;
   background: transparent;
   color: var(--text-primary);
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
   cursor: pointer;
 }

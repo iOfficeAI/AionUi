@@ -82,15 +82,15 @@ body,
 @keyframes team-warmup-sweep {
   0% {
     width: 20%;
-    margin-left: 0;
+    margin-inline-start: 0;
   }
   50% {
     width: 60%;
-    margin-left: 40%;
+    margin-inline-start: 40%;
   }
   100% {
     width: 20%;
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 }
 

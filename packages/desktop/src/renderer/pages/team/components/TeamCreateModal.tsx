@@ -164,7 +164,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     <div className='grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-14px gap-y-10px'>
       <div className='text-14px font-600 leading-21px text-t-secondary'>
         {t('team.create.nameLabel', { defaultValue: 'Team name' })}
-        <span className='ml-4px text-danger-6'>*</span>
+        <span className='ms-4px text-danger-6'>*</span>
       </div>
       <div>
         <Input
@@ -204,7 +204,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       style={{ height: 'min(54vh, 470px)', minHeight: 390 }}
     >
       <section
-        className='flex min-h-0 flex-col border-r border-border-3 px-20px pb-18px pt-12px'
+        className='flex min-h-0 flex-col border-e border-border-3 px-20px pb-18px pt-12px'
         data-testid='team-create-assistant-pane'
       >
         <div className='mb-12px text-15px font-600 leading-22px text-t-secondary'>
