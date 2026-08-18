@@ -56,9 +56,8 @@ interface WeixinConfigFormProps {
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
-const getRemainingTime = (expiresAt: number) => {
-  const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
-  return `${remaining} min`;
+const getRemainingMinutes = (expiresAt: number) => {
+  return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
 };
 
 const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
@@ -534,7 +533,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       {t('settings.assistant.pairingCode', 'Code')}:{' '}
                       <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
                       <span className='mx-8px'>|</span>
-                      {t('settings.assistant.expiresIn', 'Expires in')}: {getRemainingTime(pairing.expiresAt)}
+                      {t('settings.assistant.expiresInMinutes', { count: getRemainingMinutes(pairing.expiresAt) })}
                     </div>
                   </div>
                   <div className='flex items-center gap-8px'>

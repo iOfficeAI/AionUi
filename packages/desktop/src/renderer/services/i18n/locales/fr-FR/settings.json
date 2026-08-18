@@ -46,6 +46,7 @@
       "defaultPrompt": "J'aimerais améliorer ce Skill : {{skillName}}\n\nVeuillez examiner son contenu et m'aider à l'améliorer. Mes suggestions de modification sont :"
     },
     "usedByCount": "Utilisée par {{count}} assistant(s)",
+    "usedByTooltip": "Utilisée par {{count}} assistant(s) : {{names}}",
     "manageInHub": "Gérer dans le Centre de compétences",
     "recommend": "Recommander des compétences",
     "recommendSuccess": "Recommandé avec succès : {{count}} compétences sélectionnées selon les règles",
@@ -966,6 +967,7 @@
     "noPendingPairings": "Aucune demande d'appairage en attente",
     "pairingCode": "Code",
     "expiresIn": "Expire dans",
+    "expiresInMinutes": "Expire dans : {{count}} min",
     "approve": "Approuver",
     "reject": "Rejeter",
     "pairingApproved": "Appairage approuvé",
@@ -1203,6 +1205,7 @@
     },
     "boundAssistantsTitle": "Assistants utilisant cet agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
+    "boundAssistantsTooltip": "{{count}} assistant(s) : {{names}}",
     "boundAssistantsEmpty": "Aucun assistant n'est encore lié à cet agent.",
     "viewAssistant": "Voir",
     "searchPlaceholder": "Rechercher des agents...",

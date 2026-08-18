@@ -46,6 +46,7 @@
       "defaultPrompt": "이 Skill을 개선하고 싶습니다: {{skillName}}\n\n내용을 검토하고 개선할 수 있도록 도와주세요. 제 수정 제안은 다음과 같습니다:"
     },
     "usedByCount": "{{count}}개의 어시스턴트가 사용 중",
+    "usedByTooltip": "{{count}}개의 어시스턴트가 사용 중: {{names}}",
     "manageInHub": "스킬 허브에서 관리",
     "recommend": "스마트 추천",
     "recommendSuccess": "추천 성공: 규칙에 따라 {{count}}개의 스킬이 선택되었습니다",
@@ -954,6 +955,7 @@
     "noPendingPairings": "No pending pairing requests",
     "pairingCode": "Code",
     "expiresIn": "Expires in",
+    "expiresInMinutes": "만료까지: {{count}}분",
     "approve": "Approve",
     "reject": "Reject",
     "pairingApproved": "Pairing approved",
@@ -1193,6 +1195,7 @@
     },
     "boundAssistantsTitle": "이 에이전트를 사용하는 어시스턴트",
     "boundAssistantsCount": "어시스턴트 {{count}}개",
+    "boundAssistantsTooltip": "어시스턴트 {{count}}개: {{names}}",
     "boundAssistantsEmpty": "이 에이전트에 연결된 어시스턴트가 아직 없습니다.",
     "viewAssistant": "보기",
     "searchPlaceholder": "에이전트 검색...",

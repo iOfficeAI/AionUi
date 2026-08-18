@@ -300,9 +300,8 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   };
 
   // Calculate remaining time
-  const getRemainingTime = (expiresAt: number) => {
-    const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
-    return `${remaining} min`;
+  const getRemainingMinutes = (expiresAt: number) => {
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
   };
 
   const showModelSelector = isAionrsAssistant(selectedAssistant);
@@ -546,7 +545,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
                       {t('settings.assistant.pairingCode', 'Code')}:{' '}
                       <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
                       <span className='mx-8px'>|</span>
-                      {t('settings.assistant.expiresIn', 'Expires in')}: {getRemainingTime(pairing.expiresAt)}
+                      {t('settings.assistant.expiresInMinutes', { count: getRemainingMinutes(pairing.expiresAt) })}
                     </div>
                   </div>
                   <div className='flex items-center gap-8px'>

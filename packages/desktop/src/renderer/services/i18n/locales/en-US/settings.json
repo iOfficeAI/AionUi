@@ -46,6 +46,7 @@
       "defaultPrompt": "I'd like to improve this Skill: {{skillName}}\n\nPlease review its content and help me make improvements. My suggestions are:"
     },
     "usedByCount": "Used by {{count}} assistant(s)",
+    "usedByTooltip": "Used by {{count}} assistant(s): {{names}}",
     "manageInHub": "Manage in Skills Hub",
     "recommend": "Recommend Skills",
     "recommendSuccess": "Recommended successfully: {{count}} skills selected based on rules",
@@ -966,6 +967,7 @@
     "noPendingPairings": "No pending pairing requests",
     "pairingCode": "Code",
     "expiresIn": "Expires in",
+    "expiresInMinutes": "Expires in: {{count}} min",
     "approve": "Approve",
     "reject": "Reject",
     "pairingApproved": "Pairing approved",
@@ -1205,6 +1207,7 @@
     },
     "boundAssistantsTitle": "Assistants using this agent",
     "boundAssistantsCount": "{{count}} assistant(s)",
+    "boundAssistantsTooltip": "{{count}} assistant(s): {{names}}",
     "boundAssistantsEmpty": "No assistants are bound to this agent yet.",
     "viewAssistant": "View"
   },
