@@ -7,18 +7,23 @@
 import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
+import CodeBlock from '@/renderer/components/Markdown/CodeBlock';
 import LocalFileLink from '@/renderer/components/Markdown/LocalFileLink';
+import {
+  MARKDOWN_REMARK_PLUGINS,
+  MarkdownTable,
+  MarkdownTd,
+  SANITIZED_HTML_REHYPE_PLUGINS,
+} from '@/renderer/components/Markdown/markdownComponents';
 import { resolveLocalFileLinkReference } from '@/renderer/components/Markdown/markdownUtils';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import remarkBreaks from 'remark-breaks';
-import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdown';
+import ReactMarkdown from 'react-markdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
-import { useLocalFilePreview, useThemeDetection } from '../../hooks';
-import { getMarkdownShikiThemes, getMermaidTheme } from '../../theme';
+import { useLocalFilePreview } from '../../hooks';
 import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 
 interface MarkdownPreviewProps {
@@ -228,10 +233,9 @@ const normalizeLocalFileSchemeLinks = (markdown: string): string => {
   return markdown.replace(/file:\/\//gi, '');
 };
 
-// Streamdown's built-in heading components are memoized by node position only
-// (children are ignored), so headings keep stale text when content re-renders —
-// especially with rehype-raw, which drops positions. Plain overrides keep the
-// built-in classes but always render the current text.
+// Plain heading overrides that apply consistent spacing/size classes and always
+// render the current text. Defining them once (memoized at module scope) keeps a
+// stable component identity across re-renders so React does not remount headings.
 const HEADING_COMPONENTS = Object.fromEntries(
   (
     [
@@ -249,7 +253,7 @@ const HEADING_COMPONENTS = Object.fromEntries(
         tag,
         {
           className: ['mt-6 mb-2 font-semibold', size, className].filter(Boolean).join(' '),
-          'data-streamdown': `heading-${index + 1}`,
+          'data-heading-level': index + 1,
           ...props,
         },
         children
@@ -261,8 +265,10 @@ const HEADING_COMPONENTS = Object.fromEntries(
  * Markdown 预览组件
  * Markdown preview component
  *
- * 使用 Streamdown 原生渲染 Markdown（Shiki 代码高亮、Mermaid、KaTeX），支持原文/预览切换
- * Uses Streamdown native rendering (Shiki code highlight, Mermaid, KaTeX), supports source/preview toggle
+ * 使用 react-markdown + KaTeX 渲染 Markdown，代码块/Mermaid 复用共享 CodeBlock，
+ * 原始 HTML 经 rehype-sanitize 脱敏后渲染，支持原文/预览切换。
+ * Renders markdown with react-markdown + KaTeX; code/Mermaid reuse the shared
+ * CodeBlock, raw HTML is sanitized via rehype-sanitize, source/preview toggle.
  */
 const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   content,
@@ -276,7 +282,6 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
 }) => {
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
-  const currentTheme = useThemeDetection();
   const handleLocalFileLink = useLocalFilePreview(workspace);
 
   // 使用滚动同步 Hooks / Use scroll sync hooks
@@ -295,26 +300,6 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectedUrl, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
-  // Streamdown binds an unconditional wheel-zoom handler ({ passive: false }) on each
-  // mermaid pan layer, so scrolling a long doc over a diagram zooms it instead of
-  // scrolling the page. Intercept wheel in the capture phase before it reaches that
-  // handler: stopPropagation() keeps Streamdown from zooming, and NOT calling
-  // preventDefault() lets the container scroll natively. Buttons (click) and drag-pan
-  // (pointer events) are untouched, so zoom controls and drag still work. Fullscreen
-  // portals the diagram out of this container, so wheel-zoom stays available there.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onWheelCapture = (e: WheelEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-streamdown='mermaid-block']")) {
-        e.stopPropagation();
-      }
-    };
-    el.addEventListener('wheel', onWheelCapture, { capture: true });
-    return () => el.removeEventListener('wheel', onWheelCapture, { capture: true });
-  }, [containerRef]);
-
   const baseDir = useMemo(() => {
     if (!file_path) return undefined;
     const normalized = file_path.replace(/\\/g, '/');
@@ -322,6 +307,39 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     if (lastSlash === -1) return undefined;
     return normalized.slice(0, lastSlash);
   }, [file_path]);
+
+  // Memoize component overrides so React keeps a stable identity across re-renders.
+  // Code fences and Mermaid diagrams reuse the shared CodeBlock (chat/preview parity);
+  // tables reuse the shared table/cell overrides.
+  const components = useMemo(
+    () => ({
+      ...HEADING_COMPONENTS,
+      code: (props: Record<string, unknown>) => <CodeBlock {...(props as Parameters<typeof CodeBlock>[0])} />,
+      a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+        const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
+        if (localFileReference) {
+          return (
+            <LocalFileLink reference={localFileReference} onOpen={handleLocalFileLink}>
+              {children}
+            </LocalFileLink>
+          );
+        }
+        return (
+          <a href={href} target='_blank' rel='noreferrer' {...props}>
+            {children}
+          </a>
+        );
+      },
+      img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+        return (
+          <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} docFileRef={fileRef} {...props} />
+        );
+      },
+      table: MarkdownTable,
+      td: MarkdownTd,
+    }),
+    [handleLocalFileLink, baseDir, workspace, fileRef]
+  );
 
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
@@ -335,7 +353,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
-          // 预览模式：Streamdown 原生渲染 / Preview mode: native Streamdown
+          // 预览模式：react-markdown + KaTeX / Preview mode: react-markdown + KaTeX
           <div
             className='aionui-markdown'
             style={{
@@ -347,46 +365,13 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               boxSizing: 'border-box',
             }}
           >
-            <Streamdown
-              mode='static'
-              shikiTheme={getMarkdownShikiThemes()}
-              mermaid={{ config: { theme: getMermaidTheme(currentTheme) } }}
-              controls={{ table: false, mermaid: { panZoom: true, fullscreen: false, copy: true, download: true } }}
-              remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
-              rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
-              components={{
-                ...HEADING_COMPONENTS,
-                a({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-                  const localFileReference = resolveLocalFileLinkReference(typeof href === 'string' ? href : '');
-                  if (localFileReference) {
-                    return (
-                      <LocalFileLink reference={localFileReference} onOpen={handleLocalFileLink}>
-                        {children}
-                      </LocalFileLink>
-                    );
-                  }
-                  return (
-                    <a href={href} target='_blank' rel='noreferrer' {...props}>
-                      {children}
-                    </a>
-                  );
-                },
-                img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                  return (
-                    <MarkdownImage
-                      src={src}
-                      alt={alt}
-                      baseDir={baseDir}
-                      workspace={workspace}
-                      docFileRef={fileRef}
-                      {...props}
-                    />
-                  );
-                },
-              }}
+            <ReactMarkdown
+              remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+              rehypePlugins={SANITIZED_HTML_REHYPE_PLUGINS}
+              components={components}
             >
               {previewSource}
-            </Streamdown>
+            </ReactMarkdown>
           </div>
         )}
       </div>
