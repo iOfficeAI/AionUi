@@ -24,6 +24,8 @@
   "closeTabMessage": "El contenido actual no se ha guardado. ¿Deseas guardarlo antes de cerrar?",
   "closeTabsTitle": "Cerrar pestañas",
   "closeTabsMessage": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
+  "closeTabsMessage_one": "{{count}} pestaña tiene cambios sin guardar. ¿Guardar antes de cerrar?",
+  "closeTabsMessage_other": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
   "saveAndClose": "Guardar y cerrar",
   "closeWithoutSave": "No guardar",
   "pptTitle": "Presentación de PowerPoint",

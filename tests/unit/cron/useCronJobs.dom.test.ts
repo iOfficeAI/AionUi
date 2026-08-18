@@ -19,6 +19,17 @@ import type { TChatConversation } from '@/common/config/storage';
 
 const originalDateTimeFormat = Intl.DateTimeFormat;
 
+// Pin the detected time zone but keep real formatting working (the run-rename
+// path formats execution dates). Must be constructible: production code calls
+// `new Intl.DateTimeFormat(...)`.
+const mockedDateTimeFormat = function (this: unknown, ...args: [string?, Intl.DateTimeFormatOptions?]) {
+  const real = new originalDateTimeFormat(...args);
+  return {
+    format: (value?: number | Date) => real.format(value),
+    resolvedOptions: () => ({ ...real.resolvedOptions(), timeZone: 'Asia/Shanghai' }),
+  } as Intl.DateTimeFormat;
+} as unknown as typeof Intl.DateTimeFormat;
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
@@ -83,12 +94,7 @@ describe('useCronJobs', () => {
     localStorage.clear();
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
     vi.mocked(ipcBridge.conversation.update.invoke).mockResolvedValue(true);
-    Intl.DateTimeFormat = vi.fn(
-      () =>
-        ({
-          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
-        }) as Intl.DateTimeFormat
-    ) as unknown as typeof Intl.DateTimeFormat;
+    Intl.DateTimeFormat = mockedDateTimeFormat;
   });
 
   afterEach(() => {
@@ -353,12 +359,7 @@ describe('useCronJobs', () => {
 describe('useAllCronJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Intl.DateTimeFormat = vi.fn(
-      () =>
-        ({
-          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
-        }) as Intl.DateTimeFormat
-    ) as unknown as typeof Intl.DateTimeFormat;
+    Intl.DateTimeFormat = mockedDateTimeFormat;
   });
 
   afterEach(() => {
@@ -478,12 +479,7 @@ describe('useCronJobsMap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    Intl.DateTimeFormat = vi.fn(
-      () =>
-        ({
-          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
-        }) as Intl.DateTimeFormat
-    ) as unknown as typeof Intl.DateTimeFormat;
+    Intl.DateTimeFormat = mockedDateTimeFormat;
   });
 
   afterEach(() => {
@@ -612,7 +608,7 @@ describe('useCronJobsMap', () => {
     await waitFor(() =>
       expect(ipcBridge.conversation.update.invoke).toHaveBeenCalledWith({
         id: 'conv-run',
-        updates: { name: 'Daily report 01-07-26' },
+        updates: { name: 'Daily report 07/01/26' },
       })
     );
   });

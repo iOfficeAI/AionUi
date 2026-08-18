@@ -43,7 +43,11 @@
     "batchExportConfirm": "Exporter {{count}} sujets sélectionnés ?",
     "batchDelete": "Suppression par lot",
     "batchDeleteConfirm": "Supprimer {{count}} sujets sélectionnés ?",
+    "batchDeleteConfirm_one": "Supprimer {{count}} sujet sélectionné ?",
+    "batchDeleteConfirm_other": "Supprimer {{count}} sujets sélectionnés ?",
     "batchDeleteSuccess": "{{count}} sujets supprimés",
+    "batchDeleteSuccess_one": "{{count}} sujet supprimé",
+    "batchDeleteSuccess_other": "{{count}} sujets supprimés",
     "batchNoSelection": "Veuillez d'abord sélectionner des sujets",
     "export": "Exporter",
     "exportDialogTitle": "Exporter les sujets",
@@ -74,6 +78,8 @@
     "removeProjectTitle": "Supprimer le projet",
     "removeProject": "Supprimer le projet",
     "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
+    "removeProjectConfirm_one": "Supprimer le projet \"{{name}}\" ? Sa {{count}} conversation sera également supprimée.",
+    "removeProjectConfirm_other": "Supprimer le projet \"{{name}}\" ? Ses {{count}} conversations seront également supprimées.",
     "newConversationInProject": "Nouveau chat dans ce projet",
     "deleting": "Suppression...",
     "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée",
@@ -429,7 +435,9 @@
     "searchHint": "Cliquez ici pour rechercher des mots-clés",
     "empty": "Aucun échange Q&R pour l'instant",
     "noMatch": "Aucun contenu correspondant trouvé",
-    "count": "{{count}} échanges"
+    "count": "{{count}} échanges",
+    "count_one": "{{count}} échange",
+    "count_other": "{{count}} échanges"
   },
   "chat": {
     "noModelSelected": "Aucun modèle sélectionné pour la session actuelle, impossible d'envoyer le message",
@@ -447,6 +455,7 @@
     "switchAgentFailed": "Échec du changement d'agent",
     "speech": {
       "recordTooltip": "Démarrer la saisie vocale",
+      "recordTooltipWithShortcut": "Saisie vocale cmd+M",
       "pickFileTooltip": "Sélectionner un fichier audio",
       "stopTooltip": "Arrêter l'enregistrement",
       "processing": "Transcription audio...",
@@ -493,6 +502,8 @@
     "reorder": "Glisser pour réorganiser la commande en file",
     "remove": "Retirer",
     "files": "{{count}} fichiers",
+    "files_one": "{{count}} fichier",
+    "files_other": "{{count}} fichiers",
     "pausedAfterFailure": "La prochaine commande en file n'a pas pu démarrer. Modifiez, réorganisez ou retirez-la pour continuer.",
     "emptyInput": "Les commandes en file ne peuvent pas être vides.",
     "queueFull": "La file est pleine. Retirez une commande avant d'en ajouter d'autres.",
@@ -568,7 +579,8 @@
       "loaded": "Chargé",
       "failed": "Échoué",
       "unsupported": "Non pris en charge"
-    }
+    },
+    "selected": "MCP sélectionnés"
   },
   "runtimePreparing": {
     "sendboxHint": "Préparation de l'environnement d'exécution. Le premier démarrage peut prendre un peu plus de temps."
@@ -705,8 +717,14 @@
         "confirmDiscardMixed": "Les modifications de {{tracked}} fichier(s) seront perdues définitivement ; {{untracked}} nouveau(x) fichier(s) iront à la corbeille.",
         "discardConfirmButton": "Abandonner",
         "okStage": "{{count}} fichiers indexés",
+        "okStage_one": "{{count}} fichier indexé",
+        "okStage_other": "{{count}} fichiers indexés",
         "okUnstage": "{{count}} fichiers désindexés",
+        "okUnstage_one": "{{count}} fichier désindexé",
+        "okUnstage_other": "{{count}} fichiers désindexés",
         "okDiscard": "{{count}} fichiers abandonnés",
+        "okDiscard_one": "{{count}} fichier abandonné",
+        "okDiscard_other": "{{count}} fichiers abandonnés",
         "partial": "{{succeeded}} sur {{total}} effectués —— {{failed}} n’ont pas pu être terminés",
         "partialDetail": "Non terminés : {{files}}",
         "rejectedBlocked": "Rien n'a été modifié —— résolvez d'abord le conflit",
@@ -715,7 +733,9 @@
         "retry": "Réessayer",
         "notSent": "La requête n'a pas atteint le backend — rien n'a été modifié. Vous pouvez réessayer.",
         "outcomeUnknown": "La connexion a été réinitialisée avant la réponse — cette action a peut-être abouti, ou non. Actualisez et vérifiez la liste des fichiers avant de réessayer.",
-        "allFailed": "Aucun des {{count}} fichier(s) n'a pu être traité"
+        "allFailed": "Aucun des {{count}} fichier(s) n'a pu être traité",
+        "allFailed_one": "{{count}} fichier n'a pas pu être traité",
+        "allFailed_other": "Aucun des {{count}} fichiers n'a pu être traité"
       }
     },
     "pathCopied": "Chemin copié",

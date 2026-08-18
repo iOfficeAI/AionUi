@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "Drag to reorder member",
+  "interruptAndSend": "Interrupt & send",
+  "interruptAgentFailed": "Failed to interrupt this agent. Please try again.",
+  "agentActions": {
+    "label": "Agent actions",
+    "reconnectDescription": "Restart the agent process and keep the current context.",
+    "disabled": {
+      "initializing": "The agent is initializing.",
+      "busy": "Wait for the current reply and queued work to finish.",
+      "dormant": "Wake this member first.",
+      "failed": "Retry starting this member first.",
+      "removing": "This member is being removed.",
+      "sessionStopped": "The team session has stopped.",
+      "unsupported": "This agent does not support starting a new context.",
+      "leaderNotTargetable": "A team leader cannot start a new context."
+    },
+    "contextReset": {
+      "title": "Start new context",
+      "description": "Create a new backend session. Chat history and tasks are kept.",
+      "confirmTitle": "Start a new context for {{memberName}}?",
+      "confirmContent": "This will stop the current agent session and create a new backend session for the next message. Chat history, tasks, files, model, and member settings will be kept, but the agent will no longer have the reasoning context from the previous session.",
+      "confirm": "Start new context",
+      "success": "Started a new context for {{memberName}}.",
+      "partialSuccess": "The context was reset for {{memberName}}, but the agent failed to restart. Use Retry start.",
+      "notApplied": "Could not start a new context. The current context was kept.",
+      "failed": "Failed to start a new context. Please try again."
+    }
+  },
+  "systemNotice": {
+    "sender": "Team",
+    "contextResetSuccess": "Started a new context for {{memberName}}.",
+    "contextResetRuntimeFailed": "The context was reset for {{memberName}}, but the agent failed to restart."
+  },
   "activity": {
     "control": {
       "sortNewest": "Newest",
@@ -136,6 +168,8 @@
     "read": "Read",
     "unread": "Unread",
     "attachments": "{{count}} files",
+    "attachments_one": "{{count}} file",
+    "attachments_other": "{{count}} files",
     "expand": "Expand",
     "collapse": "Collapse",
     "blockedBy": "blocked by #{{id}}",

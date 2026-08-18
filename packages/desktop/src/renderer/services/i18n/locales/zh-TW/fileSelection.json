@@ -2,5 +2,14 @@
   "selectFile": "選擇檔案",
   "selectDirectory": "選擇目錄",
   "pleaseSelectFile": "請選擇一個檔案",
-  "pleaseSelectDirectory": "請選擇一個目錄"
+  "pleaseSelectDirectory": "請選擇一個目錄",
+  "webFsPicker": {
+    "loadFailed": "無法打開該目錄",
+    "titleDirectory": "選擇伺服器上的資料夾",
+    "titleFile": "選擇伺服器上的檔案",
+    "selectedCount": "已選擇 {{count}} 項",
+    "up": "上級",
+    "go": "前往",
+    "empty": "這裡空空如也"
+  }
 }

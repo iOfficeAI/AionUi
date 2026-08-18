@@ -2,5 +2,14 @@
   "selectFile": "ファイルを選択",
   "selectDirectory": "ディレクトリを選択",
   "pleaseSelectFile": "ファイルを選択してください",
-  "pleaseSelectDirectory": "ディレクトリを選択してください"
+  "pleaseSelectDirectory": "ディレクトリを選択してください",
+  "webFsPicker": {
+    "loadFailed": "このディレクトリを開けません",
+    "titleDirectory": "サーバー上のフォルダーを選択",
+    "titleFile": "サーバー上のファイルを選択",
+    "selectedCount": "{{count}} 件選択中",
+    "up": "上へ",
+    "go": "移動",
+    "empty": "ここには何もありません"
+  }
 }

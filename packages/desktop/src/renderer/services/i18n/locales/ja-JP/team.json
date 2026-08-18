@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "ドラッグしてメンバーの順序を変更",
+  "interruptAndSend": "中断して送信",
+  "interruptAgentFailed": "エージェントの中断に失敗しました。もう一度お試しください。",
+  "agentActions": {
+    "label": "エージェント操作",
+    "reconnectDescription": "エージェントプロセスを再起動し、現在のコンテキストを保持します。",
+    "disabled": {
+      "initializing": "エージェントを初期化しています。",
+      "busy": "現在の応答と待機中の作業が完了するまでお待ちください。",
+      "dormant": "先にこのメンバーを起動してください。",
+      "failed": "先にこのメンバーの起動を再試行してください。",
+      "removing": "このメンバーを削除しています。",
+      "sessionStopped": "チームセッションは停止しています。",
+      "unsupported": "このエージェントは新しいコンテキストの開始に対応していません。",
+      "leaderNotTargetable": "チームリーダーには新しいコンテキストを開始できません。"
+    },
+    "contextReset": {
+      "title": "新しいコンテキストを開始",
+      "description": "新しいバックエンドセッションを作成します。チャット履歴とタスクは保持されます。",
+      "confirmTitle": "{{memberName}} の新しいコンテキストを開始しますか？",
+      "confirmContent": "現在のエージェントセッションを停止し、次のメッセージで新しいバックエンドセッションを作成します。チャット履歴、タスク、ファイル、モデル、メンバー設定は保持されますが、以前のセッションの推論コンテキストは失われます。",
+      "confirm": "新しいコンテキストを開始",
+      "success": "{{memberName}} の新しいコンテキストを開始しました。",
+      "partialSuccess": "{{memberName}} のコンテキストはリセットされましたが、エージェントの再起動に失敗しました。「起動を再試行」を使用してください。",
+      "notApplied": "新しいコンテキストを開始できませんでした。現在のコンテキストは保持されています。",
+      "failed": "新しいコンテキストの開始に失敗しました。もう一度お試しください。"
+    }
+  },
+  "systemNotice": {
+    "sender": "チーム",
+    "contextResetSuccess": "{{memberName}} の新しいコンテキストを開始しました。",
+    "contextResetRuntimeFailed": "{{memberName}} のコンテキストはリセットされましたが、エージェントの再起動に失敗しました。"
+  },
   "activity": {
     "control": {
       "sortNewest": "新しい順",
@@ -136,6 +168,8 @@
     "read": "既読",
     "unread": "未読",
     "attachments": "{{count}} 件の添付",
+    "attachments_one": "{{count}} 件の添付",
+    "attachments_other": "{{count}} 件の添付",
     "expand": "展開",
     "collapse": "折りたたむ",
     "blockedBy": "#{{id}} によりブロック",

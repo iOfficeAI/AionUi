@@ -1,6 +1,8 @@
 {
   "fileChanges": "檔案變更",
   "fileChangesCount": "{{count}} 個檔案變更",
+  "fileChangesCount_one": "{{count}} 個檔案變更",
+  "fileChangesCount_other": "{{count}} 個檔案變更",
   "conversationInProgress": "目前正在進行對話...",
   "confirm": "確認",
   "canceledExecution": "已取消執行",
@@ -22,6 +24,8 @@
     "searchAria": "搜尋對話內容"
   },
   "availableCommands": "{{count}} 個可用指令",
+  "availableCommands_one": "{{count}} 個可用指令",
+  "availableCommands_other": "{{count}} 個可用指令",
   "atFile.hint": "輸入以搜尋檔案",
   "atFile.menuLabel": "檔案提及",
   "atFile.loading": "載入中...",

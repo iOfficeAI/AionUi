@@ -147,7 +147,11 @@ const TaskDetailPage: React.FC = () => {
 
         if (latestConversation) {
           if (job.target.execution_mode === 'new_conversation') {
-            const nextName = formatCronRunConversationTitle(job.name, latestConversation.created_at || Date.now());
+            const nextName = formatCronRunConversationTitle(
+              job.name,
+              latestConversation.created_at || Date.now(),
+              i18n.language
+            );
             if (latestConversation.name !== nextName) {
               await ipcBridge.conversation.update.invoke({
                 id: result.conversation_id,

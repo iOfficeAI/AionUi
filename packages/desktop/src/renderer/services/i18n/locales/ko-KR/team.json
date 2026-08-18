@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "드래그하여 멤버 순서 변경",
+  "interruptAndSend": "중단하고 보내기",
+  "interruptAgentFailed": "에이전트를 중단하지 못했습니다. 다시 시도하세요.",
+  "agentActions": {
+    "label": "에이전트 작업",
+    "reconnectDescription": "에이전트 프로세스를 다시 시작하고 현재 컨텍스트를 유지합니다.",
+    "disabled": {
+      "initializing": "에이전트를 초기화하고 있습니다.",
+      "busy": "현재 응답과 대기 중인 작업이 끝날 때까지 기다리세요.",
+      "dormant": "먼저 이 멤버를 깨우세요.",
+      "failed": "먼저 이 멤버 시작을 다시 시도하세요.",
+      "removing": "이 멤버를 제거하고 있습니다.",
+      "sessionStopped": "팀 세션이 중지되었습니다.",
+      "unsupported": "이 에이전트는 새 컨텍스트 시작을 지원하지 않습니다.",
+      "leaderNotTargetable": "팀 리더에는 새 컨텍스트를 시작할 수 없습니다."
+    },
+    "contextReset": {
+      "title": "새 컨텍스트 시작",
+      "description": "새 백엔드 세션을 만듭니다. 채팅 기록과 작업은 유지됩니다.",
+      "confirmTitle": "{{memberName}}의 새 컨텍스트를 시작할까요?",
+      "confirmContent": "현재 에이전트 세션을 중지하고 다음 메시지에서 새 백엔드 세션을 만듭니다. 채팅 기록, 작업, 파일, 모델 및 멤버 설정은 유지되지만 에이전트는 이전 세션의 추론 컨텍스트를 더 이상 갖지 않습니다.",
+      "confirm": "새 컨텍스트 시작",
+      "success": "{{memberName}}의 새 컨텍스트를 시작했습니다.",
+      "partialSuccess": "{{memberName}}의 컨텍스트는 재설정되었지만 에이전트를 다시 시작하지 못했습니다. ‘시작 재시도’를 사용하세요.",
+      "notApplied": "새 컨텍스트를 시작하지 못했습니다. 현재 컨텍스트는 유지되었습니다.",
+      "failed": "새 컨텍스트를 시작하지 못했습니다. 다시 시도하세요."
+    }
+  },
+  "systemNotice": {
+    "sender": "팀",
+    "contextResetSuccess": "{{memberName}}의 새 컨텍스트를 시작했습니다.",
+    "contextResetRuntimeFailed": "{{memberName}}의 컨텍스트는 재설정되었지만 에이전트를 다시 시작하지 못했습니다."
+  },
   "activity": {
     "control": {
       "sortNewest": "최신순",
@@ -136,6 +168,8 @@
     "read": "읽음",
     "unread": "안 읽음",
     "attachments": "첨부 {{count}}개",
+    "attachments_one": "첨부 {{count}}개",
+    "attachments_other": "첨부 {{count}}개",
     "expand": "펼치기",
     "collapse": "접기",
     "blockedBy": "#{{id}}에 의해 차단됨",

@@ -1,6 +1,8 @@
 {
   "fileChanges": "文件变更",
   "fileChangesCount": "{{count}} 个文件变更",
+  "fileChangesCount_one": "{{count}} 个文件变更",
+  "fileChangesCount_other": "{{count}} 个文件变更",
   "conversationInProgress": "当前正在进行对话中...",
   "confirm": "确认",
   "canceledExecution": "已取消执行",
@@ -22,6 +24,8 @@
     "searchAria": "搜索对话内容"
   },
   "availableCommands": "{{count}} 个可用命令",
+  "availableCommands_one": "{{count}} 个可用命令",
+  "availableCommands_other": "{{count}} 个可用命令",
   "atFile.hint": "输入以搜索文件",
   "atFile.menuLabel": "文件提及",
   "atFile.loading": "加载中...",

@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "Bu üyeyi uyandırmak için tıklayın"
+  },
+  "runtimeRestart": {
+    "tooltip": "Aracıyı yeniden bağla",
+    "confirmContent": "Harici CLI yapılandırma değişikliklerini (kanal değiştirme gibi) alması için aracı sürecini yeniden başlatır. Sohbet geçmişi korunur ve mümkün olduğunda oturum sürdürülür.",
+    "success": "Aracı yeniden bağlandı",
+    "failed": "Aracı yeniden bağlanamadı",
+    "initializingTooltip": "Aracı başlatılıyor. Hazır olduğunda yeniden bağlanın",
+    "processingTooltip": "Yeniden bağlanmadan önce mevcut yanıtın bitmesini bekleyin"
   }
 }

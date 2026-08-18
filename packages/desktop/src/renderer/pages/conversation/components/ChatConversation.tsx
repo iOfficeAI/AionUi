@@ -16,7 +16,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -25,6 +25,7 @@ import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
@@ -258,7 +259,14 @@ const ChatConversation: React.FC<{
   conversation?: TChatConversation;
   hideSendBox?: boolean;
 }> = ({ conversation, hideSendBox }) => {
+  const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
   const { t } = useTranslation();
+  // Stable identity: the selector reports readiness from an effect keyed on this
+  // callback, so an inline arrow would re-run it on every render.
+  const handleRuntimeReadyChange = useCallback(
+    (ready: boolean) => setRuntimeReadyConversationId(ready ? (conversation?.id ?? null) : null),
+    [conversation?.id]
+  );
   useActiveLease({ type: 'conversation', id: conversation?.id });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
@@ -352,6 +360,7 @@ const ChatConversation: React.FC<{
           conversation_id={conversation.id}
           backend={resolvedConversationBackend}
           initialModelId={extra.current_model_id}
+          onRuntimeReadyChange={handleRuntimeReadyChange}
           waitForWarmup
         />
       );
@@ -384,6 +393,14 @@ const ChatConversation: React.FC<{
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
+        <div className='shrink-0'>
+          <AcpRuntimeRestartButton
+            conversation_id={conversation.id}
+            availability={runtimeReadyConversationId === conversation.id ? 'ready' : 'initializing'}
+          />
+        </div>
+      )}
     </div>
   );
 

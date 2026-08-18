@@ -2,5 +2,14 @@
   "selectFile": "Выбрать файл",
   "selectDirectory": "Выбрать директорию",
   "pleaseSelectFile": "Пожалуйста, выберите файл",
-  "pleaseSelectDirectory": "Пожалуйста, выберите директорию"
+  "pleaseSelectDirectory": "Пожалуйста, выберите директорию",
+  "webFsPicker": {
+    "loadFailed": "Не удалось открыть этот каталог",
+    "titleDirectory": "Выберите папку на сервере",
+    "titleFile": "Выберите файл на сервере",
+    "selectedCount": "Выбрано: {{count}}",
+    "up": "Вверх",
+    "go": "Перейти",
+    "empty": "Здесь пусто"
+  }
 }

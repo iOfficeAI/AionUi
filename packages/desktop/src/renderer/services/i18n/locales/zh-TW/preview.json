@@ -24,6 +24,8 @@
   "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
   "closeTabsTitle": "關閉標籤頁",
   "closeTabsMessage": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
+  "closeTabsMessage_one": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
+  "closeTabsMessage_other": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
   "saveAndClose": "儲存並關閉",
   "closeWithoutSave": "不儲存",
   "pptTitle": "PowerPoint 簡報",

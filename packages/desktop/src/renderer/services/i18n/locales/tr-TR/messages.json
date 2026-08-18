@@ -1,6 +1,8 @@
 {
   "fileChanges": "Dosya Değişiklikleri",
   "fileChangesCount": "{{count}} Dosya Değişikliği",
+  "fileChangesCount_one": "{{count}} Dosya Değişikliği",
+  "fileChangesCount_other": "{{count}} Dosya Değişikliği",
   "conversationInProgress": "Bir görüşme şu anda devam ediyor...",
   "confirm": "Onayla",
   "canceledExecution": "Yürütme iptal edildi",
@@ -22,6 +24,8 @@
     "searchAria": "Sohbette ara"
   },
   "availableCommands": "{{count}} Kullanılabilir Komut",
+  "availableCommands_one": "{{count}} Kullanılabilir Komut",
+  "availableCommands_other": "{{count}} Kullanılabilir Komut",
   "atFile.hint": "Dosya aramak için yazın",
   "atFile.menuLabel": "Dosya bahsetmeleri",
   "atFile.loading": "Yükleniyor...",

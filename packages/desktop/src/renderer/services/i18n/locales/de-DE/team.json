@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "Ziehen, um Mitglied neu anzuordnen",
+  "interruptAndSend": "Unterbrechen & senden",
+  "interruptAgentFailed": "Der Agent konnte nicht unterbrochen werden. Bitte erneut versuchen.",
+  "agentActions": {
+    "label": "Agent-Aktionen",
+    "reconnectDescription": "Startet den Agent-Prozess neu und behält den aktuellen Kontext bei.",
+    "disabled": {
+      "initializing": "Der Agent wird initialisiert.",
+      "busy": "Warten Sie, bis die aktuelle Antwort und die Warteschlange abgeschlossen sind.",
+      "dormant": "Wecken Sie dieses Mitglied zuerst auf.",
+      "failed": "Versuchen Sie zuerst erneut, dieses Mitglied zu starten.",
+      "removing": "Dieses Mitglied wird entfernt.",
+      "sessionStopped": "Die Teamsitzung wurde beendet.",
+      "unsupported": "Dieser Agent unterstützt keinen neuen Kontext.",
+      "leaderNotTargetable": "Für einen Teamleiter kann kein neuer Kontext gestartet werden."
+    },
+    "contextReset": {
+      "title": "Neuen Kontext starten",
+      "description": "Erstellt eine neue Backend-Sitzung. Chatverlauf und Aufgaben bleiben erhalten.",
+      "confirmTitle": "Neuen Kontext für {{memberName}} starten?",
+      "confirmContent": "Die aktuelle Agent-Sitzung wird beendet und mit der nächsten Nachricht eine neue Backend-Sitzung erstellt. Chatverlauf, Aufgaben, Dateien, Modell und Mitgliedseinstellungen bleiben erhalten, aber der Agent verliert den Schlussfolgerungskontext der vorherigen Sitzung.",
+      "confirm": "Neuen Kontext starten",
+      "success": "Neuer Kontext für {{memberName}} wurde gestartet.",
+      "partialSuccess": "Der Kontext für {{memberName}} wurde zurückgesetzt, aber der Agent konnte nicht neu gestartet werden. Verwenden Sie „Start wiederholen“.",
+      "notApplied": "Der neue Kontext konnte nicht gestartet werden. Der aktuelle Kontext wurde beibehalten.",
+      "failed": "Der neue Kontext konnte nicht gestartet werden. Bitte erneut versuchen."
+    }
+  },
+  "systemNotice": {
+    "sender": "Team",
+    "contextResetSuccess": "Neuer Kontext für {{memberName}} wurde gestartet.",
+    "contextResetRuntimeFailed": "Der Kontext für {{memberName}} wurde zurückgesetzt, aber der Agent konnte nicht neu gestartet werden."
+  },
   "activity": {
     "control": {
       "sortNewest": "Neueste",
@@ -136,6 +168,8 @@
     "read": "Gelesen",
     "unread": "Ungelesen",
     "attachments": "{{count}} Dateien",
+    "attachments_one": "{{count}} Datei",
+    "attachments_other": "{{count}} Dateien",
     "expand": "Aufklappen",
     "collapse": "Einklappen",
     "blockedBy": "blockiert von #{{id}}",

@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "Üye sırasını değiştirmek için sürükleyin",
+  "interruptAndSend": "Kes ve gönder",
+  "interruptAgentFailed": "Aracı kesme başarısız oldu. Lütfen tekrar deneyin.",
+  "agentActions": {
+    "label": "Aracı işlemleri",
+    "reconnectDescription": "Aracı sürecini yeniden başlatır ve mevcut bağlamı korur.",
+    "disabled": {
+      "initializing": "Aracı başlatılıyor.",
+      "busy": "Mevcut yanıtın ve kuyruktaki işlerin tamamlanmasını bekleyin.",
+      "dormant": "Önce bu üyeyi uyandırın.",
+      "failed": "Önce bu üyeyi başlatmayı yeniden deneyin.",
+      "removing": "Bu üye kaldırılıyor.",
+      "sessionStopped": "Takım oturumu durduruldu.",
+      "unsupported": "Bu aracı yeni bağlam başlatmayı desteklemiyor.",
+      "leaderNotTargetable": "Takım lideri için yeni bağlam başlatılamaz."
+    },
+    "contextReset": {
+      "title": "Yeni bağlam başlat",
+      "description": "Yeni bir arka uç oturumu oluşturur. Sohbet geçmişi ve görevler korunur.",
+      "confirmTitle": "{{memberName}} için yeni bağlam başlatılsın mı?",
+      "confirmContent": "Mevcut aracı oturumu durdurulacak ve sonraki mesajla yeni bir arka uç oturumu oluşturulacak. Sohbet geçmişi, görevler, dosyalar, model ve üye ayarları korunur; ancak aracı önceki oturumun akıl yürütme bağlamını kaybeder.",
+      "confirm": "Yeni bağlam başlat",
+      "success": "{{memberName}} için yeni bağlam başlatıldı.",
+      "partialSuccess": "{{memberName}} bağlamı sıfırlandı ancak aracı yeniden başlatılamadı. “Başlatmayı yeniden dene”yi kullanın.",
+      "notApplied": "Yeni bağlam başlatılamadı. Mevcut bağlam korundu.",
+      "failed": "Yeni bağlam başlatılamadı. Lütfen tekrar deneyin."
+    }
+  },
+  "systemNotice": {
+    "sender": "Takım",
+    "contextResetSuccess": "{{memberName}} için yeni bağlam başlatıldı.",
+    "contextResetRuntimeFailed": "{{memberName}} bağlamı sıfırlandı ancak aracı yeniden başlatılamadı."
+  },
   "activity": {
     "control": {
       "sortNewest": "En yeni",
@@ -136,6 +168,8 @@
     "read": "Okundu",
     "unread": "Okunmadı",
     "attachments": "{{count}} dosya",
+    "attachments_one": "{{count}} dosya",
+    "attachments_other": "{{count}} dosya",
     "expand": "Genişlet",
     "collapse": "Daralt",
     "blockedBy": "#{{id}} tarafından engellendi",

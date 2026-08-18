@@ -118,6 +118,38 @@
     "retry": "重試"
   },
   "reorderMember": "拖動以調整成員順序",
+  "interruptAndSend": "中斷並傳送",
+  "interruptAgentFailed": "中斷成員失敗，請再試一次。",
+  "agentActions": {
+    "label": "代理操作",
+    "reconnectDescription": "重新啟動代理程序，保留目前上下文。",
+    "disabled": {
+      "initializing": "代理正在初始化。",
+      "busy": "請等待目前回覆及排隊工作完成。",
+      "dormant": "請先喚醒該成員。",
+      "failed": "請先重試啟動該成員。",
+      "removing": "成員正在移除。",
+      "sessionStopped": "團隊工作階段已停止。",
+      "unsupported": "目前代理不支援開始新上下文。",
+      "leaderNotTargetable": "不能為團隊 Leader 開始新上下文。"
+    },
+    "contextReset": {
+      "title": "開始新上下文",
+      "description": "建立新的後端工作階段，聊天記錄和任務會保留。",
+      "confirmTitle": "為 {{memberName}} 開始新上下文？",
+      "confirmContent": "將終止目前代理工作階段，並在後續訊息中建立新的後端工作階段。聊天記錄、任務面板、檔案、模型和成員設定都會保留，但代理將不再擁有先前工作階段中的推理上下文。",
+      "confirm": "開始新上下文",
+      "success": "已為 {{memberName}} 開始新上下文。",
+      "partialSuccess": "已為 {{memberName}} 重設上下文，但代理重新啟動失敗。請使用「重試啟動」。",
+      "notApplied": "未能開始新上下文，目前上下文已保留。",
+      "failed": "開始新上下文失敗，請再試一次。"
+    }
+  },
+  "systemNotice": {
+    "sender": "團隊",
+    "contextResetSuccess": "已為 {{memberName}} 開始新上下文。",
+    "contextResetRuntimeFailed": "已為 {{memberName}} 重設上下文，但代理重新啟動失敗。"
+  },
   "activity": {
     "control": {
       "sortNewest": "最新",
@@ -136,6 +168,8 @@
     "read": "已讀",
     "unread": "未讀",
     "attachments": "{{count}} 個附件",
+    "attachments_one": "{{count}} 個附件",
+    "attachments_other": "{{count}} 個附件",
     "expand": "展開",
     "collapse": "收合",
     "blockedBy": "被 #{{id}} 阻擋",

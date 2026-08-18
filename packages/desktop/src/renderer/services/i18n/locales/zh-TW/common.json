@@ -39,6 +39,8 @@
   "expandMore": "展開更多",
   "collapse": "收起",
   "viewMoreLines": "檢視更多 ({{count}} 行)",
+  "viewMoreLines_one": "檢視更多 ({{count}} 行)",
+  "viewMoreLines_other": "檢視更多 ({{count}} 行)",
   "success": "Success",
   "error": "Error",
   "saveSuccess": "Saved successfully",

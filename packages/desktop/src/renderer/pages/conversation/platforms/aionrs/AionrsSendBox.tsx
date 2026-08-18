@@ -45,8 +45,8 @@ import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/c
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Message, Tag } from '@arco-design/web-react';
-import { Brain, MagicHat, Shield } from '@icon-park/react';
+import { Button, Message, Tag } from '@arco-design/web-react';
+import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
@@ -179,7 +179,7 @@ const AionrsSendBox: React.FC<{
     conversation_id,
     prepareRuntime: prepareRuntimeConfig,
     prepareSetRuntime: teamPermission?.warmupSession,
-    loadConfigOptions: teamPermission?.loadConfigOptions,
+    configOptionsPort: teamPermission?.configOptionsPort,
     enabled: Boolean(conversation_id),
   });
   const runtimeMode = runtimeConfig.mode;
@@ -395,6 +395,22 @@ const AionrsSendBox: React.FC<{
     await executeCommand({ input: message, files: filesToSend });
   };
 
+  const [interrupting, setInterrupting] = useState(false);
+  const handleInterruptSend = async () => {
+    if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
+    const files = collectChatFileRefs(uploadFile, atPath);
+    const input = content;
+    setContent('');
+    clearFiles();
+    emitter.emit('aionrs.selected.file.clear');
+    setInterrupting(true);
+    try {
+      await teamRuntime.onInterruptSend({ input, files });
+    } finally {
+      setInterrupting(false);
+    }
+  };
+
   // Explicit "add to queue" entry — visibility is keyed only to the user's
   // own input (non-empty draft), never to the agent's busy/replying state:
   // tying it to that racy, async signal made the entry appear/disappear
@@ -465,13 +481,14 @@ const AionrsSendBox: React.FC<{
 
   const handleSheetModelSelect = useCallback(
     (value: string) => {
+      if (runtimeConfig.isConfigOptionBlocked?.('model')) return;
       // value format: `${providerId}::${modelName}`
       const [providerId, modelName] = value.split('::');
       const provider = modelSelection.providers.find((p) => p.id === providerId);
       if (!provider || !modelName) return;
       void modelSelection.handleSelectModel(provider, modelName);
     },
-    [modelSelection]
+    [modelSelection, runtimeConfig]
   );
 
   const sheetEntries = useMemo<MobileActionSheetEntry[]>(() => {
@@ -773,7 +790,7 @@ const AionrsSendBox: React.FC<{
               onModeChanged={propagateMode}
               beforeRuntimeSync={prepareRuntimeConfig}
               beforeRuntimeSet={teamPermission?.warmupSession}
-              loadConfigOptions={teamPermission?.loadConfigOptions}
+              configOptionsPort={teamPermission?.configOptionsPort}
             />
           </div>
         }
@@ -832,6 +849,19 @@ const AionrsSendBox: React.FC<{
             : t('conversation.commandQueue.addToQueue', { defaultValue: 'Save to Draft box' })
         }
         allowSendWhileLoading
+        sendButtonPrefix={
+          teamRuntime?.onInterruptSend && content.trim() ? (
+            <Button
+              size='mini'
+              type='secondary'
+              icon={<Lightning />}
+              loading={interrupting}
+              onClick={() => void handleInterruptSend()}
+            >
+              {t('team.interruptAndSend')}
+            </Button>
+          ) : undefined
+        }
       />
       {isMobile && (
         <>

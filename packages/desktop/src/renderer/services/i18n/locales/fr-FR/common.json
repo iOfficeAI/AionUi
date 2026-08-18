@@ -39,6 +39,8 @@
   "expandMore": "Voir plus",
   "collapse": "Réduire",
   "viewMoreLines": "Voir plus ({{count}} lignes)",
+  "viewMoreLines_one": "Voir plus ({{count}} ligne)",
+  "viewMoreLines_other": "Voir plus ({{count}} lignes)",
   "success": "Succès",
   "error": "Erreur",
   "saveSuccess": "Enregistré avec succès",
@@ -197,5 +199,7 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
-  }
+  },
+  "selectedCount": "{{count}} sélectionné(s)",
+  "selectedSkills": "Compétences sélectionnées"
 }

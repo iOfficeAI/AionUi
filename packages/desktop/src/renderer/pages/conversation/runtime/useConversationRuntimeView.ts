@@ -18,6 +18,9 @@ import {
   localSendAccepted,
   localSendFailed,
   localSendStarted,
+  localRestartFailed,
+  localRestartStarted,
+  localRestartSucceeded,
   localStopAcknowledged,
   localStopRequested,
   resetLocalGate,
@@ -41,6 +44,9 @@ type UseConversationRuntimeViewReturn = {
   markSendFailed: (failure: ConversationRuntimeSendFailure) => void;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
+  markRestartStarted: () => void;
+  markRestartSucceeded: (runtime: TConversationRuntimeSummary) => void;
+  markRestartFailed: (runtime: TConversationRuntimeSummary | null, reason: string) => void;
   resetLocalGate: (reason: string) => void;
 };
 
@@ -177,6 +183,24 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     [conversation_id]
   );
 
+  const markRestartStarted = useCallback(() => {
+    flushRuntimeViewLogs(localRestartStarted(conversation_id));
+  }, [conversation_id]);
+
+  const markRestartSucceeded = useCallback(
+    (runtime: TConversationRuntimeSummary) => {
+      flushRuntimeViewLogs(localRestartSucceeded(conversation_id, runtime));
+    },
+    [conversation_id]
+  );
+
+  const markRestartFailed = useCallback(
+    (runtime: TConversationRuntimeSummary | null, reason: string) => {
+      flushRuntimeViewLogs(localRestartFailed(conversation_id, runtime, normalizeReason(reason)));
+    },
+    [conversation_id]
+  );
+
   const resetLocalRuntimeGate = useCallback(
     (reason: string) => {
       flushRuntimeViewLogs(resetLocalGate(conversation_id, normalizeReason(reason)));
@@ -197,6 +221,9 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     markSendFailed,
     markStopRequested,
     markStopAcknowledged,
+    markRestartStarted,
+    markRestartSucceeded,
+    markRestartFailed,
     resetLocalGate: resetLocalRuntimeGate,
   };
 };

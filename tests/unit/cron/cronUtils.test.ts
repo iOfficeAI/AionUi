@@ -43,9 +43,13 @@ describe('cronUtils', () => {
     expect(getCurrentCronTimeZone()).toBe('UTC');
   });
 
-  it('formats new cron run conversation titles with the execution date', () => {
-    expect(formatCronRunConversationTitle('Daily report', Date.UTC(2026, 6, 1, 12, 0, 0))).toBe(
-      'Daily report 01-07-26'
-    );
+  it('formats new cron run conversation titles with the execution date in the app language', () => {
+    const runAt = Date.UTC(2026, 6, 1, 12, 0, 0);
+    // The previous hardcoded DD-MM-YY read as the wrong date in month-first
+    // locales; the date part now follows the app language.
+    expect(formatCronRunConversationTitle('Daily report', runAt, 'en-US')).toBe('Daily report 07/01/26');
+    expect(formatCronRunConversationTitle('Daily report', runAt, 'de-DE')).toBe('Daily report 01.07.26');
+    // No language falls back to the default (en-US), never the host locale.
+    expect(formatCronRunConversationTitle('Daily report', runAt)).toBe('Daily report 07/01/26');
   });
 });

@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "Le modèle a changé avec succès",
-    "switchFailed": "Échec du changement de modèle"
+    "switchFailed": "Échec du changement de modèle",
+    "searchPlaceholder": "Rechercher des modèles",
+    "noResults": "Aucun modèle correspondant"
   },
   "config": {
     "setting": "Application du paramètre...",
@@ -45,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "Cliquez pour réveiller ce membre"
+  },
+  "runtimeRestart": {
+    "tooltip": "Reconnecter l'agent",
+    "confirmContent": "Redémarre le processus de l'agent pour qu'il prenne en compte les changements externes de configuration CLI (comme un changement de canal). L'historique du chat est conservé et la session est reprise si possible.",
+    "success": "Agent reconnecté",
+    "failed": "Échec de la reconnexion de l'agent",
+    "initializingTooltip": "L'agent est en cours d'initialisation. Reconnectez-le lorsqu'il sera prêt",
+    "processingTooltip": "Attendez la fin de la réponse en cours avant de reconnecter"
   }
 }

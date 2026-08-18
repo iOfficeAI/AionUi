@@ -7,6 +7,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatByteRate,
+  formatByteSize,
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -27,7 +29,8 @@ describe('resolveFormatLocale', () => {
 
   it('narrows an unsupported regional tag to the supported base language', () => {
     // The host OS locale is routinely something AionUi does not ship.
-    expect(resolveFormatLocale('zh-HK')).toBe('zh-CN');
+    // Traditional-script regions go to zh-TW, not Simplified.
+    expect(resolveFormatLocale('zh-HK')).toBe('zh-TW');
     expect(resolveFormatLocale('de_AT')).toBe('de-DE');
   });
 
@@ -90,5 +93,25 @@ describe('formatDateTime / formatDate / formatTime', () => {
     // Whatever the runner's locale is, an explicit language wins.
     const zh = formatDateTime(INSTANT, 'zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
     expect(zh).toBe('2025/8/17');
+  });
+});
+
+describe('formatByteSize / formatByteRate', () => {
+  it('picks binary units and one fraction digit by default', () => {
+    expect(formatByteSize(0, 'en-US')).toBe('0 B');
+    expect(formatByteSize(512, 'en-US')).toBe('512 B');
+    expect(formatByteSize(12_800, 'en-US')).toBe('12.5 KB');
+    expect(formatByteSize(3.5 * 1024 * 1024, 'en-US')).toBe('3.5 MB');
+    expect(formatByteSize(2 * 1024 ** 3, 'en-US')).toBe('2 GB');
+  });
+
+  it('localises the decimal separator', () => {
+    expect(formatByteSize(12_800, 'de-DE')).toBe('12,5 KB');
+    expect(formatByteRate(12_800, 'de-DE')).toBe('12,5 KB/s');
+  });
+
+  it('honours the requested precision', () => {
+    expect(formatByteSize(1024 * 1024 * 1.0002, 'en-US', 4)).toBe('1.0002 MB');
+    expect(formatByteSize(1024 * 1024 * 1.0002, 'en-US', 1)).toBe('1 MB');
   });
 });

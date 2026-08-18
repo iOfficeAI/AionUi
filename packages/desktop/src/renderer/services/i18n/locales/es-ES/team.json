@@ -118,6 +118,38 @@
     "retry": "Retry"
   },
   "reorderMember": "Arrastra para reordenar el miembro",
+  "interruptAndSend": "Interrumpir y enviar",
+  "interruptAgentFailed": "No se pudo interrumpir al agente. Inténtalo de nuevo.",
+  "agentActions": {
+    "label": "Acciones del agente",
+    "reconnectDescription": "Reinicia el proceso del agente y conserva el contexto actual.",
+    "disabled": {
+      "initializing": "El agente se está inicializando.",
+      "busy": "Espera a que terminen la respuesta actual y el trabajo en cola.",
+      "dormant": "Activa primero a este miembro.",
+      "failed": "Reintenta primero el inicio de este miembro.",
+      "removing": "Este miembro se está eliminando.",
+      "sessionStopped": "La sesión del equipo se ha detenido.",
+      "unsupported": "Este agente no admite iniciar un contexto nuevo.",
+      "leaderNotTargetable": "No se puede iniciar un contexto nuevo para el líder del equipo."
+    },
+    "contextReset": {
+      "title": "Iniciar contexto nuevo",
+      "description": "Crea una sesión de backend nueva. Se conservan el historial y las tareas.",
+      "confirmTitle": "¿Iniciar un contexto nuevo para {{memberName}}?",
+      "confirmContent": "Se detendrá la sesión actual del agente y se creará una sesión de backend nueva con el siguiente mensaje. Se conservarán el historial, las tareas, los archivos, el modelo y la configuración del miembro, pero el agente perderá el contexto de razonamiento de la sesión anterior.",
+      "confirm": "Iniciar contexto nuevo",
+      "success": "Se inició un contexto nuevo para {{memberName}}.",
+      "partialSuccess": "Se restableció el contexto de {{memberName}}, pero el agente no pudo reiniciarse. Usa «Reintentar inicio».",
+      "notApplied": "No se pudo iniciar un contexto nuevo. Se conservó el contexto actual.",
+      "failed": "No se pudo iniciar un contexto nuevo. Inténtalo de nuevo."
+    }
+  },
+  "systemNotice": {
+    "sender": "Equipo",
+    "contextResetSuccess": "Se inició un contexto nuevo para {{memberName}}.",
+    "contextResetRuntimeFailed": "Se restableció el contexto de {{memberName}}, pero el agente no pudo reiniciarse."
+  },
   "activity": {
     "control": {
       "sortNewest": "Más reciente",
@@ -136,6 +168,8 @@
     "read": "Leído",
     "unread": "No leído",
     "attachments": "{{count}} archivos",
+    "attachments_one": "{{count}} archivo",
+    "attachments_other": "{{count}} archivos",
     "expand": "Expandir",
     "collapse": "Contraer",
     "blockedBy": "bloqueado por #{{id}}",

@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "Click to wake this member"
+  },
+  "runtimeRestart": {
+    "tooltip": "Reconnect agent",
+    "confirmContent": "Restart the agent process so it picks up external CLI config changes (such as a channel switch). Chat history is kept and the session resumes when possible.",
+    "success": "Agent reconnected",
+    "failed": "Failed to reconnect agent",
+    "initializingTooltip": "The agent is initializing. Reconnect when it is ready",
+    "processingTooltip": "Wait for the current reply to finish before reconnecting"
   }
 }

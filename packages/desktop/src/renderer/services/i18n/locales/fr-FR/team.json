@@ -54,23 +54,101 @@
     "selectFolder": "Sélectionner un dossier",
     "recentLabel": "Récents",
     "chooseDifferentFolder": "Choisir un autre dossier",
-    "error": "Échec de la création de l'équipe"
+    "error": "Échec de la création de l'équipe",
+    "selectedMembers": "Membres sélectionnés",
+    "teamLeader": "Chef d'équipe",
+    "currentLeader": "Chef actuel",
+    "setAsLeader": "Définir comme chef",
+    "teammate": "Équipier",
+    "selectAtLeastOneMember": "Sélectionnez au moins un assistant comme chef d'équipe.",
+    "selectOneLeader": "Sélectionnez un chef d'équipe",
+    "subtitle": "Faites collaborer plusieurs assistants IA en équipe. Nous conseillons qu'une équipe se concentre sur un seul objectif — créez des équipes distinctes pour des tâches différentes.",
+    "nameLabel": "Nom de l'équipe",
+    "workspaceLabel": "Espace de travail",
+    "allAssistantsWithCount": "Tous les assistants ({{count}})",
+    "selectedMembersWithCount": "Membres sélectionnés {{count}} · ⚑ = Chef",
+    "selectedMembersTitleWithCount": "Membres sélectionnés {{count}}",
+    "leaderLegend": "= Chef",
+    "membersHelper": "Choisissez les membres et désignez un chef. Le même assistant peut être sélectionné plusieurs fois.",
+    "memberHint": "Aucun assistant adapté comme membre ? Après la création, laissez le chef créer des membres temporaires dans la discussion."
   },
   "removeAgent": {
     "confirmTitle": "Retirer un membre de l'équipe",
-    "confirmContent": "Ce membre est actuellement actif. Forcer la suppression ?"
+    "confirmContent": "Ce membre est actuellement actif. Forcer la suppression ?",
+    "confirmContentActive": "Ce membre est en train de travailler. Le retirer quand même ? Son travail en cours sera interrompu."
   },
   "emptyState": {
     "subtitle": "Décrivez votre objectif et je mettrai l'équipe au travail",
     "suggestions": {
       "debate": "Organiser un débat avec des agents prenant des positions différentes",
       "interview": "Planifier une interview approfondie entre agents",
-      "expert_review": "Faire analyser le même problème par plusieurs experts"
-    }
+      "expert_review": "Faire analyser le même problème par plusieurs experts",
+      "add_member": "Aide-moi à ajouter à l'équipe un membre doué pour ___"
+    },
+    "leaderGreeting": "Bonjour, je suis le chef. Je comprends votre objectif et je coordonne l'équipe — décrivez ce que vous voulez et je m'en occupe.",
+    "memberGreeting": "Bonjour, je suis un membre de l'équipe. Je suis les directives du chef et les vôtres."
+  },
+  "addMember": {
+    "title": "Ajouter un membre",
+    "subtitle": "Le même assistant peut être ajouté plusieurs fois",
+    "searchAssistants": "Rechercher des assistants...",
+    "addFailed": "Échec de l'ajout du membre",
+    "noSearchResults": "Aucun résultat trouvé",
+    "tellLeaderHint": "Pas de bon candidat ? Vous pouvez aussi demander au chef de s'en charger.",
+    "tellLeaderCta": "Dire au chef →",
+    "tellLeaderPrefill": "Aide-moi à ajouter à l'équipe un membre doué pour ___"
   },
   "reorderMember": "Faites glisser pour réorganiser le membre",
+  "interruptAndSend": "Interrompre et envoyer",
+  "interruptAgentFailed": "Impossible d’interrompre l’agent. Veuillez réessayer.",
+  "agentActions": {
+    "label": "Actions de l’agent",
+    "reconnectDescription": "Redémarre le processus de l’agent et conserve le contexte actuel.",
+    "disabled": {
+      "initializing": "L’agent est en cours d’initialisation.",
+      "busy": "Attendez la fin de la réponse actuelle et des travaux en attente.",
+      "dormant": "Réveillez d’abord ce membre.",
+      "failed": "Réessayez d’abord de démarrer ce membre.",
+      "removing": "Ce membre est en cours de suppression.",
+      "sessionStopped": "La session d’équipe est arrêtée.",
+      "unsupported": "Cet agent ne permet pas de démarrer un nouveau contexte.",
+      "leaderNotTargetable": "Un nouveau contexte ne peut pas être démarré pour le responsable d’équipe."
+    },
+    "contextReset": {
+      "title": "Démarrer un nouveau contexte",
+      "description": "Crée une nouvelle session backend. L’historique et les tâches sont conservés.",
+      "confirmTitle": "Démarrer un nouveau contexte pour {{memberName}} ?",
+      "confirmContent": "La session actuelle de l’agent sera arrêtée et une nouvelle session backend sera créée avec le prochain message. L’historique, les tâches, les fichiers, le modèle et les réglages du membre seront conservés, mais l’agent perdra le contexte de raisonnement de la session précédente.",
+      "confirm": "Démarrer un nouveau contexte",
+      "success": "Un nouveau contexte a été démarré pour {{memberName}}.",
+      "partialSuccess": "Le contexte de {{memberName}} a été réinitialisé, mais l’agent n’a pas redémarré. Utilisez « Réessayer le démarrage ».",
+      "notApplied": "Impossible de démarrer un nouveau contexte. Le contexte actuel a été conservé.",
+      "failed": "Impossible de démarrer un nouveau contexte. Veuillez réessayer."
+    }
+  },
+  "systemNotice": {
+    "sender": "Équipe",
+    "contextResetSuccess": "Un nouveau contexte a été démarré pour {{memberName}}.",
+    "contextResetRuntimeFailed": "Le contexte de {{memberName}} a été réinitialisé, mais l’agent n’a pas redémarré."
+  },
   "view": {
+    "label": "Vue",
+    "parallel": "Parallèle",
+    "single": "Simple",
     "board": "Tableau"
+  },
+  "warmup": {
+    "title": "Réveil de l'équipe…",
+    "subtitle": "Préparation des membres",
+    "memberFailedTitle": "Le membre {{name}} n'a pas pu démarrer",
+    "leaderFailedTitle": "Le chef {{name}} n'a pas pu démarrer",
+    "genericFailedTitle": "L'équipe n'a pas pu démarrer",
+    "multiFailedTitle": "{{count}} membres n'ont pas pu démarrer",
+    "leaderSuffix": " (Chef)",
+    "unknownError": "n'a pas pu démarrer",
+    "memberFailedHint": "Changez son modèle ci-dessus, ou retirez-le de la barre en haut, puis réessayez.",
+    "leaderFailedHint": "Changez son modèle ci-dessus, puis réessayez.",
+    "retry": "Réessayer"
   },
   "activity": {
     "control": {
@@ -90,6 +168,8 @@
     "read": "Lu",
     "unread": "Non lu",
     "attachments": "{{count}} fichiers",
+    "attachments_one": "{{count}} fichier",
+    "attachments_other": "{{count}} fichiers",
     "expand": "Développer",
     "collapse": "Réduire",
     "blockedBy": "bloqué par #{{id}}",

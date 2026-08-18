@@ -24,6 +24,16 @@ describe('i18n', () => {
 
     it('resolves base language codes to their supported region', () => {
       expect(normalizeLanguageCode('zh')).toBe('zh-CN');
+    });
+
+    it('maps Traditional-script regions and Hant tags to zh-TW, not Simplified', () => {
+      expect(normalizeLanguageCode('zh-HK')).toBe('zh-TW');
+      expect(normalizeLanguageCode('zh-MO')).toBe('zh-TW');
+      expect(normalizeLanguageCode('zh_HK')).toBe('zh-TW');
+      expect(normalizeLanguageCode('zh-Hant')).toBe('zh-TW');
+      expect(normalizeLanguageCode('zh-Hant-HK')).toBe('zh-TW');
+      expect(normalizeLanguageCode('zh-Hans-SG')).toBe('zh-CN');
+      expect(normalizeLanguageCode('zh-SG')).toBe('zh-CN');
       expect(normalizeLanguageCode('ja')).toBe('ja-JP');
       expect(normalizeLanguageCode('ko')).toBe('ko-KR');
       expect(normalizeLanguageCode('tr')).toBe('tr-TR');

@@ -136,7 +136,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px 10px 14px;
+  padding-block: 6px 10px;
+  padding-inline-start: 14px;
+  padding-inline-end: 6px;
   background: transparent;
 }
 
@@ -184,7 +186,9 @@
   color: var(--color-text-2);
   background: transparent;
   border: none;
-  padding: 4px 4px 4px 6px;
+  padding-block: 4px;
+  padding-inline-start: 6px;
+  padding-inline-end: 4px;
   cursor: pointer;
   font-family: inherit;
   transition:
@@ -511,7 +515,9 @@
   position: relative;
   max-height: 200px;
   overflow-y: auto;
-  padding: 4px 6px 4px 4px;
+  padding-block: 4px;
+  padding-inline-start: 4px;
+  padding-inline-end: 6px;
   scrollbar-width: thin;
 }
 

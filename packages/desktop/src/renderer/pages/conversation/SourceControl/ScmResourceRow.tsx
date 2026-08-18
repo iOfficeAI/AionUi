@@ -251,6 +251,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
           browser check: inherited stayed rgb(0,0,0) under dark, while text-t-primary
           resolves to #fff). conflicted/failed keep danger; everything else is primary. */}
       <span
+        dir='ltr'
         className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
           kind === 'conflicted' || failed ? 'text-danger' : 'text-t-primary'
         } ${resource.state === 'deleted' ? 'line-through' : ''}`}
