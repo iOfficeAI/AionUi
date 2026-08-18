@@ -447,6 +447,7 @@
     "switchAgentFailed": "تغییر ایجنت ناموفق بود",
     "speech": {
       "recordTooltip": "شروع ورودی صوتی",
+      "recordTooltipWithShortcut": "ورودی صوتی cmd+M",
       "pickFileTooltip": "انتخاب فایل صوتی",
       "stopTooltip": "توقف ضبط",
       "processing": "در حال رونویسی صوت...",

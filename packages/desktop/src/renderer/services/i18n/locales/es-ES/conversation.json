@@ -448,6 +448,7 @@
     "switchAgentFailed": "Error al cambiar de agente",
     "speech": {
       "recordTooltip": "Iniciar entrada de voz",
+      "recordTooltipWithShortcut": "Entrada de voz cmd+M",
       "pickFileTooltip": "Seleccionar un archivo de audio",
       "stopTooltip": "Detener grabación",
       "processing": "Transcribiendo audio...",

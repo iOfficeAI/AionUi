@@ -447,6 +447,7 @@
     "switchAgentFailed": "切換 Agent 失敗",
     "speech": {
       "recordTooltip": "開始語音輸入",
+      "recordTooltipWithShortcut": "語音輸入 cmd+M",
       "pickFileTooltip": "選擇音訊檔案",
       "stopTooltip": "停止錄音",
       "processing": "正在轉寫音訊...",

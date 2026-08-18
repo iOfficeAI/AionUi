@@ -29,7 +29,9 @@
   },
   "model": {
     "switchSuccess": "Le modèle a changé avec succès",
-    "switchFailed": "Échec du changement de modèle"
+    "switchFailed": "Échec du changement de modèle",
+    "searchPlaceholder": "Rechercher des modèles",
+    "noResults": "Aucun modèle correspondant"
   },
   "config": {
     "setting": "Application du paramètre...",

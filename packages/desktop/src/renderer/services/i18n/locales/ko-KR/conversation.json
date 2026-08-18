@@ -447,6 +447,7 @@
     "switchAgentFailed": "에이전트 전환 실패",
     "speech": {
       "recordTooltip": "음성 입력 시작",
+      "recordTooltipWithShortcut": "음성 입력 cmd+M",
       "pickFileTooltip": "오디오 파일 선택",
       "stopTooltip": "녹음 중지",
       "processing": "오디오를 전사하는 중...",
