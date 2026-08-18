@@ -163,5 +163,8 @@
     "confirmMessage": "Esta pestaña tiene cambios sin guardar. Recargar los reemplaza por el contenido del disco.",
     "discardAndRefresh": "Descartar cambios y actualizar",
     "officeNotWired": "Actualizar documentos de Office todavía no está disponible: cierra y vuelve a abrir el archivo para ver los cambios."
-  }
+  },
+  "zoomIn": "Acercar",
+  "zoomOut": "Alejar",
+  "zoomReset": "Restablecer vista"
 }

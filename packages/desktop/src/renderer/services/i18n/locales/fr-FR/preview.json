@@ -163,5 +163,8 @@
     "confirmMessage": "Cet onglet contient des modifications non enregistrées. Recharger les remplacera par le contenu du disque.",
     "discardAndRefresh": "Abandonner les modifications et actualiser",
     "officeNotWired": "L'actualisation des documents Office n'est pas encore disponible — fermez puis rouvrez le fichier pour voir les modifications."
-  }
+  },
+  "zoomIn": "Zoom avant",
+  "zoomOut": "Zoom arrière",
+  "zoomReset": "Réinitialiser la vue"
 }
