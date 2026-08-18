@@ -442,7 +442,8 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
             if (!files?.length) return;
             const paths: string[] = [];
             for (let i = 0; i < files.length; i += 1) {
-              const p = (files[i] as File & { path?: string }).path;
+              // Electron 32+ 移除 File.path，优先走 preload 的 getPathForFile。
+              const p = window.electronAPI?.getPathForFile?.(files[i]) || (files[i] as File & { path?: string }).path;
               if (p) paths.push(p);
             }
             if (paths.length) importToWorkspaceRoot(paths);

@@ -237,12 +237,15 @@ export function getFilesFromDropEvent(event: DragEvent): FileMetadata[] {
 
   for (let i = 0; i < event.dataTransfer.files.length; i++) {
     const file = event.dataTransfer.files[i];
-    // 在 Electron 环境中，拖拽文件会有额外的 path 属性
+    // Electron 32+ 移除了 File.path，改由 preload 暴露的 webUtils.getPathForFile
+    // 提供绝对路径；旧版 Electron / 非 Electron 测试环境回退到遗留的 file.path。
+    // In Electron 32+ (this app runs 37) `File.path` is undefined — the dropped
+    // Finder item's absolute path must come from the preload bridge instead.
     const electronFile = file as File & { path?: string };
 
     files.push({
       name: file.name,
-      path: electronFile.path || '', // 原始路径，可能为空
+      path: window.electronAPI?.getPathForFile?.(file) || electronFile.path || '', // 原始路径，可能为空
       size: file.size,
       type: file.type,
       lastModified: file.lastModified,

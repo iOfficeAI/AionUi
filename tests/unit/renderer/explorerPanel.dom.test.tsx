@@ -266,3 +266,62 @@ describe('ExplorerPanel internal drag transfer (source B/C)', () => {
     expect(rootTitle).toBeNull();
   });
 });
+
+// A dropped OS file. Electron 32+ (this app runs 37) removed `File.path`, so the
+// dropped item's absolute path is NOT on the File object — it must come from the
+// preload `window.electronAPI.getPathForFile` bridge. These tests reproduce the
+// Finder-drag-does-nothing bug: with no bridge and no legacy `.path`, the import
+// fires with zero paths; with the bridge wired, the real path flows through.
+const droppedFile = (name: string): File => ({ name, size: 1, type: '', lastModified: 0 }) as unknown as File;
+
+describe('ExplorerPanel OS-external import (source A / Finder drag)', () => {
+  const renderTree = (onImportFiles: ReturnType<typeof vi.fn>) => {
+    configureExplorerStore(
+      makePort({
+        [peKey('pe1', '')]: [dir('sub'), file('a.ts')],
+        [peKey('pe1', 'sub')]: [],
+      })
+    );
+    render(
+      <ExplorerPanel
+        projectId='p1'
+        roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]}
+        onImportFiles={onImportFiles}
+      />
+    );
+  };
+
+  afterEach(() => {
+    delete (window as Window & { electronAPI?: unknown }).electronAPI;
+  });
+
+  it('resolves the dropped-file absolute path via getPathForFile and imports it (Electron 37 fix)', async () => {
+    const getPathForFile = vi.fn((f: File) => `/Users/me/Desktop/${f.name}`);
+    (window as Window & { electronAPI?: { getPathForFile: (f: File) => string } }).electronAPI = { getPathForFile };
+    const onImportFiles = vi.fn();
+    renderTree(onImportFiles);
+    await screen.findByText('sub');
+
+    const dt = makeDataTransfer();
+    dt.files = [droppedFile('report.pdf')] as unknown as FileList;
+    // OS-external drop: no custom MIME, just files. Drop onto the 'sub' dir.
+    fireDrag(screen.getByText('sub'), 'drop', { dataTransfer: dt });
+
+    expect(getPathForFile).toHaveBeenCalledTimes(1);
+    expect(onImportFiles).toHaveBeenCalledWith('pe1', 'sub', ['/Users/me/Desktop/report.pdf']);
+  });
+
+  it('imports nothing when neither the bridge nor legacy File.path yields a path (the pre-fix bug)', async () => {
+    // No window.electronAPI bridge + Electron 37 File has no `.path` ⇒ zero paths
+    // ⇒ onImportFiles must not fire. This is exactly what made Finder drag do nothing.
+    const onImportFiles = vi.fn();
+    renderTree(onImportFiles);
+    await screen.findByText('sub');
+
+    const dt = makeDataTransfer();
+    dt.files = [droppedFile('report.pdf')] as unknown as FileList;
+    fireDrag(screen.getByText('sub'), 'drop', { dataTransfer: dt });
+
+    expect(onImportFiles).not.toHaveBeenCalled();
+  });
+});
