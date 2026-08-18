@@ -1,0 +1,7 @@
+{
+  "title": "Workbench",
+  "subtitle": "Click an app to sign in with the current account.",
+  "noToken": "Please sign in before opening the workbench.",
+  "openFailed": "Failed to open the app.",
+  "empty": "No apps available."
+}
