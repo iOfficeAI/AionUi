@@ -209,7 +209,10 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           {...dropProps}
         >
           <FileTypeIcon node={{ name, relativePath: keyToRef(key).relative_path, isFile }} expanded={isExpanded} />
-          <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{name}</span>
+          {/* File names are code-like; bidi-neutral leading dots (.claude) must not flip under RTL. */}
+          <span dir='ltr' className='overflow-hidden text-ellipsis whitespace-nowrap'>
+            {name}
+          </span>
           {degraded && <Caution theme='outline' size='14' className='flex-shrink-0' />}
         </span>
       );

@@ -154,10 +154,14 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ roots, peNames, onReve
               title={hit.relative_path}
             >
               <FileTypeIcon node={{ name: hit.name, relativePath: hit.relative_path, isFile: true }} />
-              <span className='overflow-hidden text-ellipsis whitespace-nowrap flex-shrink-0 max-w-[45%]'>
+              {/* File names/paths are code-like: keep LTR under an RTL document. */}
+              <span dir='ltr' className='overflow-hidden text-ellipsis whitespace-nowrap flex-shrink-0 max-w-[45%]'>
                 {hit.name}
               </span>
-              <span className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-1 min-w-0'>
+              <span
+                dir='ltr'
+                className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-1 min-w-0'
+              >
                 {peLabeledPath(hit.pe_id, hit.relative_path, peNames)}
               </span>
               {onAddHit && (

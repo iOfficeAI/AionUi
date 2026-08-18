@@ -261,3 +261,8 @@
     line-height: 20px !important;
   }
 }
+
+/* Direction-implying icons (chevrons meaning "enter/forward") must mirror under RTL. */
+[dir='rtl'] .rtl-mirror {
+  transform: scaleX(-1);
+}

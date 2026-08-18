@@ -113,27 +113,27 @@ const AboutModalContent: React.FC = () => {
     {
       title: t('settings.helpDocumentation'),
       url: 'https://github.com/iOfficeAI/AionUi/wiki',
-      icon: <Right theme='outline' size='16' />,
+      icon: <Right theme='outline' size='16' className='rtl-mirror' />,
     },
     {
       title: t('settings.updateLog'),
       url: 'https://github.com/iOfficeAI/AionUi/releases',
-      icon: <Right theme='outline' size='16' />,
+      icon: <Right theme='outline' size='16' className='rtl-mirror' />,
     },
     {
       title: t('settings.bugReport'),
       onClick: () => setShowFeedbackModal(true),
-      icon: <Right theme='outline' size='16' />,
+      icon: <Right theme='outline' size='16' className='rtl-mirror' />,
     },
     {
       title: t('settings.contactMe'),
       url: 'https://x.com/WailiVery',
-      icon: <Right theme='outline' size='16' />,
+      icon: <Right theme='outline' size='16' className='rtl-mirror' />,
     },
     {
       title: t('settings.officialWebsite'),
       url: 'https://www.aionui.com',
-      icon: <Right theme='outline' size='16' />,
+      icon: <Right theme='outline' size='16' className='rtl-mirror' />,
     },
   ];
 
