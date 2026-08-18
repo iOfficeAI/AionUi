@@ -40,7 +40,7 @@ const MenuItem: React.FC<{
     onClick={onClick}
     title={title}
   >
-    <span className='flex-shrink-0 inline-flex items-center justify-center color-#86909c w-18px leading-none'>
+    <span className='flex-shrink-0 inline-flex items-center justify-center text-t-tertiary w-18px leading-none'>
       {icon}
     </span>
     <span className='min-w-0 flex-1'>
@@ -241,7 +241,9 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
                   <MenuItem
                     icon={<Shield theme='outline' size={15} strokeWidth={2.5} />}
                     label={`${t('conversation.mcp.selected', { defaultValue: 'Selected MCP' })} · ${mcpStatuses.length}`}
-                    suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
+                    suffix={
+                      <Right theme='outline' size={12} strokeWidth={3} style={{ color: 'var(--text-disabled)' }} />
+                    }
                   />
                 </div>
               </Trigger>
@@ -262,7 +264,9 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
                   <MenuItem
                     icon={<Lightning theme='outline' size={15} strokeWidth={2.5} />}
                     label={`${t('common.selectedSkills', { defaultValue: 'Selected skills' })} · ${skillNames.length}`}
-                    suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
+                    suffix={
+                      <Right theme='outline' size={12} strokeWidth={3} style={{ color: 'var(--text-disabled)' }} />
+                    }
                   />
                 </div>
               </Trigger>
