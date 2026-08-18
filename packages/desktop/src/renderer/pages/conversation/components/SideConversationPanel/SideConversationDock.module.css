@@ -48,6 +48,12 @@
   white-space: nowrap;
 }
 
+.forkTag {
+  flex-shrink: 0;
+  border-radius: 999px !important;
+  cursor: help;
+}
+
 .headerActions {
   display: flex;
   align-items: center;

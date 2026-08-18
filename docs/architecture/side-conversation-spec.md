@@ -6,13 +6,23 @@
 
 ## 1. 决策摘要
 
-- **复用原生 fork**：侧边线程 = `conversation.fork`（锚点=父会话最新消息）+ 渲染层在子会话
-  `extra` 上补 `side_mode` 标记。没有第二条 fork 通路，没有 per-backend 白名单。
-- **能力驱动**：入口可见性完全由会话详情响应的 `fork_capability` 决定
-  （`common/chat/sideConversation.ts` → `isSideConversationSupported`）。claude / codex /
-  Aion CLI 等后端只要后端上报能力即自动支持；team 会话与只读类型不上报能力，天然排除。
-- **桌面端自包含**：不再需要 AionCore 配套 PR —— fork、update(merge_extra)、
-  getUserConversations 均为上游既有 API。
+- **复用原生 fork（双模式）**：`resolveSideConversationMode` 决定创建方式——
+  - `fork`：后端上报 `fork_capability`（claude / codex / Aion CLI…）→ `conversation.fork`
+    （锚点=父会话最新消息）+ 渲染层在子会话 `extra` 上补 `side_mode` 标记；
+  - `snapshot`：不支持 fork 但可对话的 agent（hermes / pi / 任意 ACP 自定义 agent）→
+    `createWithConversation` 克隆父会话（同 agent 身份、清空历史）+ 一条框定的只读
+    转录参考消息（`loadParentReferenceTranscript`，仅文本、40 条/2000 字符上限）。
+  没有 per-backend 白名单；gemini/openclaw/nanobot/remote 等上游只读类型两种模式都不适用。
+- **视觉上是干净的新线程**：fork 子会话继承的历史消息在 dock 里隐藏——子会话
+  `extra.forked_at_msg_id` 作为边界（fork 拷贝的最后一行），MessageList 按
+  `ConversationContext.sideForkBoundaryMsgId` 过滤掉边界及之前的所有行；上下文完整保留
+  在后端 session 里。snapshot 子会话本来就无历史。
+- **选中文本以引用胶囊交付**：划选 → 「在侧边会话中提问」→ `sendbox.reply.scoped`
+  （按 conversation_id 定向）→ 侧边 composer 的既有 ReplyQuote 胶囊 UI（可移除，发送时
+  作为引用前缀），绝不把原文灌进输入框；侧边 composer 同时忽略主线程的全局
+  `sendbox.reply` 事件，互不串扰。
+- **桌面端自包含**：不需要 AionCore 配套 PR —— fork、clone、update(merge_extra)、
+  getUserConversations、sendMessage 均为上游既有 API。
 - **替代 /btw**：旧的 BtwOverlay 侧问（仅 claude、一次性 overlay、不留会话）整体移除，
   入口（slash 命令、选中文本）迁移到侧边对话。
 
@@ -67,11 +77,12 @@
 - **入口**：
   - SendBox 触发按钮（`side-btn-text`）与 `Ctrl/Cmd + Shift + S`；
   - `/side [question]` 内建 slash 命令（带提问时直接创建并发出首条消息）；
-  - 划选文本浮层的「在侧边会话中提问」（`SelectionReplyButton`，填 composer 不发送）；
+  - 划选文本浮层的「在侧边会话中提问」（`SelectionReplyButton`，以 ReplyQuote 胶囊
+    挂到侧边 composer，不写入输入框、不发送）；
   - dock 头部的快捷 Prompt 轮播（26 个 key，每 30s 轮换 4 个）。
-- **composer 填充**：`emitter` 新增 `sendbox.fill.scoped` /
-  `sendbox.fill.scoped.handled`——按 `conversation_id` 定向到对应侧边 tab 的 SendBox
-  （`conversationScopeId`），120ms 重试直至 ack（约 4.8s 上限）。
+- **composer 投递**：`emitter` 新增 `sendbox.fill.scoped`（快捷 Prompt 文本填充）与
+  `sendbox.reply.scoped`（选中文本 → 引用胶囊）两组事件及对应 ack——按 `conversation_id`
+  定向到对应侧边 tab 的 SendBox（`conversationScopeId`），120ms 重试直至 ack（约 4.8s 上限）。
 - **禁止嵌套**：侧边 composer（`isSideComposer` / `ConversationContext.isSideConversation`）
   不再展示任何侧边入口。
 

@@ -10,6 +10,7 @@ import AcpChat from '@renderer/pages/conversation/platforms/acp/AcpChat';
 import AionrsChat from '@renderer/pages/conversation/platforms/aionrs/AionrsChat';
 import { useAionrsModelSelection } from '@renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Render a side child conversation with its platform chat surface. Forked
@@ -18,13 +19,15 @@ import React, { useCallback } from 'react';
  * stream subscription and send box all key off the child conversation id.
  * `forkCapability` is deliberately NOT forwarded: the in-message fork entry
  * navigates the whole page, which would strand the user outside the parent —
- * side threads stay fork-source-free.
+ * side threads stay fork-source-free. `sideForkBoundaryMsgId` hides the
+ * fork-inherited history so the thread starts visually fresh.
  */
 const SideChildChat: React.FC<{
   conversation: TChatConversation;
   isSideMode?: boolean;
   composerPrefix?: React.ReactNode;
 }> = ({ conversation, isSideMode = true, composerPrefix }) => {
+  const { t } = useTranslation();
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -39,6 +42,16 @@ const SideChildChat: React.FC<{
     initialModel: 'model' in conversation ? conversation.model : undefined,
     onSelectModel,
   });
+  // Only real forks carry inherited history; snapshot children start clean.
+  const forkBoundary =
+    conversation.extra?.side_mode && conversation.extra?.side_fork_mode !== 'text_snapshot'
+      ? conversation.extra?.forked_at_msg_id
+      : undefined;
+  const emptySlot = (
+    <div className='px-12px py-24px text-13px text-t-3 text-center max-w-360px'>
+      {t('conversation.sideConversation.empty')}
+    </div>
+  );
 
   switch (conversation.type) {
     case 'acp':
@@ -52,6 +65,8 @@ const SideChildChat: React.FC<{
           session_mode={conversation.extra?.session_mode}
           isSideMode={isSideMode}
           composerPrefix={composerPrefix}
+          sideForkBoundaryMsgId={forkBoundary}
+          emptySlot={emptySlot}
         />
       );
     case 'aionrs':
@@ -64,6 +79,8 @@ const SideChildChat: React.FC<{
           session_mode={conversation.extra?.session_mode}
           isSideMode={isSideMode}
           composerPrefix={composerPrefix}
+          sideForkBoundaryMsgId={forkBoundary}
+          emptySlot={emptySlot}
         />
       );
     default:

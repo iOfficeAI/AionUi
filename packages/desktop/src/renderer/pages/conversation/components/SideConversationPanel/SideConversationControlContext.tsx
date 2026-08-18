@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { ReplyQuote } from '@/renderer/utils/emitter';
 import React, { createContext, useContext } from 'react';
 
 export type SideConversationControlValue = {
   enableSide: boolean;
   onOpenSide?: (firstQuestion?: string) => void;
-  /** Fill the active side tab composer with text (does not send). */
-  onAskInSide?: (selectedText: string) => void;
+  /** Attach selected message text to the active side tab composer as a
+   * reply-quote chip (does not send, never dumped into the input). */
+  onAskInSide?: (quote: ReplyQuote) => void;
   /** True when a side thread exists but the dock is collapsed */
   sideCollapsed: boolean;
   onReopenSide?: () => void;

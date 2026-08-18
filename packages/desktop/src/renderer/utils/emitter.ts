@@ -50,6 +50,11 @@ interface EventTypes {
   'sendbox.fill.scoped': [{ conversation_id: string; text: string }];
   // Ack emitted by the send box that consumed a scoped fill, stopping retries.
   'sendbox.fill.scoped.handled': [{ conversation_id: string; text: string }];
+  // Side-conversation quote delivery: selected message text is attached to the
+  // side composer as a reply-quote chip (never dumped into the input itself).
+  'sendbox.reply.scoped': [{ conversation_id: string; quote: ReplyQuote }];
+  // Ack emitted by the send box that consumed a scoped quote, stopping retries.
+  'sendbox.reply.scoped.handled': [{ conversation_id: string; content: string }];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

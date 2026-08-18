@@ -52,7 +52,7 @@ const locales = fs
   .readdirSync(LOCALES_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .toSorted();
 
 describe('migration letter data-handover copy', () => {
   it('ships every supported locale', () => {

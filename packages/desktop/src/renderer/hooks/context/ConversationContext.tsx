@@ -83,6 +83,14 @@ export interface ConversationContextValue {
    * box and selection UI.
    */
   isSideConversation?: boolean;
+
+  /**
+   * Fork anchor of a side child (its `extra.forked_at_msg_id`): the last
+   * message row copied from the parent by the fork. MessageList hides
+   * everything up to and including it, so the docked side thread shows only
+   * its own turns while the backend session keeps the full forked context.
+   */
+  sideForkBoundaryMsgId?: string;
 }
 
 /**

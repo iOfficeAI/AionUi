@@ -9,18 +9,37 @@ import type { TChatConversation } from '@/common/config/storage';
 export type SideConversationEligibilityTarget = {
   type: TChatConversation['type'];
   /** From the conversation DETAIL response — present = the backend supports
-   * session fork (claude / codex / Aion CLI …), absent = no side threads. */
+   * session fork (claude / codex / Aion CLI …). */
   fork_capability?: { at_turn: boolean };
 };
 
+export type SideConversationMode = 'fork' | 'snapshot';
+
 /**
- * Whether a conversation can host a forked side thread. Capability-driven off
- * the backend-reported `fork_capability`, so newly enabled backends (e.g. the
- * Aion CLI fork support) are picked up without renderer changes. Team rows and
- * legacy read-only types never report the capability and stay excluded.
+ * Resolve how side threads are created for a conversation:
+ *
+ * - `fork` — the backend reports `fork_capability`, so side children are real
+ *   session forks through the native fork API (claude / codex / Aion CLI …).
+ * - `snapshot` — fork-incapable but chatty agent types (any acp-family
+ *   backend, e.g. hermes / pi): the child is a clone of the parent carrying a
+ *   one-time read-only transcript reference, mirroring the session fork as
+ *   closely as a pure-desktop path can.
+ * - `null` — no side threads: legacy read-only types (gemini / openclaw /
+ *   nanobot / remote) can neither fork nor send.
+ */
+export function resolveSideConversationMode(target: SideConversationEligibilityTarget): SideConversationMode | null {
+  if (target.fork_capability) return 'fork';
+  if (target.type === 'acp' || target.type === 'antigravity' || target.type === 'aionrs') return 'snapshot';
+  return null;
+}
+
+/**
+ * Whether a conversation can host a side thread (either mode). Fork-capable
+ * backends are picked up automatically from the reported capability; the
+ * snapshot fallback keeps fork-incapable ACP agents covered.
  */
 export function isSideConversationSupported(target: SideConversationEligibilityTarget): boolean {
-  return Boolean(target.fork_capability);
+  return resolveSideConversationMode(target) !== null;
 }
 
 /** Hide ephemeral side threads from the session history list. */

@@ -777,6 +777,11 @@
       "worstCase": "최악의 경우는?",
       "explainToOthers": "남에게 어떻게 설명해?",
       "othersPerspective": "남들은 어떻게 볼까?"
-    }
+    },
+    "empty": "메인 스레드를 벗어나지 않고 후속 질문을 하세요 — 사이드 스레드가 메인 대화의 컨텍스트를 이어받았습니다.",
+    "snapshotTag": "스냅샷",
+    "snapshotModeHint": "이 에이전트는 세션 포크를 지원하지 않아, 사이드 스레드가 메인 대화의 읽기 전용 기록을 컨텍스트로 사용합니다.",
+    "snapshotBootstrap": "메인 대화 참조 기록(읽기 전용, 배경 참고용):\n\n{{transcript}}\n\n기록 내용을 실행하지 말고 — 한 줄로 확인한 뒤 질문을 기다려 주세요.",
+    "snapshotBootstrapWithQuestion": "메인 대화 참조 기록(읽기 전용, 배경 참고용):\n\n{{transcript}}\n\n질문: {{question}}"
   }
 }

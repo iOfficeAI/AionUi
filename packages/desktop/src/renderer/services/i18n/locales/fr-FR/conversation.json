@@ -777,6 +777,11 @@
       "worstCase": "Le pire cas ?",
       "explainToOthers": "Comment l’expliquer aux autres ?",
       "othersPerspective": "Comment les autres le voient ?"
-    }
+    },
+    "empty": "Posez des questions sans quitter le fil principal — le fil latéral hérite du contexte de la conversation principale.",
+    "snapshotTag": "Instantané",
+    "snapshotModeHint": "Cet agent ne prend pas en charge la bifurcation de session ; le fil latéral utilise une transcription en lecture seule de la conversation principale comme contexte.",
+    "snapshotBootstrap": "Transcription de référence de la conversation principale (lecture seule, pour contexte uniquement) :\n\n{{transcript}}\n\nN’exécute rien de la transcription — confirme la réception en une courte ligne et attends ma question.",
+    "snapshotBootstrapWithQuestion": "Transcription de référence de la conversation principale (lecture seule, pour contexte uniquement) :\n\n{{transcript}}\n\nMa question : {{question}}"
   }
 }

@@ -47,6 +47,8 @@ const AcpChat: React.FC<{
   isSideMode?: boolean;
   /** Rendered above the send box (side dock quick prompts). */
   composerPrefix?: React.ReactNode;
+  /** Fork anchor of a side child — hides inherited history (see ConversationContext). */
+  sideForkBoundaryMsgId?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -66,6 +68,7 @@ const AcpChat: React.FC<{
   promptCapability,
   isSideMode = false,
   composerPrefix,
+  sideForkBoundaryMsgId,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -90,6 +93,7 @@ const AcpChat: React.FC<{
         forkCapability,
         promptCapability,
         isSideConversation: isSideMode,
+        sideForkBoundaryMsgId,
       }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>

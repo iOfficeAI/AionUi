@@ -4,17 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Tooltip } from '@arco-design/web-react';
+import { Button, Tag, Tooltip } from '@arco-design/web-react';
 import { ReduceOne } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SideConversationTabBar from './SideConversationTabBar';
+import type { SideConversationMode } from '@/common/chat/sideConversation';
 import type { SideTab } from './useSideConversation';
 import styles from './SideConversationDock.module.css';
 
 type Props = {
   tabs: SideTab[];
   activeTabId?: string;
+  /** Creation mode of the active tab — snapshot children carry a reference transcript instead of a real session fork. */
+  mode?: SideConversationMode;
   onSelectTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onNewTab: () => void;
@@ -26,6 +29,7 @@ type Props = {
 const SideConversationHeader: React.FC<Props> = ({
   tabs,
   activeTabId,
+  mode,
   onSelectTab,
   onCloseTab,
   onNewTab,
@@ -39,6 +43,13 @@ const SideConversationHeader: React.FC<Props> = ({
       <div className={styles.headerTop}>
         <div className={styles.headerTitleGroup}>
           <span className={styles.title}>{t('conversation.sideConversation.title')}</span>
+          {mode === 'snapshot' && (
+            <Tooltip content={t('conversation.sideConversation.snapshotModeHint')} mini>
+              <Tag size='small' color='orange' className={styles.forkTag}>
+                {t('conversation.sideConversation.snapshotTag')}
+              </Tag>
+            </Tooltip>
+          )}
         </div>
         <div className={styles.headerActions}>
           <Tooltip content={t('conversation.sideConversation.promoteHint')} mini>

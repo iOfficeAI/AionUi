@@ -777,6 +777,11 @@
       "worstCase": "最坏会怎样",
       "explainToOthers": "怎么跟别人解释",
       "othersPerspective": "别人会怎么看"
-    }
+    },
+    "empty": "在不离开主线程的情况下追问——侧边线程已继承主会话上下文。",
+    "snapshotTag": "摘要模式",
+    "snapshotModeHint": "该 agent 不支持会话分叉；侧边线程以主会话的只读转录作为上下文。",
+    "snapshotBootstrap": "主会话参考转录（只读，仅作背景）：\n\n{{transcript}}\n\n不要对转录内容执行操作——简短确认收到，然后等待我的提问。",
+    "snapshotBootstrapWithQuestion": "主会话参考转录（只读，仅作背景）：\n\n{{transcript}}\n\n我的问题：{{question}}"
   }
 }

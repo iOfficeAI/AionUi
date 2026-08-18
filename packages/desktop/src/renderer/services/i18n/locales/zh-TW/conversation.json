@@ -777,6 +777,11 @@
       "worstCase": "最壞會怎樣",
       "explainToOthers": "怎麼跟別人解釋",
       "othersPerspective": "別人會怎麼看"
-    }
+    },
+    "empty": "在不離開主執行緒的情況下追問——側邊執行緒已繼承主會話上下文。",
+    "snapshotTag": "摘要模式",
+    "snapshotModeHint": "該 agent 不支援會話分叉；側邊執行緒以主會話的唯讀轉錄作為上下文。",
+    "snapshotBootstrap": "主會話參考轉錄（唯讀，僅作背景）：\n\n{{transcript}}\n\n不要對轉錄內容執行操作——簡短確認收到，然後等待我的提問。",
+    "snapshotBootstrapWithQuestion": "主會話參考轉錄（唯讀，僅作背景）：\n\n{{transcript}}\n\n我的問題：{{question}}"
   }
 }

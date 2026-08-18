@@ -778,6 +778,11 @@
       "worstCase": "¿El peor caso?",
       "explainToOthers": "Cómo explicarlo a otros",
       "othersPerspective": "¿Cómo lo verían otros?"
-    }
+    },
+    "empty": "Pregunta sin salir del hilo principal: el hilo lateral hereda el contexto de la conversación principal.",
+    "snapshotTag": "Instantánea",
+    "snapshotModeHint": "Este agente no admite bifurcación de sesión; el hilo lateral usa una transcripción de solo lectura de la conversación principal como contexto.",
+    "snapshotBootstrap": "Transcripción de referencia de la conversación principal (solo lectura, solo como contexto):\n\n{{transcript}}\n\nNo ejecutes nada de la transcripción: confirma la recepción en una línea breve y espera mi pregunta.",
+    "snapshotBootstrapWithQuestion": "Transcripción de referencia de la conversación principal (solo lectura, solo como contexto):\n\n{{transcript}}\n\nMi pregunta: {{question}}"
   }
 }

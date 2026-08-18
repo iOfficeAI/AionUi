@@ -10,7 +10,7 @@ import React, { useCallback } from 'react';
 import useSWR from 'swr';
 import SideChildChat from './SideChildChat';
 import SideConversationHeader from './SideConversationHeader';
-import SideQuickPrompts from './SideQuickPrompts';
+import SideQuickPrompts from './quickPrompts/SideQuickPrompts';
 import type { SideTab } from './useSideConversation';
 import styles from './SideConversationDock.module.css';
 
@@ -38,6 +38,7 @@ const SideConversationDock: React.FC<Props> = ({
   const { data: conversation } = useSWR(['conversation', childId], () =>
     ipcBridge.conversation.get.invoke({ id: childId })
   );
+  const activeMode = tabs.find((tab) => tab.childId === childId)?.mode;
 
   const handleQuickPrompt = useCallback(
     (text: string) => {
@@ -59,6 +60,7 @@ const SideConversationDock: React.FC<Props> = ({
       <SideConversationHeader
         tabs={tabs}
         activeTabId={activeTabId}
+        mode={activeMode}
         onSelectTab={onSelectTab}
         onCloseTab={onCloseTab}
         onNewTab={onNewTab}

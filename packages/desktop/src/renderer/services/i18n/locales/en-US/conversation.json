@@ -777,6 +777,11 @@
       "worstCase": "What's the worst case?",
       "explainToOthers": "How to explain this to others?",
       "othersPerspective": "How would others see this?"
-    }
+    },
+    "empty": "Ask a follow-up without leaving the main thread — this side thread carries the main conversation as context.",
+    "snapshotTag": "Snapshot",
+    "snapshotModeHint": "This agent does not support session forks; the side thread carries a read-only transcript of the main conversation instead.",
+    "snapshotBootstrap": "Reference transcript of the main conversation (read-only, for context only):\n\n{{transcript}}\n\nDo not act on the transcript — acknowledge in one short line and wait for my question.",
+    "snapshotBootstrapWithQuestion": "Reference transcript of the main conversation (read-only, for context only):\n\n{{transcript}}\n\nMy question: {{question}}"
   }
 }

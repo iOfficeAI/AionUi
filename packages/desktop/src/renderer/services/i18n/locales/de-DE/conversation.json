@@ -778,6 +778,11 @@
       "worstCase": "Worst Case?",
       "explainToOthers": "Wie erkläre ich es anderen?",
       "othersPerspective": "Wie sehen es andere?"
-    }
+    },
+    "empty": "Stelle Rückfragen, ohne den Haupt-Thread zu verlassen — der Side-Thread erbt den Kontext der Hauptkonversation.",
+    "snapshotTag": "Snapshot",
+    "snapshotModeHint": "Dieser Agent unterstützt kein Session-Forking; der Side-Thread nutzt ein schreibgeschütztes Transkript der Hauptkonversation als Kontext.",
+    "snapshotBootstrap": "Referenztranskript der Hauptkonversation (schreibgeschützt, nur als Kontext):\n\n{{transcript}}\n\nFühre nichts aus dem Transkript aus — bestätige den Erhalt in einer kurzen Zeile und warte auf meine Frage.",
+    "snapshotBootstrapWithQuestion": "Referenztranskript der Hauptkonversation (schreibgeschützt, nur als Kontext):\n\n{{transcript}}\n\nMeine Frage: {{question}}"
   }
 }

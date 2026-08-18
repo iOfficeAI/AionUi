@@ -779,6 +779,11 @@
       "worstCase": "En kötü senaryo ne?",
       "explainToOthers": "Başkalarına nasıl açıklarım?",
       "othersPerspective": "Başkaları nasıl görür?"
-    }
+    },
+    "empty": "Ana akıştan ayrılmadan takip sorusu sor — yan iş parçacığı ana konuşmanın bağlamını devraldı.",
+    "snapshotTag": "Anlık görüntü",
+    "snapshotModeHint": "Bu ajan oturum çatallamayı desteklemiyor; yan iş parçacığı ana konuşmanın salt-okunur dökümünü bağlam olarak kullanıyor.",
+    "snapshotBootstrap": "Ana konuşma referans dökümü (salt-okunur, yalnızca bağlam için):\n\n{{transcript}}\n\nDökümdeki işlemleri gerçekleştirme — tek satırla aldığını belirtip sorumu beklemeni rica ederim.",
+    "snapshotBootstrapWithQuestion": "Ana konuşma referans dökümü (salt-okunur, yalnızca bağlam için):\n\n{{transcript}}\n\nSorum: {{question}}"
   }
 }

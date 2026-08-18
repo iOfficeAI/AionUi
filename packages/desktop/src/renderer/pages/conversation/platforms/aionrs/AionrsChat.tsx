@@ -45,6 +45,8 @@ const AionrsChat: React.FC<{
   isSideMode?: boolean;
   /** Rendered above the send box (side dock quick prompts). */
   composerPrefix?: React.ReactNode;
+  /** Fork anchor of a side child — hides inherited history (see ConversationContext). */
+  sideForkBoundaryMsgId?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -62,6 +64,7 @@ const AionrsChat: React.FC<{
   forkCapability,
   isSideMode = false,
   composerPrefix,
+  sideForkBoundaryMsgId,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -81,6 +84,7 @@ const AionrsChat: React.FC<{
       assistantId,
       forkCapability,
       isSideConversation: isSideMode,
+      sideForkBoundaryMsgId,
     };
   }, [
     conversation_id,
@@ -92,6 +96,7 @@ const AionrsChat: React.FC<{
     assistantId,
     forkCapability,
     isSideMode,
+    sideForkBoundaryMsgId,
   ]);
 
   return (

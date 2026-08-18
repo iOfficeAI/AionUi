@@ -161,6 +161,9 @@ export type SideConversationExtra = {
   side_mode?: boolean;
   ephemeral?: boolean;
   forked_at_msg_id?: string;
+  /** How this child was created: `agent_fork` = native session fork,
+   * `text_snapshot` = clone + one-time parent transcript reference. */
+  side_fork_mode?: 'agent_fork' | 'text_snapshot';
   active_side_id?: string;
   side_panel_hidden?: boolean;
 };

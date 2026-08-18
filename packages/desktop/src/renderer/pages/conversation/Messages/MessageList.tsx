@@ -352,6 +352,20 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const contentElementRef = useRef<HTMLDivElement | null>(null);
 
+  // Side-dock fork children: hide the history copied from the parent. The
+  // fork anchor (`sideForkBoundaryMsgId`) is the LAST copied row, so drop
+  // everything up to and including it — the thread then shows only its own
+  // turns while the backend session keeps the full forked context. When the
+  // anchor is older than the loaded window, every loaded row is a side turn
+  // and nothing needs hiding.
+  const visibleList = useMemo(() => {
+    const boundary = conversationContext?.sideForkBoundaryMsgId;
+    if (!boundary) return list;
+    const boundaryIndex = list.findIndex((message) => message.msg_id === boundary || message.id === boundary);
+    if (boundaryIndex === -1) return list;
+    return list.slice(boundaryIndex + 1);
+  }, [conversationContext?.sideForkBoundaryMsgId, list]);
+
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
@@ -400,8 +414,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       result.push(message);
     };
 
-    for (let i = 0, len = list.length; i < len; i++) {
-      const message = list[i];
+    for (let i = 0, len = visibleList.length; i < len; i++) {
+      const message = visibleList[i];
       // Skip hidden and available_commands messages
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
@@ -452,7 +466,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return [...result, ...visibleArtifacts].toSorted(
       (a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b)
     );
-  }, [artifacts, list]);
+  }, [artifacts, visibleList]);
 
   // An AI reply can be split into several messages (thinking / multiple text /
   // tool blocks). The hover copy + timestamp row should appear once per turn,

@@ -363,9 +363,36 @@ const SendBox: React.FC<{
   const fetchedAtFileSessionKeyRef = useRef<string | null>(null);
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
-  // Listen for reply events from message actions
-  useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
-  useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
+  // Listen for reply events from message actions. Global reply events target
+  // the MAIN composer; a scoped side composer (conversationScopeId set)
+  // ignores them so main-thread replies never leak chips into the side dock.
+  useAddEventListener(
+    'sendbox.reply',
+    (quote) => {
+      if (conversationScopeId) return;
+      setReplyQuote(quote);
+    },
+    [conversationScopeId]
+  );
+  useAddEventListener(
+    'sendbox.reply.clear',
+    () => {
+      if (conversationScopeId) return;
+      setReplyQuote(null);
+    },
+    [conversationScopeId]
+  );
+  // Scoped quote delivery: attach the selected text to this side composer as
+  // a reply-quote chip (not as input text), then ack so retries stop.
+  useAddEventListener(
+    'sendbox.reply.scoped',
+    ({ conversation_id, quote }) => {
+      if (!conversationScopeId || conversation_id !== conversationScopeId) return;
+      setReplyQuote(quote);
+      emitter.emit('sendbox.reply.scoped.handled', { conversation_id, content: quote.content });
+    },
+    [conversationScopeId]
+  );
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();

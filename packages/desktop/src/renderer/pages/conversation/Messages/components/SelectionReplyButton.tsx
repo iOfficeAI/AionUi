@@ -211,7 +211,11 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
           className={itemClassName}
           onMouseDown={(e) => {
             e.preventDefault();
-            sideControl?.onAskInSide?.(pos.text);
+            sideControl?.onAskInSide?.({
+              messageId: pos.msgId,
+              content: pos.text,
+              position: pos.msgPos as 'left' | 'right' | 'center' | 'pop',
+            });
             dismiss();
           }}
         >

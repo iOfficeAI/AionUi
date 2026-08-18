@@ -9,6 +9,7 @@ import { isSideConversationSupported } from '@/common/chat/sideConversation';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { SideConversationControlProvider } from './SideConversationPanel/SideConversationControlContext';
+import type { ReplyQuote } from '@/renderer/utils/emitter';
 import { SideConversationDock, useSideConversation } from './SideConversationPanel';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
@@ -167,7 +168,7 @@ type SideConversationWiring = {
   sideControlValue: {
     enableSide: boolean;
     onOpenSide: (firstQuestion?: string) => void;
-    onAskInSide: (text: string) => void;
+    onAskInSide: (quote: ReplyQuote) => void;
     sideCollapsed: boolean;
     onReopenSide: () => void;
   };
@@ -202,7 +203,7 @@ const useSideConversationWiring = (
         void side.open();
       }
     },
-    onAskInSide: (text: string): void => void side.fillComposer(text),
+    onAskInSide: (quote: ReplyQuote): void => void side.quoteComposer(quote),
     sideCollapsed: side.state === 'collapsed',
     onReopenSide: side.reopen,
   };
