@@ -50,7 +50,7 @@
   line-height: 1.7;
   padding: 10px 14px;
   margin-top: 6px;
-  margin-left: 20px;
+  margin-inline-start: 20px;
   background: color-mix(in srgb, var(--aou-1) 50%, #fff);
   border-radius: 8px;
   white-space: pre-wrap;

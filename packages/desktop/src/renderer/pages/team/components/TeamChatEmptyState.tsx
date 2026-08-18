@@ -179,7 +179,7 @@ const TeamChatEmptyState: React.FC<Props> = ({
                 key={s.key}
                 data-testid={`team-chat-empty-state-suggestion-${s.key}`}
                 onClick={() => fillDraft(label)}
-                className='flex items-center gap-10px px-14px py-10px rd-10px bg-fill-2 hover:bg-fill-3 cursor-pointer transition-colors text-left border border-transparent hover:border-[var(--color-border-2)]'
+                className='flex items-center gap-10px px-14px py-10px rd-10px bg-fill-2 hover:bg-fill-3 cursor-pointer transition-colors text-start border border-transparent hover:border-[var(--color-border-2)]'
               >
                 <span className='text-15px shrink-0'>{s.icon}</span>
                 <span className='text-13px text-t-secondary'>{label}</span>

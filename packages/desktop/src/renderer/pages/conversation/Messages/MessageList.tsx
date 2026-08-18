@@ -758,7 +758,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       {showScrollButton && (
         <>
           {/* Gradient mask */}
-          <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
+          <div className='absolute bottom-0 start-0 end-0 h-100px pointer-events-none' />
           {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
             <div

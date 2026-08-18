@@ -46,6 +46,7 @@
       "defaultPrompt": "Ich möchte diesen Skill verbessern: {{skillName}}\n\nBitte prüfe den Inhalt und hilf mir, ihn zu verbessern. Meine Änderungsvorschläge sind:"
     },
     "usedByCount": "Von {{count}} Assistent(en) verwendet",
+    "usedByTooltip": "Von {{count}} Assistent(en) verwendet: {{names}}",
     "manageInHub": "Im Skills-Hub verwalten",
     "recommend": "Skills empfehlen",
     "recommendSuccess": "Erfolgreich empfohlen: {{count}} Skills basierend auf Regeln ausgewählt",
@@ -958,6 +959,7 @@
     "noPendingPairings": "Keine ausstehenden Kopplungsanfragen",
     "pairingCode": "Code",
     "expiresIn": "Läuft ab in",
+    "expiresInMinutes": "Läuft ab in: {{count}} Min.",
     "approve": "Genehmigen",
     "reject": "Ablehnen",
     "pairingApproved": "Kopplung genehmigt",
@@ -1161,6 +1163,7 @@
     "customEmptyDescription": "Benutzerdefinierte Agenten müssen ACP unterstützen.",
     "boundAssistantsTitle": "Assistenten, die diesen Agenten verwenden",
     "boundAssistantsCount": "{{count}} Assistent(en)",
+    "boundAssistantsTooltip": "{{count}} Assistent(en): {{names}}",
     "boundAssistantsEmpty": "Diesem Agenten sind noch keine Assistenten zugeordnet.",
     "viewAssistant": "Anzeigen",
     "filterAll": "Alle",

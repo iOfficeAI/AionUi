@@ -6,6 +6,7 @@
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import type { TFunction } from 'i18next';
 
 const WEEKDAY_LABEL_KEY_BY_VALUE: Record<string, string> = {
@@ -96,12 +97,13 @@ export function createCronSchedule(expr: string, description: string): Extract<I
 }
 
 /**
- * Format next run time for display
+ * Format next run time for display, in the app language.
+ *
+ * @param locale app language (`i18n.language`)
  */
-export function formatNextRun(next_run_at_ms?: number): string {
+export function formatNextRun(next_run_at_ms: number | undefined, locale?: string): string {
   if (!next_run_at_ms) return '-';
-  const date = new Date(next_run_at_ms);
-  return date.toLocaleString();
+  return formatDateTime(next_run_at_ms, locale);
 }
 
 function formatTwoDigit(value: number): string {

@@ -5,6 +5,7 @@
   "nextRun": "下次执行",
   "lastRun": "上次执行",
   "lastError": "错误信息",
+  "lastErrorWithDetail": "上次错误：{{error}}",
   "message": "执行内容",
   "goToConversation": "跳转到所属会话",
   "status": {

@@ -4,8 +4,8 @@
 
 .summarySelect :global(.arco-input-tag) {
   min-height: 32px;
-  padding-left: 11px !important;
-  padding-right: 11px !important;
+  padding-inline-start: 11px !important;
+  padding-inline-end: 11px !important;
   background: transparent;
   border: none;
 }
@@ -31,7 +31,7 @@
 
 .summarySelect :global(.arco-input-tag-has-placeholder input),
 .summarySelect :global(.arco-input-tag-has-placeholder .arco-input-tag-input-mirror) {
-  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
 }
 
 .summarySelect :global(.arco-input-tag-input::placeholder) {
@@ -68,7 +68,7 @@
 
 .summarySelect :global(.arco-input-tag-tag) {
   width: 100%;
-  margin-right: 0;
+  margin-inline-end: 0;
   font-size: inherit;
 }
 

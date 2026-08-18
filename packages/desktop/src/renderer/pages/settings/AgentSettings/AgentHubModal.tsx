@@ -94,7 +94,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
       style={{ width: 1000, maxWidth: '96vw' }}
     >
       <div>
-        <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-left'>
+        <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-start'>
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
             {t('settings.agentManagement.marketContributionHint', {
               defaultValue: 'Want a new Agent listed here?',

@@ -420,7 +420,7 @@ const Layout: React.FC<{
             >
               <ArcoLayout.Header
                 className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                  'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
                   isMobile && 'layout-sider-header--mobile',
                   {
                     'cursor-pointer group ': collapsed,
@@ -578,7 +578,7 @@ const Layout: React.FC<{
                   widthPx={explorerWidthPx}
                   collapsed={explorerCollapsed}
                   dragHandle={createExplorerDragHandle({
-                    className: 'absolute left-0 top-0 bottom-0 z-20',
+                    className: 'absolute start-0 top-0 bottom-0 z-20',
                     reverse: true,
                   })}
                 />

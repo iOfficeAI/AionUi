@@ -149,7 +149,7 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
     <div className='absolute inset-0 pointer-events-none'>
       <div className='absolute inset-0' style={{ background: palette.appBg }} />
       <div
-        className='absolute left-8px right-8px top-8px bottom-8px rounded-8px overflow-hidden border border-solid'
+        className='absolute start-8px end-8px top-8px bottom-8px rounded-8px overflow-hidden border border-solid'
         style={{ borderColor: palette.border, background: palette.mainBg }}
       >
         <div
@@ -162,13 +162,13 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
             style={{ background: palette.border, opacity: 0.45 }}
           ></span>
           <span
-            className='block w-12px h-4px rounded-full ml-auto'
+            className='block w-12px h-4px rounded-full ms-auto'
             style={{ background: palette.border, opacity: 0.45 }}
           ></span>
         </div>
         <div style={{ height: 'calc(100% - 14px)', display: 'flex' }}>
           <div
-            className='border-r border-solid px-3px py-3px flex flex-col gap-3px'
+            className='border-e border-solid px-3px py-3px flex flex-col gap-3px'
             style={{ width: '23%', borderColor: palette.border, background: palette.sideBg }}
           >
             <span className='block h-3px rounded-full' style={{ background: palette.textMuted, opacity: 0.4 }}></span>
@@ -182,7 +182,7 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
             ></span>
           </div>
           <div
-            className='border-r border-solid px-4px py-4px flex flex-col gap-4px'
+            className='border-e border-solid px-4px py-4px flex flex-col gap-4px'
             style={{ width: '54%', borderColor: palette.border, background: palette.mainBg }}
           >
             <span
@@ -482,12 +482,12 @@ const CssThemeSettings: React.FC = () => {
               )}
 
               {/* 底部渐变遮罩与名称、编辑按钮 / Bottom gradient overlay with name and edit button */}
-              <div className='absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-between p-8px'>
+              <div className='absolute bottom-0 start-0 end-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-between p-8px'>
                 <span className='text-13px text-white truncate flex-1'>{theme.name}</span>
                 {/* 编辑按钮（仅用户主题） / Edit button (user themes only) */}
                 {hoveredThemeId === theme.id && !theme.builtin && (
                   <div
-                    className='p-4px rounded-6px bg-white/20 cursor-pointer hover:bg-white/40 transition-colors ml-8px'
+                    className='p-4px rounded-6px bg-white/20 cursor-pointer hover:bg-white/40 transition-colors ms-8px'
                     onClick={(e) => handleEditTheme(theme, e)}
                   >
                     <EditTwo theme='outline' size='16' fill='#fff' />
@@ -497,7 +497,7 @@ const CssThemeSettings: React.FC = () => {
 
               {/* 选中标记 / Selected indicator */}
               {activeThemeId === theme.id && (
-                <div className='absolute top-8px right-8px'>
+                <div className='absolute top-8px end-8px'>
                   <CheckOne theme='filled' size='20' fill='var(--color-primary)' />
                 </div>
               )}

@@ -27,7 +27,7 @@ import { Attention, Robot } from '@icon-park/react';
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
   const { presetAssistants } = useConversationAssistants();
@@ -206,9 +206,9 @@ const ScheduledTasksPage: React.FC = () => {
                   job.target.execution_mode === 'new_conversation'
                     ? t('cron.page.form.newConversation')
                     : t('cron.page.form.existingConversation');
-                const nextRun = job.state.next_run_at_ms ? formatNextRun(job.state.next_run_at_ms) : '-';
+                const nextRun = job.state.next_run_at_ms ? formatNextRun(job.state.next_run_at_ms, i18n.language) : '-';
                 const errorHint = job.state.last_error
-                  ? `${t('cron.lastError')}：${job.state.last_error}`
+                  ? t('cron.lastErrorWithDetail', { error: job.state.last_error })
                   : t('cron.status.error');
 
                 return (

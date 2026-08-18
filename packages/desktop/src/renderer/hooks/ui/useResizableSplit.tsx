@@ -273,7 +273,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
 
   return {
     splitRatio,
-    dragHandle: renderHandle({ className: 'right-0' }),
+    dragHandle: renderHandle({ className: 'end-0' }),
     setSplitRatio,
     createDragHandle: renderHandle,
   };

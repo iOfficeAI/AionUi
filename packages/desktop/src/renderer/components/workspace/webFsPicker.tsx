@@ -167,7 +167,7 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
               : currentDir}
           </span>
           <span style={{ flexShrink: 0 }}>
-            <Button onClick={() => settle(undefined)} style={{ marginRight: 8 }}>
+            <Button onClick={() => settle(undefined)} style={{ marginInlineEnd: 8 }}>
               {t('common.cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button type='primary' disabled={confirmDisabled} onClick={handleConfirm}>

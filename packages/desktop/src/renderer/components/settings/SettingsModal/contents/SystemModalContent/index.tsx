@@ -500,7 +500,7 @@ const SystemModalContent: React.FC = () => {
                 showExpandIcon={false}
                 header={
                   <div className='flex flex-1 items-center justify-between w-full'>
-                    <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
+                    <span className='text-14px text-2 ms-12px'>{t('settings.notification')}</span>
                     <Switch
                       checked={notificationEnabled}
                       onClick={(e) => e.stopPropagation()}
@@ -510,7 +510,7 @@ const SystemModalContent: React.FC = () => {
                 }
               >
                 {isDesktop ? (
-                  <div className='pl-12px'>
+                  <div className='ps-12px'>
                     <PreferenceRow label={t('settings.cronNotificationEnabled')}>
                       <Switch
                         checked={cronNotificationEnabled}
@@ -534,7 +534,7 @@ const SystemModalContent: React.FC = () => {
                   content={
                     <span>
                       {typeof error === 'string' ? error : JSON.stringify(error)}
-                      <FeedbackButton module='system-settings' className='ml-6px' />
+                      <FeedbackButton module='system-settings' className='ms-6px' />
                     </span>
                   }
                 />

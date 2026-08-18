@@ -207,7 +207,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
           onClick={handleSelect.bind(null, conversation)}
         >
           <MessageOne theme='outline' size='20' className='mt-2px flex' />
-          <FlexFullContainer className='h-24px collapsed-hidden ml-10px min-w-0'>
+          <FlexFullContainer className='h-24px collapsed-hidden ms-10px min-w-0'>
             {isEditing ? (
               <Input
                 className='chat-history__item-editor text-14px lh-24px h-24px w-full'
@@ -230,7 +230,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
           {!isEditing && (
             <div
               className={classNames(
-                'absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px'
+                'absolute end-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pe-12px'
               )}
               style={{
                 backgroundImage: isSelected
@@ -243,7 +243,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
             >
               {!isEditing && (
                 <span
-                  className='flex-center mr-8px'
+                  className='flex-center me-8px'
                   onClick={(event) => {
                     event.stopPropagation();
                     handleEditStart(conversation);

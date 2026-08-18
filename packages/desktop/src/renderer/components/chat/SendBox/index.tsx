@@ -1604,7 +1604,7 @@ const SendBox: React.FC<{
         // caller's z-index, e.g. z-10, which is how the box's surface covers
         // ThoughtDisplay's tucked band) — z-3 here only needs to beat the
         // panel's own untouched content, not re-fight that outer stacking.
-        <div className='absolute right-12px top--28px z-3 pointer-events-auto'>{topRightOverlay}</div>
+        <div className='absolute end-12px top--28px z-3 pointer-events-auto'>{topRightOverlay}</div>
       )}
       <div
         ref={containerRef}
@@ -1635,7 +1635,7 @@ const SendBox: React.FC<{
           question={btwCommand.question}
         />
         {isAtFileMenuOpen && (
-          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu
               activeIndex={atFileMenuActiveIndex}
               emptyText={
@@ -1663,7 +1663,7 @@ const SendBox: React.FC<{
           </div>
         )}
         {isCommandMenuOpen && (
-          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             {conversationExport.step === 'menu' ? (
               <SlashCommandMenu
                 title={t('messages.export.menuTitle')}
@@ -1821,7 +1821,7 @@ const SendBox: React.FC<{
                     : ((bottomHint as string | undefined) ??
                       t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
               }
-              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}ps-0 pe-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
                 width: '100%',

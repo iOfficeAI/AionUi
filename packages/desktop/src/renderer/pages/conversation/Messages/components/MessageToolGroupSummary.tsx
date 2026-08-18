@@ -126,7 +126,7 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
           <Tooltip content={t('acp.image.download')}>
             <Button
               aria-label={t('acp.image.download_aria')}
-              className='!absolute right-10px top-10px !h-28px !w-28px !p-0 opacity-0 shadow-sm transition-opacity group-hover:opacity-90 focus:opacity-100'
+              className='!absolute end-10px top-10px !h-28px !w-28px !p-0 opacity-0 shadow-sm transition-opacity group-hover:opacity-90 focus:opacity-100'
               type='secondary'
               size='mini'
               shape='circle'

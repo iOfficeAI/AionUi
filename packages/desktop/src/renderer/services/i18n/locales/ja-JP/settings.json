@@ -46,6 +46,7 @@
       "defaultPrompt": "この Skill を改善したいです：{{skillName}}\n\n内容を確認し、改善を手伝ってください。私の修正案は次のとおりです："
     },
     "usedByCount": "{{count}} 件のアシスタントが使用中",
+    "usedByTooltip": "{{count}} 件のアシスタントが使用中：{{names}}",
     "manageInHub": "スキルハブで管理",
     "recommend": "スマート推薦",
     "recommendSuccess": "推薦成功：ルールに基づいて {{count}} 件のスキルを選択しました",
@@ -954,6 +955,7 @@
     "noPendingPairings": "No pending pairing requests",
     "pairingCode": "Code",
     "expiresIn": "Expires in",
+    "expiresInMinutes": "有効期限：{{count}} 分",
     "approve": "Approve",
     "reject": "Reject",
     "pairingApproved": "Pairing approved",
@@ -1193,6 +1195,7 @@
     },
     "boundAssistantsTitle": "このエージェントを使用するアシスタント",
     "boundAssistantsCount": "{{count}} 個のアシスタント",
+    "boundAssistantsTooltip": "{{count}} 個のアシスタント：{{names}}",
     "boundAssistantsEmpty": "このエージェントにバインドされたアシスタントはまだありません。",
     "viewAssistant": "詳細",
     "searchPlaceholder": "エージェントを検索...",

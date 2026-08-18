@@ -46,6 +46,7 @@
       "defaultPrompt": "我想改善這個 Skill：{{skillName}}\n\n請幫我查看並改善它的內容。我的修改建議是："
     },
     "usedByCount": "{{count}} 個助手在使用",
+    "usedByTooltip": "{{count}} 個助手在使用：{{names}}",
     "manageInHub": "前往技能中心管理",
     "recommend": "智慧推薦",
     "recommendSuccess": "推薦成功：根據規則自動為您勾選了 {{count}} 個技能",
@@ -966,6 +967,7 @@
     "noPendingPairings": "No pending pairing requests",
     "pairingCode": "Code",
     "expiresIn": "Expires in",
+    "expiresInMinutes": "有效期：{{count}} 分鐘",
     "approve": "Approve",
     "reject": "Reject",
     "pairingApproved": "Pairing approved",
@@ -1207,6 +1209,7 @@
     },
     "boundAssistantsTitle": "綁定此 Agent 的助手",
     "boundAssistantsCount": "{{count}} 個助手",
+    "boundAssistantsTooltip": "{{count}} 個助手：{{names}}",
     "boundAssistantsEmpty": "暫無助手綁定此 Agent。",
     "viewAssistant": "查看詳情"
   },

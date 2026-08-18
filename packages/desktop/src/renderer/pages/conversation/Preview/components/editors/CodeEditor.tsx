@@ -191,9 +191,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const editorStyle = useMemo(() => ({ height: '100%', textAlign: 'left' as const }), []);
 
   return (
-    <div ref={containerRef} className='relative h-full w-full overflow-auto text-left'>
+    <div ref={containerRef} className='relative h-full w-full overflow-auto text-start'>
       {isStreaming && (
-        <div className='absolute right-12px top-8px z-2 flex items-center px-8px py-2px rd-4px bg-bg-3 text-11px text-t-secondary pointer-events-none'>
+        <div className='absolute end-12px top-8px z-2 flex items-center px-8px py-2px rd-4px bg-bg-3 text-11px text-t-secondary pointer-events-none'>
           {t('preview.aiWriting')}
         </div>
       )}

@@ -32,8 +32,8 @@
    than compressing its ticks into an unreadable bar. */
 .viewport {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
   pointer-events: auto;
   cursor: pointer;
   overflow: hidden;
@@ -67,7 +67,7 @@
      centre is x=5; the glyph is 11px inside a 16px box, so the box starts at
      5 - 16/2 = -3. Anything less pushes the magnifier right of the column and it
      visibly juts out of the stack. */
-  left: -3px;
+  inset-inline-start: -3px;
   width: 16px;
   height: 16px;
   padding: 0;
@@ -104,7 +104,7 @@
    height; its `height` is set inline from the tick count and the fixed gap. */
 .ticks {
   position: relative;
-  margin-left: 2px;
+  margin-inline-start: 2px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -148,7 +148,7 @@
    chrome. Non-interactive — the wheel already scrolls. */
 .scrollHint {
   position: absolute;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 6px;
   display: flex;
   flex-direction: column;
@@ -184,7 +184,7 @@
 
 .card {
   position: absolute;
-  left: 36px;
+  inset-inline-start: 36px;
   z-index: 30;
   display: flex;
   flex-direction: column;

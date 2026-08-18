@@ -199,7 +199,7 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({
           - 100%: 完全不透明，融入背景色 Fully opaque, blends with background */}
       {!useMask && needsCollapse && isCollapsed && (
         <div
-          className='absolute bottom-0 left-0 right-0 pointer-events-none'
+          className='absolute bottom-0 start-0 end-0 pointer-events-none'
           style={{
             height: '80px',
             background: bgGradient,

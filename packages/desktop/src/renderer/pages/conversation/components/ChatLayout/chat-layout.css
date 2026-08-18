@@ -19,8 +19,8 @@
 .chat-layout-header--glass::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
   bottom: -12px;
   height: 12px;
   pointer-events: none;
@@ -88,6 +88,6 @@
   }
 
   .chat-header-cron-pill {
-    margin-right: 4px;
+    margin-inline-end: 4px;
   }
 }

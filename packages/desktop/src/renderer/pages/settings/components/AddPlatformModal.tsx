@@ -149,7 +149,7 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
 
         {/* Multi-key test result */}
         {multiKeyResult && multiKeyResult.total > 1 && (
-          <div className='flex items-center gap-6px text-11px text-t-tertiary pl-22px'>
+          <div className='flex items-center gap-6px text-11px text-t-tertiary ps-22px'>
             <span>
               {multiKeyResult.invalid === 0
                 ? t('settings.multiKeyAllValid', { total: String(multiKeyResult.total) })

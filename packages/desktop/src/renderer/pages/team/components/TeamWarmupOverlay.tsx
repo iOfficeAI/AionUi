@@ -77,7 +77,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
     <div
       data-testid='team-warmup-overlay'
       data-phase={phase}
-      className='absolute left-0 right-0 bottom-0 z-20 flex flex-col items-center justify-center'
+      className='absolute start-0 end-0 bottom-0 z-20 flex flex-col items-center justify-center'
       style={{
         top: COLUMN_HEADER_HEIGHT,
         background: 'color-mix(in srgb, var(--bg-1) 80%, transparent)',
@@ -122,7 +122,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
                 />
                 {isFailed && (
                   <span
-                    className='absolute -right-2px -bottom-2px w-14px h-14px rounded-full flex items-center justify-center text-9px font-700 text-white'
+                    className='absolute -end-2px -bottom-2px w-14px h-14px rounded-full flex items-center justify-center text-9px font-700 text-white'
                     style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-1)' }}
                   >
                     !
@@ -163,7 +163,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
                 {failedMembers.map((m) => (
                   <div
                     key={m.assistant.slot_id}
-                    className='flex items-start gap-6px text-11px leading-relaxed text-left'
+                    className='flex items-start gap-6px text-11px leading-relaxed text-start'
                   >
                     <span className='shrink-0 font-600' style={{ color: 'var(--danger)' }}>
                       {m.assistant.assistant_name}
@@ -179,7 +179,7 @@ const TeamWarmupOverlay: React.FC<Props> = ({ phase, assistants, runtimeStatus, 
             ) : single?.error ? (
               <div
                 data-testid='team-warmup-error'
-                className='max-w-320px max-h-64px overflow-y-auto text-11px leading-relaxed text-left rounded-6px px-10px py-6px'
+                className='max-w-320px max-h-64px overflow-y-auto text-11px leading-relaxed text-start rounded-6px px-10px py-6px'
                 style={{ background: 'color-mix(in srgb, var(--danger) 8%, var(--bg-base))', color: 'var(--danger)' }}
               >
                 {simplifyWarmupError(single.error)}

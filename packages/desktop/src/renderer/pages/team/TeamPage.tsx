@@ -866,7 +866,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
               <>
                 {showLeftArrow && (
                   <div
-                    className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                    className='absolute start-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
                     style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
                     onClick={scrollToPrev}
                   >
@@ -896,7 +896,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                         data-slot-id={assistant.slot_id}
                         data-role={isLeaderSlot ? 'leader' : 'member'}
                         // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
-                        className={`relative h-full ${isLastColumn ? '' : 'border-r border-solid border-[color:var(--border-base)]'}`}
+                        className={`relative h-full ${isLastColumn ? '' : 'border-e border-solid border-[color:var(--border-base)]'}`}
                         style={{
                           // Always flex-grow to fill available space; each slot starts at 400px
                           // basis so the layout is stable, but spare room is distributed evenly
@@ -935,7 +935,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                 </div>
                 {showRightArrow && (
                   <div
-                    className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
+                    className='absolute end-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
                     style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
                     onClick={scrollToNext}
                   >

@@ -184,7 +184,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
                 )}
                 {/* 预览按钮 - 点击打开文件预览 / Preview button - click to open file preview */}
                 <span
-                  className='group-hover:opacity-100 transition-opacity shrink-0 ml-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
+                  className='group-hover:opacity-100 transition-opacity shrink-0 ms-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
                   onClick={(e) => {
                     e.stopPropagation();
                     onFileClick?.(file);

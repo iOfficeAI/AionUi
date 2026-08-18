@@ -13,6 +13,7 @@ import { Right } from '@icon-park/react';
 import { Tooltip, Typography } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatNameList } from '@/renderer/services/i18n/list';
 import useSWR from 'swr';
 
 const BOUND_ASSISTANTS_SWR_KEY = 'agents.boundAssistants.list';
@@ -49,18 +50,21 @@ export const BoundAssistantStack: React.FC<{ assistants: Assistant[]; max?: numb
 
   const shown = assistants.slice(0, max);
   const overflow = assistants.length - shown.length;
-  const tooltip = assistants.map((a) => assistantLabel(a, localeKey)).join('、');
+  const tooltip = formatNameList(
+    assistants.map((a) => assistantLabel(a, localeKey)),
+    i18n.language
+  );
 
   return (
     <Tooltip
-      content={t('settings.agentManagement.boundAssistantsCount', { count: assistants.length }) + '：' + tooltip}
+      content={t('settings.agentManagement.boundAssistantsTooltip', { count: assistants.length, names: tooltip })}
     >
       <div className='flex items-center' data-testid='agent-bound-stack'>
         {shown.map((assistant, index) => (
           <div
             key={assistant.id}
             className='overflow-hidden rounded-full border-2 border-solid border-bg-2'
-            style={{ marginLeft: index === 0 ? 0 : -7, zIndex: shown.length - index }}
+            style={{ marginInlineStart: index === 0 ? 0 : -7, zIndex: shown.length - index }}
           >
             <AssistantAvatar assistant={assistant} size={22} />
           </div>
@@ -68,7 +72,7 @@ export const BoundAssistantStack: React.FC<{ assistants: Assistant[]; max?: numb
         {overflow > 0 && (
           <div
             className='flex items-center justify-center rounded-full border-2 border-solid border-bg-2 bg-fill-3 text-9px font-600 text-t-secondary'
-            style={{ width: 22, height: 22, marginLeft: -7 }}
+            style={{ width: 22, height: 22, marginInlineStart: -7 }}
           >
             +{overflow}
           </div>

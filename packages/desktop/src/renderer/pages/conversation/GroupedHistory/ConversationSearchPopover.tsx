@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { AionSearchInput } from '@/renderer/components/base';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
@@ -80,14 +81,14 @@ const renderHighlightedText = (text: string, keyword: string) => {
   });
 };
 
-const formatTime = (timestamp: number): string => {
+const formatTime = (timestamp: number, locale: string): string => {
   if (!timestamp) return '';
-  return new Intl.DateTimeFormat(undefined, {
+  return formatDateTime(timestamp, locale, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(timestamp);
+  });
 };
 
 interface ConversationSearchPopoverProps {
@@ -137,7 +138,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   fullWidth = false,
   renderTrigger,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -370,7 +371,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
     return (
       <div
-        className='h-full min-h-0 overflow-y-auto overflow-x-hidden pr-4px'
+        className='h-full min-h-0 overflow-y-auto overflow-x-hidden pe-4px'
         onScroll={(event) => {
           const target = event.currentTarget;
           if (target.scrollHeight - target.scrollTop - target.clientHeight < 48) {
@@ -386,7 +387,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                 key={`${item.message_id}-${item.message_created_at}`}
                 type='button'
                 className={classNames(
-                  'conversation-search-modal__result w-full text-left cursor-pointer transition-all duration-150',
+                  'conversation-search-modal__result w-full text-start cursor-pointer transition-all duration-150',
                   'focus:outline-none'
                 )}
                 onClick={() => {
@@ -402,7 +403,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                       </div>
                     </div>
                   </div>
-                  <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.message_created_at)}</span>
+                  <span className='shrink-0 text-11px text-t-secondary'>
+                    {formatTime(item.message_created_at, i18n.language)}
+                  </span>
                 </div>
                 <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
                   {renderHighlightedText(snippet, debouncedKeyword)}
@@ -425,7 +428,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const hasSearchResults = items.length > 0;
   const useCompactHeight = !debouncedKeyword || (!loading && !hasSearchResults);
   const triggerClassName = fullWidth
-    ? 'conversation-search-trigger-full h-34px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
+    ? 'conversation-search-trigger-full h-34px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-8px ps-10px pe-8px rd-0.5rem cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
     : 'h-34px w-34px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent text-t-secondary hover:text-t-primary';
 
   return (

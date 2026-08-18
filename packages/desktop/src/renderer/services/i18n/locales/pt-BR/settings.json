@@ -46,6 +46,7 @@
       "defaultPrompt": "Gostaria de melhorar esta Skill: {{skillName}}\n\nRevise o conteúdo e me ajude a aprimorá-lo. Minhas sugestões de alteração são:"
     },
     "usedByCount": "Usada por {{count}} assistente(s)",
+    "usedByTooltip": "Usada por {{count}} assistente(s): {{names}}",
     "manageInHub": "Gerenciar na Central",
     "recommend": "Recomendar Habilidades",
     "recommendSuccess": "Recomendado com sucesso: {{count}} habilidades selecionadas baseadas em regras",
@@ -966,6 +967,7 @@
     "noPendingPairings": "Nenhum pedido de pareamento pendente",
     "pairingCode": "Código",
     "expiresIn": "Expira em",
+    "expiresInMinutes": "Expira em: {{count}} min",
     "approve": "Aprovar",
     "reject": "Rejeitar",
     "pairingApproved": "Pareamento aprovado",
@@ -1203,6 +1205,7 @@
     },
     "boundAssistantsTitle": "Assistentes que usam este agente",
     "boundAssistantsCount": "{{count}} assistente(s)",
+    "boundAssistantsTooltip": "{{count}} assistente(s): {{names}}",
     "boundAssistantsEmpty": "Nenhum assistente está vinculado a este agente ainda.",
     "viewAssistant": "Ver",
     "searchPlaceholder": "Pesquisar agentes...",

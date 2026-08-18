@@ -128,7 +128,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
       {/* 左侧滚动按钮 - 在非起始位置时显示 */}
       {showScrollButton && canScrollLeft && (
         <div
-          className='absolute left-0 top-0 h-full flex items-center cursor-pointer'
+          className='absolute start-0 top-0 h-full flex items-center cursor-pointer'
           style={{
             background: 'linear-gradient(to left, transparent, var(--dialog-fill-0) 30%)', // 左侧渐变遮罩
             width: '60px',
@@ -137,7 +137,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
         >
           <button
             onClick={handleScrollLeft}
-            className='ml-0px w-28px h-28px rd-50% bg-1 flex items-center justify-center hover:bg-2 transition-colors border-1 border-solid b-color-border-2'
+            className='ms-0px w-28px h-28px rd-50% bg-1 flex items-center justify-center hover:bg-2 transition-colors border-1 border-solid b-color-border-2'
             style={{
               pointerEvents: 'auto', // 按钮响应点击
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -150,7 +150,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
       {/* 右侧滚动按钮 - 在非结束位置时显示 */}
       {showScrollButton && canScrollRight && (
         <div
-          className='absolute right-0 top-0 h-full flex items-center cursor-pointer'
+          className='absolute end-0 top-0 h-full flex items-center cursor-pointer'
           style={{
             background: 'linear-gradient(to right, transparent, var(--dialog-fill-0) 30%)', // 右侧渐变遮罩
             width: '60px',
@@ -159,7 +159,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
         >
           <button
             onClick={handleScrollRight}
-            className='ml-auto mr-0px w-28px h-28px rd-50% bg-1 flex items-center justify-center hover:bg-2 transition-colors border-1 border-solid b-color-border-2'
+            className='ms-auto me-0px w-28px h-28px rd-50% bg-1 flex items-center justify-center hover:bg-2 transition-colors border-1 border-solid b-color-border-2'
             style={{
               pointerEvents: 'auto', // 按钮响应点击
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',

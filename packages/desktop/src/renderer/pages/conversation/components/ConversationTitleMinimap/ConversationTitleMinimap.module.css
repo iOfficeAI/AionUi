@@ -53,8 +53,8 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  padding-left: 11px;
-  padding-right: 11px;
+  padding-inline-start: 11px;
+  padding-inline-end: 11px;
   overflow: hidden;
 }
 
@@ -79,7 +79,7 @@
   line-height: 1.4;
   background: transparent;
   box-shadow: none;
-  padding-right: 0;
+  padding-inline-end: 0;
 }
 
 .searchInput :global(.arco-input::placeholder) {

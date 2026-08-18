@@ -194,7 +194,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
           >
             <span className='flex items-center justify-center w-20px h-20px'>{option.icon}</span>
             <span className='text-14px'>{option.label}</span>
-            {currentTool === option.key && <span className='ml-auto text-12px text-[var(--color-text-3)]'>✓</span>}
+            {currentTool === option.key && <span className='ms-auto text-12px text-[var(--color-text-3)]'>✓</span>}
           </div>
         </React.Fragment>
       ))}
@@ -207,7 +207,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
         <Button
           type='text'
           size='small'
-          className='workspace-open-button__btn flex items-center gap-4px pl-8px pr-4px'
+          className='workspace-open-button__btn flex items-center gap-4px ps-8px pe-4px'
           onClick={() => handleOpenWith(currentTool)}
         >
           {currentIcon}
@@ -224,8 +224,8 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
         <Button
           type='text'
           size='small'
-          className='workspace-open-button__dropdown-btn pl-2px pr-4px'
-          style={{ marginLeft: '-4px' }}
+          className='workspace-open-button__dropdown-btn ps-2px pe-4px'
+          style={{ marginInlineStart: '-4px' }}
         >
           <Down size={12} className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
         </Button>

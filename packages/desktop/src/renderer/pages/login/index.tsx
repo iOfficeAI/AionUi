@@ -58,10 +58,6 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    document.title = t('login.pageTitle');
-  }, [t]);
-
-  useEffect(() => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 

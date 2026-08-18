@@ -744,7 +744,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
             )}
           </button>
           {isStarOffice && (
-            <div className='flex items-center gap-6px ml-2px'>
+            <div className='flex items-center gap-6px ms-2px'>
               <button onClick={handleZoomReset} className='toolbar-btn' title='Reset zoom'>
                 100%
               </button>
@@ -754,7 +754,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
               <span className='toolbar-chip'>{Math.round(zoomFactor * 100)}%</span>
             </div>
           )}
-          <form onSubmit={handleUrlSubmit} className='flex-1 ml-2px'>
+          <form onSubmit={handleUrlSubmit} className='flex-1 ms-2px'>
             <input
               type='text'
               value={inputUrl}
@@ -785,7 +785,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
         <webview
           ref={webviewRef as any}
           src={currentUrl}
-          className='border-0 absolute left-0 top-0'
+          className='border-0 absolute start-0 top-0'
           style={{
             opacity: !showNavBar && isLoading ? 0 : 1,
             transition: 'opacity 150ms ease-in',

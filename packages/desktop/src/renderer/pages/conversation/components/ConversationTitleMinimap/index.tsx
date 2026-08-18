@@ -157,7 +157,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({
         >
           <div
             className='conversation-minimap-body h-full overflow-y-auto overflow-x-hidden box-border'
-            style={{ paddingRight: '14px', scrollbarGutter: 'stable' }}
+            style={{ paddingInlineEnd: '14px', scrollbarGutter: 'stable' }}
           >
             <div className='conversation-minimap-list flex flex-col gap-6px'>
               {filteredItems.map((item, idx) => (
@@ -167,7 +167,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({
                   data-minimap-item-index={idx}
                   aria-selected={activeResultIndex === idx}
                   className={classNames(
-                    'conversation-minimap-item w-full text-left px-12px py-10px border-none rounded-10px hover:bg-fill-2 transition-colors cursor-pointer block',
+                    'conversation-minimap-item w-full text-start px-12px py-10px border-none rounded-10px hover:bg-fill-2 transition-colors cursor-pointer block',
                     isSearchMode && activeResultIndex === idx ? 'bg-fill-2' : 'bg-transparent'
                   )}
                   onMouseEnter={() => {

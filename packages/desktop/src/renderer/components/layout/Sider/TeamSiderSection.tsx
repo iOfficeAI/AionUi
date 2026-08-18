@@ -145,7 +145,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                     )}
                     {(teamBadgeCounts.get(team.id) ?? 0) > 0 && (
                       <span
-                        className='absolute top-4px right-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none bg-danger-6 text-white'
+                        className='absolute top-4px end-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none bg-danger-6 text-white'
                         style={{ lineHeight: 1 }}
                       >
                         {(teamBadgeCounts.get(team.id) ?? 0) > 99 ? '99+' : teamBadgeCounts.get(team.id)}
@@ -167,7 +167,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             <span className='text-14px text-t-tertiary sider-section-title group-hover/label:text-t-primary transition-colors font-[500] leading-none'>
               {t('team.sider.title')}
             </span>
-            <span className='ml-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
+            <span className='ms-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
               <Right
                 theme='outline'
                 size={12}
@@ -179,7 +179,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             <Tooltip content={t('team.sider.createTeam')} position='top'>
               <div
                 data-testid='team-create-btn'
-                className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
+                className='ms-auto -me-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
                 onClick={(e) => {
                   e.stopPropagation();
                   setCreateTeamVisible(true);
@@ -273,7 +273,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   />
                   {teamBadge > 0 && (
                     <span
-                      className='absolute right-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'
+                      className='absolute end-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'
                       style={{ lineHeight: 1 }}
                     >
                       {teamBadge > 99 ? '99+' : teamBadge}
