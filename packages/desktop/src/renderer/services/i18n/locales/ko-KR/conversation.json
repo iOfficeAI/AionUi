@@ -648,6 +648,8 @@
     "imported": "{{count}}개 파일을 가져왔습니다",
     "importPartialFailed": "{{copied}}개 복사, {{failed}}개 실패(이름 충돌 또는 미지원)",
     "importFailed": "파일 가져오기에 실패했습니다",
+    "copyNodeFailed": "복사에 실패했습니다",
+    "moveNodeFailed": "이동에 실패했습니다",
     "search": {
       "placeholder": "파일 이름으로 검색",
       "searching": "검색 중…",

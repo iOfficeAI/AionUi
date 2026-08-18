@@ -650,6 +650,8 @@
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
     "importFailed": "Dosyalar içe aktarılamadı",
+    "copyNodeFailed": "Kopyalanamadı",
+    "moveNodeFailed": "Taşınamadı",
     "search": {
       "placeholder": "Dosya adına göre ara",
       "searching": "Aranıyor…",

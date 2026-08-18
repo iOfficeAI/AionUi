@@ -410,3 +410,112 @@ export function buildRenameRequest(dialog: RenameRequest, rawName: string): FsOp
 export function buildRemoveRequest(peId: string, relativePath: string): FsOpRequest {
   return { method: 'fs/remove', params: { target: { pe_id: peId, relative_path: relativePath } } };
 }
+
+// ── Drag-to-copy/move (source B/C): pure model ──────────────────────────────
+// A tree node can be dragged onto a directory node to copy or move it there.
+// The payload rides a custom drag MIME so an internal drag is distinguishable
+// from an OS-file drop (which carries `Files`). Op selection, guards, and the
+// request shape are all pure so the full dragStart→dragOver→drop sequence can be
+// replayed in a headless test.
+
+/** Copy vs move — the two transfer directions distinguished by modifier key. */
+export type TransferOp = 'copy' | 'move';
+
+/** Custom drag MIME carrying an internal pe-ref (vs an OS `Files` drop). */
+export const PE_REF_DRAG_MIME = 'application/x-aionui-pe-ref';
+
+/** The dragged node's identity + display facts, serialized onto the drag MIME. */
+export type DragPeRef = {
+  pe_id: string;
+  relative_path: string;
+  name: string;
+  isDir: boolean;
+};
+
+/** Serialize a dragged node to the drag-transfer string. */
+export function serializePeRef(ref: DragPeRef): string {
+  return JSON.stringify(ref);
+}
+
+/**
+ * Parse the drag-transfer string back to a `DragPeRef`. Returns `null` for
+ * anything malformed (an OS-file drop, a foreign app's payload, a truncated
+ * string), so the caller falls back to the OS-file path.
+ */
+export function parsePeRef(raw: string): DragPeRef | null {
+  try {
+    const obj = JSON.parse(raw) as Partial<DragPeRef>;
+    if (
+      obj &&
+      typeof obj.pe_id === 'string' &&
+      typeof obj.relative_path === 'string' &&
+      typeof obj.name === 'string' &&
+      typeof obj.isDir === 'boolean'
+    ) {
+      return { pe_id: obj.pe_id, relative_path: obj.relative_path, name: obj.name, isDir: obj.isDir };
+    }
+  } catch {
+    // Not our JSON — treat as absent.
+  }
+  return null;
+}
+
+/**
+ * Whether the copy modifier is held, per OS convention: Option (Alt) on macOS,
+ * Ctrl elsewhere. The base drag (no modifier) is move within a pe and copy
+ * across pes; the modifier flips that (see `resolveTransferOp`).
+ */
+export function isCopyModifierPressed(e: { altKey: boolean; ctrlKey: boolean }, isMac: boolean): boolean {
+  return isMac ? e.altKey : e.ctrlKey;
+}
+
+/**
+ * Resolve the transfer op from context. Within one pe the default gesture is a
+ * move (Finder/Explorer convention for same-volume drag); across pes the default
+ * is a copy (cross-volume convention). The modifier inverts the default either
+ * way, so the same key always means "the other thing".
+ */
+export function resolveTransferOp(samePe: boolean, copyModifier: boolean): TransferOp {
+  const base: TransferOp = samePe ? 'move' : 'copy';
+  if (!copyModifier) return base;
+  return base === 'move' ? 'copy' : 'move';
+}
+
+/**
+ * Whether dropping `source` into directory `target` as `op` is a legal transfer.
+ * Blocks the two shapes the backend also rejects, but here they gate the drop
+ * cursor so the user sees it is disallowed before releasing:
+ *   1. Into itself or its own subtree (same pe) — a dir cannot contain itself.
+ *   2. A move into the source's current parent — a no-op (copy there is allowed,
+ *      producing an auto-renamed duplicate, matching Finder's option-drag).
+ * A pe root (`relative_path === ''`) is never a valid drag source (it is a
+ * binding, not an entry) — its whole-pe subtree makes case 1 reject it.
+ */
+export function isTransferAllowed(source: DragPeRef, target: DirRef, op: TransferOp): boolean {
+  if (source.relative_path === '') return false; // pe root is not a draggable entry
+  if (isDescendantOrSelf(peKey(target.pe_id, target.relative_path), peKey(source.pe_id, source.relative_path))) {
+    return false;
+  }
+  if (op === 'move' && source.pe_id === target.pe_id && parentRel(source.relative_path) === target.relative_path) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Build the WS `fs/copy` / `fs/move` request. `from` is the dragged node's
+ * identity; `toDir` is the *target directory* — the backend preserves the source
+ * basename and auto-renames on collision (`name copy`, `name copy 2`, …), so the
+ * front end never computes the destination path (it lacks absolute paths and
+ * would race the tree). Guard with `isTransferAllowed` before calling.
+ */
+export function buildTransferRequest(op: TransferOp, from: DirRef, toDir: DirRef): FsOpRequest {
+  const method = op === 'copy' ? 'fs/copy' : 'fs/move';
+  return {
+    method,
+    params: {
+      from: { pe_id: from.pe_id, relative_path: from.relative_path },
+      to_dir: { pe_id: toDir.pe_id, relative_path: toDir.relative_path },
+    },
+  };
+}

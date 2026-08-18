@@ -13,14 +13,17 @@
  */
 
 import React from 'react';
-import { act, render, screen, cleanup } from '@testing-library/react';
+import { act, fireEvent, render, screen, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 vi.mock('@/renderer/pages/conversation/explorer/monitorTransport', () => ({ initExplorerRuntime: () => ({}) }));
+// Pin platform so the modifier→op mapping is deterministic: macOS ⇒ Option (Alt)
+// is the copy modifier. isElectronDesktop is false here (jsdom, no shell).
+vi.mock('@/renderer/utils/platform', () => ({ isMacOS: () => true, isElectronDesktop: () => false }));
 
 import type { DirRef, Entry, PeKey } from '@/renderer/pages/conversation/explorer/explorerModel';
-import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
+import { PE_REF_DRAG_MIME, peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import type { MonitorPort } from '@/renderer/pages/conversation/explorer/explorerStore';
 import {
   applyMonitorNotification,
@@ -149,5 +152,117 @@ describe('ExplorerPanel reveal highlight + scroll-into-view', () => {
       await flush();
     });
     expect(scrollSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+// A DataTransfer stub: jsdom's is inert (setData/getData no-ops, no `types`), so
+// a full internal drag needs a backing store shared across the drag sequence —
+// the same object rides dragStart (writes) → dragOver (reads types) → drop (reads
+// data), exactly as the browser hands one DataTransfer to all three events.
+const makeDataTransfer = () => {
+  const store = new Map<string, string>();
+  return {
+    dropEffect: 'none',
+    effectAllowed: 'none',
+    setData: (type: string, val: string) => void store.set(type, val),
+    getData: (type: string) => store.get(type) ?? '',
+    get types() {
+      return Array.from(store.keys());
+    },
+    files: [] as unknown as FileList,
+  };
+};
+
+// Fire a drag event with a real DataTransfer + modifier. `fireEvent.dragOver(el,
+// { altKey })` cannot set altKey — it is a readonly accessor on MouseEvent's
+// prototype, so testing-library's Object.assign is silently ignored. Constructing
+// the MouseEvent directly makes the constructor honor altKey, and dataTransfer is
+// attached with defineProperty (Event has no such accessor to block it).
+const fireDrag = (
+  node: Element,
+  type: string,
+  opts: { dataTransfer: ReturnType<typeof makeDataTransfer>; altKey?: boolean }
+) => {
+  const ev = new MouseEvent(type, { bubbles: true, cancelable: true, altKey: opts.altKey ?? false });
+  Object.defineProperty(ev, 'dataTransfer', { value: opts.dataTransfer, configurable: true });
+  fireEvent(node, ev);
+};
+
+describe('ExplorerPanel internal drag transfer (source B/C)', () => {
+  const renderTree = (onTransfer: ReturnType<typeof vi.fn>) => {
+    configureExplorerStore(
+      makePort({
+        [peKey('pe1', '')]: [dir('sub'), file('a.ts')],
+        [peKey('pe1', 'sub')]: [],
+      })
+    );
+    render(
+      <ExplorerPanel
+        projectId='p1'
+        roots={[{ pe_id: 'pe1', title: 'app', role: 'workspace' }]}
+        onTransfer={onTransfer}
+      />
+    );
+  };
+
+  it('replays dragStart → dragOver → drop for a same-pe move (default, no modifier)', async () => {
+    const onTransfer = vi.fn();
+    renderTree(onTransfer);
+    await screen.findByText('a.ts');
+
+    const dt = makeDataTransfer();
+    // Drag the file 'a.ts' onto the dir 'sub'.
+    fireDrag(screen.getByText('a.ts'), 'dragstart', { dataTransfer: dt });
+    // The custom MIME carries the dragged node's identity.
+    expect(JSON.parse(dt.getData(PE_REF_DRAG_MIME))).toMatchObject({
+      pe_id: 'pe1',
+      relative_path: 'a.ts',
+      isDir: false,
+    });
+
+    fireDrag(screen.getByText('sub'), 'dragover', { dataTransfer: dt });
+    expect(dt.dropEffect).toBe('move'); // same pe, no modifier → move
+
+    fireDrag(screen.getByText('sub'), 'drop', { dataTransfer: dt });
+    expect(onTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ pe_id: 'pe1', relative_path: 'a.ts', isDir: false }),
+      'pe1',
+      'sub',
+      'move'
+    );
+  });
+
+  it('flips to copy when the Option (Alt) modifier is held on macOS', async () => {
+    const onTransfer = vi.fn();
+    renderTree(onTransfer);
+    await screen.findByText('a.ts');
+
+    const dt = makeDataTransfer();
+    fireDrag(screen.getByText('a.ts'), 'dragstart', { dataTransfer: dt });
+    fireDrag(screen.getByText('sub'), 'dragover', { dataTransfer: dt, altKey: true });
+    expect(dt.dropEffect).toBe('copy');
+    fireDrag(screen.getByText('sub'), 'drop', { dataTransfer: dt, altKey: true });
+    expect(onTransfer).toHaveBeenCalledWith(expect.objectContaining({ relative_path: 'a.ts' }), 'pe1', 'sub', 'copy');
+  });
+
+  it('blocks a drop onto the source itself: dropEffect none, no transfer fires', async () => {
+    const onTransfer = vi.fn();
+    renderTree(onTransfer);
+    await screen.findByText('sub');
+
+    const dt = makeDataTransfer();
+    // Drag the dir 'sub' onto itself.
+    fireDrag(screen.getByText('sub'), 'dragstart', { dataTransfer: dt });
+    fireDrag(screen.getByText('sub'), 'dragover', { dataTransfer: dt });
+    expect(dt.dropEffect).toBe('none');
+    fireDrag(screen.getByText('sub'), 'drop', { dataTransfer: dt });
+    expect(onTransfer).not.toHaveBeenCalled();
+  });
+
+  it('does not make the pe root draggable (it is a binding, not an entry)', async () => {
+    const onTransfer = vi.fn();
+    renderTree(onTransfer);
+    const rootTitle = (await screen.findByText('app')).closest('span[draggable]');
+    expect(rootTitle).toBeNull();
   });
 });

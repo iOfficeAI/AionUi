@@ -654,6 +654,8 @@
     "imported": "{{count}} arquivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
     "importFailed": "Falha ao importar os arquivos",
+    "copyNodeFailed": "Falha ao copiar",
+    "moveNodeFailed": "Falha ao mover",
     "search": {
       "placeholder": "Buscar arquivos por nome",
       "searching": "Buscando…",

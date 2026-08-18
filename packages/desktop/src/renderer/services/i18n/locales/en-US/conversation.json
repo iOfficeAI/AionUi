@@ -648,6 +648,8 @@
     "imported": "Imported {{count}} file(s)",
     "importPartialFailed": "{{copied}} copied, {{failed}} failed (name conflicts or unsupported)",
     "importFailed": "Failed to import files",
+    "copyNodeFailed": "Failed to copy",
+    "moveNodeFailed": "Failed to move",
     "search": {
       "placeholder": "Search files by name",
       "searching": "Searching…",

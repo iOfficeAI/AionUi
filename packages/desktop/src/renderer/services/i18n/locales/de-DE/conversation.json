@@ -649,6 +649,8 @@
     "imported": "{{count}} Datei(en) importiert",
     "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
     "importFailed": "Import der Dateien fehlgeschlagen",
+    "copyNodeFailed": "Kopieren fehlgeschlagen",
+    "moveNodeFailed": "Verschieben fehlgeschlagen",
     "search": {
       "placeholder": "Dateien nach Name suchen",
       "searching": "Suche läuft…",

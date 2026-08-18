@@ -658,6 +658,8 @@
     "imported": "Імпортовано файлів: {{count}}",
     "importPartialFailed": "Скопійовано: {{copied}}, з помилкою: {{failed}} (конфлікти імен або не підтримується)",
     "importFailed": "Не вдалося імпортувати файли",
+    "copyNodeFailed": "Не вдалося скопіювати",
+    "moveNodeFailed": "Не вдалося перемістити",
     "search": {
       "placeholder": "Пошук файлів за назвою",
       "searching": "Пошук…",

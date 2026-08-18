@@ -7,18 +7,25 @@ import {
   applySnapshot,
   buildRemoveRequest,
   buildRenameRequest,
+  buildTransferRequest,
   buildTreeData,
   canRemoveRoot,
   deriveWant,
+  isCopyModifierPressed,
   isDescendantOrSelf,
+  isTransferAllowed,
   joinRel,
   keyToRef,
   migrateKey,
   parentRel,
+  parsePeRef,
   peKey,
   reconcileDiff,
+  resolveTransferOp,
+  serializePeRef,
   subtreeKeys,
 } from '@/renderer/pages/conversation/explorer/explorerModel';
+import type { DragPeRef } from '@/renderer/pages/conversation/explorer/explorerModel';
 
 const set = (...keys: PeKey[]): Set<PeKey> => new Set(keys);
 const file = (name: string): Entry => ({ name, kind: 'file' });
@@ -463,6 +470,108 @@ describe('buildRemoveRequest', () => {
     expect(buildRemoveRequest('peY', 'a/b.txt')).toEqual({
       method: 'fs/remove',
       params: { target: { pe_id: 'peY', relative_path: 'a/b.txt' } },
+    });
+  });
+});
+
+// ── Drag-to-copy/move (source B/C) ───────────────────────────────────────────
+
+describe('serializePeRef / parsePeRef', () => {
+  const ref: DragPeRef = { pe_id: 'peA', relative_path: 'src/a.txt', name: 'a.txt', isDir: false };
+
+  it('round-trips a dragged node', () => {
+    expect(parsePeRef(serializePeRef(ref))).toEqual(ref);
+  });
+
+  it('returns null for a non-JSON payload (an OS-file drop / foreign app)', () => {
+    expect(parsePeRef('')).toBeNull();
+    expect(parsePeRef('/Users/me/file.txt')).toBeNull();
+    expect(parsePeRef('{not json')).toBeNull();
+  });
+
+  it('returns null when a required field is missing or mistyped', () => {
+    expect(parsePeRef(JSON.stringify({ pe_id: 'p', relative_path: 'x', name: 'x' }))).toBeNull(); // no isDir
+    expect(parsePeRef(JSON.stringify({ pe_id: 'p', relative_path: 'x', name: 'x', isDir: 'yes' }))).toBeNull();
+  });
+});
+
+describe('isCopyModifierPressed', () => {
+  it('is Option (Alt) on macOS', () => {
+    expect(isCopyModifierPressed({ altKey: true, ctrlKey: false }, true)).toBe(true);
+    expect(isCopyModifierPressed({ altKey: false, ctrlKey: true }, true)).toBe(false);
+  });
+
+  it('is Ctrl elsewhere', () => {
+    expect(isCopyModifierPressed({ altKey: false, ctrlKey: true }, false)).toBe(true);
+    expect(isCopyModifierPressed({ altKey: true, ctrlKey: false }, false)).toBe(false);
+  });
+});
+
+describe('resolveTransferOp', () => {
+  it('within one pe: default move, modifier flips to copy', () => {
+    expect(resolveTransferOp(true, false)).toBe('move');
+    expect(resolveTransferOp(true, true)).toBe('copy');
+  });
+
+  it('across pes: default copy, modifier flips to move', () => {
+    expect(resolveTransferOp(false, false)).toBe('copy');
+    expect(resolveTransferOp(false, true)).toBe('move');
+  });
+});
+
+describe('isTransferAllowed', () => {
+  const fileSrc: DragPeRef = { pe_id: 'peA', relative_path: 'docs/a.txt', name: 'a.txt', isDir: false };
+  const dirSrc: DragPeRef = { pe_id: 'peA', relative_path: 'src', name: 'src', isDir: true };
+
+  it('blocks dropping a dir into itself', () => {
+    expect(isTransferAllowed(dirSrc, { pe_id: 'peA', relative_path: 'src' }, 'move')).toBe(false);
+    expect(isTransferAllowed(dirSrc, { pe_id: 'peA', relative_path: 'src' }, 'copy')).toBe(false);
+  });
+
+  it('blocks dropping a dir into its own subtree', () => {
+    expect(isTransferAllowed(dirSrc, { pe_id: 'peA', relative_path: 'src/nested' }, 'move')).toBe(false);
+  });
+
+  it('blocks a move into the source current parent (no-op) but allows a copy there (duplicate)', () => {
+    expect(isTransferAllowed(fileSrc, { pe_id: 'peA', relative_path: 'docs' }, 'move')).toBe(false);
+    expect(isTransferAllowed(fileSrc, { pe_id: 'peA', relative_path: 'docs' }, 'copy')).toBe(true);
+  });
+
+  it('allows a move into a different dir in the same pe', () => {
+    expect(isTransferAllowed(fileSrc, { pe_id: 'peA', relative_path: 'other' }, 'move')).toBe(true);
+  });
+
+  it('allows a cross-pe drop (different pe is never a descendant)', () => {
+    expect(isTransferAllowed(dirSrc, { pe_id: 'peB', relative_path: 'src' }, 'copy')).toBe(true);
+    expect(isTransferAllowed(dirSrc, { pe_id: 'peB', relative_path: '' }, 'move')).toBe(true);
+  });
+
+  it('rejects a pe root as a drag source (it is a binding, not an entry)', () => {
+    const rootSrc: DragPeRef = { pe_id: 'peA', relative_path: '', name: 'root', isDir: true };
+    expect(isTransferAllowed(rootSrc, { pe_id: 'peA', relative_path: 'sub' }, 'copy')).toBe(false);
+  });
+});
+
+describe('buildTransferRequest', () => {
+  it('builds fs/copy with from + to_dir (target directory, not full dest)', () => {
+    expect(
+      buildTransferRequest(
+        'copy',
+        { pe_id: 'peA', relative_path: 'docs/a.txt' },
+        { pe_id: 'peB', relative_path: 'inbox' }
+      )
+    ).toEqual({
+      method: 'fs/copy',
+      params: { from: { pe_id: 'peA', relative_path: 'docs/a.txt' }, to_dir: { pe_id: 'peB', relative_path: 'inbox' } },
+    });
+  });
+
+  it('builds fs/move with from + to_dir', () => {
+    expect(
+      buildTransferRequest('move', { pe_id: 'peA', relative_path: 'src' }, { pe_id: 'peA', relative_path: '' })
+    ).toEqual({
+      method: 'fs/move',
+      params: { from: { pe_id: 'peA', relative_path: 'src' }, to_dir: { pe_id: 'peA', relative_path: '' } },
     });
   });
 });

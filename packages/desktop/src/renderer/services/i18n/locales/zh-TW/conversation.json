@@ -648,6 +648,8 @@
     "imported": "已匯入 {{count}} 個檔案",
     "importPartialFailed": "已複製 {{copied}} 個，{{failed}} 個失敗（重名或不支援）",
     "importFailed": "匯入檔案失敗",
+    "copyNodeFailed": "複製失敗",
+    "moveNodeFailed": "移動失敗",
     "search": {
       "placeholder": "依檔名搜尋",
       "searching": "搜尋中…",
