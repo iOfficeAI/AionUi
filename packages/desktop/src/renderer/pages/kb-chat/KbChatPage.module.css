@@ -28,7 +28,7 @@
 }
 
 .error {
-  color: var(--color-danger-6);
+  color: rgb(var(--danger-6));
   margin-top: 12px;
   display: flex;
   gap: 8px;
@@ -37,6 +37,7 @@
 
 .inputBar {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--color-border-2);
@@ -44,4 +45,47 @@
 
 .input {
   flex: 1;
+  resize: none;
+}
+
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--color-text-3);
+  font-size: 13px;
+}
+
+.loadingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-text-3);
+  animation: kb-chat-loading-bounce 1.2s infinite ease-in-out;
+}
+
+.loadingDot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loadingDot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.loadingText {
+  margin-left: 4px;
+}
+
+@keyframes kb-chat-loading-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }

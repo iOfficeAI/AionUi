@@ -31,6 +31,14 @@ export const KbChatPage: React.FC = () => {
             <strong>{m.role === 'user' ? 'You' : 'KB'}:</strong> {m.content}
           </div>
         ))}
+        {status === 'streaming' && (
+          <div className={styles.loading} data-testid='kb-chat-loading'>
+            <span className={styles.loadingDot} />
+            <span className={styles.loadingDot} />
+            <span className={styles.loadingDot} />
+            <span className={styles.loadingText}>{t('kb-chat.loading', { defaultValue: 'KB is thinking…' })}</span>
+          </div>
+        )}
         {status === 'error' && lastError && (
           <div className={styles.error}>
             {t(`kb-chat.error.${lastError.code}`, { message: lastError.message, defaultValue: lastError.message })}
@@ -65,7 +73,7 @@ const KbChatInput: React.FC<KbChatInputProps> = ({ disabled, streaming, onSend, 
 
   return (
     <div className={styles.inputBar}>
-      <Input
+      <Input.TextArea
         className={styles.input}
         placeholder={t('kb-chat.input.placeholder')}
         value={value}
@@ -75,6 +83,7 @@ const KbChatInput: React.FC<KbChatInputProps> = ({ disabled, streaming, onSend, 
           e.preventDefault();
           submit();
         }}
+        autoSize={{ minRows: 3, maxRows: 8 }}
       />
       {streaming ? (
         <Button onClick={onStop}>{t('kb-chat.actions.stop')}</Button>

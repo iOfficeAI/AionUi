@@ -62,7 +62,7 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
         path: parsed.pathname + parsed.search,
         headers: {
-          Authorization: `Bearer ${token}`,
+          Token: token,
         },
       },
       (res) => {
