@@ -8,6 +8,8 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
+import { describeUncaughtError } from './process/utils/describeUncaughtError';
+import type { UncaughtErrorDiagnostics } from './process/utils/describeUncaughtError';
 import { createRendererRecoveryPolicy } from './process/utils/rendererRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
@@ -150,14 +152,27 @@ if (electronSquirrelStartup) {
 }
 
 // Global error handlers for main process
-// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog
-process.on('uncaughtException', (_error) => {
-  // Sentry captures this automatically
+// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog.
+// Control flow is unchanged — both handlers still swallow the failure and keep the process alive; they only
+// log allow-listed attribution first, because a Sentry event for e.g. `read ECONNRESET` otherwise carries
+// nothing but Node-internal frames (TCP.onStreamRead) and cannot be traced back to a subsystem (AIONUI-128).
+process.on('uncaughtException', (error, origin) => {
+  logUncaught(describeUncaughtError(error, origin));
 });
 
-process.on('unhandledRejection', (_reason, _promise) => {
-  // Sentry captures this automatically
+process.on('unhandledRejection', (reason, _promise) => {
+  logUncaught(describeUncaughtError(reason, 'unhandledRejection'));
 });
+
+function logUncaught(diagnostics: UncaughtErrorDiagnostics): void {
+  try {
+    console.error(`[AionUi] ${diagnostics.origin}:`, diagnostics);
+  } catch {
+    // Logging must never escalate a swallowed error into a fatal one: a throw inside an
+    // uncaughtException listener terminates the process, and the log transport itself can
+    // fail (e.g. ENOSPC while appending to the daily log file).
+  }
+}
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
 const getSwitchValue = (flag: string): string | undefined => {
