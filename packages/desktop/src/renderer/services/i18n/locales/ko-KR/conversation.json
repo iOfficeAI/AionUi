@@ -635,11 +635,15 @@
       "rename": "이름 바꾸기",
       "addToChat": "채팅에 추가",
       "copyRelativePath": "상대 경로 복사",
-      "copyAbsolutePath": "절대 경로 복사"
+      "copyAbsolutePath": "절대 경로 복사",
+      "newFile": "새 파일",
+      "newDir": "새 폴더"
     },
     "namePlaceholder": "이름",
     "deleteConfirm": "“{{name}}”을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
     "renameFailed": "이름을 바꾸지 못했습니다",
+    "newFileFailed": "파일을 만들지 못했습니다",
+    "newDirFailed": "폴더를 만들지 못했습니다",
     "tabs": {
       "files": "파일",
       "changes": "변경"

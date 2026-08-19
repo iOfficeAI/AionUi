@@ -24,10 +24,11 @@ import FileTypeIcon from './fileIcon/FileTypeIcon';
 
 import { getFilesFromDropEvent } from '@/renderer/services/FileService';
 import { isMacOS } from '@/renderer/utils/platform';
-import type { DragPeRef, RootRef, TransferOp, TreeNode } from './explorerModel';
+import type { DragPeRef, ExplorerMenuCaps, ExplorerMenuItemKey, RootRef, TransferOp, TreeNode } from './explorerModel';
 import {
   PE_REF_DRAG_MIME,
   canRemoveRoot,
+  explorerContextMenuSections,
   isCopyModifierPressed,
   isTransferAllowed,
   keyToRef,
@@ -49,10 +50,17 @@ export type ExplorerPanelProps = {
   onRemoveRoot?: (peId: string) => void;
   /** Open a file (leaf) in the preview panel. Called when a file node is selected. */
   onOpenFile?: (peId: string, relativePath: string) => void;
-  /** File operations (A) — parity with the legacy tree: rename + delete only.
-   * Omit to hide the corresponding context-menu item. */
+  /** File operations (A): rename + delete on an entry, create-file / create-dir
+   * inside a directory. Omit to hide the corresponding context-menu item. */
   onRename?: (peId: string, relativePath: string, name: string) => void;
   onDelete?: (peId: string, relativePath: string, name: string) => void;
+  /** Create a new empty file inside the directory `dirRelativePath` (a pe root
+   * uses `''`). The name is collected in a dialog by the handler. Only offered on
+   * directory / root nodes. Omit to hide the item. */
+  onNewFile?: (peId: string, dirRelativePath: string) => void;
+  /** Create a new sub-directory inside `dirRelativePath`. Same gating and dialog
+   * flow as `onNewFile`. Omit to hide the item. */
+  onNewDir?: (peId: string, dirRelativePath: string) => void;
   /** Add a file/folder node to the active conversation's send box. Omit to hide
    * the item (e.g. no single active conversation, as on the team route). */
   onAddToChat?: (peId: string, relativePath: string, name: string, isFile: boolean) => void;
@@ -88,6 +96,8 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
   onOpenFile,
   onRename,
   onDelete,
+  onNewFile,
+  onNewDir,
   onAddToChat,
   onRevealInFolder,
   onCopyRelativePath,
@@ -191,10 +201,10 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       const isFile = Boolean(data?.isLeaf);
       const isExpanded = view.expanded.includes(key);
 
-      // Right-click file operations, mirroring the legacy tree: non-root nodes
-      // get rename + delete; pe roots (role set) get "remove from project" (they
-      // are pe bindings, not renamed/deleted in place). Matches old-tree parity —
-      // no new-file/new-folder (the old tree never had those).
+      // Right-click file operations: non-root nodes get rename + delete; pe roots
+      // (role set) get "remove from project" (they are pe bindings, not
+      // renamed/deleted in place). Any directory node — a real dir or a pe root —
+      // additionally gets new-file / new-folder, which create inside that node.
       const ref = keyToRef(key);
       const peId = ref.pe_id;
       const rel = ref.relative_path;
@@ -270,11 +280,15 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
           }
         : {};
 
+      // `w-full` pairs with the tree's `blockNode`: blockNode makes the arco title
+      // wrapper span the full row, and this fills that wrapper so the right-click
+      // context menu (its <Dropdown trigger='contextMenu'> is attached to this span)
+      // and the drop-target highlight both cover the whole row, not just the label.
       const title = (
         <span
           data-runtime-status={status}
           data-drop-target={dragOverKey === key || undefined}
-          className={`flex items-center gap-4px min-w-0${degraded ? ' text-t-secondary' : ''}${dragOverKey === key ? ' bg-aou-2 rd-4px' : ''}`}
+          className={`flex items-center gap-4px min-w-0 w-full${degraded ? ' text-t-secondary' : ''}${dragOverKey === key ? ' bg-aou-2 rd-4px' : ''}`}
           {...dragProps}
           {...dropProps}
         >
@@ -288,23 +302,34 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       );
       const removable = isRoot && data?.role ? canRemoveRoot(data.role, peId, workspacePeId) : false;
 
-      // Root nodes only expose "remove from project" + (when available) "add to
-      // chat". Non-root nodes get add-to-chat + rename/delete. If a node would
-      // have no menu items at all, render the bare title (no dropdown).
-      // Reveal-in-folder is Electron-only (needs a local OS shell; WebUI may be
-      // remote and has no shell permission), so gate the menu item on the runtime.
+      // The menu is grouped into three ordered sections drawn with a divider line
+      // between them (see explorerContextMenuSections): (1) add-to-chat,
+      // (2) locate / copy paths, (3) create / rename / delete / remove-from-project.
+      // Which actions are enabled depends on the node and the runtime:
+      //  - Reveal-in-folder + copy-absolute-path are Electron-only: they need a
+      //    local OS shell / resolve the absolute path backend-side, which must not
+      //    be exposed to a remote WebUI.
+      //  - New-file / new-dir create inside a directory, so only on directory nodes
+      //    (a real dir or a pe root), never on a file leaf.
+      //  - Rename / delete are for non-root entries; a pe root instead offers
+      //    remove-from-project (disabled for the immutable workspace root).
+      // If no action is enabled the node renders its bare title (no dropdown).
       const canReveal = Boolean(onRevealInFolder) && isElectronDesktop();
-      // Copy-absolute-path is desktop-only: the absolute path is resolved
-      // backend-side and must not be exposed to a remote WebUI.
       const canCopyAbsolutePath = Boolean(onCopyAbsolutePath) && isElectronDesktop();
       const showWebActions = !isElectronDesktop();
-      const hasMenu =
-        onAddToChat ||
-        canReveal ||
-        onCopyRelativePath ||
-        canCopyAbsolutePath ||
-        (isRoot ? onRemoveRoot : onRename || onDelete);
-      if (!hasMenu) return title;
+      const menuCaps: ExplorerMenuCaps = {
+        addToChat: Boolean(onAddToChat),
+        revealInFolder: canReveal,
+        copyRelativePath: Boolean(onCopyRelativePath),
+        copyAbsolutePath: canCopyAbsolutePath,
+        newFile: !isFile && Boolean(onNewFile),
+        newDir: !isFile && Boolean(onNewDir),
+        rename: !isRoot && Boolean(onRename),
+        delete: !isRoot && Boolean(onDelete),
+        remove: isRoot && Boolean(onRemoveRoot),
+      };
+      const menuSections = explorerContextMenuSections(menuCaps);
+      if (menuSections.length === 0) return title;
 
       // Stop menu-item clicks from bubbling. arco renders the droplist as a React
       // child of this Dropdown, which arco itself nests inside the tree node's
@@ -320,6 +345,8 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       const onClickMenuItem = (menuKey: string, event: { stopPropagation?: () => void }) => {
         event?.stopPropagation?.();
         if (menuKey === 'addToChat') onAddToChat?.(peId, rel, name, isFile);
+        else if (menuKey === 'newFile') onNewFile?.(peId, rel);
+        else if (menuKey === 'newDir') onNewDir?.(peId, rel);
         else if (menuKey === 'rename') onRename?.(peId, rel, name);
         else if (menuKey === 'delete') onDelete?.(peId, rel, name);
         else if (menuKey === 'remove' && removable) onRemoveRoot?.(peId);
@@ -328,27 +355,57 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         else if (menuKey === 'copyAbsolutePath') onCopyAbsolutePath?.(peId, rel);
       };
 
+      const renderMenuItem = (key: ExplorerMenuItemKey): React.ReactNode => {
+        switch (key) {
+          case 'addToChat':
+            return <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>;
+          case 'revealInFolder':
+            return <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>;
+          case 'copyRelativePath':
+            return (
+              <Menu.Item key='copyRelativePath'>{t('conversation.explorer.contextMenu.copyRelativePath')}</Menu.Item>
+            );
+          case 'copyAbsolutePath':
+            return (
+              <Menu.Item key='copyAbsolutePath'>{t('conversation.explorer.contextMenu.copyAbsolutePath')}</Menu.Item>
+            );
+          case 'newFile':
+            return <Menu.Item key='newFile'>{t('conversation.explorer.contextMenu.newFile')}</Menu.Item>;
+          case 'newDir':
+            return <Menu.Item key='newDir'>{t('conversation.explorer.contextMenu.newDir')}</Menu.Item>;
+          case 'rename':
+            return <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>;
+          case 'delete':
+            return <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>;
+          case 'remove':
+            return (
+              <Menu.Item key='remove' disabled={!removable}>
+                {t('conversation.explorer.removeFolder')}
+              </Menu.Item>
+            );
+        }
+      };
+
       const renderMenu = () => (
         // `explorer-context-menu` opts this menu out of Arco's 200px dropdown
         // height cap (arco-override.css) so all items show without a scrollbar.
+        // Sections are separated by a plain `<div role='separator'>`: arco passes
+        // non-menu HTML children through untouched, and flatMenuGroup ignores them,
+        // so the divider never disturbs keyboard nav or first/last-child styling.
         <Menu className='explorer-context-menu' onClickMenuItem={onClickMenuItem}>
-          {onAddToChat && <Menu.Item key='addToChat'>{t('conversation.explorer.contextMenu.addToChat')}</Menu.Item>}
-          {canReveal && (
-            <Menu.Item key='revealInFolder'>{t('conversation.workspace.contextMenu.openLocation')}</Menu.Item>
-          )}
-          {onCopyRelativePath && (
-            <Menu.Item key='copyRelativePath'>{t('conversation.explorer.contextMenu.copyRelativePath')}</Menu.Item>
-          )}
-          {canCopyAbsolutePath && (
-            <Menu.Item key='copyAbsolutePath'>{t('conversation.explorer.contextMenu.copyAbsolutePath')}</Menu.Item>
-          )}
-          {!isRoot && onRename && <Menu.Item key='rename'>{t('conversation.explorer.contextMenu.rename')}</Menu.Item>}
-          {!isRoot && onDelete && <Menu.Item key='delete'>{t('common.delete')}</Menu.Item>}
-          {isRoot && onRemoveRoot && (
-            <Menu.Item key='remove' disabled={!removable}>
-              {t('conversation.explorer.removeFolder')}
-            </Menu.Item>
-          )}
+          {menuSections.flatMap((keys, section) => {
+            const items = keys.map(renderMenuItem);
+            if (section === 0) return items;
+            return [
+              <div
+                key={`sep-${section}`}
+                className='explorer-context-menu-divider'
+                role='separator'
+                aria-hidden='true'
+              />,
+              ...items,
+            ];
+          })}
         </Menu>
       );
 
@@ -381,6 +438,8 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       onRemoveRoot,
       onRename,
       onDelete,
+      onNewFile,
+      onNewDir,
       onAddToChat,
       onImportFiles,
       onTransfer,
@@ -461,6 +520,18 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
         treeData={view.treeData as TreeProps['treeData']}
         expandedKeys={view.expanded}
         selectedKeys={view.selected ? [view.selected] : []}
+        /* 让节点标题块（arco 的点击目标 .arco-tree-node-title）铺满整行剩余宽度：
+           blockNode 给它加 .arco-tree-node-title-block { flex: 1 }，于是箭头右侧
+           那片空白也成为有效点击区域，而不是只有图标+文字那一小段。行的
+           hover/选中背景本就画在整行（.arco-tree-node，见 arco-override.css），
+           这里补齐的是「可点击/可右键的命中区域」。
+           Make the node's title block (arco's click target, .arco-tree-node-title)
+           fill the row: blockNode adds .arco-tree-node-title-block { flex: 1 }, so
+           the blank space right of the arrow becomes part of the clickable area
+           instead of just the icon+label. The full-row hover/selected backgrounds
+           already live on .arco-tree-node (arco-override.css); this fills in the
+           hit area to match. */
+        blockNode
         /* 点一整行就展开/收起文件夹，不必精准点中前面那个小箭头（arco 默认只有
            'select'，所以整行点击此前只会选中、不会展开）。arco 内部对同一次点击只
            走一条展开路径（有 loadMore 且未展开时走 loadMore，否则走 onExpand），

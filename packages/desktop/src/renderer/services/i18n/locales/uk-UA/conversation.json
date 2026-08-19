@@ -645,11 +645,15 @@
       "rename": "Перейменувати",
       "addToChat": "Додати в чат",
       "copyRelativePath": "Копіювати відносний шлях",
-      "copyAbsolutePath": "Копіювати абсолютний шлях"
+      "copyAbsolutePath": "Копіювати абсолютний шлях",
+      "newFile": "Новий файл",
+      "newDir": "Нова папка"
     },
     "namePlaceholder": "Назва",
     "deleteConfirm": "Видалити «{{name}}»? Цю дію не можна скасувати.",
     "renameFailed": "Не вдалося перейменувати",
+    "newFileFailed": "Не вдалося створити файл",
+    "newDirFailed": "Не вдалося створити папку",
     "tabs": {
       "files": "Файли",
       "changes": "Зміни"

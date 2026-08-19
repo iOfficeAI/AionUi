@@ -12,8 +12,10 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
+ *
+ * Exported for tests (heading inline-markup sizing regression).
  */
-const createInitStyle = (
+export const createInitStyle = (
   currentTheme = 'light',
   cssVars?: Record<string, string>,
   customCss?: string,
@@ -165,6 +167,17 @@ const createInitStyle = (
   strong {
     font-weight: 600;
     color: var(--text-primary);
+  }
+  /* Inline markup inside a heading must keep the heading's sizing. The
+     universal flattener above pins font-size/line-height on EVERY element,
+     and the h1/h2-h6 rules style only the heading element itself — so
+     "# a **b** c" rendered b at body size in the middle of a 24px heading.
+     :is() gives (0,0,1), outranking the (0,0,0) flattener; placed after
+     the strong rule so its font-weight reset also defers to inherit here. */
+  :is(h1, h2, h3, h4, h5, h6) * {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
   }
   .markdown-shadow-body code:not(pre code) {
     background: var(--bg-3);

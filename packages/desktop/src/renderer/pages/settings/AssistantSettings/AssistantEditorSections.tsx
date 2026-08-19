@@ -9,6 +9,7 @@ import {
 } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { useAgentLogos, resolveAgentAvatar } from '@/renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import type { AvailableBackend } from './types';
 import { filterAssistantEditorBackends } from './assistantUtils';
 import { AionInlineSearchInput } from '@/renderer/components/base';
@@ -81,7 +82,14 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         style={{ backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
       >
         {avatar.kind === 'image' ? (
-          <img src={avatar.value} alt={option.name} className='h-full w-full object-contain' />
+          <ThemedLogo
+            src={avatar.value}
+            alt={option.name}
+            className='object-contain'
+            // Arco Avatar forces color:var(--color-white); pin to theme text so
+            // the currentColor mask stays visible in light mode too.
+            style={{ width: 20, height: 20, color: 'var(--text-primary)' }}
+          />
         ) : avatar.kind === 'emoji' ? (
           <span className='text-14px leading-none'>{avatar.value}</span>
         ) : (

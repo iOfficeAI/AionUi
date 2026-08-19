@@ -11,7 +11,7 @@ import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
-import { LinkCloud, Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
+import { Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
@@ -28,6 +28,7 @@ import {
   isNewApiPlatform,
   type PlatformConfig,
 } from '@/renderer/utils/model/modelPlatforms';
+import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
 
 /**
@@ -179,17 +180,6 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
   }
 
   return null;
-};
-
-/**
- * 供应商 Logo 组件
- * Provider Logo Component
- */
-const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number }> = ({ logo, name, size = 20 }) => {
-  if (logo) {
-    return <img src={logo} alt={name} className='object-contain shrink-0' style={{ width: size, height: size }} />;
-  }
-  return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
 };
 
 /**

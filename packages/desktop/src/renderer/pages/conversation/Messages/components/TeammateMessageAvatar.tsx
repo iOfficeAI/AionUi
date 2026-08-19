@@ -7,6 +7,7 @@
 import React from 'react';
 import useSWR from 'swr';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Robot } from '@icon-park/react';
 
@@ -46,11 +47,13 @@ const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversation
         </span>
       );
     }
-    return <img src={presetInfo.logo} alt={presetInfo.name} className='w-20px h-20px rounded-full object-contain' />;
+    return (
+      <ThemedLogo src={presetInfo.logo} alt={presetInfo.name} className='w-20px h-20px rounded-full object-contain' />
+    );
   }
 
   if (backendLogo) {
-    return <img src={backendLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />;
+    return <ThemedLogo src={backendLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />;
   }
 
   return (

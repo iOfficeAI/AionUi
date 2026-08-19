@@ -16,6 +16,7 @@ import { useConversationAssistants } from '@renderer/pages/conversation/hooks/us
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { formatCronRunConversationTitle, formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
@@ -509,7 +510,7 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
                   {assistantIdentity.logo ? (
-                    <img
+                    <ThemedLogo
                       src={assistantIdentity.logo}
                       alt={assistantIdentity.name}
                       className='h-28px w-28px rounded-50%'
