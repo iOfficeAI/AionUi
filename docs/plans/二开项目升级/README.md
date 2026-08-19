@@ -1,6 +1,6 @@
 # 二开项目升级 — 资产清单与适配方案索引
 
-> 本目录是二开资产化的唯一权威落点。目标：把二开代码划出**可携带边界**——逐文件/逐组件/逐接口给出风险分级、上游依赖、变化触发器、接入点和验证方法，并定义未来源码扩展包的目录与 manifest/adapter 结构。
+> 本目录是 AionUi 侧的二开升级设计、审计与 SOP 索引；二开代码与可移植资产的唯一权威源已迁移到独立仓 `AionTeamSuite`。本目录负责记录宿主版本适配、生产验证与升级执行规则，不再承担二开源码资产本体。
 >
 > 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。2026-08-17～19 已补充 v2.1.56 / v0.1.67 升级审计、实装修复复盘，以及 AionTeamSuite 二开可移植架构 2.0。`08` 是架构设计与 Phase 0–7 实施基线，`09` 是今后每一次正式升级优先执行的标准 SOP。
 
@@ -24,15 +24,16 @@
 
 ## 盘点范围（数据口径）
 
-二开 = fork（`origin` = DigitalNomad-Chat/AionUi）相对上游（`upstream` = iOfficeAI/AionUi）的增量。盘点覆盖三个并存形态：
+当前生产集成线已经完成从历史 fork 资产向可移植架构 2.0 的迁移：
 
 | 形态 | 位置 | 基线 | 状态 |
 | --- | --- | --- | --- |
-| 主集成分支 | 本仓 `integrate/ad-hoc-team-latest` @ `b397e15fd`（原版证据 PIN-UI `adf8dfaa4` / PIN-CORE `eb0c884e`） | AionUi v2.1.40 × AionCore v0.1.51 | 二开功能最完整（23 个本地提交，其中 18 个为二开/文档，5 个为浅克隆噪声的上游提交） |
-| v2.1.52 隔离 worktree | `/private/tmp/aionui-latest-poc` @ `bd728fb4d` | AionUi v2.1.52（`7ebae30aa`）× AionCore v0.1.62 | "最新基线重做"进行中：15 个已提交重做提交（43 文件，+2476/−30）；临时团队会话 UI 组件与 SendBox 接线已于 2026-08-09 收口为 `d0beccbf8`；专家团弹窗回归于 2026-08-10 修复为 `21d73ba45` |
-| 旧版原型分支 | `feat/ad-hoc-team-context` @ `8b2953a33` | v2.1.33 时代 | 已被 `700fdf117` 取代，仅作溯源；`backup/poc-latest-ui-*` 指向当前 HEAD，属回滚备份 |
+| 当前主集成分支 | `integrate/ad-hoc-team-latest` | AionUi v2.1.56 × AionCore v0.1.67 | 已由生产验证候选晋升；UI 候选 `01f627bac`、Core 候选 `0e93765d` 已成为 latest 历史祖先 |
+| 生产验证候选 | `integrate/ad-hoc-team-v2.1.56` / `integrate/ad-hoc-team-v0.1.67` | v2.1.56 × v0.1.67 | 已完成真实生产应用验证，作为本次 latest 晋升来源 |
+| 可移植架构权威资产 | 独立仓 `AionTeamSuite` | portable architecture 2.0 | runtime、capabilities、migration compiler、Doctor、Overlay、验收记录均维护于此 |
+| 历史原版/重做线 | 本目录 `01`～`07`、`legacy/` 与 AionTeamSuite archive | v2.1.33～v2.1.52 | 仅用于溯源和兼容证据，不再作为下一次升级的代码来源 |
 
-另有一份固化补丁：`patches/2026-07-30-feat-team-add-reusable-expert-team-presets.patch`（`e3f154559` 导出，31 文件，+2681/−87，仅专家团功能、纯 AionUi 前端）。
+旧的单提交 patch、历史 fork 源码快照和固定 PIN 证据已迁入 `AionTeamSuite` 保存，AionUi 产品仓不再重复维护这些源码资产。
 
 ## 风险分级定义（沿用任务描述口径）
 
@@ -43,14 +44,15 @@
 | **C** | 共享类型/状态/Team 创建基础设施：与上游逻辑交织的改写 | 中高适配：需人工合并 |
 | **D** | IPC/API/数据库迁移/构建：版本契约与构建配套 | 关键适配：需走兼容矩阵与成对升级流程 |
 
-## 既有决策的沿用关系
+## 当前决策的沿用关系
 
-本清单与 `docs/plans/` 下历史文档的关系（详见 01 文档附录）：
+后续升级只保留以下权威层级：
 
-- **当前主方案**：`2026-08-09-最新基线重做二开与兼容验证实施方案.md`（P0–P6 窗口体系）与 `2026-08-09-P6-升级窗口兼容矩阵与回滚手册.md`（权威兼容矩阵）——本清单引用而非复制。
-- **仍有效的工作流原则**：`2026-07-22-二开功能模块独立维护与上游同步计划.md`（双仓成对升级、迁移编号规则）。
-- **规格基线**：`2026-07-23-Team预设与专家团卡片实施计划.md`（TeamPreset 数据模型与 API 规格）。
-- **已归档执行手册**：`2026-07-30-二开补丁包维护与窗口化升级实施任务清单.md`（§12 落地记录与重编号分析仍权威；§13 窗口 C 未执行即被取代）。
+- **架构设计基线**：`08-AionTeamSuite二开可移植架构2.0优化方案.md`。
+- **正式升级执行入口**：`09-二开可移植架构2.0标准升级SOP.md`。
+- **最近一次生产实装经验**：`07-v2.1.56实装修复与下次升级复用清单.md`。
+- **代码与机器可执行资产**：独立仓 `AionTeamSuite`，包括 portable runtime、Capability manifests、semantic migration、Upgrade Doctor、Upgrade Overlay 和验证报告。
+- `01`～`06` 与 `legacy/` 保留历史来源和兼容证据；若与 `08/09` 冲突，以 `08/09` 和 AionTeamSuite 当前工具链为准。
 
 ### 必须沿用的命名与规则
 
