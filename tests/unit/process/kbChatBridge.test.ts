@@ -5,7 +5,20 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import http from 'node:http';
-import { sendKbChat, abortKbChat, _resetForTest } from '@/process/bridge/kbChatBridge';
+
+const mockChatStreamUrl = vi.hoisted(() => ({ value: '' }));
+
+vi.mock('@/common/config/kbChat.config', () => ({
+  getKbChatChatStreamUrl: () => mockChatStreamUrl.value,
+  getKbChatDefaultQueryParams: () => ({
+    modelCode: 'qwen-max',
+    searchType: '1',
+    enableRerank: '0',
+    minRelevance: '0.5',
+  }),
+  KB_CHAT_FIRST_BYTE_TIMEOUT_MS: 30_000,
+  KB_CHAT_TOTAL_TIMEOUT_MS: 300_000,
+}));
 
 let emitted: Array<{ name: string; payload: unknown }> = [];
 
@@ -21,6 +34,9 @@ vi.mock('@/common', () => ({
   },
 }));
 
+// Imported after vi.mock so the mocked config is in place
+const { sendKbChat, abortKbChat, _resetForTest } = await import('@/process/bridge/kbChatBridge');
+
 const startMockServer = (handler: http.RequestListener): Promise<{ url: string; close: () => Promise<void> }> =>
   new Promise((resolve) => {
     const server = http.createServer(handler);
@@ -33,17 +49,14 @@ const startMockServer = (handler: http.RequestListener): Promise<{ url: string; 
     });
   });
 
-let originalUrl: string | undefined;
-
 beforeEach(() => {
   emitted.length = 0;
-  originalUrl = process.env.KB_CHAT_SSE_URL;
+  mockChatStreamUrl.value = '';
 });
 
 afterEach(() => {
   _resetForTest();
-  if (originalUrl === undefined) delete process.env.KB_CHAT_SSE_URL;
-  else process.env.KB_CHAT_SSE_URL = originalUrl;
+  mockChatStreamUrl.value = '';
 });
 
 describe('sendKbChat', () => {
@@ -55,9 +68,9 @@ describe('sendKbChat', () => {
       res.write('data: {"type":"done"}\n\n');
       res.end();
     });
-    process.env.KB_CHAT_SSE_URL = server.url;
+    mockChatStreamUrl.value = server.url;
 
-    const sendResult = await sendKbChat({ requestId: 'r1', kbId: 'k1', question: 'q', token: 't' });
+    const sendResult = await sendKbChat({ requestId: 'r1', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
     expect(sendResult).toEqual({ requestId: 'r1', ok: true });
 
     await new Promise((r) => setTimeout(r, 50));
@@ -75,9 +88,9 @@ describe('sendKbChat', () => {
       res.writeHead(503, { 'Content-Type': 'text/plain' });
       res.end('upstream down');
     });
-    process.env.KB_CHAT_SSE_URL = server.url;
+    mockChatStreamUrl.value = server.url;
 
-    const result = await sendKbChat({ requestId: 'r2', kbId: 'k1', question: 'q', token: 't' });
+    const result = await sendKbChat({ requestId: 'r2', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
     expect(result).toEqual({ requestId: 'r2', ok: true });
 
     await new Promise((r) => setTimeout(r, 50));
@@ -96,21 +109,15 @@ describe('sendKbChat', () => {
       res.write('data: {"type":"done"}\n\n');
       res.end();
     });
-    process.env.KB_CHAT_SSE_URL = server.url;
+    mockChatStreamUrl.value = server.url;
 
-    await sendKbChat({ requestId: 'r3', kbId: 'k1', question: 'q', token: 't' });
+    await sendKbChat({ requestId: 'r3', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'parse')).toBe(
-      true
-    );
-    expect(emitted.some((e) => e.name === 'streamChunk' && (e.payload as { content: string }).content === 'ok')).toBe(
-      true
-    );
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'done')).toBe(
-      true
-    );
+    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'parse')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamChunk' && (e.payload as { content: string }).content === 'ok')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'done')).toBe(true);
 
     await server.close();
   });
@@ -121,26 +128,77 @@ describe('sendKbChat', () => {
       res.write('data: {"type":"delta","content":"half"}\n\n');
       res.end();
     });
-    process.env.KB_CHAT_SSE_URL = server.url;
+    mockChatStreamUrl.value = server.url;
 
-    await sendKbChat({ requestId: 'r4', kbId: 'k1', question: 'q', token: 't' });
+    await sendKbChat({ requestId: 'r4', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'incomplete')).toBe(
-      true
-    );
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'error')).toBe(
-      true
-    );
+    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'incomplete')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'error')).toBe(true);
 
     await server.close();
   });
 
   it('rejects send when required fields are missing', async () => {
-    const result = await sendKbChat({ requestId: '', kbId: 'k1', question: 'q', token: 't' });
+    const result = await sendKbChat({ requestId: '', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
     expect(result.ok).toBe(false);
     expect(emitted).toHaveLength(0);
+  });
+
+  it('issues a GET with knowledgeBaseId, userMessage, threadId, and default params in the query', async () => {
+    let capturedMethod: string | undefined;
+    let capturedPath: string | undefined;
+    const server = await startMockServer((req, res) => {
+      capturedMethod = req.method;
+      capturedPath = req.url;
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+      res.write('data: {"type":"delta","content":"x"}\n\n');
+      res.write('data: {"type":"done"}\n\n');
+      res.end();
+    });
+    mockChatStreamUrl.value = server.url;
+
+    await sendKbChat({ requestId: 'rq1', kbId: 'kb-42', question: 'hi there', threadId: 'th-7', token: 'tk' });
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(capturedMethod).toBe('GET');
+    expect(capturedPath).toBeDefined();
+    const params = new URLSearchParams(capturedPath!.split('?')[1] ?? '');
+    expect(params.get('knowledgeBaseId')).toBe('kb-42');
+    expect(params.get('userMessage')).toBe('hi there');
+    expect(params.get('threadId')).toBe('th-7');
+    expect(params.get('modelCode')).toBe('qwen-max');
+    expect(params.get('searchType')).toBe('1');
+    expect(params.get('enableRerank')).toBe('0');
+    expect(params.get('minRelevance')).toBe('0.5');
+
+    await server.close();
+  });
+
+  it('URL-encodes special characters in userMessage', async () => {
+    let capturedPath: string | undefined;
+    const server = await startMockServer((req, res) => {
+      capturedPath = req.url;
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+      res.write('data: {"type":"done"}\n\n');
+      res.end();
+    });
+    mockChatStreamUrl.value = server.url;
+
+    await sendKbChat({
+      requestId: 'rq2',
+      kbId: 'kb',
+      question: 'a&b=c',
+      threadId: 'th',
+      token: 'tk',
+    });
+    await new Promise((r) => setTimeout(r, 30));
+
+    const params = new URLSearchParams(capturedPath!.split('?')[1] ?? '');
+    expect(params.get('userMessage')).toBe('a&b=c');
+
+    await server.close();
   });
 });
 
@@ -154,18 +212,16 @@ describe('abortKbChat', () => {
       });
       // never end the stream
     });
-    process.env.KB_CHAT_SSE_URL = server.url;
+    mockChatStreamUrl.value = server.url;
 
-    await sendKbChat({ requestId: 'r5', kbId: 'k1', question: 'q', token: 't' });
+    await sendKbChat({ requestId: 'r5', kbId: 'k1', question: 'q', threadId: 't1', token: 't' });
     await new Promise((r) => setTimeout(r, 30));
 
     await abortKbChat({ requestId: 'r5' });
     await new Promise((r) => setTimeout(r, 30));
 
     expect(aborted).toBe(true);
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'aborted')).toBe(
-      true
-    );
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'aborted')).toBe(true);
 
     await server.close();
   });
