@@ -10,11 +10,12 @@ import { ipcBridge } from '@/common';
 import {
   KB_CHAT_FIRST_BYTE_TIMEOUT_MS,
   KB_CHAT_TOTAL_TIMEOUT_MS,
-  getKbChatSseUrl,
+  getKbChatChatStreamUrl,
+  getKbChatDefaultQueryParams,
 } from '@/common/config/kbChat.config';
 import { createSseParser, type SseEvent } from './kbChatBridge.sse';
 
-export type KbChatSendParams = { requestId: string; kbId: string; question: string; token: string };
+export type KbChatSendParams = { requestId: string; kbId: string; question: string; threadId: string; token: string };
 export type KbChatAbortParams = { requestId: string };
 export type KbChatSendResult = { requestId: string; ok: true } | { ok: false; message: string };
 export type KbChatAbortResult = { ok: true };
@@ -34,12 +35,21 @@ const emitError = (requestId: string, code: string, message: string): void => {
 };
 
 const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => {
-  const { requestId, kbId, question, token } = params;
+  const { requestId, kbId, question, threadId, token } = params;
+
+  const query = new URLSearchParams({
+    knowledgeBaseId: kbId,
+    userMessage: question,
+    threadId,
+    ...getKbChatDefaultQueryParams(),
+  });
+
+  const fullUrl = `${getKbChatChatStreamUrl()}?${query.toString()}`;
   let parsed: URL;
   try {
-    parsed = new URL(getKbChatSseUrl());
+    parsed = new URL(fullUrl);
   } catch {
-    return Promise.resolve({ ok: false, message: 'Invalid KB_CHAT_SSE_URL' });
+    return Promise.resolve({ ok: false, message: 'Invalid KB chat URL' });
   }
 
   const lib = parsed.protocol === 'https:' ? https : http;
@@ -47,12 +57,11 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
   return new Promise((resolve) => {
     const req = lib.request(
       {
-        method: 'POST',
+        method: 'GET',
         hostname: parsed.hostname,
         port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
         path: parsed.pathname + parsed.search,
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       },
@@ -98,7 +107,6 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
           } else if (event.type === 'done') {
             sawDone = true;
           } else {
-            // event.type === 'error' (business error)
             emitError(requestId, event.code ?? 'business', event.message);
           }
         });
@@ -135,7 +143,6 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
     });
 
     inFlight.set(requestId, req);
-    req.write(JSON.stringify({ kbId, question }));
     req.end();
 
     resolve({ requestId, ok: true });
@@ -143,7 +150,7 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
 };
 
 export const sendKbChat = async (params: KbChatSendParams): Promise<KbChatSendResult> => {
-  if (!params.requestId || !params.kbId || !params.question || !params.token) {
+  if (!params.requestId || !params.kbId || !params.question || !params.threadId || !params.token) {
     return { ok: false, message: 'Missing required field' };
   }
   const existing = inFlight.get(params.requestId);
