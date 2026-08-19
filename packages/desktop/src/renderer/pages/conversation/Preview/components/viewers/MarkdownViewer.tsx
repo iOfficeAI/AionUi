@@ -314,7 +314,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   const components = useMemo(
     () => ({
       ...HEADING_COMPONENTS,
-      // Enable Mermaid drag-to-pan + zoom in the preview panel (chat diagrams stay static).
+      // Enable Mermaid drag-to-pan + zoom in the preview panel (matches chat diagrams).
       code: (props: Record<string, unknown>) => (
         <CodeBlock {...(props as Parameters<typeof CodeBlock>[0])} mermaidPanZoom />
       ),

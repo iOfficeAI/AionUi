@@ -93,6 +93,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
             {...(props as Parameters<typeof CodeBlock>[0])}
             codeStyle={codeStyle}
             hiddenCodeCopyButton={hiddenCodeCopyButton}
+            mermaidPanZoom
           />
         ),
         a: ({ node: _node, ...rest }: Record<string, unknown>) => {

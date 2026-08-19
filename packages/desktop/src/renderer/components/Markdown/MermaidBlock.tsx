@@ -19,10 +19,10 @@ type MermaidBlockProps = {
   code: string;
   style?: React.CSSProperties;
   showOpenInPanelButton?: boolean;
-  // Enable drag-to-pan + zoom buttons over the rendered diagram. Off by default so
-  // inline chat diagrams stay static; the preview panel opts in. Wheel is left to the
-  // page so scrolling a long document past a diagram never zooms it (matches the prior
-  // Streamdown behaviour the preview shipped with).
+  // Enable drag-to-pan + zoom buttons over the rendered diagram. Chat messages and
+  // the preview panel opt in via CodeBlock; other callers keep diagrams static by
+  // default. Wheel is left to the page so scrolling a long document past a diagram
+  // never zooms it (matches the prior Streamdown behaviour the preview shipped with).
   enablePanZoom?: boolean;
 };
 
