@@ -166,5 +166,6 @@
   },
   "zoomIn": "Acercar",
   "zoomOut": "Alejar",
-  "zoomReset": "Restablecer vista"
+  "zoomReset": "Restablecer vista",
+  "mermaidZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar"
 }

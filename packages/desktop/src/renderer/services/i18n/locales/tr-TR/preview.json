@@ -166,5 +166,6 @@
   },
   "zoomIn": "Yakınlaştır",
   "zoomOut": "Uzaklaştır",
-  "zoomReset": "Görünümü sıfırla"
+  "zoomReset": "Görünümü sıfırla",
+  "mermaidZoomHint": "Yakınlaştırmak için kaydırın • Taşımak için sürükleyin • ESC ile kapatın"
 }

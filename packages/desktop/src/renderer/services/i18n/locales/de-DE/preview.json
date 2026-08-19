@@ -166,5 +166,6 @@
   },
   "zoomIn": "Vergrößern",
   "zoomOut": "Verkleinern",
-  "zoomReset": "Ansicht zurücksetzen"
+  "zoomReset": "Ansicht zurücksetzen",
+  "mermaidZoomHint": "Scrollen zum Zoomen • Ziehen zum Verschieben • ESC zum Schließen"
 }

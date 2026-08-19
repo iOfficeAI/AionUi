@@ -166,5 +166,6 @@
   },
   "zoomIn": "확대",
   "zoomOut": "축소",
-  "zoomReset": "보기 재설정"
+  "zoomReset": "보기 재설정",
+  "mermaidZoomHint": "스크롤로 확대 • 드래그로 이동 • ESC로 닫기"
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
@@ -36,8 +36,8 @@ vi.mock('@/renderer/utils/ui/clipboard', () => ({
 }));
 
 // icon-park icons render as clickable spans that forward data-testid/title/onClick.
-vi.mock('@icon-park/react', () => {
-  const makeIcon =
+const makeIcon = vi.hoisted(
+  () =>
     (name: string) =>
     ({
       ['data-testid']: testId,
@@ -47,17 +47,38 @@ vi.mock('@icon-park/react', () => {
       ['data-testid']?: string;
       title?: string;
       onClick?: () => void;
-    }) => <span data-icon={name} data-testid={testId} title={title} onClick={onClick} />;
-  return {
-    Copy: makeIcon('copy'),
-    PreviewOpen: makeIcon('preview-open'),
-    ZoomIn: makeIcon('zoom-in'),
-    ZoomOut: makeIcon('zoom-out'),
-    Refresh: makeIcon('refresh'),
-  };
-});
+    }) => <span data-icon={name} data-testid={testId} title={title} onClick={onClick} />
+);
+
+vi.mock('@icon-park/react', () => ({
+  Copy: makeIcon('copy'),
+  PreviewOpen: makeIcon('preview-open'),
+  ZoomIn: makeIcon('zoom-in'),
+  ZoomOut: makeIcon('zoom-out'),
+  Refresh: makeIcon('refresh'),
+  Close: makeIcon('close'),
+}));
 
 import MermaidBlock from '@/renderer/components/Markdown/MermaidBlock';
+
+// jsdom lacks the pointer capture API used by the drag handlers.
+beforeAll(() => {
+  Object.defineProperty(Element.prototype, 'setPointerCapture', {
+    value: vi.fn(),
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+    value: vi.fn(() => false),
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+    value: vi.fn(),
+    configurable: true,
+    writable: true,
+  });
+});
 
 describe('MermaidBlock pan/zoom', () => {
   beforeEach(() => {
@@ -92,5 +113,38 @@ describe('MermaidBlock pan/zoom', () => {
     fireEvent.click(screen.getByTestId('mermaid-zoom-in'));
     fireEvent.click(screen.getByTestId('mermaid-zoom-reset'));
     expect(inner.style.transform).toContain('translate(0px, 0px) scale(1)');
+  });
+
+  it('opens the zoom overlay when the static diagram is clicked', async () => {
+    render(<MermaidBlock code={'graph TD; A-->B'} />);
+    const diagram = await screen.findByTestId('mermaid-diagram');
+    fireEvent.click(diagram);
+    expect(screen.getByTestId('mermaid-zoom-overlay')).toBeInTheDocument();
+  });
+
+  it('opens the zoom overlay on click without panning when drag-to-pan is enabled', async () => {
+    render(<MermaidBlock code={'graph TD; A-->B'} enablePanZoom />);
+    const diagram = await screen.findByTestId('mermaid-diagram');
+
+    fireEvent.pointerDown(diagram, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(diagram, { pointerId: 1, clientX: 12, clientY: 11 });
+    fireEvent.pointerUp(diagram, { pointerId: 1 });
+
+    const inner = diagram.firstElementChild as HTMLElement;
+    expect(inner.style.transform).toContain('translate(0px, 0px) scale(1)');
+    expect(screen.getByTestId('mermaid-zoom-overlay')).toBeInTheDocument();
+  });
+
+  it('pans instead of opening the overlay when the pointer drags past the threshold', async () => {
+    render(<MermaidBlock code={'graph TD; A-->B'} enablePanZoom />);
+    const diagram = await screen.findByTestId('mermaid-diagram');
+
+    fireEvent.pointerDown(diagram, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(diagram, { pointerId: 1, clientX: 60, clientY: 40 });
+    fireEvent.pointerUp(diagram, { pointerId: 1 });
+
+    const inner = diagram.firstElementChild as HTMLElement;
+    expect(inner.style.transform).toContain('translate(50px, 30px)');
+    expect(screen.queryByTestId('mermaid-zoom-overlay')).toBeNull();
   });
 });

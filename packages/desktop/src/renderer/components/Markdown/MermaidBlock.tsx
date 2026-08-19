@@ -14,6 +14,7 @@ import { Copy, PreviewOpen, Refresh, ZoomIn, ZoomOut } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MermaidZoomOverlay from './MermaidZoomOverlay';
 
 type MermaidBlockProps = {
   code: string;
@@ -29,6 +30,9 @@ type MermaidBlockProps = {
 const MIN_MERMAID_SCALE = 0.25;
 const MAX_MERMAID_SCALE = 4;
 const MERMAID_ZOOM_STEP = 0.25;
+// Pointer movement below this threshold counts as a click (opens the zoom
+// overlay) instead of a pan, when drag-to-pan is enabled.
+const PAN_CLICK_THRESHOLD = 4;
 
 let initializedTheme: 'light' | 'dark' | null = null;
 const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
@@ -71,19 +75,23 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
 
   // Pan/zoom transform for the rendered diagram (only used when enablePanZoom).
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
     originX: number;
     originY: number;
+    moved: boolean;
   } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Reset the view whenever a fresh diagram renders so a re-render never leaves the
   // user staring at an off-screen, zoomed-in fragment of the previous diagram.
+  // A re-render also replaces the overlay content, so close it as well.
   useEffect(() => {
     setTransform({ scale: 1, x: 0, y: 0 });
+    setIsZoomOpen(false);
   }, [svg]);
 
   const zoomBy = (delta: number) =>
@@ -102,6 +110,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
       startY: event.clientY,
       originX: transform.x,
       originY: transform.y,
+      moved: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsPanning(true);
@@ -110,6 +119,15 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
   const handlePanPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    // Stay in "click" territory until the pointer travels past the threshold so
+    // a plain click opens the zoom overlay instead of nudging the diagram.
+    if (
+      !drag.moved &&
+      Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) < PAN_CLICK_THRESHOLD
+    ) {
+      return;
+    }
+    drag.moved = true;
     setTransform((prev) => ({
       ...prev,
       x: drag.originX + (event.clientX - drag.startX),
@@ -120,11 +138,13 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
   const endPan = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    const isClick = !drag.moved && event.type === 'pointerup';
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     setIsPanning(false);
+    if (isClick) setIsZoomOpen(true);
   };
 
   useEffect(() => {
@@ -379,7 +399,9 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
                 overflowX: 'auto',
                 display: 'flex',
                 justifyContent: 'center',
+                cursor: 'zoom-in',
               }}
+              onClick={() => setIsZoomOpen(true)}
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           )
@@ -431,6 +453,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
           />
         )}
       </div>
+      {isZoomOpen && svg && <MermaidZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} />}
     </div>
   );
 }
