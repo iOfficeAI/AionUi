@@ -4,7 +4,11 @@
 >
 > 背景基线：AionUi `v2.1.56` × AionCore `v0.1.67` 二开升级已完成候选版收口、生产包打包、真实生产数据库 migration repair 与启动验证。
 >
-> 本文用途：作为下一阶段“二开可移植架构优化”的统一基线设计文档。后续所有架构重构、目录演进、能力抽离、升级工具化，都应优先对齐本文目标、边界和分阶段计划。
+> 本文用途：作为“二开可移植架构优化”的统一基线设计文档。Phase 0–7 已于 2026-08-19 完成实施并通过 AionUi `v2.1.57` × AionCore `v0.1.68` 真实相邻版本演练。后续正式升级不再继续扩展本文阶段，而应优先执行 `09-二开可移植架构2.0标准升级SOP.md`。
+>
+> 完成状态：`Phase 0 ✅ / Phase 1 ✅ / Phase 2 ✅ / Phase 3 ✅ / Phase 4 ✅ / Phase 5 ✅ / Phase 6 ✅ / Phase 7 ✅`
+>
+> 最终架构验收证据：`AionTeamSuite/docs/verification/2026-08-19-portable-next-version-phase7-acceptance.md`。
 
 ---
 
