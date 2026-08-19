@@ -86,6 +86,17 @@
     "forkedFrom": "“{{name}}” konuşmasından çatallandı",
     "forkedConversation": "Çatallanmış konuşma"
   },
+  "attentionCenter": {
+    "tooltip": "İlgilenilmesi gerekenler",
+    "title": "İlgilenilmesi gerekenler",
+    "count": "{{count}} okunmamış öğe",
+    "count_one": "{{count}} okunmamış öğe",
+    "count_other": "{{count}} okunmamış öğe",
+    "markAllAsRead": "Tümünü okundu işaretle",
+    "empty": "İlgilenmeniz gereken bir öğe yok",
+    "completed": "Görev tamamlandı",
+    "manualUnread": "Okunmadı olarak işaretlendi"
+  },
   "historySearch": {
     "tooltip": "Mesajları ara",
     "title": "Sohbet içeriğini ara",

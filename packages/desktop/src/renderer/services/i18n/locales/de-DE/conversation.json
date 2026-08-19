@@ -86,6 +86,17 @@
     "forkedFrom": "Verzweigt von „{{name}}“",
     "forkedConversation": "Verzweigte Unterhaltung"
   },
+  "attentionCenter": {
+    "tooltip": "Zu bearbeiten",
+    "title": "Zu bearbeiten",
+    "count": "{{count}} ungelesener Eintrag",
+    "count_one": "{{count}} ungelesener Eintrag",
+    "count_other": "{{count}} ungelesene Einträge",
+    "markAllAsRead": "Alle als gelesen markieren",
+    "empty": "Nichts erfordert deine Aufmerksamkeit",
+    "completed": "Aufgabe abgeschlossen",
+    "manualUnread": "Als ungelesen markiert"
+  },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
     "title": "Gesprächsinhalt durchsuchen",

@@ -86,6 +86,17 @@
     "forkedFrom": "「{{name}}」から分岐",
     "forkedConversation": "分岐した会話"
   },
+  "attentionCenter": {
+    "tooltip": "要確認",
+    "title": "要確認",
+    "count": "未読 {{count}} 件",
+    "count_one": "未読 {{count}} 件",
+    "count_other": "未読 {{count}} 件",
+    "markAllAsRead": "すべて既読にする",
+    "empty": "確認が必要な項目はありません",
+    "completed": "タスク完了",
+    "manualUnread": "未読に設定済み"
+  },
   "historySearch": {
     "tooltip": "メッセージを検索",
     "title": "会話内容を検索",

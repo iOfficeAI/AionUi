@@ -86,6 +86,17 @@
     "forkedFrom": "Forked from “{{name}}”",
     "forkedConversation": "Forked conversation"
   },
+  "attentionCenter": {
+    "tooltip": "Needs attention",
+    "title": "Needs attention",
+    "count": "{{count}} unread item",
+    "count_one": "{{count}} unread item",
+    "count_other": "{{count}} unread items",
+    "markAllAsRead": "Mark all as read",
+    "empty": "Nothing needs attention",
+    "completed": "Task completed",
+    "manualUnread": "Marked as unread"
+  },
   "historySearch": {
     "tooltip": "Search messages",
     "title": "Search conversation content",

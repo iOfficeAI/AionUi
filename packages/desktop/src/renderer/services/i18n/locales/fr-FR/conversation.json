@@ -86,6 +86,17 @@
     "forkedFrom": "Bifurquée depuis « {{name}} »",
     "forkedConversation": "Conversation bifurquée"
   },
+  "attentionCenter": {
+    "tooltip": "À traiter",
+    "title": "À traiter",
+    "count": "{{count}} élément non lu",
+    "count_one": "{{count}} élément non lu",
+    "count_other": "{{count}} éléments non lus",
+    "markAllAsRead": "Tout marquer comme lu",
+    "empty": "Aucun élément ne nécessite votre attention",
+    "completed": "Tâche terminée",
+    "manualUnread": "Marqué comme non lu"
+  },
   "historySearch": {
     "tooltip": "Rechercher des messages",
     "title": "Rechercher dans le contenu des conversations",

@@ -92,6 +92,17 @@
     "forkedFrom": "Відгалуження від «{{name}}»",
     "forkedConversation": "Відгалужена розмова"
   },
+  "attentionCenter": {
+    "tooltip": "Потребує уваги",
+    "title": "Потребує уваги",
+    "count": "Непрочитаних: {{count}}",
+    "count_one": "Непрочитаних: {{count}}",
+    "count_other": "Непрочитаних: {{count}}",
+    "markAllAsRead": "Позначити все прочитаним",
+    "empty": "Немає елементів, що потребують уваги",
+    "completed": "Завдання завершено",
+    "manualUnread": "Позначено як непрочитане"
+  },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
     "title": "Пошук за вмістом діалогів",

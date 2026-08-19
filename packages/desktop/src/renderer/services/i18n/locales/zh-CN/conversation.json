@@ -86,6 +86,17 @@
     "forkedFrom": "分叉自「{{name}}」",
     "forkedConversation": "分叉会话"
   },
+  "attentionCenter": {
+    "tooltip": "需要处理",
+    "title": "需要处理",
+    "count": "{{count}} 条未读事项",
+    "count_one": "{{count}} 条未读事项",
+    "count_other": "{{count}} 条未读事项",
+    "markAllAsRead": "全部已读",
+    "empty": "当前没有需要处理的事项",
+    "completed": "任务已完成",
+    "manualUnread": "已标记为未读"
+  },
   "historySearch": {
     "tooltip": "检索会话",
     "title": "检索会话内容",

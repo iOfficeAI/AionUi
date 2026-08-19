@@ -86,6 +86,17 @@
     "forkedFrom": "انشعاب از «{{name}}»",
     "forkedConversation": "گفتگوی منشعب"
   },
+  "attentionCenter": {
+    "tooltip": "نیازمند توجه",
+    "title": "نیازمند توجه",
+    "count": "{{count}} مورد خوانده‌نشده",
+    "count_one": "{{count}} مورد خوانده‌نشده",
+    "count_other": "{{count}} مورد خوانده‌نشده",
+    "markAllAsRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+    "empty": "موردی نیازمند توجه نیست",
+    "completed": "وظیفه تکمیل شد",
+    "manualUnread": "به‌عنوان خوانده‌نشده علامت‌گذاری شد"
+  },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
     "title": "جستجوی محتوای مکالمه",
