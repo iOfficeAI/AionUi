@@ -637,11 +637,15 @@
       "rename": "Yeniden adlandır",
       "addToChat": "Sohbete ekle",
       "copyRelativePath": "Göreli yolu kopyala",
-      "copyAbsolutePath": "Mutlak yolu kopyala"
+      "copyAbsolutePath": "Mutlak yolu kopyala",
+      "newFile": "Yeni dosya",
+      "newDir": "Yeni klasör"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
     "renameFailed": "Yeniden adlandırılamadı",
+    "newFileFailed": "Dosya oluşturulamadı",
+    "newDirFailed": "Klasör oluşturulamadı",
     "tabs": {
       "files": "Dosyalar",
       "changes": "Değişiklikler"

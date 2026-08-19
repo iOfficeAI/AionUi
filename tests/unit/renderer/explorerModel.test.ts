@@ -5,12 +5,15 @@ import {
   ancestorRels,
   applyDelta,
   applySnapshot,
+  buildCreateFileRequest,
+  buildMkdirRequest,
   buildRemoveRequest,
   buildRenameRequest,
   buildTransferRequest,
   buildTreeData,
   canRemoveRoot,
   deriveWant,
+  explorerContextMenuSections,
   isCopyModifierPressed,
   isDescendantOrSelf,
   isTransferAllowed,
@@ -25,7 +28,7 @@ import {
   serializePeRef,
   subtreeKeys,
 } from '@/renderer/pages/conversation/explorer/explorerModel';
-import type { DragPeRef } from '@/renderer/pages/conversation/explorer/explorerModel';
+import type { DragPeRef, ExplorerMenuCaps } from '@/renderer/pages/conversation/explorer/explorerModel';
 
 const set = (...keys: PeKey[]): Set<PeKey> => new Set(keys);
 const file = (name: string): Entry => ({ name, kind: 'file' });
@@ -474,6 +477,66 @@ describe('buildRemoveRequest', () => {
   });
 });
 
+describe('buildMkdirRequest — new-folder request builder', () => {
+  const pe = 'peX';
+
+  it('builds fs/mkdir joining the name under the parent dir', () => {
+    expect(buildMkdirRequest(pe, 'src', 'utils')).toEqual({
+      method: 'fs/mkdir',
+      params: { dir: { pe_id: pe, relative_path: 'src/utils' } },
+    });
+  });
+
+  it('creates at the pe root when parentDir is empty', () => {
+    expect(buildMkdirRequest(pe, '', 'docs')).toEqual({
+      method: 'fs/mkdir',
+      params: { dir: { pe_id: pe, relative_path: 'docs' } },
+    });
+  });
+
+  it('trims the name before joining', () => {
+    expect(buildMkdirRequest(pe, 'src', '  utils  ')).toEqual({
+      method: 'fs/mkdir',
+      params: { dir: { pe_id: pe, relative_path: 'src/utils' } },
+    });
+  });
+
+  it('returns null for an empty / whitespace-only name (no round-trip)', () => {
+    expect(buildMkdirRequest(pe, 'src', '')).toBeNull();
+    expect(buildMkdirRequest(pe, 'src', '   ')).toBeNull();
+  });
+});
+
+describe('buildCreateFileRequest — new-file request builder', () => {
+  const pe = 'peX';
+
+  it('builds fs/createFile joining the name under the parent dir', () => {
+    expect(buildCreateFileRequest(pe, 'src', 'index.ts')).toEqual({
+      method: 'fs/createFile',
+      params: { file: { pe_id: pe, relative_path: 'src/index.ts' } },
+    });
+  });
+
+  it('creates at the pe root when parentDir is empty', () => {
+    expect(buildCreateFileRequest(pe, '', 'README.md')).toEqual({
+      method: 'fs/createFile',
+      params: { file: { pe_id: pe, relative_path: 'README.md' } },
+    });
+  });
+
+  it('trims the name before joining', () => {
+    expect(buildCreateFileRequest(pe, 'src', '  index.ts  ')).toEqual({
+      method: 'fs/createFile',
+      params: { file: { pe_id: pe, relative_path: 'src/index.ts' } },
+    });
+  });
+
+  it('returns null for an empty / whitespace-only name (no round-trip)', () => {
+    expect(buildCreateFileRequest(pe, 'src', '')).toBeNull();
+    expect(buildCreateFileRequest(pe, 'src', '   ')).toBeNull();
+  });
+});
+
 // ── Drag-to-copy/move (source B/C) ───────────────────────────────────────────
 
 describe('serializePeRef / parsePeRef', () => {
@@ -573,5 +636,123 @@ describe('buildTransferRequest', () => {
       method: 'fs/move',
       params: { from: { pe_id: 'peA', relative_path: 'src' }, to_dir: { pe_id: 'peA', relative_path: '' } },
     });
+  });
+});
+
+describe('explorerContextMenuSections — grouped, ordered, divider-ready sections', () => {
+  const NONE: ExplorerMenuCaps = {
+    addToChat: false,
+    revealInFolder: false,
+    copyRelativePath: false,
+    copyAbsolutePath: false,
+    newFile: false,
+    newDir: false,
+    rename: false,
+    delete: false,
+    remove: false,
+  };
+  const caps = (over: Partial<ExplorerMenuCaps>): ExplorerMenuCaps => ({ ...NONE, ...over });
+
+  it('a non-root directory (desktop, active chat) shows all three sections in order', () => {
+    expect(
+      explorerContextMenuSections(
+        caps({
+          addToChat: true,
+          revealInFolder: true,
+          copyRelativePath: true,
+          copyAbsolutePath: true,
+          newFile: true,
+          newDir: true,
+          rename: true,
+          delete: true,
+        })
+      )
+    ).toEqual([
+      ['addToChat'],
+      ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath'],
+      ['newFile', 'newDir', 'rename', 'delete'],
+    ]);
+  });
+
+  it('a file leaf drops new-file / new-dir but keeps rename + delete', () => {
+    expect(
+      explorerContextMenuSections(
+        caps({
+          addToChat: true,
+          revealInFolder: true,
+          copyRelativePath: true,
+          copyAbsolutePath: true,
+          rename: true,
+          delete: true,
+        })
+      )
+    ).toEqual([['addToChat'], ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath'], ['rename', 'delete']]);
+  });
+
+  it('a pe root shows create + remove-from-project instead of rename / delete', () => {
+    expect(
+      explorerContextMenuSections(
+        caps({
+          addToChat: true,
+          revealInFolder: true,
+          copyRelativePath: true,
+          copyAbsolutePath: true,
+          newFile: true,
+          newDir: true,
+          remove: true,
+        })
+      )
+    ).toEqual([
+      ['addToChat'],
+      ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath'],
+      ['newFile', 'newDir', 'remove'],
+    ]);
+  });
+
+  it('no active conversation drops the add-to-chat section — result starts at locate/copy (no leading divider)', () => {
+    expect(
+      explorerContextMenuSections(
+        caps({
+          revealInFolder: true,
+          copyRelativePath: true,
+          copyAbsolutePath: true,
+          newFile: true,
+          newDir: true,
+          rename: true,
+          delete: true,
+        })
+      )
+    ).toEqual([
+      ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath'],
+      ['newFile', 'newDir', 'rename', 'delete'],
+    ]);
+  });
+
+  it('WebUI hides desktop-only reveal + copy-absolute, leaving copy-relative alone in the middle section', () => {
+    expect(
+      explorerContextMenuSections(
+        caps({ addToChat: true, copyRelativePath: true, newFile: true, newDir: true, rename: true, delete: true })
+      )
+    ).toEqual([['addToChat'], ['copyRelativePath'], ['newFile', 'newDir', 'rename', 'delete']]);
+  });
+
+  it('returns no sections when nothing is enabled (the node shows no menu at all)', () => {
+    expect(explorerContextMenuSections(NONE)).toEqual([]);
+  });
+
+  it('a single enabled section stands alone — nothing to divide', () => {
+    expect(explorerContextMenuSections(caps({ rename: true, delete: true }))).toEqual([['rename', 'delete']]);
+  });
+
+  it('section 3 preserves the exact newFile → newDir → rename → delete → remove order', () => {
+    expect(
+      explorerContextMenuSections(caps({ newFile: true, newDir: true, rename: true, delete: true, remove: true }))
+    ).toEqual([['newFile', 'newDir', 'rename', 'delete', 'remove']]);
+  });
+
+  it('never returns an empty section, so dividers only ever fall between real sections', () => {
+    const sections = explorerContextMenuSections(caps({ addToChat: true, newFile: true }));
+    expect(sections).toEqual([['addToChat'], ['newFile']]);
+    for (const section of sections) expect(section.length).toBeGreaterThan(0);
   });
 });
