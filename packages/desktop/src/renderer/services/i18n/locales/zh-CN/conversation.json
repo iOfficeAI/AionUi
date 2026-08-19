@@ -635,11 +635,15 @@
       "rename": "重命名",
       "addToChat": "添加到聊天",
       "copyRelativePath": "复制相对路径",
-      "copyAbsolutePath": "复制绝对路径"
+      "copyAbsolutePath": "复制绝对路径",
+      "newFile": "新建文件",
+      "newDir": "新建目录"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
     "renameFailed": "重命名失败",
+    "newFileFailed": "新建文件失败",
+    "newDirFailed": "新建目录失败",
     "tabs": {
       "files": "文件",
       "changes": "变更"
