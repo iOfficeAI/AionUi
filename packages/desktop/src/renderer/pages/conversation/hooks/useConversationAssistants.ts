@@ -8,8 +8,7 @@ import { useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
-import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 
 export type UseConversationAssistantsResult = {
   presetAssistants: Assistant[];
@@ -18,7 +17,7 @@ export type UseConversationAssistantsResult = {
 };
 
 export const useConversationAssistants = (): UseConversationAssistantsResult => {
-  const { assistantOrder } = useAssistantOrder();
+  const { sortAssistants } = useAssistantSort();
   const { data: assistants, isLoading } = useSWR('assistants.list', async () => {
     try {
       return await ipcBridge.assistants.list.invoke();
@@ -32,12 +31,10 @@ export const useConversationAssistants = (): UseConversationAssistantsResult => 
   // don't re-fire on every render. SWR returns the same `assistants`
   // reference between renders, so the memo only recomputes on real updates.
   // The enabled-order preference is shared with settings, Guid, teams, and
-  // scheduled tasks. Without one, `selectableAssistants` preserves the legacy
-  // CLI → user → official ordering.
-  const presetAssistants = useMemo(
-    () => selectableAssistants(assistants ?? [], assistantOrder),
-    [assistantOrder, assistants]
-  );
+  // scheduled tasks, and the user-chosen sort strategy (manual / recent /
+  // frequency / alphabetical) is applied on top. Without an order preference,
+  // `selectableAssistants` preserves the legacy CLI → user → official ordering.
+  const presetAssistants = useMemo(() => sortAssistants(assistants ?? []), [assistants, sortAssistants]);
 
   return {
     presetAssistants,

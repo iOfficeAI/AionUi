@@ -12,13 +12,18 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '../../components/SettingsPageHeader';
+import { Select } from '@arco-design/web-react';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { AssistantSortStrategy } from '@/renderer/utils/model/assistantSort';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type AssistantHomeTabsProps = {
   assistants: AssistantListItem[];
-  assistantOrder: readonly string[];
   localeKey: string;
+  sortAssistants: (assistants: readonly Assistant[]) => Assistant[];
+  sortStrategy: AssistantSortStrategy;
+  onSortStrategyChange: (strategy: AssistantSortStrategy) => void | Promise<void>;
   onOpenDetail: (assistant: AssistantListItem) => void;
   onOpenSettings: (assistant: AssistantListItem) => void;
   onDuplicate: (assistant: AssistantListItem) => void;
@@ -37,8 +42,10 @@ type HomeTab = 'enabled' | 'mine' | 'official';
 
 const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
   assistants,
-  assistantOrder,
   localeKey,
+  sortAssistants,
+  sortStrategy,
+  onSortStrategyChange,
   onOpenDetail,
   onOpenSettings,
   onDuplicate,
@@ -160,16 +167,51 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
       >
         <div className='mx-auto w-full max-w-800px'>
           {tab === 'enabled' ? (
-            <EnabledAssistantsList
-              assistants={filteredAssistants}
-              assistantOrder={assistantOrder}
-              localeKey={localeKey}
-              searchActive={Boolean(normalizedSearchQuery)}
-              onOpenDetail={onOpenDetail}
-              onToggleEnabled={onToggleEnabled}
-              onReorder={onReorderEnabled}
-              onStartChat={onStartChat}
-            />
+            <div>
+              <div
+                data-testid='assistant-sort-strategy-control'
+                className='mb-14px flex items-center justify-between gap-12px'
+              >
+                <span className='text-13px font-500 text-t-primary'>
+                  {t('settings.assistantSortStrategyLabel', { defaultValue: 'Sort order' })}
+                </span>
+                <Select
+                  data-testid='assistant-sort-strategy-select'
+                  className='w-180px'
+                  value={sortStrategy}
+                  onChange={(value) => void onSortStrategyChange(value as AssistantSortStrategy)}
+                  options={[
+                    {
+                      value: 'manual',
+                      label: t('settings.assistantSortManual', { defaultValue: 'Manual' }),
+                    },
+                    {
+                      value: 'recent',
+                      label: t('settings.assistantSortRecent', { defaultValue: 'Recently used' }),
+                    },
+                    {
+                      value: 'frequency',
+                      label: t('settings.assistantSortFrequency', { defaultValue: 'Most used' }),
+                    },
+                    {
+                      value: 'alphabetical',
+                      label: t('settings.assistantSortAlphabetical', { defaultValue: 'Alphabetical' }),
+                    },
+                  ]}
+                />
+              </div>
+              <EnabledAssistantsList
+                assistants={filteredAssistants}
+                localeKey={localeKey}
+                sortAssistants={sortAssistants}
+                sortStrategy={sortStrategy}
+                searchActive={Boolean(normalizedSearchQuery)}
+                onOpenDetail={onOpenDetail}
+                onToggleEnabled={onToggleEnabled}
+                onReorder={onReorderEnabled}
+                onStartChat={onStartChat}
+              />
+            </div>
           ) : tab === 'mine' ? (
             <MyAssistantsList
               assistants={filteredAssistants}

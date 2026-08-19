@@ -13,6 +13,7 @@ import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 import dayjs from 'dayjs';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
@@ -242,6 +243,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { presetAssistants } = useConversationAssistants();
+  const { recordUse: recordAssistantUse } = useAssistantSort();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
   const { providers, getAvailableModels } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
@@ -601,6 +603,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       }
 
       onClose();
+      // Fire-and-forget: usage is a best-effort local preference for the
+      // automatic sort strategies; a failed persist must not surface an error
+      // for a task that already saved.
+      if (assistantValue) {
+        void recordAssistantUse(String(assistantValue)).catch(() => {});
+      }
     } catch (err) {
       Message.error(getConversationCreateErrorMessage(err, t));
     } finally {

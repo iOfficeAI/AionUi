@@ -28,13 +28,15 @@ import { Button, Empty, Switch, Tag } from '@arco-design/web-react';
 import { Drag } from '@icon-park/react';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { AssistantSortStrategy } from '@/renderer/utils/model/assistantSort';
 
 type EnabledAssistantsListProps = {
   assistants: AssistantListItem[];
-  assistantOrder: readonly string[];
   localeKey: string;
   searchActive: boolean;
+  sortAssistants: (assistants: readonly Assistant[]) => Assistant[];
+  sortStrategy: AssistantSortStrategy;
   onOpenDetail: (assistant: AssistantListItem) => void;
   onToggleEnabled: (assistant: AssistantListItem, checked: boolean) => void;
   onReorder: (activeId: string, overId: string) => void | Promise<void>;
@@ -144,9 +146,10 @@ const EnabledAssistantRow: React.FC<EnabledAssistantRowProps> = ({
 
 const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
   assistants,
-  assistantOrder,
   localeKey,
   searchActive,
+  sortAssistants,
+  sortStrategy,
   onOpenDetail,
   onToggleEnabled,
   onReorder,
@@ -157,11 +160,10 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-  const enabledAssistants = useMemo(
-    () => selectableAssistants(assistants, assistantOrder),
-    [assistantOrder, assistants]
-  );
-  const sortingEnabled = !searchActive && enabledAssistants.length > 1;
+  const enabledAssistants = useMemo(() => sortAssistants(assistants), [assistants, sortAssistants]);
+  // Drag-and-drop only makes sense for the manual strategy.
+  const isManual = sortStrategy === 'manual';
+  const sortingEnabled = isManual && !searchActive && enabledAssistants.length > 1;
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -181,9 +183,13 @@ const EnabledAssistantsList: React.FC<EnabledAssistantsListProps> = ({
       >
         {searchActive
           ? t('settings.assistantReorderSearchDisabled', { defaultValue: 'Clear search to reorder.' })
-          : t('settings.assistantReorderHint', {
-              defaultValue: 'Drag to reorder. This decides the display order wherever you pick an assistant.',
-            })}
+          : isManual
+            ? t('settings.assistantReorderHint', {
+                defaultValue: 'Drag to reorder. This decides the display order wherever you pick an assistant.',
+              })
+            : t('settings.assistantAutoSortHint', {
+                defaultValue: 'This list is sorted automatically. Switch to Manual to drag and reorder.',
+              })}
       </p>
 
       {enabledAssistants.length === 0 ? (

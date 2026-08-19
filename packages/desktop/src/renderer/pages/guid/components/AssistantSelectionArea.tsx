@@ -9,12 +9,11 @@ import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assist
 import { Down, Robot } from '@icon-park/react';
 import { Button } from '@arco-design/web-react';
 import { AionSearchInput } from '@/renderer/components/base';
-import { useAssistantOrder } from '@/renderer/hooks/assistant/useAssistantOrder';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
-import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -71,7 +70,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   onSelectAssistant,
 }) => {
   const { t } = useTranslation();
-  const { assistantOrder } = useAssistantOrder();
+  const { sortAssistants } = useAssistantSort();
   const [moreVisible, setMoreVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [availableWidth, setAvailableWidth] = useState(() => (typeof window === 'undefined' ? 800 : window.innerWidth));
@@ -83,10 +82,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const widthVisibleLimit = Math.min(Math.max(1, maxVisibleAssistants), resolveAssistantVisibleLimit(availableWidth));
   const [adaptiveVisibleLimit, setAdaptiveVisibleLimit] = useState(widthVisibleLimit);
   const visibleLimit = Math.min(widthVisibleLimit, adaptiveVisibleLimit);
-  const enabledAssistants = useMemo(
-    () => selectableAssistants(assistants, assistantOrder),
-    [assistantOrder, assistants]
-  );
+  const enabledAssistants = useMemo(() => sortAssistants(assistants), [assistants, sortAssistants]);
 
   useEffect(() => {
     setAdaptiveVisibleLimit(widthVisibleLimit);

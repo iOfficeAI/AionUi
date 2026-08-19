@@ -14,6 +14,7 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
+import { useAssistantSort } from '@/renderer/hooks/assistant/useAssistantSort';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -142,6 +143,7 @@ const GuidPage: React.FC = () => {
     preselectAssistantId,
     locationKey: location.key,
   });
+  const { recordUse: recordAssistantUse } = useAssistantSort();
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -312,8 +314,11 @@ const GuidPage: React.FC = () => {
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
       agentSelection.setSelectedAssistantId(assistantId);
+      // Fire-and-forget: usage is a best-effort local preference for the
+      // automatic sort strategies; a failed persist must not block selection.
+      void recordAssistantUse(assistantId).catch(() => {});
     },
-    [agentSelection.setSelectedAssistantId]
+    [agentSelection.setSelectedAssistantId, recordAssistantUse]
   );
 
   // Typewriter placeholder

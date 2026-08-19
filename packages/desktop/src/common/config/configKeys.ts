@@ -16,6 +16,10 @@ export type ConfigKeyMap = {
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */
   'assistants.enabledOrder': string[] | undefined;
+  /** How assistant lists are ordered: manual (drag) or an automatic strategy. */
+  'assistants.sortStrategy': 'manual' | 'recent' | 'frequency' | 'alphabetical' | undefined;
+  /** Per-assistant usage: last-used timestamp (ms epoch) and use count, for the automatic sort strategies. */
+  'assistants.usage': Record<string, { lastUsedAt?: number; useCount?: number }> | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
