@@ -1,0 +1,135 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * `@@` session mentions — the sibling lane to `@` file mentions.
+ *
+ * `@` hands the agent a file path; `@@` hands it a conversation handle. The two
+ * must be mutually exclusive, and `@@` has to win: see the short-circuit in
+ * `atFileQuery.ts`, without which the file matcher anchors on the FIRST `@` of a
+ * `@@` pair and searches for a file literally named `@auth`.
+ */
+
+const AT_SESSION_BOUNDARY_RE = /[\s,;!?()[\]{}]/;
+
+export type ActiveAtSessionQuery = {
+  start: number;
+  end: number;
+  query: string;
+  rawQuery: string;
+  token: string;
+};
+
+function isBoundaryChar(char: string): boolean {
+  return AT_SESSION_BOUNDARY_RE.test(char);
+}
+
+function isEscaped(value: string, index: number): boolean {
+  let backslashCount = 0;
+  let cursor = index - 1;
+  while (cursor >= 0 && value[cursor] === '\\') {
+    backslashCount += 1;
+    cursor -= 1;
+  }
+  return backslashCount % 2 === 1;
+}
+
+function unescape(value: string): string {
+  return value.replace(/\\(.)/g, '$1');
+}
+
+export function escapeAtSessionName(name: string): string {
+  return name.replace(/([\\\s,;!?()[\]{}])/g, '\\$1');
+}
+
+/** Index of the `@@` opening this token, or -1. */
+function findSessionTokenStart(value: string, caret: number): number {
+  for (let index = caret - 1; index >= 0; index -= 1) {
+    const char = value[index];
+    // A `@@` is the pair (index, index + 1); anchor on the first of the two.
+    if (char === '@' && value[index + 1] === '@' && !isEscaped(value, index)) {
+      const previousChar = index > 0 ? value[index - 1] : '';
+      if (!previousChar || isBoundaryChar(previousChar)) {
+        return index;
+      }
+      return -1;
+    }
+    if (isBoundaryChar(char) && !isEscaped(value, index)) {
+      return -1;
+    }
+  }
+  return -1;
+}
+
+function tokenEndFrom(value: string, from: number): number {
+  for (let index = from; index < value.length; index += 1) {
+    if (isBoundaryChar(value[index]) && !isEscaped(value, index)) {
+      return index;
+    }
+  }
+  return value.length;
+}
+
+export function getActiveAtSessionQuery(value: string, caretPosition: number): ActiveAtSessionQuery | null {
+  if (!value) return null;
+  const safeCaret = Math.max(0, Math.min(caretPosition, value.length));
+  const start = findSessionTokenStart(value, safeCaret);
+  if (start === -1) return null;
+
+  const end = tokenEndFrom(value, start + 2);
+  if (safeCaret < start || safeCaret > end) return null;
+
+  const rawQuery = value.slice(start + 2, end);
+  return {
+    start,
+    end,
+    query: unescape(rawQuery),
+    rawQuery,
+    token: value.slice(start, end),
+  };
+}
+
+export function getAllAtSessionQueries(value: string): ActiveAtSessionQuery[] {
+  if (!value) return [];
+  const queries: ActiveAtSessionQuery[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== '@' || value[index + 1] !== '@' || isEscaped(value, index)) continue;
+    const previousChar = index > 0 ? value[index - 1] : '';
+    if (previousChar && !isBoundaryChar(previousChar)) continue;
+
+    const end = tokenEndFrom(value, index + 2);
+    const rawQuery = value.slice(index + 2, end);
+    queries.push({
+      start: index,
+      end,
+      query: unescape(rawQuery),
+      rawQuery,
+      token: value.slice(index, end),
+    });
+    index = end - 1;
+  }
+  return queries;
+}
+
+export function buildAtSessionInsertion(name: string): string {
+  return `@@${escapeAtSessionName(name)}`;
+}
+
+/** An action the `@@`-mention dropdown takes for a keydown (null = not handled). */
+export type AtSessionMenuKeyAction = 'dismiss' | 'up' | 'down' | 'accept' | null;
+
+/**
+ * Same contract as `resolveAtFileMenuKey`, kept as a separate pure function so
+ * the two dropdowns' keyboard behaviour is unit-tested independently.
+ */
+export function resolveAtSessionMenuKey(key: string, hasItems: boolean): AtSessionMenuKeyAction {
+  if (key === 'Escape') return 'dismiss';
+  if (!hasItems) return null;
+  if (key === 'ArrowDown') return 'down';
+  if (key === 'ArrowUp') return 'up';
+  if (key === 'Enter' || key === 'Tab') return 'accept';
+  return null;
+}

@@ -1,4 +1,5 @@
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { getActiveAtSessionQuery } from './atSessionQuery';
 
 const AT_FILE_BOUNDARY_RE = /[\s,;!?()[\]{}]/;
 
@@ -34,6 +35,15 @@ export function escapeAtFilePath(path: string): string {
 
 export function getActiveAtFileQuery(value: string, caretPosition: number): ActiveAtFileQuery | null {
   if (!value) {
+    return null;
+  }
+
+  // `@@` is a session mention, not a file mention. It must be decided FIRST and
+  // short-circuit this branch: without it, the loop below skips the second `@`
+  // (its previous char is `@`, which is not in AT_FILE_BOUNDARY_RE) and anchors
+  // on the FIRST `@`, producing the file query `@auth` — a search for a file
+  // literally named `@auth`.
+  if (getActiveAtSessionQuery(value, caretPosition)) {
     return null;
   }
 
@@ -97,6 +107,13 @@ export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
 
     const previousChar = index > 0 ? value[index - 1] : '';
     if (previousChar && !isBoundaryChar(previousChar)) {
+      continue;
+    }
+
+    // Skip a `@@` pair — it belongs to the session-mention lane. Both halves
+    // must be skipped: the first because it opens a session token, the second
+    // because its predecessor is that first `@`.
+    if (value[index + 1] === '@' || previousChar === '@') {
       continue;
     }
 
