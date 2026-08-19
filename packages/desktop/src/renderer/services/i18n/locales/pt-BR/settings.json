@@ -1361,5 +1361,10 @@
     "clearConfirmContent": "Você sairá de todos os sites no navegador interno. Isso não pode ser desfeito.",
     "clearSuccess": "Dados de navegação limpos",
     "clearFailed": "Falha ao limpar dados de navegação"
-  }
+  },
+  "crossSessionMessage": "Mensagens entre conversas",
+  "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",
+  "crossSessionMessageDisabledBanner": "As mensagens entre conversas estão desativadas, a menção @@ não está disponível.",
+  "crossSessionMessageResume": "Ativar novamente",
+  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas"
 }

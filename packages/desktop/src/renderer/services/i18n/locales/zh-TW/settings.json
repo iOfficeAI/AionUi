@@ -1360,5 +1360,10 @@
     "clearConfirmContent": "應用內瀏覽器中所有網站的登入狀態都會被登出，且無法復原。",
     "clearSuccess": "瀏覽資料已清空",
     "clearFailed": "清空瀏覽資料失敗"
-  }
+  },
+  "crossSessionMessage": "跨對話訊息",
+  "crossSessionMessageDesc": "允許 Agent 向你的其他對話傳送訊息。關閉後，輸入框的 @@ 對話提及與投遞功能會同時停用。",
+  "crossSessionMessageDisabledBanner": "跨對話訊息已關閉，輸入框的 @@ 對話提及不可用。",
+  "crossSessionMessageResume": "重新開啟",
+  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗"
 }

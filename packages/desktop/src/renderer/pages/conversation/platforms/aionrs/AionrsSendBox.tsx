@@ -41,6 +41,7 @@ import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSe
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import type { SessionRef } from '@/common/adapter/ipcBridge';
+import CrossSessionDisabledBanner from '@/renderer/components/chat/CrossSessionDisabledBanner';
 import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
@@ -739,6 +740,7 @@ const AionrsSendBox: React.FC<{
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
+      <CrossSessionDisabledBanner />
       <SendBox
         data-testid='aionrs-sendbox'
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}

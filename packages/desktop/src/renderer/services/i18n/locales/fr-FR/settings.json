@@ -1358,5 +1358,10 @@
     "clearConfirmContent": "Vous serez déconnecté de tous les sites du navigateur intégré. Cette action est irréversible.",
     "clearSuccess": "Données de navigation effacées",
     "clearFailed": "Échec de l'effacement des données de navigation"
-  }
+  },
+  "crossSessionMessage": "Messages entre conversations",
+  "crossSessionMessageDesc": "Permet aux agents d'envoyer des messages à vos autres conversations. La désactivation coupe aussi la mention @@ dans la zone de saisie.",
+  "crossSessionMessageDisabledBanner": "Les messages entre conversations sont désactivés, la mention @@ est indisponible.",
+  "crossSessionMessageResume": "Réactiver",
+  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations"
 }

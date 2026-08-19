@@ -25,8 +25,10 @@ export function useCrossSessionMessageEnabled(): {
 
   useEffect(() => {
     let cancelled = false;
-    void ipcBridge.systemSettings.getCrossSessionMessageEnabled
-      .invoke()
+    // Optional-chained: a preload/bridge build without this entry must degrade
+    // to the default rather than throwing inside a render effect.
+    void ipcBridge.systemSettings?.getCrossSessionMessageEnabled
+      ?.invoke?.()
       .then((settings) => {
         if (cancelled || settings?.cross_session_message_enabled === undefined) return;
         setEnabledState(settings.cross_session_message_enabled);
@@ -44,7 +46,11 @@ export function useCrossSessionMessageEnabled(): {
     // authority for delivery regardless of what this local flag says.
     setEnabledState(next);
     try {
-      await ipcBridge.systemSettings.setCrossSessionMessageEnabled.invoke({ enabled: next });
+      const setter = ipcBridge.systemSettings?.setCrossSessionMessageEnabled;
+      if (!setter?.invoke) {
+        throw new Error('cross-session message setting bridge unavailable');
+      }
+      await setter.invoke({ enabled: next });
     } catch (error) {
       // Roll back so the UI never claims a state the backend rejected.
       setEnabledState(!next);

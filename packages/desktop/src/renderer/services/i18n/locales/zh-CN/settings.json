@@ -1359,5 +1359,10 @@
     "clearConfirmContent": "应用内浏览器中所有网站的登录状态都会被退出，且无法恢复。",
     "clearSuccess": "浏览数据已清空",
     "clearFailed": "清空浏览数据失败"
-  }
+  },
+  "crossSessionMessage": "跨会话消息",
+  "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
+  "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
+  "crossSessionMessageResume": "重新开启",
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
 }

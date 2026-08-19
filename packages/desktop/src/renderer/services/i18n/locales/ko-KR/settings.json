@@ -1360,5 +1360,10 @@
     "clearConfirmContent": "앱 내 브라우저의 모든 사이트에서 로그아웃됩니다. 되돌릴 수 없습니다.",
     "clearSuccess": "인터넷 사용 정보를 삭제했습니다",
     "clearFailed": "인터넷 사용 정보 삭제에 실패했습니다"
-  }
+  },
+  "crossSessionMessage": "대화 간 메시지",
+  "crossSessionMessageDesc": "에이전트가 다른 대화로 메시지를 보낼 수 있게 합니다. 끄면 입력창의 @@ 대화 멘션도 비활성화됩니다.",
+  "crossSessionMessageDisabledBanner": "대화 간 메시지가 꺼져 있어 입력창의 @@ 대화 멘션을 사용할 수 없습니다.",
+  "crossSessionMessageResume": "다시 켜기",
+  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다"
 }

@@ -1358,5 +1358,10 @@
     "clearConfirmContent": "Du wirst von allen Websites im integrierten Browser abgemeldet. Das kann nicht rückgängig gemacht werden.",
     "clearSuccess": "Browserdaten gelöscht",
     "clearFailed": "Browserdaten konnten nicht gelöscht werden"
-  }
+  },
+  "crossSessionMessage": "Nachrichten zwischen Unterhaltungen",
+  "crossSessionMessageDesc": "Erlaubt Agenten, Nachrichten an Ihre anderen Unterhaltungen zu senden. Beim Ausschalten wird auch die @@-Erwähnung im Eingabefeld deaktiviert.",
+  "crossSessionMessageDisabledBanner": "Nachrichten zwischen Unterhaltungen sind aus, die @@-Erwähnung ist nicht verfügbar.",
+  "crossSessionMessageResume": "Wieder einschalten",
+  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden"
 }

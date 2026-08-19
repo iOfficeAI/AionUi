@@ -40,6 +40,7 @@ import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSe
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import type { SessionRef } from '@/common/adapter/ipcBridge';
+import CrossSessionDisabledBanner from '@/renderer/components/chat/CrossSessionDisabledBanner';
 import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -794,6 +795,7 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
+      <CrossSessionDisabledBanner />
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
