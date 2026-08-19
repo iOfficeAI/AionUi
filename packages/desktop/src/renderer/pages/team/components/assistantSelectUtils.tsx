@@ -1,6 +1,7 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
 import { assistantRuntimeKey, type Assistant } from '@/common/types/agent/assistantTypes';
 
@@ -66,7 +67,7 @@ export const AssistantOptionLabel: React.FC<AssistantOptionLabelProps> = ({
   const nameClass = muted ? 'text-t-tertiary' : 'text-t-primary';
   const avatarNode =
     avatar.kind === 'image' ? (
-      <img
+      <ThemedLogo
         src={avatar.value}
         alt={assistant.name}
         style={{ width: iconSize, height: iconSize, objectFit: 'contain' }}

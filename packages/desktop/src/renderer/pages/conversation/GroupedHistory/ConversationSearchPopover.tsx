@@ -11,6 +11,7 @@ import { AionSearchInput } from '@/renderer/components/base';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
@@ -114,7 +115,7 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
   }
   if (leadingMark.kind === 'image') {
     return (
-      <img
+      <ThemedLogo
         src={leadingMark.value}
         alt={leadingMark.label}
         title={leadingMark.label}
