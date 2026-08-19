@@ -23,6 +23,9 @@ export type SideTab = {
   mode: SideConversationMode;
   /** Best-effort UI state: whether this tab has produced a turn yet. */
   hasTurn: boolean;
+  /** Thread label for the tab dropdown: the seeding question when known, else
+   * the restored conversation name; the UI falls back to a numbered label. */
+  label?: string;
 };
 
 type PendingComposerDelivery = {
@@ -45,6 +48,7 @@ function tabFromConversation(conversation: TChatConversation): SideTab {
     childId: conversation.id,
     mode: conversation.extra?.side_fork_mode === 'text_snapshot' ? 'snapshot' : 'fork',
     hasTurn: conversation.modified_at > conversation.created_at,
+    label: conversation.name?.trim() || undefined,
   };
 }
 
@@ -210,7 +214,12 @@ export function useSideConversation({ parent, getParentMessages }: UseSideConver
           input: initial_prompt.trim(),
         });
       }
-      return { childId: child.id, mode: 'fork', hasTurn: Boolean(initial_prompt?.trim()) };
+      return {
+        childId: child.id,
+        mode: 'fork',
+        hasTurn: Boolean(initial_prompt?.trim()),
+        label: initial_prompt?.trim() || undefined,
+      };
     },
     [markSideChild, parent.id, resolveForkedAtMsgId]
   );
@@ -241,7 +250,12 @@ export function useSideConversation({ parent, getParentMessages }: UseSideConver
       } else if (prompt) {
         await ipcBridge.conversation.sendMessage.invoke({ conversation_id: child.id, input: prompt });
       }
-      return { childId: child.id, mode: 'snapshot', hasTurn: Boolean(transcript || prompt) };
+      return {
+        childId: child.id,
+        mode: 'snapshot',
+        hasTurn: Boolean(transcript || prompt),
+        label: prompt || undefined,
+      };
     },
     [markSideChild, parent.id, t]
   );
@@ -317,20 +331,6 @@ export function useSideConversation({ parent, getParentMessages }: UseSideConver
     },
     [createTab, showError]
   );
-
-  const reopen = useCallback(() => {
-    if (tabs.length === 0) return;
-    const targetId = activeTabId ?? tabs[tabs.length - 1]?.childId;
-    setPanelHidden(false);
-    setActiveTabId(targetId);
-    syncParentSideState(targetId, false);
-  }, [activeTabId, syncParentSideState, tabs]);
-
-  const collapse = useCallback(() => {
-    if (tabs.length === 0) return;
-    setPanelHidden(true);
-    syncParentSideState(childId ?? activeTabId ?? tabs[tabs.length - 1]?.childId, true);
-  }, [activeTabId, childId, syncParentSideState, tabs]);
 
   const selectTab = useCallback(
     (tabId: string) => {
@@ -496,10 +496,9 @@ export function useSideConversation({ parent, getParentMessages }: UseSideConver
     tabs,
     activeTabId: childId,
     mode,
+    promotedIds,
     open,
     openNewTab,
-    reopen,
-    collapse,
     selectTab,
     promote,
     discard,

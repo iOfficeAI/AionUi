@@ -135,8 +135,8 @@ describe('useSideConversation — restore', () => {
     await waitFor(() => {
       expect(result.current.tabs.map((tab) => tab.childId)).toEqual(['c1', 'c2']);
     });
-    expect(result.current.tabs[0]).toEqual({ childId: 'c1', mode: 'fork', hasTurn: false });
-    expect(result.current.tabs[1]).toEqual({ childId: 'c2', mode: 'snapshot', hasTurn: true });
+    expect(result.current.tabs[0]).toEqual({ childId: 'c1', mode: 'fork', hasTurn: false, label: 'Side c1' });
+    expect(result.current.tabs[1]).toEqual({ childId: 'c2', mode: 'snapshot', hasTurn: true, label: 'Side c2' });
     expect(result.current.activeTabId).toBe('c2');
     expect(result.current.state).toBe('active');
   });
@@ -170,7 +170,7 @@ describe('useSideConversation — fork mode', () => {
     );
     expect(ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'c1' });
     expect(sendMessage).toHaveBeenCalledWith({ conversation_id: 'c1', input: 'first question' });
-    expect(result.current.tabs).toEqual([{ childId: 'c1', mode: 'fork', hasTurn: true }]);
+    expect(result.current.tabs).toEqual([{ childId: 'c1', mode: 'fork', hasTurn: true, label: 'first question' }]);
     expect(result.current.state).toBe('active');
   });
 
@@ -313,7 +313,7 @@ describe('useSideConversation — snapshot mode', () => {
     expect(sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ conversation_id: 'c1', input: expect.any(String) })
     );
-    expect(result.current.tabs).toEqual([{ childId: 'c1', mode: 'snapshot', hasTurn: true }]);
+    expect(result.current.tabs).toEqual([{ childId: 'c1', mode: 'snapshot', hasTurn: true, label: 'summarize this' }]);
   });
 
   it('skips the bootstrap message when the parent has no text messages', async () => {
@@ -338,43 +338,7 @@ describe('useSideConversation — snapshot mode', () => {
 });
 
 describe('useSideConversation — panel state transitions', () => {
-  it('collapse hides the dock and persists, reopen restores it', async () => {
-    getUserConversations.mockResolvedValue({
-      items: [childConversation('c1', 1, true)],
-      total: 1,
-      has_more: false,
-    });
-    const { result } = renderHook(() => useSideConversation({ parent: forkParent }));
-    await waitFor(() => {
-      expect(result.current.state).toBe('active');
-    });
-
-    act(() => {
-      result.current.collapse();
-    });
-    expect(result.current.state).toBe('collapsed');
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'p1',
-        updates: { extra: expect.objectContaining({ active_side_id: 'c1', side_panel_hidden: true }) },
-        merge_extra: true,
-      })
-    );
-
-    act(() => {
-      result.current.reopen();
-    });
-    expect(result.current.state).toBe('active');
-    expect(update).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        id: 'p1',
-        updates: { extra: expect.objectContaining({ side_panel_hidden: false }) },
-        merge_extra: true,
-      })
-    );
-  });
-
-  it('selectTab switches the active tab and un-hides the dock', async () => {
+  it('selectTab switches the active tab and un-hides the panel', async () => {
     getUserConversations.mockResolvedValue({
       items: [childConversation('c1', 1, true), childConversation('c2', 2, true)],
       total: 2,

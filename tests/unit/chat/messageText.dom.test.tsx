@@ -12,6 +12,7 @@ import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText, {
   parseTeamContextResetNotice,
+  splitLeadingReplyQuote,
 } from '@/renderer/pages/conversation/Messages/components/MessageText';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 
@@ -149,6 +150,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Copy: () => <span data-testid='copy-icon' />,
+  Quote: () => <span data-testid='quote-icon' />,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -817,5 +819,88 @@ describe('MessageText fork entry point', () => {
       expect(forkMocks.navigate).toHaveBeenCalledWith('/conversation/conv-forked');
       expect(forkMocks.ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'conv-forked' });
     });
+  });
+});
+
+describe('splitLeadingReplyQuote', () => {
+  it('returns the content untouched when it does not start with a quote block', () => {
+    expect(splitLeadingReplyQuote('plain question')).toEqual({ quote: null, text: 'plain question' });
+  });
+
+  it('requires the blank-line separator (a leading quote line alone is not a reply quote)', () => {
+    expect(splitLeadingReplyQuote('> note\nquestion')).toEqual({ quote: null, text: '> note\nquestion' });
+  });
+
+  it('splits a single-line quote from the question', () => {
+    expect(splitLeadingReplyQuote('> 你的 AI 编程助手。\n\n这是什么')).toEqual({
+      quote: '你的 AI 编程助手。',
+      text: '这是什么',
+    });
+  });
+
+  it('joins multi-line quotes and strips the "> " prefix per line', () => {
+    expect(splitLeadingReplyQuote('> first\n> second\n\nquestion')).toEqual({
+      quote: 'first\nsecond',
+      text: 'question',
+    });
+  });
+
+  it('handles empty quoted lines produced by quoting a blank selection line', () => {
+    expect(splitLeadingReplyQuote('> a\n> \n\nq')).toEqual({ quote: 'a\n', text: 'q' });
+  });
+});
+
+describe('MessageText side reply-quote capsule', () => {
+  const quotedMessage = (overrides: Partial<IMessageText> = {}): IMessageText => ({
+    id: 'msg-quote',
+    msg_id: 'msg-quote',
+    conversation_id: 'conv-1',
+    type: 'text',
+    position: 'right',
+    createdAt: Date.now(),
+    content: { content: '> 你的 AI 编程助手。\n\n这是什么意思？' },
+    ...overrides,
+  });
+
+  const renderInContext = (message: IMessageText, isSideConversation: boolean) =>
+    render(
+      <ConversationProvider
+        value={{ conversation_id: 'conv-1', workspace: '/workspace/demo', type: 'acp', isSideConversation }}
+      >
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+  it('renders the leading quote as a capsule chip in side conversations, not as raw "> " text', () => {
+    renderInContext(quotedMessage(), true);
+
+    const capsule = screen.getByTestId('side-reply-quote-capsule');
+    expect(capsule).toHaveTextContent('你的 AI 编程助手。');
+    expect(capsule).toHaveAttribute('title', '你的 AI 编程助手。');
+
+    const bubble = screen.getByTestId('message-text-content');
+    // The question text remains; the raw markdown-quote line is not duplicated.
+    expect(bubble).toHaveTextContent('这是什么意思？');
+    expect(bubble.textContent).not.toContain('>');
+  });
+
+  it('keeps the raw text untouched in the main conversation (no capsule)', () => {
+    renderInContext(quotedMessage(), false);
+
+    expect(screen.queryByTestId('side-reply-quote-capsule')).not.toBeInTheDocument();
+    expect(screen.getByTestId('message-text-content')).toHaveTextContent('> 你的 AI 编程助手。');
+  });
+
+  it('does not capsule-split assistant messages in side conversations', () => {
+    renderInContext(quotedMessage({ position: 'left' }), true);
+
+    expect(screen.queryByTestId('side-reply-quote-capsule')).not.toBeInTheDocument();
+  });
+
+  it('shows no capsule for side user messages without a leading quote block', () => {
+    renderInContext(quotedMessage({ content: { content: 'just a question' } }), true);
+
+    expect(screen.queryByTestId('side-reply-quote-capsule')).not.toBeInTheDocument();
+    expect(screen.getByTestId('message-text-content')).toHaveTextContent('just a question');
   });
 });

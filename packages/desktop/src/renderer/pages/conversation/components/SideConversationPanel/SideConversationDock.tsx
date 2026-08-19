@@ -7,45 +7,44 @@
 import { ipcBridge } from '@/common';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import SideChildChat from './SideChildChat';
-import SideConversationHeader from './SideConversationHeader';
 import SideQuickPrompts from './quickPrompts/SideQuickPrompts';
-import type { SideTab } from './useSideConversation';
 import styles from './SideConversationDock.module.css';
 
 type Props = {
-  childId: string;
-  tabs: SideTab[];
-  activeTabId?: string;
-  onSelectTab: (tabId: string) => void;
-  onCloseTab: (tabId: string) => void;
-  onNewTab: () => void;
-  onCollapse: () => void;
-  onPromote: () => void;
+  /** Active side thread; undefined when no thread exists yet (empty hint). */
+  childId?: string;
 };
 
-const SideConversationDock: React.FC<Props> = ({
-  childId,
-  tabs,
-  activeTabId,
-  onSelectTab,
-  onCloseTab,
-  onNewTab,
-  onCollapse,
-  onPromote,
-}) => {
-  const { data: conversation } = useSWR(['conversation', childId], () =>
-    ipcBridge.conversation.get.invoke({ id: childId })
+/**
+ * Pure side-conversation content view hosted inside the native sidebar's
+ * 侧边会话 tab — no title row, no tab strip, no collapse/promote chrome (the
+ * ExplorerContainer tab + dropdown own all of that). Starts directly with the
+ * child chat; quick prompts ride the composer rail.
+ */
+const SideConversationDock: React.FC<Props> = ({ childId }) => {
+  const { t } = useTranslation();
+  const { data: conversation } = useSWR(childId ? ['conversation', childId] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: childId as string })
   );
-  const activeMode = tabs.find((tab) => tab.childId === childId)?.mode;
 
   const handleQuickPrompt = useCallback(
     (text: string) => {
+      if (!childId) return;
       emitter.emit('sendbox.fill.scoped', { conversation_id: childId, text });
     },
     [childId]
   );
+
+  if (!childId) {
+    return (
+      <div className='flex flex-1 items-center justify-center h-full px-16px'>
+        <span className='text-13px text-t-3 text-center'>{t('conversation.sideConversation.noThreads')}</span>
+      </div>
+    );
+  }
 
   const composerPrefix = (
     <div className={styles.composerRail}>
@@ -57,16 +56,6 @@ const SideConversationDock: React.FC<Props> = ({
 
   return (
     <div className={styles.dock}>
-      <SideConversationHeader
-        tabs={tabs}
-        activeTabId={activeTabId}
-        mode={activeMode}
-        onSelectTab={onSelectTab}
-        onCloseTab={onCloseTab}
-        onNewTab={onNewTab}
-        onCollapse={onCollapse}
-        onPromote={onPromote}
-      />
       <div className={styles.body}>
         {conversation ? <SideChildChat conversation={conversation} composerPrefix={composerPrefix} /> : null}
       </div>

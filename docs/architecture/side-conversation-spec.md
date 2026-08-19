@@ -20,7 +20,10 @@
 - **选中文本以引用胶囊交付**：划选 → 「在侧边会话中提问」→ `sendbox.reply.scoped`
   （按 conversation_id 定向）→ 侧边 composer 的既有 ReplyQuote 胶囊 UI（可移除，发送时
   作为引用前缀），绝不把原文灌进输入框；侧边 composer 同时忽略主线程的全局
-  `sendbox.reply` 事件，互不串扰。
+  `sendbox.reply` 事件，互不串扰。发送时 SendBox 仍按既有线格式把引用拼成
+  `> 行 + 空行 + 正文`（模型可见全文不变）；侧边会话渲染用户气泡时由
+  `splitLeadingReplyQuote`（MessageText，按 `isSideConversation` 门控）把这段前缀
+  剥出来渲染成单行截断的胶囊标签，正文里不再出现裸 `> ` 行。
 - **桌面端自包含**：不需要 AionCore 配套 PR —— fork、clone、update(merge_extra)、
   getUserConversations、sendMessage 均为上游既有 API。
 - **替代 /btw**：旧的 BtwOverlay 侧问（仅 claude、一次性 overlay、不留会话）整体移除，
@@ -60,7 +63,7 @@
 - **恢复**：挂载时 `database.getUserConversations` 全量拉取，按
   `isSideChildOf(conv, parent.id)`（`side_mode` + `parent_conversation_id`）过滤，
   `created_at` 排序；激活 tab 取父 `extra.active_side_id`，否则最后一个。
-- **折叠**：仅 UI 状态（`side_panel_hidden`），不删会话。
+- **折叠**：`side_panel_hidden` 仅作恢复时的向后兼容读取；日常显隐由原生右侧栏折叠接管。
 - **关闭 tab**：乐观移除 + `conversation.remove`，只影响该子会话。
 - **转正（Keep）**：子会话 `ephemeral: false` —— 线程出现在历史列表（带 fork 徽标），
   不再被 `isEphemeralSideConversation` 过滤。
@@ -69,8 +72,23 @@
 
 ## 5. 桌面端 UI
 
-- **布局**：`ChatLayout` 新增 `sideDock / sideDockOpen` props，在聊天区与 workspace 栏之间
-  渲染可拖拽列（`useResizableSplit`，storageKey `side-conversation-width-px`，仅桌面端）。
+- **布局**：侧边会话不再使用独立 dock 列——它收进原生右侧栏（ExplorerContainer）的
+  第三个顶级页签「侧边会话」（与 文件/变更 并列）。页签自带线程数角标（Arco Badge，
+  0 时隐藏）与下拉菜单（Arco Dropdown）：每行一条线程（名称=首个提问，回退
+  `tabLabel {{index}}`，当前高亮，行内 ✕ 关闭），分隔线后是「＋ 新建侧边会话」与
+  「将当前侧边会话转为普通会话」（只作用于当前激活线程；无激活线程或已转正时禁用）。
+  首次点击页签只激活面板，再次点击（或点 ▾）展开下拉。无项目/无工作区的会话只显示
+  这一个页签。内容区直接就是子会话聊天（无大标题行、无胶囊 tab 条），切页签时保持
+  挂载（display:none），流式订阅与草稿不断。
+- **跨子树状态**：侧边状态机仍挂在 ChatConversation 的 wiring
+  （`useSideConversationWiring`）里；ExplorerContainer 在项目会话下位于 Layout 级
+  ProjectPanelHost（不同子树），所以 wiring 把线程列表 / 激活 id / 动作 /
+  内容节点发布到模块级 `sideConversationUiStore`（`useSyncExternalStore`，
+  按 `parentId` 匹配当前会话），ExplorerContainer 订阅渲染。入口动作（SendBox 触发、
+  `Ctrl/Cmd + Shift + S`、`/side`、划选提问）同时派发
+  `aionui-workspace-open`（只展开、绝不把可见侧栏合上的 explicit-open，
+  由 useWorkspaceCollapse / useProjectPanelCollapse 处理）与
+  `aionui-explorer-show-side`（ExplorerContainer 切到 side 页签）。
 - **渲染子会话**：`SideConversationPanel/SideChildChat` 按子会话 type 分发到
   `AcpChat` / `AionrsChat`（`isSideMode` 紧凑布局 + `composerPrefix` 快捷提问位）。
   **不**向子会话传 `forkCapability` —— 消息级分叉入口会整页导航，不应出现在侧边线程内。
@@ -79,12 +97,15 @@
   - `/side [question]` 内建 slash 命令（带提问时直接创建并发出首条消息）；
   - 划选文本浮层的「在侧边会话中提问」（`SelectionReplyButton`，以 ReplyQuote 胶囊
     挂到侧边 composer，不写入输入框、不发送）；
-  - dock 头部的快捷 Prompt 轮播（26 个 key，每 30s 轮换 4 个）。
+  - composer 上方的快捷 Prompt 轮播（26 个 key，每 30s 轮换 4 个，无边框图标、
+    纯文字 999px 圆角药丸，悬停暂停）。
 - **composer 投递**：`emitter` 新增 `sendbox.fill.scoped`（快捷 Prompt 文本填充）与
   `sendbox.reply.scoped`（选中文本 → 引用胶囊）两组事件及对应 ack——按 `conversation_id`
   定向到对应侧边 tab 的 SendBox（`conversationScopeId`），120ms 重试直至 ack（约 4.8s 上限）。
 - **禁止嵌套**：侧边 composer（`isSideComposer` / `ConversationContext.isSideConversation`）
   不再展示任何侧边入口。
+- **折叠语义**：`side_panel_hidden` 仅在恢复时读取（向后兼容）；面板的显隐由整条右侧栏
+  的折叠接管，不再有 dock 级「折叠/重新打开」按钮。
 
 ## 6. 与上游 fork 入口的关系
 
@@ -99,5 +120,4 @@
 
 - 不做 mid-history 侧边分叉（锚点固定最新消息，保持两种 fork 入口语义清晰）。
 - 不做侧边线程内的再分叉（不传 `forkCapability`）。
-- 移动端不出 dock（入口在 `!isMobile` 下才出现）。
 - team 会话不支持（后端不上报 fork 能力，自动满足）。

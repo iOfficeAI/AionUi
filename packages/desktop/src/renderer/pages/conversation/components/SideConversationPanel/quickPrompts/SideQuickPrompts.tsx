@@ -5,28 +5,6 @@
  */
 
 import { Button } from '@arco-design/web-react';
-import {
-  Aiming,
-  Attention,
-  Caution,
-  CheckCorrect,
-  Comment,
-  Copy,
-  DocSearch,
-  ErrorPrompt,
-  Exchange,
-  FileText,
-  Helpcenter,
-  Light,
-  MindmapList,
-  Refresh,
-  Shield,
-  SortAmountUp,
-  Success,
-  Table,
-  Target,
-  User,
-} from '@icon-park/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -39,34 +17,6 @@ import styles from './SideQuickPrompts.module.css';
 
 type Props = {
   onPick: (text: string) => void;
-};
-
-/**
- * Per-prompt category icon. The visible label already carries the meaning, so
- * icons are decorative (`aria-hidden`) — they exist to make the rotating set
- * scannable at a glance.
- */
-const PROMPT_ICONS: Record<SideQuickPromptKey, React.ReactNode> = {
-  catchMeUp: <Refresh />,
-  changedFiles: <FileText />,
-  inPlainTerms: <Helpcenter />,
-  explainSelection: <DocSearch />,
-  explainError: <ErrorPrompt />,
-  safeToContinue: <Shield />,
-  confidenceLevel: <Target />,
-  didIForget: <Attention />,
-  stillWorks: <Success />,
-  isOffTrack: <Aiming />,
-  existingSolution: <Copy />,
-  whichIsBetter: <Exchange />,
-  whyThisApproach: <MindmapList />,
-  moreIdeas: <Light />,
-  yourWay: <User />,
-  useTable: <Table />,
-  stepByStep: <SortAmountUp />,
-  howToVerify: <CheckCorrect />,
-  worstCase: <Caution />,
-  explainToOthers: <Comment />,
 };
 
 function pickVisibleKeys(offset: number): SideQuickPromptKey[] {
@@ -123,16 +73,13 @@ const SideQuickPrompts: React.FC<Props> = ({ onPick }) => {
             <Button
               key={key}
               size='mini'
-              type='secondary'
+              type='outline'
               className={styles.chip}
               style={{ animationDelay: `${index * 40}ms` }}
               title={label}
               onClick={() => onPick(label)}
             >
-              <span className={styles.chipIcon} aria-hidden='true'>
-                {PROMPT_ICONS[key]}
-              </span>
-              <span className={styles.chipText}>{label}</span>
+              {label}
             </Button>
           );
         })}

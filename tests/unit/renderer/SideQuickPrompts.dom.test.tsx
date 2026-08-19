@@ -33,7 +33,7 @@ describe('SideQuickPrompts', () => {
     vi.useRealTimers();
   });
 
-  it('renders a batch of icon chips and picks the label on click', () => {
+  it('renders a batch of plain-text pill chips (no icons) and picks the label on click', () => {
     const onPick = vi.fn();
     const { container } = render(<SideQuickPrompts onPick={onPick} />);
 
@@ -41,7 +41,7 @@ describe('SideQuickPrompts', () => {
     expect(chips).toHaveLength(4);
     expect(chips[0].textContent).toBe('catchMeUp');
     chips.forEach((chip) => {
-      expect(chip.querySelector('svg')).toBeTruthy();
+      expect(chip.querySelector('svg')).toBeFalsy();
     });
 
     fireEvent.click(chips[1]);

@@ -28,13 +28,7 @@ vi.mock('@renderer/pages/conversation/components/SideConversationPanel/SideChild
 
 import { emitter } from '@/renderer/utils/emitter';
 import SideConversationDock from '@/renderer/pages/conversation/components/SideConversationPanel/SideConversationDock';
-import type { SideTab } from '@/renderer/pages/conversation/components/SideConversationPanel/useSideConversation';
 import type { TChatConversation } from '@/common/config/storage';
-
-const tabs: SideTab[] = [
-  { childId: 'c1', mode: 'fork', hasTurn: true },
-  { childId: 'c2', mode: 'snapshot', hasTurn: false },
-];
 
 const child = {
   id: 'c2',
@@ -51,21 +45,10 @@ beforeEach(() => {
   childChatMock.mockClear();
 });
 
-describe('SideConversationDock', () => {
+describe('SideConversationDock (pure content view)', () => {
   it('fetches the active child and renders it through the platform chat with the composer rail', async () => {
     get.mockResolvedValue(child);
-    render(
-      <SideConversationDock
-        childId='c2'
-        tabs={tabs}
-        activeTabId='c2'
-        onSelectTab={vi.fn()}
-        onCloseTab={vi.fn()}
-        onNewTab={vi.fn()}
-        onCollapse={vi.fn()}
-        onPromote={vi.fn()}
-      />
-    );
+    render(<SideConversationDock childId='c2' />);
 
     await waitFor(() => {
       expect(screen.getByTestId('side-child')).toBeTruthy();
@@ -83,18 +66,7 @@ describe('SideConversationDock', () => {
     emitter.on('sendbox.fill.scoped', onFill);
 
     try {
-      render(
-        <SideConversationDock
-          childId='c2'
-          tabs={tabs}
-          activeTabId='c2'
-          onSelectTab={vi.fn()}
-          onCloseTab={vi.fn()}
-          onNewTab={vi.fn()}
-          onCollapse={vi.fn()}
-          onPromote={vi.fn()}
-        />
-      );
+      render(<SideConversationDock childId='c2' />);
 
       await waitFor(() => {
         // Quick-prompt chips render inside the composer rail; without an
@@ -111,5 +83,14 @@ describe('SideConversationDock', () => {
     } finally {
       emitter.off('sendbox.fill.scoped', onFill);
     }
+  });
+
+  it('shows the centered empty hint when no thread exists yet', () => {
+    render(<SideConversationDock />);
+
+    // Without an active i18n instance the hint renders as its key.
+    expect(screen.getByText('conversation.sideConversation.noThreads')).toBeTruthy();
+    expect(screen.queryByTestId('side-child')).toBeFalsy();
+    expect(get).not.toHaveBeenCalled();
   });
 });

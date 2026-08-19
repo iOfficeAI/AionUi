@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isSideConversationSupported } from '@/common/chat/sideConversation';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { SideConversationControlProvider } from './SideConversationPanel/SideConversationControlContext';
@@ -153,6 +152,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   sliderTitle,
 }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
+  const sideWiring = useSideConversationWiring(conversation);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -175,9 +175,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     onSelectModel,
   });
   // Project conversations get the Layout-level Explorer column (stage3 FULL);
-  // ChatLayout's own right sider is only for no-project (legacy tree), so it does
-  // not double up or reserve an empty column.
-  const workspaceEnabled = Boolean(conversation.extra?.workspace) && !conversation.project_id;
+  // ChatLayout's own right sider is for no-project conversations: it hosts the
+  // side-conversation tab (ExplorerContainer no-project mode), so it must exist
+  // whenever side threads are supported even without a workspace folder.
+  const workspaceEnabled =
+    (Boolean(conversation.extra?.workspace) || sideWiring.enableSide) && !conversation.project_id;
   const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
@@ -204,8 +206,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     [runtimeConfig, t]
   );
 
-  const sideWiring = useSideConversationWiring(conversation, isMobile);
-
   const chatLayoutProps = {
     title: conversation.name,
     siderTitle: sliderTitle,
@@ -213,11 +213,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
-        {sideWiring.enableSide && sideWiring.side.state === 'collapsed' && (
-          <Button size='mini' type='text' className='side-btn-text' onClick={sideWiring.side.reopen}>
-            {t('conversation.sideConversation.reopen')}
-          </Button>
-        )}
         {!isMobile && (
           <AionrsModelSelector
             selection={modelSelection}
@@ -242,8 +237,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       ?.is_temporary_workspace,
     backend: 'aionrs' as const,
     presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: aionrsAssistantId } : undefined,
-    sideDock: sideWiring.sideDock,
-    sideDockOpen: sideWiring.sideDockOpen,
   };
 
   return (
@@ -282,7 +275,11 @@ const ChatConversation: React.FC<{
     [conversation?.id]
   );
   useActiveLease({ type: 'conversation', id: conversation?.id });
-  const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
+  const sideWiring = useSideConversationWiring(conversation);
+  // No-project conversations still get the right sider when side threads are
+  // supported — it hosts the 侧边会话 tab (ExplorerContainer no-project mode).
+  const workspaceEnabled =
+    (Boolean(conversation?.extra?.workspace) || sideWiring.enableSide) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -290,7 +287,6 @@ const ChatConversation: React.FC<{
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
   const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation?.type);
-  const sideWiring = useSideConversationWiring(conversation, isMobile);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -350,12 +346,17 @@ const ChatConversation: React.FC<{
   ]);
 
   const sliderTitle = useMemo(() => {
+    // The no-project sider hosts only the side-conversation tab, so title it
+    // accordingly when there is no workspace folder.
+    const hasWorkspace = Boolean(conversation?.extra?.workspace);
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+        <span className='text-16px font-bold text-t-primary'>
+          {hasWorkspace ? t('conversation.workspace.title') : t('conversation.sideConversation.title')}
+        </span>
       </div>
     );
-  }, [t]);
+  }, [t, conversation?.extra?.workspace]);
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
@@ -407,13 +408,6 @@ const ChatConversation: React.FC<{
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
-      {sideWiring.enableSide && sideWiring.side.state === 'collapsed' && (
-        <div className='shrink-0'>
-          <Button size='mini' type='text' className='side-btn-text' onClick={sideWiring.side.reopen}>
-            {t('conversation.sideConversation.reopen')}
-          </Button>
-        </div>
-      )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
       {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
         <div className='shrink-0'>
@@ -442,8 +436,6 @@ const ChatConversation: React.FC<{
           (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
         }
         conversation_id={conversation?.id}
-        sideDock={sideWiring.sideDock}
-        sideDockOpen={sideWiring.sideDockOpen}
       >
         {conversationNode}
       </ChatLayout>

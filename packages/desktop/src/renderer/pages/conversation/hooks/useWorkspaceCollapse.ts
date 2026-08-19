@@ -1,6 +1,7 @@
 import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import {
   WORKSPACE_HAS_FILES_EVENT,
+  WORKSPACE_OPEN_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
   type WorkspaceHasFilesDetail,
@@ -98,6 +99,31 @@ export function useWorkspaceCollapse({
     window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
     return () => {
       window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+    };
+  }, [workspaceEnabled, preferenceKey]);
+
+  // Explicit open (e.g. a side-conversation entry point fired): expand only —
+  // never toggles a visible panel closed.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleWorkspaceOpen = () => {
+      if (!workspaceEnabled || !rightCollapsedRef.current) {
+        return;
+      }
+      setRightSiderCollapsed(false);
+      if (preferenceKey) {
+        try {
+          localStorage.setItem(`workspace-preference-${preferenceKey}`, 'expanded');
+        } catch {
+          // ignore errors
+        }
+      }
+    };
+    window.addEventListener(WORKSPACE_OPEN_EVENT, handleWorkspaceOpen);
+    return () => {
+      window.removeEventListener(WORKSPACE_OPEN_EVENT, handleWorkspaceOpen);
     };
   }, [workspaceEnabled, preferenceKey]);
 
