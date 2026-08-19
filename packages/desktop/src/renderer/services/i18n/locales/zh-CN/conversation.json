@@ -750,6 +750,10 @@
   },
   "crossSession": {
     "fromBadge": "来自会话「{{name}}」",
-    "otherWorkspace": "不同工作目录"
+    "otherWorkspace": "不同工作目录",
+    "rateLimitedTitle": "跨会话消息可能在空转",
+    "rateLimited": "会话「{{from}}」与「{{to}}」之间的自动消息过于频繁，可能在空转。",
+    "stopBoth": "停止这两个会话",
+    "disableFeature": "关闭跨会话消息"
   }
 }

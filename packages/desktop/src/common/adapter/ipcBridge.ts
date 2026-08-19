@@ -211,6 +211,22 @@ export type SessionMentionableParams = {
   cursor?: string;
 };
 
+export type SessionMessageRateLimitedPayload = {
+  /** REQUIRED for filtering: the event bus fans out to every connection, so
+   *  dropping this would show one user's conversation names to everyone. */
+  user_id: string;
+  from_conversation_id: string;
+  from_name: string;
+  to_conversation_id: string;
+  to_name: string;
+  window_count: number;
+  gate: 'outbound' | 'pair';
+};
+
+export const sessionMessage = {
+  rateLimited: wsEmitter<SessionMessageRateLimitedPayload>('sessionMessage.rateLimited'),
+};
+
 export const sessionMention = {
   list: httpGet<{ items: SessionMentionTarget[]; next_cursor?: string }, SessionMentionableParams>((p) => {
     const params = new URLSearchParams({ current_conversation_id: p.current_conversation_id });

@@ -750,6 +750,10 @@
   },
   "crossSession": {
     "fromBadge": "De la conversation {{name}}",
-    "otherWorkspace": "espace de travail différent"
+    "otherWorkspace": "espace de travail différent",
+    "rateLimitedTitle": "Les messages entre conversations semblent boucler",
+    "rateLimited": "Les messages automatiques entre « {{from}} » et « {{to}} » sont anormalement fréquents et semblent boucler.",
+    "stopBoth": "Arrêter les deux conversations",
+    "disableFeature": "Désactiver les messages entre conversations"
   }
 }

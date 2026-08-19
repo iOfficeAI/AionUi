@@ -756,6 +756,10 @@
   },
   "crossSession": {
     "fromBadge": "Da conversa {{name}}",
-    "otherWorkspace": "espaço de trabalho diferente"
+    "otherWorkspace": "espaço de trabalho diferente",
+    "rateLimitedTitle": "As mensagens entre conversas podem estar em loop",
+    "rateLimited": "As mensagens automáticas entre \"{{from}}\" e \"{{to}}\" estão excepcionalmente frequentes e podem estar em loop.",
+    "stopBoth": "Parar as duas conversas",
+    "disableFeature": "Desativar mensagens entre conversas"
   }
 }

@@ -750,6 +750,10 @@
   },
   "crossSession": {
     "fromBadge": "From conversation {{name}}",
-    "otherWorkspace": "different workspace"
+    "otherWorkspace": "different workspace",
+    "rateLimitedTitle": "Cross-conversation messages may be looping",
+    "rateLimited": "Automatic messages between \"{{from}}\" and \"{{to}}\" are unusually frequent and may be looping.",
+    "stopBoth": "Stop both conversations",
+    "disableFeature": "Turn off cross-conversation messages"
   }
 }

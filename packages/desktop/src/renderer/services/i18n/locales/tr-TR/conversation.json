@@ -752,6 +752,10 @@
   },
   "crossSession": {
     "fromBadge": "{{name}} sohbetinden",
-    "otherWorkspace": "farklı çalışma alanı"
+    "otherWorkspace": "farklı çalışma alanı",
+    "rateLimitedTitle": "Sohbetler arası mesajlar döngüye girmiş olabilir",
+    "rateLimited": "\"{{from}}\" ve \"{{to}}\" arasındaki otomatik mesajlar olağandışı sıklıkta; döngüye girmiş olabilir.",
+    "stopBoth": "Her iki sohbeti durdur",
+    "disableFeature": "Sohbetler arası mesajları kapat"
   }
 }

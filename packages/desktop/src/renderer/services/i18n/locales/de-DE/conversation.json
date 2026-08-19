@@ -751,6 +751,10 @@
   },
   "crossSession": {
     "fromBadge": "Aus Unterhaltung {{name}}",
-    "otherWorkspace": "anderer Arbeitsbereich"
+    "otherWorkspace": "anderer Arbeitsbereich",
+    "rateLimitedTitle": "Nachrichten zwischen Unterhaltungen laufen möglicherweise im Kreis",
+    "rateLimited": "Automatische Nachrichten zwischen „{{from}}“ und „{{to}}“ sind ungewöhnlich häufig und laufen möglicherweise im Kreis.",
+    "stopBoth": "Beide Unterhaltungen stoppen",
+    "disableFeature": "Nachrichten zwischen Unterhaltungen ausschalten"
   }
 }
