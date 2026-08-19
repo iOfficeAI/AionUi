@@ -109,16 +109,28 @@ describe('MermaidZoomOverlay', () => {
     expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
   });
 
-  it('clamps the scale between 0.1 and 10 and caps the panel at 90vw', () => {
+  it('clamps the scale between 0.1 and 10 when zooming with the wheel', () => {
     renderOverlay(undefined, SVG_SQUARE);
     const overlay = screen.getByTestId('mermaid-zoom-overlay');
     const content = getContent();
 
     for (let i = 0; i < 50; i += 1) fireEvent.wheel(overlay, { deltaY: -100 });
-    expect(getBoxPixels(content.style.width)).toBeCloseTo(921.6);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(1000);
 
     for (let i = 0; i < 120; i += 1) fireEvent.wheel(overlay, { deltaY: 100 });
     expect(getBoxPixels(content.style.width)).toBeCloseTo(10);
+  });
+
+  it('keeps the diagram uncapped while the screen has room', () => {
+    renderOverlay(undefined, SVG_SQUARE);
+    const overlay = screen.getByTestId('mermaid-zoom-overlay');
+    const content = getContent();
+
+    // 608 * 1.1^5 would have exceeded the old 90vw panel cap; the card must keep
+    // growing instead of clipping the diagram at a smaller panel edge.
+    for (let i = 0; i < 5; i += 1) fireEvent.wheel(overlay, { deltaY: -100 });
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(979.19);
+    expect(content.style.overflow).toBe('');
   });
 
   it('zooms with the toolbar buttons and resets to the fit scale', () => {
@@ -138,18 +150,16 @@ describe('MermaidZoomOverlay', () => {
     expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
   });
 
-  it('pans the diagram inside the panel so clipped sides stay reachable', () => {
+  it('pans the diagram card across the screen so clipped sides stay reachable', () => {
     renderOverlay(undefined, SVG_SQUARE);
     const content = getContent();
-    const diagram = content.firstElementChild as HTMLElement;
 
     fireEvent.pointerDown(content, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
     fireEvent.pointerMove(content, { pointerId: 1, clientX: 60, clientY: 40 });
     fireEvent.pointerUp(content, { pointerId: 1 });
 
-    // The clip viewport stays put; the diagram moves within it.
-    expect(content.style.transform).toBe('');
-    expect(diagram.style.transform).toContain('translate(50px, 30px)');
+    // The overlay root is the only clip window; the card itself moves.
+    expect(content.style.transform).toContain('translate(50px, 30px)');
   });
 
   it('closes on ESC', () => {

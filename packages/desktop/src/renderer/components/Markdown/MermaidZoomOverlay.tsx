@@ -52,10 +52,14 @@ const stripInlineMaxWidth = (svg: string): string =>
  * in the same order as the inline MermaidBlock header (zoom out / zoom in /
  * reset), plus a close action.
  *
- * Sizing: the panel hugs the diagram's natural aspect ratio. The open scale is a
- * contain-fit against the viewport (padding 80px), so whichever side of the
- * diagram is larger constrains the fit — a tall diagram fits by height instead of
- * stretching across the screen.
+ * Sizing: the card hugs the diagram's natural aspect ratio and grows with the
+ * zoom level. The overlay root is the only clip window, so content is cut off
+ * only at the screen edges — never by a smaller panel while free space is still
+ * available. Pan moves the card across the screen; deep zooms clip at the
+ * viewport and stay draggable. The open scale is a contain-fit against the
+ * viewport (padding 80px), so whichever side of the diagram is larger
+ * constrains the fit — a tall diagram fits by height instead of stretching
+ * across the screen.
  */
 function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
   const { t } = useTranslation();
@@ -167,19 +171,15 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
     setIsPanning(false);
   };
 
-  // With a known natural size the panel is an explicit box hugging the diagram,
-  // capped at ~90vw x ~85vh so deeply zoomed diagrams clip inside the panel
-  // instead of overflowing the window. Without one, fall back to the natural
-  // SVG layout with a transform scale.
+  // With a known natural size the card is an explicit box hugging the diagram at
+  // its rendered size — uncapped, so it only stops growing past the screen edges
+  // where the overlay root clips it. Without one, fall back to the natural SVG
+  // layout with a transform scale.
   const contentStyle: React.CSSProperties = base
-    ? {
-        width: Math.min(base.width * scale, window.innerWidth * 0.9),
-        height: Math.min(base.height * scale, window.innerHeight * 0.85),
-      }
+    ? { width: base.width * scale, height: base.height * scale }
     : { maxWidth: MAX_BOX_WIDTH, maxHeight: MAX_BOX_HEIGHT };
-  // Pan must transform the diagram inside the fixed clipping panel — translating
-  // the panel itself would move the clip window along with the content, leaving
-  // the clipped sides permanently unreachable once the diagram outgrows the caps.
+  // Pan transforms the card itself: the overlay root is the fixed clip window,
+  // so every part of an oversized diagram stays reachable by dragging.
   const diagramTransform = base
     ? `translate(${translate.x}px, ${translate.y}px)`
     : `translate(${translate.x}px, ${translate.y}px) scale(${scale})`;
@@ -265,29 +265,18 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
         onPointerUp={endPan}
         onPointerCancel={endPan}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           padding: '12px',
           background: 'var(--bg-1)',
           borderRadius: '8px',
-          overflow: 'hidden',
           flexShrink: 0,
           cursor: isPanning ? 'grabbing' : 'grab',
           userSelect: 'none',
           touchAction: 'none',
+          transform: diagramTransform,
           ...contentStyle,
         }}
-      >
-        <div
-          style={{
-            flexShrink: 0,
-            transform: diagramTransform,
-            ...(base ? { width: base.width * scale, height: base.height * scale } : null),
-          }}
-          dangerouslySetInnerHTML={{ __html: overlaySvg }}
-        />
-      </div>
+        dangerouslySetInnerHTML={{ __html: overlaySvg }}
+      />
 
       <div
         data-testid='mermaid-zoom-hint'
