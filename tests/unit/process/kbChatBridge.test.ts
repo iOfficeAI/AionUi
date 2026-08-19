@@ -115,9 +115,15 @@ describe('sendKbChat', () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'parse')).toBe(true);
-    expect(emitted.some((e) => e.name === 'streamChunk' && (e.payload as { content: string }).content === 'ok')).toBe(true);
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'done')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'parse')).toBe(
+      true
+    );
+    expect(emitted.some((e) => e.name === 'streamChunk' && (e.payload as { content: string }).content === 'ok')).toBe(
+      true
+    );
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'done')).toBe(
+      true
+    );
 
     await server.close();
   });
@@ -134,8 +140,12 @@ describe('sendKbChat', () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'incomplete')).toBe(true);
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'error')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamError' && (e.payload as { code: string }).code === 'incomplete')).toBe(
+      true
+    );
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'error')).toBe(
+      true
+    );
 
     await server.close();
   });
@@ -221,7 +231,9 @@ describe('abortKbChat', () => {
     await new Promise((r) => setTimeout(r, 30));
 
     expect(aborted).toBe(true);
-    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'aborted')).toBe(true);
+    expect(emitted.some((e) => e.name === 'streamEnd' && (e.payload as { reason: string }).reason === 'aborted')).toBe(
+      true
+    );
 
     await server.close();
   });

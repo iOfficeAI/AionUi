@@ -18,7 +18,8 @@ import { AIPAAS_BASE_URL } from '@/renderer/api';
  * KB_CHAT_MIN_RELEVANCE). Useful for local mock servers.
  */
 
-export const getKbChatChatStreamUrl = (): string => `${AIPAAS_BASE_URL}/project/aiknowledge/aiknowledgebasechat/chatStream`;
+export const getKbChatChatStreamUrl = (): string =>
+  `${AIPAAS_BASE_URL}/project/aiknowledge/aiknowledgebasechat/chatStream`;
 
 export type KbChatDefaultQueryParams = {
   modelCode: string;
