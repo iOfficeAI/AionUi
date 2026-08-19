@@ -25,6 +25,7 @@ export type SubmitFeedbackReportInput = {
   attachments?: FeedbackAttachment[];
   collectDbDiagnostics?: FeedbackDiagnosticsContextInput;
   collectLogs?: boolean;
+  contactEmail?: string;
   description: string;
   extra?: FeedbackEventExtra;
   flushTimeoutMs?: number;
@@ -267,11 +268,19 @@ export async function submitFeedbackReport(input: SubmitFeedbackReportInput): Pr
 
     const normalizedDescription = normalizeDescription(input.description);
     const eventSummary = buildSummary(input.moduleLabel, normalizedDescription);
+    const contactEmail = input.contactEmail?.trim();
     const Sentry = await import('@sentry/electron/renderer');
 
     Sentry.withScope((scope) => {
       scope.setTag('type', 'user-feedback');
       scope.setTag('module', input.module);
+      // Attach the optional contact email to THIS feedback event only via the
+      // scoped user, so support can reach the reporter. Intentionally not a
+      // global Sentry.setUser — that would stick this address onto every later
+      // event (including crash reports the user never opted to share it on).
+      if (contactEmail) {
+        scope.setUser({ email: contactEmail });
+      }
       Object.entries(input.tags ?? {}).forEach(([key, value]) => {
         if (value.trim()) {
           scope.setTag(key, value);

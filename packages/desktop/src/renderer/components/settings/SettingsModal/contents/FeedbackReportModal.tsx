@@ -7,6 +7,7 @@
 import AionModal from '@renderer/components/base/AionModal';
 import { FEEDBACK_MODULES } from './feedbackModules';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
 import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
@@ -31,6 +32,24 @@ export type { FeedbackEventExtra, FeedbackEventTags } from '@/renderer/services/
 const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
+
+// Empty is allowed (the contact email field is optional); a non-empty value must
+// look like an email. Kept intentionally loose — this only catches obvious typos,
+// not deliverability.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// aionui's AuthUser is { id, username } and carries no email; aionpro's AuthUser
+// does. Read it structurally (no AuthUser type import, no `any`) so this file
+// stays byte-identical across both repos and simply yields undefined — which
+// hides the "use account email" button — whenever the signed-in user has no
+// email (the open-source desktop build is usually logged out entirely).
+const readAccountEmail = (user: unknown): string | undefined => {
+  if (!user || typeof user !== 'object' || !('email' in user)) {
+    return undefined;
+  }
+  const email = (user as { email: unknown }).email;
+  return typeof email === 'string' && email.trim().length > 0 ? email.trim() : undefined;
+};
 
 const getUploadItemKey = (item: Pick<UploadItem, 'name' | 'originFile'>) =>
   `${item.originFile?.name ?? item.name}_${item.originFile?.size ?? 0}`;
@@ -76,6 +95,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const talkToButler = useTalkToButler();
+  const { user } = useAuth();
+  const accountEmail = readAccountEmail(user);
 
   const [module, setModule] = useState<string | undefined>(defaultModule);
   const [description, setDescription] = useState('');
@@ -83,12 +104,14 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [diagnosing, setDiagnosing] = useState(false);
   const descriptionRef = useRef<RefTextAreaType | null>(null);
+  const [contactEmail, setContactEmail] = useState('');
   const [error, setError] = useState('');
 
   const resetForm = useCallback(() => {
     setModule(undefined);
     setDescription('');
     setScreenshots([]);
+    setContactEmail('');
     setError('');
   }, []);
 
@@ -139,6 +162,12 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       return;
     }
 
+    const trimmedEmail = contactEmail.trim();
+    if (trimmedEmail.length > 0 && !EMAIL_PATTERN.test(trimmedEmail)) {
+      setError(t('settings.bugReportContactEmailInvalid'));
+      return;
+    }
+
     setError('');
     setSubmitting(true);
 
@@ -171,6 +200,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
           selectedModule: module,
         },
         collectLogs: true,
+        contactEmail: trimmedEmail || undefined,
         description,
         extra: feedbackExtra,
         module,
@@ -189,6 +219,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   }, [
     module,
     description,
+    contactEmail,
     screenshots,
     t,
     onCancel,
@@ -240,7 +271,9 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     }
   }, [description, screenshots, selectedModule, t, talkToButler, resetForm, onCancel]);
 
-  const isFormValid = module !== undefined && description.trim().length > 0;
+  const trimmedContactEmail = contactEmail.trim();
+  const contactEmailInvalid = trimmedContactEmail.length > 0 && !EMAIL_PATTERN.test(trimmedContactEmail);
+  const isFormValid = module !== undefined && description.trim().length > 0 && !contactEmailInvalid;
 
   const appendScreenshotFiles = useCallback((files: File[]) => {
     setError('');
@@ -438,6 +471,42 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
                 imagePreview
               />
             </div>
+          </div>
+
+          {/* Contact email (optional). The inline "use account email" button only
+              appears when the signed-in user actually has an email — on the
+              open-source desktop build (usually logged out) it stays hidden and
+              users just type an address or leave it blank. */}
+          <div className='flex flex-col gap-4px'>
+            <label className='text-13px text-t-secondary'>{t('settings.bugReportContactEmailLabel')}</label>
+            <Input
+              value={contactEmail}
+              onChange={(val) => {
+                setContactEmail(val);
+                setError('');
+              }}
+              placeholder={t('settings.bugReportContactEmailPlaceholder')}
+              status={contactEmailInvalid ? 'error' : undefined}
+              suffix={
+                accountEmail ? (
+                  <Button
+                    type='text'
+                    size='mini'
+                    disabled={trimmedContactEmail === accountEmail}
+                    onClick={() => {
+                      setContactEmail(accountEmail);
+                      setError('');
+                    }}
+                    data-testid='btn-feedback-use-account-email'
+                  >
+                    {t('settings.bugReportContactEmailUseAccount')}
+                  </Button>
+                ) : undefined
+              }
+            />
+            {contactEmailInvalid ? (
+              <span className='text-12px text-red-500'>{t('settings.bugReportContactEmailInvalid')}</span>
+            ) : null}
           </div>
 
           {/* Auto-info Banner */}

@@ -36,13 +36,26 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
 }));
 
+// FeedbackReportModal now reads useAuth() to offer a one-click "use account
+// email" button. Mock it with a mutable holder so individual tests can flip
+// between a logged-out user (button hidden) and one that carries an email.
+const authMock = vi.hoisted(() => ({
+  user: null as { id: string; username: string; email?: string } | null,
+}));
+
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: authMock.user }),
+}));
+
 const sentryMocks = vi.hoisted(() => {
   const setTag = vi.fn();
+  const setUser = vi.fn();
   return {
     setTag,
+    setUser,
     captureEvent: vi.fn(),
-    withScope: vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => {
-      callback({ setTag });
+    withScope: vi.fn((callback: (scope: { setTag: typeof setTag; setUser: typeof setUser }) => void) => {
+      callback({ setTag, setUser });
     }),
   };
 });
@@ -66,7 +79,9 @@ describe('FeedbackReportModal — prefill', () => {
     // Ensure no leftover global electronAPI from other tests interferes.
     (window as unknown as { electronAPI?: unknown }).electronAPI = undefined;
     window.location.hash = '';
+    authMock.user = null;
     sentryMocks.setTag.mockClear();
+    sentryMocks.setUser.mockClear();
     sentryMocks.captureEvent.mockClear();
     sentryMocks.withScope.mockClear();
   });
@@ -251,5 +266,41 @@ describe('FeedbackReportModal — prefill', () => {
     expect(path).toContain('route_at_submit=%23%2Fconversation%2Fconv-1');
     expect(path).toContain('selected_module=system-settings');
     expect(options.method).toBe('GET');
+  });
+
+  it('renders the optional contact email field', () => {
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
+    expect(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder')).toBeInTheDocument();
+  });
+
+  it('flags the field and disables submit when the contact email is invalid', async () => {
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} defaultModule='conversation-session' />);
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'something broke');
+    await user.type(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder'), 'not-an-email');
+
+    // Invalid email surfaces the inline error and keeps submit disabled, so the
+    // report cannot be sent until it is fixed or cleared.
+    expect(screen.getByText('settings.bugReportContactEmailInvalid')).toBeInTheDocument();
+    expect(screen.getByText('settings.bugReportSubmit').closest('button')).toBeDisabled();
+  });
+
+  it('hides the "use account email" button when the signed-in user has no email', () => {
+    authMock.user = { id: 'u1', username: 'user-one' };
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
+    expect(screen.queryByTestId('btn-feedback-use-account-email')).not.toBeInTheDocument();
+  });
+
+  it('fills the contact email from the account when the inline button is clicked', async () => {
+    authMock.user = { id: 'u1', username: 'user-one', email: 'me@account.com' };
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
+
+    const useAccountBtn = screen.getByTestId('btn-feedback-use-account-email');
+    expect(useAccountBtn).toBeInTheDocument();
+    await user.click(useAccountBtn);
+
+    expect(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder')).toHaveValue('me@account.com');
   });
 });

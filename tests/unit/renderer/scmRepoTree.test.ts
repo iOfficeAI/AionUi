@@ -117,7 +117,7 @@ describe('groupRepositories', () => {
       repo({ repo_id: 'scm:pe2', label: 'app' }),
     ];
     const forward = JSON.stringify(groupRepositories(input));
-    const reversed = JSON.stringify(groupRepositories([...input].reverse()));
+    const reversed = JSON.stringify(groupRepositories([...input].toReversed()));
     expect(forward).toEqual(reversed);
   });
 });
