@@ -238,3 +238,31 @@ export const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProper
   }
   return {};
 };
+
+export type DiagramSize = { width: number; height: number };
+
+/**
+ * Extract a diagram SVG's natural size from its markup so callers can size it by
+ * its own aspect ratio instead of by the container. Mermaid always emits a
+ * viewBox; numeric width/height attributes are a fallback for hand-written SVGs.
+ */
+export const getSvgIntrinsicSize = (svg: string): DiagramSize | null => {
+  const svgTag = /<svg\b[^>]*>/i.exec(svg)?.[0];
+  if (!svgTag) return null;
+
+  const viewBox = /viewBox\s*=\s*["']\s*[\d.eE+-]+\s+[\d.eE+-]+\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s*["']/i.exec(svgTag);
+  if (viewBox) {
+    const width = parseFloat(viewBox[1]);
+    const height = parseFloat(viewBox[2]);
+    if (width > 0 && height > 0) return { width, height };
+  }
+
+  const widthAttr = /width\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
+  const heightAttr = /height\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
+  if (widthAttr && heightAttr) {
+    const width = parseFloat(widthAttr[1]);
+    const height = parseFloat(heightAttr[1]);
+    if (width > 0 && height > 0) return { width, height };
+  }
+  return null;
+};

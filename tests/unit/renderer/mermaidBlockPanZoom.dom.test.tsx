@@ -115,6 +115,20 @@ describe('MermaidBlock pan/zoom', () => {
     expect(inner.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
+  it('caps narrow diagrams at their natural width so they render 1:1', async () => {
+    renderMock.mockResolvedValue({ svg: '<svg viewBox="0 0 100 200" width="100%"></svg>' });
+    render(<MermaidBlock code={'graph TD; A-->B'} />);
+    const diagram = await screen.findByTestId('mermaid-diagram');
+    expect(diagram.querySelector('svg')?.getAttribute('style')).toContain('max-width: min(100%, 100px)');
+  });
+
+  it('caps wide diagrams at the container width', async () => {
+    renderMock.mockResolvedValue({ svg: '<svg viewBox="0 0 2000 100" width="100%"></svg>' });
+    render(<MermaidBlock code={'graph TD; A-->B'} />);
+    const diagram = await screen.findByTestId('mermaid-diagram');
+    expect(diagram.querySelector('svg')?.getAttribute('style')).toContain('max-width: min(100%, 2000px)');
+  });
+
   it('opens the zoom overlay when the static diagram is clicked', async () => {
     render(<MermaidBlock code={'graph TD; A-->B'} />);
     const diagram = await screen.findByTestId('mermaid-diagram');

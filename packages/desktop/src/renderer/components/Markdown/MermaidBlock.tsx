@@ -15,6 +15,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MermaidZoomOverlay from './MermaidZoomOverlay';
+import { getSvgIntrinsicSize } from './markdownUtils';
 
 type MermaidBlockProps = {
   code: string;
@@ -48,15 +49,20 @@ const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
 };
 
 const withResponsiveSvg = (svg: string): string => {
+  // Cap the inline diagram at min(container, natural width): narrow diagrams
+  // (e.g. top-down layouts) render 1:1 at their natural size instead of being
+  // stretched across the message column; wide diagrams still fit the column.
+  const intrinsicWidth = getSvgIntrinsicSize(svg)?.width;
+  const maxWidth = intrinsicWidth ? `min(100%, ${intrinsicWidth}px)` : '100%';
   return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
     if (/style\s*=/.test(attrs)) {
       return `<svg${attrs.replace(
         /style\s*=\s*(["'])(.*?)\1/i,
         (_styleMatch, quote: string, styleValue: string) =>
-          ` style=${quote}${styleValue};max-width: 100%; height: auto; display: block;${quote}`
+          ` style=${quote}${styleValue};max-width: ${maxWidth}; height: auto; display: block;${quote}`
       )}>`;
     }
-    return `<svg${attrs} style="max-width: 100%; height: auto; display: block;">`;
+    return `<svg${attrs} style="max-width: ${maxWidth}; height: auto; display: block;">`;
   });
 };
 

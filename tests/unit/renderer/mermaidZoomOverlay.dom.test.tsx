@@ -54,6 +54,12 @@ describe('MermaidZoomOverlay', () => {
     expect(screen.getByTestId('mermaid-zoom-hint')).toHaveTextContent('preview.mermaidZoomHint');
   });
 
+  it('strips the inline max-width so the diagram fills the sized panel', () => {
+    renderOverlay();
+    const content = getContent();
+    expect(content.querySelector('svg')?.getAttribute('style')).not.toContain('max-width');
+  });
+
   it('fits a wide diagram by its width', () => {
     renderOverlay(undefined, SVG_WIDE);
     const content = getContent();

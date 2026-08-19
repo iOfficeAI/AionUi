@@ -5,16 +5,15 @@
  */
 
 import { Close, Refresh, ZoomIn, ZoomOut } from '@icon-park/react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { getSvgIntrinsicSize, type DiagramSize } from './markdownUtils';
 
 type MermaidZoomOverlayProps = {
   svg: string;
   onClose: () => void;
 };
-
-type DiagramSize = { width: number; height: number };
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 10;
@@ -37,32 +36,12 @@ const toolbarButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-/**
- * Extract the diagram's natural size from the SVG markup so the overlay can fit by
- * the larger of its two sides instead of by the container width. Mermaid always
- * emits a viewBox; numeric width/height attributes are a fallback for hand-written
- * SVGs.
- */
-const getSvgIntrinsicSize = (svg: string): DiagramSize | null => {
-  const svgTag = /<svg\b[^>]*>/i.exec(svg)?.[0];
-  if (!svgTag) return null;
-
-  const viewBox = /viewBox\s*=\s*["']\s*[\d.eE+-]+\s+[\d.eE+-]+\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s*["']/i.exec(svgTag);
-  if (viewBox) {
-    const width = parseFloat(viewBox[1]);
-    const height = parseFloat(viewBox[2]);
-    if (width > 0 && height > 0) return { width, height };
-  }
-
-  const widthAttr = /width\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
-  const heightAttr = /height\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
-  if (widthAttr && heightAttr) {
-    const width = parseFloat(widthAttr[1]);
-    const height = parseFloat(heightAttr[1]);
-    if (width > 0 && height > 0) return { width, height };
-  }
-  return null;
-};
+// MermaidBlock injects `max-width: min(100%, <natural width>)` into the SVG root
+// so inline diagrams never stretch past their natural size. Drop that cap here:
+// the overlay panel already sizes the wrapper from the natural dimensions and
+// the SVG must fill it.
+const stripInlineMaxWidth = (svg: string): string =>
+  svg.replace(/<svg\b[^>]*>/i, (tag) => tag.replace(/max-width\s*:\s*[^;"']+;?/gi, ''));
 
 /**
  * Fullscreen mermaid viewer opened by clicking a rendered diagram.
@@ -94,11 +73,13 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
   const [isPanning, setIsPanning] = useState(false);
   const initialScaleRef = useRef(1);
 
+  const overlaySvg = useMemo(() => stripInlineMaxWidth(svg), [svg]);
+
   // Resolve the natural diagram size (viewBox first, then a DOM measurement for
   // SVGs without one).
   useLayoutEffect(() => {
     if (base) return;
-    const intrinsic = getSvgIntrinsicSize(svg);
+    const intrinsic = getSvgIntrinsicSize(overlaySvg);
     if (intrinsic) {
       setBase(intrinsic);
       return;
@@ -107,7 +88,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
     const width = svgElement?.scrollWidth || svgElement?.clientWidth;
     const height = svgElement?.scrollHeight || svgElement?.clientHeight;
     if (width && height) setBase({ width, height });
-  }, [svg, base]);
+  }, [overlaySvg, base]);
 
   // Contain-fit the diagram into the viewport: the larger side constrains the
   // scale so neither dimension overflows.
@@ -298,7 +279,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
       >
         <div
           style={base ? { width: base.width * scale, height: base.height * scale, flexShrink: 0 } : undefined}
-          dangerouslySetInnerHTML={{ __html: svg }}
+          dangerouslySetInnerHTML={{ __html: overlaySvg }}
         />
       </div>
 
