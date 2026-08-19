@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
+import AtSessionMenu from '@/renderer/components/chat/AtSessionMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
@@ -21,6 +22,14 @@ import {
   getAllAtFileQueries,
   resolveAtFileMenuKey,
 } from '@/renderer/utils/chat/atFileQuery';
+import type { SessionMentionTarget, SessionRef } from '@/common/adapter/ipcBridge';
+import { useSessionMentionSearch } from '@/renderer/hooks/chat/useSessionMentionSearch';
+import {
+  buildAtSessionInsertion,
+  getActiveAtSessionQuery,
+  resolveAtSessionMenuKey,
+} from '@/renderer/utils/chat/atSessionQuery';
+import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
@@ -249,6 +258,16 @@ const SendBox: React.FC<{
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
+  /** `@@` session references the user has picked. Authoritative; the visible
+   *  token is only a label. */
+  selectedSessions?: SessionRef[];
+  onSelectedSessionsChange?: (sessions: SessionRef[]) => void;
+  /** Master switch (spec §5.7). When off, `@@` must not trigger at all —
+   *  otherwise the user picks a target the agent cannot deliver to. */
+  crossSessionEnabled?: boolean;
+  /** Team conversations must not be senders (spec §9.2), so `@@` is unavailable
+   *  there. Both conditions gate the trigger. */
+  isTeamConversation?: boolean;
   onSelectedWorkspaceItemsChange?: (items: FileSelectionItem[]) => void;
   bottomHint?: React.ReactNode;
   /**
@@ -299,6 +318,13 @@ const SendBox: React.FC<{
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
+  selectedSessions,
+  onSelectedSessionsChange,
+  // Defaults to OFF: a call site that does not thread `sessions` through to
+  // the wire must not offer `@@`, or the user picks a target that silently
+  // never reaches the agent. Opt in explicitly.
+  crossSessionEnabled = false,
+  isTeamConversation = false,
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
@@ -341,6 +367,12 @@ const SendBox: React.FC<{
   const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
+  const [atSessionMenuActiveIndex, setAtSessionMenuActiveIndex] = useState(0);
+  const [dismissedAtSessionToken, setDismissedAtSessionToken] = useState<string | null>(null);
+  /** id → name for the sessions the user picked, so reconciliation can match a
+   *  `@@name` token back to a ref. Kept here rather than as a prop: only this
+   *  component knows which names it inserted. */
+  const sessionNameByIdRef = useRef<Record<string, string>>({});
   const mentionOwnedPathsRef = useRef<Set<string>>(new Set());
   const everMentionOwnedPathsRef = useRef<Set<string>>(new Set());
   const externalOwnedPathsRef = useRef<Set<string>>(new Set());
@@ -504,6 +536,21 @@ const SendBox: React.FC<{
     return `${conversationContext.workspace}:${activeAtFileQuery.start}`;
   }, [activeAtFileQuery, conversationContext?.workspace]);
   const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
+  // `@@` lane. Gated on BOTH the master switch and "not a team conversation"
+  // (spec §5.7 rule 4): a picker the agent cannot act on is worse than none.
+  const canMentionSessions = crossSessionEnabled && !isTeamConversation;
+  const activeAtSessionQuery = useMemo(() => {
+    if (!canMentionSessions) {
+      return null;
+    }
+    return getActiveAtSessionQuery(input, caretPosition);
+  }, [canMentionSessions, caretPosition, input]);
+  const activeAtSessionTokenKey = useMemo(() => {
+    if (!activeAtSessionQuery) {
+      return null;
+    }
+    return `${activeAtSessionQuery.start}:${activeAtSessionQuery.rawQuery}`;
+  }, [activeAtSessionQuery]);
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversation_id),
@@ -654,7 +701,17 @@ const SendBox: React.FC<{
     }
     return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
   }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
-  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
+  const isAtSessionMenuOpen =
+    canMentionSessions &&
+    Boolean(activeAtSessionQuery) &&
+    activeAtSessionTokenKey !== dismissedAtSessionToken &&
+    !isCommandMenuOpen;
+  const sessionMentionSearch = useSessionMentionSearch({
+    query: activeAtSessionQuery?.query ?? '',
+    conversationId: conversationContext?.conversation_id ?? '',
+    enabled: isAtSessionMenuOpen && Boolean(conversationContext?.conversation_id),
+  });
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen || isAtSessionMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
     const textarea = containerRef.current?.querySelector('textarea');
@@ -914,6 +971,18 @@ const SendBox: React.FC<{
   }, [activeAtFileTokenKey]);
 
   useEffect(() => {
+    setAtSessionMenuActiveIndex(0);
+  }, [activeAtSessionTokenKey]);
+
+  useEffect(() => {
+    if (!sessionMentionSearch.items.length) {
+      setAtSessionMenuActiveIndex(0);
+      return;
+    }
+    setAtSessionMenuActiveIndex((previous) => Math.min(previous, sessionMentionSearch.items.length - 1));
+  }, [sessionMentionSearch.items]);
+
+  useEffect(() => {
     if (!visibleAtFileMenuItems.length) {
       setAtFileMenuActiveIndex(0);
       return;
@@ -1116,6 +1185,53 @@ const SendBox: React.FC<{
     ]
   );
 
+  const insertSelectedAtSession = useCallback(
+    (item: SessionMentionTarget) => {
+      if (!activeAtSessionQuery) {
+        return;
+      }
+      const nextInsertion = buildAtSessionInsertion(item.name);
+      const nextValue =
+        input.slice(0, activeAtSessionQuery.start) + nextInsertion + input.slice(activeAtSessionQuery.end);
+      const nextCaret = activeAtSessionQuery.start + nextInsertion.length;
+
+      // Dismiss the token we just wrote, or the menu immediately reopens on it.
+      setDismissedAtSessionToken(`${activeAtSessionQuery.start}:${nextInsertion.slice(2)}`);
+      setInput(nextValue);
+      // Remember the name so reconciliation can map the token back to this id.
+      sessionNameByIdRef.current[item.id] = item.name;
+      if (onSelectedSessionsChange) {
+        const already = (selectedSessions ?? []).some((ref) => ref.id === item.id);
+        if (!already) {
+          onSelectedSessionsChange([...(selectedSessions ?? []), { id: item.id }]);
+        }
+      }
+
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+        setCaretPosition(nextCaret);
+      });
+    },
+    [activeAtSessionQuery, getTextareaElement, input, onSelectedSessionsChange, selectedSessions, setInput]
+  );
+
+  // Deleting a `@@` token must retract the reference. Same shape as the file
+  // reconciliation above: the token is a label, the ref list is authoritative.
+  useEffect(() => {
+    if (!selectedSessions?.length || !onSelectedSessionsChange) {
+      return;
+    }
+    const next = reconcileSessionRefs(input, selectedSessions, sessionNameByIdRef.current);
+    if (next.length !== selectedSessions.length) {
+      onSelectedSessionsChange(next);
+    }
+  }, [input, onSelectedSessionsChange, selectedSessions]);
+
   // 使用共享的输入法合成处理
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
 
@@ -1268,6 +1384,46 @@ const SendBox: React.FC<{
       return false;
     },
     [applyHistoryInput, exitHistoryNavigation, historyNavigationIndex, inputHistory, latestInputRef]
+  );
+
+  const handleAtSessionMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent): boolean => {
+      if (!isAtSessionMenuOpen || !activeAtSessionTokenKey) {
+        return false;
+      }
+      // Key→action contract lives in the pure `resolveAtSessionMenuKey`.
+      const items = sessionMentionSearch.items;
+      const action = resolveAtSessionMenuKey(event.key, items.length > 0);
+      if (!action) {
+        return false;
+      }
+      event.preventDefault();
+      if (action === 'dismiss') {
+        setDismissedAtSessionToken(activeAtSessionTokenKey);
+        return true;
+      }
+      if (action === 'down') {
+        setAtSessionMenuActiveIndex((previous) => (previous + 1) % items.length);
+        return true;
+      }
+      if (action === 'up') {
+        setAtSessionMenuActiveIndex((previous) => (previous - 1 + items.length) % items.length);
+        return true;
+      }
+      const selectedItem = items[atSessionMenuActiveIndex];
+      if (!selectedItem) {
+        return false;
+      }
+      insertSelectedAtSession(selectedItem);
+      return true;
+    },
+    [
+      activeAtSessionTokenKey,
+      atSessionMenuActiveIndex,
+      insertSelectedAtSession,
+      isAtSessionMenuOpen,
+      sessionMentionSearch.items,
+    ]
   );
 
   const handleAtFileMenuKeyDown = useCallback(
@@ -1657,6 +1813,25 @@ const SendBox: React.FC<{
           parentTaskRunning={Boolean(loading || isLoading)}
           question={btwCommand.question}
         />
+        {isAtSessionMenuOpen && (
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
+            <AtSessionMenu
+              activeIndex={atSessionMenuActiveIndex}
+              emptyText={
+                activeAtSessionQuery?.query
+                  ? t('messages.atSession.empty', { defaultValue: 'No conversations found' })
+                  : t('messages.atSession.hint', { defaultValue: 'Type to search your conversations' })
+              }
+              items={sessionMentionSearch.items}
+              label={t('messages.atSession.menuLabel', { defaultValue: 'Conversation mentions' })}
+              loading={sessionMentionSearch.loading}
+              loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
+              onHoverItem={setAtSessionMenuActiveIndex}
+              onSelectItem={insertSelectedAtSession}
+              formatRelativeTime={(modifiedAt) => new Date(modifiedAt).toLocaleString()}
+            />
+          </div>
+        )}
         {isAtFileMenuOpen && (
           <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu
@@ -1884,6 +2059,7 @@ const SendBox: React.FC<{
               onKeyDown={createKeyDownHandler(handlePrimaryAction, (event) => {
                 return (
                   handleAddToDraftShortcut(event) ||
+                  handleAtSessionMenuKeyDown(event) ||
                   handleAtFileMenuKeyDown(event) ||
                   handleOverlayKeyDown(event) ||
                   handleHistoryKeyDown(event)

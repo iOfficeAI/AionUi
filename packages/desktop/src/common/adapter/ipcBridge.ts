@@ -186,6 +186,43 @@ export const assistants = {
 };
 
 // ---------------------------------------------------------------------------
+// Cross-session mentions — the `@@` picker's data source.
+// ---------------------------------------------------------------------------
+
+/** A conversation the user referenced with `@@`. Id only, deliberately: the
+ *  name is mutable (an agent can rename a conversation), so a client-supplied
+ *  name may already be stale. The backend resolves it from the id. */
+export type SessionRef = { id: string };
+
+export type SessionMentionTarget = {
+  id: string;
+  name: string;
+  /** Project name, for the picker's secondary line. Absent when unbound. */
+  project?: string;
+  modified_at: number;
+};
+
+export type SessionMentionableParams = {
+  /** Excluded from the results — you cannot `@@` the conversation you are in. */
+  current_conversation_id: string;
+  q?: string;
+  project_id?: string;
+  limit?: number;
+  cursor?: string;
+};
+
+export const sessionMention = {
+  list: httpGet<{ items: SessionMentionTarget[]; next_cursor?: string }, SessionMentionableParams>((p) => {
+    const params = new URLSearchParams({ current_conversation_id: p.current_conversation_id });
+    if (p.q) params.set('q', p.q);
+    if (p.project_id) params.set('project_id', p.project_id);
+    if (p.limit) params.set('limit', String(p.limit));
+    if (p.cursor) params.set('cursor', p.cursor);
+    return `/api/session-messages/mentionable?${params.toString()}`;
+  }),
+};
+
+// ---------------------------------------------------------------------------
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
 
@@ -292,6 +329,10 @@ export const conversation = {
     (p) => ({
       content: p.input,
       files: p.files,
+      // `@@` session references. Omitting this silently breaks the feature end
+      // to end: the backend's send-boundary resolver would always see an empty
+      // list and neither side would report an error.
+      sessions: p.sessions,
       loading_id: p.loading_id,
       inject_skills: p.inject_skills,
     })
@@ -1428,6 +1469,14 @@ export const systemSettings = {
   getKeepAwake: httpGetClientSetting<boolean>('keepAwake'),
   setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
   changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
+  // Cross-session messaging master switch. NOTE the channel differs from the
+  // sibling switches above: this one is a TYPED COLUMN on `system_settings`
+  // (migration 040), so it goes through `/api/settings`, not the
+  // `/api/settings/client` KV. `changeLanguage` right above is the precedent.
+  getCrossSessionMessageEnabled: httpGet<{ cross_session_message_enabled: boolean }, void>('/api/settings'),
+  setCrossSessionMessageEnabled: httpPatch<void, { enabled: boolean }>('/api/settings', (p) => ({
+    cross_session_message_enabled: p.enabled,
+  })),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
   getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
@@ -1683,6 +1732,9 @@ interface ISendMessageParams {
   files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
+  /** Conversations the user referenced with `@@`. Ids only — the backend
+   *  resolves the (mutable) name from the id. */
+  sessions?: SessionRef[];
 }
 
 // Server-assigned identifier for the newly created user message. Clients must
@@ -1858,13 +1910,7 @@ export interface IConversationTurnCompletedEvent {
   turn_id: string;
   status: 'pending' | 'running' | 'finished';
   state:
-    | 'ai_generating'
-    | 'ai_waiting_input'
-    | 'ai_waiting_confirmation'
-    | 'initializing'
-    | 'stopped'
-    | 'error'
-    | 'unknown';
+    'ai_generating' | 'ai_waiting_input' | 'ai_waiting_confirmation' | 'initializing' | 'stopped' | 'error' | 'unknown';
   detail: string;
   can_send_message: boolean;
   runtime: {

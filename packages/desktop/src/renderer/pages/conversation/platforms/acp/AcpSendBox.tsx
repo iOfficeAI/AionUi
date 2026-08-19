@@ -39,6 +39,8 @@ import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionCon
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
+import type { SessionRef } from '@/common/adapter/ipcBridge';
+import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
@@ -279,7 +281,7 @@ const AcpSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async ({ input, files, sessions }: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>) => {
       // Plain user text; the backend resolves each ChatFileRef and injects the
       // [[AION_FILES]] marker at the send edge (no front-end path/marker building).
       try {
@@ -300,6 +302,9 @@ const AcpSendBox: React.FC<{
           input,
           conversation_id,
           files,
+          // `@@` references. Dropping this here is a silent failure: the agent
+          // simply never receives the session block.
+          sessions,
         });
         markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
@@ -442,11 +447,15 @@ Please check your local CLI tool authentication status`,
     }
 
     const allFiles = collectChatFileRefs(uploadFile, atPath);
+    const sessions = selectedSessions.length > 0 ? selectedSessions : undefined;
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
-    await executeCommand({ input: message, files: allFiles });
+    await executeCommand({ input: message, files: allFiles, sessions });
   };
 
+  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
+  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
   const [interrupting, setInterrupting] = useState(false);
   const handleInterruptSend = async () => {
     if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
@@ -454,6 +463,11 @@ Please check your local CLI tool authentication status`,
     const input = content;
     setContent('');
     clearFiles();
+    // `onInterruptSend` is the TEAM interrupt path, and `@@` is disabled in team
+    // conversations (`isTeamConversation` below), so `selectedSessions` is
+    // always empty here. Cleared anyway so the state cannot leak if that
+    // relationship ever changes.
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
     setInterrupting(true);
     try {
@@ -731,7 +745,7 @@ Please check your local CLI tool authentication status`,
         // Removing first closes that race in both cases.
         remove(item.id);
         try {
-          await executeCommand({ input: item.input, files: item.files });
+          await executeCommand({ input: item.input, files: item.files, sessions: item.sessions });
         } catch {
           // executeCommand already surfaces the failure (busy-conflict toast,
           // error message card, etc.) via its own catch path — don't show a
@@ -789,6 +803,10 @@ Please check your local CLI tool authentication status`,
           emitter.emit('acp.selected.file', items, conversation_id);
           setAtPath(items);
         }}
+        selectedSessions={selectedSessions}
+        onSelectedSessionsChange={setSelectedSessions}
+        crossSessionEnabled={crossSessionEnabled}
+        isTeamConversation={Boolean(teamRuntime)}
         loading={teamRuntime?.loading ?? isBusy}
         active={teamRuntime?.isActive}
         onFocused={teamRuntime?.onFocus}

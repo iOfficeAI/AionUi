@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import type { SessionRef } from '@/common/adapter/ipcBridge';
 import { type ChatFileRef, chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { uuid } from '@/common/utils';
 import {
@@ -16,6 +17,11 @@ export type ConversationCommandQueueItem = {
   id: string;
   input: string;
   files: ChatFileRef[];
+  /** `@@` session references. Must survive the draft box: a message that goes
+   *  through the queue and loses its references is a silent failure — the agent
+   *  simply never sees the session block. Ids only, so this adds a handful of
+   *  bytes to the persisted state. */
+  sessions?: SessionRef[];
   created_at: number;
 };
 
@@ -33,11 +39,7 @@ export const MAX_QUEUED_COMMAND_FILES = 50;
 export const MAX_QUEUED_COMMAND_STATE_BYTES = 256 * 1024;
 
 export type QueueValidationFailureReason =
-  | 'emptyInput'
-  | 'inputTooLong'
-  | 'tooManyFiles'
-  | 'queueFull'
-  | 'queueTooLarge';
+  'emptyInput' | 'inputTooLong' | 'tooManyFiles' | 'queueFull' | 'queueTooLarge';
 
 type QueueValidationSuccess = {
   ok: true;
@@ -51,11 +53,25 @@ type QueueValidationFailure = {
 
 const COMMAND_QUEUE_LOG_PREFIX = '[conversation-command-queue]';
 
+/** Keep only well-formed `{ id }` refs from persisted state. Unknown shapes are
+ *  dropped rather than failing the whole item: losing a stale reference is
+ *  recoverable, losing the user's typed message is not. */
+const normalizeSessionRefs = (value: unknown): SessionRef[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const refs = value.filter(
+    (entry): entry is SessionRef =>
+      typeof (entry as SessionRef | undefined)?.id === 'string' && (entry as SessionRef).id.length > 0
+  );
+  return refs.length > 0 ? refs : undefined;
+};
+
 const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<string, unknown> => ({
   id: item.id,
   created_at: item.created_at,
   inputLength: item.input.length,
   fileCount: item.files.length,
+  // Count only, matching `fileCount` — never the referenced ids or names.
+  sessionCount: item.sessions?.length ?? 0,
 });
 
 const logCommandQueue = (conversation_id: string, event: string, payload: Record<string, unknown> = {}): void => {
@@ -128,6 +144,9 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     // Elements validated by the isChatFileRef guard above; `.every` doesn't
     // narrow the array element type, so assert it here.
     files: uniqueFiles(candidate.files as ChatFileRef[]),
+    // Absent in state persisted before `@@` existed, so this must tolerate
+    // `undefined` rather than rejecting the whole item.
+    sessions: normalizeSessionRefs(candidate.sessions),
     created_at: candidate.created_at,
   };
 
@@ -322,7 +341,7 @@ export const restoreQueuedCommand = (
 export const updateQueuedCommand = (
   items: ConversationCommandQueueItem[],
   commandId: string,
-  updates: Partial<Pick<ConversationCommandQueueItem, 'input' | 'files'>>
+  updates: Partial<Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>>
 ): ConversationCommandQueueItem[] =>
   items.map((item) =>
     item.id === commandId
@@ -330,6 +349,7 @@ export const updateQueuedCommand = (
           ...item,
           ...updates,
           files: updates.files ? uniqueFiles(updates.files) : item.files,
+          sessions: updates.sessions ?? item.sessions,
         }
       : item
   );

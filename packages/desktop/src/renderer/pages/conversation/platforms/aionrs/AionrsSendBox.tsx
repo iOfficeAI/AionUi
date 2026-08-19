@@ -40,6 +40,8 @@ import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionCon
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
+import type { SessionRef } from '@/common/adapter/ipcBridge';
+import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -249,7 +251,7 @@ const AionrsSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async ({ input, files, sessions }: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>) => {
       if (teamPermission) await teamPermission.warmupSession();
       if (!current_model?.use_model) {
         Message.warning(t('conversation.chat.noModelSelected'));
@@ -276,6 +278,9 @@ const AionrsSendBox: React.FC<{
           input,
           conversation_id,
           files,
+          // `@@` references. Omitting this makes the whole feature silently
+          // no-op for this platform.
+          sessions,
         });
         setActiveMsgId(res.msg_id);
         markSendAccepted(res.turn_id, res.runtime, res.msg_id);
@@ -390,11 +395,15 @@ const AionrsSendBox: React.FC<{
     }
 
     const filesToSend = collectChatFileRefs(uploadFile, atPath);
+    const sessions = selectedSessions.length > 0 ? selectedSessions : undefined;
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('aionrs.selected.file.clear');
-    await executeCommand({ input: message, files: filesToSend });
+    await executeCommand({ input: message, files: filesToSend, sessions });
   };
 
+  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
+  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
   const [interrupting, setInterrupting] = useState(false);
   const handleInterruptSend = async () => {
     if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
@@ -740,6 +749,10 @@ const AionrsSendBox: React.FC<{
           emitter.emit('aionrs.selected.file', items, conversation_id);
           setAtPath(items);
         }}
+        selectedSessions={selectedSessions}
+        onSelectedSessionsChange={setSelectedSessions}
+        crossSessionEnabled={crossSessionEnabled}
+        isTeamConversation={Boolean(teamRuntime)}
         loading={teamRuntime?.loading ?? isBusy}
         active={teamRuntime?.isActive}
         onFocused={teamRuntime?.onFocus}
