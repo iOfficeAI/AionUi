@@ -1,5 +1,49 @@
 # Changelog
 
+## [2.1.59](https://github.com/iOfficeAI/AionUi/compare/v2.1.58...v2.1.59) (2026-08-19)
+
+### Desktop
+
+#### Features
+
+- **explorer:** new file/dir + grouped row menu (#4102)
+- **feedback:** add optional contact email field (#4096)
+- **explorer:** drag-to-transfer files across the project tree (#4090)
+
+#### Bug Fixes
+
+- **markdown:** keep inline markup at the heading's size inside chat headings (#4104)
+- **acp:** render relative images in agent replies (#4103)
+- **desktop:** stop renderer launch-failed reload storm with backoff and throttled relaunch (#4100)
+- **ui:** make monochrome logos follow the theme color (#3614)
+- **security:** block path traversal in HTML renderer resource inlining (#4097)
+- **markdown:** render chat KaTeX formulas once in Shadow DOM (#4091)
+
+#### Refactoring
+
+- **media:** read image root from ConversationContext (#4105)
+
+### Core ([v0.1.70](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.70))
+
+#### Features
+
+- **monitor:** add fs/createFile command (#891)
+- **monitor:** back explorer drag-transfer with fs/copy and fs/move (#877)
+- **session:** distinguish Task subagents from background tasks (#890)
+
+#### Bug Fixes
+
+- **agent:** pair native media blocks with a link to the same file (#876)
+- **antigravity:** collapse agy's U+FFFD runs at text_delta joins (#888)
+- **antigravity:** route Team over the CLI, which is what agy was already using (#881)
+- **app:** bound the graceful-shutdown tail so the data-dir instance lock is released (#884)
+- **app:** harden the shutdown watchdog force-exit path
+- **app:** harden the shutdown watchdog force-exit path
+- **app:** keep backend_binary_path cmd.exe-launchable on Windows (#887)
+- **app:** reuse the app-level ConversationService in build_cron_state (#885)
+
+---
+
 ## [2.1.58](https://github.com/iOfficeAI/AionUi/compare/v2.1.57...v2.1.58) (2026-08-18)
 
 ### Desktop
