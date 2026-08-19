@@ -106,4 +106,29 @@ describe('resolveRelativePath with workspace boundary', () => {
       resolveRelativePath('C:/Users/me/workspace/index.html', '..\\..\\Windows\\system.ini', winWorkspace)
     ).toThrow('Path traversal blocked');
   });
+
+  it('throws for an absolute path that uses ".." to escape the workspace', () => {
+    // The literal starts with the workspace prefix but the ".." segments escape
+    // it — the absolute branch must normalize before the boundary check.
+    expect(() =>
+      resolveRelativePath('/home/user/workspace/index.html', '/home/user/workspace/../../secret', WORKSPACE)
+    ).toThrow('Path traversal blocked');
+  });
+
+  it('normalizes an absolute path with ".." that stays inside the workspace', () => {
+    expect(
+      resolveRelativePath('/home/user/workspace/index.html', '/home/user/workspace/sub/../img.png', WORKSPACE)
+    ).toBe('/home/user/workspace/img.png');
+  });
+
+  it('throws for a Windows absolute path that uses ".." to escape the workspace', () => {
+    const winWorkspace = 'C:/Users/me/workspace';
+    expect(() =>
+      resolveRelativePath(
+        'C:/Users/me/workspace/index.html',
+        'C:/Users/me/workspace/../../Windows/system.ini',
+        winWorkspace
+      )
+    ).toThrow('Path traversal blocked');
+  });
 });

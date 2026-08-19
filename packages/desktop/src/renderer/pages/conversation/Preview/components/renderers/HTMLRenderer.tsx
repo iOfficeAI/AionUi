@@ -85,6 +85,27 @@ function isWithinRoot(root: string, target: string): boolean {
 }
 
 /**
+ * 归一化绝对路径中的 `.`/`..` 段（纯字符串，renderer 不可用 node:path）。
+ * 保留 POSIX 根 `/` 与 Windows 盘符前缀。
+ * Normalize `.`/`..` segments in an absolute path (pure string; the renderer
+ * cannot use node:path). Preserves the POSIX root `/` and the Windows drive prefix.
+ */
+function normalizeAbsolute(path: string): string {
+  const unified = path.replace(/\\/g, '/');
+  const isWindowsDrive = /^[a-zA-Z]:/.test(unified);
+  const stack: string[] = [];
+  for (const segment of unified.split('/').filter(Boolean)) {
+    if (segment === '.') continue;
+    if (segment === '..') {
+      stack.pop();
+      continue;
+    }
+    stack.push(segment);
+  }
+  return isWindowsDrive ? stack.join('/') : '/' + stack.join('/');
+}
+
+/**
  * 解析相对路径为绝对路径 / Resolve relative path to absolute path
  * @param basePath 基础文件路径 / Base file path
  * @param relativePath 相对路径 / Relative path
@@ -98,13 +119,18 @@ export function resolveRelativePath(basePath: string, relativePath: string, work
     cleanBasePath.substring(0, cleanBasePath.lastIndexOf('/') + 1) ||
     cleanBasePath.substring(0, cleanBasePath.lastIndexOf('\\') + 1);
 
-  // 如果相对路径已经是绝对路径，直接返回 / If relative path is already absolute, return directly
+  // 如果相对路径已经是绝对路径 / If relative path is already absolute
   if (relativePath.startsWith('/') || /^[a-zA-Z]:/.test(relativePath)) {
-    // 绝对路径必须落在可信工作区内，否则视为逃逸
-    if (workspace && !isWithinRoot(workspace, relativePath)) {
+    // 先归一化 `.`/`..` 段再做边界检查，避免形如 `<workspace>/../../secret`
+    // 的字面遍历：它以工作区前缀开头却实际逃逸，未归一时会骗过 isWithinRoot。
+    // Normalize `.`/`..` before the boundary check: a literal
+    // `<workspace>/../../secret` starts with the workspace prefix yet escapes
+    // it, so an un-normalized string would slip past isWithinRoot.
+    const normalizedAbsolute = normalizeAbsolute(relativePath);
+    if (workspace && !isWithinRoot(workspace, normalizedAbsolute)) {
       throw new Error(`Path traversal blocked: "${relativePath}" resolves outside workspace`);
     }
-    return relativePath;
+    return normalizedAbsolute;
   }
 
   // 处理 ./ 和 ../ / Handle ./ and ../
