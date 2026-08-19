@@ -1,0 +1,65 @@
+{
+  "title": "Task Center",
+  "subtitle": "Tasks assigned to the current user",
+  "searchPlaceholder": "Search by task name or marker",
+  "reset": "Reset",
+  "filter": {
+    "priority": "Priority",
+    "project": "Project",
+    "taskType": "Task Type",
+    "all": "All"
+  },
+  "priorityOptions": {
+    "urgent": "Urgent",
+    "important": "Important",
+    "normal": "Normal"
+  },
+  "table": {
+    "columns": {
+      "index": "#",
+      "name": "Task Name",
+      "mark": "Marker",
+      "type": "Type",
+      "priority": "Priority",
+      "status": "Status",
+      "deadline": "Deadline",
+      "project": "Project",
+      "updator": "Updated By",
+      "creator": "Created By",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    }
+  },
+  "actions": { "view": "View" },
+  "detail": {
+    "title": "Task Details",
+    "basicInfo": "Basic Information",
+    "progressInfo": "Progress",
+    "content": "Content",
+    "remark": "Remark",
+    "showRawFields": "Show raw fields",
+    "hideRawFields": "Hide raw fields",
+    "fields": {
+      "name": "Task Name",
+      "mark": "Marker",
+      "projectName": "Project",
+      "partName": "Module",
+      "milestoneName": "Milestone",
+      "typeDesc": "Task Type",
+      "urgencyDesc": "Priority",
+      "statusDesc": "Status",
+      "deadlineTime": "Deadline",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "closeTime": "Close Time",
+      "creatorName": "Created By",
+      "createTime": "Created At",
+      "updatorName": "Updated By",
+      "updateTime": "Updated At"
+    }
+  },
+  "empty": "No tasks",
+  "loading": "Loading tasks...",
+  "loadFailed": "Failed to load tasks",
+  "retry": "Retry"
+}
