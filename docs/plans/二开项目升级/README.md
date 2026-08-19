@@ -2,7 +2,7 @@
 
 > 本目录是二开资产化的唯一权威落点。目标：把二开代码划出**可携带边界**——逐文件/逐组件/逐接口给出风险分级、上游依赖、变化触发器、接入点和验证方法，并定义未来源码扩展包的目录与 manifest/adapter 结构。
 >
-> 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。2026-08-17～18 已补充 v2.1.56 / v0.1.67 升级审计、实施设计与实装修复复盘；其中 `07` 为下一次升级必须优先阅读的实施后 runbook。
+> 建立日期：2026-08-09。2026-08-10（P8-1）按来源审计 `/tmp/audit-2dev-docs-provenance-20260810.md` 完成**物理分层**：原版资产、v2.1.52 适配、扩展包决策三分离，旧文件名移入 `legacy/` 保留指向。2026-08-17～19 已补充 v2.1.56 / v0.1.67 升级审计、实装修复复盘，以及 AionTeamSuite 二开可移植架构 2.0。`08` 是架构设计与 Phase 0–7 实施基线，`09` 是今后每一次正式升级优先执行的标准 SOP。
 
 ## 文档构成
 
@@ -14,7 +14,9 @@
 | [04-v2.1.56适配矩阵.md](./04-v2.1.56适配矩阵.md) | **v2.1.56 / v0.1.67 升级前差异审计**：A/B/C/D 资产在新宿主中的复用、adapter、上游替代与 migration 窗口判定 |
 | [05-P4-AionCore-v0.1.67适配设计.md](./05-P4-AionCore-v0.1.67适配设计.md) | **Core 实施设计**：ad-hoc origin、Team Presets、migration/repair、provisioning/service 的 v0.1.67 适配边界 |
 | [06-P5-AionUi-v2.1.56适配设计.md](./06-P5-AionUi-v2.1.56适配设计.md) | **UI 实施设计**：shared contracts、i18n、AdHocTeam、GroupedHistory、Team Presets 与 runtime seam 的分层重放方案 |
-| [07-v2.1.56实装修复与下次升级复用清单.md](./07-v2.1.56实装修复与下次升级复用清单.md) | **实施后补遗 / 下次升级 runbook**：后 PIN 修复扫描、5 个实测缺陷根因与修复、WS/cache 一致性、migration 042、最终 binary build 陷阱、完整生命周期 checklist；对应可重放代码维护在权威资产仓 `AionTeamSuite/packages/adaptations/v2.1.56-v0.1.67/` |
+| [07-v2.1.56实装修复与下次升级复用清单.md](./07-v2.1.56实装修复与下次升级复用清单.md) | **v2.1.56 实施后补遗**：后 PIN 修复扫描、5 个实测缺陷根因与修复、WS/cache 一致性、migration 042、最终 binary build 陷阱、完整生命周期 checklist；对应适配证据维护在 `AionTeamSuite/packages/adaptations/v2.1.56-v0.1.67/` |
+| [08-AionTeamSuite二开可移植架构2.0优化方案.md](./08-AionTeamSuite二开可移植架构2.0优化方案.md) | **可移植架构 2.0 设计与实施基线**：owned/adapter/slot/generated 分类、UI/Core portable runtime、stable ports、semantic migration、Upgrade Doctor、Upgrade Overlay、Phase 0–7 与量化指标；已完成真实 v2.1.57 × v0.1.68 相邻版本演练 |
+| [09-二开可移植架构2.0标准升级SOP.md](./09-二开可移植架构2.0标准升级SOP.md) | **今后正式升级的首要执行入口**：Gate A–N 覆盖新宿主隔离、Doctor、migration preflight、materialize、overlay、generated artifacts、focused/full tests、生产 DB、打包、人工验收与 Promote latest；新对话应优先引用本文件 |
 | [设计规格归档/](./设计规格归档/) | 专家团/创建弹窗等 e3 原版 UI 设计规格与验收清单（P8-2 维护） |
 | [审计报告/](./审计报告/) | 来源审计报告原样归档（不篡改结论）：`adhoc-team-design-source-audit-2026-08-10.md`（设计规格归档来源审计）、`audit-2dev-docs-provenance-20260810.md`（二开文档来源审计，P8-1 分层依据） |
 | [原始源码包/](./原始源码包/) | 临时团队与专家团两个原版 UI 源码快照，以及共同的 AionCore 原版配套；仅来自固定原始提交，不含新版重写代码 |
