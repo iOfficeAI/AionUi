@@ -21,8 +21,7 @@ import {
 } from '@renderer/pages/conversation/Messages/hooks';
 import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
 import HOC from '@renderer/utils/ui/HOC';
-import LocalImageView from '@renderer/components/media/LocalImageView';
-import React, { useEffect } from 'react';
+import React from 'react';
 import AcpE2EStreamInjector from './AcpE2EStreamInjector';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
@@ -64,14 +63,6 @@ const AcpChat: React.FC<{
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
-  // Feed the conversation workspace into LocalImageView so relative image paths
-  // in assistant markdown (e.g. ![](./chart.png)) resolve against the agent cwd.
-  // Without this the image root stays '' and the fs request drops workspace,
-  // leaving the backend to canonicalize a bare relative path and reject it.
-  const updateLocalImage = LocalImageView.useUpdateLocalImage();
-  useEffect(() => {
-    updateLocalImage({ root: workspace ?? '' });
-  }, [workspace]);
   const teamPermission = useTeamPermission();
   const messageState = useAcpMessage(conversation_id, {
     skipWarmup: Boolean(teamPermission),
@@ -117,9 +108,4 @@ const AcpChat: React.FC<{
   );
 };
 
-export default HOC.Wrapper(
-  MessageListProvider,
-  MessageListLoadingProvider,
-  MessagePaginationProvider,
-  LocalImageView.Provider
-)(AcpChat);
+export default HOC.Wrapper(MessageListProvider, MessageListLoadingProvider, MessagePaginationProvider)(AcpChat);
