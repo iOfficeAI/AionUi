@@ -56,17 +56,6 @@ vi.mock('@renderer/pages/conversation/Messages/artifacts', () => ({
   ConversationArtifactProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('@renderer/components/media/LocalImageView', () => {
-  const PassThrough: React.FC<{ children?: React.ReactNode }> = ({ children }) => <>{children}</>;
-  return {
-    __esModule: true,
-    default: {
-      Provider: PassThrough,
-      useUpdateLocalImage: () => () => {},
-    },
-  };
-});
-
 import AionrsChat from '@renderer/pages/conversation/platforms/aionrs/AionrsChat';
 import type { AionrsModelSelection } from '@renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 
