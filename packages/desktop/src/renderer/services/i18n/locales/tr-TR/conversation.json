@@ -749,5 +749,9 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "crossSession": {
+    "fromBadge": "{{name}} sohbetinden",
+    "otherWorkspace": "farklı çalışma alanı"
   }
 }

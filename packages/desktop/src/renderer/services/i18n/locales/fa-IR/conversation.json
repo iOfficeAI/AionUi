@@ -747,5 +747,9 @@
     "exited": "کد خروج {{code}}",
     "stop": "توقف",
     "truncated": "(خروجی قبلی کوتاه شد)"
+  },
+  "crossSession": {
+    "fromBadge": "از گفتگوی «{{name}}»",
+    "otherWorkspace": "فضای کاری متفاوت"
   }
 }

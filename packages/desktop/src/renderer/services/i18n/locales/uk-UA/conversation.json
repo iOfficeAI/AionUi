@@ -765,5 +765,9 @@
     "exited": "Код {{code}}",
     "stop": "Зупинити",
     "truncated": "(ранній вивід обрізано)"
+  },
+  "crossSession": {
+    "fromBadge": "З розмови «{{name}}»",
+    "otherWorkspace": "інша робоча тека"
   }
 }

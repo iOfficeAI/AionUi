@@ -765,5 +765,9 @@
     "exited": "Код {{code}}",
     "stop": "Остановить",
     "truncated": "(ранний вывод усечён)"
+  },
+  "crossSession": {
+    "fromBadge": "Из беседы «{{name}}»",
+    "otherWorkspace": "другая рабочая папка"
   }
 }

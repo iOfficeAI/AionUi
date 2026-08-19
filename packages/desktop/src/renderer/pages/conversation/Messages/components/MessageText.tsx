@@ -5,6 +5,7 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
+import { parseSessionMessageBlock, parseSessionsBlock } from './sessionMarkers';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -213,6 +214,18 @@ const MessageText: React.FC<{
     () => parseFileMarker(contentToRender, isUserMessage),
     [contentToRender, isUserMessage]
   );
+  // Cross-session markers. Both live on USER messages: the sender-side
+  // `[[AION_SESSIONS]]` block is appended to the user's own message, and a
+  // delivery is persisted as a user message too. Not parsing them would show
+  // raw marker text in a bubble.
+  const { text: textWithoutMentions, sessions: mentionedSessions } = useMemo(
+    () => (isUserMessage ? parseSessionsBlock(text) : { text, sessions: [] }),
+    [isUserMessage, text]
+  );
+  const { text: visibleText, source: deliverySource } = useMemo(
+    () => (isUserMessage ? parseSessionMessageBlock(textWithoutMentions) : { text: textWithoutMentions, source: null }),
+    [isUserMessage, textWithoutMentions]
+  );
   const contextResetNotice = useMemo(
     () => (isTeammateMessage && senderName === 'team_system' ? parseTeamContextResetNotice(text) : null),
     [isTeammateMessage, senderName, text]
@@ -224,7 +237,7 @@ const MessageText: React.FC<{
           : 'team.systemNotice.contextResetRuntimeFailed',
         { memberName: contextResetNotice.member_name }
       )
-    : text;
+    : visibleText;
   const { data, json } = useFormatContent(renderedText);
   const shouldRenderPlainText = isUserMessage || Boolean(contextResetNotice);
   const conversationContext = useConversationContextSafe();
@@ -313,6 +326,43 @@ const MessageText: React.FC<{
             >
               {displaySenderName}
             </span>
+          </div>
+        )}
+        {deliverySource && (
+          <div
+            className={classNames('mb-4px flex items-center gap-4px text-12px text-t-secondary', {
+              'self-end': isUserMessage,
+            })}
+          >
+            <span>
+              {t('conversation.crossSession.fromBadge', {
+                name: deliverySource.fromName || deliverySource.fromId,
+                defaultValue: 'From conversation {{name}}',
+              })}
+            </span>
+            {deliverySource.workspace && deliverySource.workspace !== 'same' && (
+              <span
+                className='px-4px rounded-4px'
+                style={{ background: 'var(--color-fill-2)' }}
+                title={deliverySource.workspace}
+              >
+                {t('conversation.crossSession.otherWorkspace', { defaultValue: 'different workspace' })}
+              </span>
+            )}
+          </div>
+        )}
+        {mentionedSessions.length > 0 && (
+          <div className={classNames('mb-4px flex flex-wrap gap-4px', { 'self-end': isUserMessage })}>
+            {mentionedSessions.map((session) => (
+              <span
+                key={session.id}
+                className='px-6px py-2px rounded-6px text-12px text-t-secondary'
+                style={{ background: 'var(--color-fill-2)' }}
+                title={session.workspace}
+              >
+                @@{session.name}
+              </span>
+            ))}
           </div>
         )}
         {files.length > 0 && (

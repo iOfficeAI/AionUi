@@ -747,5 +747,9 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "crossSession": {
+    "fromBadge": "대화 \"{{name}}\"에서",
+    "otherWorkspace": "다른 작업 공간"
   }
 }

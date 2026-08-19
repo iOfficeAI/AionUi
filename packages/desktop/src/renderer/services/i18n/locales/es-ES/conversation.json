@@ -748,5 +748,9 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "crossSession": {
+    "fromBadge": "De la conversación {{name}}",
+    "otherWorkspace": "espacio de trabajo distinto"
   }
 }

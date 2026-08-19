@@ -748,5 +748,9 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "crossSession": {
+    "fromBadge": "Aus Unterhaltung {{name}}",
+    "otherWorkspace": "anderer Arbeitsbereich"
   }
 }

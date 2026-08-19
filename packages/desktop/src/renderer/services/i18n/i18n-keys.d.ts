@@ -568,6 +568,8 @@ export type I18nKey =
   | 'conversation.createError.codes.TEAM_ASSISTANT_NOT_FOUND'
   | 'conversation.createError.pathVariants.WORKSPACE_PATH_UNAVAILABLE'
   | 'conversation.createFailed'
+  | 'conversation.crossSession.fromBadge'
+  | 'conversation.crossSession.otherWorkspace'
   | 'conversation.dropdown.cliAgents'
   | 'conversation.dropdown.presetAssistants'
   | 'conversation.explorer.addFolder'
