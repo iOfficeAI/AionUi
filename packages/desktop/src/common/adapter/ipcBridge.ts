@@ -206,7 +206,7 @@ export const kbChat = {
   /** Renderer → main: start an SSE streaming request for the given KB + question. */
   send: bridge.buildProvider<
     { requestId: string; ok: true } | { ok: false; message: string },
-    { requestId: string; kbId: string; question: string; token: string }
+    { requestId: string; kbId: string; question: string; threadId: string; token: string }
   >('kbChat.send'),
   /** Renderer → main: cancel an in-flight SSE request by requestId. */
   abort: bridge.buildProvider<{ ok: true }, { requestId: string }>('kbChat.abort'),

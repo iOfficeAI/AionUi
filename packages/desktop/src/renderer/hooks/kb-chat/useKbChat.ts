@@ -44,6 +44,7 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
   tokenRef.current = token;
   const kbIdRef = useRef<string>(kbId);
   kbIdRef.current = kbId;
+  const threadIdRef = useRef<string>(newRequestId());
 
   useEffect(() => {
     const offChunk = ipcBridge.kbChat.streamChunk.on((p: unknown) => {
@@ -114,6 +115,7 @@ export const useKbChat = ({ kbId, token }: UseKbChatOptions): UseKbChatResult =>
       requestId,
       kbId: kbIdRef.current,
       question: trimmed,
+      threadId: threadIdRef.current,
       token: currentToken,
     });
 
