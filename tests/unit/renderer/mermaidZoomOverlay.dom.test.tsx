@@ -6,7 +6,7 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -22,6 +22,25 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 import MermaidZoomOverlay from '@/renderer/components/Markdown/MermaidZoomOverlay';
+
+// jsdom lacks the pointer capture API used by the drag handlers.
+beforeAll(() => {
+  Object.defineProperty(Element.prototype, 'setPointerCapture', {
+    value: vi.fn(),
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+    value: vi.fn(() => false),
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+    value: vi.fn(),
+    configurable: true,
+    writable: true,
+  });
+});
 
 // jsdom viewport: 1024x768. With FIT_PADDING 80 the available box is 864x608;
 // the overlay caps the panel at 90vw (921.6px) x 85vh (652.8px).
@@ -117,6 +136,20 @@ describe('MermaidZoomOverlay', () => {
 
     fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-reset'));
     expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
+  });
+
+  it('pans the diagram inside the panel so clipped sides stay reachable', () => {
+    renderOverlay(undefined, SVG_SQUARE);
+    const content = getContent();
+    const diagram = content.firstElementChild as HTMLElement;
+
+    fireEvent.pointerDown(content, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(content, { pointerId: 1, clientX: 60, clientY: 40 });
+    fireEvent.pointerUp(content, { pointerId: 1 });
+
+    // The clip viewport stays put; the diagram moves within it.
+    expect(content.style.transform).toBe('');
+    expect(diagram.style.transform).toContain('translate(50px, 30px)');
   });
 
   it('closes on ESC', () => {

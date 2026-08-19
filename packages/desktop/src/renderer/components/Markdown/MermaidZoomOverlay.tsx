@@ -177,7 +177,10 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
         height: Math.min(base.height * scale, window.innerHeight * 0.85),
       }
     : { maxWidth: MAX_BOX_WIDTH, maxHeight: MAX_BOX_HEIGHT };
-  const contentTransform = base
+  // Pan must transform the diagram inside the fixed clipping panel — translating
+  // the panel itself would move the clip window along with the content, leaving
+  // the clipped sides permanently unreachable once the diagram outgrows the caps.
+  const diagramTransform = base
     ? `translate(${translate.x}px, ${translate.y}px)`
     : `translate(${translate.x}px, ${translate.y}px) scale(${scale})`;
 
@@ -273,12 +276,15 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
           cursor: isPanning ? 'grabbing' : 'grab',
           userSelect: 'none',
           touchAction: 'none',
-          transform: contentTransform,
           ...contentStyle,
         }}
       >
         <div
-          style={base ? { width: base.width * scale, height: base.height * scale, flexShrink: 0 } : undefined}
+          style={{
+            flexShrink: 0,
+            transform: diagramTransform,
+            ...(base ? { width: base.width * scale, height: base.height * scale } : null),
+          }}
           dangerouslySetInnerHTML={{ __html: overlaySvg }}
         />
       </div>
