@@ -41,11 +41,7 @@ type FakeReq = NodeJS.EventEmitter & {
   end: (body?: string) => void;
 };
 
-const makeFakeReq = (
-  statusCode: number,
-  body: string,
-  contentType = 'application/json'
-): FakeReq => {
+const makeFakeReq = (statusCode: number, body: string, contentType = 'application/json'): FakeReq => {
   const emitter = new EventEmitter() as FakeReq;
   emitter.destroy = () => emitter.emit('close');
   emitter.end = () => {
@@ -107,30 +103,28 @@ describe('listTaskCenter', () => {
   it('returns total + rows on 200 JSON response', async () => {
     // Override the http mock for this test by re-mocking
     const httpModule = await import('node:http');
-    vi.spyOn(httpModule.default, 'request').mockImplementation(
-      ((opts: unknown, cb: (res: HttpResponse) => void) => {
-        const emitter = new EventEmitter() as FakeReq;
-        emitter.destroy = () => emitter.emit('close');
-        emitter.end = () => {
-          queueMicrotask(() => {
-            cb({
-              statusCode: 200,
-              headers: { 'content-type': 'application/json' },
-              on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
-                if (event === 'data')
-                  cb2(
-                    Buffer.from(
-                      '{"Total":2,"Rows":[{"id":"a","name":"task-A","urgency":0},{"id":"b","name":"task-B","urgency":1}]}'
-                    )
-                  );
-                if (event === 'end') cb2();
-              },
-            });
+    vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {
+      const emitter = new EventEmitter() as FakeReq;
+      emitter.destroy = () => emitter.emit('close');
+      emitter.end = () => {
+        queueMicrotask(() => {
+          cb({
+            statusCode: 200,
+            headers: { 'content-type': 'application/json' },
+            on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
+              if (event === 'data')
+                cb2(
+                  Buffer.from(
+                    '{"Total":2,"Rows":[{"id":"a","name":"task-A","urgency":0},{"id":"b","name":"task-B","urgency":1}]}'
+                  )
+                );
+              if (event === 'end') cb2();
+            },
           });
-        };
-        return emitter;
-      }) as never
-    );
+        });
+      };
+      return emitter;
+    }) as never);
 
     const result = await listTaskCenter({
       token: 'tok-1',
@@ -150,25 +144,23 @@ describe('listTaskCenter', () => {
 
   it('returns error on non-2xx status', async () => {
     const httpModule = await import('node:http');
-    vi.spyOn(httpModule.default, 'request').mockImplementation(
-      ((opts: unknown, cb: (res: HttpResponse) => void) => {
-        const emitter = new EventEmitter() as FakeReq;
-        emitter.destroy = () => emitter.emit('close');
-        emitter.end = () => {
-          queueMicrotask(() => {
-            cb({
-              statusCode: 500,
-              headers: {},
-              on: (event: string, cb2: () => void) => {
-                if (event === 'end') cb2();
-              },
-              resume: () => undefined,
-            });
+    vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {
+      const emitter = new EventEmitter() as FakeReq;
+      emitter.destroy = () => emitter.emit('close');
+      emitter.end = () => {
+        queueMicrotask(() => {
+          cb({
+            statusCode: 500,
+            headers: {},
+            on: (event: string, cb2: () => void) => {
+              if (event === 'end') cb2();
+            },
+            resume: () => undefined,
           });
-        };
-        return emitter;
-      }) as never
-    );
+        });
+      };
+      return emitter;
+    }) as never);
 
     const result = await listTaskCenter({
       token: 'tok',
@@ -183,16 +175,14 @@ describe('listTaskCenter', () => {
 
   it('returns error on network error', async () => {
     const httpModule = await import('node:http');
-    vi.spyOn(httpModule.default, 'request').mockImplementation(
-      (() => {
-        const emitter = new EventEmitter() as FakeReq;
-        emitter.destroy = () => emitter.emit('close');
-        emitter.end = () => {
-          queueMicrotask(() => emitter.emit('error', new Error('ECONNREFUSED')));
-        };
-        return emitter;
-      }) as never
-    );
+    vi.spyOn(httpModule.default, 'request').mockImplementation((() => {
+      const emitter = new EventEmitter() as FakeReq;
+      emitter.destroy = () => emitter.emit('close');
+      emitter.end = () => {
+        queueMicrotask(() => emitter.emit('error', new Error('ECONNREFUSED')));
+      };
+      return emitter;
+    }) as never);
 
     const result = await listTaskCenter({
       token: 'tok',
@@ -208,26 +198,24 @@ describe('listTaskCenter', () => {
   it('builds the URL with mdCode + filters and the form-encoded body', async () => {
     let capturedOpts: Record<string, unknown> | undefined;
     const httpModule = await import('node:http');
-    vi.spyOn(httpModule.default, 'request').mockImplementation(
-      ((opts: unknown, cb: (res: HttpResponse) => void) => {
-        capturedOpts = opts as Record<string, unknown>;
-        const emitter = new EventEmitter() as FakeReq;
-        emitter.destroy = () => emitter.emit('close');
-        emitter.end = () => {
-          queueMicrotask(() => {
-            cb({
-              statusCode: 200,
-              headers: { 'content-type': 'application/json' },
-              on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
-                if (event === 'data') cb2(Buffer.from('{"Total":0,"Rows":[]}'));
-                if (event === 'end') cb2();
-              },
-            });
+    vi.spyOn(httpModule.default, 'request').mockImplementation(((opts: unknown, cb: (res: HttpResponse) => void) => {
+      capturedOpts = opts as Record<string, unknown>;
+      const emitter = new EventEmitter() as FakeReq;
+      emitter.destroy = () => emitter.emit('close');
+      emitter.end = () => {
+        queueMicrotask(() => {
+          cb({
+            statusCode: 200,
+            headers: { 'content-type': 'application/json' },
+            on: (event: string, cb2: (chunk?: Buffer | string) => void) => {
+              if (event === 'data') cb2(Buffer.from('{"Total":0,"Rows":[]}'));
+              if (event === 'end') cb2();
+            },
           });
-        };
-        return emitter;
-      }) as never
-    );
+        });
+      };
+      return emitter;
+    }) as never);
 
     await listTaskCenter({
       token: 'tok-2',

@@ -81,11 +81,7 @@ const TaskCenterPage: React.FC = () => {
         </div>
       </div>
 
-      <TaskCenterDetailModal
-        visible={detailItem !== null}
-        item={detailItem}
-        onClose={() => setDetailItem(null)}
-      />
+      <TaskCenterDetailModal visible={detailItem !== null} item={detailItem} onClose={() => setDetailItem(null)} />
     </div>
   );
 };

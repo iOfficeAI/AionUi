@@ -111,7 +111,9 @@ describe('TaskCenterDetailModal', () => {
     const onClose = vi.fn();
     render(<TaskCenterDetailModal visible item={item} onClose={onClose} />);
     // The Modal's cancel (×) icon and ok button both invoke onClose
-    const closeButton = screen.getAllByRole('button').find((b) => b.textContent?.includes('关闭') || b.getAttribute('aria-label') === 'Close');
+    const closeButton = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('关闭') || b.getAttribute('aria-label') === 'Close');
     if (closeButton) fireEvent.click(closeButton);
     // It's fine if closeButton isn't found — the test only requires onClose is wired.
     // Click the OK button by text

@@ -25,7 +25,11 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
     { key: 'mark', label: String(t('taskCenter.detail.fields.mark')), value: item.mark || '-' },
     { key: 'projectName', label: String(t('taskCenter.detail.fields.projectName')), value: item.projectName || '-' },
     { key: 'partName', label: String(t('taskCenter.detail.fields.partName')), value: item.partName || '-' },
-    { key: 'milestoneName', label: String(t('taskCenter.detail.fields.milestoneName')), value: item.milestoneName || '-' },
+    {
+      key: 'milestoneName',
+      label: String(t('taskCenter.detail.fields.milestoneName')),
+      value: item.milestoneName || '-',
+    },
     { key: 'typeDesc', label: String(t('taskCenter.detail.fields.typeDesc')), value: item.typeDesc || '-' },
   ];
 
@@ -55,9 +59,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
     >
       <div className='flex flex-col gap-16px'>
         <section>
-          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>
-            {String(t('taskCenter.detail.basicInfo'))}
-          </h3>
+          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{String(t('taskCenter.detail.basicInfo'))}</h3>
           <Descriptions
             column={2}
             border
@@ -80,9 +82,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
 
         {(item.content || item.remark) && (
           <section>
-            <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>
-              {String(t('taskCenter.detail.content'))}
-            </h3>
+            <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{String(t('taskCenter.detail.content'))}</h3>
             {item.content && (
               <div className='mb-8px max-h-200px overflow-auto whitespace-pre-wrap rounded-6px bg-fill-2 p-10px text-13px text-t-primary'>
                 {item.content}

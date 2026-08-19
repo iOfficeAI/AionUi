@@ -13,11 +13,7 @@ import {
   TASK_CENTER_TIMEOUT_MS,
   buildTaskCenterListUrl,
 } from '@/common/config/taskCenter.config';
-import type {
-  ITaskCenterListParams,
-  ITaskCenterListResult,
-  ITaskCenterRow,
-} from '@/common/adapter/ipcBridge';
+import type { ITaskCenterListParams, ITaskCenterListResult, ITaskCenterRow } from '@/common/adapter/ipcBridge';
 
 const inFlight = new Set<http.ClientRequest>();
 

@@ -56,11 +56,7 @@ const TaskCenterFilterBar: React.FC<TaskCenterFilterBarProps> = ({
         onChange={onKeywordChange}
         className='w-240px'
       />
-      <Select
-        value={urgency}
-        onChange={onUrgencyChange}
-        className='w-160px'
-      >
+      <Select value={urgency} onChange={onUrgencyChange} className='w-160px'>
         <Select.Option value='all'>{String(t('taskCenter.filter.all'))}</Select.Option>
         {URGENCY_OPTIONS.map((o) => (
           <Select.Option key={o.value} value={o.value}>
