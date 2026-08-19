@@ -639,6 +639,8 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renomear",
+      "newFile": "Novo arquivo",
+      "newDir": "Nova pasta",
       "addToChat": "Adicionar ao chat",
       "copyRelativePath": "Copiar caminho relativo",
       "copyAbsolutePath": "Copiar caminho absoluto"
@@ -646,6 +648,8 @@
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
     "renameFailed": "Não foi possível renomear",
+    "newFileFailed": "Não foi possível criar o arquivo",
+    "newDirFailed": "Não foi possível criar a pasta",
     "tabs": {
       "files": "Arquivos",
       "changes": "Alterações"

@@ -635,11 +635,15 @@
       "rename": "名前を変更",
       "addToChat": "チャットに追加",
       "copyRelativePath": "相対パスをコピー",
-      "copyAbsolutePath": "絶対パスをコピー"
+      "copyAbsolutePath": "絶対パスをコピー",
+      "newFile": "新規ファイル",
+      "newDir": "新規フォルダー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
     "renameFailed": "名前の変更に失敗しました",
+    "newFileFailed": "ファイルの作成に失敗しました",
+    "newDirFailed": "フォルダーの作成に失敗しました",
     "tabs": {
       "files": "ファイル",
       "changes": "変更"

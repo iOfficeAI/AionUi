@@ -43,9 +43,12 @@ import { resolvePreviewPayload } from '@/renderer/utils/file/previewPayload';
 
 import { ExplorerPanel } from './ExplorerPanel';
 import {
+  buildCreateFileRequest,
+  buildMkdirRequest,
   buildRemoveRequest,
   buildRenameRequest,
   buildTransferRequest,
+  joinRel,
   parentRel,
   peKey,
   type DragPeRef,
@@ -71,6 +74,34 @@ const pathToFileUri = (p: string): string => {
   const withLeadingSlash = normalized.startsWith('/') ? normalized : `/${normalized}`;
   return `file://${encodeURI(withLeadingSlash)}`;
 };
+
+/**
+ * The name-entry dialog's current operation. All three collect a single name in
+ * one `<Input>`; `rename` additionally carries the original path (to detect a
+ * no-op edit), the two create modes carry only the directory to create inside
+ * (`''` = pe root). One dialog serves all three so the modal + submit path have
+ * a single implementation.
+ */
+type NameDialogState =
+  | ({ mode: 'rename' } & RenameRequest)
+  | { mode: 'newFile'; peId: string; targetDir: string }
+  | { mode: 'newDir'; peId: string; targetDir: string };
+
+/** i18n key for a name-dialog operation's title (reuses the context-menu labels). */
+const nameDialogTitleKey = (mode: NameDialogState['mode']): string =>
+  mode === 'rename'
+    ? 'conversation.explorer.contextMenu.rename'
+    : mode === 'newFile'
+      ? 'conversation.explorer.contextMenu.newFile'
+      : 'conversation.explorer.contextMenu.newDir';
+
+/** i18n key for the failure toast when a name-dialog operation's WS request fails. */
+const nameDialogErrorKey = (mode: NameDialogState['mode']): string =>
+  mode === 'rename'
+    ? 'conversation.explorer.renameFailed'
+    : mode === 'newFile'
+      ? 'conversation.explorer.newFileFailed'
+      : 'conversation.explorer.newDirFailed';
 
 /** Args passed to `openPreview` for an Explorer-opened file. */
 export type ExplorerPreviewPayload = {
@@ -211,8 +242,8 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
-  // ── File operations (A): rename + delete (parity with the legacy tree) ────
-  // Both operate on the tree's `{pe_id, relative_path}` identity over WS fs/*
+  // ── File operations (A): rename + delete + create-file / create-dir ───────
+  // All operate on the tree's `{pe_id, relative_path}` identity over WS fs/*
   // commands; the change is pushed back as a delta on the parent dir's
   // subscription, so the tree updates itself (single source, no manual refetch).
   // Component switcher tab (host component switcher, this round in-container):
@@ -221,28 +252,57 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // subscription is owned by its store per project, not by the component's mount
   // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
   const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
-  const [renameDialog, setRenameDialog] = useState<RenameRequest | null>(null);
+  // One dialog for rename / new-file / new-folder (see NameDialogState); the
+  // `mode` discriminant drives the title, ok label, request builder, and the
+  // post-create reveal below.
+  const [nameDialog, setNameDialog] = useState<NameDialogState | null>(null);
   const [nameValue, setNameValue] = useState('');
   const [nameSubmitting, setNameSubmitting] = useState(false);
 
   const handleRename = (peId: string, rel: string, name: string): void => {
-    setRenameDialog({ peId, targetDir: parentRel(rel), origRel: rel });
+    setNameDialog({ mode: 'rename', peId, targetDir: parentRel(rel), origRel: rel });
     setNameValue(name);
   };
 
-  const submitRenameDialog = async (): Promise<void> => {
-    if (!renameDialog) return;
-    const request = buildRenameRequest(renameDialog, nameValue);
+  // New-file / new-folder open the shared dialog with an empty name; `dirRel` is
+  // the directory to create inside (the right-clicked dir/root's own rel).
+  const handleNewFile = (peId: string, dirRel: string): void => {
+    setNameDialog({ mode: 'newFile', peId, targetDir: dirRel });
+    setNameValue('');
+  };
+
+  const handleNewDir = (peId: string, dirRel: string): void => {
+    setNameDialog({ mode: 'newDir', peId, targetDir: dirRel });
+    setNameValue('');
+  };
+
+  const submitNameDialog = async (): Promise<void> => {
+    if (!nameDialog) return;
+    const request =
+      nameDialog.mode === 'rename'
+        ? buildRenameRequest(nameDialog, nameValue)
+        : nameDialog.mode === 'newFile'
+          ? buildCreateFileRequest(nameDialog.peId, nameDialog.targetDir, nameValue)
+          : buildMkdirRequest(nameDialog.peId, nameDialog.targetDir, nameValue);
     if (!request) {
-      setRenameDialog(null); // empty name or no-op rename
+      setNameDialog(null); // empty name (or a no-op rename to the same name)
       return;
     }
     setNameSubmitting(true);
     try {
       await initExplorerRuntime().request(request.method, request.params);
-      setRenameDialog(null);
+      // On a create, reveal the parent dir + select the new node so the user sees
+      // where it landed. Reveal subscribes the parent (its fresh snapshot, or the
+      // watcher's `added` delta if already subscribed, materializes the node); a
+      // rename stays in place, so nothing to reveal.
+      if (nameDialog.mode !== 'rename') {
+        const newRel = joinRel(nameDialog.targetDir, nameValue.trim());
+        reveal({ pe_id: nameDialog.peId, relative_path: nameDialog.targetDir });
+        select(peKey(nameDialog.peId, newRel));
+      }
+      setNameDialog(null);
     } catch {
-      Message.error(t('conversation.explorer.renameFailed'));
+      Message.error(t(nameDialogErrorKey(nameDialog.mode)));
     } finally {
       setNameSubmitting(false);
     }
@@ -496,6 +556,8 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             onOpenFile={handleOpenFile}
             onRename={handleRename}
             onDelete={handleDelete}
+            onNewFile={handleNewFile}
+            onNewDir={handleNewDir}
             onAddToChat={activeConversationId ? handleAddToChat : undefined}
             onRevealInFolder={handleRevealInFolder}
             onCopyRelativePath={handleCopyRelativePath}
@@ -511,11 +573,11 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
         </div>
       )}
       <Modal
-        title={t('conversation.explorer.contextMenu.rename')}
-        visible={renameDialog !== null}
-        onCancel={() => setRenameDialog(null)}
-        onOk={submitRenameDialog}
-        okText={t('common.save')}
+        title={nameDialog ? t(nameDialogTitleKey(nameDialog.mode)) : ''}
+        visible={nameDialog !== null}
+        onCancel={() => setNameDialog(null)}
+        onOk={submitNameDialog}
+        okText={t(nameDialog?.mode === 'rename' ? 'common.save' : 'common.create')}
         cancelText={t('common.cancel')}
         confirmLoading={nameSubmitting}
         autoFocus
@@ -525,7 +587,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           autoFocus
           value={nameValue}
           onChange={setNameValue}
-          onPressEnter={submitRenameDialog}
+          onPressEnter={submitNameDialog}
           placeholder={t('conversation.explorer.namePlaceholder')}
         />
       </Modal>

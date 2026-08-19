@@ -636,11 +636,15 @@
       "rename": "Umbenennen",
       "addToChat": "Zum Chat hinzufügen",
       "copyRelativePath": "Relativen Pfad kopieren",
-      "copyAbsolutePath": "Absoluten Pfad kopieren"
+      "copyAbsolutePath": "Absoluten Pfad kopieren",
+      "newFile": "Neue Datei",
+      "newDir": "Neuer Ordner"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
     "renameFailed": "Umbenennen fehlgeschlagen",
+    "newFileFailed": "Datei konnte nicht erstellt werden",
+    "newDirFailed": "Ordner konnte nicht erstellt werden",
     "tabs": {
       "files": "Dateien",
       "changes": "Änderungen"

@@ -635,11 +635,15 @@
       "rename": "تغییر نام",
       "addToChat": "افزودن به گفتگو",
       "copyRelativePath": "کپی کردن مسیر نسبی",
-      "copyAbsolutePath": "کپی کردن مسیر مطلق"
+      "copyAbsolutePath": "کپی کردن مسیر مطلق",
+      "newFile": "فایل جدید",
+      "newDir": "پوشه جدید"
     },
     "namePlaceholder": "نام",
     "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
     "renameFailed": "تغییر نام ناموفق بود",
+    "newFileFailed": "ایجاد فایل ناموفق بود",
+    "newDirFailed": "ایجاد پوشه ناموفق بود",
     "tabs": {
       "files": "پرونده‌ها",
       "changes": "تغییرات"
