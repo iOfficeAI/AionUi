@@ -23,15 +23,25 @@ vi.mock('@icon-park/react', () => ({
 
 import MermaidZoomOverlay from '@/renderer/components/Markdown/MermaidZoomOverlay';
 
-const SVG = '<svg style="max-width: 100%; height: auto; display: block;" width="200" height="100"></svg>';
+// jsdom viewport: 1024x768. With FIT_PADDING 80 the available box is 864x608;
+// the overlay caps the panel at 90vw (921.6px) x 85vh (652.8px).
+const SVG_WIDE =
+  '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 200 100" width="100%"></svg>';
+const SVG_TALL =
+  '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 100 200" width="100%"></svg>';
+const SVG_SQUARE =
+  '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 100 100" width="100%"></svg>';
 
-const getScale = (el: HTMLElement): number => {
-  const match = /scale\(([\d.]+)\)/.exec(el.style.transform);
-  if (!match) throw new Error(`no scale in transform: ${el.style.transform}`);
+const getContent = (): HTMLElement => screen.getByTestId('mermaid-zoom-content');
+
+// The host box carries plain pixel values (e.g. "864.0000000000001px").
+const getBoxPixels = (value: string): number => {
+  const match = /^([\d.]+)px$/.exec(value);
+  if (!match) throw new Error(`no box size in: ${value}`);
   return parseFloat(match[1]);
 };
 
-const renderOverlay = (onClose = vi.fn()) => render(<MermaidZoomOverlay svg={SVG} onClose={onClose} />);
+const renderOverlay = (onClose = vi.fn(), svg = SVG_WIDE) => render(<MermaidZoomOverlay svg={svg} onClose={onClose} />);
 
 describe('MermaidZoomOverlay', () => {
   it('renders toolbar controls and the interaction hint over the page', () => {
@@ -44,52 +54,63 @@ describe('MermaidZoomOverlay', () => {
     expect(screen.getByTestId('mermaid-zoom-hint')).toHaveTextContent('preview.mermaidZoomHint');
   });
 
-  it('lifts the inline max-width so the diagram keeps its natural size', () => {
-    renderOverlay();
-    const content = screen.getByTestId('mermaid-zoom-content');
-    expect(content.innerHTML).toContain('max-width: none');
-    expect(content.innerHTML).not.toContain('max-width: 100%');
+  it('fits a wide diagram by its width', () => {
+    renderOverlay(undefined, SVG_WIDE);
+    const content = getContent();
+    // fit = min(864/200, 608/100) = 4.32 -> 200x100 diagram at 864x432.
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(864);
+    expect(getBoxPixels(content.style.height)).toBeCloseTo(432);
+  });
+
+  it('fits a tall diagram by its height instead of stretching by width', () => {
+    renderOverlay(undefined, SVG_TALL);
+    const content = getContent();
+    // fit = min(864/100, 608/200) = 3.04 -> 100x200 diagram at 304x608.
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(304);
+    expect(getBoxPixels(content.style.height)).toBeCloseTo(608);
   });
 
   it('zooms in and out with the mouse wheel', () => {
-    renderOverlay();
+    renderOverlay(undefined, SVG_SQUARE);
     const overlay = screen.getByTestId('mermaid-zoom-overlay');
-    const content = screen.getByTestId('mermaid-zoom-content');
+    const content = getContent();
+    // fit = min(864/100, 608/100) = 6.08 -> 608x608.
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
 
     fireEvent.wheel(overlay, { deltaY: -100 });
-    expect(getScale(content)).toBeCloseTo(1.1);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(668.8);
 
     fireEvent.wheel(overlay, { deltaY: 100 });
-    expect(getScale(content)).toBeCloseTo(1);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
   });
 
-  it('clamps the scale between 0.1 and 10 when zooming with the wheel', () => {
-    renderOverlay();
+  it('clamps the scale between 0.1 and 10 and caps the panel at 90vw', () => {
+    renderOverlay(undefined, SVG_SQUARE);
     const overlay = screen.getByTestId('mermaid-zoom-overlay');
-    const content = screen.getByTestId('mermaid-zoom-content');
+    const content = getContent();
 
     for (let i = 0; i < 50; i += 1) fireEvent.wheel(overlay, { deltaY: -100 });
-    expect(getScale(content)).toBeCloseTo(10);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(921.6);
 
     for (let i = 0; i < 120; i += 1) fireEvent.wheel(overlay, { deltaY: 100 });
-    expect(getScale(content)).toBeCloseTo(0.1);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(10);
   });
 
   it('zooms with the toolbar buttons and resets to the fit scale', () => {
-    renderOverlay();
-    const content = screen.getByTestId('mermaid-zoom-content');
+    renderOverlay(undefined, SVG_SQUARE);
+    const content = getContent();
 
     fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-in'));
-    expect(getScale(content)).toBeCloseTo(1.2);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(729.6);
 
     fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-in'));
-    expect(getScale(content)).toBeCloseTo(1.44);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(875.52);
 
     fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-out'));
-    expect(getScale(content)).toBeCloseTo(1.2);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(729.6);
 
     fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-reset'));
-    expect(getScale(content)).toBeCloseTo(1);
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
   });
 
   it('closes on ESC', () => {
