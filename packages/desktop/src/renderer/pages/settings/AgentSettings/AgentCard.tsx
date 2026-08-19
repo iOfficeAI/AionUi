@@ -133,7 +133,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           style={{ flexShrink: 0, backgroundColor: avatar.kind === 'image' ? 'transparent' : 'var(--color-fill-2)' }}
         >
           {avatar.kind === 'image' ? (
-            <ThemedLogo src={avatar.value} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />
+            <ThemedLogo
+              src={avatar.value}
+              alt={agent.name}
+              // Arco Avatar forces color:var(--color-white); pin to theme text so
+              // the currentColor mask stays visible in light mode too.
+              style={{ width: 32, height: 32, objectFit: 'contain', color: 'var(--text-primary)' }}
+            />
           ) : avatar.kind === 'emoji' ? (
             <span className='text-18px leading-none'>{avatar.value}</span>
           ) : (

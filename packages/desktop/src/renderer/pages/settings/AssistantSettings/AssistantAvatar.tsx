@@ -35,7 +35,9 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
             src={avatarImage}
             alt=''
             className={`rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-            style={{ display: 'block', width: size, height: size }}
+            // Arco Avatar forces color:var(--color-white); pin to theme text so
+            // the currentColor mask stays visible in light mode too.
+            style={{ display: 'block', width: size, height: size, color: 'var(--text-primary)' }}
           />
         ) : hasEmojiAvatar ? (
           <span style={{ fontSize: emojiSize }}>{resolvedAvatar}</span>

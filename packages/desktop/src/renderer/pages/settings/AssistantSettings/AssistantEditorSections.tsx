@@ -86,7 +86,9 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
             src={avatar.value}
             alt={option.name}
             className='object-contain'
-            style={{ width: 20, height: 20 }}
+            // Arco Avatar forces color:var(--color-white); pin to theme text so
+            // the currentColor mask stays visible in light mode too.
+            style={{ width: 20, height: 20, color: 'var(--text-primary)' }}
           />
         ) : avatar.kind === 'emoji' ? (
           <span className='text-14px leading-none'>{avatar.value}</span>
