@@ -74,48 +74,34 @@ export const useConversationActions = ({
     [batchMode, toggleSelectedConversation, markAsRead, navigate, onSessionClick]
   );
 
-  const removeConversation = useCallback(
-    async (conversation_id: string) => {
-      const success = await ipcBridge.conversation.remove.invoke({ id: conversation_id });
-      if (!success) {
-        return false;
-      }
-
-      emitter.emit('conversation.deleted', conversation_id);
-      if (id === conversation_id) {
-        void navigate('/');
-      }
-      return true;
-    },
-    [id, navigate]
-  );
-
-  const handleBatchDelete = useCallback(() => {
+  const handleBatchArchive = useCallback(() => {
     if (selectedConversationIds.size === 0) {
       Message.warning(t('conversation.history.batchNoSelection'));
       return;
     }
 
     Modal.confirm({
-      title: t('conversation.history.batchDelete'),
-      content: t('conversation.history.batchDeleteConfirm', { count: selectedConversationIds.size }),
-      okText: t('conversation.history.confirmDelete'),
+      title: t('conversation.history.batchArchive'),
+      content: t('conversation.history.batchArchiveConfirm', { count: selectedConversationIds.size }),
+      okText: t('conversation.history.batchArchive'),
       cancelText: t('conversation.history.cancelDelete'),
       okButtonProps: { status: 'warning' },
       onOk: async () => {
         const selectedIds = Array.from(selectedConversationIds);
         try {
-          const results = await Promise.all(selectedIds.map((conversation_id) => removeConversation(conversation_id)));
-          const successCount = results.filter(Boolean).length;
+          await Promise.all(
+            selectedIds.map((conversation_id) =>
+              ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: conversation_id })
+            )
+          );
           emitter.emit('chat.history.refresh');
-          if (successCount > 0) {
-            Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
-          } else {
-            Message.error(t('conversation.history.deleteFailed'));
+          if (id && selectedConversationIds.has(id)) {
+            void navigate('/');
           }
+          Message.success(t('conversation.history.batchArchiveSuccess', { count: selectedIds.length }));
         } catch (error) {
-          console.error('Failed to batch delete conversations:', error);
-          Message.error(t('conversation.history.deleteFailed'));
+          console.error('Failed to batch archive conversations:', error);
+          Message.error(t('conversation.history.archiveFailed'));
         } finally {
           setSelectedConversationIds(new Set());
           onBatchModeChange?.(false);
@@ -125,7 +111,7 @@ export const useConversationActions = ({
       alignCenter: true,
       getPopupContainer: () => document.body,
     });
-  }, [onBatchModeChange, removeConversation, selectedConversationIds, t, setSelectedConversationIds]);
+  }, [id, navigate, onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -288,7 +274,7 @@ export const useConversationActions = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
-    handleBatchDelete,
+    handleBatchArchive,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,

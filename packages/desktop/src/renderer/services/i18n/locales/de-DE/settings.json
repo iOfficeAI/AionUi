@@ -1343,16 +1343,19 @@
     "clearFailed": "Browserdaten konnten nicht gelöscht werden"
   },
   "archived": {
-    "navLabel": "Archivierte Konversationen",
-    "title": "Archiv",
-    "description": "Von dir archivierte Unterhaltungen und Teams. Stelle sie in der Seitenleiste wieder her oder leere das Archiv, um sie dauerhaft zu löschen.",
+    "navLabel": "Archived conversations",
+    "title": "Archived",
+    "description": "Conversations and teams you archived. Restore them to the sidebar, or batch delete them permanently.",
     "empty": "Keine archivierten Elemente",
-    "clearAll": "Archiv leeren",
-    "clearConfirmTitle": "Archiv leeren?",
+    "noProject": "No project",
+    "chatCount": "{{count}} chats",
+    "contentSection": "Archived items",
+    "clearAll": "Delete all",
+    "clearConfirmTitle": "Delete all archived items?",
     "clearConfirmContent": "Dadurch werden alle archivierten Unterhaltungen und Teams dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
-    "clearSuccess": "Archiv geleert",
-    "clearFailed": "Archiv konnte nicht geleert werden",
-    "restore": "Wiederherstellen",
+    "clearSuccess": "All archived items deleted",
+    "clearFailed": "Failed to delete all archived items",
+    "restore": "Unarchive",
     "restoreSuccess": "Wiederhergestellt",
     "restoreFailed": "Wiederherstellung fehlgeschlagen",
     "delete": "Löschen",
@@ -1364,6 +1367,14 @@
     "restoreProject": "Alle wiederherstellen",
     "deleteProject": "Alle löschen",
     "deleteProjectConfirmTitle": "Alle archivierten Elemente löschen?",
-    "deleteProjectConfirmContent": "Alle archivierten Unterhaltungen und Teams unter „{{name}}“ werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden."
+    "deleteProjectConfirmContent": "Alle archivierten Unterhaltungen und Teams unter „{{name}}“ werden dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "multiSelect": "Batch manage",
+    "cancelSelect": "Cancel delete",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Batch delete",
+    "deleteSelectedConfirmTitle": "Delete selected archived items?",
+    "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
+    "deleteSelectedSuccess": "Selected archived items deleted",
+    "selectAll": "Select all"
   }
 }

@@ -1343,16 +1343,19 @@
     "clearFailed": "No se pudieron borrar los datos de navegación"
   },
   "archived": {
-    "navLabel": "Conversaciones archivadas",
-    "title": "Archivados",
-    "description": "Conversaciones y equipos que has archivado. Restáuralos en la barra lateral o vacía el archivo para eliminarlos permanentemente.",
+    "navLabel": "Archived conversations",
+    "title": "Archived",
+    "description": "Conversations and teams you archived. Restore them to the sidebar, or batch delete them permanently.",
     "empty": "No hay elementos archivados",
-    "clearAll": "Vaciar archivo",
-    "clearConfirmTitle": "¿Vaciar archivo?",
+    "noProject": "No project",
+    "chatCount": "{{count}} chats",
+    "contentSection": "Archived items",
+    "clearAll": "Delete all",
+    "clearConfirmTitle": "Delete all archived items?",
     "clearConfirmContent": "Esto elimina permanentemente todas las conversaciones y equipos archivados. No se puede deshacer.",
-    "clearSuccess": "Archivo vaciado",
-    "clearFailed": "No se pudo vaciar el archivo",
-    "restore": "Restaurar",
+    "clearSuccess": "All archived items deleted",
+    "clearFailed": "Failed to delete all archived items",
+    "restore": "Unarchive",
     "restoreSuccess": "Restaurado",
     "restoreFailed": "Error al restaurar",
     "delete": "Eliminar",
@@ -1364,6 +1367,14 @@
     "restoreProject": "Restaurar todo",
     "deleteProject": "Eliminar todo",
     "deleteProjectConfirmTitle": "¿Eliminar todos los elementos archivados?",
-    "deleteProjectConfirmContent": "Todas las conversaciones y equipos archivados de \"{{name}}\" se eliminarán permanentemente. Esta acción no se puede deshacer."
+    "deleteProjectConfirmContent": "Todas las conversaciones y equipos archivados de \"{{name}}\" se eliminarán permanentemente. Esta acción no se puede deshacer.",
+    "multiSelect": "Batch manage",
+    "cancelSelect": "Cancel delete",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Batch delete",
+    "deleteSelectedConfirmTitle": "Delete selected archived items?",
+    "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
+    "deleteSelectedSuccess": "Selected archived items deleted",
+    "selectAll": "Select all"
   }
 }

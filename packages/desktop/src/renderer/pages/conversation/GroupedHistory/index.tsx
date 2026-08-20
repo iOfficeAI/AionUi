@@ -190,7 +190,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
-    handleBatchDelete,
+    handleBatchArchive,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
@@ -408,9 +408,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
                 size='mini'
                 status='warning'
-                onClick={handleBatchDelete}
+                onClick={handleBatchArchive}
               >
-                {t('conversation.history.batchDelete')}
+                {t('conversation.history.batchArchive')}
               </Button>
             </div>
           </div>

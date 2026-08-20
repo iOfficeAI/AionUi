@@ -1345,16 +1345,19 @@
     "clearFailed": "閲覧データの消去に失敗しました"
   },
   "archived": {
-    "navLabel": "アーカイブした会話",
-    "title": "アーカイブ",
-    "description": "アーカイブした会話とチームです。サイドバーに復元するか、アーカイブを空にして完全に削除できます。",
+    "navLabel": "Archived conversations",
+    "title": "Archived",
+    "description": "Conversations and teams you archived. Restore them to the sidebar, or batch delete them permanently.",
     "empty": "アーカイブはありません",
-    "clearAll": "アーカイブを空にする",
-    "clearConfirmTitle": "アーカイブを空にしますか？",
+    "noProject": "No project",
+    "chatCount": "{{count}} chats",
+    "contentSection": "Archived items",
+    "clearAll": "Delete all",
+    "clearConfirmTitle": "Delete all archived items?",
     "clearConfirmContent": "アーカイブされたすべての会話とチームが完全に削除されます。この操作は取り消せません。",
-    "clearSuccess": "アーカイブを空にしました",
-    "clearFailed": "アーカイブの削除に失敗しました",
-    "restore": "復元",
+    "clearSuccess": "All archived items deleted",
+    "clearFailed": "Failed to delete all archived items",
+    "restore": "Unarchive",
     "restoreSuccess": "復元しました",
     "restoreFailed": "復元に失敗しました",
     "delete": "削除",
@@ -1366,6 +1369,14 @@
     "restoreProject": "すべて復元",
     "deleteProject": "すべて削除",
     "deleteProjectConfirmTitle": "アーカイブ項目をすべて削除しますか？",
-    "deleteProjectConfirmContent": "「{{name}}」内のアーカイブされたすべての会話とチームが完全に削除されます。この操作は元に戻せません。"
+    "deleteProjectConfirmContent": "「{{name}}」内のアーカイブされたすべての会話とチームが完全に削除されます。この操作は元に戻せません。",
+    "multiSelect": "Batch manage",
+    "cancelSelect": "Cancel delete",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Batch delete",
+    "deleteSelectedConfirmTitle": "Delete selected archived items?",
+    "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
+    "deleteSelectedSuccess": "Selected archived items deleted",
+    "selectAll": "Select all"
   }
 }

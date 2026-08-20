@@ -1344,16 +1344,19 @@
     "clearFailed": "Не вдалося очистити дані браузера"
   },
   "archived": {
-    "navLabel": "Архівовані чати",
-    "title": "Архів",
-    "description": "Заархівовані чати та команди. Відновіть їх на бічну панель або очистіть архів, щоб видалити назавжди.",
+    "navLabel": "Archived conversations",
+    "title": "Archived",
+    "description": "Conversations and teams you archived. Restore them to the sidebar, or batch delete them permanently.",
     "empty": "Немає заархівованих елементів",
-    "clearAll": "Очистити архів",
-    "clearConfirmTitle": "Очистити архів?",
+    "noProject": "No project",
+    "chatCount": "{{count}} chats",
+    "contentSection": "Archived items",
+    "clearAll": "Delete all",
+    "clearConfirmTitle": "Delete all archived items?",
     "clearConfirmContent": "Усі заархівовані чати та команди буде видалено назавжди. Цю дію не можна скасувати.",
-    "clearSuccess": "Архів очищено",
-    "clearFailed": "Не вдалося очистити архів",
-    "restore": "Відновити",
+    "clearSuccess": "All archived items deleted",
+    "clearFailed": "Failed to delete all archived items",
+    "restore": "Unarchive",
     "restoreSuccess": "Відновлено",
     "restoreFailed": "Не вдалося відновити",
     "delete": "Видалити",
@@ -1365,6 +1368,14 @@
     "restoreProject": "Відновити все",
     "deleteProject": "Видалити все",
     "deleteProjectConfirmTitle": "Видалити всі архівовані елементи?",
-    "deleteProjectConfirmContent": "Усі архівовані чати та команди в «{{name}}» будуть остаточно видалені. Цю дію не можна скасувати."
+    "deleteProjectConfirmContent": "Усі архівовані чати та команди в «{{name}}» будуть остаточно видалені. Цю дію не можна скасувати.",
+    "multiSelect": "Batch manage",
+    "cancelSelect": "Cancel delete",
+    "selectedCount": "{{count}} selected",
+    "deleteSelected": "Batch delete",
+    "deleteSelectedConfirmTitle": "Delete selected archived items?",
+    "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
+    "deleteSelectedSuccess": "Selected archived items deleted",
+    "selectAll": "Select all"
   }
 }
