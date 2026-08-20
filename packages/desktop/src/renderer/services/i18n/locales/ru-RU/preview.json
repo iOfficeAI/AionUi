@@ -54,6 +54,7 @@
   "noTabs": "Нет открытых вкладок",
   "openInPanelTooltip": "Просмотреть в панели предпросмотра",
   "mermaidTitle": "Диаграмма Mermaid",
+  "wavedromTitle": "Диаграмма WaveDrom",
   "oversized": {
     "title": "Файл слишком большой для предпросмотра",
     "detail": "Размер файла {{size}} превышает предел {{threshold}}. Откройте его в системном редакторе.",

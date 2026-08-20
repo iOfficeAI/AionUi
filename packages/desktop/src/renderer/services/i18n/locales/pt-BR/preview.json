@@ -52,6 +52,7 @@
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",
+  "wavedromTitle": "Diagrama WaveDrom",
   "oversized": {
     "title": "Arquivo muito grande para pré-visualizar",
     "detail": "O tamanho do arquivo {{size}} excede o limite de {{threshold}}. Abra-o em um editor do sistema.",

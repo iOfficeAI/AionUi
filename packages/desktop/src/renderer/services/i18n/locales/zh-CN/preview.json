@@ -52,6 +52,7 @@
   "noTabs": "暂无标签页",
   "openInPanelTooltip": "在预览面板中查看",
   "mermaidTitle": "Mermaid 图表",
+  "wavedromTitle": "WaveDrom 波形图",
   "oversized": {
     "title": "文件过大，无法预览",
     "detail": "文件尺寸 {{size}} 超过 {{threshold}}，请用系统编辑器打开。",

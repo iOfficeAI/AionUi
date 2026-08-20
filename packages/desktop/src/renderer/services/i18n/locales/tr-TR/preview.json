@@ -52,6 +52,7 @@
   "noTabs": "Açık sekme yok",
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",
+  "wavedromTitle": "WaveDrom Diyagramı",
   "oversized": {
     "title": "Dosya önizleme için çok büyük",
     "detail": "Dosya boyutu {{size}}, {{threshold}} sınırını aşıyor. Lütfen bir sistem düzenleyicisinde açın.",
