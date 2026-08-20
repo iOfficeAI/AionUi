@@ -64,6 +64,10 @@ export function useSessionMentionSearch(params: UseSessionMentionSearchParams) {
 
   const loadMore = useCallback(() => {
     if (!enabled || !nextCursor || loading) return;
+    // Shares the sequence guard with the first-page effect: a query change
+    // bumps the sequence, and appending a page fetched for the OLD query would
+    // splice unrelated conversations onto the new results.
+    const seq = requestSeqRef.current;
     setLoading(true);
     sessionMention.list
       .invoke({
@@ -74,13 +78,16 @@ export function useSessionMentionSearch(params: UseSessionMentionSearchParams) {
         cursor: nextCursor,
       })
       .then((data) => {
+        if (seq !== requestSeqRef.current) return;
         setItems((previous) => [...previous, ...(data?.items ?? [])]);
         setNextCursor(data?.next_cursor);
       })
       .catch(() => {
         // Keep the page already shown; the user can retry by typing.
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (seq === requestSeqRef.current) setLoading(false);
+      });
   }, [conversationId, enabled, loading, nextCursor, projectId, query]);
 
   return { items, loading, loadMore, hasMore: Boolean(nextCursor) };

@@ -86,6 +86,38 @@ describe('useSessionMentionSearch', () => {
     await waitFor(() => expect(result.current.hasMore).toBe(true));
   });
 
+  it('drops a page that lands after the query moved on', async () => {
+    // The picker pages on scroll, so a slow second page can land after the user
+    // has typed another character. Appending it would splice results for the old
+    // query onto the new list.
+    list.mockResolvedValueOnce({ items: [{ id: 'c1', name: 'auth', modified_at: 2 }], next_cursor: 'cur1' });
+    const { result, rerender } = renderHook(
+      (props: { query: string }) =>
+        useSessionMentionSearch({ query: props.query, conversationId: 'c0', enabled: true }),
+      { initialProps: { query: 'auth' } }
+    );
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+
+    // Assigned synchronously by the Promise executor below.
+    let releaseStalePage!: (value: unknown) => void;
+    list.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseStalePage = resolve;
+      })
+    );
+    result.current.loadMore();
+
+    // The query changes while that page is still in flight.
+    list.mockResolvedValue({ items: [{ id: 'c9', name: 'docs', modified_at: 1 }] });
+    rerender({ query: 'docs' });
+    await waitFor(() => expect(result.current.items.map((item) => item.id)).toEqual(['c9']));
+
+    releaseStalePage({ items: [{ id: 'c2', name: 'auth-2', modified_at: 1 }], next_cursor: 'cur2' });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(result.current.items.map((item) => item.id)).toEqual(['c9']);
+  });
+
   it('appends the next page instead of replacing the current one', async () => {
     list.mockResolvedValueOnce({ items: [{ id: 'c1', name: 'auth', modified_at: 2 }], next_cursor: 'cur1' });
     const { result } = renderHook(() => useSessionMentionSearch({ query: 'a', conversationId: 'c0', enabled: true }));

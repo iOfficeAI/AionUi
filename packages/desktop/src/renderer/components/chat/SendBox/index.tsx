@@ -31,6 +31,7 @@ import {
 } from '@/renderer/utils/chat/atSessionQuery';
 import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
+import { formatRelativeTime } from '@/renderer/utils/chat/relativeTime';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
@@ -340,7 +341,7 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -1828,7 +1829,10 @@ const SendBox: React.FC<{
               loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
               onHoverItem={setAtSessionMenuActiveIndex}
               onSelectItem={insertSelectedAtSession}
-              formatRelativeTime={(modifiedAt) => new Date(modifiedAt).toLocaleString()}
+              // Cursor paging: one page is 20, so without this the picker could
+              // only ever reach the 20 highest-ranked conversations.
+              onReachEnd={sessionMentionSearch.loadMore}
+              formatRelativeTime={(modifiedAt) => formatRelativeTime(modifiedAt, i18n.language)}
             />
           </div>
         )}
