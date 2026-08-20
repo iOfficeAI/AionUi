@@ -50,6 +50,10 @@ const SVG_TALL =
   '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 100 200" width="100%"></svg>';
 const SVG_SQUARE =
   '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 100 100" width="100%"></svg>';
+// WaveDrom roots carry fixed pixel width/height that would otherwise keep the
+// diagram smaller than the scaled card, top-left instead of centered.
+const SVG_FIXED_PX =
+  '<svg style="max-width: min(100%, 280px); height: auto; display: block;" viewBox="0 0 280 60" width="280" height="60" class="WaveDrom"></svg>';
 
 const getContent = (): HTMLElement => screen.getByTestId('diagram-zoom-content');
 
@@ -76,10 +80,25 @@ describe('DiagramZoomOverlay', () => {
     expect(screen.getByTestId('diagram-zoom-hint')).toHaveTextContent('preview.diagramZoomHint');
   });
 
-  it('strips the inline max-width so the diagram fills the sized panel', () => {
+  it('strips the inline max-width and makes the diagram fill the sized panel', () => {
     renderOverlay();
     const content = getContent();
-    expect(content.querySelector('svg')?.getAttribute('style')).not.toContain('max-width');
+    const style = content.querySelector('svg')?.getAttribute('style') || '';
+    expect(style).not.toContain('max-width');
+    expect(style).toContain('width: 100%; height: 100%;');
+  });
+
+  it('forces fixed-pixel diagram roots (WaveDrom) to fill the sized panel', () => {
+    renderOverlay(undefined, SVG_FIXED_PX);
+    const content = getContent();
+    const svg = content.querySelector('svg');
+    // The style rules override the fixed width/height presentation attributes.
+    expect(svg?.getAttribute('style')).toContain('width: 100%; height: 100%;');
+    expect(svg?.getAttribute('style')).not.toContain('max-width');
+    // Card sized from the viewBox (280x60) with a contain-fit: the larger side
+    // constrains the scale -> fit = min(864/280, 608/60) = 3.0857.
+    expect(getBoxPixels(content.style.width)).toBeCloseTo(864);
+    expect(getBoxPixels(content.style.height)).toBeCloseTo(185.14);
   });
 
   it('fits a wide diagram by its width', () => {
