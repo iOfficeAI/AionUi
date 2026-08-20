@@ -36,9 +36,10 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
 }));
 
-// FeedbackReportModal now reads useAuth() to offer a one-click "use account
-// email" button. Mock it with a mutable holder so individual tests can flip
-// between a logged-out user (button hidden) and one that carries an email.
+// FeedbackReportModal reads useAuth() to silently attach the signed-in user's
+// account email to the report. Mock it with a mutable holder so individual
+// tests can flip between a logged-out user (no email attached) and one that
+// carries an email.
 const authMock = vi.hoisted(() => ({
   user: null as { id: string; username: string; email?: string } | null,
 }));
@@ -268,39 +269,45 @@ describe('FeedbackReportModal — prefill', () => {
     expect(options.method).toBe('GET');
   });
 
-  it('renders the optional contact email field', () => {
-    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
-    expect(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder')).toBeInTheDocument();
-  });
-
-  it('flags the field and disables submit when the contact email is invalid', async () => {
+  it('attaches the signed-in account email to the feedback event', async () => {
+    authMock.user = { id: 'u1', username: 'user-one', email: '  me@account.com  ' };
     const user = userEvent.setup();
     renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} defaultModule='conversation-session' />);
 
     await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'something broke');
-    await user.type(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder'), 'not-an-email');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
 
-    // Invalid email surfaces the inline error and keeps submit disabled, so the
-    // report cannot be sent until it is fixed or cleared.
-    expect(screen.getByText('settings.bugReportContactEmailInvalid')).toBeInTheDocument();
-    expect(screen.getByText('settings.bugReportSubmit').closest('button')).toBeDisabled();
+    await waitFor(() => {
+      expect(sentryMocks.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    // The account email rides along on THIS event's scoped user (trimmed), with
+    // no visible field for the reporter to fill in or edit.
+    expect(sentryMocks.setUser).toHaveBeenCalledWith({ email: 'me@account.com' });
   });
 
-  it('hides the "use account email" button when the signed-in user has no email', () => {
+  it('submits without a scoped user when the signed-in user has no email', async () => {
     authMock.user = { id: 'u1', username: 'user-one' };
-    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
-    expect(screen.queryByTestId('btn-feedback-use-account-email')).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} defaultModule='conversation-session' />);
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'something broke');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
+
+    await waitFor(() => {
+      expect(sentryMocks.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sentryMocks.setUser).not.toHaveBeenCalled();
   });
 
-  it('fills the contact email from the account when the inline button is clicked', async () => {
+  it('no longer renders the contact email field or its account-fill button', () => {
     authMock.user = { id: 'u1', username: 'user-one', email: 'me@account.com' };
-    const user = userEvent.setup();
     renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
-
-    const useAccountBtn = screen.getByTestId('btn-feedback-use-account-email');
-    expect(useAccountBtn).toBeInTheDocument();
-    await user.click(useAccountBtn);
-
-    expect(screen.getByPlaceholderText('settings.bugReportContactEmailPlaceholder')).toHaveValue('me@account.com');
+    // Positive control: the description field still renders, so the modal mounted.
+    expect(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder')).toBeInTheDocument();
+    // The removed contact email input and its "use account email" button are gone.
+    expect(screen.queryByPlaceholderText('settings.bugReportContactEmailPlaceholder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-feedback-use-account-email')).not.toBeInTheDocument();
   });
 });
