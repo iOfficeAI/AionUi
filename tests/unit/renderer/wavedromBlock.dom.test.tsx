@@ -113,12 +113,15 @@ describe('WavedromBlock', () => {
       }
     );
     expect(stringifyMock).toHaveBeenCalledTimes(1);
+    // The backdrop comes from the theme state (not the --bg-1 token) so it can
+    // never drift away from the selected skin. (jsdom normalizes hex to rgb().)
+    expect(diagram.style.backgroundColor).toBe('rgb(249, 250, 251)');
   });
 
   it('uses the dark skin when the app theme is dark', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     render(<WavedromBlock code={VALID_WAVEJSON} />);
-    await screen.findByTestId('wavedrom-diagram');
+    const diagram = await screen.findByTestId('wavedrom-diagram');
     const [, , skin] = renderAnyMock.mock.calls[0];
     // The bundled dark skin's near-black fills are remapped to dark-theme-visible
     // colors before renderAny sees the skin.
@@ -128,6 +131,18 @@ describe('WavedromBlock', () => {
     expect(styleText).toContain('fill: #7a4ac0');
     expect(styleText).not.toContain('fill:#000000');
     expect(styleText).not.toContain('fill:#2e005e');
+    // White dark-skin strokes must land on the dark backdrop, never on a light
+    // panel (that is the "timing lines invisible" failure mode).
+    expect(diagram.style.backgroundColor).toBe('rgb(26, 26, 26)');
+  });
+
+  it('gives the zoom overlay card the same backdrop as the diagram', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    render(<WavedromBlock code={VALID_WAVEJSON} />);
+    const diagram = await screen.findByTestId('wavedrom-diagram');
+    fireEvent.click(diagram);
+    const card = await screen.findByTestId('diagram-zoom-content');
+    expect(card.style.background).toBe('rgb(26, 26, 26)');
   });
 
   it('remaps every near-black fill of the real bundled dark skin', async () => {

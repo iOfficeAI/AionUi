@@ -78,6 +78,16 @@ describe('DiagramZoomOverlay', () => {
     expect(screen.getByTestId('diagram-overlay-zoom-reset')).toBeInTheDocument();
     expect(screen.getByTestId('diagram-overlay-close')).toBeInTheDocument();
     expect(screen.getByTestId('diagram-zoom-hint')).toHaveTextContent('preview.diagramZoomHint');
+    // Without an explicit backdrop the card keeps the --bg-1 token default.
+    expect(getContent().style.background).toBe('var(--bg-1)');
+  });
+
+  it('uses the explicit panel background when provided (backdrop-dependent diagrams)', () => {
+    render(<DiagramZoomOverlay svg={SVG_WIDE} onClose={vi.fn()} ariaLabel='Diagram' panelBackground='#1a1a1a' />);
+    // WaveDrom's dark skin paints pure-white strokes, so the card must carry the
+    // dark backdrop even if the --bg-1 token resolves to the light value.
+    // (jsdom normalizes the hex color to rgb().)
+    expect(getContent().style.background).toBe('rgb(26, 26, 26)');
   });
 
   it('strips the inline max-width and makes the diagram fill the sized panel', () => {

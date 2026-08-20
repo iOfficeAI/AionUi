@@ -53,6 +53,19 @@ const DARK_SKIN_FILL_REMAP: Record<string, string> = {
   s15: '#7a4ac0', // '9'
 };
 
+// The dark skin's wave strokes are pure white (s1-s5), so the diagram backdrop
+// must always pair with the skin that was selected. Resolving it through the
+// --bg-1 token is not safe: when the variable falls back to the light value
+// (html without `data-color-scheme`, or a custom theme that overrides the
+// token), white strokes land on a white panel and the timing lines vanish.
+// Use the exact --bg-1 token values keyed by the same theme state that picks
+// the skin, so the pairing is guaranteed on every surface that renders the
+// diagram (inline, preview panel and zoom overlay alike).
+const PANEL_BG: Record<'light' | 'dark', string> = {
+  light: '#f9fafb', // --bg-1 light
+  dark: '#1a1a1a', // --bg-1 dark
+};
+
 /**
  * Replace the near-black `fill` values of the bundled dark skin's s6/s8-s15
  * classes with the dark-theme-visible palette above.
@@ -171,6 +184,9 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   }, [svg]);
 
   const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+  // Backdrop for the rendered diagram (and the zoom overlay card): must stay in
+  // lock-step with the skin, see PANEL_BG above.
+  const panelBackground = PANEL_BG[currentTheme];
   const summary = code
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -378,7 +394,7 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
             <div
               data-testid='wavedrom-diagram'
               style={{
-                backgroundColor: 'var(--bg-1)',
+                backgroundColor: panelBackground,
                 padding: '12px',
                 position: 'relative',
                 overflow: 'hidden',
@@ -405,7 +421,7 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
             <div
               data-testid='wavedrom-diagram'
               style={{
-                backgroundColor: 'var(--bg-1)',
+                backgroundColor: panelBackground,
                 padding: '12px',
                 overflowX: 'auto',
                 display: 'flex',
@@ -436,7 +452,12 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
         )}
       </div>
       {isZoomOpen && svg && (
-        <DiagramZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} ariaLabel={t('preview.wavedromTitle')} />
+        <DiagramZoomOverlay
+          svg={svg}
+          onClose={() => setIsZoomOpen(false)}
+          ariaLabel={t('preview.wavedromTitle')}
+          panelBackground={panelBackground}
+        />
       )}
     </div>
   );
