@@ -15,6 +15,13 @@ type DiagramZoomOverlayProps = {
   onClose: () => void;
   /** Accessible name for the dialog (e.g. the diagram type title). */
   ariaLabel: string;
+  /**
+   * Explicit card backdrop color. Diagram types whose strokes depend on the
+   * backdrop (WaveDrom: the dark skin paints pure-white lines) pass a
+   * deterministic color here so lines stay visible even when the --bg-1 token
+   * resolves to the wrong value; other types keep the token default.
+   */
+  panelBackground?: string;
 };
 
 const MIN_SCALE = 0.1;
@@ -79,7 +86,7 @@ const stripInlineMaxWidth = (svg: string): string =>
  * constrains the fit — a tall diagram fits by height instead of stretching
  * across the screen.
  */
-function DiagramZoomOverlay({ svg, onClose, ariaLabel }: DiagramZoomOverlayProps) {
+function DiagramZoomOverlay({ svg, onClose, ariaLabel, panelBackground }: DiagramZoomOverlayProps) {
   const { t } = useTranslation();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [base, setBase] = useState<DiagramSize | null>(null);
@@ -284,7 +291,7 @@ function DiagramZoomOverlay({ svg, onClose, ariaLabel }: DiagramZoomOverlayProps
         onPointerCancel={endPan}
         style={{
           padding: '12px',
-          background: 'var(--bg-1)',
+          background: panelBackground ?? 'var(--bg-1)',
           borderRadius: '8px',
           flexShrink: 0,
           cursor: isPanning ? 'grabbing' : 'grab',
