@@ -14,7 +14,7 @@ import { Copy, PreviewOpen, Refresh, ZoomIn, ZoomOut } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MermaidZoomOverlay from './MermaidZoomOverlay';
+import DiagramZoomOverlay from './DiagramZoomOverlay';
 import { withResponsiveSvg } from './markdownUtils';
 
 type MermaidBlockProps = {
@@ -441,7 +441,9 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
           />
         )}
       </div>
-      {isZoomOpen && svg && <MermaidZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} />}
+      {isZoomOpen && svg && (
+        <DiagramZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} ariaLabel={t('preview.mermaidTitle')} />
+      )}
     </div>
   );
 }

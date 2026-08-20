@@ -21,7 +21,7 @@ vi.mock('@icon-park/react', () => ({
   Refresh: makeIcon('refresh'),
 }));
 
-import MermaidZoomOverlay from '@/renderer/components/Markdown/MermaidZoomOverlay';
+import DiagramZoomOverlay from '@/renderer/components/Markdown/DiagramZoomOverlay';
 
 // jsdom lacks the pointer capture API used by the drag handlers.
 beforeAll(() => {
@@ -51,7 +51,7 @@ const SVG_TALL =
 const SVG_SQUARE =
   '<svg style="max-width: 100%; height: auto; display: block;" viewBox="0 0 100 100" width="100%"></svg>';
 
-const getContent = (): HTMLElement => screen.getByTestId('mermaid-zoom-content');
+const getContent = (): HTMLElement => screen.getByTestId('diagram-zoom-content');
 
 // The host box carries plain pixel values (e.g. "864.0000000000001px").
 const getBoxPixels = (value: string): number => {
@@ -60,17 +60,20 @@ const getBoxPixels = (value: string): number => {
   return parseFloat(match[1]);
 };
 
-const renderOverlay = (onClose = vi.fn(), svg = SVG_WIDE) => render(<MermaidZoomOverlay svg={svg} onClose={onClose} />);
+const renderOverlay = (onClose = vi.fn(), svg = SVG_WIDE, ariaLabel = 'Diagram') =>
+  render(<DiagramZoomOverlay svg={svg} onClose={onClose} ariaLabel={ariaLabel} />);
 
-describe('MermaidZoomOverlay', () => {
+describe('DiagramZoomOverlay', () => {
   it('renders toolbar controls and the interaction hint over the page', () => {
-    renderOverlay();
-    expect(screen.getByTestId('mermaid-zoom-overlay')).toBeInTheDocument();
-    expect(screen.getByTestId('mermaid-overlay-zoom-in')).toBeInTheDocument();
-    expect(screen.getByTestId('mermaid-overlay-zoom-out')).toBeInTheDocument();
-    expect(screen.getByTestId('mermaid-overlay-zoom-reset')).toBeInTheDocument();
-    expect(screen.getByTestId('mermaid-overlay-close')).toBeInTheDocument();
-    expect(screen.getByTestId('mermaid-zoom-hint')).toHaveTextContent('preview.mermaidZoomHint');
+    renderOverlay(undefined, SVG_WIDE, 'WaveDrom Diagram');
+    const overlay = screen.getByTestId('diagram-zoom-overlay');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveAttribute('aria-label', 'WaveDrom Diagram');
+    expect(screen.getByTestId('diagram-overlay-zoom-in')).toBeInTheDocument();
+    expect(screen.getByTestId('diagram-overlay-zoom-out')).toBeInTheDocument();
+    expect(screen.getByTestId('diagram-overlay-zoom-reset')).toBeInTheDocument();
+    expect(screen.getByTestId('diagram-overlay-close')).toBeInTheDocument();
+    expect(screen.getByTestId('diagram-zoom-hint')).toHaveTextContent('preview.diagramZoomHint');
   });
 
   it('strips the inline max-width so the diagram fills the sized panel', () => {
@@ -97,7 +100,7 @@ describe('MermaidZoomOverlay', () => {
 
   it('zooms in and out with the mouse wheel', () => {
     renderOverlay(undefined, SVG_SQUARE);
-    const overlay = screen.getByTestId('mermaid-zoom-overlay');
+    const overlay = screen.getByTestId('diagram-zoom-overlay');
     const content = getContent();
     // fit = min(864/100, 608/100) = 6.08 -> 608x608.
     expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
@@ -111,7 +114,7 @@ describe('MermaidZoomOverlay', () => {
 
   it('clamps the scale between 0.1 and 10 when zooming with the wheel', () => {
     renderOverlay(undefined, SVG_SQUARE);
-    const overlay = screen.getByTestId('mermaid-zoom-overlay');
+    const overlay = screen.getByTestId('diagram-zoom-overlay');
     const content = getContent();
 
     for (let i = 0; i < 50; i += 1) fireEvent.wheel(overlay, { deltaY: -100 });
@@ -123,7 +126,7 @@ describe('MermaidZoomOverlay', () => {
 
   it('keeps the diagram uncapped while the screen has room', () => {
     renderOverlay(undefined, SVG_SQUARE);
-    const overlay = screen.getByTestId('mermaid-zoom-overlay');
+    const overlay = screen.getByTestId('diagram-zoom-overlay');
     const content = getContent();
 
     // 608 * 1.1^5 would have exceeded the old 90vw panel cap; the card must keep
@@ -137,16 +140,16 @@ describe('MermaidZoomOverlay', () => {
     renderOverlay(undefined, SVG_SQUARE);
     const content = getContent();
 
-    fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-in'));
+    fireEvent.click(screen.getByTestId('diagram-overlay-zoom-in'));
     expect(getBoxPixels(content.style.width)).toBeCloseTo(729.6);
 
-    fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-in'));
+    fireEvent.click(screen.getByTestId('diagram-overlay-zoom-in'));
     expect(getBoxPixels(content.style.width)).toBeCloseTo(875.52);
 
-    fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-out'));
+    fireEvent.click(screen.getByTestId('diagram-overlay-zoom-out'));
     expect(getBoxPixels(content.style.width)).toBeCloseTo(729.6);
 
-    fireEvent.click(screen.getByTestId('mermaid-overlay-zoom-reset'));
+    fireEvent.click(screen.getByTestId('diagram-overlay-zoom-reset'));
     expect(getBoxPixels(content.style.width)).toBeCloseTo(608);
   });
 
@@ -173,17 +176,17 @@ describe('MermaidZoomOverlay', () => {
     const onClose = vi.fn();
     renderOverlay(onClose);
 
-    fireEvent.click(screen.getByTestId('mermaid-overlay-close'));
+    fireEvent.click(screen.getByTestId('diagram-overlay-close'));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByTestId('mermaid-zoom-overlay'));
+    fireEvent.click(screen.getByTestId('diagram-zoom-overlay'));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it('stays open when the diagram content itself is clicked', () => {
     const onClose = vi.fn();
     renderOverlay(onClose);
-    fireEvent.click(screen.getByTestId('mermaid-zoom-content'));
+    fireEvent.click(screen.getByTestId('diagram-zoom-content'));
     expect(onClose).not.toHaveBeenCalled();
   });
 });

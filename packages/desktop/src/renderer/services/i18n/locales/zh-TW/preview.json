@@ -168,5 +168,5 @@
   "zoomIn": "放大",
   "zoomOut": "縮小",
   "zoomReset": "重設視圖",
-  "mermaidZoomHint": "滾輪縮放 • 拖曳平移 • ESC 關閉"
+  "diagramZoomHint": "滾輪縮放 • 拖曳平移 • ESC 關閉"
 }

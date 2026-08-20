@@ -63,6 +63,10 @@ const makeIcon = vi.hoisted(
 vi.mock('@icon-park/react', () => ({
   Copy: makeIcon('copy'),
   PreviewOpen: makeIcon('preview-open'),
+  ZoomIn: makeIcon('zoom-in'),
+  ZoomOut: makeIcon('zoom-out'),
+  Refresh: makeIcon('refresh'),
+  Close: makeIcon('close'),
 }));
 
 import WavedromBlock from '@/renderer/components/Markdown/WavedromBlock';

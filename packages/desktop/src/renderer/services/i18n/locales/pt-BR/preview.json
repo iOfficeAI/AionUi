@@ -168,5 +168,5 @@
   "zoomIn": "Ampliar",
   "zoomOut": "Reduzir",
   "zoomReset": "Redefinir visualização",
-  "mermaidZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar"
+  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar"
 }
