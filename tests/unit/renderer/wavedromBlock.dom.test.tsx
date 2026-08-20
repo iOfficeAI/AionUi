@@ -20,8 +20,23 @@ vi.mock('wavedrom/skins/default.js', () => ({
   default: { default: { name: 'default-skin' } },
 }));
 
+// Realistic skin tree carrying the bundled dark skin's near-black style rules:
+// the module-level dark-skin remap in WavedromBlock must rewrite these fills
+// before renderAny receives the skin.
 vi.mock('wavedrom/skins/dark.js', () => ({
-  default: { dark: { name: 'dark-skin' } },
+  default: {
+    dark: [
+      'svg',
+      {},
+      [
+        'style',
+        {},
+        '.s6{fill:#000000;stroke:none;fill-opacity:1}.s8{color:#000;fill:#000;fill-opacity:1;stroke:none}.s9{color:#000;fill:#0010c0;fill-opacity:1;stroke:none}.s10{color:#000;fill:#2d6500;fill-opacity:1;stroke:none}.s11{color:#000;fill:#870500;fill-opacity:1;stroke:none}.s12{color:#000;fill:#007a80;fill-opacity:1;stroke:none}.s13{color:#000;fill:#680066;fill-opacity:1;stroke:none}.s14{color:#000;fill:#5f5f5f;fill-opacity:1;stroke:none}.s15{color:#000;fill:#2e005e;fill-opacity:1;stroke:none}',
+      ],
+      ['defs', {}, ''],
+      ['g', {}, ''],
+    ],
+  },
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
@@ -104,10 +119,27 @@ describe('WavedromBlock', () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     render(<WavedromBlock code={VALID_WAVEJSON} />);
     await screen.findByTestId('wavedrom-diagram');
-    expect(renderAnyMock).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.objectContaining({ signal: expect.any(Array) }),
-      { dark: { name: 'dark-skin' } }
+    const [, , skin] = renderAnyMock.mock.calls[0];
+    // The bundled dark skin's near-black fills are remapped to dark-theme-visible
+    // colors before renderAny sees the skin.
+    const styleText = ((skin as { dark: unknown[] }).dark[2] as unknown[])[2] as string;
+    expect(styleText).toContain('fill: #4a4a4a');
+    expect(styleText).toContain('fill: #3050b8');
+    expect(styleText).toContain('fill: #7a4ac0');
+    expect(styleText).not.toContain('fill:#000000');
+    expect(styleText).not.toContain('fill:#2e005e');
+  });
+
+  it('remaps every near-black fill of the real bundled dark skin', async () => {
+    const actual = await vi.importActual<typeof import('wavedrom/skins/dark.js')>('wavedrom/skins/dark.js');
+    const { remapDarkSkinStyle } = await import('@/renderer/components/Markdown/WavedromBlock');
+    const tree = actual.default.dark as unknown as [string, unknown, [string, unknown, string]];
+    const remapped = remapDarkSkinStyle(tree[2][2]);
+    expect(remapped).toContain('fill: #4a4a4a');
+    expect(remapped).toContain('fill: #3050b8');
+    expect(remapped).toContain('fill: #7a4ac0');
+    expect(remapped).not.toMatch(
+      /(\.s[0-9]+)\{[^}]*fill:\s*#(?:000000|000|0010c0|2d6500|870500|007a80|680066|5f5f5f|2e005e)/
     );
   });
 

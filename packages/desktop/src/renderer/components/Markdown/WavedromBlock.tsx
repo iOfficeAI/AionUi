@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-import WaveDrom, { type WaveSkin, type WaveSource } from 'wavedrom';
+import WaveDrom, { type OnmlTree, type WaveSkin, type WaveSource } from 'wavedrom';
 import waveSkinDark from 'wavedrom/skins/dark.js';
 import waveSkinDefault from 'wavedrom/skins/default.js';
 
@@ -36,6 +36,53 @@ type WavedromBlockProps = {
 // the DOM would otherwise accumulate when several diagrams share a message.
 let diagramIndex = 0;
 
+// The bundled dark skin is a mechanical "swap black for white" job: its
+// multi-bit value labels (s8-s15) and the gap fill (s6) are near-black, so they
+// disappear on AionUi's dark panel (--bg-1: #1a1a1a). Remap those fills to
+// mid-tone colors that stay visible on the dark background while keeping the
+// white label text readable; the bundled light skin needs no adjustment.
+const DARK_SKIN_FILL_REMAP: Record<string, string> = {
+  s6: '#4a4a4a', // gap (no signal)
+  s8: '#5c5c5c', // multi-bit value '2'
+  s9: '#3050b8', // '3'
+  s10: '#4a8a2a', // '4'
+  s11: '#b04a3a', // '5'
+  s12: '#1a8a90', // '6'
+  s13: '#8a3a8a', // '7'
+  s14: '#7a7a7a', // '8'
+  s15: '#7a4ac0', // '9'
+};
+
+/**
+ * Replace the near-black `fill` values of the bundled dark skin's s6/s8-s15
+ * classes with the dark-theme-visible palette above.
+ */
+export const remapDarkSkinStyle = (styleText: string): string => {
+  let remapped = styleText;
+  for (const [className, fill] of Object.entries(DARK_SKIN_FILL_REMAP)) {
+    remapped = remapped.replace(new RegExp(`\\.${className}\\{[^}]*\\}`, 'g'), (rule) =>
+      rule.replace(/fill:\s*#[0-9a-fA-F]{3,8}/, `fill: ${fill}`)
+    );
+  }
+  return remapped;
+};
+
+// Pre-compute a readable dark skin once: renderAny copies the skin's style text
+// verbatim into every rendered SVG, so remapping the shared tree covers the
+// inline diagram and the zoom overlay alike. Falls back to the bundled skin
+// when the shape is unexpected (e.g. stub skins in tests).
+const waveSkinDarkRemapped: WaveSkin = (() => {
+  const original = waveSkinDark.dark as unknown as OnmlTree | undefined;
+  if (!original) return waveSkinDark;
+  const styleElement = original[2];
+  if (Array.isArray(styleElement) && styleElement[0] === 'style' && typeof styleElement[2] === 'string') {
+    const tree = [...original] as OnmlTree;
+    tree[2] = [styleElement[0], styleElement[1], remapDarkSkinStyle(styleElement[2])];
+    return { dark: tree as unknown as Record<string, unknown> };
+  }
+  return waveSkinDark;
+})();
+
 const MIN_WAVE_SCALE = 0.25;
 const MAX_WAVE_SCALE = 4;
 const WAVE_ZOOM_STEP = 0.25;
@@ -51,7 +98,7 @@ const PAN_CLICK_THRESHOLD = 4;
  * not describe signal/assign/reg lanes falls back to the source view.
  */
 const renderWaveSvg = (code: string, isDark: boolean): string | null => {
-  const skin: WaveSkin = isDark ? waveSkinDark : waveSkinDefault;
+  const skin: WaveSkin = isDark ? waveSkinDarkRemapped : waveSkinDefault;
   try {
     const parsed: unknown = JSON5.parse(code.trim());
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
