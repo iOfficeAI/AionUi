@@ -50,6 +50,7 @@
   "noTabs": "Keine Tabs geöffnet",
   "openInPanelTooltip": "Im Vorschau-Panel anzeigen",
   "mermaidTitle": "Mermaid-Diagramm",
+  "wavedromTitle": "WaveDrom-Diagramm",
   "oversized": {
     "title": "Datei zu groß für die Vorschau",
     "detail": "Die Dateigröße {{size}} überschreitet das Limit von {{threshold}}. Bitte in einem Systemeditor öffnen.",

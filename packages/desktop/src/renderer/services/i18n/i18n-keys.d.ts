@@ -1400,6 +1400,7 @@ export type I18nKey =
   | 'preview.unsupported.detail'
   | 'preview.unsupported.downloadUnavailable'
   | 'preview.unsupported.title'
+  | 'preview.wavedromTitle'
   | 'preview.word.invalid'
   | 'preview.word.loadFailed'
   | 'preview.word.loading'

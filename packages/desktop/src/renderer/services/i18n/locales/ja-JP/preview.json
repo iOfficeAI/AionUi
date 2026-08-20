@@ -50,6 +50,7 @@
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
+  "wavedromTitle": "WaveDrom 波形図",
   "oversized": {
     "title": "ファイルが大きすぎてプレビューできません",
     "detail": "ファイルサイズ {{size}} が上限 {{threshold}} を超えています。システムのエディタで開いてください。",
