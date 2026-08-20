@@ -1,6 +1,9 @@
 export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
+export const WORKSPACE_OPEN_EVENT = 'aionui-workspace-open';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
+/** Requests the explorer sidebar to switch to the side-conversation tab. */
+export const EXPLORER_SHOW_SIDE_EVENT = 'aionui-explorer-show-side';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;
@@ -27,6 +30,21 @@ export function dispatchWorkspaceToggleEvent(): boolean {
   const event = new CustomEvent(WORKSPACE_TOGGLE_EVENT, { cancelable: true });
   window.dispatchEvent(event);
   return event.defaultPrevented;
+}
+
+/**
+ * Explicit-open request: expands the workspace / project panel if collapsed, but
+ * never toggles a visible panel closed (unlike {@link dispatchWorkspaceToggleEvent}).
+ */
+export function dispatchWorkspaceOpenEvent(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(WORKSPACE_OPEN_EVENT));
+}
+
+/** Ask every mounted ExplorerContainer to switch to the side-conversation tab. */
+export function dispatchExplorerShowSideEvent(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(EXPLORER_SHOW_SIDE_EVENT));
 }
 
 export function dispatchWorkspaceStateEvent(collapsed: boolean) {

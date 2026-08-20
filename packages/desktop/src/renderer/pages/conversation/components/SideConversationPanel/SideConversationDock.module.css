@@ -1,0 +1,39 @@
+.dock {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--bg-1);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-1) 90%, var(--bg-2));
+}
+
+.composerRail {
+  width: 100%;
+  margin: -4px auto 7px;
+  padding: 10px 0 4px;
+  transform: translateY(-4px);
+}
+
+.dock :global(.sendbox-panel--side) {
+  margin-top: -6px;
+  border-width: 1px !important;
+  border-color: var(--bg-3) !important;
+}
+
+.dock :global(.sendbox-root--side) {
+  transform: translateY(-4px);
+}
+
+.quickPromptsWrap {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}

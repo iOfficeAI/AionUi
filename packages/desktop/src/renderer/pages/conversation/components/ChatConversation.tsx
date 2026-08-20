@@ -7,6 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
+import { SideConversationControlProvider } from './SideConversationPanel/SideConversationControlContext';
+import { useSideConversationWiring } from './SideConversationPanel/useSideConversationWiring';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
@@ -150,6 +152,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   sliderTitle,
 }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
+  const sideWiring = useSideConversationWiring(conversation);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -172,9 +175,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     onSelectModel,
   });
   // Project conversations get the Layout-level Explorer column (stage3 FULL);
-  // ChatLayout's own right sider is only for no-project (legacy tree), so it does
-  // not double up or reserve an empty column.
-  const workspaceEnabled = Boolean(conversation.extra?.workspace) && !conversation.project_id;
+  // ChatLayout's own right sider is for no-project conversations: it hosts the
+  // side-conversation tab (ExplorerContainer no-project mode), so it must exist
+  // whenever side threads are supported even without a workspace folder.
+  const workspaceEnabled =
+    (Boolean(conversation.extra?.workspace) || sideWiring.enableSide) && !conversation.project_id;
   const cronJobId = resolveCronJobId(conversation.extra);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = presetAssistantInfo?.assistantId;
@@ -235,23 +240,25 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
-      <AionrsChat
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        modelSelection={modelSelection}
-        session_mode={conversation.extra?.session_mode}
-        cron_job_id={cronJobId}
-        loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-        loadedMcpStatuses={
-          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-        }
-        agent_name={presetAssistantInfo?.name}
-        assistantId={aionrsAssistantId}
-        forkCapability={conversation.fork_capability}
-      />
-    </ChatLayout>
+    <SideConversationControlProvider value={sideWiring.sideControlValue}>
+      <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
+        <AionrsChat
+          conversation_id={conversation.id}
+          workspace={conversation.extra.workspace}
+          modelSelection={modelSelection}
+          session_mode={conversation.extra?.session_mode}
+          cron_job_id={cronJobId}
+          loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+          loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+          loadedMcpStatuses={
+            (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+          }
+          agent_name={presetAssistantInfo?.name}
+          assistantId={aionrsAssistantId}
+          forkCapability={conversation.fork_capability}
+        />
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 
@@ -268,7 +275,11 @@ const ChatConversation: React.FC<{
     [conversation?.id]
   );
   useActiveLease({ type: 'conversation', id: conversation?.id });
-  const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
+  const sideWiring = useSideConversationWiring(conversation);
+  // No-project conversations still get the right sider when side threads are
+  // supported — it hosts the 侧边会话 tab (ExplorerContainer no-project mode).
+  const workspaceEnabled =
+    (Boolean(conversation?.extra?.workspace) || sideWiring.enableSide) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -335,12 +346,17 @@ const ChatConversation: React.FC<{
   ]);
 
   const sliderTitle = useMemo(() => {
+    // The no-project sider hosts only the side-conversation tab, so title it
+    // accordingly when there is no workspace folder.
+    const hasWorkspace = Boolean(conversation?.extra?.workspace);
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+        <span className='text-16px font-bold text-t-primary'>
+          {hasWorkspace ? t('conversation.workspace.title') : t('conversation.sideConversation.title')}
+        </span>
       </div>
     );
-  }, [t]);
+  }, [t, conversation?.extra?.workspace]);
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
@@ -405,23 +421,25 @@ const ChatConversation: React.FC<{
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      previewHosted={Boolean(conversation?.project_id)}
-      workspacePath={conversation?.extra?.workspace}
-      workspacePreferenceKey={conversation?.project_id}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    <SideConversationControlProvider value={sideWiring.sideControlValue}>
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        previewHosted={Boolean(conversation?.project_id)}
+        workspacePath={conversation?.extra?.workspace}
+        workspacePreferenceKey={conversation?.project_id}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 

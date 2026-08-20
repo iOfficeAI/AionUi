@@ -13,6 +13,7 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useSideConversationControlSafe } from '@/renderer/pages/conversation/components/SideConversationPanel/SideConversationControlContext';
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
@@ -33,7 +34,7 @@ import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils
 import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
 import { isMacOS } from '@/renderer/utils/platform';
 import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, Plus, Quote } from '@icon-park/react';
+import { CloseSmall, Comments, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
@@ -62,6 +63,7 @@ const constVoid = (): void => undefined;
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+const SIDE_COMMAND_RE = /^\/side(?:\s+([\s\S]*))?$/i;
 const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
@@ -213,6 +215,11 @@ function extractBtwQuestion(value: string): string | null {
   return match ? match[1] || '' : null;
 }
 
+function extractSideSlashQuestion(value: string): string | null {
+  const match = value.trim().match(SIDE_COMMAND_RE);
+  return match ? match[1] || '' : null;
+}
+
 const SendBox: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
@@ -246,6 +253,19 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
+  /**
+   * Side conversation entry for THIS send box. Omit to inherit from the
+   * surrounding `SideConversationControlContext` (main chat surface).
+   */
+  enableSide?: boolean;
+  onOpenSide?: (firstQuestion?: string) => void;
+  /**
+   * When set, this instance is the only handler for scoped composer fills
+   * targeting this conversation (side dock child composers).
+   */
+  conversationScopeId?: string;
+  /** Marks this box as a side-dock child composer (no nested side triggers). */
+  isSideComposer?: boolean;
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
@@ -296,6 +316,10 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
   enableBtw = false,
+  enableSide: enableSideProp,
+  onOpenSide: onOpenSideProp,
+  conversationScopeId,
+  isSideComposer = false,
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
@@ -349,9 +373,36 @@ const SendBox: React.FC<{
   const fetchedAtFileSessionKeyRef = useRef<string | null>(null);
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
-  // Listen for reply events from message actions
-  useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
-  useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
+  // Listen for reply events from message actions. Global reply events target
+  // the MAIN composer; a scoped side composer (conversationScopeId set)
+  // ignores them so main-thread replies never leak chips into the side dock.
+  useAddEventListener(
+    'sendbox.reply',
+    (quote) => {
+      if (conversationScopeId) return;
+      setReplyQuote(quote);
+    },
+    [conversationScopeId]
+  );
+  useAddEventListener(
+    'sendbox.reply.clear',
+    () => {
+      if (conversationScopeId) return;
+      setReplyQuote(null);
+    },
+    [conversationScopeId]
+  );
+  // Scoped quote delivery: attach the selected text to this side composer as
+  // a reply-quote chip (not as input text), then ack so retries stop.
+  useAddEventListener(
+    'sendbox.reply.scoped',
+    ({ conversation_id, quote }) => {
+      if (!conversationScopeId || conversation_id !== conversationScopeId) return;
+      setReplyQuote(quote);
+      emitter.emit('sendbox.reply.scoped.handled', { conversation_id, content: quote.content });
+    },
+    [conversationScopeId]
+  );
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -483,8 +534,42 @@ const SendBox: React.FC<{
     t,
     messageApi: message,
   });
+  // Side conversation entry: an explicit prop wins (direct wiring), otherwise
+  // inherit from the surface's SideConversationControlContext. Side-dock child
+  // composers and already-side surfaces never open nested side threads.
+  const sideControl = useSideConversationControlSafe();
+  const effectiveEnableSide = enableSideProp || sideControl?.enableSide;
+  const canOpenSide =
+    Boolean(effectiveEnableSide) && !isSideComposer && !conversationContext?.isSideConversation && !isMobileCompact;
+  const effectiveOnOpenSide = onOpenSideProp ?? sideControl?.onOpenSide;
+  const sideSlashQuestion = useMemo(() => (canOpenSide ? extractSideSlashQuestion(input) : null), [canOpenSide, input]);
   const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  // Scoped composer fill: only the side child composer whose conversation id
+  // matches consumes the event, then acks so the sender stops retrying.
+  // Re-subscribes when the scope changes (side tab switch).
+  useAddEventListener(
+    'sendbox.fill.scoped',
+    ({ conversation_id, text }) => {
+      if (!conversationScopeId || conversation_id !== conversationScopeId) return;
+      setInputRef.current(text);
+      setIsSingleLine(false);
+      emitter.emit('sendbox.fill.scoped.handled', { conversation_id, text });
+    },
+    [conversationScopeId]
+  );
+  // Ctrl/Cmd + Shift + S opens the side conversation dock.
+  useEffect(() => {
+    if (!canOpenSide || !effectiveOnOpenSide) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.shiftKey && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        effectiveOnOpenSide();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canOpenSide, effectiveOnOpenSide]);
   const activeAtFileQuery = useMemo(() => {
     if (!conversationContext?.workspace) {
       return null;
@@ -541,6 +626,15 @@ const SendBox: React.FC<{
         selectionBehavior: 'insert',
       });
     }
+    if (canOpenSide) {
+      commands.push({
+        name: 'side',
+        description: t('conversation.sideConversation.description'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
+    }
     if (onSlashBuiltinCommand) {
       commands.push({
         name: 'open',
@@ -562,7 +656,7 @@ const SendBox: React.FC<{
       // kept intact for a future per-platform re-enable.
     }
     return commands;
-  }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
+  }, [canOpenSide, conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
 
   // Skills loaded into this conversation are also invokable via slash. We reuse
   // the global skills index (shared SWR key `skills-index`) purely to attach a
@@ -1333,6 +1427,16 @@ const SendBox: React.FC<{
       void btwCommand.ask(normalizedQuestion);
       return;
     }
+    // `/side [question]` opens a forked side thread seeded with the question
+    // instead of sending into the main conversation.
+    if (canOpenSide && sideSlashQuestion !== null) {
+      const question = sideSlashQuestion.trim();
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
+      setInput('');
+      void effectiveOnOpenSide?.(question || undefined);
+      return;
+    }
 
     if (!allowSendWhileLoading && (isLoading || loading)) {
       console.info('[sendbox]', {
@@ -1571,7 +1675,26 @@ const SendBox: React.FC<{
   // On mobile compact mode, the parent supplies the action sheet — collapse
   // tools/rightTools into the `+` launcher while keeping voice input accessible.
   const renderedTools = isMobileCompact ? mobilePlusButton : tools;
-  const renderedRightTools = isMobileCompact ? null : rightTools;
+  const sideTriggerButton =
+    canOpenSide && effectiveOnOpenSide ? (
+      <Tooltip content={t('conversation.sideConversation.trigger')} mini>
+        <Button
+          size='mini'
+          type='text'
+          className='side-btn-text'
+          data-testid='sendbox-side-trigger'
+          onClick={() => void effectiveOnOpenSide()}
+          aria-label={t('conversation.sideConversation.trigger')}
+          icon={<Comments theme='outline' size={16} fill='currentColor' />}
+        />
+      </Tooltip>
+    ) : null;
+  const renderedRightTools = isMobileCompact ? null : (
+    <>
+      {sideTriggerButton}
+      {rightTools}
+    </>
+  );
   const renderedSpeechButton = (
     <SpeechInputButton onLiveTranscript={handleLiveTranscript} onTranscript={handleSpeechTranscript} />
   );
@@ -1631,7 +1754,11 @@ const SendBox: React.FC<{
       )}
       <div
         ref={containerRef}
-        className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
+        className={
+          isSideComposer
+            ? `sendbox-panel sendbox-panel--side relative flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`
+            : `sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`
+        }
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging

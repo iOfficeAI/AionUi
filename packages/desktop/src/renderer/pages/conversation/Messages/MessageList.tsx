@@ -6,6 +6,7 @@
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { messagesAfterForkBoundary } from '@/common/chat/forkBoundary';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
@@ -352,6 +353,13 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const scrollerElementRef = useRef<HTMLDivElement | null>(null);
   const contentElementRef = useRef<HTMLDivElement | null>(null);
 
+  // Side-dock fork children hide the history copied from the parent (see
+  // messagesAfterForkBoundary): only the thread's own turns render.
+  const visibleList = useMemo(
+    () => messagesAfterForkBoundary(list, conversationContext?.sideForkBoundaryMsgId),
+    [conversationContext?.sideForkBoundaryMsgId, list]
+  );
+
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
@@ -400,8 +408,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       result.push(message);
     };
 
-    for (let i = 0, len = list.length; i < len; i++) {
-      const message = list[i];
+    for (let i = 0, len = visibleList.length; i < len; i++) {
+      const message = visibleList[i];
       // Skip hidden and available_commands messages
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
@@ -452,7 +460,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return [...result, ...visibleArtifacts].toSorted(
       (a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b)
     );
-  }, [artifacts, list]);
+  }, [artifacts, visibleList]);
 
   // An AI reply can be split into several messages (thinking / multiple text /
   // tool blocks). The hover copy + timestamp row should appear once per turn,

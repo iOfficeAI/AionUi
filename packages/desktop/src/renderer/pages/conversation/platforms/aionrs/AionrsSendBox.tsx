@@ -120,7 +120,17 @@ const AionrsSendBox: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
+  /** Side-dock mode: compact layout, scoped composer fill, no side triggers. */
+  isSideMode?: boolean;
+}> = ({
+  conversation_id,
+  modelSelection,
+  session_mode,
+  agent_name,
+  teamSendMessage,
+  teamRuntime,
+  isSideMode = false,
+}) => {
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -706,7 +716,11 @@ const AionrsSendBox: React.FC<{
   const sendBoxWidthClass = getChatSurfaceWidthClass();
 
   return (
-    <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
+    <div
+      className={
+        isSideMode ? 'w-full flex flex-col mt-auto mb-12px' : `${sendBoxWidthClass} flex flex-col mt-auto mb-16px`
+      }
+    >
       <CommandQueuePanel
         items={queuedCommands}
         mode={queueMode}
@@ -754,17 +768,23 @@ const AionrsSendBox: React.FC<{
             : undefined
         }
         placeholder={
-          current_model?.use_model
-            ? t('acp.sendbox.placeholder', {
-                backend: agent_name || 'AionCLI',
-                defaultValue: `Send message to {{backend}}...`,
-              })
-            : t('conversation.chat.noModelSelected')
+          isSideMode
+            ? t('conversation.sideConversation.placeholder')
+            : current_model?.use_model
+              ? t('acp.sendbox.placeholder', {
+                  backend: agent_name || 'AionCLI',
+                  defaultValue: `Send message to {{backend}}...`,
+                })
+              : t('conversation.chat.noModelSelected')
         }
         onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
+        conversationScopeId={isSideMode ? conversation_id : undefined}
+        isSideComposer={isSideMode}
+        compactActions={isSideMode}
+        bottomHint={isSideMode ? '' : undefined}
         supportedExts={allSupportedExts}
         defaultMultiLine={!isMobile}
         lockMultiLine={!isMobile}

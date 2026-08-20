@@ -11,7 +11,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
-import { Copy } from '@icon-park/react';
+import { Copy, Quote } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +85,24 @@ export const parseTeamContextResetNotice = (content: string): TeamContextResetNo
 
 const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
 const MARKDOWN_ATTACHMENT_LINE_PATTERN = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>\s?|```|~~~|\|)/;
+
+/**
+ * Split a leading reply-quote block off a user message. The send box delivers
+ * selection quotes by prepending `> line` rows + a blank line to the outgoing
+ * text (wire format, kept unchanged so the model still sees the quote); side
+ * conversations render that prefix as a capsule chip instead of raw "> " lines.
+ * Returns `quote: null` when the content does not start with such a block.
+ */
+export const splitLeadingReplyQuote = (content: string): { quote: string | null; text: string } => {
+  const match = content.match(/^(?:> ?[^\n]*(?:\n|$))+\n/);
+  if (!match) return { quote: null, text: content };
+  const quote = match[0]
+    .split('\n')
+    .filter((line) => line.startsWith('>'))
+    .map((line) => line.replace(/^> ?/, ''))
+    .join('\n');
+  return { quote, text: content.slice(match[0].length) };
+};
 
 const parseFileMarker = (content: string, canParseFileMarker: boolean): ParsedFileMarker => {
   if (!canParseFileMarker) {
@@ -225,9 +243,18 @@ const MessageText: React.FC<{
         { memberName: contextResetNotice.member_name }
       )
     : text;
+  const conversationContext = useConversationContextSafe();
+  // Side conversations render the send box's leading reply-quote block as a
+  // capsule chip on the bubble instead of raw "> " lines. Render-only: the
+  // stored text (and the copy button) keep the full wire format.
+  const sideReplyQuote = useMemo(() => {
+    if (!isUserMessage || !conversationContext?.isSideConversation) return null;
+    const parsed = splitLeadingReplyQuote(text);
+    return parsed.quote !== null ? parsed : null;
+  }, [isUserMessage, conversationContext?.isSideConversation, text]);
+  const displayText = sideReplyQuote ? sideReplyQuote.text : renderedText;
   const { data, json } = useFormatContent(renderedText);
   const shouldRenderPlainText = isUserMessage || Boolean(contextResetNotice);
-  const conversationContext = useConversationContextSafe();
   const forkConversation = useForkConversation(conversationContext?.conversation_id);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -350,7 +377,17 @@ const MessageText: React.FC<{
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap [overflow-wrap:anywhere]' data-testid='message-text-content'>
-              {renderedText}
+              {sideReplyQuote && (
+                <div
+                  className='flex items-center gap-4px w-fit max-w-full mb-4px px-8px py-2px rd-999px text-12px leading-normal bg-1 border border-[var(--bg-3)] text-t-secondary select-none whitespace-nowrap'
+                  title={sideReplyQuote.quote}
+                  data-testid='side-reply-quote-capsule'
+                >
+                  <Quote theme='outline' size={12} className='flex-shrink-0' />
+                  <span className='min-w-0 truncate'>{sideReplyQuote.quote}</span>
+                </div>
+              )}
+              {displayText}
             </div>
           ) : json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>

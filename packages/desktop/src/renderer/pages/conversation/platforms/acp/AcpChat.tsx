@@ -43,6 +43,12 @@ const AcpChat: React.FC<{
   assistantId?: string;
   forkCapability?: { at_turn: boolean };
   promptCapability?: { image: boolean; audio: boolean };
+  /** Side-dock mode: compact paddings, composer prefix slot, side send box. */
+  isSideMode?: boolean;
+  /** Rendered above the send box (side dock quick prompts). */
+  composerPrefix?: React.ReactNode;
+  /** Fork anchor of a side child — hides inherited history (see ConversationContext). */
+  sideForkBoundaryMsgId?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -60,6 +66,9 @@ const AcpChat: React.FC<{
   assistantId,
   forkCapability,
   promptCapability,
+  isSideMode = false,
+  composerPrefix,
+  sideForkBoundaryMsgId,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -83,24 +92,32 @@ const AcpChat: React.FC<{
         assistantId,
         forkCapability,
         promptCapability,
+        isSideConversation: isSideMode,
+        sideForkBoundaryMsgId,
       }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>
-        <div className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col px-20px min-h-0`}>
+        <div
+          className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col ${isSideMode ? 'px-12px' : 'px-20px'} min-h-0`}
+        >
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
           {!hideSendBox && (
-            <AcpSendBox
-              conversation_id={conversation_id}
-              backend={backend}
-              session_mode={session_mode}
-              agent_name={agent_name}
-              messageState={messageState}
-              teamSendMessage={teamSendMessage}
-              teamRuntime={teamRuntime}
-            ></AcpSendBox>
+            <>
+              {composerPrefix}
+              <AcpSendBox
+                conversation_id={conversation_id}
+                backend={backend}
+                session_mode={session_mode}
+                agent_name={agent_name}
+                messageState={messageState}
+                teamSendMessage={teamSendMessage}
+                teamRuntime={teamRuntime}
+                isSideMode={isSideMode}
+              ></AcpSendBox>
+            </>
           )}
         </div>
       </ConversationArtifactProvider>

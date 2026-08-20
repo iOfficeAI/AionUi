@@ -14,15 +14,23 @@
  * Scope: data wiring + tree + attach/remove + the Files/Changes tabs, plus the
  * persistent filename-search area at the top of the Files tab (fs/search →
  * reveal / explicit add-to-chat; see {@link SearchPanel}).
+ *
+ * It also hosts the 侧边会话 (side-conversation) tab: thread badge + switch/
+ * close/new/promote dropdown + the panel content node, all arriving via the
+ * module-level `sideConversationUiStore` (the state machine lives in the
+ * ChatConversation subtree, unreachable by context from the Layout-level host).
+ * Without a `projectId` the container hosts ONLY the side tab (pure-chat
+ * conversations) and renders nothing when side conversations are unsupported.
  */
 
-import { Button, Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
-import { FolderPlus } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import { Badge, Button, Dropdown, Input, Menu, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
+import { Close, Down, Export, FolderPlus, Plus } from '@icon-park/react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
-import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
+import { EXPLORER_SHOW_SIDE_EVENT, dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
+import { useSideConversationUi } from '@/renderer/pages/conversation/components/SideConversationPanel/sideConversationUiStore';
 
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
@@ -64,8 +72,10 @@ import type { SearchHit } from './search/searchModel';
 import { ScmPanel } from '../SourceControl/ScmPanel';
 
 export type ExplorerContainerProps = {
-  /** Owning project id — scopes the store's fact cache + localStorage UI state. */
-  projectId: string;
+  /** Owning project id — scopes the store's fact cache + localStorage UI state.
+   * Omitted for no-project conversations: the container then hosts ONLY the
+   * side-conversation tab (no files/changes). */
+  projectId?: string;
 };
 
 /** A local absolute path → `file://` URI (normalize `\`, ensure leading slash, encode). */
@@ -251,7 +261,38 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // unmounts the inactive one for `changes`, which is safe because the SCM
   // subscription is owned by its store per project, not by the component's mount
   // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
-  const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
+  // 'side' = the side-conversation thread panel; its state lives in the
+  // per-conversation ChatConversation subtree and reaches this container (Layout-
+  // level host for project conversations) through the sideConversationUiStore.
+  const [activeTab, setActiveTab] = useState<'files' | 'changes' | 'side'>(projectId ? 'files' : 'side');
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const sideUi = useSideConversationUi();
+  // The store snapshot is global (one active conversation); this container only
+  // reacts when the snapshot belongs to the conversation currently routed here.
+  const sideAvailable = Boolean(sideUi && activeConversationId && sideUi.parentId === activeConversationId);
+  const side = sideAvailable ? sideUi : null;
+  const sideAvailableRef = useRef(sideAvailable);
+  sideAvailableRef.current = sideAvailable;
+
+  // Side entry points (SendBox trigger, shortcut, /side, selection ask) ask the
+  // sidebar to reveal the side tab via this event.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => {
+      if (sideAvailableRef.current) setActiveTab('side');
+    };
+    window.addEventListener(EXPLORER_SHOW_SIDE_EVENT, handler);
+    return () => window.removeEventListener(EXPLORER_SHOW_SIDE_EVENT, handler);
+  }, []);
+
+  // Conversation switch while the side tab is active (the project host persists
+  // across same-project switches): fall back to files when the new conversation
+  // has no side support.
+  useEffect(() => {
+    if (activeTab === 'side' && !sideAvailable && projectId) {
+      setActiveTab('files');
+    }
+  }, [activeTab, sideAvailable, projectId]);
   // One dialog for rename / new-file / new-folder (see NameDialogState); the
   // `mode` discriminant drives the title, ok label, request builder, and the
   // post-create reveal below.
@@ -454,11 +495,12 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
-  if (!projectId) return null;
   // Spin only while the CURRENT project's detail is still loading. A stale value
   // for a different project (detail undefined) falls through to empty roots, not
   // another project's tree.
-  if (!detail && isLoading) return <Spin loading />;
+  if (projectId && !detail && isLoading) return <Spin loading />;
+  // No project and no side support → nothing to host (legacy empty sider).
+  if (!projectId && !side) return null;
 
   const roots = detail ? toRootRefs(detail) : [];
   // Search roots = the project's pe roots (each folder root, rel=''). fs/search
@@ -482,9 +524,106 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     </Button>
   );
 
+  // ── Side-conversation tab (badge + switch/close/new/promote dropdown) ─────
+  const threadCount = side?.threads.length ?? 0;
+  const activeThread = side?.threads.find((thread) => thread.id === side.activeThreadId);
+  const SIDE_MENU_NEW = '__side_new__';
+  const SIDE_MENU_PROMOTE = '__side_promote__';
+
+  const sideMenu = side ? (
+    <Menu
+      className='max-h-320px overflow-y-auto'
+      selectedKeys={side.activeThreadId ? [side.activeThreadId] : []}
+      onClickMenuItem={(key) => {
+        if (key === SIDE_MENU_NEW) {
+          side.openNewTab();
+          return;
+        }
+        if (key === SIDE_MENU_PROMOTE) {
+          side.promoteCurrent();
+          return;
+        }
+        side.selectTab(key);
+      }}
+    >
+      {side.threads.map((thread, index) => (
+        <Menu.Item key={thread.id}>
+          <div className='flex items-center gap-4px min-w-0'>
+            <span className='flex-1 min-w-0 truncate'>
+              {thread.label ?? t('conversation.sideConversation.tabLabel', { index: index + 1 })}
+            </span>
+            <Button
+              type='text'
+              size='mini'
+              className='!px-2px flex-shrink-0'
+              icon={<Close theme='outline' size={12} />}
+              aria-label={t('conversation.sideConversation.closeTab')}
+              onClick={(event) => {
+                // Keep the dropdown open so several threads can be closed in a row.
+                event.stopPropagation();
+                side.discardTab(thread.id);
+              }}
+            />
+          </div>
+        </Menu.Item>
+      ))}
+      <Menu.Item
+        key={SIDE_MENU_NEW}
+        className={side.threads.length > 0 ? 'border-t border-[var(--bg-3)] !rounded-0' : undefined}
+      >
+        <span className='flex items-center gap-6px'>
+          <Plus theme='outline' size={14} />
+          {t('conversation.sideConversation.newTab')}
+        </span>
+      </Menu.Item>
+      <Menu.Item key={SIDE_MENU_PROMOTE} disabled={!activeThread || activeThread.promoted}>
+        <span className='flex items-center gap-6px'>
+          <Export theme='outline' size={14} />
+          {t('conversation.sideConversation.promoteCurrent')}
+        </span>
+      </Menu.Item>
+    </Menu>
+  ) : null;
+
+  const sideTabNode = side ? (
+    <Dropdown
+      trigger='click'
+      position='br'
+      popupVisible={sideMenuOpen}
+      onVisibleChange={(visible) => {
+        // Only close requests pass through; opening is owned by the tab's
+        // onClick so the first (inactive) click activates without opening.
+        if (!visible) setSideMenuOpen(false);
+      }}
+      droplist={sideMenu}
+    >
+      <Button
+        type='text'
+        size='small'
+        className={`flex-shrink-0 !px-8px ${activeTab === 'side' ? '!text-t-primary !font-medium !bg-2' : '!text-t-secondary'}`}
+        onClick={() => {
+          if (activeTab !== 'side') {
+            setActiveTab('side');
+            setSideMenuOpen(false);
+          } else {
+            setSideMenuOpen((open) => !open);
+          }
+        }}
+      >
+        <span className='flex items-center gap-4px'>
+          {t('conversation.sideConversation.title')}
+          {threadCount > 0 && <Badge count={threadCount} dotStyle={{ backgroundColor: 'rgb(var(--primary-6))' }} />}
+          <Down theme='outline' size={12} />
+        </span>
+      </Button>
+    </Dropdown>
+  ) : null;
+
   return (
     <div className='h-full flex flex-col min-h-0'>
-      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control.
+      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control,
+          侧边会话 = side-conversation threads (only when the active conversation
+          supports them; in no-project mode it is the ONLY tab).
           Tabs are left-aligned and scroll horizontally when they overflow; the
           attach + open-externally cluster is pinned right (flex-shrink-0) with
           container padding, so it never scrolls with the tabs nor clips at narrow
@@ -503,32 +642,35 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           content, so anything placed to its left cannot be clicked. */}
       <div className='flex items-center gap-4px ps-12px pe-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
         <div className='flex items-center gap-2px overflow-x-auto flex-1 min-w-0'>
-          {tabButton('files', t('conversation.explorer.tabs.files'))}
-          {tabButton('changes', t('conversation.explorer.tabs.changes'))}
+          {projectId && tabButton('files', t('conversation.explorer.tabs.files'))}
+          {projectId && tabButton('changes', t('conversation.explorer.tabs.changes'))}
+          {sideTabNode}
         </div>
-        <div className='flex items-center gap-2px flex-shrink-0'>
-          {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
-              悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
-              非 DOM 节点而崩），这里包的是普通 Button，安全。
-              Same `mini` Tooltip as the neighboring workspace-open button so
-              adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
-              a Dropdown (it would resolve a non-DOM node and crash); wrapping a
-              plain Button like this is safe. */}
-          <Tooltip content={t('conversation.explorer.addFolder')} mini>
-            <Button
-              type='text'
-              size='small'
-              className='flex items-center justify-center'
-              icon={<FolderPlus theme='outline' size='16' />}
-              aria-label={t('conversation.explorer.addFolder')}
-              onClick={handleAddFolder}
-            />
-          </Tooltip>
-          {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
-        </div>
+        {projectId && (
+          <div className='flex items-center gap-2px flex-shrink-0'>
+            {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
+                悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
+                非 DOM 节点而崩），这里包的是普通 Button，安全。
+                Same `mini` Tooltip as the neighboring workspace-open button so
+                adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
+                a Dropdown (it would resolve a non-DOM node and crash); wrapping a
+                plain Button like this is safe. */}
+            <Tooltip content={t('conversation.explorer.addFolder')} mini>
+              <Button
+                type='text'
+                size='small'
+                className='flex items-center justify-center'
+                icon={<FolderPlus theme='outline' size='16' />}
+                aria-label={t('conversation.explorer.addFolder')}
+                onClick={handleAddFolder}
+              />
+            </Tooltip>
+            {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
+          </div>
+        )}
       </div>
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
-          state survive (only hidden when the changes tab is active). */}
+          state survive (only hidden while another tab is active). */}
       {/* Search area is persistent at the top of the files tab; the tree renders
           underneath (children slot) and stays mounted while searching so its WS
           subscriptions never thrash. SearchPanel owns the scroll region, so this
@@ -541,35 +683,44 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           the 12px baseline on their own (the former via its own padding, the latter
           via the .workspace-tree rules in arco-override.css). Adding a layer here
           would push both off that baseline. */}
-      <div className='flex-1 min-h-0' style={activeTab === 'files' ? undefined : { display: 'none' }}>
-        <SearchPanel
-          roots={searchRoots}
-          peNames={searchPeNames}
-          onRevealHit={handleRevealHit}
-          onAddHit={activeConversationId ? handleAddHit : undefined}
-        >
-          <ExplorerPanel
-            projectId={projectId}
-            roots={roots}
-            workspacePeId={workspacePeId}
-            onRemoveRoot={handleRemoveFolder}
-            onOpenFile={handleOpenFile}
-            onRename={handleRename}
-            onDelete={handleDelete}
-            onNewFile={handleNewFile}
-            onNewDir={handleNewDir}
-            onAddToChat={activeConversationId ? handleAddToChat : undefined}
-            onRevealInFolder={handleRevealInFolder}
-            onCopyRelativePath={handleCopyRelativePath}
-            onCopyAbsolutePath={handleCopyAbsolutePath}
-            onImportFiles={handleImportFiles}
-            onTransfer={handleTransfer}
-          />
-        </SearchPanel>
-      </div>
-      {activeTab === 'changes' && (
+      {projectId && (
+        <div className='flex-1 min-h-0' style={activeTab === 'files' ? undefined : { display: 'none' }}>
+          <SearchPanel
+            roots={searchRoots}
+            peNames={searchPeNames}
+            onRevealHit={handleRevealHit}
+            onAddHit={activeConversationId ? handleAddHit : undefined}
+          >
+            <ExplorerPanel
+              projectId={projectId}
+              roots={roots}
+              workspacePeId={workspacePeId}
+              onRemoveRoot={handleRemoveFolder}
+              onOpenFile={handleOpenFile}
+              onRename={handleRename}
+              onDelete={handleDelete}
+              onNewFile={handleNewFile}
+              onNewDir={handleNewDir}
+              onAddToChat={activeConversationId ? handleAddToChat : undefined}
+              onRevealInFolder={handleRevealInFolder}
+              onCopyRelativePath={handleCopyRelativePath}
+              onCopyAbsolutePath={handleCopyAbsolutePath}
+              onImportFiles={handleImportFiles}
+              onTransfer={handleTransfer}
+            />
+          </SearchPanel>
+        </div>
+      )}
+      {projectId && activeTab === 'changes' && (
         <div className='flex-1 min-h-0'>
           <ScmPanel projectId={projectId} />
+        </div>
+      )}
+      {/* Side tab: kept mounted across tab switches (display:none) so the active
+          child chat — stream subscription, composer draft — survives. */}
+      {side && (
+        <div className='flex-1 min-h-0' style={activeTab === 'side' ? undefined : { display: 'none' }}>
+          {side.content}
         </div>
       )}
       <Modal

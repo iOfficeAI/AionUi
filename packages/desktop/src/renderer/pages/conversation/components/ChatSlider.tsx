@@ -13,19 +13,17 @@ import { ExplorerContainer } from '../explorer/ExplorerContainer';
  * (HTTP `getWorkspace` data source) has been removed — file browsing is now the
  * project-level Explorer host at the Layout level, gated on `project_id`.
  *
- * This sider only renders while `workspaceEnabled` (a workspace conversation
- * before its project_id backfill lands). Once the backfill arrives the
- * conversation is project-bound → `workspaceEnabled` is false and the Explorer
- * host takes over. The `project_id` branch is a defensive passthrough;
- * pure-chat (no workspace) conversations correctly show nothing here.
+ * This sider only renders while `workspaceEnabled` — a workspace conversation
+ * before its project_id backfill lands, or a pure-chat conversation whose agent
+ * supports side conversations (ChatConversation includes `enableSide` in the
+ * gate). With a project_id the container is a defensive passthrough to the
+ * Explorer; without one it hosts ONLY the 侧边会话 tab (ExplorerContainer's
+ * no-project mode) and renders nothing when side conversations are unsupported.
  */
 const ChatSlider: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
-  if (conversation?.project_id) {
-    return <ExplorerContainer projectId={conversation.project_id} />;
-  }
-  return <div />;
+  return <ExplorerContainer projectId={conversation?.project_id || undefined} />;
 };
 
 export default ChatSlider;

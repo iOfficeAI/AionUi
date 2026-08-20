@@ -1,0 +1,57 @@
+.container {
+  width: 100%;
+}
+
+/* Wrapping row of plain-text pill chips (mockup style: bordered, radius 999px,
+   no icons) — reads as lightweight suggestions under the composer. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  height: auto !important;
+  min-height: 0 !important;
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+  background: var(--bg-1) !important;
+  border: 1px solid var(--bg-3) !important;
+  color: var(--color-text-2) !important;
+  box-shadow: none !important;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+  animation: quick-prompt-in 0.22s ease backwards;
+}
+
+.chip:hover {
+  border-color: var(--bg-4) !important;
+  background: var(--bg-2) !important;
+  color: var(--color-text-1) !important;
+}
+
+.chip:active {
+  background: var(--bg-3) !important;
+}
+
+@keyframes quick-prompt-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    animation: none;
+  }
+}

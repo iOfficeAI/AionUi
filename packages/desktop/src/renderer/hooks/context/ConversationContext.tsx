@@ -76,6 +76,22 @@ export interface ConversationContextValue {
    * attachments reach the agent as file paths, and the send box hints so.
    */
   promptCapability?: { image: boolean; audio: boolean };
+
+  /**
+   * Ephemeral side-thread surface — set when this chat renders a forked side
+   * child in the sidebar's side-conversation tab. Disables nested side triggers
+   * in the send box and selection UI, and renders leading reply-quote blocks as
+   * capsule chips on user bubbles.
+   */
+  isSideConversation?: boolean;
+
+  /**
+   * Fork anchor of a side child (its `extra.forked_at_msg_id`): the last
+   * message row copied from the parent by the fork. MessageList hides
+   * everything up to and including it, so the docked side thread shows only
+   * its own turns while the backend session keeps the full forked context.
+   */
+  sideForkBoundaryMsgId?: string;
 }
 
 /**
