@@ -53,8 +53,26 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     hideDeleteConfirm,
     toggleServerCollapse,
   } = useMcpModal();
-  const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer } =
-    useMcpServerCRUD(saveMcpServers);
+  const {
+    handleAddMcpServer,
+    handleBatchImportMcpServers,
+    handleEditMcpServer,
+    handleDeleteMcpServer,
+    handleToggleServerDefault,
+  } = useMcpServerCRUD(saveMcpServers);
+
+  const [togglingDefaultIds, setTogglingDefaultIds] = React.useState<Record<string, boolean>>({});
+  const handleToggleDefault = React.useCallback(
+    async (server: IMcpServer) => {
+      setTogglingDefaultIds((prev) => ({ ...prev, [server.id]: true }));
+      try {
+        await handleToggleServerDefault(server);
+      } finally {
+        setTogglingDefaultIds((prev) => ({ ...prev, [server.id]: false }));
+      }
+    },
+    [handleToggleServerDefault]
+  );
 
   const handleOAuthLogin = React.useCallback(
     async (server: IMcpServer) => {
@@ -183,6 +201,8 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
                 onEditServer={showEditMcpModal}
                 onDeleteServer={showDeleteConfirm}
                 onOAuthLogin={handleOAuthLogin}
+                onToggleDefault={handleToggleDefault}
+                isTogglingDefault={togglingDefaultIds[server.id] || false}
               />
             ))
           )}

@@ -729,6 +729,7 @@
   "mcpImportFromCLI": "扫描MCP工具",
   "mcpSelectCLI": "选择 CLI",
   "mcpNoServersFound": "未找到 MCP 服务器",
+  "mcpDefaultForNewConversations": "在新会话中默认启用",
   "mcpImportSuccess": "导入成功",
   "mcpImportFailed": "导入失败",
   "mcpJsonInvalid": "无效的 JSON 格式",

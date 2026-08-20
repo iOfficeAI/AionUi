@@ -18,6 +18,8 @@ interface McpServerItemProps {
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
+  onToggleDefault?: (server: IMcpServer) => void;
+  isTogglingDefault?: boolean;
 }
 
 const McpServerItem: React.FC<McpServerItemProps> = ({
@@ -32,6 +34,8 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   onEditServer,
   onDeleteServer,
   onOAuthLogin,
+  onToggleDefault,
+  isTogglingDefault,
 }) => {
   return (
     <Collapse
@@ -52,6 +56,8 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
             onEditServer={onEditServer}
             onDeleteServer={onDeleteServer}
             onOAuthLogin={onOAuthLogin}
+            onToggleDefault={onToggleDefault}
+            isTogglingDefault={isTogglingDefault}
           />
         }
         name='1'

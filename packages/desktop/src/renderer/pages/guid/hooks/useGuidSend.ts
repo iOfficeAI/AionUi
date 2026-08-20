@@ -17,6 +17,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo } from '../types';
+import { mergeEnabledByDefaultMcpIds } from '../utils/mcpDefaults';
 
 export type GuidSendDeps = {
   // Input state
@@ -125,7 +126,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const selectedSessionMcpServers = availableMcpServers
       .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
       .map((server) => toSessionMcpServer(server));
-    const defaultSelectedMcpServerIds = assistantDefaultMcpIds;
+    // Untouched selection = assistant defaults + global default-enabled
+    // servers (#3119). An explicit user selection is sent as-is.
+    const defaultSelectedMcpServerIds = mergeEnabledByDefaultMcpIds(assistantDefaultMcpIds ?? [], availableMcpServers);
     const defaultSelectedUserMcpServerIds = availableMcpServers
       .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id) && server.builtin !== true)
       .map((server) => server.id);
