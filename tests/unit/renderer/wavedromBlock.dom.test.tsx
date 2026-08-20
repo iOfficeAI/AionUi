@@ -84,7 +84,7 @@ vi.mock('@icon-park/react', () => ({
   Close: makeIcon('close'),
 }));
 
-import WavedromBlock from '@/renderer/components/Markdown/WavedromBlock';
+import WavedromBlock, { resolveWaveRenderTheme } from '@/renderer/components/Markdown/WavedromBlock';
 
 const VALID_WAVEJSON = JSON.stringify({
   signal: [
@@ -118,22 +118,16 @@ describe('WavedromBlock', () => {
     expect(diagram.style.backgroundColor).toBe('rgb(249, 250, 251)');
   });
 
-  it('uses the dark skin when the app theme is dark', async () => {
+  it('renders with the light skin even when the app theme is dark (light-only mode)', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     render(<WavedromBlock code={VALID_WAVEJSON} />);
     const diagram = await screen.findByTestId('wavedrom-diagram');
+    // The theme mode is hardcoded to light-only, so the bundled dark skin is
+    // never selected: the light skin's dark strokes land on the light backdrop
+    // and stay readable whatever the app theme is.
     const [, , skin] = renderAnyMock.mock.calls[0];
-    // The bundled dark skin's near-black fills are remapped to dark-theme-visible
-    // colors before renderAny sees the skin.
-    const styleText = ((skin as { dark: unknown[] }).dark[2] as unknown[])[2] as string;
-    expect(styleText).toContain('fill: #4a4a4a');
-    expect(styleText).toContain('fill: #3050b8');
-    expect(styleText).toContain('fill: #7a4ac0');
-    expect(styleText).not.toContain('fill:#000000');
-    expect(styleText).not.toContain('fill:#2e005e');
-    // White dark-skin strokes must land on the dark backdrop, never on a light
-    // panel (that is the "timing lines invisible" failure mode).
-    expect(diagram.style.backgroundColor).toBe('rgb(26, 26, 26)');
+    expect(skin).toEqual({ default: { name: 'default-skin' } });
+    expect(diagram.style.backgroundColor).toBe('rgb(249, 250, 251)');
   });
 
   it('gives the zoom overlay card the same backdrop as the diagram', async () => {
@@ -142,7 +136,8 @@ describe('WavedromBlock', () => {
     const diagram = await screen.findByTestId('wavedrom-diagram');
     fireEvent.click(diagram);
     const card = await screen.findByTestId('diagram-zoom-content');
-    expect(card.style.background).toBe('rgb(26, 26, 26)');
+    // Light-only mode: the card follows the diagram's light backdrop.
+    expect(card.style.background).toBe('rgb(249, 250, 251)');
   });
 
   it('remaps every near-black fill of the real bundled dark skin', async () => {
@@ -213,5 +208,17 @@ describe('WavedromBlock', () => {
     render(<WavedromBlock code={lenient} />);
     const diagram = await screen.findByTestId('wavedrom-diagram');
     expect(diagram.querySelector('svg')).not.toBeNull();
+  });
+});
+
+describe('resolveWaveRenderTheme', () => {
+  it('follows the app theme in auto mode', () => {
+    expect(resolveWaveRenderTheme('auto', 'dark')).toBe('dark');
+    expect(resolveWaveRenderTheme('auto', 'light')).toBe('light');
+  });
+
+  it('stays light in light-only mode regardless of the app theme', () => {
+    expect(resolveWaveRenderTheme('light', 'dark')).toBe('light');
+    expect(resolveWaveRenderTheme('light', 'light')).toBe('light');
   });
 });
