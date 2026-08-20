@@ -67,6 +67,25 @@ const PANEL_BG: Record<'light' | 'dark', string> = {
 };
 
 /**
+ * WaveDrom diagram theme policy.
+ *
+ * - 'auto': render the diagram with the app theme (dark skin + dark backdrop
+ *   in dark mode, light skin in light mode).
+ * - 'light': always render with the bundled light skin (dark strokes on the
+ *   light backdrop), which stays fully readable on any app theme.
+ *
+ * Hardcoded to 'light' for now: the light diagram is legible everywhere and
+ * sidesteps the dark skin's white-stroke contrast issues entirely. Flip this
+ * constant to 'auto' to restore theme-following, or expose it as a setting.
+ */
+export type WaveThemeMode = 'auto' | 'light';
+const WAVEDROM_THEME_MODE: WaveThemeMode = 'light';
+
+/** Resolve the effective render theme from the policy and the app theme. */
+export const resolveWaveRenderTheme = (mode: WaveThemeMode, appTheme: 'light' | 'dark'): 'light' | 'dark' =>
+  mode === 'auto' ? appTheme : 'light';
+
+/**
  * Replace the near-black `fill` values of the bundled dark skin's s6/s8-s15
  * classes with the dark-theme-visible palette above.
  */
@@ -135,6 +154,12 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
 
+  // Effective diagram theme: the skin and the backdrop both derive from this so
+  // they can never drift apart (see PANEL_BG). In light-only mode it stays
+  // 'light' regardless of the app theme — the observer above still tracks the
+  // theme for the source-view highlight and for a future 'auto' mode.
+  const renderTheme = resolveWaveRenderTheme(WAVEDROM_THEME_MODE, currentTheme);
+
   // Pan/zoom transform for the rendered diagram (only used when enablePanZoom).
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -169,8 +194,10 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   }, []);
 
   // Rendering is synchronous; the memo recomputes when debounced code or the
-  // theme changes and returns null for invalid input (source view fallback).
-  const svg = useMemo(() => renderWaveSvg(debouncedCode, currentTheme === 'dark'), [debouncedCode, currentTheme]);
+  // render theme changes and returns null for invalid input (source view
+  // fallback). In light-only mode the render theme never changes with the app
+  // theme, so the diagram is not re-rendered on theme switches.
+  const svg = useMemo(() => renderWaveSvg(debouncedCode, renderTheme === 'dark'), [debouncedCode, renderTheme]);
 
   // Restore the user's preferred view once a fresh diagram renders; invalid
   // input stays on the source view. A re-render also replaces the overlay
@@ -184,9 +211,9 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   }, [svg]);
 
   const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
-  // Backdrop for the rendered diagram (and the zoom overlay card): must stay in
-  // lock-step with the skin, see PANEL_BG above.
-  const panelBackground = PANEL_BG[currentTheme];
+  // Backdrop for the rendered diagram (and the zoom overlay card): stays in
+  // lock-step with the skin via the shared render theme, see PANEL_BG above.
+  const panelBackground = PANEL_BG[renderTheme];
   const summary = code
     .split(/\r?\n/)
     .map((line) => line.trim())
