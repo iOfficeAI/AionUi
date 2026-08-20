@@ -170,5 +170,5 @@
   "zoomIn": "Zoom avant",
   "zoomOut": "Zoom arrière",
   "zoomReset": "Réinitialiser la vue",
-  "mermaidZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer"
+  "diagramZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer"
 }

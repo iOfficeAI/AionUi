@@ -17,22 +17,23 @@ vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
 }));
 
 // Capturing CodeBlock mock: exposes the pan/zoom opt-in as a DOM attribute so the
-// test asserts the chat markdown surface opts Mermaid diagrams in.
+// test asserts the chat markdown surface opts diagram blocks (Mermaid, WaveDrom)
+// in.
 vi.mock('@/renderer/components/Markdown/CodeBlock', () => ({
   __esModule: true,
   default: ({
     children,
     className,
-    mermaidPanZoom,
+    diagramPanZoom,
   }: {
     children?: React.ReactNode;
     className?: string;
-    mermaidPanZoom?: boolean;
+    diagramPanZoom?: boolean;
   }) => (
     <code
       data-testid='code-block'
       data-class={className || ''}
-      data-mermaid-pan-zoom={mermaidPanZoom ? 'true' : 'false'}
+      data-diagram-pan-zoom={diagramPanZoom ? 'true' : 'false'}
     >
       {children}
     </code>
@@ -83,18 +84,25 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-describe('MarkdownView mermaid pan/zoom opt-in', () => {
+describe('MarkdownView diagram pan/zoom opt-in', () => {
   it('enables pan/zoom on mermaid fences rendered through the chat markdown view', () => {
     render(<MarkdownView>{'```mermaid\ngraph TD; A-->B\n```'}</MarkdownView>);
     const code = screen.getByTestId('code-block');
     expect(code).toHaveAttribute('data-class', 'language-mermaid');
-    expect(code).toHaveAttribute('data-mermaid-pan-zoom', 'true');
+    expect(code).toHaveAttribute('data-diagram-pan-zoom', 'true');
+  });
+
+  it('enables pan/zoom on wavedrom fences rendered through the chat markdown view', () => {
+    render(<MarkdownView>{'```wavedrom\n{"signal": [{"name": "clk", "wave": "p"}]}\n```'}</MarkdownView>);
+    const code = screen.getByTestId('code-block');
+    expect(code).toHaveAttribute('data-class', 'language-wavedrom');
+    expect(code).toHaveAttribute('data-diagram-pan-zoom', 'true');
   });
 
   it('forwards the opt-in for an empty mermaid fence', () => {
     render(<MarkdownView>{'```mermaid\n```'}</MarkdownView>);
     const code = screen.getByTestId('code-block');
-    expect(code).toHaveAttribute('data-mermaid-pan-zoom', 'true');
+    expect(code).toHaveAttribute('data-diagram-pan-zoom', 'true');
   });
 
   it('keeps rendering plain code fences with their source intact', () => {
