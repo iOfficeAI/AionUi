@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "این دستیار در چه مواردی کمک می‌کند؟",
   "assistantAvatarUploadImage": "آپلود تصویر",
   "assistantAvatarImageFiles": "فایل‌های تصویری",
+  "imagePickOutsideSandbox": "این مکان قابل دسترسی نیست. لطفاً تصویری در پوشه خانگی یا فضای کاری خود انتخاب کنید.",
   "assistantAvatarEmojiTab": "ایموجی",
   "assistantAvatarBuiltinTab": "داخلی",
   "assistantAvatarNoBuiltinImages": "تصویر داخلی وجود ندارد",

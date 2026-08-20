@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "Bu asistan neye yardımcı olabilir?",
   "assistantAvatarUploadImage": "Görsel yükle",
   "assistantAvatarImageFiles": "Görsel dosyaları",
+  "imagePickOutsideSandbox": "Bu konuma erişilemiyor. Lütfen giriş dizininiz veya çalışma alanınız içindeki bir görsel seçin.",
   "assistantAvatarEmojiTab": "Emoji",
   "assistantAvatarBuiltinTab": "Yerleşik görseller",
   "assistantAvatarNoBuiltinImages": "Yerleşik görsel yok",

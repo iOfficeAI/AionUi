@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "이 어시스턴트는 무엇을 도와줄 수 있나요?",
   "assistantAvatarUploadImage": "이미지 업로드",
   "assistantAvatarImageFiles": "이미지 파일",
+  "imagePickOutsideSandbox": "이 위치에 접근할 수 없습니다. 홈 디렉터리 또는 작업 공간 안의 이미지를 선택하세요.",
   "assistantAvatarEmojiTab": "이모지",
   "assistantAvatarBuiltinTab": "내장 이미지",
   "assistantAvatarNoBuiltinImages": "사용 가능한 내장 이미지가 없습니다",

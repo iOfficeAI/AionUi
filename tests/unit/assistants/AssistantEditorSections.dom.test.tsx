@@ -4,6 +4,7 @@ import { ConfigProvider } from '@arco-design/web-react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantEditorSections from '@/renderer/pages/settings/AssistantSettings/AssistantEditorSections';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type { AssistantEditorViewModel } from '@/renderer/pages/settings/AssistantSettings/types';
 
 const mockUseModelProviderList = vi.fn(() => ({
@@ -45,6 +46,16 @@ const translateAgentMode = (key: string) => {
 
   return (mockLanguage === 'zh-CN' ? zhCN : enUS)[modeKey] ?? null;
 };
+
+// Message.error is what makes an avatar-pick failure visible (AIONUI-224).
+const messageErrorMock = vi.fn();
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: { ...actual.Message, error: (...args: unknown[]) => messageErrorMock(...args) },
+  };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -192,6 +203,7 @@ describe('AssistantEditorSections', () => {
     showOpenInvokeMock.mockReset();
     getImageBase64InvokeMock.mockReset();
     getImageBase64InvokeMock.mockResolvedValue('data:image/png;base64,preview');
+    messageErrorMock.mockReset();
     mockUseModelProviderList.mockReturnValue({
       providers: [],
       getAvailableModels: () => [],
@@ -782,6 +794,98 @@ describe('AssistantEditorSections', () => {
       expect(setEditAvatar).toHaveBeenCalledWith('/tmp/avatar.png');
       expect(getImageBase64InvokeMock).toHaveBeenCalledWith({ path: '/tmp/avatar.png' });
       expect(setEditAvatarPreview).toHaveBeenCalledWith('data:image/png;base64,preview');
+    });
+    expect(messageErrorMock).not.toHaveBeenCalled();
+  });
+
+  // AIONUI-224 / issue #4073: the avatar picker used to swallow every failure
+  // into console.error, so a sandbox-rejected path looked like a dead button.
+  describe('avatar pick failures surface a message', () => {
+    const renderAvatarEditor = () => {
+      const setAvatar = vi.fn();
+      const setAvatarPreview = vi.fn();
+      renderWithProviders(
+        <AssistantEditorSections
+          editor={createEditor({
+            profile: {
+              avatar: '✍️',
+              setAvatar,
+              setAvatarPreview,
+              name: 'Writer',
+              setName: vi.fn(),
+              description: 'desc',
+              setDescription: vi.fn(),
+            },
+            defaults: {
+              mcps: { mode: 'auto', setMode: vi.fn(), availableServers: [], selectedIds: [], setSelectedIds: vi.fn() },
+            },
+          })}
+          activeAssistant={null}
+        />
+      );
+      fireEvent.click(screen.getByTestId('btn-assistant-avatar-upload'));
+      return { setAvatar, setAvatarPreview };
+    };
+
+    it('shows the actionable sandbox message when the backend answers 403', async () => {
+      showOpenInvokeMock.mockResolvedValue(['D:/photos/avatar.png']);
+      getImageBase64InvokeMock.mockRejectedValue(
+        new BackendHttpError({
+          method: 'POST',
+          path: '/api/fs/image-base64',
+          status: 403,
+          body: {
+            success: false,
+            error: 'Path is outside the allowed sandbox.',
+            code: 'PATH_OUTSIDE_SANDBOX',
+            details: { field: 'path', operation: 'access' },
+          },
+        })
+      );
+
+      const { setAvatar, setAvatarPreview } = renderAvatarEditor();
+
+      await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+      expect(messageErrorMock).toHaveBeenCalledWith(
+        'This location is not accessible. Pick an image under your home directory or workspace.'
+      );
+      expect(setAvatar).not.toHaveBeenCalled();
+      expect(setAvatarPreview).not.toHaveBeenCalled();
+    });
+
+    it('shows the generic message when the read fails for any other reason', async () => {
+      showOpenInvokeMock.mockResolvedValue(['/tmp/avatar.png']);
+      getImageBase64InvokeMock.mockRejectedValue(new Error('boom'));
+
+      const { setAvatar } = renderAvatarEditor();
+
+      await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+      expect(messageErrorMock).toHaveBeenCalledWith('Failed');
+      expect(setAvatar).not.toHaveBeenCalled();
+    });
+
+    it('reports an empty payload instead of committing an unreadable avatar', async () => {
+      showOpenInvokeMock.mockResolvedValue(['/tmp/avatar.png']);
+      getImageBase64InvokeMock.mockResolvedValue(null);
+
+      const { setAvatar, setAvatarPreview } = renderAvatarEditor();
+
+      await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+      expect(messageErrorMock).toHaveBeenCalledWith('Failed');
+      // Committing the path while the preview stays empty would leave a
+      // permanently broken avatar behind.
+      expect(setAvatar).not.toHaveBeenCalled();
+      expect(setAvatarPreview).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the user dismisses the file dialog', async () => {
+      showOpenInvokeMock.mockResolvedValue([]);
+
+      renderAvatarEditor();
+
+      await waitFor(() => expect(showOpenInvokeMock).toHaveBeenCalled());
+      expect(getImageBase64InvokeMock).not.toHaveBeenCalled();
+      expect(messageErrorMock).not.toHaveBeenCalled();
     });
   });
 

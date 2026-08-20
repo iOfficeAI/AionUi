@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "帮你解决什么问题",
   "assistantAvatarUploadImage": "上传图片",
   "assistantAvatarImageFiles": "图片文件",
+  "imagePickOutsideSandbox": "无法访问该位置。请选择位于主目录或工作区内的图片。",
   "assistantAvatarEmojiTab": "表情",
   "assistantAvatarBuiltinTab": "内置图片",
   "assistantAvatarNoBuiltinImages": "暂无内置图片",

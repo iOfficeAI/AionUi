@@ -14,7 +14,8 @@ import type { AvailableBackend } from './types';
 import { filterAssistantEditorBackends } from './assistantUtils';
 import { AionInlineSearchInput } from '@/renderer/components/base';
 import { DROPDOWN_SEARCH_THRESHOLD } from '@/renderer/components/agent/runtimeSelectorOptions';
-import { Avatar, Select, Tag } from '@arco-design/web-react';
+import { getImagePickErrorMessage } from '@/renderer/components/media/imagePickError';
+import { Avatar, Message, Select, Tag } from '@arco-design/web-react';
 import { Info, Robot } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -229,13 +230,24 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         ],
       });
       const nextAvatar = selectedFiles?.[0];
-      if (nextAvatar) {
-        const previewBase64 = await ipcBridge.fs.getImageBase64.invoke({ path: nextAvatar });
-        setEditAvatar(nextAvatar);
-        setEditAvatarPreview(previewBase64 || undefined);
+      // Dialog dismissed by the user — not a failure.
+      if (!nextAvatar) return;
+
+      const previewBase64 = await ipcBridge.fs.getImageBase64.invoke({ path: nextAvatar });
+      // An unreadable image must not be committed as the avatar: keeping the
+      // path while the preview stays empty leaves a permanently broken avatar.
+      if (!previewBase64) {
+        Message.error(getImagePickErrorMessage(null, t));
+        return;
       }
+
+      setEditAvatar(nextAvatar);
+      setEditAvatarPreview(previewBase64);
     } catch (error) {
+      // The backend rejects out-of-sandbox paths with 403 PATH_OUTSIDE_SANDBOX;
+      // this used to only reach the console, leaving the user with no feedback.
       console.error('Failed to pick assistant avatar image:', error);
+      Message.error(getImagePickErrorMessage(error, t));
     }
   };
   const editableSkillOptions = useMemo(() => {

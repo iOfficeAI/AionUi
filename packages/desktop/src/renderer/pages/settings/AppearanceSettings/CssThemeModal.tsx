@@ -8,8 +8,9 @@ import type { Theme } from '@/common/theme/types';
 import { ipcBridge } from '@/common';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { iconColors } from '@renderer/styles/colors';
-import { Button, Input, Radio } from '@arco-design/web-react';
+import { Button, Input, Message, Radio } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal.tsx';
+import { getImagePickErrorMessage } from '@renderer/components/media/imagePickError.ts';
 import { Plus, Delete } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
@@ -84,18 +85,29 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
         filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
       });
 
-      if (files && files[0]) {
-        // 使用 IPC 读取图片并转换为 base64 / Use IPC to read image and convert to base64
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: files[0] });
-        if (base64) {
-          setCover(base64);
-          applyBackgroundImageToCss(base64);
-        }
+      // 用户取消对话框，不是失败 / Dialog dismissed by the user — not a failure
+      if (!files || !files[0]) return;
+
+      // 使用 IPC 读取图片并转换为 base64 / Use IPC to read image and convert to base64
+      const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: files[0] });
+      // 读取成功但载荷为空，同样要提示 / Read succeeded with an empty payload — still a failure
+      if (!base64) {
+        Message.error(getImagePickErrorMessage(null, t));
+        return;
       }
+
+      setCover(base64);
+      applyBackgroundImageToCss(base64);
     } catch (error) {
+      // 后端会以 403 PATH_OUTSIDE_SANDBOX 拒绝沙箱外的路径（如 D 盘、被重定向的桌面），
+      // 此前只写 console，用户看到的是"点了没反应"
+      // The backend rejects out-of-sandbox paths (another drive, a redirected
+      // Desktop) with 403 PATH_OUTSIDE_SANDBOX. This used to only reach the
+      // console, so the user just saw nothing happen.
       console.error('Failed to upload cover:', error);
+      Message.error(getImagePickErrorMessage(error, t));
     }
-  }, [applyBackgroundImageToCss]);
+  }, [applyBackgroundImageToCss, t]);
 
   /**
    * 处理保存 / Handle save

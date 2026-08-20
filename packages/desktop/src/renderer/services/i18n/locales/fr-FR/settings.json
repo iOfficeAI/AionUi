@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "Avec quoi cet assistant peut-il aider ?",
   "assistantAvatarUploadImage": "Télécharger une image",
   "assistantAvatarImageFiles": "Fichiers images",
+  "imagePickOutsideSandbox": "Cet emplacement n'est pas accessible. Choisissez une image dans votre dossier personnel ou votre espace de travail.",
   "assistantAvatarEmojiTab": "Émoji",
   "assistantAvatarBuiltinTab": "Intégré",
   "assistantAvatarNoBuiltinImages": "Aucune image intégrée",

@@ -161,6 +161,7 @@
   "assistantDescriptionPlaceholder": "З чим може допомогти цей асистент?",
   "assistantAvatarUploadImage": "Завантажити зображення",
   "assistantAvatarImageFiles": "Файли зображень",
+  "imagePickOutsideSandbox": "Це розташування недоступне. Виберіть зображення в домашньому каталозі або робочій області.",
   "assistantAvatarEmojiTab": "Емодзі",
   "assistantAvatarBuiltinTab": "Вбудовані зображення",
   "assistantAvatarNoBuiltinImages": "Немає вбудованих зображень",

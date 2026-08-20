@@ -13,6 +13,7 @@ import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import { Alert, Avatar, Button, Collapse, Input, Message, Typography } from '@arco-design/web-react';
 import { CheckOne, CloseOne } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
+import { getImagePickErrorMessage } from '@/renderer/components/media/imagePickError';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -249,12 +250,17 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       // The backend reads the file and returns a `data:` URL; we then shrink
       // it client-side so the persisted `icon` value stays small.
       const rawDataUrl = await fs.getImageBase64.invoke({ path: pickedPath });
-      if (!rawDataUrl) return;
+      // Read succeeded with an empty payload — silently returning here left the
+      // user with no feedback at all.
+      if (!rawDataUrl) {
+        Message.error(getImagePickErrorMessage(null, t));
+        return;
+      }
       const resized = await downscaleAvatarDataUrl(rawDataUrl);
       setAvatar(resized);
     } catch (error) {
       console.error('Failed to pick custom agent avatar image:', error);
-      Message.error(t('common.failed', { defaultValue: 'Failed' }));
+      Message.error(getImagePickErrorMessage(error, t));
     }
   }, [t]);
 

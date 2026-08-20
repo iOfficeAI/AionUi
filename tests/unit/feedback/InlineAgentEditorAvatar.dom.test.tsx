@@ -17,6 +17,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en-US' } }),
@@ -248,7 +249,55 @@ describe('InlineAgentEditor — image avatar', () => {
     });
 
     await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+    expect(messageErrorMock).toHaveBeenCalledWith('common.failed');
     // Avatar stays at the default emoji.
+    expect(lastEmojiPickerProps.value).toBe('🤖');
+  });
+
+  // AIONUI-224 / issue #4073: the native dialog can hand back a path the
+  // backend sandbox refuses, and a bare "Failed" gives the user nothing to act
+  // on. The 403 carries a machine-readable code, so say what actually happened.
+  it('shows the actionable sandbox message when the backend answers 403', async () => {
+    showOpenMock.mockResolvedValue(['D:/photos/avatar.png']);
+    getImageBase64Mock.mockRejectedValue(
+      new BackendHttpError({
+        method: 'POST',
+        path: '/api/fs/image-base64',
+        status: 403,
+        body: {
+          success: false,
+          error: 'Path is outside the allowed sandbox.',
+          code: 'PATH_OUTSIDE_SANDBOX',
+          details: { field: 'path', operation: 'access' },
+        },
+      })
+    );
+
+    renderEditor();
+    const user = userEvent.setup();
+
+    await act(async () => {
+      await user.click(screen.getByTestId('btn-agent-avatar-upload'));
+    });
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+    expect(messageErrorMock).toHaveBeenCalledWith('settings.imagePickOutsideSandbox');
+    expect(lastEmojiPickerProps.value).toBe('🤖');
+  });
+
+  it('shows an error toast when the backend resolves with an empty payload', async () => {
+    showOpenMock.mockResolvedValue(['/tmp/avatar.png']);
+    getImageBase64Mock.mockResolvedValue('');
+
+    renderEditor();
+    const user = userEvent.setup();
+
+    await act(async () => {
+      await user.click(screen.getByTestId('btn-agent-avatar-upload'));
+    });
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalledTimes(1));
+    expect(messageErrorMock).toHaveBeenCalledWith('common.failed');
     expect(lastEmojiPickerProps.value).toBe('🤖');
   });
 });

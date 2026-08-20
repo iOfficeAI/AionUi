@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "どんな支援ができるかを入力",
   "assistantAvatarUploadImage": "画像をアップロード",
   "assistantAvatarImageFiles": "画像ファイル",
+  "imagePickOutsideSandbox": "この場所にはアクセスできません。ホームディレクトリまたはワークスペース内の画像を選択してください。",
   "assistantAvatarEmojiTab": "絵文字",
   "assistantAvatarBuiltinTab": "内蔵画像",
   "assistantAvatarNoBuiltinImages": "利用可能な内蔵画像はありません",

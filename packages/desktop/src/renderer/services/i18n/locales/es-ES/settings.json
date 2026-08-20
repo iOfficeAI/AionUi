@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "¿En qué puede ayudar este asistente?",
   "assistantAvatarUploadImage": "Subir imagen",
   "assistantAvatarImageFiles": "Archivos de imagen",
+  "imagePickOutsideSandbox": "No se puede acceder a esta ubicación. Elige una imagen dentro de tu carpeta personal o del espacio de trabajo.",
   "assistantAvatarEmojiTab": "Emoji",
   "assistantAvatarBuiltinTab": "Integrado",
   "assistantAvatarNoBuiltinImages": "Sin imágenes integradas",

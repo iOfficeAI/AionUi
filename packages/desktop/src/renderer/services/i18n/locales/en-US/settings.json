@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "What can this assistant help with?",
   "assistantAvatarUploadImage": "Upload image",
   "assistantAvatarImageFiles": "Image files",
+  "imagePickOutsideSandbox": "This location is not accessible. Pick an image under your home directory or workspace.",
   "assistantAvatarEmojiTab": "Emoji",
   "assistantAvatarBuiltinTab": "Built-in",
   "assistantAvatarNoBuiltinImages": "No built-in images",

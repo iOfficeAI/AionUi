@@ -153,6 +153,7 @@
   "assistantDescriptionPlaceholder": "能幫你解決什麼問題",
   "assistantAvatarUploadImage": "上傳圖片",
   "assistantAvatarImageFiles": "圖片檔案",
+  "imagePickOutsideSandbox": "無法存取該位置。請選擇位於主目錄或工作區內的圖片。",
   "assistantAvatarEmojiTab": "表情符號",
   "assistantAvatarBuiltinTab": "內建圖片",
   "assistantAvatarNoBuiltinImages": "暫無內建圖片",

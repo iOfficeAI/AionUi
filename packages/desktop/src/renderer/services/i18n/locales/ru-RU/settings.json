@@ -161,6 +161,7 @@
   "assistantDescriptionPlaceholder": "С какими задачами помогает этот ассистент?",
   "assistantAvatarUploadImage": "Загрузить изображение",
   "assistantAvatarImageFiles": "Файлы изображений",
+  "imagePickOutsideSandbox": "Это расположение недоступно. Выберите изображение в домашнем каталоге или рабочей области.",
   "assistantAvatarEmojiTab": "Эмодзи",
   "assistantAvatarBuiltinTab": "Встроенные изображения",
   "assistantAvatarNoBuiltinImages": "Нет встроенных изображений",

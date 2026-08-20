@@ -1987,6 +1987,7 @@ export type I18nKey =
   | 'settings.imageInputSupported'
   | 'settings.imageInputTip'
   | 'settings.imageInputUnsupported'
+  | 'settings.imagePickOutsideSandbox'
   | 'settings.includePrereleaseUpdates'
   | 'settings.installed'
   | 'settings.language'
