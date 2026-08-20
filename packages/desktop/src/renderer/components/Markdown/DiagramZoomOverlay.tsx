@@ -41,9 +41,24 @@ const toolbarButtonStyle: React.CSSProperties = {
 // Diagram blocks inject `max-width: min(100%, <natural width>)` into the SVG root
 // so inline diagrams never stretch past their natural size. Drop that cap here:
 // the overlay panel already sizes the wrapper from the natural dimensions and
-// the SVG must fill it.
+// the SVG must fill it. Roots with a viewBox (Mermaid, WaveDrom) are also forced
+// to fill the panel: WaveDrom carries fixed pixel width/height attributes, so
+// without the width/height rules it would render at its natural size inside the
+// scaled card — smaller than the card and top-left instead of centered.
 const stripInlineMaxWidth = (svg: string): string =>
-  svg.replace(/<svg\b[^>]*>/i, (tag) => tag.replace(/max-width\s*:\s*[^;"']+;?/gi, ''));
+  svg.replace(/<svg\b[^>]*>/i, (tag) => {
+    const cleaned = tag.replace(/max-width\s*:\s*[^;"']+;?/gi, '');
+    if (!/\bviewBox\s*=/.test(cleaned)) return cleaned;
+    const fillRules = 'width: 100%; height: 100%;';
+    const styleMatch = /(\sstyle\s*=\s*)(["'])([\s\S]*?)\2/i.exec(cleaned);
+    if (styleMatch) {
+      return cleaned.replace(
+        styleMatch[0],
+        `${styleMatch[1]}${styleMatch[2]}${styleMatch[3]}${fillRules}${styleMatch[2]}`
+      );
+    }
+    return cleaned.replace(/\/?\s*>$/, (tail) => ` style="${fillRules}"${tail}`);
+  });
 
 /**
  * Fullscreen diagram viewer opened by clicking a rendered diagram (shared by the
