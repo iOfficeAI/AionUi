@@ -27,8 +27,10 @@ import { useSessionMentionSearch } from '@/renderer/hooks/chat/useSessionMention
 import {
   buildAtSessionInsertion,
   getActiveAtSessionQuery,
+  getAllAtSessionQueries,
   resolveAtSessionMenuKey,
 } from '@/renderer/utils/chat/atSessionQuery';
+import { buildAttachedMentionRanges } from '@/renderer/utils/chat/mentionHighlight';
 import { applyMentionInsertion } from '@/renderer/utils/chat/mentionInsertion';
 import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
@@ -73,7 +75,10 @@ const constVoid = (): void => undefined;
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
-const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+/** Both mention lanes share one colour: the user needs to know a token is a
+ *  live reference, not which kind it is, and a second colour would need a
+ *  legend this UI does not have. */
+const MENTION_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
@@ -553,6 +558,12 @@ const SendBox: React.FC<{
     }
     return `${activeAtSessionQuery.start}:${activeAtSessionQuery.rawQuery}`;
   }, [activeAtSessionQuery]);
+  // Empty when the feature is unavailable: a `@@` the agent cannot act on is
+  // literal text, so painting it would claim a reference that does not exist.
+  const allAtSessionQueries = useMemo(
+    () => (canMentionSessions ? getAllAtSessionQueries(input) : []),
+    [canMentionSessions, input]
+  );
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversation_id),
@@ -1726,7 +1737,48 @@ const SendBox: React.FC<{
     return primaryActionButton;
   };
 
-  const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
+  /**
+   * Paint a mention only when a reference is really attached to it.
+   *
+   * The overlay used to colour every match of the `@…` text pattern, which made
+   * a hand-typed `@config.json` indistinguishable from one picked out of the
+   * dropdown — and only the pick attaches anything. Select-all + cut + paste is
+   * the sharpest version: the reconciliation retracts the references while the
+   * input is momentarily empty, the pasted text looks identical, and the message
+   * goes out with no `[[AION_FILES]]` / `[[AION_SESSIONS]]` block at all. The
+   * references cannot be recovered from the pasted text (a conversation name is
+   * not a unique address), so making the loss VISIBLE is the fix.
+   */
+  const attachedFileKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const item of selectedWorkspaceItems ?? []) {
+      for (const key of getSelectedItemMatchKeys(item)) {
+        keys.add(key);
+      }
+    }
+    return keys;
+  }, [selectedWorkspaceItems]);
+  const attachedSessionNames = useMemo(
+    () =>
+      (selectedSessions ?? [])
+        .map((ref) => sessionNameByIdRef.current[ref.id])
+        .filter((name): name is string => Boolean(name)),
+    // `sessionNameByIdRef` is a ref, but it is written in the same commit that
+    // grows `selectedSessions`, so that dependency covers it.
+    [selectedSessions]
+  );
+  const highlightRanges = useMemo(
+    () =>
+      buildAttachedMentionRanges({
+        fileTokens: allAtFileQueries,
+        attachedFileKeys,
+        sessionTokens: allAtSessionQueries,
+        attachedSessionNames,
+      }),
+    [allAtFileQueries, allAtSessionQueries, attachedFileKeys, attachedSessionNames]
+  );
+
+  const shouldUseHighlightOverlay = !isComposingState && highlightRanges.length > 0;
 
   const mobilePlusButton = isMobileCompact ? (
     <Button
@@ -1756,7 +1808,9 @@ const SendBox: React.FC<{
     const segments: React.ReactNode[] = [];
     let cursor = 0;
 
-    allAtFileQueries.forEach((match, index) => {
+    // Ranges arrive sorted by `start` and never overlap, so slicing between them
+    // reproduces the input exactly.
+    highlightRanges.forEach((match, index) => {
       if (cursor < match.start) {
         segments.push(
           <span className='sendbox-highlight-text' key={`text-${cursor}`}>
@@ -1769,7 +1823,7 @@ const SendBox: React.FC<{
         <span
           className='sendbox-highlight-mention'
           key={`mention-${match.start}-${index}`}
-          style={{ color: AT_FILE_HIGHLIGHT_COLOR }}
+          style={{ color: MENTION_HIGHLIGHT_COLOR }}
         >
           {input.slice(match.start, match.end)}
         </span>
@@ -1786,7 +1840,7 @@ const SendBox: React.FC<{
     }
 
     return segments;
-  }, [allAtFileQueries, input]);
+  }, [highlightRanges, input]);
 
   return (
     <div className={`relative ${className ?? ''}`.trim()}>
