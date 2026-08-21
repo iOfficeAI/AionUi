@@ -5,8 +5,9 @@
  */
 
 import type { TMessage } from '@/common/chat/chatLib';
+import { emitter } from '@/renderer/utils/emitter';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loadAllConversationMessagesPaged = vi.fn();
 
@@ -14,7 +15,7 @@ vi.mock('@/renderer/utils/chat/messagePagination', () => ({
   loadAllConversationMessagesPaged: (...args: unknown[]) => loadAllConversationMessagesPaged(...args),
 }));
 
-const { useConversationAnchors } =
+const { clearConversationAnchorCache, useConversationAnchors } =
   await import('@/renderer/pages/conversation/Messages/anchorRail/useConversationAnchors');
 
 /** Builds one user/assistant turn pair. */
@@ -45,6 +46,11 @@ const history = (count: number) => Array.from({ length: count }, (_, i) => turn(
 describe('useConversationAnchors', () => {
   beforeEach(() => {
     loadAllConversationMessagesPaged.mockReset();
+    clearConversationAnchorCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('covers the whole history even when the chat area has only paged in the tail', async () => {
@@ -66,6 +72,94 @@ describe('useConversationAnchors', () => {
 
     await waitFor(() => expect(loadAllConversationMessagesPaged).toHaveBeenCalled());
     expect(loadAllConversationMessagesPaged).toHaveBeenCalledWith('c1', { contentMode: 'compact' });
+  });
+
+  it('reuses cached full-history anchors when reopening a conversation', async () => {
+    loadAllConversationMessagesPaged.mockResolvedValue(history(30));
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    await waitFor(() => expect(first.result.current).toHaveLength(30));
+    first.unmount();
+    loadAllConversationMessagesPaged.mockClear();
+
+    const second = renderHook(() => useConversationAnchors('c1', history(2)));
+
+    expect(second.result.current).toHaveLength(30);
+    expect(loadAllConversationMessagesPaged).not.toHaveBeenCalled();
+  });
+
+  it('shows stale cached anchors while refreshing them in the background', async () => {
+    let now = 0;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    loadAllConversationMessagesPaged.mockResolvedValue(history(10));
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    await waitFor(() => expect(first.result.current).toHaveLength(10));
+    first.unmount();
+    now = 30_001;
+    loadAllConversationMessagesPaged.mockResolvedValue(history(12));
+    loadAllConversationMessagesPaged.mockClear();
+
+    const second = renderHook(() => useConversationAnchors('c1', history(2)));
+
+    expect(second.result.current).toHaveLength(10);
+    await waitFor(() => expect(second.result.current).toHaveLength(12));
+    expect(loadAllConversationMessagesPaged).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops cached anchors when authentication cache is cleared', async () => {
+    loadAllConversationMessagesPaged.mockResolvedValue(history(10));
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    await waitFor(() => expect(first.result.current).toHaveLength(10));
+    act(() => emitter.emit('auth.cacheCleared'));
+    first.unmount();
+    loadAllConversationMessagesPaged.mockClear();
+
+    renderHook(() => useConversationAnchors('c1', history(2)));
+
+    await waitFor(() => expect(loadAllConversationMessagesPaged).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not repopulate the cache from a request invalidated by authentication reset', async () => {
+    let resolveFirst: ((messages: TMessage[]) => void) | undefined;
+    loadAllConversationMessagesPaged.mockImplementation(
+      () => new Promise<TMessage[]>((resolve) => (resolveFirst = resolve))
+    );
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    act(() => emitter.emit('auth.cacheCleared'));
+    await act(async () => resolveFirst?.(history(10)));
+    first.unmount();
+    loadAllConversationMessagesPaged.mockResolvedValue(history(3));
+    loadAllConversationMessagesPaged.mockClear();
+
+    renderHook(() => useConversationAnchors('c1', history(2)));
+
+    await waitFor(() => expect(loadAllConversationMessagesPaged).toHaveBeenCalledTimes(1));
+  });
+
+  it('drops cached anchors when the conversation is deleted', async () => {
+    loadAllConversationMessagesPaged.mockResolvedValue(history(10));
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    await waitFor(() => expect(first.result.current).toHaveLength(10));
+    act(() => emitter.emit('conversation.deleted', 'c1'));
+    first.unmount();
+    loadAllConversationMessagesPaged.mockClear();
+
+    renderHook(() => useConversationAnchors('c1', history(2)));
+
+    await waitFor(() => expect(loadAllConversationMessagesPaged).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps cached anchors when a different conversation is deleted', async () => {
+    loadAllConversationMessagesPaged.mockResolvedValue(history(10));
+    const first = renderHook(() => useConversationAnchors('c1', history(2)));
+    await waitFor(() => expect(first.result.current).toHaveLength(10));
+    act(() => emitter.emit('conversation.deleted', 'c2'));
+    first.unmount();
+    loadAllConversationMessagesPaged.mockClear();
+
+    const second = renderHook(() => useConversationAnchors('c1', history(2)));
+
+    expect(second.result.current).toHaveLength(10);
+    expect(loadAllConversationMessagesPaged).not.toHaveBeenCalled();
   });
 
   it('lets newly sent messages extend the rail without re-reading history', async () => {

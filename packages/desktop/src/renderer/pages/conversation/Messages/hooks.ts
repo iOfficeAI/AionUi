@@ -15,8 +15,9 @@ import {
   preferTextMessageVersion,
   sanitizeAcpToolCallContent,
 } from '@/common/chat/chatLib';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
+import { addEventListener } from '@/renderer/utils/emitter';
 import {
   DEFAULT_MESSAGE_PAGE_LIMIT,
   loadConversationAnchorWindow,
@@ -47,6 +48,64 @@ const EMPTY_MESSAGE_PAGINATION_STATE: MessagePaginationState = {
 
 const [useMessagePaginationState, MessagePaginationProvider, useUpdateMessagePaginationState] =
   createContext<MessagePaginationState>(EMPTY_MESSAGE_PAGINATION_STATE);
+
+type CachedMessageList = {
+  messages: TMessage[];
+  pagination: MessagePaginationState;
+  cachedAt: number;
+};
+
+const MESSAGE_LIST_CACHE_MAX_ENTRIES = 12;
+const MESSAGE_LIST_CACHE_MAX_MESSAGES = 200;
+const MESSAGE_LIST_CACHE_FRESH_MS = 30_000;
+const messageListCache = new Map<string, CachedMessageList>();
+const messageListRequests = new Map<string, symbol>();
+let messageListCacheEpoch = 0;
+
+const readCachedMessageList = (conversationId: string): CachedMessageList | undefined => {
+  const cached = messageListCache.get(conversationId);
+  if (!cached) return undefined;
+  messageListCache.delete(conversationId);
+  messageListCache.set(conversationId, cached);
+  return cached;
+};
+
+const writeCachedMessageList = (
+  conversationId: string,
+  messages: TMessage[],
+  pagination: MessagePaginationState
+): void => {
+  if (messages.length > MESSAGE_LIST_CACHE_MAX_MESSAGES) {
+    messageListCache.delete(conversationId);
+    return;
+  }
+  messageListCache.delete(conversationId);
+  messageListCache.set(conversationId, {
+    messages,
+    pagination: {
+      ...pagination,
+      isLoadingBefore: false,
+      isLoadingAnchor: false,
+    },
+    cachedAt: Date.now(),
+  });
+  while (messageListCache.size > MESSAGE_LIST_CACHE_MAX_ENTRIES) {
+    const oldestKey = messageListCache.keys().next().value;
+    if (typeof oldestKey !== 'string') break;
+    messageListCache.delete(oldestKey);
+  }
+};
+
+export const clearMessageListCache = (): void => {
+  messageListCacheEpoch++;
+  messageListCache.clear();
+  messageListRequests.clear();
+};
+
+const deleteConversationMessageCache = (conversationId: string): void => {
+  messageListCache.delete(conversationId);
+  messageListRequests.delete(conversationId);
+};
 
 const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
 
@@ -929,43 +988,94 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
-  const list = useMessageList();
+  const messageList = useMessageList();
   const setLoading = useUpdateMessageListLoading();
+  const pagination = useMessagePaginationState();
   const setPagination = useUpdateMessagePaginationState();
+  const hydratedConversationRef = useRef('');
+  const cacheEpochRef = useRef(messageListCacheEpoch);
+  const cacheConversationRef = useRef(key);
+  if (cacheConversationRef.current !== key) {
+    cacheConversationRef.current = key;
+    cacheEpochRef.current = messageListCacheEpoch;
+  }
   // Mirrors the current list into a ref so the turnCompleted handler below
   // can inspect it synchronously without re-subscribing to the WS event on
   // every list change (useState's functional updater runs asynchronously,
   // so update((list) => ...) can't be used for a synchronous read here).
-  const listRef = useRef(list);
+  const listRef = useRef(messageList);
   useEffect(() => {
-    listRef.current = list;
-  }, [list]);
-  const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const result = await loadLatestConversationMessages(key, {
-      limit: DEFAULT_MESSAGE_PAGE_LIMIT,
-      contentMode: 'compact',
+    listRef.current = messageList;
+  }, [messageList]);
+  useEffect(() => {
+    const removeAuthListener = addEventListener('auth.cacheCleared', clearMessageListCache);
+    const removeDeletionListener = addEventListener('conversation.deleted', (conversationId) => {
+      deleteConversationMessageCache(conversationId);
+      if (conversationId === key) hydratedConversationRef.current = '';
     });
-    const messages = result?.items?.map(normalizeDbMessage);
-    if (messages && Array.isArray(messages)) {
-      update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
-      setPagination({
-        oldestCursor: result.oldest_cursor ?? undefined,
-        newestCursor: result.newest_cursor ?? undefined,
-        hasMoreBefore: result.has_more_before,
-        hasMoreAfter: result.has_more_after,
-        isLoadingBefore: false,
-        isLoadingAnchor: false,
+    return () => {
+      removeAuthListener();
+      removeDeletionListener();
+    };
+  }, [key]);
+  const loadMessages = useCallback(async (): Promise<TMessage[]> => {
+    const requestToken = Symbol(key);
+    messageListRequests.set(key, requestToken);
+    try {
+      const result = await loadLatestConversationMessages(key, {
+        limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+        contentMode: 'compact',
       });
-      return messages;
+      if (messageListRequests.get(key) !== requestToken) return [];
+      const messages = result?.items?.map(normalizeDbMessage);
+      if (messages && Array.isArray(messages)) {
+        const nextPagination = {
+          oldestCursor: result.oldest_cursor ?? undefined,
+          newestCursor: result.newest_cursor ?? undefined,
+          hasMoreBefore: result.has_more_before,
+          hasMoreAfter: result.has_more_after,
+          isLoadingBefore: false,
+          isLoadingAnchor: false,
+        } satisfies MessagePaginationState;
+        update((currentList) => {
+          const nextList = mergeLoadedPageWithCurrent(key, messages, currentList);
+          writeCachedMessageList(key, nextList, nextPagination);
+          return nextList;
+        });
+        setPagination(nextPagination);
+        hydratedConversationRef.current = key;
+        return messages;
+      }
+      return [];
+    } finally {
+      if (messageListRequests.get(key) === requestToken) messageListRequests.delete(key);
     }
-    return [];
   }, [key, setPagination, update]);
+
+  useLayoutEffect(() => {
+    if (!key) return;
+    const cached = readCachedMessageList(key);
+    if (!cached) {
+      hydratedConversationRef.current = '';
+      return;
+    }
+    hydratedConversationRef.current = key;
+    update(cached.messages);
+    setPagination(cached.pagination);
+    setLoading(false);
+  }, [key, setLoading, setPagination, update]);
 
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
-    setLoading(true);
-    setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
+    const cached = readCachedMessageList(key);
+    if (cached && Date.now() - cached.cachedAt <= MESSAGE_LIST_CACHE_FRESH_MS) {
+      return;
+    }
+    if (!cached) {
+      setLoading(true);
+      setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
+    }
     void loadMessages()
       .catch((error) => {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
@@ -979,6 +1089,13 @@ export const useMessageLstCache = (key: string) => {
       cancelled = true;
     };
   }, [key, loadMessages, setLoading, setPagination]);
+
+  useEffect(() => {
+    if (!key || hydratedConversationRef.current !== key || cacheEpochRef.current !== messageListCacheEpoch) return;
+    const cached = readCachedMessageList(key);
+    if (messageList.length === 0 && cached && cached.messages.length > 0) return;
+    writeCachedMessageList(key, messageList, pagination);
+  }, [key, messageList, pagination]);
 
   useEffect(() => {
     if (!key) {

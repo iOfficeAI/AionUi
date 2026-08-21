@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { emitter } from '@/renderer/utils/emitter';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -81,6 +82,7 @@ function clearAuthCache(): void {
   } catch (error) {
     console.error('Failed to clear auth cache:', error);
   }
+  emitter.emit('auth.cacheCleared');
 }
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
