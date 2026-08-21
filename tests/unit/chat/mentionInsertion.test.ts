@@ -6,10 +6,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildAtSessionInsertion,
+  escapeAtSessionName,
   getActiveAtSessionQuery,
   getAllAtSessionQueries,
 } from '@/renderer/utils/chat/atSessionQuery';
-import { getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
+import { escapeAtFilePath, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { applyMentionInsertion, shouldAppendSpaceAfterMention } from '@/renderer/utils/chat/mentionInsertion';
 
 describe('shouldAppendSpaceAfterMention', () => {
@@ -165,4 +166,56 @@ describe('the caret after a trailing space closes the picker', () => {
     const insideToken = value.indexOf('鉴权');
     expect(getActiveAtSessionQuery(value, insideToken)?.query).toBe('重构-鉴权模块');
   });
+});
+
+/**
+ * The escape set and the boundary set must agree.
+ *
+ * Each lane derives both from one character-class constant, but the invariant is
+ * asserted as a black-box round trip rather than by comparing the two regexes:
+ * what actually matters is the consequence. If a boundary character is not
+ * escaped, the inserted token parses SHORT, and the reconciliation that matches a
+ * selection against the token text stops recognising it and retracts the
+ * reference — the silent-drop failure this feature keeps circling.
+ *
+ * The sample is every printable ASCII character plus a few whitespace and CJK
+ * ones, so adding a character to either lane's set is covered automatically and
+ * cannot drift away from a hand-maintained list.
+ */
+describe('every boundary character survives an insert/parse round trip', () => {
+  const SAMPLE: string[] = [
+    ...Array.from({ length: 0x7e - 0x20 + 1 }, (_, index) => String.fromCharCode(0x20 + index)),
+    '\t',
+    '\n',
+    '\r',
+    ' ',
+    '　',
+    '中',
+    '，',
+    '：',
+    '、',
+  ];
+
+  /** What the send box writes, then what the parser reads back out of it. */
+  const sessionRoundTrip = (name: string): string | undefined =>
+    getAllAtSessionQueries(`hi @@${escapeAtSessionName(name)}`)[0]?.query;
+
+  const fileRoundTrip = (path: string): string | undefined =>
+    getAllAtFileQueries(`hi @${escapeAtFilePath(path)}`)[0]?.query;
+
+  it.each(SAMPLE.map((character) => [JSON.stringify(character), character] as const))(
+    'session name containing %s round-trips',
+    (_label, character) => {
+      const name = `a${character}b`;
+      expect(sessionRoundTrip(name)).toBe(name);
+    }
+  );
+
+  it.each(SAMPLE.map((character) => [JSON.stringify(character), character] as const))(
+    'file path containing %s round-trips',
+    (_label, character) => {
+      const path = `dir/a${character}b.ts`;
+      expect(fileRoundTrip(path)).toBe(path);
+    }
+  );
 });

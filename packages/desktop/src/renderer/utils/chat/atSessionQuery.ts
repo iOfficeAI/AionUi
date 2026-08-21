@@ -13,7 +13,27 @@
  * `@@` pair and searches for a file literally named `@auth`.
  */
 
-const AT_SESSION_BOUNDARY_RE = /[\s,;!?()[\]{}]/;
+/**
+ * Characters that terminate a `@@` token, as a regex character-class body.
+ *
+ * The single source for BOTH regexes below, which MUST stay in step. A character
+ * that ends a token but is not escaped makes a conversation name containing it
+ * parse short: the token stops early, and `reconcileSessionRefs` — which matches
+ * a selected conversation by the token's name — no longer recognises it and
+ * retracts the reference. Silently, which is this feature's worst failure mode.
+ *
+ * Kept separate from the `@` lane's set even though the contents match today:
+ * the two alphabets answer to different things (filesystem paths vs. names an
+ * agent writes), so a change to one should not silently move the other.
+ */
+const AT_SESSION_BOUNDARY_CHARS = String.raw`\s,;!?()[\]{}`;
+const AT_SESSION_BOUNDARY_RE = new RegExp(`[${AT_SESSION_BOUNDARY_CHARS}]`);
+/**
+ * The boundary characters plus the backslash itself, which is the escape
+ * character and deliberately NOT a boundary — treating it as one would end a
+ * token at its own escape marker.
+ */
+const AT_SESSION_ESCAPE_RE = new RegExp(String.raw`([\\${AT_SESSION_BOUNDARY_CHARS}])`, 'g');
 
 export type ActiveAtSessionQuery = {
   start: number;
@@ -37,12 +57,20 @@ function isEscaped(value: string, index: number): boolean {
   return backslashCount % 2 === 1;
 }
 
+/**
+ * `[\s\S]`, not `.`: `.` does not match a line terminator, so
+ * `escapeAtSessionName` would add a backslash before a newline that this could
+ * never take back off. The round trip broke, and `reconcileSessionRefs` — which
+ * matches a selected conversation by the token's name — then retracted the
+ * reference. The `s` flag would say the same thing but needs an ES2018 target;
+ * this file compiles at ES6.
+ */
 function unescape(value: string): string {
-  return value.replace(/\\(.)/g, '$1');
+  return value.replace(/\\([\s\S])/g, '$1');
 }
 
 export function escapeAtSessionName(name: string): string {
-  return name.replace(/([\\\s,;!?()[\]{}])/g, '\\$1');
+  return name.replace(AT_SESSION_ESCAPE_RE, '\\$1');
 }
 
 /** Index of the `@@` opening this token, or -1. */
