@@ -57,7 +57,7 @@ import {
 } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
-import { reveal, select } from './explorerStore';
+import { refreshRoot, reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
 import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
@@ -240,6 +240,20 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     } catch {
       Message.error(t('conversation.explorer.removeFailed'));
     }
+  };
+
+  // Manually refresh one pe root (context-menu action on a root node). Two
+  // independent staleness sources are refreshed: `mutate()` re-fetches the
+  // project detail so a root's `runtime_status` (the greyed/caution indicator,
+  // HTTP-sourced) reflects a folder that has become reachable again; `refreshRoot`
+  // asks the backend to remount the root's watched subtree over WS (re-arm the
+  // watch, re-read the baseline) so the freshest directory listings replace the
+  // cache — recovering a stale mount a plain re-subscribe could not. No toast — the
+  // tree/indicator updating in place is the feedback, and reporting success before
+  // the async snapshot lands would lie.
+  const handleRefreshRoot = (peId: string): void => {
+    void mutate();
+    refreshRoot(peId);
   };
 
   // ── File operations (A): rename + delete + create-file / create-dir ───────
@@ -553,6 +567,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             roots={roots}
             workspacePeId={workspacePeId}
             onRemoveRoot={handleRemoveFolder}
+            onRefreshRoot={handleRefreshRoot}
             onOpenFile={handleOpenFile}
             onRename={handleRename}
             onDelete={handleDelete}

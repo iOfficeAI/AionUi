@@ -39,6 +39,13 @@ export type SubscribeResult = {
 /** The subscription transport the store drives (bound to MonitorClient in prod). */
 export type MonitorPort = {
   subscribe: (refs: DirRef[]) => Promise<SubscribeResult>;
+  /**
+   * Force the backend to re-mount the given (already-watched) directories —
+   * re-arm their watch and re-read their baseline — and return the fresh
+   * snapshots. Unlike `subscribe`, which the backend answers from its cached
+   * listing for a live node, this rebuilds a mount that may have gone stale.
+   */
+  remount: (refs: DirRef[]) => Promise<SubscribeResult>;
   unsubscribe: (refs: DirRef[]) => void;
 };
 
@@ -423,6 +430,55 @@ export const select = (key: PeKey | null): void => {
 export const onReconnect = (): void => {
   current = new Set();
   scheduleReconcile();
+};
+
+/**
+ * Manually refresh one project_explorer root — the recovery path for when the
+ * BACKEND mount for that root went stale: its filesystem watcher died, or its
+ * path was unreachable and has since recovered, so the backend is serving a
+ * listing that no longer matches disk and delivering no more changes.
+ *
+ * A plain re-subscribe cannot fix this: the backend answers a subscribe of a
+ * still-live directory from its cached node (its mount is idempotent), rebuilding
+ * neither the watch nor the listing. So this asks the backend to REMOUNT instead
+ * — re-arm the watch and re-read the baseline — for every directory of this pe
+ * that is currently watched (the reported `current` set, which is exactly the
+ * backend's watched set for this pe). The returned fresh snapshots replace the
+ * cached listings, guarded against keys that stopped being wanted mid-flight.
+ *
+ * `current` is left intact: remount does not change *what* we subscribe to, only
+ * forces the backend to rebuild it, so subscriptions and pe identities are
+ * preserved. A no-op when the root has no live subscriptions (e.g. collapsed):
+ * nothing is watched, so there is no backend mount to refresh. The runtime-status
+ * indicator (an HTTP-sourced stat, decoupled from the watcher) is recovered
+ * separately by the container's `mutate()`.
+ */
+export const refreshRoot = (peId: string): void => {
+  if (!port) return;
+  const refs = [...current].filter((key) => keyToRef(key).pe_id === peId).map(keyToRef);
+  if (refs.length === 0) return; // collapsed / nothing watched → no backend mount to refresh
+  port
+    .remount(refs)
+    .then((result) => {
+      // Apply each fresh snapshot, guarding against keys no longer wanted (the
+      // tree may have collapsed while the request was in flight). Mirrors the
+      // subscribe-reply application in runReconcile.
+      const stillWant = deriveWant(expanded);
+      let changed = false;
+      for (const snap of result.snapshots) {
+        const key = refToKey(snap.target);
+        if (!stillWant.has(key)) continue; // guard: dropped
+        cache = applySnapshot(cache, key, snap.entries);
+        changed = true;
+      }
+      if (changed) commit();
+    })
+    .catch(() => {
+      // Remount failed (offline, or the path is still gone). The existing
+      // subscriptions are untouched and still valid, so there is nothing to roll
+      // back; the stale cache is kept until a future event or another refresh
+      // recovers it. Deliberately no reschedule — a manual refresh does not retry.
+    });
 };
 
 export const subscribeExplorer = (listener: () => void): (() => void) => {

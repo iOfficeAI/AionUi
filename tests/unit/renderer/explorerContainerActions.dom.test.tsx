@@ -43,6 +43,7 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   ExplorerPanel: ({
     roots,
     onRemoveRoot,
+    onRefreshRoot,
     onOpenFile,
     onAddToChat,
     onCopyRelativePath,
@@ -53,6 +54,7 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   }: {
     roots: Array<{ title: string }>;
     onRemoveRoot?: (id: string) => void;
+    onRefreshRoot?: (id: string) => void;
     onOpenFile?: (pe: string, rel: string) => void;
     onAddToChat?: (pe: string, rel: string, name: string, isFile: boolean) => void;
     onCopyRelativePath?: (pe: string, rel: string, name: string) => void;
@@ -78,6 +80,9 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
       </button>
       <button data-testid='do-remove' onClick={() => onRemoveRoot?.('peA')}>
         rm
+      </button>
+      <button data-testid='do-refresh' onClick={() => onRefreshRoot?.('peA')}>
+        refresh
       </button>
       <button data-testid='do-open' onClick={() => onOpenFile?.('peA', 'docs/readme.md')}>
         open
@@ -129,6 +134,7 @@ vi.mock('@/common', () => ({
 }));
 
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
+import * as explorerStore from '@/renderer/pages/conversation/explorer/explorerStore';
 import { resetExplorerStoreForTest } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
@@ -266,6 +272,19 @@ describe('ExplorerContainer attach/remove', () => {
     fireEvent.click(screen.getByTestId('do-remove'));
     await waitFor(() => expect(removeFolder).toHaveBeenCalledWith({ project_id: 'p1', pe_id: 'peA' }));
     await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2));
+  });
+
+  it('refreshes one root: remounts its WS listings AND revalidates HTTP detail (runtime_status/caution icon)', async () => {
+    // refreshRoot asks the backend to remount the pe's watched dirs (re-arm watch,
+    // re-read baseline) without touching its subscriptions; mutate() re-fetches
+    // project.get so a recovered/degraded root's runtime_status (the caution icon,
+    // HTTP-sourced not WS-sourced) updates.
+    const refreshSpy = vi.spyOn(explorerStore, 'refreshRoot');
+    renderIt();
+    await screen.findByTestId('roots');
+    fireEvent.click(screen.getByTestId('do-refresh'));
+    await waitFor(() => expect(refreshSpy).toHaveBeenCalledWith('peA'));
+    await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2)); // initial + revalidate
   });
 });
 

@@ -636,6 +636,7 @@
       "addToChat": "채팅에 추가",
       "copyRelativePath": "상대 경로 복사",
       "copyAbsolutePath": "절대 경로 복사",
+      "refresh": "새로 고침",
       "newFile": "새 파일",
       "newDir": "새 폴더"
     },

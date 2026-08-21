@@ -643,7 +643,8 @@
       "newDir": "Nova pasta",
       "addToChat": "Adicionar ao chat",
       "copyRelativePath": "Copiar caminho relativo",
-      "copyAbsolutePath": "Copiar caminho absoluto"
+      "copyAbsolutePath": "Copiar caminho absoluto",
+      "refresh": "Atualizar"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
