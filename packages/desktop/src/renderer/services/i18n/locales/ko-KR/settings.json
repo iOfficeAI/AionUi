@@ -1394,7 +1394,9 @@
     "deleteSelectedConfirmTitle": "Delete selected archived items?",
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
-    "selectAll": "Select all"
+    "selectAll": "Select all",
+    "loadMore": "더 보기",
+    "loadMoreFailed": "더 불러오지 못했습니다"
   },
   "crossSessionMessage": "대화 간 메시지",
   "crossSessionMessageDesc": "에이전트가 다른 대화로 메시지를 보낼 수 있게 합니다. 끄면 입력창의 @@ 대화 멘션도 비활성화됩니다.",

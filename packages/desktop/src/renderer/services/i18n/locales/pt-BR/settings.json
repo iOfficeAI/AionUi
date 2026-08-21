@@ -1395,7 +1395,9 @@
     "deleteSelectedConfirmTitle": "Delete selected archived items?",
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
-    "selectAll": "Select all"
+    "selectAll": "Select all",
+    "loadMore": "Carregar mais",
+    "loadMoreFailed": "Falha ao carregar mais"
   },
   "crossSessionMessage": "Mensagens entre conversas",
   "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",

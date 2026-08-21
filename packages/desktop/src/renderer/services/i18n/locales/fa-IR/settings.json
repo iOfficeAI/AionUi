@@ -1392,7 +1392,9 @@
     "deleteSelectedConfirmTitle": "Delete selected archived items?",
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
-    "selectAll": "Select all"
+    "selectAll": "Select all",
+    "loadMore": "بارگذاری بیشتر",
+    "loadMoreFailed": "بارگذاری موارد بیشتر ناموفق بود"
   },
   "crossSessionMessage": "پیام‌های بین گفتگوها",
   "crossSessionMessageDesc": "به عامل‌ها اجازه می‌دهد به گفتگوهای دیگر شما پیام بفرستند. با خاموش کردن، منشن @@ در کادر ورودی نیز غیرفعال می‌شود.",

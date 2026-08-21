@@ -2431,17 +2431,20 @@ export const sidebar = {
     fromApiSidebar
   ),
   // One more window of a single group (the "+10" paging). `scope` is the group token,
-  // `cursor` the keyset cursor from the previous page.
+  // `cursor` the keyset cursor from the previous page. `archived` pages the archive
+  // slice (mirrors `get`) — the archived management page pages its groups this way.
   items: withResponseMap(
-    httpGet<import('@/common/types/sidebar').SidebarItemsResponse, { scope: string; cursor?: string; limit?: number }>(
-      (p) => {
-        const params = new URLSearchParams();
-        params.set('scope', p.scope);
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
-        return `/api/sidebar/items?${params.toString()}`;
-      }
-    ),
+    httpGet<
+      import('@/common/types/sidebar').SidebarItemsResponse,
+      { scope: string; cursor?: string; limit?: number; archived?: boolean }
+    >((p) => {
+      const params = new URLSearchParams();
+      params.set('scope', p.scope);
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      if (p.archived) params.set('archived', 'true');
+      return `/api/sidebar/items?${params.toString()}`;
+    }),
     fromApiSidebarItems
   ),
   // Remove a project and everything classified into its group (teams + standalone

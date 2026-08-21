@@ -1392,7 +1392,9 @@
     "deleteSelectedConfirmTitle": "Delete selected archived items?",
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
-    "selectAll": "Select all"
+    "selectAll": "Select all",
+    "loadMore": "Charger plus",
+    "loadMoreFailed": "Échec du chargement"
   },
   "crossSessionMessage": "Messages entre conversations",
   "crossSessionMessageDesc": "Permet aux agents d'envoyer des messages à vos autres conversations. La désactivation coupe aussi la mention @@ dans la zone de saisie.",
