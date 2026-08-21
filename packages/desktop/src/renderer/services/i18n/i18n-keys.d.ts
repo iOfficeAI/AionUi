@@ -1321,6 +1321,7 @@ export type I18nKey =
   | 'preview.html.viewElementInfo'
   | 'preview.loading'
   | 'preview.mermaidTitle'
+  | 'preview.mermaidZoomHint'
   | 'preview.missingFile.openInNewTab'
   | 'preview.missingFile.title'
   | 'preview.noTabs'

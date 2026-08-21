@@ -28,8 +28,8 @@ type CodeBlockProps = {
   node?: unknown;
   hiddenCodeCopyButton?: boolean;
   codeStyle?: React.CSSProperties;
-  // Enable drag-to-pan + zoom on rendered Mermaid diagrams. The preview panel opts in;
-  // inline chat diagrams stay static.
+  // Enable drag-to-pan + zoom on rendered Mermaid diagrams. Chat messages and the
+  // preview panel both opt in; other surfaces keep diagrams static.
   mermaidPanZoom?: boolean;
   [key: string]: unknown;
 };

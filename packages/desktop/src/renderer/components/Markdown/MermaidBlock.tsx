@@ -14,21 +14,26 @@ import { Copy, PreviewOpen, Refresh, ZoomIn, ZoomOut } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MermaidZoomOverlay from './MermaidZoomOverlay';
+import { getSvgIntrinsicSize } from './markdownUtils';
 
 type MermaidBlockProps = {
   code: string;
   style?: React.CSSProperties;
   showOpenInPanelButton?: boolean;
-  // Enable drag-to-pan + zoom buttons over the rendered diagram. Off by default so
-  // inline chat diagrams stay static; the preview panel opts in. Wheel is left to the
-  // page so scrolling a long document past a diagram never zooms it (matches the prior
-  // Streamdown behaviour the preview shipped with).
+  // Enable drag-to-pan + zoom buttons over the rendered diagram. Chat messages and
+  // the preview panel opt in via CodeBlock; other callers keep diagrams static by
+  // default. Wheel is left to the page so scrolling a long document past a diagram
+  // never zooms it (matches the prior Streamdown behaviour the preview shipped with).
   enablePanZoom?: boolean;
 };
 
 const MIN_MERMAID_SCALE = 0.25;
 const MAX_MERMAID_SCALE = 4;
 const MERMAID_ZOOM_STEP = 0.25;
+// Pointer movement below this threshold counts as a click (opens the zoom
+// overlay) instead of a pan, when drag-to-pan is enabled.
+const PAN_CLICK_THRESHOLD = 4;
 
 let initializedTheme: 'light' | 'dark' | null = null;
 const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
@@ -44,15 +49,20 @@ const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
 };
 
 const withResponsiveSvg = (svg: string): string => {
+  // Cap the inline diagram at min(container, natural width): narrow diagrams
+  // (e.g. top-down layouts) render 1:1 at their natural size instead of being
+  // stretched across the message column; wide diagrams still fit the column.
+  const intrinsicWidth = getSvgIntrinsicSize(svg)?.width;
+  const maxWidth = intrinsicWidth ? `min(100%, ${intrinsicWidth}px)` : '100%';
   return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
     if (/style\s*=/.test(attrs)) {
       return `<svg${attrs.replace(
         /style\s*=\s*(["'])(.*?)\1/i,
         (_styleMatch, quote: string, styleValue: string) =>
-          ` style=${quote}${styleValue};max-width: 100%; height: auto; display: block;${quote}`
+          ` style=${quote}${styleValue};max-width: ${maxWidth}; height: auto; display: block;${quote}`
       )}>`;
     }
-    return `<svg${attrs} style="max-width: 100%; height: auto; display: block;">`;
+    return `<svg${attrs} style="max-width: ${maxWidth}; height: auto; display: block;">`;
   });
 };
 
@@ -71,19 +81,23 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
 
   // Pan/zoom transform for the rendered diagram (only used when enablePanZoom).
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
     originX: number;
     originY: number;
+    moved: boolean;
   } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Reset the view whenever a fresh diagram renders so a re-render never leaves the
   // user staring at an off-screen, zoomed-in fragment of the previous diagram.
+  // A re-render also replaces the overlay content, so close it as well.
   useEffect(() => {
     setTransform({ scale: 1, x: 0, y: 0 });
+    setIsZoomOpen(false);
   }, [svg]);
 
   const zoomBy = (delta: number) =>
@@ -102,6 +116,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
       startY: event.clientY,
       originX: transform.x,
       originY: transform.y,
+      moved: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsPanning(true);
@@ -110,6 +125,15 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
   const handlePanPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    // Stay in "click" territory until the pointer travels past the threshold so
+    // a plain click opens the zoom overlay instead of nudging the diagram.
+    if (
+      !drag.moved &&
+      Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY) < PAN_CLICK_THRESHOLD
+    ) {
+      return;
+    }
+    drag.moved = true;
     setTransform((prev) => ({
       ...prev,
       x: drag.originX + (event.clientX - drag.startX),
@@ -120,11 +144,13 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
   const endPan = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    const isClick = !drag.moved && event.type === 'pointerup';
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     setIsPanning(false);
+    if (isClick) setIsZoomOpen(true);
   };
 
   useEffect(() => {
@@ -379,7 +405,9 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
                 overflowX: 'auto',
                 display: 'flex',
                 justifyContent: 'center',
+                cursor: 'zoom-in',
               }}
+              onClick={() => setIsZoomOpen(true)}
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           )
@@ -431,6 +459,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
           />
         )}
       </div>
+      {isZoomOpen && svg && <MermaidZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} />}
     </div>
   );
 }
