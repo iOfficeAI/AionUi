@@ -20,7 +20,7 @@ import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
-} from './assistantBinding';
+} from '../assistantBinding';
 
 const PreferenceRow: React.FC<{
   label: string;
@@ -32,7 +32,7 @@ const PreferenceRow: React.FC<{
     <div className='flex-1'>
       <div className='text-14px text-t-primary'>
         {label}
-        {required && <span className='text-red-500 ml-2px'>*</span>}
+        {required && <span className='ml-2px text-danger'>*</span>}
       </div>
       {description && <div className='text-12px text-t-tertiary mt-2px'>{description}</div>}
     </div>
@@ -243,7 +243,7 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
 
   const getRemainingTime = (expiresAt: number) => {
     const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
-    return `${remaining} min`;
+    return `${remaining} ${t('common.unit.minute_short', { defaultValue: 'm' })}`;
   };
 
   const showModelSelector = isAionrsAssistant(selectedAssistant);
@@ -257,8 +257,8 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
         <Input
           value={serverUrl}
           onChange={setServerUrl}
-          placeholder='https://mattermost.example.com'
-          style={{ width: 280 }}
+          placeholder={t('settings.mattermost.serverUrlPlaceholder', 'https://mattermost.example.com')}
+          className='w-280px max-w-full'
         />
       </PreferenceRow>
 
@@ -266,8 +266,12 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
         <Input.Password
           value={accessToken}
           onChange={setAccessToken}
-          placeholder={pluginStatus?.hasToken ? '••••••••••••••••' : 'MMAUTHTOKEN...'}
-          style={{ width: 280 }}
+          placeholder={
+            pluginStatus?.hasToken
+              ? t('settings.mattermost.savedTokenPlaceholder', '••••••••••••••••')
+              : t('settings.mattermost.accessTokenPlaceholder', 'MMAUTHTOKEN...')
+          }
+          className='w-280px max-w-full'
           visibilityToggle
         />
       </PreferenceRow>
@@ -282,8 +286,8 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
         <Input
           value={allowedChannelIds}
           onChange={setAllowedChannelIds}
-          placeholder='channel_id_1, channel_id_2'
-          style={{ width: 280 }}
+          placeholder={t('settings.mattermost.channelIdsPlaceholder', 'channel_id_1, channel_id_2')}
+          className='w-280px max-w-full'
         />
       </PreferenceRow>
 
@@ -310,7 +314,7 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
           <div className='flex flex-col gap-4px'>
             <span>{t('settings.mattermost.agentDesc', 'Used for Mattermost conversations')}</span>
             {hasBrokenSavedAssistant && (
-              <span className='text-orange-6'>
+              <span className='text-warning-6'>
                 {t(
                   'conversation.agentError.codes.TEAM_ASSISTANT_NOT_FOUND.title',
                   'The selected assistant is no longer available'
@@ -383,7 +387,7 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
 
       {pluginStatus?.enabled && (
         <div
-          className={`rd-12px p-16px border ${pluginStatus.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}
+          className={`rd-8px border p-16px ${pluginStatus.connected ? 'border-success-4 bg-success-light-1' : pluginStatus.error ? 'border-danger-4 bg-danger-light-1' : 'border-warning-4 bg-warning-light-1'}`}
         >
           <div className='text-14px font-500 text-t-primary mb-8px'>
             {t('settings.mattermost.connectionStatus', 'Connection Status')}
@@ -399,7 +403,7 @@ const MattermostConfigForm: React.FC<MattermostConfigFormProps> = ({
       )}
 
       {pluginStatus?.enabled && (
-        <div className='bg-fill-1 rd-12px p-16px'>
+        <div className='bg-fill-1 rd-8px p-16px'>
           <div className='flex items-center justify-between mb-12px'>
             <div className='text-14px font-500 text-t-primary'>
               {t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}

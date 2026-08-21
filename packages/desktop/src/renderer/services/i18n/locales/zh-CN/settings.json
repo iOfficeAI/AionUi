@@ -1418,6 +1418,10 @@
   "fontSizeMarkdown": "Markdown 字号",
   "fontSizeCode": "代码字号",
   "mattermost": {
+    "serverUrlPlaceholder": "https://mattermost.example.com",
+    "accessTokenPlaceholder": "MMAUTHTOKEN...",
+    "savedTokenPlaceholder": "••••••••••••••••",
+    "channelIdsPlaceholder": "channel_id_1, channel_id_2",
     "serverUrl": "Mattermost 服务地址",
     "accessToken": "访问令牌",
     "allowedChannelIds": "允许的频道 ID",

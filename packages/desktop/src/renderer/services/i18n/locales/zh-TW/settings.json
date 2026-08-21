@@ -1419,6 +1419,10 @@
   "fontSizeMarkdown": "Markdown 字級",
   "fontSizeCode": "程式碼字級",
   "mattermost": {
+    "serverUrlPlaceholder": "https://mattermost.example.com",
+    "accessTokenPlaceholder": "MMAUTHTOKEN...",
+    "savedTokenPlaceholder": "••••••••••••••••",
+    "channelIdsPlaceholder": "channel_id_1, channel_id_2",
     "serverUrl": "Mattermost 伺服器位址",
     "accessToken": "存取權杖",
     "allowedChannelIds": "允許的頻道 ID",

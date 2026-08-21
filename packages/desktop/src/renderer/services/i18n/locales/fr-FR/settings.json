@@ -1417,6 +1417,10 @@
   "fontSizeMarkdown": "Taille du texte de démarque",
   "fontSizeCode": "Taille de la police du code",
   "mattermost": {
+    "serverUrlPlaceholder": "https://mattermost.example.com",
+    "accessTokenPlaceholder": "MMAUTHTOKEN...",
+    "savedTokenPlaceholder": "••••••••••••••••",
+    "channelIdsPlaceholder": "channel_id_1, channel_id_2",
     "serverUrl": "URL du serveur Mattermost",
     "accessToken": "Jeton d'accès",
     "allowedChannelIds": "Identifiants des canaux autorisés",

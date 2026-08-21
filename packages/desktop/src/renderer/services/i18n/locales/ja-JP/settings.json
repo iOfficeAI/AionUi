@@ -1419,6 +1419,10 @@
   "fontSizeMarkdown": "Markdownの文字サイズ",
   "fontSizeCode": "コードのフォントサイズ",
   "mattermost": {
+    "serverUrlPlaceholder": "https://mattermost.example.com",
+    "accessTokenPlaceholder": "MMAUTHTOKEN...",
+    "savedTokenPlaceholder": "••••••••••••••••",
+    "channelIdsPlaceholder": "channel_id_1, channel_id_2",
     "serverUrl": "Mattermost Server URL",
     "accessToken": "Access Token",
     "allowedChannelIds": "Allowed Channel IDs",

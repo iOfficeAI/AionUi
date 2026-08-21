@@ -19,14 +19,14 @@ import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import ChannelItem from './ChannelItem';
 import type { ChannelConfig } from './types';
-import DingTalkConfigForm from './DingTalkConfigForm';
-import DiscordConfigForm from './DiscordConfigForm';
-import LarkConfigForm from './LarkConfigForm';
-import SlackConfigForm from './SlackConfigForm';
-import TelegramConfigForm from './TelegramConfigForm';
-import WeixinConfigForm from './WeixinConfigForm';
-import WecomConfigForm from './WecomConfigForm';
-import MattermostConfigForm from './MattermostConfigForm';
+import DingTalkConfigForm from './platforms/DingTalkConfigForm';
+import DiscordConfigForm from './platforms/DiscordConfigForm';
+import LarkConfigForm from './platforms/LarkConfigForm';
+import MattermostConfigForm from './platforms/MattermostConfigForm';
+import SlackConfigForm from './platforms/SlackConfigForm';
+import TelegramConfigForm from './platforms/TelegramConfigForm';
+import WecomConfigForm from './platforms/WecomConfigForm';
+import WeixinConfigForm from './platforms/WeixinConfigForm';
 
 type ChannelSettingsPlatform =
   | 'telegram'

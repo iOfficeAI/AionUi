@@ -22,7 +22,7 @@ import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
-} from './assistantBinding';
+} from '../assistantBinding';
 
 type LoginState = 'idle' | 'loading_qr' | 'showing_qr' | 'scanned' | 'connected';
 
