@@ -759,5 +759,8 @@
     "exited": "退出码 {{code}}",
     "stop": "停止",
     "truncated": "(较早输出已截断)"
+  },
+  "emptyState": {
+    "greeting": "你好！说说你的需求，我这就开始。"
   }
 }

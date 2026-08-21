@@ -760,5 +760,8 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "emptyState": {
+    "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."
   }
 }

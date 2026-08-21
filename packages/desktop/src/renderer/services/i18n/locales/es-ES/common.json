@@ -201,5 +201,6 @@
   },
   "goBack": "Back",
   "selectedCount": "{{count}} seleccionado(s)",
-  "selectedSkills": "Habilidades seleccionadas"
+  "selectedSkills": "Habilidades seleccionadas",
+  "aiAssistant": "Asistente de IA"
 }

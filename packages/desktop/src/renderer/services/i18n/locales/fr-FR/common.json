@@ -201,5 +201,6 @@
     "second_short": "s"
   },
   "selectedCount": "{{count}} sélectionné(s)",
-  "selectedSkills": "Compétences sélectionnées"
+  "selectedSkills": "Compétences sélectionnées",
+  "aiAssistant": "Assistant IA"
 }
