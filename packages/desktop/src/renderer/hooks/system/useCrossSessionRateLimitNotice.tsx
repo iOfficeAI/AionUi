@@ -7,9 +7,10 @@
 import { ipcBridge } from '@/common';
 import type { SessionMessageRateLimitedPayload } from '@/common/adapter/ipcBridge';
 import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
+import { resolveCurrentUserId } from '@/renderer/hooks/system/currentUserId';
 import { getConversationRuntimeViewSnapshot } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import { Button, Message, Notification } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export type { SessionMessageRateLimitedPayload };
@@ -68,6 +69,26 @@ export function useCrossSessionRateLimitNotice(currentUserId?: string): void {
   const { t } = useTranslation();
   const { setEnabled } = useCrossSessionMessageEnabled();
   const lastShownRef = useRef<Map<string, number>>(new Map());
+  // The caller cannot always supply an id: in the desktop app `AuthContext`
+  // keeps `user` null on purpose, so `user?.id` is `undefined` and the payload
+  // filter below would reject EVERY event — the warning was silently dead there.
+  // Ask the backend who this client is instead of widening the filter, so the
+  // per-user check stays a real check rather than a platform exception.
+  const [resolvedUserId, setResolvedUserId] = useState(currentUserId);
+
+  useEffect(() => {
+    if (currentUserId) {
+      setResolvedUserId(currentUserId);
+      return;
+    }
+    let cancelled = false;
+    void resolveCurrentUserId().then((id) => {
+      if (!cancelled) setResolvedUserId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId]);
 
   const stopConversations = useCallback(async (conversationIds: string[]) => {
     await Promise.all(
@@ -87,7 +108,7 @@ export function useCrossSessionRateLimitNotice(currentUserId?: string): void {
 
   const handlePayload = useCallback(
     (payload: SessionMessageRateLimitedPayload) => {
-      if (!shouldShowRateLimitNotice(payload, currentUserId)) return;
+      if (!shouldShowRateLimitNotice(payload, resolvedUserId)) return;
 
       const key = pairKey(payload);
       const now = Date.now();
@@ -141,7 +162,7 @@ export function useCrossSessionRateLimitNotice(currentUserId?: string): void {
         ),
       });
     },
-    [currentUserId, setEnabled, stopConversations, t]
+    [resolvedUserId, setEnabled, stopConversations, t]
   );
 
   useEffect(() => {

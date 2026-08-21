@@ -245,6 +245,26 @@ export const sessionMention = {
 };
 
 // ---------------------------------------------------------------------------
+// Auth — identity of the current client
+// ---------------------------------------------------------------------------
+
+export const auth = {
+  /**
+   * Which user id the backend attributes THIS client's requests to.
+   *
+   * Deliberately not `GET /api/auth/user`: the auth router builds its own
+   * `AuthState` whose identity mode is only ever `AionPro` or `UserSession`, so
+   * in local identity mode that endpoint answers 401 while every ordinary route
+   * is happily serving an injected default user. `/api/system/current-user`
+   * sits behind the ORDINARY auth middleware, so it reports the same identity
+   * the rest of the API scopes data by — in every identity mode.
+   *
+   * Desktop needs this at all because `AuthContext` keeps `user` null there.
+   */
+  currentUser: httpGet<{ id: string; username: string }>('/api/system/current-user'),
+};
+
+// ---------------------------------------------------------------------------
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
 
