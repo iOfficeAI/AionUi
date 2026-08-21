@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
-    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
+    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다.",
+    "hintWithSessions": "/ 로 명령, @ 로 파일, @@ 로 대화 참조, ↑/↓ 로 기록"
   },
   "agentTip": {
     "codes": {
@@ -762,6 +763,18 @@
   },
   "emptyState": {
     "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."
+  },
+  "crossSession": {
+    "mentionAgain": "입력창에서 대화 {{name}} 멘션",
+    "mentionAgainHint": "클릭하여 이 대화를 입력창에서 멘션",
+    "mentionUnavailable": "해당 대화는 더 이상 멘션할 수 없습니다",
+    "mentionFailed": "해당 대화를 멘션할 수 없습니다",
+    "fromBadge": "대화 \"{{name}}\"에서",
+    "otherWorkspace": "다른 작업 공간",
+    "rateLimitedTitle": "대화 간 메시지가 반복되는 것 같습니다",
+    "rateLimited": "\"{{from}}\"와 \"{{to}}\" 사이의 자동 메시지가 비정상적으로 잦아 반복되는 것 같습니다.",
+    "stopBoth": "두 대화 모두 중지",
+    "disableFeature": "대화 간 메시지 끄기"
   },
   "planBar": {
     "title": "계획",

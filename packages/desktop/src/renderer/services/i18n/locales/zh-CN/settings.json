@@ -1394,5 +1394,10 @@
     "deleteSelectedConfirmContent": "将永久删除已选的 {{count}} 个归档项，此操作无法撤销。",
     "deleteSelectedSuccess": "已删除所选归档项",
     "selectAll": "全选"
-  }
+  },
+  "crossSessionMessage": "跨会话消息",
+  "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
+  "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
+  "crossSessionMessageResume": "重新开启",
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
 }

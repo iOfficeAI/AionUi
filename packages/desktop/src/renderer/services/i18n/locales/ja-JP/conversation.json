@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
-    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
+    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。",
+    "hintWithSessions": "/ でコマンド、@ でファイル、@@ で会話を参照、↑/↓ で履歴"
   },
   "agentTip": {
     "codes": {
@@ -762,6 +763,18 @@
   },
   "emptyState": {
     "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"
+  },
+  "crossSession": {
+    "mentionAgain": "入力欄で会話 {{name}} にメンション",
+    "mentionAgainHint": "クリックしてこの会話を入力欄でメンション",
+    "mentionUnavailable": "この会話はメンションできなくなりました",
+    "mentionFailed": "この会話にメンションできませんでした",
+    "fromBadge": "会話「{{name}}」から",
+    "otherWorkspace": "別のワークスペース",
+    "rateLimitedTitle": "会話間メッセージが空転している可能性があります",
+    "rateLimited": "「{{from}}」と「{{to}}」の間の自動メッセージが異常に頻繁で、空転している可能性があります。",
+    "stopBoth": "両方の会話を停止",
+    "disableFeature": "会話間メッセージをオフにする"
   },
   "planBar": {
     "title": "プラン",

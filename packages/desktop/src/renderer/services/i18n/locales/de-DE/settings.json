@@ -1393,5 +1393,10 @@
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
     "selectAll": "Select all"
-  }
+  },
+  "crossSessionMessage": "Nachrichten zwischen Unterhaltungen",
+  "crossSessionMessageDesc": "Erlaubt Agenten, Nachrichten an Ihre anderen Unterhaltungen zu senden. Beim Ausschalten wird auch die @@-Erwähnung im Eingabefeld deaktiviert.",
+  "crossSessionMessageDisabledBanner": "Nachrichten zwischen Unterhaltungen sind aus, die @@-Erwähnung ist nicht verfügbar.",
+  "crossSessionMessageResume": "Wieder einschalten",
+  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden"
 }

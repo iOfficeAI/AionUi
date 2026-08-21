@@ -593,7 +593,8 @@
   },
   "sendbox": {
     "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
-    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
+    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet.",
+    "hintWithSessions": "/ für Befehle, @ für Dateien, @@ für Unterhaltungen, ↑/↓ für Verlauf"
   },
   "agentTip": {
     "codes": {
@@ -763,6 +764,18 @@
   },
   "emptyState": {
     "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."
+  },
+  "crossSession": {
+    "mentionAgain": "Unterhaltung {{name}} im Eingabefeld erwähnen",
+    "mentionAgainHint": "Klicken, um diese Unterhaltung im Eingabefeld zu erwähnen",
+    "mentionUnavailable": "Diese Unterhaltung kann nicht mehr erwähnt werden.",
+    "mentionFailed": "Diese Unterhaltung konnte nicht erwähnt werden.",
+    "fromBadge": "Aus Unterhaltung {{name}}",
+    "otherWorkspace": "anderer Arbeitsbereich",
+    "rateLimitedTitle": "Nachrichten zwischen Unterhaltungen laufen möglicherweise im Kreis",
+    "rateLimited": "Automatische Nachrichten zwischen „{{from}}“ und „{{to}}“ sind ungewöhnlich häufig und laufen möglicherweise im Kreis.",
+    "stopBoth": "Beide Unterhaltungen stoppen",
+    "disableFeature": "Nachrichten zwischen Unterhaltungen ausschalten"
   },
   "planBar": {
     "title": "Plan",

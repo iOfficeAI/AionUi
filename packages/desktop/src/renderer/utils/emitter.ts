@@ -44,6 +44,22 @@ interface EventTypes {
   'sendbox.fill': [string]; // prompt text to fill
   'sendbox.reply': [ReplyQuote]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
+  /**
+   * Mention a conversation in the send box, target already resolved.
+   *
+   * Emitted by the conversation chip / delivery badge on an earlier message, so a
+   * target that was hard to find once does not have to be found again — the chip
+   * carries the id, which also side-steps the ambiguity of twenty conversations
+   * sharing a name.
+   *
+   * Carries the id, NOT just the name: the send box inserts the token AND
+   * attaches the reference, because a token with nothing behind it is exactly the
+   * silent failure this feature keeps producing.
+   *
+   * The 2nd arg is the target conversation id, same as the file lanes above: only
+   * the send box of that conversation may react.
+   */
+  'sendbox.mention.session': [{ id: string; name: string }, string | undefined];
 }
 
 export const emitter = new EventEmitter<EventTypes>();
