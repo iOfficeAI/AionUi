@@ -29,6 +29,7 @@ import {
   getActiveAtSessionQuery,
   resolveAtSessionMenuKey,
 } from '@/renderer/utils/chat/atSessionQuery';
+import { applyMentionInsertion } from '@/renderer/utils/chat/mentionInsertion';
 import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { formatRelativeTime } from '@/renderer/utils/chat/relativeTime';
@@ -1140,8 +1141,15 @@ const SendBox: React.FC<{
       if (!nextInsertion) {
         return;
       }
-      const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
-      const nextCaret = activeAtFileQuery.start + nextInsertion.length;
+      // Trailing space when the mention ends the input: without it the next `@`
+      // is not recognised as a new token, so a second file could not be
+      // mentioned without the user typing the separator by hand.
+      const { value: nextValue, caret: nextCaret } = applyMentionInsertion(
+        input,
+        activeAtFileQuery.start,
+        activeAtFileQuery.end,
+        nextInsertion
+      );
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
       const path = getSelectedItemKey(item);
 
@@ -1192,11 +1200,18 @@ const SendBox: React.FC<{
         return;
       }
       const nextInsertion = buildAtSessionInsertion(item.name);
-      const nextValue =
-        input.slice(0, activeAtSessionQuery.start) + nextInsertion + input.slice(activeAtSessionQuery.end);
-      const nextCaret = activeAtSessionQuery.start + nextInsertion.length;
+      // Trailing space when the mention ends the input — same rule as the `@`
+      // lane, and the reason a second `@@` can be typed at all.
+      const { value: nextValue, caret: nextCaret } = applyMentionInsertion(
+        input,
+        activeAtSessionQuery.start,
+        activeAtSessionQuery.end,
+        nextInsertion
+      );
 
-      // Dismiss the token we just wrote, or the menu immediately reopens on it.
+      // Still dismissed explicitly: the trailing space closes the menu on its
+      // own by putting the caret past a boundary, but the user can move the
+      // caret back into the token, and mentions spliced mid-text get no space.
       setDismissedAtSessionToken(`${activeAtSessionQuery.start}:${nextInsertion.slice(2)}`);
       setInput(nextValue);
       // Remember the name so reconciliation can map the token back to this id.

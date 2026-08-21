@@ -1,0 +1,168 @@
+/**
+ * @vitest-environment node
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import {
+  buildAtSessionInsertion,
+  getActiveAtSessionQuery,
+  getAllAtSessionQueries,
+} from '@/renderer/utils/chat/atSessionQuery';
+import { getActiveAtFileQuery } from '@/renderer/utils/chat/atFileQuery';
+import { applyMentionInsertion, shouldAppendSpaceAfterMention } from '@/renderer/utils/chat/mentionInsertion';
+
+describe('shouldAppendSpaceAfterMention', () => {
+  it('appends when the mention ends the input', () => {
+    const value = 'ask @@auth';
+    expect(shouldAppendSpaceAfterMention(value, value.length)).toBe(true);
+  });
+
+  it('does not append when a space already follows', () => {
+    // `hi @@auth world` — tokenEnd points AT the space, so adding another would
+    // leave a double space.
+    expect(shouldAppendSpaceAfterMention('hi @@auth world', 9)).toBe(false);
+  });
+
+  it('does not append when punctuation follows', () => {
+    // `hi @@auth, and` — a space here would push the comma off its word.
+    expect(shouldAppendSpaceAfterMention('hi @@auth, and', 9)).toBe(false);
+  });
+
+  it('appends for an empty input whose token is the whole value', () => {
+    expect(shouldAppendSpaceAfterMention('@@a', 3)).toBe(true);
+  });
+
+  it('treats an out-of-range end as the end of the input', () => {
+    expect(shouldAppendSpaceAfterMention('@@a', 99)).toBe(true);
+  });
+});
+
+/**
+ * The splice and the caret together, driven through the REAL query function so
+ * the `start`/`end` under test are the ones the send box actually passes.
+ */
+describe('applyMentionInsertion', () => {
+  /** What the send box does when a picker item is chosen. */
+  const pick = (value: string, caretPosition: number, name: string) => {
+    const query = getActiveAtSessionQuery(value, caretPosition);
+    if (!query) throw new Error(`no active query in ${JSON.stringify(value)} at ${caretPosition}`);
+    return applyMentionInsertion(value, query.start, query.end, buildAtSessionInsertion(name));
+  };
+
+  it('appends a space and puts the caret after it at the end of the input', () => {
+    const value = '问下 @@重构';
+    const result = pick(value, value.length, '重构-鉴权模块');
+    expect(result.value).toBe('问下 @@重构-鉴权模块 ');
+    expect(result.caret).toBe(result.value.length);
+    // The caret past the space is what closes the picker.
+    expect(getActiveAtSessionQuery(result.value, result.caret)).toBeNull();
+  });
+
+  it('does not double the space when text already follows', () => {
+    const value = '问下 @@重构 那件事';
+    const caret = value.indexOf(' 那件事');
+    const result = pick(value, caret, '重构-鉴权模块');
+    expect(result.value).toBe('问下 @@重构-鉴权模块 那件事');
+    expect(result.value).not.toContain('  ');
+    // Caret sits at the end of the mention, before the existing separator.
+    expect(result.value.slice(result.caret)).toBe(' 那件事');
+  });
+
+  it('leaves punctuation attached to the mention', () => {
+    const value = 'ask @@auth, now';
+    const caret = value.indexOf(',');
+    const result = pick(value, caret, 'auth rewrite');
+    expect(result.value).toBe('ask @@auth\\ rewrite, now');
+    expect(result.value).not.toContain(' ,');
+  });
+
+  /// Pre-existing, and NOT introduced by the trailing space: the boundary set is
+  /// `/[\s,;!?()[\]{}]/`, which is ASCII-only, so CJK punctuation counts as part
+  /// of the name. `@@重构，急` is therefore one token ending at the input's end,
+  /// and completing it replaces the comma too. Pinned so the next reader does
+  /// not mistake it for a regression in the insertion rule.
+  it('treats CJK punctuation as part of the token, not as a separator', () => {
+    const value = '问下 @@重构，急';
+    const query = getActiveAtSessionQuery(value, value.length);
+    expect(query?.query).toBe('重构，急');
+    expect(query?.end).toBe(value.length);
+  });
+
+  it('escapes a name containing spaces and still appends the separator', () => {
+    const value = '问下 @@my';
+    const result = pick(value, value.length, 'my session');
+    // The name's own space is escaped; the appended one is not, so the token
+    // still ends where the parser thinks it does.
+    expect(result.value).toBe('问下 @@my\\ session ');
+    expect(getAllAtSessionQueries(result.value).map((token) => token.query)).toEqual(['my session']);
+  });
+
+  it('supports a second mention typed straight after the first', () => {
+    const first = pick('问下 @@重构', '问下 @@重构'.length, '重构-鉴权模块');
+    const typed = `${first.value}@@文档`;
+    const second = pick(typed, typed.length, '文档站改版');
+    expect(second.value).toBe('问下 @@重构-鉴权模块 @@文档站改版 ');
+    expect(getAllAtSessionQueries(second.value).map((token) => token.query)).toEqual(['重构-鉴权模块', '文档站改版']);
+  });
+});
+
+/**
+ * The behaviour the trailing space exists for. Both lanes require the candidate
+ * `@` to be preceded by a boundary character, so a mention left flush against
+ * the caret makes the NEXT mention unparseable — the scan falls back to the
+ * first `@` and searches for a name containing the second one.
+ */
+describe('a second mention is only reachable after a separator', () => {
+  it('parses the second `@@` once the first ends with a space', () => {
+    const value = '问下 @@重构-鉴权模块 @@文档站';
+    const active = getActiveAtSessionQuery(value, value.length);
+    expect(active?.query).toBe('文档站');
+    expect(getAllAtSessionQueries(value).map((token) => token.query)).toEqual(['重构-鉴权模块', '文档站']);
+  });
+
+  it('misreads the second `@@` when the first has no separator', () => {
+    // Pinned as the pre-existing hazard, not as desired behaviour: without the
+    // space the whole run is read as ONE token whose name contains `@@`.
+    const value = '问下 @@重构@@文档站';
+    const tokens = getAllAtSessionQueries(value);
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0].query).toContain('@@');
+  });
+
+  it('parses the second `@` once the first ends with a space', () => {
+    const value = 'look at @src/a.rs @src/b.rs';
+    const active = getActiveAtFileQuery(value, value.length);
+    expect(active?.query).toBe('src/b.rs');
+  });
+
+  it('misreads the second `@` when the first has no separator', () => {
+    const value = 'look at @src/a.rs@src/b.rs';
+    const active = getActiveAtFileQuery(value, value.length);
+    // Anchors on the FIRST `@`, so the query swallows both paths.
+    expect(active?.query).toBe('src/a.rs@src/b.rs');
+  });
+});
+
+/**
+ * The secondary benefit: the caret landing past a boundary character closes the
+ * picker without help from the dismissal key.
+ */
+describe('the caret after a trailing space closes the picker', () => {
+  it('reports no active session query', () => {
+    const value = '问下 @@重构-鉴权模块 ';
+    expect(getActiveAtSessionQuery(value, value.length)).toBeNull();
+  });
+
+  it('reports no active file query', () => {
+    const value = 'look at @src/a.rs ';
+    expect(getActiveAtFileQuery(value, value.length)).toBeNull();
+  });
+
+  it('still reports the token when the caret moves back inside it', () => {
+    // Why the dismissal key stays: the menu must be suppressible here too.
+    const value = '问下 @@重构-鉴权模块 ';
+    const insideToken = value.indexOf('鉴权');
+    expect(getActiveAtSessionQuery(value, insideToken)?.query).toBe('重构-鉴权模块');
+  });
+});
