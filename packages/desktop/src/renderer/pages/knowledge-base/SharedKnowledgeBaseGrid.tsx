@@ -5,8 +5,7 @@
  */
 
 import type { KnowledgeBaseItem } from './types';
-import KnowledgeBaseAvatar from './KnowledgeBaseAvatar';
-import { Button } from '@arco-design/web-react';
+import KnowledgeBaseRow from './KnowledgeBaseRow';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -20,9 +19,9 @@ type SharedKnowledgeBaseGridProps = {
 };
 
 /**
- * Shared knowledge base displayed as a card grid. Cards are read-only
- * since they are managed by their owners; a "Chat" button on each card
- * starts a conversation using the configured agent.
+ * Shared knowledge bases rendered as a list — same visual treatment as the
+ * personal list. Owners are managed externally so the more menu (edit/delete)
+ * is hidden; only the chat entry point is exposed.
  */
 const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
   items,
@@ -58,15 +57,14 @@ const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
         </div>
         <div className='mb-10px text-12px text-t-tertiary'>{error}</div>
         {onRetry ? (
-          <Button
-            type='primary'
-            size='small'
-            className='!h-28px !rounded-9px'
+          <button
+            type='button'
             onClick={onRetry}
             data-testid='shared-kb-retry'
+            className='inline-flex h-28px cursor-pointer items-center justify-center rounded-9px border-none bg-primary-6 px-14px text-12px font-500 text-white transition-colors hover:bg-primary-7'
           >
             {t('common.retry', { defaultValue: 'Retry' })}
-          </Button>
+          </button>
         ) : null}
       </div>
     );
@@ -86,44 +84,17 @@ const SharedKnowledgeBaseGrid: React.FC<SharedKnowledgeBaseGridProps> = ({
   }
 
   return (
-    <div data-testid='shared-kb-grid' className='grid grid-cols-1 gap-14px sm:grid-cols-2 lg:grid-cols-3'>
+    <div data-testid='shared-kb-list' className='space-y-8px'>
       {items.map((item) => (
-        <div
+        <KnowledgeBaseRow
           key={item.id}
-          data-testid={`shared-card-${item.id}`}
-          className='group flex cursor-pointer flex-col rounded-14px border border-solid border-transparent bg-base p-16px transition-all duration-180 hover:border-border-2'
-          onClick={() => onOpen(item)}
-        >
-          <div className='flex items-start justify-between'>
-            <KnowledgeBaseAvatar knowledgeBase={item} size={44} />
-            {typeof item.documentCount === 'number' ? (
-              <span className='rounded-999px bg-fill-2 px-8px py-2px text-10px font-500 text-t-tertiary'>
-                {t('settings.knowledgeBaseDocumentCount', {
-                  count: item.documentCount,
-                  defaultValue: `${item.documentCount} docs`,
-                })}
-              </span>
-            ) : null}
-          </div>
-          <div className='mt-12px truncate text-14px font-600 text-t-primary'>{item.name}</div>
-          <div className='mt-6px line-clamp-2 text-12px leading-[1.5] text-t-secondary'>{item.description || ''}</div>
-          {item.owner ? (
-            <div className='mt-14px truncate text-11px text-t-tertiary'>
-              {t('settings.knowledgeBaseOwner', { defaultValue: 'Owner' })}: {item.owner}
-            </div>
-          ) : null}
-          <div className='mt-14px flex justify-end' onClick={(e) => e.stopPropagation()}>
-            <Button
-              type='text'
-              size='small'
-              data-testid={`btn-shared-kb-chat-${item.id}`}
-              className='!inline-flex !h-28px !items-center !justify-center !rounded-9px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-0 transition-all hover:!bg-primary-6 hover:!text-white group-hover:!opacity-100'
-              onClick={() => onStartChat(item)}
-            >
-              {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
-            </Button>
-          </div>
-        </div>
+          item={item}
+          readonly
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          onOpen={() => undefined}
+          onStartChat={onStartChat}
+        />
       ))}
     </div>
   );

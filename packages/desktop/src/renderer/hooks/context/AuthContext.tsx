@@ -1,5 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { AIPAAS_BASE_URL } from '@/renderer/api';
+
+const LOGOUT_ENDPOINT = `${AIPAAS_BASE_URL}/system/security/logout/logout`;
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -104,6 +107,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async () => {
+    const token = readExternalAuth()?.token;
+    if (token) {
+      try {
+        await fetch(LOGOUT_ENDPOINT, {
+          method: 'POST',
+          headers: { token },
+        });
+      } catch (error) {
+        console.error('Logout request failed:', error);
+      }
+    }
     setUser(null);
     setStatus('unauthenticated');
     clearAuthCache();

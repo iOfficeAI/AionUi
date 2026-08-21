@@ -7,4 +7,6 @@ export {
   EXTERNAL_LOGIN_DEEPLINK_PATH,
   EXTERNAL_LOGIN_TIMEOUT_MS,
   getExternalLoginUrl,
+  getKnowledgeBaseCreateUrl,
+  getKnowledgeBaseEditUrl,
 } from './config';

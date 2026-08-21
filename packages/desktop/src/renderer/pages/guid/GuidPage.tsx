@@ -676,7 +676,12 @@ const GuidPage: React.FC = () => {
         <div className={styles.guidLayout}>
           {/* 调试入口条：仅临时，正式入口由后续任务替换 */}
           <div className={styles.devEntryRow} data-testid='guid-dev-entry'>
-            <button type='button' className={styles.devEntryChip} onClick={handleOpenBrowserDemo} title='打开应用内浏览器 Demo'>
+            <button
+              type='button'
+              className={styles.devEntryChip}
+              onClick={handleOpenBrowserDemo}
+              title='打开应用内浏览器 Demo'
+            >
               <Experiment theme='outline' size={14} />
               <span>浏览器 Demo</span>
             </button>

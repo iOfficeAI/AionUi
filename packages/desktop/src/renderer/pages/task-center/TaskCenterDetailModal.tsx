@@ -3,7 +3,7 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Descriptions, Modal as ArcoModal } from '@arco-design/web-react';
+import { Button, Descriptions, Message, Modal as ArcoModal } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
@@ -20,6 +20,7 @@ const Modal = ArcoModal as unknown as React.FC<{
   okText?: React.ReactNode;
   cancelText?: React.ReactNode;
   hideCancel?: boolean;
+  footer?: React.ReactNode;
   width?: number;
   style?: React.CSSProperties;
   children?: React.ReactNode;
@@ -73,6 +74,20 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
       okText={tZh('common.close')}
       hideCancel
       width={720}
+      footer={
+        <div className='flex items-center justify-end gap-8px'>
+          <Button
+            type='primary'
+            data-testid='task-detail-start'
+            onClick={() => Message.info(tZh('taskCenter.detail.startTaskTip'))}
+          >
+            {tZh('taskCenter.detail.startTask')}
+          </Button>
+          <Button type='secondary' onClick={onClose}>
+            {tZh('common.close')}
+          </Button>
+        </div>
+      }
     >
       <div className='flex flex-col gap-16px'>
         <section>

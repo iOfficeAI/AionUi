@@ -34,7 +34,10 @@
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .devEntryChip:hover {

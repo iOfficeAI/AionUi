@@ -7,7 +7,18 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const messageInfoMock = vi.fn();
+
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: { ...actual.Message, info: messageInfoMock },
+  };
+});
+
 beforeEach(() => {
+  messageInfoMock.mockReset();
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
@@ -28,6 +39,8 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
         'taskCenter.detail.title': '任务详情',
+        'taskCenter.detail.startTask': '开始任务',
+        'taskCenter.detail.startTaskTip': '功能正在开发',
         'taskCenter.detail.basicInfo': '基本信息',
         'taskCenter.detail.progressInfo': '进度信息',
         'taskCenter.detail.content': '任务内容',
@@ -116,9 +129,17 @@ describe('TaskCenterDetailModal', () => {
       .find((b) => b.textContent?.includes('关闭') || b.getAttribute('aria-label') === 'Close');
     if (closeButton) fireEvent.click(closeButton);
     // It's fine if closeButton isn't found — the test only requires onClose is wired.
-    // Click the OK button by text
-    const okBtn = screen.getByText('关闭');
+    // Click the OK button by testid — two buttons now exist (primary "开始任务" + secondary "关闭")
+    const okBtn = screen.getAllByText('关闭').find((b) => b.closest('button')) as HTMLElement;
     fireEvent.click(okBtn);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows "开始任务" button that triggers a "功能正在开发" toast', () => {
+    render(<TaskCenterDetailModal visible item={item} onClose={vi.fn()} />);
+    const startBtn = screen.getByTestId('task-detail-start');
+    expect(startBtn.textContent).toContain('开始任务');
+    fireEvent.click(startBtn);
+    expect(messageInfoMock).toHaveBeenCalledWith('功能正在开发');
   });
 });

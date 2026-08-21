@@ -80,26 +80,34 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
   const hasMore = loaded < total;
 
   return (
-    <Spin loading={loading}>
+    <div className='relative w-full'>
+      {loading && items.length > 0 ? (
+        <div
+          data-testid='task-list-overlay'
+          className='absolute inset-0 z-10 flex items-center justify-center bg-fill-1/60 backdrop-blur-sm'
+        >
+          <Spin />
+        </div>
+      ) : null}
       <div data-testid='task-list' className='space-y-8px'>
         {items.map((item) => (
           <div
             key={item.id}
             data-testid={`task-card-${item.id}`}
-            className='group flex cursor-pointer items-center justify-between gap-12px rounded-12px border border-solid border-transparent bg-base px-14px py-12px transition-all duration-180 hover:border-border-2'
+            className='group flex cursor-pointer items-center justify-between gap-16px rounded-12px border border-solid border-transparent bg-base px-18px py-14px transition-all duration-180 hover:border-border-2'
             onClick={() => onView(item)}
           >
-            <div className='flex min-w-0 flex-1 items-center gap-12px'>
+            <div className='flex min-w-0 flex-1 items-center gap-14px'>
               <div
-                className={`flex h-36px w-36px shrink-0 items-center justify-center rounded-8px text-14px font-600 ${urgencyAvatarClass(item.urgency)}`}
+                className={`flex h-40px w-40px shrink-0 items-center justify-center rounded-10px text-15px font-600 ${urgencyAvatarClass(item.urgency)}`}
               >
                 {item.name ? item.name.slice(0, 1) : '?'}
               </div>
               <div className='min-w-0 flex-1'>
-                <div className='flex min-w-0 items-center gap-8px'>
-                  <span className='truncate text-14px font-medium text-t-primary'>{item.name || '-'}</span>
+                <div className='flex min-w-0 items-center gap-10px'>
+                  <span className='truncate text-15px font-medium text-t-primary'>{item.name || '-'}</span>
                   {item.mark ? (
-                    <span className='shrink-0 rounded-999px bg-fill-2 px-6px py-1px text-10px font-500 text-t-tertiary'>
+                    <span className='shrink-0 rounded-999px bg-fill-2 px-7px py-2px text-11px font-500 text-t-tertiary'>
                       {item.mark}
                     </span>
                   ) : null}
@@ -107,17 +115,17 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
                     {item.urgencyDesc}
                   </Tag>
                 </div>
-                <div className='mt-2px flex min-w-0 items-center gap-8px text-12px text-t-secondary'>
+                <div className='mt-4px flex min-w-0 items-center gap-10px text-13px text-t-secondary'>
                   <span className='truncate'>{item.projectName || '-'}</span>
                   <span className='shrink-0 text-t-quaternary'>·</span>
                   <span className='shrink-0'>{item.typeDesc || '-'}</span>
                 </div>
               </div>
             </div>
-            <div className='ml-10px flex shrink-0 items-center gap-12px'>
-              <div className='flex flex-col items-end gap-4px'>
+            <div className='ml-12px flex shrink-0 items-center gap-14px'>
+              <div className='flex flex-col items-end gap-6px'>
                 <div
-                  className={`text-12px ${isOverdue(item) ? 'font-600 text-[rgb(var(--danger-6))]' : 'text-t-secondary'}`}
+                  className={`text-13px ${isOverdue(item) ? 'font-600 text-[rgb(var(--danger-6))]' : 'text-t-secondary'}`}
                 >
                   {isOverdue(item) ? String(t('taskCenter.list.overdue')) : ''}
                   {item.deadlineTime ? (isOverdue(item) ? ` · ${item.deadlineTime}` : item.deadlineTime) : '-'}
@@ -147,7 +155,7 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
           </Button>
         </div>
       ) : null}
-    </Spin>
+    </div>
   );
 };
 

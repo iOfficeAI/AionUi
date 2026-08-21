@@ -27,7 +27,9 @@
       "createTime": "Created At",
       "updatorName": "Updated By",
       "updateTime": "Updated At"
-    }
+    },
+    "startTask": "",
+    "startTaskTip": ""
   },
   "empty": "No tasks",
   "loading": "Loading tasks...",

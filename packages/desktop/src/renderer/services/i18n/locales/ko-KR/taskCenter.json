@@ -30,7 +30,9 @@
       "actions": "Actions"
     }
   },
-  "actions": { "view": "View" },
+  "actions": {
+    "view": "View"
+  },
   "detail": {
     "title": "Task Details",
     "basicInfo": "Basic Information",
@@ -56,7 +58,9 @@
       "createTime": "Created At",
       "updatorName": "Updated By",
       "updateTime": "Updated At"
-    }
+    },
+    "startTask": "",
+    "startTaskTip": ""
   },
   "empty": "No tasks",
   "loading": "Loading tasks...",

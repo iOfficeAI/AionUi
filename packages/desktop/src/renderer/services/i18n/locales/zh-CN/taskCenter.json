@@ -4,6 +4,8 @@
   "searchPlaceholder": "搜索任务名称/标识",
   "detail": {
     "title": "任务详情",
+    "startTask": "开始任务",
+    "startTaskTip": "功能正在开发",
     "basicInfo": "基本信息",
     "progressInfo": "进度信息",
     "content": "任务内容",

@@ -2504,6 +2504,8 @@ export type I18nKey =
   | 'taskCenter.detail.progressInfo'
   | 'taskCenter.detail.remark'
   | 'taskCenter.detail.showRawFields'
+  | 'taskCenter.detail.startTask'
+  | 'taskCenter.detail.startTaskTip'
   | 'taskCenter.detail.title'
   | 'taskCenter.empty'
   | 'taskCenter.list.loadMore'

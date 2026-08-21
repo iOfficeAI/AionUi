@@ -17,17 +17,25 @@ type KnowledgeBaseRowProps = {
   onDelete: (item: KnowledgeBaseItem) => void;
   onOpen: (item: KnowledgeBaseItem) => void;
   onStartChat: (item: KnowledgeBaseItem) => void;
+  /** Hides the edit/delete more menu — used for read-only shared bases. */
+  readonly?: boolean;
 };
 
 /**
- * A single row in the personal knowledge base list.
- * Clicking the row opens detail; the more menu exposes edit/delete;
- * the chat button (visible on hover) starts a conversation using the
- * knowledge base's configured agent.
+ * A single row in the knowledge base list. Clicking the row opens detail;
+ * the more menu exposes edit/delete; the chat button (visible on hover)
+ * starts a conversation using the knowledge base's configured agent.
  */
-const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({ item, onEdit, onDelete, onOpen, onStartChat }) => {
+const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({
+  item,
+  onEdit,
+  onDelete,
+  onOpen,
+  onStartChat,
+  readonly = false,
+}) => {
   const { t } = useTranslation();
-  const canDelete = item.source !== 'builtin';
+  const canDelete = !readonly && item.source !== 'builtin';
 
   const actionMenu = (
     <Menu
@@ -85,16 +93,18 @@ const KnowledgeBaseRow: React.FC<KnowledgeBaseRowProps> = ({ item, onEdit, onDel
         >
           {t('settings.knowledgeBaseGoChat', { defaultValue: 'Chat' })}
         </Button>
-        <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
-          <Button
-            type='text'
-            size='small'
-            icon={<MoreOne theme='outline' size='16' fill='currentColor' />}
-            aria-label={t('common.more', { defaultValue: 'More' })}
-            className='!flex !h-30px !w-30px !items-center !justify-center !rounded-8px !p-0 !text-t-tertiary hover:!bg-fill-2 hover:!text-t-primary'
-            data-testid={`btn-kb-more-${item.id}`}
-          />
-        </Dropdown>
+        {readonly ? null : (
+          <Dropdown droplist={actionMenu} trigger='click' position='br' getPopupContainer={() => document.body}>
+            <Button
+              type='text'
+              size='small'
+              icon={<MoreOne theme='outline' size='16' fill='currentColor' />}
+              aria-label={t('common.more', { defaultValue: 'More' })}
+              className='!flex !h-30px !w-30px !items-center !justify-center !rounded-8px !p-0 !text-t-tertiary hover:!bg-fill-2 hover:!text-t-primary'
+              data-testid={`btn-kb-more-${item.id}`}
+            />
+          </Dropdown>
+        )}
       </div>
     </div>
   );

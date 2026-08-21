@@ -9,6 +9,8 @@ import { useKnowledgeBaseEditor, useKnowledgeBaseList } from '@/renderer/hooks/k
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
 import { buildAssistantEditorBackends } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
+import { getKnowledgeBaseCreateUrl, getKnowledgeBaseEditUrl } from '@/renderer/api';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveIconImageSrc } from './knowledgeBaseUtils';
 import KnowledgeBaseEditorPage from './KnowledgeBaseEditorPage';
 import KnowledgeBaseHomeTabs from './KnowledgeBaseHomeTabs';
@@ -120,13 +122,13 @@ const KnowledgeBasePage: React.FC = () => {
     },
   };
 
-  const handleOpen = useCallback(
-    (item: KnowledgeBaseItem) => {
-      // TODO: API - 打开知识库详情页面（暂时仅打开编辑）
-      void editor.handleEdit(item);
-    },
-    [editor]
-  );
+  const handleOpen = useCallback(async (item: KnowledgeBaseItem) => {
+    try {
+      await openExternalUrl(getKnowledgeBaseEditUrl(item.id));
+    } catch (error) {
+      console.error('Failed to open knowledge base edit page:', error);
+    }
+  }, []);
 
   // TODO: API - 知识库直接打开对话：根据 KB 的 agentId 跳转到 /guid
   const handleStartChat = useCallback(
@@ -137,6 +139,18 @@ const KnowledgeBasePage: React.FC = () => {
     },
     [navigate]
   );
+
+  // "New knowledge base" jumps to the vendor's web create page instead of
+  // the in-app editor — knowledge bases live in an admin system we don't
+  // mirror. Reload the list when the user returns to the page so newly
+  // created bases appear without a manual refresh.
+  const handleCreate = useCallback(async () => {
+    try {
+      await openExternalUrl(getKnowledgeBaseCreateUrl());
+    } catch (error) {
+      console.error('Failed to open knowledge base create page:', error);
+    }
+  }, []);
 
   return (
     <div className='h-full w-full overflow-hidden bg-bg-0'>
@@ -163,7 +177,7 @@ const KnowledgeBasePage: React.FC = () => {
               onEdit={(item) => void editor.handleEdit(item)}
               onDelete={(item) => editor.handleDeleteRequest(item)}
               onOpen={handleOpen}
-              onCreate={() => void editor.handleCreate()}
+              onCreate={() => void handleCreate()}
               onStartChat={handleStartChat}
             />
           )}

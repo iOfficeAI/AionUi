@@ -102,10 +102,20 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         let sawDone = false;
 
         const parser = createSseParser((event: SseEvent) => {
+          console.log('[kbChat] parser event=', JSON.stringify(event));
           if (event.type === 'delta') {
             emitChunk(requestId, event.content);
           } else if (event.type === 'done') {
+            // Backend may not close the HTTP body after sending `done`, so
+            // `res.on('end')` cannot be relied on. Emit streamEnd as soon as
+            // the parser observes the terminal event. The `res.on('end')`
+            // handler below is a no-op when sawDone is already true.
             sawDone = true;
+            clearTimeout(firstByteTimer);
+            clearTimeout(totalTimer);
+            inFlight.delete(requestId);
+            emitEnd(requestId, 'done');
+            req.destroy();
           } else {
             emitError(requestId, event.code ?? 'business', event.message);
           }
@@ -117,16 +127,18 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
         });
 
         res.on('end', () => {
+          console.log('[kbChat] SSE end, sawDone=', sawDone);
           clearTimeout(firstByteTimer);
           clearTimeout(totalTimer);
           inFlight.delete(requestId);
-          if (!sawDone) {
-            emitError(requestId, 'incomplete', 'Stream ended without done event');
-          }
-          emitEnd(requestId, sawDone ? 'done' : 'error');
+          if (sawDone) return;
+          emitError(requestId, 'incomplete', 'Stream ended without done event');
+          emitEnd(requestId, 'error');
         });
 
         res.on('error', (err) => {
+          console.log('[kbChat] res error, sawDone=', sawDone, 'err=', err.message);
+          if (sawDone) return;
           clearTimeout(firstByteTimer);
           clearTimeout(totalTimer);
           inFlight.delete(requestId);
@@ -137,6 +149,8 @@ const performRequest = (params: KbChatSendParams): Promise<KbChatSendResult> => 
     );
 
     req.on('error', (err) => {
+      console.log('[kbChat] req error, sawDone=', sawDone, 'err=', err.message);
+      if (sawDone) return;
       inFlight.delete(requestId);
       emitError(requestId, 'network', err.message);
       emitEnd(requestId, 'error');
