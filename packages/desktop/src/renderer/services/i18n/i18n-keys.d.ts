@@ -580,6 +580,7 @@ export type I18nKey =
   | 'conversation.explorer.contextMenu.copyRelativePath'
   | 'conversation.explorer.contextMenu.newDir'
   | 'conversation.explorer.contextMenu.newFile'
+  | 'conversation.explorer.contextMenu.refresh'
   | 'conversation.explorer.contextMenu.rename'
   | 'conversation.explorer.copyFailed'
   | 'conversation.explorer.copyNodeFailed'

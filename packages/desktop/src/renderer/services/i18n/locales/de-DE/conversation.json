@@ -637,6 +637,7 @@
       "addToChat": "Zum Chat hinzufügen",
       "copyRelativePath": "Relativen Pfad kopieren",
       "copyAbsolutePath": "Absoluten Pfad kopieren",
+      "refresh": "Aktualisieren",
       "newFile": "Neue Datei",
       "newDir": "Neuer Ordner"
     },

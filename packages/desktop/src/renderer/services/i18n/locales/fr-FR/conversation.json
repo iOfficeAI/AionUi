@@ -637,7 +637,8 @@
       "rename": "Renommer",
       "addToChat": "Ajouter au chat",
       "copyRelativePath": "Copier le chemin relatif",
-      "copyAbsolutePath": "Copier le chemin absolu"
+      "copyAbsolutePath": "Copier le chemin absolu",
+      "refresh": "Actualiser"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",

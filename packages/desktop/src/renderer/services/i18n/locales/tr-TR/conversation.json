@@ -638,6 +638,7 @@
       "addToChat": "Sohbete ekle",
       "copyRelativePath": "Göreli yolu kopyala",
       "copyAbsolutePath": "Mutlak yolu kopyala",
+      "refresh": "Yenile",
       "newFile": "Yeni dosya",
       "newDir": "Yeni klasör"
     },

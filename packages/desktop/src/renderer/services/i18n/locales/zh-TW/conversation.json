@@ -636,6 +636,7 @@
       "addToChat": "加入對話",
       "copyRelativePath": "複製相對路徑",
       "copyAbsolutePath": "複製絕對路徑",
+      "refresh": "重新整理",
       "newFile": "新增檔案",
       "newDir": "新增資料夾"
     },

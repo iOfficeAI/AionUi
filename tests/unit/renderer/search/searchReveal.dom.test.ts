@@ -49,6 +49,9 @@ function makePort(snapshots: Record<PeKey, Entry[]>): { port: MonitorPort; subsc
         subscribed.push(refs);
         return { snapshots: refs.map((r) => ({ target: r, entries: snapshots[refToKey(r)] ?? [] })) };
       },
+      remount: async (refs) => ({
+        snapshots: refs.map((r) => ({ target: r, entries: snapshots[refToKey(r)] ?? [] })),
+      }),
       unsubscribe: () => {},
     },
   };

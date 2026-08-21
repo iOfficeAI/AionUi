@@ -646,6 +646,7 @@
       "addToChat": "Додати в чат",
       "copyRelativePath": "Копіювати відносний шлях",
       "copyAbsolutePath": "Копіювати абсолютний шлях",
+      "refresh": "Оновити",
       "newFile": "Новий файл",
       "newDir": "Нова папка"
     },

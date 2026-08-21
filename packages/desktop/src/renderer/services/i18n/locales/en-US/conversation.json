@@ -637,7 +637,8 @@
       "newDir": "New folder",
       "addToChat": "Add to chat",
       "copyRelativePath": "Copy relative path",
-      "copyAbsolutePath": "Copy absolute path"
+      "copyAbsolutePath": "Copy absolute path",
+      "refresh": "Refresh"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",

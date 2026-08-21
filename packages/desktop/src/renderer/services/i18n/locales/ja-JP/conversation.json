@@ -636,6 +636,7 @@
       "addToChat": "チャットに追加",
       "copyRelativePath": "相対パスをコピー",
       "copyAbsolutePath": "絶対パスをコピー",
+      "refresh": "更新",
       "newFile": "新規ファイル",
       "newDir": "新規フォルダー"
     },
