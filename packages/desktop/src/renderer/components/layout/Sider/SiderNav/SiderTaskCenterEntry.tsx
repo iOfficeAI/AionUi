@@ -7,7 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { Todo } from '@icon-park/react';
+import { Clipboard } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
@@ -38,7 +38,7 @@ const SiderTaskCenterEntry: React.FC<SiderTaskCenterEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <Todo
+          <Clipboard
             theme='outline'
             size='20'
             fill='currentColor'
@@ -61,7 +61,7 @@ const SiderTaskCenterEntry: React.FC<SiderTaskCenterEntryProps> = ({
         onClick={onClick}
       >
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <Todo
+          <Clipboard
             theme='outline'
             size='16'
             fill='currentColor'
