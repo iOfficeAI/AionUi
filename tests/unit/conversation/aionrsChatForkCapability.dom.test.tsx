@@ -42,6 +42,11 @@ vi.mock('@renderer/pages/conversation/PlanBar/ConversationPlanBar', () => ({
   default: () => null,
 }));
 
+vi.mock('@renderer/pages/conversation/PlanBar/usePlanRecovery', () => ({
+  __esModule: true,
+  usePlanRecovery: () => {},
+}));
+
 vi.mock('@renderer/pages/conversation/Messages/hooks', () => {
   const PassThrough: React.FC<{ children?: React.ReactNode }> = ({ children }) => <>{children}</>;
   return {
