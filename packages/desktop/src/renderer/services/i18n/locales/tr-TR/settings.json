@@ -1393,5 +1393,10 @@
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
     "selectAll": "Select all"
-  }
+  },
+  "crossSessionMessage": "Sohbetler arası mesajlar",
+  "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
+  "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
+  "crossSessionMessageResume": "Yeniden aç",
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
 }

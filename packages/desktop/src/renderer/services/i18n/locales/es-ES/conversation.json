@@ -593,7 +593,8 @@
   },
   "sendbox": {
     "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
-    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
+    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo.",
+    "hintWithSessions": "/ para comandos, @ para archivos, @@ para conversaciones, ↑/↓ para el historial"
   },
   "agentTip": {
     "codes": {
@@ -763,5 +764,17 @@
   },
   "emptyState": {
     "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."
+  },
+  "crossSession": {
+    "mentionAgain": "Mencionar la conversación {{name}} en el cuadro de mensaje",
+    "mentionAgainHint": "Haz clic para mencionar esta conversación en el cuadro de mensaje",
+    "mentionUnavailable": "Esa conversación ya no se puede mencionar.",
+    "mentionFailed": "No se pudo mencionar esa conversación.",
+    "fromBadge": "De la conversación {{name}}",
+    "otherWorkspace": "espacio de trabajo distinto",
+    "rateLimitedTitle": "Los mensajes entre conversaciones podrían estar en bucle",
+    "rateLimited": "Los mensajes automáticos entre «{{from}}» y «{{to}}» son inusualmente frecuentes y podrían estar en bucle.",
+    "stopBoth": "Detener ambas conversaciones",
+    "disableFeature": "Desactivar los mensajes entre conversaciones"
   }
 }

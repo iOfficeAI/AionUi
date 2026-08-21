@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages",
-    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier."
+    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier.",
+    "hintWithSessions": "/ pour les commandes, @ pour les fichiers, @@ pour les conversations, ↑/↓ pour l’historique"
   },
   "agentTip": {
     "codes": {
@@ -762,5 +763,17 @@
   },
   "emptyState": {
     "greeting": "Bonjour ! Dites-moi ce dont vous avez besoin et je commence."
+  },
+  "crossSession": {
+    "mentionAgain": "Mentionner la conversation {{name}} dans la zone de saisie",
+    "mentionAgainHint": "Cliquez pour mentionner cette conversation dans la zone de saisie",
+    "mentionUnavailable": "Cette conversation ne peut plus être mentionnée.",
+    "mentionFailed": "Impossible de mentionner cette conversation.",
+    "fromBadge": "De la conversation {{name}}",
+    "otherWorkspace": "espace de travail différent",
+    "rateLimitedTitle": "Les messages entre conversations semblent boucler",
+    "rateLimited": "Les messages automatiques entre « {{from}} » et « {{to}} » sont anormalement fréquents et semblent boucler.",
+    "stopBoth": "Arrêter les deux conversations",
+    "disableFeature": "Désactiver les messages entre conversations"
   }
 }

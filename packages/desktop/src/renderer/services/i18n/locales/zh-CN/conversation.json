@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
-    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
+    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。",
+    "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息"
   },
   "agentTip": {
     "codes": {
@@ -762,5 +763,17 @@
   },
   "emptyState": {
     "greeting": "你好！说说你的需求，我这就开始。"
+  },
+  "crossSession": {
+    "mentionAgain": "在输入框中提及会话 {{name}}",
+    "mentionAgainHint": "点击以在输入框中提及此会话",
+    "mentionUnavailable": "该会话已无法提及",
+    "mentionFailed": "无法提及该会话",
+    "fromBadge": "来自会话「{{name}}」",
+    "otherWorkspace": "不同工作目录",
+    "rateLimitedTitle": "跨会话消息可能在空转",
+    "rateLimited": "会话「{{from}}」与「{{to}}」之间的自动消息过于频繁，可能在空转。",
+    "stopBoth": "停止这两个会话",
+    "disableFeature": "关闭跨会话消息"
   }
 }

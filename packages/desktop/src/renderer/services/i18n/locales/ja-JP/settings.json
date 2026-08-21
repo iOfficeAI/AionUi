@@ -1395,5 +1395,10 @@
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
     "selectAll": "Select all"
-  }
+  },
+  "crossSessionMessage": "会話間メッセージ",
+  "crossSessionMessageDesc": "エージェントが他の会話にメッセージを送れるようにします。オフにすると入力欄の @@ 会話メンションも無効になります。",
+  "crossSessionMessageDisabledBanner": "会話間メッセージはオフです。入力欄の @@ 会話メンションは使用できません。",
+  "crossSessionMessageResume": "再度オンにする",
+  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました"
 }

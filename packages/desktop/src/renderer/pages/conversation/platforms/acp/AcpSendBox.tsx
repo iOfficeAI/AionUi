@@ -39,6 +39,9 @@ import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionCon
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
+import type { SessionRef } from '@/common/adapter/ipcBridge';
+import CrossSessionDisabledBanner from '@/renderer/components/chat/CrossSessionDisabledBanner';
+import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
@@ -279,7 +282,7 @@ const AcpSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async ({ input, files, sessions }: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>) => {
       // Plain user text; the backend resolves each ChatFileRef and injects the
       // [[AION_FILES]] marker at the send edge (no front-end path/marker building).
       try {
@@ -300,6 +303,9 @@ const AcpSendBox: React.FC<{
           input,
           conversation_id,
           files,
+          // `@@` references. Dropping this here is a silent failure: the agent
+          // simply never receives the session block.
+          sessions,
         });
         markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
@@ -426,6 +432,11 @@ Please check your local CLI tool authentication status`,
     onExecute: executeCommand,
   });
 
+  // `@@` session references the user picked. Declared before the handlers that
+  // read it — every send path has to both forward and release it.
+  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
+  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
+
   // Supporting agents (mid-turn delivery) send immediately, busy or not.
   // Non-supporting agents can no longer send while the agent is replying —
   // that path is hard-blocked with a toast; the only way to queue a message
@@ -442,9 +453,11 @@ Please check your local CLI tool authentication status`,
     }
 
     const allFiles = collectChatFileRefs(uploadFile, atPath);
+    const sessions = selectedSessions.length > 0 ? selectedSessions : undefined;
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
-    await executeCommand({ input: message, files: allFiles });
+    await executeCommand({ input: message, files: allFiles, sessions });
   };
 
   const [interrupting, setInterrupting] = useState(false);
@@ -454,6 +467,11 @@ Please check your local CLI tool authentication status`,
     const input = content;
     setContent('');
     clearFiles();
+    // `onInterruptSend` is the TEAM interrupt path, and `@@` is disabled in team
+    // conversations (`isTeamConversation` below), so `selectedSessions` is
+    // always empty here. Cleared anyway so the state cannot leak if that
+    // relationship ever changes.
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
     setInterrupting(true);
     try {
@@ -473,11 +491,15 @@ Please check your local CLI tool authentication status`,
   const canQueueCurrentDraft = content.trim().length > 0;
   const handleAddToQueue = useCallback(() => {
     const allFiles = collectChatFileRefs(uploadFile, atPath);
-    enqueue({ input: content, files: allFiles });
+    // `@@` references must ride along, and must be released from the send box
+    // the same way the draft text is — otherwise they leak into whatever the
+    // user sends next.
+    enqueue({ input: content, files: allFiles, sessions: selectedSessions.length > 0 ? selectedSessions : undefined });
     setContent('');
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
-  }, [atPath, clearFiles, content, enqueue, setContent, uploadFile]);
+  }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -731,14 +753,14 @@ Please check your local CLI tool authentication status`,
         // Removing first closes that race in both cases.
         remove(item.id);
         try {
-          await executeCommand({ input: item.input, files: item.files });
+          await executeCommand({ input: item.input, files: item.files, sessions: item.sessions });
         } catch {
           // executeCommand already surfaces the failure (busy-conflict toast,
           // error message card, etc.) via its own catch path — don't show a
           // second one. Restore the user's content instead of dropping it:
           // enqueue appends to the end, so promote it back to the front to
           // match "send now" intent (it was already next in line).
-          const restored = enqueue({ input: item.input, files: item.files });
+          const restored = enqueue({ input: item.input, files: item.files, sessions: item.sessions });
           if (restored) prioritize(restored.id);
         }
         return;
@@ -780,6 +802,7 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
         onRetryStart={teamRuntime?.onRetryStart ? () => void teamRuntime.onRetryStart?.() : undefined}
       />
+      <CrossSessionDisabledBanner />
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
@@ -789,6 +812,10 @@ Please check your local CLI tool authentication status`,
           emitter.emit('acp.selected.file', items, conversation_id);
           setAtPath(items);
         }}
+        selectedSessions={selectedSessions}
+        onSelectedSessionsChange={setSelectedSessions}
+        crossSessionEnabled={crossSessionEnabled}
+        isTeamConversation={Boolean(teamRuntime)}
         loading={teamRuntime?.loading ?? isBusy}
         active={teamRuntime?.isActive}
         onFocused={teamRuntime?.onFocus}

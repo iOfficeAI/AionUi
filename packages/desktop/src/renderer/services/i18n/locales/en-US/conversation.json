@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
-    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
+    "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path.",
+    "hintWithSessions": "Type / for commands, @ for files, @@ for conversations, ↑/↓ for history"
   },
   "agentTip": {
     "codes": {
@@ -762,5 +763,17 @@
   },
   "emptyState": {
     "greeting": "Hi! Tell me what you need and I'll get started."
+  },
+  "crossSession": {
+    "mentionAgain": "Mention conversation {{name}} in the message box",
+    "mentionAgainHint": "Click to mention this conversation in the message box",
+    "mentionUnavailable": "That conversation can no longer be mentioned.",
+    "mentionFailed": "Could not mention that conversation.",
+    "fromBadge": "From conversation {{name}}",
+    "otherWorkspace": "different workspace",
+    "rateLimitedTitle": "Cross-conversation messages may be looping",
+    "rateLimited": "Automatic messages between \"{{from}}\" and \"{{to}}\" are unusually frequent and may be looping.",
+    "stopBoth": "Stop both conversations",
+    "disableFeature": "Turn off cross-conversation messages"
   }
 }

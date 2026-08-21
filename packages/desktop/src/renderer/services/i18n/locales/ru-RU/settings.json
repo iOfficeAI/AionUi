@@ -1407,5 +1407,10 @@
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
     "selectAll": "Select all"
-  }
+  },
+  "crossSessionMessage": "Сообщения между беседами",
+  "crossSessionMessageDesc": "Разрешить агентам отправлять сообщения в ваши другие беседы. При отключении также отключается упоминание @@ в поле ввода.",
+  "crossSessionMessageDisabledBanner": "Сообщения между беседами отключены, упоминание @@ недоступно.",
+  "crossSessionMessageResume": "Включить снова",
+  "crossSessionMessageUpdateFailed": "Не удалось обновить настройку сообщений между беседами"
 }

@@ -1,6 +1,24 @@
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { getActiveAtSessionQuery } from './atSessionQuery';
 
-const AT_FILE_BOUNDARY_RE = /[\s,;!?()[\]{}]/;
+/**
+ * Characters that terminate an `@` token, as a regex character-class body.
+ *
+ * The single source for BOTH regexes below, which MUST stay in step. A character
+ * that ends a token but is not escaped makes a path containing it parse short:
+ * the token stops early, and the reconciliation in `SendBox` — which matches a
+ * selected file against the token text — no longer recognises it and drops the
+ * reference. Silently. These were two hand-aligned literals before, so editing
+ * one and not the other was a one-character mistake away.
+ */
+const AT_FILE_BOUNDARY_CHARS = String.raw`\s,;!?()[\]{}`;
+const AT_FILE_BOUNDARY_RE = new RegExp(`[${AT_FILE_BOUNDARY_CHARS}]`);
+/**
+ * The boundary characters plus the backslash itself, which is the escape
+ * character and deliberately NOT a boundary — treating it as one would end a
+ * token at its own escape marker.
+ */
+const AT_FILE_ESCAPE_RE = new RegExp(String.raw`([\\${AT_FILE_BOUNDARY_CHARS}])`, 'g');
 
 export type ActiveAtFileQuery = {
   start: number;
@@ -24,16 +42,33 @@ function isEscaped(value: string, index: number): boolean {
   return backslashCount % 2 === 1;
 }
 
+/**
+ * `[\s\S]`, not `.`: `.` does not match a line terminator, so
+ * `escapeAtFilePath` would add a backslash before a newline that this could
+ * never take back off. The round trip broke, and reconciliation — which matches
+ * a selection against the token text — then failed to recognise the path and
+ * dropped the reference. The `s` flag would say the same thing but needs an
+ * ES2018 target; this file compiles at ES6.
+ */
 function unescapeAtFileQuery(value: string): string {
-  return value.replace(/\\(.)/g, '$1');
+  return value.replace(/\\([\s\S])/g, '$1');
 }
 
 export function escapeAtFilePath(path: string): string {
-  return path.replace(/([\\\s,;!?()[\]{}])/g, '\\$1');
+  return path.replace(AT_FILE_ESCAPE_RE, '\\$1');
 }
 
 export function getActiveAtFileQuery(value: string, caretPosition: number): ActiveAtFileQuery | null {
   if (!value) {
+    return null;
+  }
+
+  // `@@` is a session mention, not a file mention. It must be decided FIRST and
+  // short-circuit this branch: without it, the loop below skips the second `@`
+  // (its previous char is `@`, which is not in AT_FILE_BOUNDARY_RE) and anchors
+  // on the FIRST `@`, producing the file query `@auth` — a search for a file
+  // literally named `@auth`.
+  if (getActiveAtSessionQuery(value, caretPosition)) {
     return null;
   }
 
@@ -97,6 +132,13 @@ export function getAllAtFileQueries(value: string): ActiveAtFileQuery[] {
 
     const previousChar = index > 0 ? value[index - 1] : '';
     if (previousChar && !isBoundaryChar(previousChar)) {
+      continue;
+    }
+
+    // Skip a `@@` pair — it belongs to the session-mention lane. Both halves
+    // must be skipped: the first because it opens a session token, the second
+    // because its predecessor is that first `@`.
+    if (value[index + 1] === '@' || previousChar === '@') {
       continue;
     }
 

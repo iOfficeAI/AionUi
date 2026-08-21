@@ -594,7 +594,8 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
-    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek.",
+    "hintWithSessions": "Komutlar için /, dosyalar için @, sohbetler için @@, geçmiş için ↑/↓"
   },
   "agentTip": {
     "codes": {
@@ -764,5 +765,17 @@
   },
   "emptyState": {
     "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
+  },
+  "crossSession": {
+    "mentionAgain": "{{name}} sohbetini mesaj alanında an",
+    "mentionAgainHint": "Bu sohbeti mesaj alanında anmak için tıklayın",
+    "mentionUnavailable": "Bu sohbet artık anılamıyor.",
+    "mentionFailed": "Bu sohbet anılamadı.",
+    "fromBadge": "{{name}} sohbetinden",
+    "otherWorkspace": "farklı çalışma alanı",
+    "rateLimitedTitle": "Sohbetler arası mesajlar döngüye girmiş olabilir",
+    "rateLimited": "\"{{from}}\" ve \"{{to}}\" arasındaki otomatik mesajlar olağandışı sıklıkta; döngüye girmiş olabilir.",
+    "stopBoth": "Her iki sohbeti durdur",
+    "disableFeature": "Sohbetler arası mesajları kapat"
   }
 }

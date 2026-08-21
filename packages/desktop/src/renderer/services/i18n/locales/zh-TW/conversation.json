@@ -592,7 +592,8 @@
   },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案，↑/↓ 切換歷史訊息",
-    "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。"
+    "mediaPathFallback": "該 Agent 不原生支援此檔案類型，將以檔案路徑形式傳送。",
+    "hintWithSessions": "輸入 / 喚起命令，@ 引用檔案，@@ 引用對話，↑/↓ 切換歷史訊息"
   },
   "agentTip": {
     "codes": {
@@ -762,5 +763,17 @@
   },
   "emptyState": {
     "greeting": "你好！說說你的需求，我這就開始。"
+  },
+  "crossSession": {
+    "mentionAgain": "在輸入框中提及對話 {{name}}",
+    "mentionAgainHint": "點擊以在輸入框中提及此對話",
+    "mentionUnavailable": "該對話已無法提及",
+    "mentionFailed": "無法提及該對話",
+    "fromBadge": "來自對話「{{name}}」",
+    "otherWorkspace": "不同工作目錄",
+    "rateLimitedTitle": "跨對話訊息可能在空轉",
+    "rateLimited": "對話「{{from}}」與「{{to}}」之間的自動訊息過於頻繁，可能在空轉。",
+    "stopBoth": "停止這兩個對話",
+    "disableFeature": "關閉跨對話訊息"
   }
 }

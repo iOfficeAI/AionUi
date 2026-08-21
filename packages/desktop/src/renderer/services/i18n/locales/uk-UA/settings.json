@@ -1408,5 +1408,10 @@
     "deleteSelectedConfirmContent": "This permanently deletes {{count}} selected archived items. This can't be undone.",
     "deleteSelectedSuccess": "Selected archived items deleted",
     "selectAll": "Select all"
-  }
+  },
+  "crossSessionMessage": "Повідомлення між розмовами",
+  "crossSessionMessageDesc": "Дозволяє агентам надсилати повідомлення до ваших інших розмов. Вимкнення також відключає згадку @@ у полі введення.",
+  "crossSessionMessageDisabledBanner": "Повідомлення між розмовами вимкнено, згадка @@ недоступна.",
+  "crossSessionMessageResume": "Увімкнути знову",
+  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами"
 }

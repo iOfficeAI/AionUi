@@ -10,6 +10,7 @@ import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import {
   DEFAULT_TEXT_PREVIEW_LIMIT_MB,
@@ -315,6 +316,23 @@ const SystemModalContent: React.FC = () => {
     void setClientBusinessSetting('preview.textSizeLimitMb', clamped).catch(() => {});
   }, []);
 
+  // Cross-session messaging master switch. Unlike its neighbours this one is a
+  // typed column on `system_settings`, so it goes through `PATCH /api/settings`
+  // (the hook owns that call); `changeLanguage` on this same page is the
+  // precedent for the different channel.
+  const { enabled: crossSessionMessageEnabled, setEnabled: setCrossSessionMessageEnabled } =
+    useCrossSessionMessageEnabled();
+  const handleCrossSessionMessageChange = useCallback(
+    (checked: boolean) => {
+      void setCrossSessionMessageEnabled(checked).catch(() => {
+        // The hook already rolled the local state back; surface the failure so
+        // the user does not believe a panic button took effect when it did not.
+        Message.error(t('settings.crossSessionMessageUpdateFailed'));
+      });
+    },
+    [setCrossSessionMessageEnabled, t]
+  );
+
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
     configService.set('upload.saveToWorkspace', checked).catch(() => {
@@ -422,6 +440,15 @@ const SystemModalContent: React.FC = () => {
       key: 'saveUploadToWorkspace',
       label: t('settings.saveUploadToWorkspace'),
       component: <Switch checked={saveUploadToWorkspace} onChange={handleSaveUploadToWorkspaceChange} />,
+    },
+    {
+      // Positive wording, default on (spec §5.7): every other switch on this
+      // page is phrased affirmatively, and a negated one would read as a double
+      // negative next to them.
+      key: 'crossSessionMessage',
+      label: t('settings.crossSessionMessage'),
+      description: t('settings.crossSessionMessageDesc'),
+      component: <Switch checked={crossSessionMessageEnabled} onChange={handleCrossSessionMessageChange} />,
     },
   ];
 

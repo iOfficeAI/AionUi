@@ -65,6 +65,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     topRightOverlay,
     onAddToDraft,
     addToDraftDisabled,
+    selectedSessions,
+    onSelectedSessionsChange,
+    crossSessionEnabled,
+    isTeamConversation,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -77,8 +81,23 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     topRightOverlay?: React.ReactNode;
     onAddToDraft?: () => void;
     addToDraftDisabled?: boolean;
+    selectedSessions?: Array<{ id: string }>;
+    onSelectedSessionsChange?: (sessions: Array<{ id: string }>) => void;
+    crossSessionEnabled?: boolean;
+    isTeamConversation?: boolean;
   }) => {
-    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled, onAddToDraft, addToDraftDisabled });
+    sendBoxPropsSpy({
+      active,
+      onFocused,
+      disabled,
+      sendDisabled,
+      onAddToDraft,
+      addToDraftDisabled,
+      selectedSessions,
+      onSelectedSessionsChange,
+      crossSessionEnabled,
+      isTeamConversation,
+    });
     return (
       <div>
         {rightTools}
@@ -466,11 +485,41 @@ describe('AionrsSendBox', () => {
         props.onAddToDraft?.();
       });
 
-      expect(enqueueMock).toHaveBeenCalledWith({ input: 'hello world', files: [] });
+      expect(enqueueMock).toHaveBeenCalledWith({ input: 'hello world', files: [], sessions: undefined });
       expect(sendMessageInvokeMock).not.toHaveBeenCalled();
       expect(clearFilesMock).toHaveBeenCalled();
       const updater = draftMutateMock.mock.calls.at(-1)?.[0] as (prev: { content: string }) => { content: string };
       expect(updater({ content: 'hello world' })).toEqual(expect.objectContaining({ content: '' }));
+    });
+
+    it('carries `@@` session references into the draft box and clears them from the send box', async () => {
+      // The draft box is where the references are most likely to be lost:
+      // enqueue rebuilds the item, and a message that reaches the agent without
+      // its session block fails silently on both sides.
+      runtimeViewIsProcessingRef.current = true;
+      draftContentRef.current = 'hello world';
+
+      render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+      await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
+
+      type SessionProps = {
+        onAddToDraft?: () => void;
+        onSelectedSessionsChange?: (sessions: Array<{ id: string }>) => void;
+        selectedSessions?: Array<{ id: string }>;
+      };
+      const latestProps = (): SessionProps => sendBoxPropsSpy.mock.calls.at(-1)?.[0] as SessionProps;
+
+      await act(async () => {
+        latestProps().onSelectedSessionsChange?.([{ id: 'conv_target' }]);
+      });
+      // Re-read: picking a session re-renders, so the previous props snapshot
+      // holds a stale `onAddToDraft` closure over the empty selection.
+      await act(async () => {
+        latestProps().onAddToDraft?.();
+      });
+
+      expect(enqueueMock).toHaveBeenCalledWith(expect.objectContaining({ sessions: [{ id: 'conv_target' }] }));
+      expect(latestProps().selectedSessions).toEqual([]);
     });
 
     it('shows the add-to-draft-box option while idle, as long as the draft is non-empty', async () => {
