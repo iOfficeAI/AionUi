@@ -862,7 +862,11 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
     }
     case 'plan': {
       return {
-        id: uuid(),
+        // Deterministic and matching the persisted row's primary key
+        // (`plan:{msg_id}`): a uuid per frame remounted the card on every
+        // update, and made the live frame impossible to dedupe against the
+        // history row on reload.
+        id: `plan:${message.msg_id}`,
         type: 'plan',
         msg_id: message.msg_id,
         position: 'left',
@@ -1031,19 +1035,6 @@ export const composeMessage = (
     }
     // If no existing tool call found, add new one
     return pushMessage(normalizedMessage);
-  }
-
-  if (message.type === 'plan') {
-    for (let i = 0, len = list.length; i < len; i++) {
-      const msg = list[i];
-      if (msg.type === 'plan' && msg.content.session_id === message.content.session_id) {
-        // Create new object instead of mutating original
-        const merged = { ...msg.content, ...message.content };
-        return updateMessage(i, { ...msg, content: merged });
-      }
-    }
-    return pushMessage(message);
-    // If no existing plan found, add new one
   }
 
   // Handle thinking message merging — only merge contiguous streaming chunks

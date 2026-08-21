@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
 import { buildMessageIndex, composeMessageWithIndex } from '@/renderer/pages/conversation/Messages/hooks';
 
 const MSG_ID = 'turn-a';
@@ -104,5 +105,25 @@ describe('plan live merge', () => {
     const list = replay([other as TMessage, plan([{ content: 'new', status: 'pending' }])]);
 
     expect(list.filter((m) => m.type === 'plan')).toHaveLength(2);
+  });
+});
+
+describe('plan message transform', () => {
+  it('mints a deterministic id so the row never remounts on update', () => {
+    const first = transformMessage({
+      type: 'plan',
+      conversation_id: 'conv-1',
+      msg_id: 'turn-a',
+      data: { entries: [{ content: 'step one', status: 'pending' }] },
+    } as never);
+    const second = transformMessage({
+      type: 'plan',
+      conversation_id: 'conv-1',
+      msg_id: 'turn-a',
+      data: { entries: [{ content: 'step one', status: 'completed' }] },
+    } as never);
+
+    expect(first?.id).toBe('plan:turn-a');
+    expect(second?.id).toBe('plan:turn-a');
   });
 });
