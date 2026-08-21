@@ -387,6 +387,12 @@ export type IMessagePlan = IMessage<
   {
     session_id: string;
     entries: PlanUpdate['update']['entries'];
+    /**
+     * The turn this snapshot belongs to. The plan bar only renders while that
+     * turn is still running, so a finished turn's checklist cannot linger over
+     * the next one. Absent on rows written before this field existed.
+     */
+    turn_id?: string;
   }
 >;
 
@@ -872,7 +878,13 @@ const transformMessageInner = (message: IResponseMessage): TMessage | undefined 
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
-        content: message.data as any,
+        content: {
+          ...(message.data as Record<string, unknown>),
+          // The envelope carries the turn id; the persisted row carries it inside
+          // content. Copying it here makes the live frame and the DB row agree,
+          // so the plan bar can gate on the running turn either way.
+          ...(message.turn_id ? { turn_id: message.turn_id } : {}),
+        } as IMessagePlan['content'],
       };
     }
     case 'thinking': {
