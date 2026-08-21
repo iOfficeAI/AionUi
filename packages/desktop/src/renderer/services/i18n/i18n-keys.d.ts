@@ -2482,7 +2482,6 @@ export type I18nKey =
   | 'settings.weixin.step3'
   | 'settings.workDir'
   | 'settings.yoloMode'
-  | 'taskCenter.actions.view'
   | 'taskCenter.detail.basicInfo'
   | 'taskCenter.detail.content'
   | 'taskCenter.detail.fields.closeTime'

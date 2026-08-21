@@ -114,7 +114,7 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
                 </div>
               </div>
             </div>
-            <div className='ml-10px flex shrink-0 items-center gap-12px' onClick={(e) => e.stopPropagation()}>
+            <div className='ml-10px flex shrink-0 items-center gap-12px'>
               <div className='flex flex-col items-end gap-4px'>
                 <div
                   className={`text-12px ${isOverdue(item) ? 'font-600 text-[rgb(var(--danger-6))]' : 'text-t-secondary'}`}
@@ -126,15 +126,6 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
                   {item.statusDesc}
                 </Tag>
               </div>
-              <Button
-                type='text'
-                size='small'
-                data-testid={`btn-task-view-${item.id}`}
-                className='!hidden !h-28px !items-center !justify-center !rounded-8px !bg-fill-2 !px-12px !leading-none !text-t-secondary !opacity-0 transition-all hover:!bg-primary-6 hover:!text-white group-hover:!opacity-100 sm:!inline-flex'
-                onClick={() => onView(item)}
-              >
-                {String(t('taskCenter.actions.view'))}
-              </Button>
             </div>
           </div>
         ))}

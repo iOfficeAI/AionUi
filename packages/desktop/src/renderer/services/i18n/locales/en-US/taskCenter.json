@@ -2,7 +2,6 @@
   "title": "Task Center",
   "subtitle": "Tasks assigned to the current user",
   "searchPlaceholder": "Search by task name or marker",
-  "actions": { "view": "View" },
   "detail": {
     "title": "Task Details",
     "basicInfo": "Basic Information",

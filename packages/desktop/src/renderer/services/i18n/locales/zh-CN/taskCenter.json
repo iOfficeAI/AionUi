@@ -2,7 +2,6 @@
   "title": "任务中心",
   "subtitle": "当前用户所属任务",
   "searchPlaceholder": "搜索任务名称/标识",
-  "actions": { "view": "查看" },
   "detail": {
     "title": "任务详情",
     "basicInfo": "基本信息",

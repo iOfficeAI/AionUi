@@ -118,6 +118,21 @@ describe('TaskCenterList', () => {
     expect(onView).toHaveBeenCalledWith(sampleItem);
   });
 
+  it('does not render a 查看 button — clicking the card opens detail directly', () => {
+    const { container } = render(
+      <TaskCenterList
+        items={[sampleItem]}
+        total={1}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+      />
+    );
+    expect(container.querySelector('[data-testid="btn-task-view-1"]')).toBeNull();
+  });
+
   it('shows empty state when items empty and not loading', () => {
     render(
       <TaskCenterList
