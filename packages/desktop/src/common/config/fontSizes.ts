@@ -5,17 +5,18 @@
  */
 
 /** Per-region configurable font sizes (px). Shared by main + renderer (no DOM). */
-export type FontSizeKey = 'chat' | 'markdown' | 'code';
+export type FontSizeKey = 'app' | 'chat' | 'markdown' | 'code';
 
 export type FontSizeSpec = { default: number; min: number; max: number; cssVar: string };
 
 export const FONT_SIZE_SPECS: Record<FontSizeKey, FontSizeSpec> = {
+  app: { default: 14, min: 12, max: 22, cssVar: '--app-font-size' },
   chat: { default: 14, min: 12, max: 22, cssVar: '--chat-font-size' },
   markdown: { default: 13, min: 12, max: 22, cssVar: '--md-font-size' },
   code: { default: 12, min: 10, max: 18, cssVar: '--code-font-size' },
 };
 
-export const FONT_SIZE_KEYS: FontSizeKey[] = ['chat', 'markdown', 'code'];
+export const FONT_SIZE_KEYS: FontSizeKey[] = ['app', 'chat', 'markdown', 'code'];
 
 export const FONT_SIZE_STEP = 1;
 
@@ -25,6 +26,7 @@ export type FontSizes = Record<FontSizeKey, number>;
 export const fontSizeConfigKey = (key: FontSizeKey) => `ui.fontSize.${key}` as const;
 
 export const defaultFontSizes = (): FontSizes => ({
+  app: FONT_SIZE_SPECS.app.default,
   chat: FONT_SIZE_SPECS.chat.default,
   markdown: FONT_SIZE_SPECS.markdown.default,
   code: FONT_SIZE_SPECS.code.default,

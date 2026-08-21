@@ -7,6 +7,8 @@
 
 .aionui-markdown {
   color: var(--text-primary);
+  /* Markdown-region font; inherits the app/global font until a Markdown font is chosen. */
+  font-family: var(--md-font-family, inherit);
   /* Comfortable reading size for the rendered preview (source editor is 13px mono). */
   font-size: var(--md-font-size, 15px);
   line-height: 1.7;
