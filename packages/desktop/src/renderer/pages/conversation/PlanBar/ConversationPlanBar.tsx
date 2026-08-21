@@ -65,7 +65,14 @@ const ConversationPlanBar: React.FC<{ conversation_id: string }> = ({ conversati
         <span className='text-12px'>{t('conversation.planBar.progress', { completed, total: entries.length })}</span>
       </div>
       {expanded && (
-        <div className='flex flex-col gap-6px pt-6px pl-22px max-h-140px overflow-y-auto'>
+        <div
+          className='flex flex-col gap-6px pt-6px pl-22px overflow-y-auto overscroll-contain'
+          // Viewport-relative, matching CommandQueuePanel's cap in this same
+          // stack. The zone above the send box can hold the queue, the thought
+          // bar and a multi-line input at once; a FIXED cap here eats a large
+          // share of a short window and squeezes the message list.
+          style={{ maxHeight: 'min(22vh, 180px)' }}
+        >
           {entries.map((entry, index) => (
             <div key={`${index}-${entry.content}`} className='flex items-center gap-8px text-t-secondary text-13px'>
               {entry.status === 'completed' ? (

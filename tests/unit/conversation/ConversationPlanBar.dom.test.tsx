@@ -102,6 +102,17 @@ describe('ConversationPlanBar', () => {
     expect(bar?.className).toContain(getChatSurfaceWidthClass());
   });
 
+  it('caps its height relative to the viewport, not at a fixed pixel value', () => {
+    // The zone above the send box also holds CommandQueuePanel (capped at
+    // min(36vh, 320px)), ThoughtDisplay and a growable input. A fixed cap here
+    // takes a large share of a short window and squeezes the message list, so
+    // this bar follows the same viewport-relative convention as its neighbour.
+    const { container } = setup({ plan: plan('turn-id-1'), isProcessing: true, activeTurnId: 'turn-id-1' });
+    const scroller = container.querySelector('[data-testid="conversation-plan-bar"] .overflow-y-auto') as HTMLElement;
+    expect(scroller).toBeTruthy();
+    expect(scroller.style.maxHeight).toContain('vh');
+  });
+
   it('is expanded by default so the live progress is visible without a click', () => {
     setup({ plan: plan('turn-id-1'), isProcessing: true, activeTurnId: 'turn-id-1' });
     for (const entry of ENTRIES) {
