@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.1.60](https://github.com/iOfficeAI/AionUi/compare/v2.1.59...v2.1.60) (2026-08-21)
+
+### Desktop
+
+#### Features
+
+- **chat:** @@ conversation mentions and cross-conversation delivery UI (#4131)
+- **conversation:** allow empty-input start with assistant empty state (#4127)
+- **layout:** resizable desktop sider with snap-collapse (#4128)
+- **sidebar:** archive-first UI and archived page (#4126)
+- **explorer:** refresh a root via backend remount (#4121)
+- **renderer:** enable mermaid pan/zoom in chat markdown (#4108)
+
+#### Bug Fixes
+
+- **desktop:** log attribution for uncaught main-process errors (#4112)
+
+#### Refactoring
+
+- **feedback:** attach account email automatically (#4117)
+
+### Core ([v0.1.71](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.71))
+
+#### Features
+
+- **project:** add fs/remount to rebuild stale mounts (#910)
+- **session-message:** deliver messages across a user's conversations (#914)
+- **sidebar:** archive foundation and aggregated read model (#911)
+
+#### Bug Fixes
+
+- **app:** fall back to default log dir when custom log dir is unusable (AIONUI-231) (#898)
+- **claude:** append the assistant preset instead of replacing the system prompt (#900)
+- **codex:** send the assistant preset as developerInstructions, not baseInstructions (#897)
+- **conversation:** apply agent session titles at the relay level (#896)
+- **extension:** bound the builtin-skills materialize lock acquisition (AIONUI-168) (#903)
+- **project:** keep mounted targets when one fs/subscribe target fails (AIONUI-236) (#902)
+- **runtime:** log npm/npx probe stderr and missing-executable snapshot (AIONUI-62) (#904)
+
+---
+
 ## [2.1.59](https://github.com/iOfficeAI/AionUi/compare/v2.1.58...v2.1.59) (2026-08-19)
 
 ### Desktop
