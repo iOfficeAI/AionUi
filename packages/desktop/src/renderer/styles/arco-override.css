@@ -43,9 +43,23 @@
    集中的字体 token。--font-mono 会被继承（自定义属性可穿透 Shadow DOM 边界），
    因此 Shadow DOM 内渲染的 Markdown 也能引用它。 */
 :root {
-  --font-mono:
-    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono',
-    monospace;
+  /* Code-region font. applyFontFamilies sets --code-font-family only when the
+     user picks a code font (empty otherwise), so --font-mono resolves to the
+     chosen font or falls back to the built-in stack. Every existing
+     var(--font-mono) site (markdown code, editors, chat shadow) follows the
+     selection for free — no need to touch those call sites. */
+  --font-mono: var(
+    --code-font-family,
+    ui-monospace,
+    'SF Mono',
+    SFMono-Regular,
+    Menlo,
+    'Cascadia Code',
+    'Roboto Mono',
+    Consolas,
+    'Liberation Mono',
+    monospace
+  );
   --code-font-size: 13px;
   --aion-overlay-bg: #ffffff;
   --aion-overlay-text: #1d2129;
@@ -65,9 +79,28 @@ body[arco-theme='dark'] {
    text on systems that have Inter installed. Override to use system fonts. */
 html,
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  /* Global ("app") region font. --app-font-family is set by applyFontFamilies
+     when a global font is chosen (empty otherwise), so this falls back to the
+     built-in system stack — keeping default rendering unchanged. Regions that
+     pick no font of their own inherit this global font. */
+  font-family: var(
+    --app-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    'Noto Sans',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif
+  );
+  /* Global ("app") region font size. --app-font-size defaults to 14px (Arco's
+     base), so the whole app scales with the global size, while regions with
+     their own size var (chat/markdown/code) still override within their scope. */
+  font-size: var(--app-font-size, 14px);
   /* 根元素必须自己铺底色。Electron 窗口底色是固定的白色，html/body 若保持透明，
      任何布局缝隙都会漏出白色 —— 深色模式下就是刺眼的白边。
      The root must paint its own background. The Electron window's own background

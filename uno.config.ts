@@ -213,9 +213,12 @@ export default defineConfig({
       ...specialColors,
     },
     fontFamily: {
-      // Unified monospace stack for all code views (source, code blocks, editors)
-      // 所有代码视图（原文、代码块、编辑器）统一的等宽字体栈
-      mono: 'ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace',
+      // Reference the centralized --font-mono token (defined in arco-override.css)
+      // so the `font-mono` utility follows the user's code-font selection too.
+      // --font-mono itself falls back to the built-in monospace stack.
+      // 引用集中的 --font-mono token（定义在 arco-override.css），使 font-mono
+      // 工具类同样跟随用户选择的代码字体；--font-mono 自身回退到内置等宽字体栈。
+      mono: 'var(--font-mono)',
     },
   },
 });

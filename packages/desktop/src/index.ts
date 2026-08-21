@@ -16,7 +16,7 @@ import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, set
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor, session } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -716,6 +716,17 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   setSentryDeviceId();
+
+  // Allow the renderer's Local Font Access queries (window.queryLocalFonts),
+  // used by the appearance font picker to enumerate installed fonts. Electron 37
+  // surfaces the 'local-fonts' permission as 'unknown' and denies it when no
+  // request handler is installed. Grant it here; other permissions are granted
+  // too so installing this handler preserves Electron's default-grant behaviour
+  // and regresses no capability the app already relies on. Runs once, before any
+  // window is created.
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(true);
+  });
 
   try {
     await initializeProcess();
