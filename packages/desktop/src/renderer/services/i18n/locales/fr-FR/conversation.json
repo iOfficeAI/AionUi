@@ -75,16 +75,21 @@
     "earlier": "Plus tôt",
     "projectsSection": "Projets",
     "conversationsSection": "Conversations",
-    "removeProjectTitle": "Supprimer le projet",
-    "removeProject": "Supprimer le projet",
-    "removeProjectConfirm": "Supprimer le projet \"{{name}}\" ? Sa ou ses conversations {{count}} seront également supprimées.",
-    "removeProjectConfirm_one": "Supprimer le projet \"{{name}}\" ? Sa {{count}} conversation sera également supprimée.",
-    "removeProjectConfirm_other": "Supprimer le projet \"{{name}}\" ? Ses {{count}} conversations seront également supprimées.",
     "newConversationInProject": "Nouveau chat dans ce projet",
     "deleting": "Suppression...",
     "reorderPinned": "Faites glisser pour réorganiser la conversation épinglée",
     "forkedFrom": "Bifurquée depuis « {{name}} »",
-    "forkedConversation": "Conversation bifurquée"
+    "forkedConversation": "Conversation bifurquée",
+    "archive": "Archiver",
+    "archiveSuccess": "Archivé",
+    "archiveFailed": "Échec de l'archivage",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",
@@ -587,8 +592,8 @@
   },
   "sendbox": {
     "hint": "Tapez / pour les commandes, @ pour référencer des fichiers, ↑/↓ pour l'historique des messages",
-    "hintWithSessions": "/ pour les commandes, @ pour les fichiers, @@ pour les conversations, ↑/↓ pour l’historique",
-    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier."
+    "mediaPathFallback": "Cet agent ne prend pas en charge nativement ce type de fichier ; il sera envoyé sous forme de chemin de fichier.",
+    "hintWithSessions": "/ pour les commandes, @ pour les fichiers, @@ pour les conversations, ↑/↓ pour l’historique"
   },
   "agentTip": {
     "codes": {
@@ -633,14 +638,19 @@
     "attachFailed": "Couldn't add the folder",
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
+      "newFile": "Nouveau fichier",
+      "newDir": "Nouveau dossier",
       "rename": "Renommer",
       "addToChat": "Ajouter au chat",
       "copyRelativePath": "Copier le chemin relatif",
-      "copyAbsolutePath": "Copier le chemin absolu"
+      "copyAbsolutePath": "Copier le chemin absolu",
+      "refresh": "Actualiser"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",
     "renameFailed": "Échec du renommage",
+    "newFileFailed": "Échec de la création du fichier",
+    "newDirFailed": "Échec de la création du dossier",
     "tabs": {
       "files": "Fichiers",
       "changes": "Modifications"
@@ -649,6 +659,8 @@
     "imported": "{{count}} fichier(s) importé(s)",
     "importPartialFailed": "{{copied}} copié(s), {{failed}} échec(s) (conflits de noms ou non pris en charge)",
     "importFailed": "Échec de l’import des fichiers",
+    "copyNodeFailed": "Échec de la copie",
+    "moveNodeFailed": "Échec du déplacement",
     "search": {
       "placeholder": "Rechercher des fichiers par nom",
       "searching": "Recherche…",
@@ -748,6 +760,9 @@
     "exited": "Code {{code}}",
     "stop": "Arrêter",
     "truncated": "(sortie antérieure tronquée)"
+  },
+  "emptyState": {
+    "greeting": "Bonjour ! Dites-moi ce dont vous avez besoin et je commence."
   },
   "crossSession": {
     "mentionAgain": "Mentionner la conversation {{name}} dans la zone de saisie",

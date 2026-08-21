@@ -75,16 +75,21 @@
     "earlier": "Anterior",
     "projectsSection": "Proyectos",
     "conversationsSection": "Conversaciones",
-    "removeProjectTitle": "Quitar proyecto",
-    "removeProject": "Quitar proyecto",
-    "removeProjectConfirm": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversación(es) también se quitarán.",
-    "removeProjectConfirm_one": "¿Quitar el proyecto \"{{name}}\"? Su {{count}} conversación también se quitará.",
-    "removeProjectConfirm_other": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversaciones también se quitarán.",
     "newConversationInProject": "Nuevo chat en este proyecto",
     "deleting": "Eliminando...",
     "reorderPinned": "Arrastra para reordenar la conversación fijada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversación bifurcada"
+    "forkedConversation": "Conversación bifurcada",
+    "archive": "Archivar",
+    "archiveSuccess": "Archivado",
+    "archiveFailed": "Error al archivar",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",
@@ -588,8 +593,8 @@
   },
   "sendbox": {
     "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
-    "hintWithSessions": "/ para comandos, @ para archivos, @@ para conversaciones, ↑/↓ para el historial",
-    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
+    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo.",
+    "hintWithSessions": "/ para comandos, @ para archivos, @@ para conversaciones, ↑/↓ para el historial"
   },
   "agentTip": {
     "codes": {
@@ -637,11 +642,16 @@
       "rename": "Cambiar nombre",
       "addToChat": "Añadir al chat",
       "copyRelativePath": "Copiar ruta relativa",
-      "copyAbsolutePath": "Copiar ruta absoluta"
+      "copyAbsolutePath": "Copiar ruta absoluta",
+      "refresh": "Actualizar",
+      "newFile": "Nuevo archivo",
+      "newDir": "Nueva carpeta"
     },
     "namePlaceholder": "Nombre",
     "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
     "renameFailed": "No se pudo cambiar el nombre",
+    "newFileFailed": "No se pudo crear el archivo",
+    "newDirFailed": "No se pudo crear la carpeta",
     "tabs": {
       "files": "Archivos",
       "changes": "Cambios"
@@ -650,6 +660,8 @@
     "imported": "{{count}} archivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
     "importFailed": "Error al importar los archivos",
+    "copyNodeFailed": "Error al copiar",
+    "moveNodeFailed": "Error al mover",
     "search": {
       "placeholder": "Buscar archivos por nombre",
       "searching": "Buscando…",
@@ -749,6 +761,9 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."
   },
   "crossSession": {
     "mentionAgain": "Mencionar la conversación {{name}} en el cuadro de mensaje",

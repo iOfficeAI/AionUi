@@ -75,16 +75,21 @@
     "earlier": "更早",
     "projectsSection": "项目",
     "conversationsSection": "对话",
-    "removeProjectTitle": "移除项目",
-    "removeProject": "移除项目",
-    "removeProjectConfirm": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
-    "removeProjectConfirm_one": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
-    "removeProjectConfirm_other": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
     "newConversationInProject": "在此项目中新建对话",
     "deleting": "删除中...",
     "reorderPinned": "拖动以调整置顶会话顺序",
     "forkedFrom": "分叉自「{{name}}」",
-    "forkedConversation": "分叉会话"
+    "forkedConversation": "分叉会话",
+    "archive": "归档",
+    "archiveSuccess": "已归档",
+    "archiveFailed": "归档失败",
+    "batchArchive": "批量归档",
+    "batchArchiveConfirm": "确定归档已选的 {{count}} 个话题吗？归档后可在设置的归档页恢复或删除。",
+    "batchArchiveSuccess": "已归档 {{count}} 个话题",
+    "archiveProject": "归档项目",
+    "archiveProjectTitle": "归档项目",
+    "archiveProjectConfirm": "确定归档项目「{{name}}」吗？项目下的 {{count}} 个对话也会一起归档。归档后可在设置的归档页恢复或删除。",
+    "archiving": "归档中..."
   },
   "historySearch": {
     "tooltip": "检索会话",
@@ -587,8 +592,8 @@
   },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
-    "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息",
-    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
+    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。",
+    "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息"
   },
   "agentTip": {
     "codes": {
@@ -636,11 +641,16 @@
       "rename": "重命名",
       "addToChat": "添加到聊天",
       "copyRelativePath": "复制相对路径",
-      "copyAbsolutePath": "复制绝对路径"
+      "copyAbsolutePath": "复制绝对路径",
+      "refresh": "刷新",
+      "newFile": "新建文件",
+      "newDir": "新建目录"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
     "renameFailed": "重命名失败",
+    "newFileFailed": "新建文件失败",
+    "newDirFailed": "新建目录失败",
     "tabs": {
       "files": "文件",
       "changes": "变更"
@@ -649,6 +659,8 @@
     "imported": "已导入 {{count}} 个文件",
     "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
     "importFailed": "导入文件失败",
+    "copyNodeFailed": "复制失败",
+    "moveNodeFailed": "移动失败",
     "search": {
       "placeholder": "按文件名搜索",
       "searching": "搜索中…",
@@ -748,6 +760,9 @@
     "exited": "退出码 {{code}}",
     "stop": "停止",
     "truncated": "(较早输出已截断)"
+  },
+  "emptyState": {
+    "greeting": "你好！说说你的需求，我这就开始。"
   },
   "crossSession": {
     "mentionAgain": "在输入框中提及会话 {{name}}",

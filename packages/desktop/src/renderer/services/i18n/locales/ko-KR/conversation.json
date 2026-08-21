@@ -75,16 +75,21 @@
     "deleteFailed": "삭제에 실패했습니다",
     "projectsSection": "프로젝트",
     "conversationsSection": "대화",
-    "removeProjectTitle": "프로젝트 제거",
-    "removeProject": "프로젝트 제거",
-    "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
-    "removeProjectConfirm_one": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
-    "removeProjectConfirm_other": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
     "newConversationInProject": "이 프로젝트에서 새 대화",
     "deleting": "삭제 중...",
     "reorderPinned": "드래그하여 고정된 대화 순서 변경",
     "forkedFrom": "“{{name}}”에서 분기됨",
-    "forkedConversation": "분기된 대화"
+    "forkedConversation": "분기된 대화",
+    "archive": "보관",
+    "archiveSuccess": "보관됨",
+    "archiveFailed": "보관 실패",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "메시지 검색",
@@ -587,8 +592,8 @@
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
-    "hintWithSessions": "/ 로 명령, @ 로 파일, @@ 로 대화 참조, ↑/↓ 로 기록",
-    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
+    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다.",
+    "hintWithSessions": "/ 로 명령, @ 로 파일, @@ 로 대화 참조, ↑/↓ 로 기록"
   },
   "agentTip": {
     "codes": {
@@ -636,11 +641,16 @@
       "rename": "이름 바꾸기",
       "addToChat": "채팅에 추가",
       "copyRelativePath": "상대 경로 복사",
-      "copyAbsolutePath": "절대 경로 복사"
+      "copyAbsolutePath": "절대 경로 복사",
+      "refresh": "새로 고침",
+      "newFile": "새 파일",
+      "newDir": "새 폴더"
     },
     "namePlaceholder": "이름",
     "deleteConfirm": "“{{name}}”을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
     "renameFailed": "이름을 바꾸지 못했습니다",
+    "newFileFailed": "파일을 만들지 못했습니다",
+    "newDirFailed": "폴더를 만들지 못했습니다",
     "tabs": {
       "files": "파일",
       "changes": "변경"
@@ -649,6 +659,8 @@
     "imported": "{{count}}개 파일을 가져왔습니다",
     "importPartialFailed": "{{copied}}개 복사, {{failed}}개 실패(이름 충돌 또는 미지원)",
     "importFailed": "파일 가져오기에 실패했습니다",
+    "copyNodeFailed": "복사에 실패했습니다",
+    "moveNodeFailed": "이동에 실패했습니다",
     "search": {
       "placeholder": "파일 이름으로 검색",
       "searching": "검색 중…",
@@ -748,6 +760,9 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "emptyState": {
+    "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."
   },
   "crossSession": {
     "mentionAgain": "입력창에서 대화 {{name}} 멘션",

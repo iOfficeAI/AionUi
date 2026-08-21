@@ -6,6 +6,7 @@ import { Avatar } from '@arco-design/web-react';
 import { Robot } from '@icon-park/react';
 import React from 'react';
 import { isEmoji, resolveAvatarImageSrc } from './assistantUtils';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 
 type AssistantAvatarProps = {
   assistant: AssistantListItem;
@@ -30,11 +31,13 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({
     <Avatar.Group size={size}>
       <Avatar className='border-none' shape={shape} style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
         {avatarImage ? (
-          <img
+          <ThemedLogo
             src={avatarImage}
             alt=''
-            className={`h-full w-full rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
-            style={{ display: 'block' }}
+            className={`rounded-inherit ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
+            // Arco Avatar forces color:var(--color-white); pin to theme text so
+            // the currentColor mask stays visible in light mode too.
+            style={{ display: 'block', width: size, height: size, color: 'var(--text-primary)' }}
           />
         ) : hasEmojiAvatar ? (
           <span style={{ fontSize: emojiSize }}>{resolvedAvatar}</span>

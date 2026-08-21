@@ -646,6 +646,37 @@ describe('GuidPage', () => {
       persistPreference: false,
     });
   });
+
+  it('sends on Enter with empty input (empty-input start), matching the button', () => {
+    guidInputMock.input = '';
+    sendMock.isButtonDisabled = false;
+    sendMock.sendMessageHandler.mockClear();
+
+    render(<GuidPage />);
+
+    const onKeyDown = capturedGuidInputCardProps.at(-1)?.onKeyDown as (event: unknown) => void;
+    const preventDefault = vi.fn();
+    onKeyDown({ key: 'Enter', shiftKey: false, preventDefault });
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(sendMock.sendMessageHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send on Enter while the send gate is disabled', () => {
+    guidInputMock.input = '';
+    sendMock.isButtonDisabled = true;
+    sendMock.sendMessageHandler.mockClear();
+
+    render(<GuidPage />);
+
+    const onKeyDown = capturedGuidInputCardProps.at(-1)?.onKeyDown as (event: unknown) => void;
+    onKeyDown({ key: 'Enter', shiftKey: false, preventDefault: vi.fn() });
+
+    expect(sendMock.sendMessageHandler).not.toHaveBeenCalled();
+
+    // Restore shared mock state for later tests.
+    sendMock.isButtonDisabled = false;
+  });
 });
 
 describe('GuidInputCard prefill focus', () => {

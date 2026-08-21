@@ -75,16 +75,21 @@
     "deleteFailed": "Silme başarısız oldu",
     "projectsSection": "Projeler",
     "conversationsSection": "Konuşmalar",
-    "removeProjectTitle": "Projeyi kaldır",
-    "removeProject": "Projeyi kaldır",
-    "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
-    "removeProjectConfirm_one": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
-    "removeProjectConfirm_other": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
     "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",
     "forkedFrom": "“{{name}}” konuşmasından çatallandı",
-    "forkedConversation": "Çatallanmış konuşma"
+    "forkedConversation": "Çatallanmış konuşma",
+    "archive": "Arşivle",
+    "archiveSuccess": "Arşivlendi",
+    "archiveFailed": "Arşivleme başarısız",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -589,8 +594,8 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
-    "hintWithSessions": "Komutlar için /, dosyalar için @, sohbetler için @@, geçmiş için ↑/↓",
-    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek.",
+    "hintWithSessions": "Komutlar için /, dosyalar için @, sohbetler için @@, geçmiş için ↑/↓"
   },
   "agentTip": {
     "codes": {
@@ -638,11 +643,16 @@
       "rename": "Yeniden adlandır",
       "addToChat": "Sohbete ekle",
       "copyRelativePath": "Göreli yolu kopyala",
-      "copyAbsolutePath": "Mutlak yolu kopyala"
+      "copyAbsolutePath": "Mutlak yolu kopyala",
+      "refresh": "Yenile",
+      "newFile": "Yeni dosya",
+      "newDir": "Yeni klasör"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
     "renameFailed": "Yeniden adlandırılamadı",
+    "newFileFailed": "Dosya oluşturulamadı",
+    "newDirFailed": "Klasör oluşturulamadı",
     "tabs": {
       "files": "Dosyalar",
       "changes": "Değişiklikler"
@@ -651,6 +661,8 @@
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
     "importFailed": "Dosyalar içe aktarılamadı",
+    "copyNodeFailed": "Kopyalanamadı",
+    "moveNodeFailed": "Taşınamadı",
     "search": {
       "placeholder": "Dosya adına göre ara",
       "searching": "Aranıyor…",
@@ -750,6 +762,9 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "emptyState": {
+    "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
   },
   "crossSession": {
     "mentionAgain": "{{name}} sohbetini mesaj alanında an",

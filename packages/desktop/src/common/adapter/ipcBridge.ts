@@ -118,6 +118,7 @@ import {
   wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
+import { fromApiSidebar, fromApiSidebarItems } from './sidebarMapper';
 import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
   fromBackendAssistant,
@@ -151,7 +152,6 @@ const httpGetClientSetting = <T>(key: string) => ({
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
 // ---------------------------------------------------------------------------
-
 export const shell = {
   openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
@@ -2410,4 +2410,87 @@ export const team = {
   childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
   childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
   slotWorkChanged: wsEmitter<ITeamSlotWorkChangedEvent>('team.slotWorkChanged'),
+};
+
+export const sidebar = {
+  // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
+  // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
+  get: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[]; archived?: boolean }>(
+      (p) => {
+        const params = new URLSearchParams();
+        if (p.limit) params.set('limit', String(p.limit));
+        for (const w of p.win ?? []) params.append('win', w);
+        // Flip the read to the archive slice. The archived page reuses this same
+        // grouped read model — only the backend `archived_at` predicate changes.
+        if (p.archived) params.set('archived', 'true');
+        const qs = params.toString();
+        return `/api/sidebar${qs ? `?${qs}` : ''}`;
+      }
+    ),
+    fromApiSidebar
+  ),
+  // One more window of a single group (the "+10" paging). `scope` is the group token,
+  // `cursor` the keyset cursor from the previous page.
+  items: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarItemsResponse, { scope: string; cursor?: string; limit?: number }>(
+      (p) => {
+        const params = new URLSearchParams();
+        params.set('scope', p.scope);
+        if (p.cursor) params.set('cursor', p.cursor);
+        if (p.limit) params.set('limit', String(p.limit));
+        return `/api/sidebar/items?${params.toString()}`;
+      }
+    ),
+    fromApiSidebarItems
+  ),
+  // Remove a project and everything classified into its group (teams + standalone
+  // conversations), BR-19 "所见即所删". With `dry_run` nothing is deleted and the
+  // response reports the counts that *would* be removed (used for the confirm
+  // dialog). A missing / non-standard project maps to 404.
+  removeProject: httpDelete<
+    import('@/common/types/sidebar').RemoveProjectResult,
+    { project_id: string; dry_run?: boolean }
+  >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
+  // Archive a conversation/team (moves its slice out of the active sidebar and
+  // unpins it). Team members cascade with the team. Both take no body; a missing
+  // or foreign id maps to 404.
+  archive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an archived conversation/team to the active sidebar.
+  unarchive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/unarchive`,
+    () => undefined
+  ),
+  // Empty the archive: hard-delete every archived team (members cascade) and every
+  // independent archived conversation. Returns the removed counts.
+  deleteArchived: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult>('/api/sidebar/archived'),
+  // Permanently delete a single archived unit (a conversation row or a team, whose
+  // members cascade). The id is validated against the archived slice — an active,
+  // foreign, or team-member id maps to 404.
+  deleteArchivedItem: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/archived/${p.item_type}/${encodeURIComponent(p.item_id)}`
+  ),
+  // Archive an entire standard project in one request: every unit classified into
+  // its group (teams cascade to members, path-merged unbound conversations
+  // included) moves to the archive slice and is unpinned. Dir pseudo-groups have
+  // no project_id and instead loop `archive` over their items. Missing /
+  // non-standard project maps to 404.
+  archiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an entire archived standard project in one request.
+  unarchiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/unarchive`,
+    () => undefined
+  ),
+  // Hard-delete every archived unit of a standard project (teams cascade). The
+  // project record is kept. Returns the removed counts. Missing / non-standard
+  // project maps to 404.
+  deleteArchivedProject: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult, { project_id: string }>(
+    (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
+  ),
 };

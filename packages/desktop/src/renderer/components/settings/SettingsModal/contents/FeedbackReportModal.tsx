@@ -7,6 +7,7 @@
 import AionModal from '@renderer/components/base/AionModal';
 import { FEEDBACK_MODULES } from './feedbackModules';
 import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
+import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { uploadFileViaHttp } from '@/renderer/services/FileService';
 import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
@@ -31,6 +32,19 @@ export type { FeedbackEventExtra, FeedbackEventTags } from '@/renderer/services/
 const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
+
+// aionui's AuthUser is { id, username } and carries no email; aionpro's AuthUser
+// does. Read it structurally (no AuthUser type import, no `any`) so this file
+// stays byte-identical across both repos and simply yields undefined whenever
+// the signed-in user has no email (the open-source desktop build is usually
+// logged out entirely), in which case the report is submitted without one.
+const readAccountEmail = (user: unknown): string | undefined => {
+  if (!user || typeof user !== 'object' || !('email' in user)) {
+    return undefined;
+  }
+  const email = (user as { email: unknown }).email;
+  return typeof email === 'string' && email.trim().length > 0 ? email.trim() : undefined;
+};
 
 const getUploadItemKey = (item: Pick<UploadItem, 'name' | 'originFile'>) =>
   `${item.originFile?.name ?? item.name}_${item.originFile?.size ?? 0}`;
@@ -76,6 +90,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const talkToButler = useTalkToButler();
+  const { user } = useAuth();
+  const accountEmail = readAccountEmail(user);
 
   const [module, setModule] = useState<string | undefined>(defaultModule);
   const [description, setDescription] = useState('');
@@ -171,6 +187,10 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
           selectedModule: module,
         },
         collectLogs: true,
+        // Silently attach the signed-in user's account email (undefined when
+        // logged out or on the open-source build) so support can follow up
+        // without asking the reporter to type it in.
+        contactEmail: accountEmail,
         description,
         extra: feedbackExtra,
         module,
@@ -189,6 +209,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   }, [
     module,
     description,
+    accountEmail,
     screenshots,
     t,
     onCancel,

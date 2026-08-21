@@ -75,16 +75,21 @@
     "earlier": "Früher",
     "projectsSection": "Projekte",
     "conversationsSection": "Unterhaltungen",
-    "removeProjectTitle": "Projekt entfernen",
-    "removeProject": "Projekt entfernen",
-    "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
-    "removeProjectConfirm_one": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige Unterhaltung wird ebenfalls entfernt.",
-    "removeProjectConfirm_other": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörigen Unterhaltungen werden ebenfalls entfernt.",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
-    "forkedConversation": "Verzweigte Unterhaltung"
+    "forkedConversation": "Verzweigte Unterhaltung",
+    "archive": "Archivieren",
+    "archiveSuccess": "Archiviert",
+    "archiveFailed": "Archivieren fehlgeschlagen",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -588,8 +593,8 @@
   },
   "sendbox": {
     "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
-    "hintWithSessions": "/ für Befehle, @ für Dateien, @@ für Unterhaltungen, ↑/↓ für Verlauf",
-    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
+    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet.",
+    "hintWithSessions": "/ für Befehle, @ für Dateien, @@ für Unterhaltungen, ↑/↓ für Verlauf"
   },
   "agentTip": {
     "codes": {
@@ -637,11 +642,16 @@
       "rename": "Umbenennen",
       "addToChat": "Zum Chat hinzufügen",
       "copyRelativePath": "Relativen Pfad kopieren",
-      "copyAbsolutePath": "Absoluten Pfad kopieren"
+      "copyAbsolutePath": "Absoluten Pfad kopieren",
+      "refresh": "Aktualisieren",
+      "newFile": "Neue Datei",
+      "newDir": "Neuer Ordner"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
     "renameFailed": "Umbenennen fehlgeschlagen",
+    "newFileFailed": "Datei konnte nicht erstellt werden",
+    "newDirFailed": "Ordner konnte nicht erstellt werden",
     "tabs": {
       "files": "Dateien",
       "changes": "Änderungen"
@@ -650,6 +660,8 @@
     "imported": "{{count}} Datei(en) importiert",
     "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
     "importFailed": "Import der Dateien fehlgeschlagen",
+    "copyNodeFailed": "Kopieren fehlgeschlagen",
+    "moveNodeFailed": "Verschieben fehlgeschlagen",
     "search": {
       "placeholder": "Dateien nach Name suchen",
       "searching": "Suche läuft…",
@@ -749,6 +761,9 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "emptyState": {
+    "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."
   },
   "crossSession": {
     "mentionAgain": "Unterhaltung {{name}} im Eingabefeld erwähnen",

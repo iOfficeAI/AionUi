@@ -67,6 +67,9 @@ const makePort = (snapshots: Record<PeKey, Entry[]>) => {
       subscribeCalls++;
       return { snapshots: refs.map((r) => ({ target: r, entries: snapshots[refToKey(r)] ?? [] })) };
     },
+    remount: async (refs: DirRef[]) => ({
+      snapshots: refs.map((r) => ({ target: r, entries: snapshots[refToKey(r)] ?? [] })),
+    }),
     unsubscribe: () => {},
   };
   return { port, calls: () => subscribeCalls };

@@ -75,16 +75,21 @@
     "earlier": "قدیمی‌تر",
     "projectsSection": "پروژه‌ها",
     "conversationsSection": "مکالمات",
-    "removeProjectTitle": "حذف پروژه",
-    "removeProject": "حذف پروژه",
-    "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
-    "removeProjectConfirm_one": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
-    "removeProjectConfirm_other": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
     "newConversationInProject": "چت جدید در این پروژه",
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
-    "forkedConversation": "گفتگوی منشعب"
+    "forkedConversation": "گفتگوی منشعب",
+    "archive": "بایگانی",
+    "archiveSuccess": "بایگانی شد",
+    "archiveFailed": "بایگانی ناموفق بود",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -587,8 +592,8 @@
   },
   "sendbox": {
     "hint": "برای دستورات /، برای ارجاع فایل‌ها @ و برای تاریخچه پیام‌ها ↑/↓ را بزنید",
-    "hintWithSessions": "/ برای دستورات، @ برای فایل‌ها، @@ برای گفتگوها، ↑/↓ برای تاریخچه",
-    "mediaPathFallback": "این ایجنت از این نوع فایل به‌صورت بومی پشتیبانی نمی‌کند؛ به‌صورت مسیر فایل ارسال خواهد شد."
+    "mediaPathFallback": "این ایجنت از این نوع فایل به‌صورت بومی پشتیبانی نمی‌کند؛ به‌صورت مسیر فایل ارسال خواهد شد.",
+    "hintWithSessions": "/ برای دستورات، @ برای فایل‌ها، @@ برای گفتگوها، ↑/↓ برای تاریخچه"
   },
   "agentTip": {
     "codes": {
@@ -636,11 +641,16 @@
       "rename": "تغییر نام",
       "addToChat": "افزودن به گفتگو",
       "copyRelativePath": "کپی کردن مسیر نسبی",
-      "copyAbsolutePath": "کپی کردن مسیر مطلق"
+      "copyAbsolutePath": "کپی کردن مسیر مطلق",
+      "refresh": "تازه‌سازی",
+      "newFile": "فایل جدید",
+      "newDir": "پوشه جدید"
     },
     "namePlaceholder": "نام",
     "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
     "renameFailed": "تغییر نام ناموفق بود",
+    "newFileFailed": "ایجاد فایل ناموفق بود",
+    "newDirFailed": "ایجاد پوشه ناموفق بود",
     "tabs": {
       "files": "پرونده‌ها",
       "changes": "تغییرات"
@@ -649,6 +659,8 @@
     "imported": "{{count}} فایل وارد شد",
     "importPartialFailed": "{{copied}} کپی شد، {{failed}} ناموفق (تداخل نام یا پشتیبانی‌نشده)",
     "importFailed": "وارد کردن فایل‌ها ناموفق بود",
+    "copyNodeFailed": "کپی ناموفق بود",
+    "moveNodeFailed": "انتقال ناموفق بود",
     "search": {
       "placeholder": "جستجوی فایل‌ها بر اساس نام",
       "searching": "در حال جستجو…",
@@ -748,6 +760,9 @@
     "exited": "کد خروج {{code}}",
     "stop": "توقف",
     "truncated": "(خروجی قبلی کوتاه شد)"
+  },
+  "emptyState": {
+    "greeting": "سلام! بگویید چه نیاز دارید تا شروع کنم."
   },
   "crossSession": {
     "mentionAgain": "اشاره به گفتگوی {{name}} در کادر پیام",

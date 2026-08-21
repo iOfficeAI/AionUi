@@ -8,6 +8,9 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
+import { describeUncaughtError } from './process/utils/describeUncaughtError';
+import type { UncaughtErrorDiagnostics } from './process/utils/describeUncaughtError';
+import { createRendererRecoveryPolicy } from './process/utils/rendererRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
@@ -149,14 +152,27 @@ if (electronSquirrelStartup) {
 }
 
 // Global error handlers for main process
-// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog
-process.on('uncaughtException', (_error) => {
-  // Sentry captures this automatically
+// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog.
+// Control flow is unchanged — both handlers still swallow the failure and keep the process alive; they only
+// log allow-listed attribution first, because a Sentry event for e.g. `read ECONNRESET` otherwise carries
+// nothing but Node-internal frames (TCP.onStreamRead) and cannot be traced back to a subsystem (AIONUI-128).
+process.on('uncaughtException', (error, origin) => {
+  logUncaught(describeUncaughtError(error, origin));
 });
 
-process.on('unhandledRejection', (_reason, _promise) => {
-  // Sentry captures this automatically
+process.on('unhandledRejection', (reason, _promise) => {
+  logUncaught(describeUncaughtError(reason, 'unhandledRejection'));
 });
+
+function logUncaught(diagnostics: UncaughtErrorDiagnostics): void {
+  try {
+    console.error(`[AionUi] ${diagnostics.origin}:`, diagnostics);
+  } catch {
+    // Logging must never escalate a swallowed error into a fatal one: a throw inside an
+    // uncaughtException listener terminates the process, and the log transport itself can
+    // fail (e.g. ENOSPC while appending to the daily log file).
+  }
+}
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
 const getSwitchValue = (flag: string): string | undefined => {
@@ -581,13 +597,35 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     console.error('[AionUi] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
   });
 
+  // Recovery policy for renderer crashes: reload with backoff for ordinary
+  // crashes, escalate to a throttled app relaunch when the renderer cannot
+  // launch at all (e.g. app files replaced by an update while running).
+  // An unconditional immediate reload here caused a ~50/s crash storm on
+  // `launch-failed` (Sentry AIONUI-DESKTOP-A).
+  const rendererRecovery = createRendererRecoveryPolicy();
+
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[AionUi] render-process-gone:', details);
+    if (mainWindow.isDestroyed()) return;
 
-    // Reload the renderer to recover from the crash.
+    const action = rendererRecovery.onCrash(details.reason);
+
+    if (action.kind === 'relaunch') {
+      console.warn(`[AionUi] renderer cannot be recovered in-place (reason=${details.reason}); relaunching app`);
+      app.relaunch();
+      app.exit(0);
+      return;
+    }
+
+    if (action.kind === 'give-up') {
+      console.error(`[AionUi] renderer recovery exhausted (reason=${details.reason}); not retrying`);
+      return;
+    }
+
     // The isDestroyed() guard in adapter/main.ts prevents further sends
     // to the dead webContents while the reload is in progress.
-    if (!mainWindow.isDestroyed()) {
+    const reload = () => {
+      if (mainWindow.isDestroyed()) return;
       console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
 
       if (!app.isPackaged && rendererUrl) {
@@ -599,6 +637,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
           console.error('[AionUi] Recovery loadFile failed:', error.message || error);
         });
       }
+    };
+
+    if (action.delayMs === 0) {
+      reload();
+    } else {
+      setTimeout(reload, action.delayMs);
     }
   });
 

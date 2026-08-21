@@ -75,16 +75,21 @@
     "earlier": "Mais Antigos",
     "projectsSection": "Projetos",
     "conversationsSection": "Conversas",
-    "removeProjectTitle": "Remover projeto",
-    "removeProject": "Remover projeto",
-    "removeProjectConfirm": "Remover o projeto \"{{name}}\"? Suas {{count}} conversa(s) também serão removidas.",
-    "removeProjectConfirm_one": "Remover o projeto \"{{name}}\"? Sua {{count}} conversa também será removida.",
-    "removeProjectConfirm_other": "Remover o projeto \"{{name}}\"? Suas {{count}} conversas também serão removidas.",
     "newConversationInProject": "Novo chat neste projeto",
     "deleting": "Excluindo...",
     "reorderPinned": "Arraste para reordenar a conversa fixada",
     "forkedFrom": "Bifurcada de “{{name}}”",
-    "forkedConversation": "Conversa bifurcada"
+    "forkedConversation": "Conversa bifurcada",
+    "archive": "Arquivar",
+    "archiveSuccess": "Arquivado",
+    "archiveFailed": "Falha ao arquivar",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",
@@ -593,8 +598,8 @@
   },
   "sendbox": {
     "hint": "Digite / para comandos, @ para referenciar arquivos, ↑/↓ para o histórico de mensagens",
-    "hintWithSessions": "/ para comandos, @ para arquivos, @@ para conversas, ↑/↓ para o histórico",
-    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo."
+    "mediaPathFallback": "Este agente não tem suporte nativo para este tipo de arquivo; ele será enviado como um caminho de arquivo.",
+    "hintWithSessions": "/ para comandos, @ para arquivos, @@ para conversas, ↑/↓ para o histórico"
   },
   "agentTip": {
     "codes": {
@@ -640,13 +645,18 @@
     "removeFailed": "Couldn't remove the folder",
     "contextMenu": {
       "rename": "Renomear",
+      "newFile": "Novo arquivo",
+      "newDir": "Nova pasta",
       "addToChat": "Adicionar ao chat",
       "copyRelativePath": "Copiar caminho relativo",
-      "copyAbsolutePath": "Copiar caminho absoluto"
+      "copyAbsolutePath": "Copiar caminho absoluto",
+      "refresh": "Atualizar"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
     "renameFailed": "Não foi possível renomear",
+    "newFileFailed": "Não foi possível criar o arquivo",
+    "newDirFailed": "Não foi possível criar a pasta",
     "tabs": {
       "files": "Arquivos",
       "changes": "Alterações"
@@ -655,6 +665,8 @@
     "imported": "{{count}} arquivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} com falha (conflitos de nome ou não suportados)",
     "importFailed": "Falha ao importar os arquivos",
+    "copyNodeFailed": "Falha ao copiar",
+    "moveNodeFailed": "Falha ao mover",
     "search": {
       "placeholder": "Buscar arquivos por nome",
       "searching": "Buscando…",
@@ -754,6 +766,9 @@
     "exited": "Saída {{code}}",
     "stop": "Parar",
     "truncated": "(saída anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "Olá! Diga o que você precisa e eu já começo."
   },
   "crossSession": {
     "mentionAgain": "Mencionar a conversa {{name}} na caixa de mensagem",

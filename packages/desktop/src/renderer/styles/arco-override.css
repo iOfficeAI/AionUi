@@ -587,6 +587,16 @@ body[arco-theme='dark'] .arco-message-error {
   overflow: visible;
 }
 
+/* Divider between the menu's action sections (add-to-chat | locate/copy |
+   create/rename/delete). A plain <div role='separator'> emitted by ExplorerPanel
+   between two non-empty sections; theme-aware border token so it adapts to dark
+   mode. Vertical margin gives the sections breathing room without item padding. */
+.arco-dropdown-menu.explorer-context-menu .explorer-context-menu-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background-color: var(--color-border-2);
+}
+
 /* Provider group titles pin to the top of the inner scroll container. It has no
  * top padding, so top:0 hugs the edge with no gap for items to peek through.
  * Only relevant for the grouped (aionrs) list; harmless for flat lists. */

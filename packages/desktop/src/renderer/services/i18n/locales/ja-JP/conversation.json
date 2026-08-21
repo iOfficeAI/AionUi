@@ -75,16 +75,21 @@
     "deleteFailed": "削除に失敗しました",
     "projectsSection": "プロジェクト",
     "conversationsSection": "会話",
-    "removeProjectTitle": "プロジェクトを削除",
-    "removeProject": "プロジェクトを削除",
-    "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
-    "removeProjectConfirm_one": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
-    "removeProjectConfirm_other": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
     "newConversationInProject": "このプロジェクト内で新しい会話",
     "deleting": "削除中...",
     "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
     "forkedFrom": "「{{name}}」から分岐",
-    "forkedConversation": "分岐した会話"
+    "forkedConversation": "分岐した会話",
+    "archive": "アーカイブ",
+    "archiveSuccess": "アーカイブしました",
+    "archiveFailed": "アーカイブに失敗しました",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -587,8 +592,8 @@
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
-    "hintWithSessions": "/ でコマンド、@ でファイル、@@ で会話を参照、↑/↓ で履歴",
-    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
+    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。",
+    "hintWithSessions": "/ でコマンド、@ でファイル、@@ で会話を参照、↑/↓ で履歴"
   },
   "agentTip": {
     "codes": {
@@ -636,11 +641,16 @@
       "rename": "名前を変更",
       "addToChat": "チャットに追加",
       "copyRelativePath": "相対パスをコピー",
-      "copyAbsolutePath": "絶対パスをコピー"
+      "copyAbsolutePath": "絶対パスをコピー",
+      "refresh": "更新",
+      "newFile": "新規ファイル",
+      "newDir": "新規フォルダー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
     "renameFailed": "名前の変更に失敗しました",
+    "newFileFailed": "ファイルの作成に失敗しました",
+    "newDirFailed": "フォルダーの作成に失敗しました",
     "tabs": {
       "files": "ファイル",
       "changes": "変更"
@@ -649,6 +659,8 @@
     "imported": "{{count}} 件のファイルをインポートしました",
     "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
     "importFailed": "ファイルのインポートに失敗しました",
+    "copyNodeFailed": "コピーに失敗しました",
+    "moveNodeFailed": "移動に失敗しました",
     "search": {
       "placeholder": "ファイル名で検索",
       "searching": "検索中…",
@@ -748,6 +760,9 @@
     "exited": "終了コード {{code}}",
     "stop": "停止",
     "truncated": "(以前の出力は切り捨て)"
+  },
+  "emptyState": {
+    "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"
   },
   "crossSession": {
     "mentionAgain": "入力欄で会話 {{name}} にメンション",

@@ -79,18 +79,21 @@
     "earlier": "Ранее",
     "projectsSection": "Проекты",
     "conversationsSection": "Беседы",
-    "removeProjectTitle": "Удалить проект",
-    "removeProject": "Удалить проект",
-    "removeProjectConfirm": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
-    "removeProjectConfirm_one": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
-    "removeProjectConfirm_other": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
-    "removeProjectConfirm_few": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
-    "removeProjectConfirm_many": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
     "newConversationInProject": "Новая беседа в этом проекте",
     "deleting": "Удаление...",
     "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед",
     "forkedFrom": "Ответвление от «{{name}}»",
-    "forkedConversation": "Ответвлённая беседа"
+    "forkedConversation": "Ответвлённая беседа",
+    "archive": "Архивировать",
+    "archiveSuccess": "Архивировано",
+    "archiveFailed": "Не удалось архивировать",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -597,8 +600,8 @@
   },
   "sendbox": {
     "hint": "Введите / для команд, @ для ссылок на файлы, ↑/↓ для истории сообщений",
-    "hintWithSessions": "/ — команды, @ — файлы, @@ — беседы, ↑/↓ — история",
-    "mediaPathFallback": "Этот агент не поддерживает данный тип файла нативно; он будет отправлен в виде пути к файлу."
+    "mediaPathFallback": "Этот агент не поддерживает данный тип файла нативно; он будет отправлен в виде пути к файлу.",
+    "hintWithSessions": "/ — команды, @ — файлы, @@ — беседы, ↑/↓ — история"
   },
   "agentTip": {
     "codes": {
@@ -646,11 +649,16 @@
       "rename": "Переименовать",
       "addToChat": "Добавить в чат",
       "copyRelativePath": "Копировать относительный путь",
-      "copyAbsolutePath": "Копировать абсолютный путь"
+      "copyAbsolutePath": "Копировать абсолютный путь",
+      "refresh": "Обновить",
+      "newFile": "Новый файл",
+      "newDir": "Новая папка"
     },
     "namePlaceholder": "Имя",
     "deleteConfirm": "Удалить «{{name}}»? Это действие нельзя отменить.",
     "renameFailed": "Не удалось переименовать",
+    "newFileFailed": "Не удалось создать файл",
+    "newDirFailed": "Не удалось создать папку",
     "tabs": {
       "files": "Файлы",
       "changes": "Изменения"
@@ -659,6 +667,8 @@
     "imported": "Импортировано файлов: {{count}}",
     "importPartialFailed": "Скопировано: {{copied}}, с ошибкой: {{failed}} (конфликты имён или не поддерживается)",
     "importFailed": "Не удалось импортировать файлы",
+    "copyNodeFailed": "Не удалось скопировать",
+    "moveNodeFailed": "Не удалось переместить",
     "search": {
       "placeholder": "Поиск файлов по имени",
       "searching": "Поиск…",
@@ -766,6 +776,9 @@
     "exited": "Код {{code}}",
     "stop": "Остановить",
     "truncated": "(ранний вывод усечён)"
+  },
+  "emptyState": {
+    "greeting": "Здравствуйте! Расскажите, что нужно, и я начну."
   },
   "crossSession": {
     "mentionAgain": "Упомянуть беседу {{name}} в поле ввода",

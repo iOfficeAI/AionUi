@@ -19,6 +19,7 @@ import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
@@ -225,7 +226,12 @@ const ScheduledTasksPage: React.FC = () => {
                       <Tooltip content={agentMeta.name}>
                         <div className='flex h-24px w-24px shrink-0 items-center justify-center overflow-hidden rounded-50% bg-fill-2 text-11px text-t-secondary'>
                           {agentMeta.logo ? (
-                            <img src={agentMeta.logo} alt={agentMeta.name} className='h-full w-full object-cover' />
+                            <ThemedLogo
+                              src={agentMeta.logo}
+                              alt={agentMeta.name}
+                              className='object-cover'
+                              style={{ width: 24, height: 24 }}
+                            />
                           ) : agentMeta.emoji ? (
                             agentMeta.emoji
                           ) : (
