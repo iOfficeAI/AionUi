@@ -16,8 +16,10 @@ export interface TaskCenterListProps {
   loading: boolean;
   pageNo: number;
   pageSize: number;
+  error?: string | null;
   onView: (item: ITaskCenterRow) => void;
   onLoadMore: () => void;
+  onRetry?: () => void;
 }
 
 /** Background color tokens by urgency — matches the urgency Tag accent. */
@@ -33,8 +35,10 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
   loading,
   pageNo,
   pageSize,
+  error,
   onView,
   onLoadMore,
+  onRetry,
 }) => {
   const { t } = useTranslation();
 
@@ -52,11 +56,22 @@ const TaskCenterList: React.FC<TaskCenterListProps> = ({
   if (items.length === 0) {
     return (
       <div
-        className='flex flex-col items-center rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
+        className='flex flex-col items-center gap-8px rounded-14px border border-dashed border-border-2 bg-fill-1/40 px-20px py-28px text-center'
         data-testid='task-list-empty'
       >
-        <Clipboard theme='outline' size='32' className='mb-8px text-t-quaternary' />
-        <div className='mb-6px text-13px font-600 text-t-primary'>{String(t('taskCenter.empty'))}</div>
+        <Clipboard theme='outline' size='32' className='text-t-quaternary' />
+        <div className='text-13px font-600 text-t-primary'>{String(t('taskCenter.empty'))}</div>
+        {error && onRetry ? (
+          <Button
+            type='primary'
+            size='small'
+            data-testid='task-list-retry'
+            className='!h-28px !rounded-8px mt-4px'
+            onClick={onRetry}
+          >
+            {String(t('taskCenter.retry'))}
+          </Button>
+        ) : null}
       </div>
     );
   }

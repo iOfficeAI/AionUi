@@ -3,7 +3,6 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Button, Message } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
@@ -65,23 +64,16 @@ const TaskCenterPage: React.FC = () => {
         )}
       >
         <div className='mx-auto w-full max-w-800px box-border'>
-          {list.error && (
-            <div className='mb-12px'>
-              <Message type='error' content={list.error} />
-              <Button className='mt-8px' onClick={list.reload}>
-                {String(t('taskCenter.retry'))}
-              </Button>
-            </div>
-          )}
-
           <TaskCenterList
             items={list.items}
             total={list.total}
             loading={list.loading}
             pageNo={list.pageNo}
             pageSize={list.perPageSize}
+            error={list.error}
             onView={setDetailItem}
             onLoadMore={list.loadMore}
+            onRetry={list.reload}
           />
         </div>
       </div>

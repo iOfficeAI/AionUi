@@ -133,6 +133,27 @@ describe('TaskCenterList', () => {
     expect(screen.getByText('暂无任务')).toBeTruthy();
   });
 
+  it('shows retry button beside empty state when error is provided and items empty', () => {
+    const onRetry = vi.fn();
+    render(
+      <TaskCenterList
+        items={[]}
+        total={0}
+        loading={false}
+        pageNo={1}
+        pageSize={30}
+        onView={vi.fn()}
+        onLoadMore={noop}
+        error='HTTP 500'
+        onRetry={onRetry}
+      />
+    );
+    expect(screen.getByText('暂无任务')).toBeTruthy();
+    const retryBtn = screen.getByTestId('task-list-retry');
+    fireEvent.click(retryBtn);
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
   it('shows loading state when loading and items empty', () => {
     render(<TaskCenterList items={[]} total={0} loading pageNo={1} pageSize={30} onView={vi.fn()} onLoadMore={noop} />);
     expect(screen.getByText('加载中...')).toBeTruthy();
