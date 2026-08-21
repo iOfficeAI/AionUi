@@ -15,7 +15,10 @@
     "renameOk": "Speichern",
     "renameCancel": "Abbrechen",
     "renameSuccess": "Team umbenannt",
-    "deleteSuccess": "Team gelöscht"
+    "deleteSuccess": "Team gelöscht",
+    "archive": "Archive",
+    "archiveSuccess": "Team archived",
+    "archiveFailed": "Failed to archive team"
   },
   "newAgent": "Neuer Agent",
   "noMessages": "Noch keine Nachrichten.",

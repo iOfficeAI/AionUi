@@ -13,7 +13,7 @@ import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/ut
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
+import { EditOne, Export, FolderClose, Inbox, MessageOne, MoreOne, Pushpin, Robot, Timer } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
 import React from 'react';
@@ -46,7 +46,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMenuVisibleChange,
     onEditStart,
     onCreateCronTask,
-    onDelete,
+    onArchive,
     onExport,
     onTogglePin,
     onToggleManualUnread,
@@ -261,8 +261,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onExport?.(conversation);
                       return;
                     }
-                    if (key === 'delete') {
-                      onDelete(conversation.id);
+                    if (key === 'archive') {
+                      onArchive(conversation);
                     }
                   }}
                 >
@@ -300,10 +300,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       </div>
                     </Menu.Item>
                   )}
-                  <Menu.Item key='delete'>
-                    <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
-                      <DeleteOne theme='outline' size='14' />
-                      <span>{t('conversation.history.deleteTitle')}</span>
+                  <Menu.Item key='archive'>
+                    <div className='flex items-center gap-8px'>
+                      <FolderClose theme='outline' size='14' />
+                      <span>{t('conversation.history.archive')}</span>
                     </div>
                   </Menu.Item>
                 </Menu>

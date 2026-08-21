@@ -15,7 +15,10 @@
     "renameOk": "ذخیره",
     "renameCancel": "لغو",
     "renameSuccess": "نام تیم تغییر کرد",
-    "deleteSuccess": "تیم حذف شد"
+    "deleteSuccess": "تیم حذف شد",
+    "archive": "Archive",
+    "archiveSuccess": "Team archived",
+    "archiveFailed": "Failed to archive team"
   },
   "newAgent": "عامل جدید",
   "noMessages": "هنوز پیامی وجود ندارد.",
