@@ -778,5 +778,11 @@
   },
   "emptyState": {
     "greeting": "Вітаю! Розкажіть, що потрібно, і я почну."
+  },
+  "planBar": {
+    "title": "План",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Розгорнути план",
+    "collapse": "Згорнути план"
   }
 }

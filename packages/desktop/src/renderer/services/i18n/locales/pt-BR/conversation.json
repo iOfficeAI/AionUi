@@ -768,5 +768,11 @@
   },
   "emptyState": {
     "greeting": "Olá! Diga o que você precisa e eu já começo."
+  },
+  "planBar": {
+    "title": "Plano",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expandir plano",
+    "collapse": "Recolher plano"
   }
 }

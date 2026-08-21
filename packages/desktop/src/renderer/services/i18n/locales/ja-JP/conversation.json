@@ -762,5 +762,11 @@
   },
   "emptyState": {
     "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"
+  },
+  "planBar": {
+    "title": "プラン",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "プランを展開",
+    "collapse": "プランを折りたたむ"
   }
 }

@@ -762,5 +762,11 @@
   },
   "emptyState": {
     "greeting": "你好！说说你的需求，我这就开始。"
+  },
+  "planBar": {
+    "title": "计划",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "展开计划",
+    "collapse": "收起计划"
   }
 }

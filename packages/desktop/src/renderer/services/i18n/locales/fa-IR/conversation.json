@@ -762,5 +762,11 @@
   },
   "emptyState": {
     "greeting": "سلام! بگویید چه نیاز دارید تا شروع کنم."
+  },
+  "planBar": {
+    "title": "برنامه",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "گسترش برنامه",
+    "collapse": "جمع کردن برنامه"
   }
 }

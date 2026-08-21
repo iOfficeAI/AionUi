@@ -762,5 +762,11 @@
   },
   "emptyState": {
     "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."
+  },
+  "planBar": {
+    "title": "계획",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "계획 펼치기",
+    "collapse": "계획 접기"
   }
 }

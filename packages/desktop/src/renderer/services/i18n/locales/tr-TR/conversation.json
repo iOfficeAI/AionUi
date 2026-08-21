@@ -764,5 +764,11 @@
   },
   "emptyState": {
     "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Planı genişlet",
+    "collapse": "Planı daralt"
   }
 }

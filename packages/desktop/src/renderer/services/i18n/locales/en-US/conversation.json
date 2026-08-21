@@ -762,5 +762,11 @@
   },
   "emptyState": {
     "greeting": "Hi! Tell me what you need and I'll get started."
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expand plan",
+    "collapse": "Collapse plan"
   }
 }
