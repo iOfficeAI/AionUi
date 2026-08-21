@@ -759,5 +759,8 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "emptyState": {
+    "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."
   }
 }

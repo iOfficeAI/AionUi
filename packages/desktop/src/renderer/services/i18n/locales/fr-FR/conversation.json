@@ -759,5 +759,8 @@
     "exited": "Code {{code}}",
     "stop": "Arrêter",
     "truncated": "(sortie antérieure tronquée)"
+  },
+  "emptyState": {
+    "greeting": "Bonjour ! Dites-moi ce dont vous avez besoin et je commence."
   }
 }

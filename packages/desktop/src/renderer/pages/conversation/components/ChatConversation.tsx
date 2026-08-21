@@ -36,6 +36,7 @@ import { useConversationRuntimeView } from '../runtime/useConversationRuntimeVie
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
+import SingleChatEmptyState from './SingleChatEmptyState';
 import { useActiveLease } from '../hooks/useActiveLease';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
@@ -234,11 +235,20 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     presetAssistant: presetAssistantInfo ? { ...presetAssistantInfo, id: aionrsAssistantId } : undefined,
   };
 
+  const emptySlot = (
+    <SingleChatEmptyState
+      conversation_id={conversation.id}
+      assistant_name={presetAssistantInfo?.name}
+      assistant_backend={presetAssistantInfo?.backend}
+    />
+  );
+
   return (
     <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
       <AionrsChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        emptySlot={emptySlot}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}
         cron_job_id={cronJobId}
@@ -289,8 +299,17 @@ const ChatConversation: React.FC<{
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
+    // Greeting shown while the conversation has no messages yet (freshly created
+    // or cloned window). Each *Chat forwards it to MessageList's empty slot.
+    const emptySlot = (
+      <SingleChatEmptyState
+        conversation_id={conversation.id}
+        assistant_name={assistantDisplayName}
+        assistant_backend={resolvedConversationBackend}
+      />
+    );
     if (isLegacyReadOnlyConversation) {
-      return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} />;
+      return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;
     }
     switch (conversation.type) {
       case 'acp':
@@ -310,6 +329,7 @@ const ChatConversation: React.FC<{
             agent_name={assistantDisplayName}
             cron_job_id={cronJobId}
             hideSendBox={resolvedHideSendBox}
+            emptySlot={emptySlot}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
             loadedMcpStatuses={

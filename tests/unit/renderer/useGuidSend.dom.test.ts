@@ -323,4 +323,44 @@ describe('useGuidSend', () => {
 
     expect(createConversationInvokeMock).not.toHaveBeenCalled();
   });
+
+  it('allows an empty-input start: creates the conversation but stashes no initial ACP message', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const deps = createDeps();
+    deps.input = '   '; // whitespace only counts as empty
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    // Empty input is no longer gated once an assistant is selected.
+    expect(result.current.isButtonDisabled).toBe(false);
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
+    expect(deps.navigate).toHaveBeenCalledWith('/conversation/conv-1');
+    // No initial message is queued, so the window opens idle on the empty state.
+    expect(setItemSpy).not.toHaveBeenCalledWith('acp_initial_message_conv-1', expect.anything());
+    setItemSpy.mockRestore();
+  });
+
+  it('allows an empty-input start for aionrs without stashing an initial message', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const deps = createDeps();
+    deps.input = '';
+    deps.selectedAssistantBackend = 'aionrs';
+    deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
+    expect(deps.navigate).toHaveBeenCalledWith('/conversation/conv-1');
+    expect(setItemSpy).not.toHaveBeenCalledWith('aionrs_initial_message_conv-1', expect.anything());
+    setItemSpy.mockRestore();
+  });
 });

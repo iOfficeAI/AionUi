@@ -761,5 +761,8 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "emptyState": {
+    "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
   }
 }
