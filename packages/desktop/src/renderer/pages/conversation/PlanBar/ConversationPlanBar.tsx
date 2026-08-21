@@ -6,6 +6,7 @@
 
 import { Badge } from '@arco-design/web-react';
 import { CheckOne, Down, Right } from '@icon-park/react';
+import { getChatSurfaceWidthClass } from '@renderer/pages/conversation/utils/chatSurfaceWidth';
 import { useConversationRuntimeView } from '@renderer/pages/conversation/runtime/useConversationRuntimeView';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,9 +39,12 @@ const ConversationPlanBar: React.FC<{ conversation_id: string }> = ({ conversati
   const toggle = () => setExpanded((value) => !value);
 
   return (
+    // Same width class the send box and message rows use: the bar sits directly
+    // above the send box, so a full-bleed bar would visibly overhang it once the
+    // container is wide enough for `.chat-surface-fluid` to reserve gutters.
     <div
       data-testid='conversation-plan-bar'
-      className='shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 px-8px py-6px'
+      className={`${getChatSurfaceWidthClass()} shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 px-8px py-6px`}
     >
       <div
         className='flex items-center gap-8px cursor-pointer text-t-secondary select-none'

@@ -32,6 +32,7 @@ vi.mock('@renderer/pages/conversation/runtime/useConversationRuntimeView', () =>
   useConversationRuntimeView: () => runtimeView(),
 }));
 
+import { getChatSurfaceWidthClass } from '@renderer/pages/conversation/utils/chatSurfaceWidth';
 import ConversationPlanBar from '@renderer/pages/conversation/PlanBar/ConversationPlanBar';
 
 const ENTRIES = [
@@ -90,6 +91,15 @@ describe('ConversationPlanBar', () => {
   it('renders nothing when there is no plan at all', () => {
     const { container } = setup({ plan: undefined, isProcessing: true, activeTurnId: 'turn-id-1' });
     expect(container.innerHTML).toBe('');
+  });
+
+  it('uses the same width class as the send box so the bar does not overhang it', () => {
+    // The bar sits directly above the send box. Both must share
+    // `.chat-surface-fluid`, which reserves side gutters once the container is
+    // wide enough — a full-bleed bar visibly overhangs the send box.
+    const { container } = setup({ plan: plan('turn-id-1'), isProcessing: true, activeTurnId: 'turn-id-1' });
+    const bar = container.querySelector('[data-testid="conversation-plan-bar"]');
+    expect(bar?.className).toContain(getChatSurfaceWidthClass());
   });
 
   it('is expanded by default so the live progress is visible without a click', () => {
