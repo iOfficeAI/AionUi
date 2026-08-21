@@ -10,7 +10,7 @@ import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
 import { useTaskCenterList } from './useTaskCenterList';
 import { useTaskCenterT } from './useTaskCenterT';
 import TaskCenterFilterBar, { type ProjectOption } from './TaskCenterFilterBar';
-import TaskCenterTable from './TaskCenterTable';
+import TaskCenterList from './TaskCenterList';
 import TaskCenterDetailModal from './TaskCenterDetailModal';
 import styles from './TaskCenter.module.css';
 
@@ -67,15 +67,14 @@ const TaskCenterPage: React.FC = () => {
           )}
 
           <div className='mt-12px'>
-            <TaskCenterTable
+            <TaskCenterList
               items={list.items}
               total={list.total}
-              pageNo={list.pageNo}
-              perPageSize={list.perPageSize}
               loading={list.loading}
-              onPageChange={list.setPageNo}
-              onPerPageSizeChange={list.setPerPageSize}
+              pageNo={list.pageNo}
+              pageSize={list.perPageSize}
               onView={setDetailItem}
+              onLoadMore={list.loadMore}
             />
           </div>
         </div>

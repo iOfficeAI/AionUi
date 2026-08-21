@@ -105,4 +105,39 @@ describe('useTaskCenterList', () => {
     expect(result.current.projectId).toBe('all');
     expect(result.current.type).toBe('all');
   });
+
+  it('loadMore() appends the next page to items', async () => {
+    listMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        total: 4,
+        items: [
+          { id: 'a', name: 'A' },
+          { id: 'b', name: 'B' },
+        ],
+      },
+    });
+    listMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        total: 4,
+        items: [
+          { id: 'c', name: 'C' },
+          { id: 'd', name: 'D' },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => useTaskCenterList('tok'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.items).toHaveLength(2);
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+    expect(result.current.items).toHaveLength(4);
+    expect(result.current.pageNo).toBe(2);
+    expect(result.current.items.map((i) => i.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(result.current.pageNo).toBe(2);
+  });
 });

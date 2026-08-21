@@ -27,6 +27,7 @@ export interface UseTaskCenterListResult {
   setPerPageSize: (v: number) => void;
   reset: () => void;
   reload: () => void;
+  loadMore: () => void;
 }
 
 const DEBOUNCE_MS = 300;
@@ -67,43 +68,68 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
     setPageNo(1);
   }, [urgency, projectId, type]);
 
-  const fetchOnce = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await ipcBridge.taskCenter.list.invoke({
-        token,
-        filters: { keyword: debouncedKeyword, urgency, projectId, type },
-        pageNo,
-        perPageSize,
-      });
-      if (res.ok === true) {
-        setItems(res.data.items);
-        setTotal(res.data.total);
-        setError(null);
-      } else {
-        setItems([]);
-        setTotal(0);
-        if (res.ok === false) setError(res.message);
-        else setError('Unknown error');
+  const fetchOnce = useCallback(
+    async (mode: 'replace' | 'append' = 'replace', overridePage?: number) => {
+      if (!token) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await ipcBridge.taskCenter.list.invoke({
+          token,
+          filters: { keyword: debouncedKeyword, urgency, projectId, type },
+          pageNo: overridePage ?? pageNo,
+          perPageSize,
+        });
+        if (res.ok === true) {
+          setItems((prev) => (mode === 'append' ? [...prev, ...res.data.items] : res.data.items));
+          setTotal(res.data.total);
+          setError(null);
+        } else {
+          if (mode === 'replace') {
+            setItems([]);
+            setTotal(0);
+          }
+          if (res.ok === false) setError(res.message);
+          else setError('Unknown error');
+        }
+      } catch (e) {
+        if (mode === 'replace') {
+          setItems([]);
+          setTotal(0);
+        }
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      setItems([]);
-      setTotal(0);
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [token, debouncedKeyword, urgency, projectId, type, pageNo, perPageSize]);
+    },
+    [token, debouncedKeyword, urgency, projectId, type, pageNo, perPageSize]
+  );
+
+  // The auto effect below refetches when filters/pageNo change. loadMore
+  // also advances pageNo, but we don't want that to trigger a re-replace.
+  // We use this flag to skip the next auto-effect run right after loadMore
+  // bumped pageNo.
+  const skipNextAutoFetchRef = useRef(false);
 
   useEffect(() => {
-    void fetchOnce();
+    if (skipNextAutoFetchRef.current) {
+      skipNextAutoFetchRef.current = false;
+      return;
+    }
+    void fetchOnce('replace');
   }, [fetchOnce]);
 
   const reload = useCallback(() => {
-    void fetchOnce();
+    void fetchOnce('replace');
   }, [fetchOnce]);
+
+  const loadMore = useCallback(async () => {
+    if (loading) return;
+    const nextPage = pageNo + 1;
+    skipNextAutoFetchRef.current = true;
+    await fetchOnce('append', nextPage);
+    setPageNo(nextPage);
+  }, [fetchOnce, loading, pageNo]);
 
   const reset = useCallback(() => {
     setKeywordState('');
@@ -134,7 +160,23 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
       setPerPageSize,
       reset,
       reload,
+      loadMore,
     }),
-    [items, total, loading, error, keyword, urgency, projectId, type, pageNo, perPageSize, setKeyword, reset, reload]
+    [
+      items,
+      total,
+      loading,
+      error,
+      keyword,
+      urgency,
+      projectId,
+      type,
+      pageNo,
+      perPageSize,
+      setKeyword,
+      reset,
+      reload,
+      loadMore,
+    ]
   );
 };

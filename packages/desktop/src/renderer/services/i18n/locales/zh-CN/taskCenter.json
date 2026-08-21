@@ -61,5 +61,11 @@
   "empty": "暂无任务",
   "loading": "加载中...",
   "loadFailed": "加载任务失败",
-  "retry": "重试"
+  "retry": "重试",
+  "list": {
+    "overdue": "已逾期",
+    "loadMore": "加载更多",
+    "totalCount": "共 {{total}} 条",
+    "loadMoreHint": "已加载 {{loaded}} / {{total}}"
+  }
 }

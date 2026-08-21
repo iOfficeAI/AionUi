@@ -61,5 +61,11 @@
   "empty": "No tasks",
   "loading": "Loading tasks...",
   "loadFailed": "Failed to load tasks",
-  "retry": "Retry"
+  "retry": "Retry",
+  "list": {
+    "overdue": "Overdue",
+    "loadMore": "Load more",
+    "totalCount": "{{total}} in total",
+    "loadMoreHint": "Loaded {{loaded}} / {{total}}"
+  }
 }
