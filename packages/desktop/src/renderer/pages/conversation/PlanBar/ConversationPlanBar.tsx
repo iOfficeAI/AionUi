@@ -38,7 +38,10 @@ const ConversationPlanBar: React.FC<{ conversation_id: string }> = ({ conversati
   const toggle = () => setExpanded((value) => !value);
 
   return (
-    <div className='shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 px-8px py-6px'>
+    <div
+      data-testid='conversation-plan-bar'
+      className='shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 px-8px py-6px'
+    >
       <div
         className='flex items-center gap-8px cursor-pointer text-t-secondary select-none'
         role='button'
