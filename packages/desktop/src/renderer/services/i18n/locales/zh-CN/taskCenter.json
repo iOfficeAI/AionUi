@@ -1,35 +1,7 @@
 {
   "title": "任务中心",
   "subtitle": "当前用户所属任务",
-  "searchPlaceholder": "请输入任务名称/标识",
-  "reset": "重置",
-  "filter": {
-    "priority": "优先级",
-    "project": "项目名称",
-    "taskType": "任务类型",
-    "all": "全部"
-  },
-  "priorityOptions": {
-    "urgent": "紧急",
-    "important": "重要",
-    "normal": "一般"
-  },
-  "table": {
-    "columns": {
-      "index": "序号",
-      "name": "任务名称",
-      "mark": "标识",
-      "type": "任务类型",
-      "priority": "优先级",
-      "status": "状态",
-      "deadline": "要求完成时间",
-      "project": "项目名称",
-      "updator": "更新人",
-      "creator": "创建人",
-      "createdAt": "创建时间",
-      "actions": "操作"
-    }
-  },
+  "searchPlaceholder": "搜索任务名称/标识",
   "actions": { "view": "查看" },
   "detail": {
     "title": "任务详情",

@@ -2,34 +2,6 @@
   "title": "Task Center",
   "subtitle": "Tasks assigned to the current user",
   "searchPlaceholder": "Search by task name or marker",
-  "reset": "Reset",
-  "filter": {
-    "priority": "Priority",
-    "project": "Project",
-    "taskType": "Task Type",
-    "all": "All"
-  },
-  "priorityOptions": {
-    "urgent": "Urgent",
-    "important": "Important",
-    "normal": "Normal"
-  },
-  "table": {
-    "columns": {
-      "index": "#",
-      "name": "Task Name",
-      "mark": "Marker",
-      "type": "Type",
-      "priority": "Priority",
-      "status": "Status",
-      "deadline": "Deadline",
-      "project": "Project",
-      "updator": "Updated By",
-      "creator": "Created By",
-      "createdAt": "Created At",
-      "actions": "Actions"
-    }
-  },
   "actions": { "view": "View" },
   "detail": {
     "title": "Task Details",

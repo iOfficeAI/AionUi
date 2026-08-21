@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('useTaskCenterList', () => {
-  it('fetches on mount with token + default filters', async () => {
+  it('fetches on mount with token + empty keyword', async () => {
     listMock.mockResolvedValue({
       ok: true,
       data: { total: 1, items: [{ id: 'a', name: 'Task A' }] },
@@ -41,7 +41,7 @@ describe('useTaskCenterList', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(listMock).toHaveBeenCalledWith({
       token: 'tok-1',
-      filters: { keyword: '', urgency: 'all', projectId: 'all', type: 'all' },
+      filters: { keyword: '' },
       pageNo: 1,
       perPageSize: 30,
     });
@@ -89,21 +89,13 @@ describe('useTaskCenterList', () => {
     expect(listMock).not.toHaveBeenCalled();
   });
 
-  it('reset() restores default filter values', async () => {
+  it('reset() clears keyword', async () => {
     const { result } = renderHook(() => useTaskCenterList('tok'));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    act(() => {
-      result.current.setKeyword('foo');
-      result.current.setUrgency(0);
-      result.current.setProjectId('p1');
-      result.current.setType(1);
-    });
+    act(() => result.current.setKeyword('foo'));
     act(() => result.current.reset());
     expect(result.current.keyword).toBe('');
-    expect(result.current.urgency).toBe('all');
-    expect(result.current.projectId).toBe('all');
-    expect(result.current.type).toBe('all');
   });
 
   it('loadMore() appends the next page to items', async () => {

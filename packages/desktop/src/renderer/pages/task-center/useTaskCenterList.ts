@@ -14,15 +14,9 @@ export interface UseTaskCenterListResult {
   loading: boolean;
   error: string | null;
   keyword: string;
-  urgency: number | 'all';
-  projectId: string | 'all';
-  type: number | 'all';
   pageNo: number;
   perPageSize: number;
   setKeyword: (v: string) => void;
-  setUrgency: (v: number | 'all') => void;
-  setProjectId: (v: string | 'all') => void;
-  setType: (v: number | 'all') => void;
   setPageNo: (v: number) => void;
   setPerPageSize: (v: number) => void;
   reset: () => void;
@@ -39,9 +33,6 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeywordState] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [urgency, setUrgency] = useState<number | 'all'>('all');
-  const [projectId, setProjectId] = useState<string | 'all'>('all');
-  const [type, setType] = useState<number | 'all'>('all');
   const [pageNo, setPageNo] = useState(1);
   const [perPageSize, setPerPageSize] = useState(TASK_CENTER_DEFAULT_PER_PAGE_SIZE);
 
@@ -58,16 +49,6 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
     return () => clearTimeout(t);
   }, [keyword]);
 
-  // Reset to page 1 on non-pagination filter changes
-  const firstMount = useRef(true);
-  useEffect(() => {
-    if (firstMount.current) {
-      firstMount.current = false;
-      return;
-    }
-    setPageNo(1);
-  }, [urgency, projectId, type]);
-
   const fetchOnce = useCallback(
     async (mode: 'replace' | 'append' = 'replace', overridePage?: number) => {
       if (!token) return;
@@ -76,7 +57,7 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
       try {
         const res = await ipcBridge.taskCenter.list.invoke({
           token,
-          filters: { keyword: debouncedKeyword, urgency, projectId, type },
+          filters: { keyword: debouncedKeyword },
           pageNo: overridePage ?? pageNo,
           perPageSize,
         });
@@ -102,7 +83,7 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
         setLoading(false);
       }
     },
-    [token, debouncedKeyword, urgency, projectId, type, pageNo, perPageSize]
+    [token, debouncedKeyword, pageNo, perPageSize]
   );
 
   // The auto effect below refetches when filters/pageNo change. loadMore
@@ -134,9 +115,6 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
   const reset = useCallback(() => {
     setKeywordState('');
     setDebouncedKeyword('');
-    setUrgency('all');
-    setProjectId('all');
-    setType('all');
     setPageNo(1);
   }, []);
 
@@ -147,36 +125,15 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
       loading,
       error,
       keyword,
-      urgency,
-      projectId,
-      type,
       pageNo,
       perPageSize,
       setKeyword,
-      setUrgency,
-      setProjectId,
-      setType,
       setPageNo,
       setPerPageSize,
       reset,
       reload,
       loadMore,
     }),
-    [
-      items,
-      total,
-      loading,
-      error,
-      keyword,
-      urgency,
-      projectId,
-      type,
-      pageNo,
-      perPageSize,
-      setKeyword,
-      reset,
-      reload,
-      loadMore,
-    ]
+    [items, total, loading, error, keyword, pageNo, perPageSize, setKeyword, reset, reload, loadMore]
   );
 };

@@ -4,61 +4,69 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Button, Message } from '@arco-design/web-react';
-import React, { useMemo, useState } from 'react';
+import classNames from 'classnames';
+import React, { useState } from 'react';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { AionSearchInput } from '@/renderer/components/base';
+import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
 import { useTaskCenterList } from './useTaskCenterList';
 import { useTaskCenterT } from './useTaskCenterT';
-import TaskCenterFilterBar, { type ProjectOption } from './TaskCenterFilterBar';
 import TaskCenterList from './TaskCenterList';
 import TaskCenterDetailModal from './TaskCenterDetailModal';
-import styles from './TaskCenter.module.css';
 
 const TaskCenterPage: React.FC = () => {
   const t = useTaskCenterT();
   const { user, status } = useAuth();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const token = user?.token ?? '';
   const list = useTaskCenterList(token);
   const [detailItem, setDetailItem] = useState<ITaskCenterRow | null>(null);
-
-  const projects = useMemo<ProjectOption[]>(() => {
-    const seen = new Map<string, ProjectOption>();
-    for (const item of list.items) {
-      if (item.projectId && !seen.has(item.projectId)) {
-        seen.set(item.projectId, { id: item.projectId, name: item.projectName || item.projectId });
-      }
-    }
-    return Array.from(seen.values());
-  }, [list.items]);
 
   if (status === 'checking') {
     return <div className='flex size-full items-center justify-center' />;
   }
 
   return (
-    <div className={styles.taskCenter}>
-      <div className={styles.taskCenter__scroll}>
-        <div className={styles.taskCenter__inner}>
-          <div className={styles.taskCenter__header}>
-            <h1 className={styles.taskCenter__title}>{String(t('taskCenter.title'))}</h1>
-            <p className={styles.taskCenter__subtitle}>{String(t('taskCenter.subtitle'))}</p>
-          </div>
-
-          <TaskCenterFilterBar
-            keyword={list.keyword}
-            urgency={list.urgency}
-            projectId={list.projectId}
-            type={list.type}
-            projects={projects}
-            onKeywordChange={list.setKeyword}
-            onUrgencyChange={list.setUrgency}
-            onProjectChange={list.setProjectId}
-            onTypeChange={list.setType}
-            onReset={list.reset}
+    <div className='w-full h-full min-h-0 box-border bg-1 flex flex-col overflow-hidden'>
+      <div
+        className={classNames(
+          'shrink-0 bg-1',
+          isMobile ? 'px-16px pt-14px pb-14px' : 'px-12px pt-14px pb-14px md:px-40px md:pt-32px md:pb-16px'
+        )}
+      >
+        <div className='mx-auto w-full max-w-800px box-border'>
+          <SettingsPageHeader
+            sticky={false}
+            data-testid='task-center-header'
+            title={t('taskCenter.title')}
+            description={t('taskCenter.subtitle')}
+            actions={
+              !isMobile ? (
+                <AionSearchInput
+                  className='shrink-0 w-[240px] hidden md:flex'
+                  data-testid='input-search-task-center'
+                  placeholder={String(t('taskCenter.searchPlaceholder'))}
+                  value={list.keyword}
+                  onChange={list.setKeyword}
+                />
+              ) : undefined
+            }
           />
+        </div>
+      </div>
 
+      <div
+        className={classNames(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          isMobile ? 'px-16px pb-14px' : 'px-12px pb-24px md:px-40px md:pb-32px'
+        )}
+      >
+        <div className='mx-auto w-full max-w-800px box-border'>
           {list.error && (
-            <div className={styles.taskCenter__error}>
+            <div className='mb-12px'>
               <Message type='error' content={list.error} />
               <Button className='mt-8px' onClick={list.reload}>
                 {String(t('taskCenter.retry'))}
@@ -66,17 +74,15 @@ const TaskCenterPage: React.FC = () => {
             </div>
           )}
 
-          <div className='mt-12px'>
-            <TaskCenterList
-              items={list.items}
-              total={list.total}
-              loading={list.loading}
-              pageNo={list.pageNo}
-              pageSize={list.perPageSize}
-              onView={setDetailItem}
-              onLoadMore={list.loadMore}
-            />
-          </div>
+          <TaskCenterList
+            items={list.items}
+            total={list.total}
+            loading={list.loading}
+            pageNo={list.pageNo}
+            pageSize={list.perPageSize}
+            onView={setDetailItem}
+            onLoadMore={list.loadMore}
+          />
         </div>
       </div>
 
