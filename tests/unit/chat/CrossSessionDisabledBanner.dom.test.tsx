@@ -25,12 +25,17 @@ vi.mock('react-i18next', () => ({
 }));
 
 const { default: CrossSessionDisabledBanner } = await import('@/renderer/components/chat/CrossSessionDisabledBanner');
+const { resetCrossSessionMessageEnabledCache } = await import('@/renderer/hooks/chat/useCrossSessionMessageEnabled');
 
 describe('CrossSessionDisabledBanner', () => {
   beforeEach(() => {
     getEnabled.mockReset();
     setEnabled.mockReset();
     setEnabled.mockResolvedValue(undefined);
+    // The switch is a shared module-level store read once per app session, so
+    // every consumer agrees on its value. Tests have to drop that cache or only
+    // the first case's mock would ever be consulted.
+    resetCrossSessionMessageEnabledCache();
   });
 
   it('renders nothing while the feature is on', async () => {

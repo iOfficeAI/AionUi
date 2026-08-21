@@ -81,6 +81,9 @@
   "atFile.hint": "Введите текст для поиска файлов",
   "atFile.menuLabel": "Упоминания файлов",
   "atFile.loading": "Загрузка...",
+  "atSession.hint": "Введите для поиска диалогов",
+  "atSession.empty": "Диалоги не найдены",
+  "atSession.menuLabel": "Упоминания диалогов",
   "fork": {
     "action": "Ответвить отсюда",
     "errorTurnInFlight": "Дождитесь завершения текущего ответа перед ответвлением",

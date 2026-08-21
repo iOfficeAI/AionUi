@@ -106,6 +106,10 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     sendDisabled,
     onAddToDraft,
     addToDraftDisabled,
+    selectedSessions,
+    onSelectedSessionsChange,
+    crossSessionEnabled,
+    isTeamConversation,
   }: {
     onSend: (message: string) => Promise<void>;
     onChange?: (value: string) => void;
@@ -118,8 +122,22 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     sendDisabled?: boolean;
     onAddToDraft?: () => void;
     addToDraftDisabled?: boolean;
+    selectedSessions?: Array<{ id: string }>;
+    onSelectedSessionsChange?: (sessions: Array<{ id: string }>) => void;
+    crossSessionEnabled?: boolean;
+    isTeamConversation?: boolean;
   }) => {
-    sendBoxPropsSpy({ active, onFocused, disabled, sendDisabled, onAddToDraft, addToDraftDisabled });
+    sendBoxPropsSpy({
+      active,
+      onFocused,
+      disabled,
+      sendDisabled,
+      onAddToDraft,
+      addToDraftDisabled,
+      selectedSessions,
+      crossSessionEnabled,
+      isTeamConversation,
+    });
     return (
       <div>
         {rightTools}
@@ -127,6 +145,13 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
         {topRightOverlay}
         <button type='button' onClick={() => onChange?.('hello')}>
           change
+        </button>
+        {/* Stands in for choosing a conversation in the `@@` picker. */}
+        <button type='button' onClick={() => onSelectedSessionsChange?.([{ id: 'conv_target' }])}>
+          pick-session
+        </button>
+        <button type='button' onClick={() => onAddToDraft?.()}>
+          add-to-draft
         </button>
         <button
           type='button'
@@ -935,8 +960,127 @@ describe('AcpSendBox', () => {
       });
 
       expect(removeMock).toHaveBeenCalledWith('q1');
-      expect(enqueueMock).toHaveBeenCalledWith({ input: 'queued draft', files: [] });
+      expect(enqueueMock).toHaveBeenCalledWith({ input: 'queued draft', files: [], sessions: undefined });
       expect(prioritizeMock).toHaveBeenCalledWith('restored-1');
+    });
+
+    it('keeps the `@@` references when a failed mid-turn send is re-enqueued', async () => {
+      // The restore path re-creates the queue item from scratch, so dropping
+      // `sessions` here would silently strip the references the user picked.
+      runtimeViewMock.supportsMidturnDelivery = true;
+      sendMessageInvokeMock.mockRejectedValue(new Error('boom'));
+      enqueueMock.mockReturnValue({ id: 'restored-1', input: 'queued draft', files: [], created_at: 123 });
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        await getOnSendNow()({ ...queuedItem, sessions: [{ id: 'conv_target' }] });
+      });
+
+      expect(enqueueMock).toHaveBeenCalledWith({
+        input: 'queued draft',
+        files: [],
+        sessions: [{ id: 'conv_target' }],
+      });
+    });
+  });
+
+  describe('`@@` session references', () => {
+    it('forwards them to sendMessage on a direct send and clears them afterwards', async () => {
+      sendMessageInvokeMock.mockResolvedValue({ msg_id: 'm1', turn_id: 't1', runtime: {} });
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        screen.getByText('pick-session').click();
+      });
+      await act(async () => {
+        screen.getByText('send').click();
+      });
+
+      expect(sendMessageInvokeMock).toHaveBeenCalledWith(
+        expect.objectContaining({ sessions: [{ id: 'conv_target' }] })
+      );
+
+      // Released with the draft: a leftover reference would silently attach
+      // itself to the user's next, unrelated message.
+      sendMessageInvokeMock.mockClear();
+      await act(async () => {
+        screen.getByText('send').click();
+      });
+      expect(sendMessageInvokeMock).toHaveBeenCalledWith(expect.objectContaining({ sessions: undefined }));
+    });
+
+    it('carries them into the draft box and clears them from the send box', async () => {
+      // The draft box is the path most likely to lose them: enqueue rebuilds the
+      // item, and a message that reaches the agent without its session block
+      // fails silently on both sides.
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+
+      await act(async () => {
+        screen.getByText('pick-session').click();
+      });
+      await act(async () => {
+        screen.getByText('add-to-draft').click();
+      });
+
+      expect(enqueueMock).toHaveBeenCalledWith(expect.objectContaining({ sessions: [{ id: 'conv_target' }] }));
+
+      const props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as { selectedSessions?: Array<{ id: string }> };
+      expect(props.selectedSessions).toEqual([]);
+    });
+
+    it('offers the picker in an ordinary conversation but not in a team one', () => {
+      const { unmount } = render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+        />
+      );
+      let props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as {
+        crossSessionEnabled?: boolean;
+        isTeamConversation?: boolean;
+      };
+      expect(props.crossSessionEnabled).toBe(true);
+      expect(props.isTeamConversation).toBe(false);
+      unmount();
+
+      render(
+        <AcpSendBox
+          conversation_id='conv-1'
+          backend='claude'
+          workspacePath='/tmp/workspace'
+          messageState={makeMessageState()}
+          teamRuntime={{ loading: false, startedAtMs: null } as unknown as TeamSendBoxRuntime}
+        />
+      );
+      props = sendBoxPropsSpy.mock.calls.at(-1)?.[0] as {
+        crossSessionEnabled?: boolean;
+        isTeamConversation?: boolean;
+      };
+      expect(props.isTeamConversation).toBe(true);
     });
   });
 });

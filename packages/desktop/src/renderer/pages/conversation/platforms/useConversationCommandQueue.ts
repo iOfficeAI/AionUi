@@ -39,7 +39,11 @@ export const MAX_QUEUED_COMMAND_FILES = 50;
 export const MAX_QUEUED_COMMAND_STATE_BYTES = 256 * 1024;
 
 export type QueueValidationFailureReason =
-  'emptyInput' | 'inputTooLong' | 'tooManyFiles' | 'queueFull' | 'queueTooLarge';
+  | 'emptyInput'
+  | 'inputTooLong'
+  | 'tooManyFiles'
+  | 'queueFull'
+  | 'queueTooLarge';
 
 type QueueValidationSuccess = {
   ok: true;
@@ -201,10 +205,14 @@ export const estimateQueueStateBytes = (state: ConversationCommandQueueState): n
 export const createQueuedCommandItem = ({
   input,
   files,
-}: Pick<ConversationCommandQueueItem, 'input' | 'files'>): ConversationCommandQueueItem => ({
+  sessions,
+}: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>): ConversationCommandQueueItem => ({
   id: uuid(),
   input,
   files: uniqueFiles(files),
+  // Normalised on the way in as well as on the way out of persistence, so an
+  // empty array never survives as `[]` and the state stays comparable.
+  sessions: normalizeSessionRefs(sessions),
   created_at: Date.now(),
 });
 
@@ -409,7 +417,10 @@ type UseConversationCommandQueueOptions = {
   onExecute: (item: ConversationCommandQueueItem) => Promise<void>;
 };
 
-type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files'>;
+/// `sessions` is part of the enqueue input, not just of the stored item: a
+/// message that reaches the draft box and loses its `@@` references fails
+/// silently — the send succeeds and the agent simply never sees the block.
+type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files' | 'sessions'>;
 type UpdateCommandInput = Pick<ConversationCommandQueueItem, 'input'>;
 type BackgroundCommandQueueRunner = {
   conversation_id: string;
@@ -757,13 +768,13 @@ export const useConversationCommandQueue = ({
   );
 
   const enqueue = useCallback(
-    ({ input, files }: EnqueueCommandInput) => {
+    ({ input, files, sessions }: EnqueueCommandInput) => {
       if (!enabled) {
         return null;
       }
 
       const currentState = normalizeQueueState(stateRef.current);
-      const item = createQueuedCommandItem({ input, files });
+      const item = createQueuedCommandItem({ input, files, sessions });
       const validation = validateQueuedCommandItem(item, currentState);
 
       if (isQueueValidationFailure(validation)) {

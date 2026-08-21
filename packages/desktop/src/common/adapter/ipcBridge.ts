@@ -1926,7 +1926,13 @@ export interface IConversationTurnCompletedEvent {
   turn_id: string;
   status: 'pending' | 'running' | 'finished';
   state:
-    'ai_generating' | 'ai_waiting_input' | 'ai_waiting_confirmation' | 'initializing' | 'stopped' | 'error' | 'unknown';
+    | 'ai_generating'
+    | 'ai_waiting_input'
+    | 'ai_waiting_confirmation'
+    | 'initializing'
+    | 'stopped'
+    | 'error'
+    | 'unknown';
   detail: string;
   can_send_message: boolean;
   runtime: {

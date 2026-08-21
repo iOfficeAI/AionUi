@@ -380,6 +380,11 @@ const AionrsSendBox: React.FC<{
     void processInitialMessage();
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
+  // `@@` session references the user picked. Declared before the handlers that
+  // read it — every send path has to both forward and release it.
+  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
+  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
+
   // aionrs backends never support mid-turn delivery: while the agent is
   // replying, sending is hard-blocked with a toast instead of implicitly
   // enqueuing. The only way to queue a message while busy is the explicit
@@ -403,8 +408,6 @@ const AionrsSendBox: React.FC<{
     await executeCommand({ input: message, files: filesToSend, sessions });
   };
 
-  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
-  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
   const [interrupting, setInterrupting] = useState(false);
   const handleInterruptSend = async () => {
     if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
@@ -430,11 +433,19 @@ const AionrsSendBox: React.FC<{
   const canQueueCurrentDraft = content.trim().length > 0;
   const handleAddToQueue = useCallback(() => {
     const filesToSend = collectChatFileRefs(uploadFile, atPath);
-    enqueue({ input: content, files: filesToSend });
+    // `@@` references must ride along, and must be released from the send box
+    // the same way the draft text is — otherwise they leak into whatever the
+    // user sends next.
+    enqueue({
+      input: content,
+      files: filesToSend,
+      sessions: selectedSessions.length > 0 ? selectedSessions : undefined,
+    });
     setContent('');
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('aionrs.selected.file.clear');
-  }, [atPath, clearFiles, content, enqueue, setContent, uploadFile]);
+  }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {

@@ -432,6 +432,11 @@ Please check your local CLI tool authentication status`,
     onExecute: executeCommand,
   });
 
+  // `@@` session references the user picked. Declared before the handlers that
+  // read it — every send path has to both forward and release it.
+  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
+  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
+
   // Supporting agents (mid-turn delivery) send immediately, busy or not.
   // Non-supporting agents can no longer send while the agent is replying —
   // that path is hard-blocked with a toast; the only way to queue a message
@@ -455,8 +460,6 @@ Please check your local CLI tool authentication status`,
     await executeCommand({ input: message, files: allFiles, sessions });
   };
 
-  const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
-  const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
   const [interrupting, setInterrupting] = useState(false);
   const handleInterruptSend = async () => {
     if (!teamRuntime?.onInterruptSend || !content.trim() || interrupting) return;
@@ -488,11 +491,15 @@ Please check your local CLI tool authentication status`,
   const canQueueCurrentDraft = content.trim().length > 0;
   const handleAddToQueue = useCallback(() => {
     const allFiles = collectChatFileRefs(uploadFile, atPath);
-    enqueue({ input: content, files: allFiles });
+    // `@@` references must ride along, and must be released from the send box
+    // the same way the draft text is — otherwise they leak into whatever the
+    // user sends next.
+    enqueue({ input: content, files: allFiles, sessions: selectedSessions.length > 0 ? selectedSessions : undefined });
     setContent('');
     clearFiles();
+    setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear');
-  }, [atPath, clearFiles, content, enqueue, setContent, uploadFile]);
+  }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -753,7 +760,7 @@ Please check your local CLI tool authentication status`,
           // second one. Restore the user's content instead of dropping it:
           // enqueue appends to the end, so promote it back to the front to
           // match "send now" intent (it was already next in line).
-          const restored = enqueue({ input: item.input, files: item.files });
+          const restored = enqueue({ input: item.input, files: item.files, sessions: item.sessions });
           if (restored) prioritize(restored.id);
         }
         return;
