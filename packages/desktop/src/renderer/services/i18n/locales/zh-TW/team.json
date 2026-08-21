@@ -15,7 +15,10 @@
     "renameOk": "儲存",
     "renameCancel": "取消",
     "renameSuccess": "團隊已重新命名",
-    "deleteSuccess": "團隊已刪除"
+    "deleteSuccess": "團隊已刪除",
+    "archive": "封存",
+    "archiveSuccess": "已封存團隊",
+    "archiveFailed": "封存團隊失敗"
   },
   "newAgent": "新助手",
   "noMessages": "No messages yet.",

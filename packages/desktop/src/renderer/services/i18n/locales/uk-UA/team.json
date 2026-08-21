@@ -15,7 +15,10 @@
     "renameOk": "Зберегти",
     "renameCancel": "Скасувати",
     "renameSuccess": "Команду перейменовано",
-    "deleteSuccess": "Команду видалено"
+    "deleteSuccess": "Команду видалено",
+    "archive": "Archive",
+    "archiveSuccess": "Team archived",
+    "archiveFailed": "Failed to archive team"
   },
   "newAgent": "Новий асистент",
   "noMessages": "Повідомлень ще немає.",

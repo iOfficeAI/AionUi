@@ -107,7 +107,7 @@ vi.mock('@icon-park/react', async () => {
     };
 
   return {
-    DeleteOne: icon('DeleteOne'),
+    FolderClose: icon('FolderClose'),
     EditOne: icon('EditOne'),
     Peoples: icon('Peoples'),
     Plus: icon('Plus'),

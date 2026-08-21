@@ -81,7 +81,7 @@ describe('describeUncaughtError', () => {
 
     const diagnostics = describeUncaughtError(reason, 'unhandledRejection');
 
-    expect(Object.keys(diagnostics).sort()).toEqual(['code', 'message', 'name', 'origin', 'valueType']);
+    expect(Object.keys(diagnostics).toSorted()).toEqual(['code', 'message', 'name', 'origin', 'valueType']);
     expect(JSON.stringify(diagnostics)).not.toContain('super-secret-token');
     expect(JSON.stringify(diagnostics)).not.toContain('hunter2');
   });
