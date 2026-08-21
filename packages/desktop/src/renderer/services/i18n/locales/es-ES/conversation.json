@@ -588,6 +588,7 @@
   },
   "sendbox": {
     "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
+    "hintWithSessions": "/ para comandos, @ para archivos, @@ para conversaciones, ↑/↓ para el historial",
     "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
   },
   "agentTip": {

@@ -1831,6 +1831,26 @@ const SendBox: React.FC<{
 
   const shouldUseHighlightOverlay = !isComposingState && highlightRanges.length > 0;
 
+  /**
+   * The placeholder advertises `@@` only where it works.
+   *
+   * The switch's own description promises that turning it off disables the `@@`
+   * mention, and the disabled banner exists to explain why `@@` does nothing — a
+   * placeholder teaching a syntax the conversation has no use for would
+   * contradict both. Team conversations are excluded for the same reason.
+   *
+   * The two variants are separate strings rather than one string plus a clause
+   * because the existing wording is already 94 characters in fr-FR before the
+   * "send a message to …" prefix is prepended; appending a fourth clause would
+   * truncate. The `@@` variant is phrased tighter instead, so it is no longer —
+   * in most locales shorter — than the one it replaces.
+   */
+  const sendboxHint = canMentionSessions
+    ? t('conversation.sendbox.hintWithSessions', {
+        defaultValue: 'Type / for commands, @ for files, @@ for conversations, ↑/↓ for history',
+      })
+    : t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' });
+
   const mobilePlusButton = isMobileCompact ? (
     <Button
       shape='circle'
@@ -2135,13 +2155,10 @@ const SendBox: React.FC<{
               value={input}
               placeholder={
                 isMobileCompact
-                  ? (placeholder ??
-                    (bottomHint as string | undefined) ??
-                    t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+                  ? (placeholder ?? (bottomHint as string | undefined) ?? sendboxHint)
                   : placeholder
-                    ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
-                    : ((bottomHint as string | undefined) ??
-                      t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+                    ? `${placeholder}  ${bottomHint ?? sendboxHint}`
+                    : ((bottomHint as string | undefined) ?? sendboxHint)
               }
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}ps-0 pe-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'

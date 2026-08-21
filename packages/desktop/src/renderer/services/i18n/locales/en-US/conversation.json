@@ -587,6 +587,7 @@
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files, ↑/↓ for message history",
+    "hintWithSessions": "Type / for commands, @ for files, @@ for conversations, ↑/↓ for history",
     "mediaPathFallback": "This agent has no native support for this file type; it will be sent as a file path."
   },
   "agentTip": {

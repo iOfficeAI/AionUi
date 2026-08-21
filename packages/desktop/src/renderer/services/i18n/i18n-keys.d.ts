@@ -768,6 +768,7 @@ export type I18nKey =
   | 'conversation.notFound'
   | 'conversation.runtimePreparing.sendboxHint'
   | 'conversation.sendbox.hint'
+  | 'conversation.sendbox.hintWithSessions'
   | 'conversation.sendbox.mediaPathFallback'
   | 'conversation.sideQuestion.alreadyRunning'
   | 'conversation.sideQuestion.answered'

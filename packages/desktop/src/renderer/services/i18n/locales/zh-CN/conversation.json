@@ -587,6 +587,7 @@
   },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
+    "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息",
     "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
   },
   "agentTip": {
