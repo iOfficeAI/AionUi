@@ -36,7 +36,7 @@ const TaskCenterPage: React.FC = () => {
           isMobile ? 'px-16px pt-14px pb-14px' : 'px-12px pt-14px pb-14px md:px-40px md:pt-32px md:pb-16px'
         )}
       >
-        <div className='mx-auto w-full max-w-1200px box-border'>
+        <div className='w-full box-border'>
           <SettingsPageHeader
             sticky={false}
             data-testid='task-center-header'
@@ -63,7 +63,7 @@ const TaskCenterPage: React.FC = () => {
           isMobile ? 'px-16px pb-14px' : 'px-12px pb-24px md:px-40px md:pb-32px'
         )}
       >
-        <div className='mx-auto w-full max-w-1200px box-border'>
+        <div className='w-full box-border'>
           <TaskCenterList
             items={list.items}
             total={list.total}
