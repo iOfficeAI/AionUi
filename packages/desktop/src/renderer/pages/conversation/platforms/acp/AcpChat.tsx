@@ -7,6 +7,7 @@
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
+import ConversationPlanBar from '@renderer/pages/conversation/PlanBar/ConversationPlanBar';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
@@ -91,6 +92,7 @@ const AcpChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
+          <ConversationPlanBar conversation_id={conversation_id} />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}

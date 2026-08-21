@@ -264,6 +264,59 @@ describe('MessageList', () => {
     useTeamPermissionMock.mockReturnValue(null);
   });
 
+  it('never renders a plan as a stream row (it belongs to ConversationPlanBar)', () => {
+    // A plan is a replaceable snapshot pinned above the send box, not a message.
+    // Filtered rather than rendered as null: a null row still occupies a slot.
+    render(
+      <>
+        <MessageList />
+        <ReplaceMessagesButton
+          messages={[
+            {
+              id: 'text-before',
+              msg_id: 'turn-a',
+              conversation_id: 'conversation-1',
+              type: 'text',
+              position: 'left',
+              created_at: 1,
+              content: { content: 'before the plan' },
+            } as TMessage,
+            {
+              id: 'plan:turn-a',
+              msg_id: 'turn-a',
+              conversation_id: 'conversation-1',
+              type: 'plan',
+              position: 'left',
+              created_at: 2,
+              content: { entries: [{ content: 'PLAN_ENTRY_MARKER', status: 'pending' }] },
+            } as TMessage,
+            {
+              id: 'text-after',
+              msg_id: 'turn-b',
+              conversation_id: 'conversation-1',
+              type: 'text',
+              position: 'left',
+              created_at: 3,
+              content: { content: 'after the plan' },
+            } as TMessage,
+          ]}
+        />
+      </>,
+      { wrapper: ({ children }) => <Wrapper>{children}</Wrapper> }
+    );
+
+    fireEvent.click(screen.getByText('replace messages'));
+
+    // Assert on the ROW, not on rendered entry text: this file stubs the message
+    // components, so entry text would be absent either way and the test would
+    // pass against the unfixed code.
+    const content = screen.getByTestId('message-list-content');
+    expect(content.querySelectorAll('[data-message-type="plan"]')).toHaveLength(0);
+    expect(content.querySelectorAll('[data-message-type="text"]')).toHaveLength(2);
+    expect(screen.getByText('before the plan')).toBeInTheDocument();
+    expect(screen.getByText('after the plan')).toBeInTheDocument();
+  });
+
   it('renders message rows with external margin spacing in the plain scroll list', () => {
     render(<MessageList />, {
       wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,

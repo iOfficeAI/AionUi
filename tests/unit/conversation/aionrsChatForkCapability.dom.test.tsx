@@ -35,6 +35,13 @@ vi.mock('@renderer/pages/conversation/platforms/aionrs/AionrsSendBox', () => ({
   default: () => null,
 }));
 
+// This test is about ConversationContext wiring only; the plan bar pulls in the
+// message list + runtime view, neither of which this file's narrow mocks provide.
+vi.mock('@renderer/pages/conversation/PlanBar/ConversationPlanBar', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 vi.mock('@renderer/pages/conversation/Messages/hooks', () => {
   const PassThrough: React.FC<{ children?: React.ReactNode }> = ({ children }) => <>{children}</>;
   return {
