@@ -749,6 +749,10 @@
     "truncated": "(以前の出力は切り捨て)"
   },
   "crossSession": {
+    "mentionAgain": "入力欄で会話 {{name}} にメンション",
+    "mentionAgainHint": "クリックしてこの会話を入力欄でメンション",
+    "mentionUnavailable": "この会話はメンションできなくなりました",
+    "mentionFailed": "この会話にメンションできませんでした",
     "fromBadge": "会話「{{name}}」から",
     "otherWorkspace": "別のワークスペース",
     "rateLimitedTitle": "会話間メッセージが空転している可能性があります",

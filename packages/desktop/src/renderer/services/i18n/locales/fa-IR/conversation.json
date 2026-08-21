@@ -749,6 +749,10 @@
     "truncated": "(خروجی قبلی کوتاه شد)"
   },
   "crossSession": {
+    "mentionAgain": "اشاره به گفتگوی {{name}} در کادر پیام",
+    "mentionAgainHint": "برای اشاره به این گفتگو در کادر پیام کلیک کنید",
+    "mentionUnavailable": "دیگر نمی‌توان به آن گفتگو اشاره کرد.",
+    "mentionFailed": "اشاره به آن گفتگو ممکن نشد.",
     "fromBadge": "از گفتگوی «{{name}}»",
     "otherWorkspace": "فضای کاری متفاوت",
     "rateLimitedTitle": "ممکن است پیام‌های بین گفتگوها در حلقه افتاده باشند",

@@ -750,6 +750,10 @@
     "truncated": "(salida anterior truncada)"
   },
   "crossSession": {
+    "mentionAgain": "Mencionar la conversación {{name}} en el cuadro de mensaje",
+    "mentionAgainHint": "Haz clic para mencionar esta conversación en el cuadro de mensaje",
+    "mentionUnavailable": "Esa conversación ya no se puede mencionar.",
+    "mentionFailed": "No se pudo mencionar esa conversación.",
     "fromBadge": "De la conversación {{name}}",
     "otherWorkspace": "espacio de trabajo distinto",
     "rateLimitedTitle": "Los mensajes entre conversaciones podrían estar en bucle",

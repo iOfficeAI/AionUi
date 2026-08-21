@@ -209,6 +209,11 @@ export type SessionMentionableParams = {
   project_id?: string;
   limit?: number;
   cursor?: string;
+  /** Narrow to one conversation, to ask "is this id still mentionable?" and to
+   *  read back its CURRENT name. Used when mentioning a conversation off an
+   *  earlier message, where the chip's name may be stale and the target may have
+   *  become ineligible since. */
+  id?: string;
 };
 
 export type SessionMessageRateLimitedPayload = {
@@ -234,6 +239,7 @@ export const sessionMention = {
     if (p.project_id) params.set('project_id', p.project_id);
     if (p.limit) params.set('limit', String(p.limit));
     if (p.cursor) params.set('cursor', p.cursor);
+    if (p.id) params.set('id', p.id);
     return `/api/session-messages/mentionable?${params.toString()}`;
   }),
 };

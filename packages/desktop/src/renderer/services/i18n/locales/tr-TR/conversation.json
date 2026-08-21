@@ -751,6 +751,10 @@
     "truncated": "(önceki çıktı kesildi)"
   },
   "crossSession": {
+    "mentionAgain": "{{name}} sohbetini mesaj alanında an",
+    "mentionAgainHint": "Bu sohbeti mesaj alanında anmak için tıklayın",
+    "mentionUnavailable": "Bu sohbet artık anılamıyor.",
+    "mentionFailed": "Bu sohbet anılamadı.",
     "fromBadge": "{{name}} sohbetinden",
     "otherWorkspace": "farklı çalışma alanı",
     "rateLimitedTitle": "Sohbetler arası mesajlar döngüye girmiş olabilir",

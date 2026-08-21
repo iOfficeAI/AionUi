@@ -47,6 +47,16 @@ function isBoundaryChar(char: string): boolean {
   return AT_SESSION_BOUNDARY_RE.test(char);
 }
 
+/**
+ * Exported for the at-caret insertion path, which has to know this lane's
+ * alphabet to decide whether a mention dropped at the caret needs separators
+ * around it. Without them the mention does not parse and its reference is
+ * retracted by the reconciliation.
+ */
+export function isAtSessionBoundaryChar(char: string): boolean {
+  return isBoundaryChar(char);
+}
+
 function isEscaped(value: string, index: number): boolean {
   let backslashCount = 0;
   let cursor = index - 1;

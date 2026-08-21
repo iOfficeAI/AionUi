@@ -750,6 +750,10 @@
     "truncated": "(frühere Ausgabe gekürzt)"
   },
   "crossSession": {
+    "mentionAgain": "Unterhaltung {{name}} im Eingabefeld erwähnen",
+    "mentionAgainHint": "Klicken, um diese Unterhaltung im Eingabefeld zu erwähnen",
+    "mentionUnavailable": "Diese Unterhaltung kann nicht mehr erwähnt werden.",
+    "mentionFailed": "Diese Unterhaltung konnte nicht erwähnt werden.",
     "fromBadge": "Aus Unterhaltung {{name}}",
     "otherWorkspace": "anderer Arbeitsbereich",
     "rateLimitedTitle": "Nachrichten zwischen Unterhaltungen laufen möglicherweise im Kreis",

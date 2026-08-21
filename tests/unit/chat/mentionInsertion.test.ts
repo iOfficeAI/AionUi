@@ -9,9 +9,14 @@ import {
   escapeAtSessionName,
   getActiveAtSessionQuery,
   getAllAtSessionQueries,
+  isAtSessionBoundaryChar,
 } from '@/renderer/utils/chat/atSessionQuery';
 import { escapeAtFilePath, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
-import { applyMentionInsertion, shouldAppendSpaceAfterMention } from '@/renderer/utils/chat/mentionInsertion';
+import {
+  applyMentionInsertion,
+  insertMentionAtCaret,
+  shouldAppendSpaceAfterMention,
+} from '@/renderer/utils/chat/mentionInsertion';
 
 describe('shouldAppendSpaceAfterMention', () => {
   it('appends when the mention ends the input', () => {
@@ -218,4 +223,62 @@ describe('every boundary character survives an insert/parse round trip', () => {
       expect(fileRoundTrip(path)).toBe(path);
     }
   );
+});
+
+/**
+ * Inserting a mention at the caret, with no token to replace — the path taken
+ * when the target comes from a conversation chip on an earlier message instead of
+ * from the picker.
+ */
+describe('insertMentionAtCaret', () => {
+  const at = (value: string, caret: number, insertion = '@@周总结') =>
+    insertMentionAtCaret(value, caret, insertion, isAtSessionBoundaryChar);
+
+  it('inserts into an empty input without stray separators', () => {
+    const result = at('', 0);
+    expect(result.value).toBe('@@周总结 ');
+    expect(result.caret).toBe(result.value.length);
+  });
+
+  // The trap: both lanes require the opening `@` to follow a boundary, so
+  // `问他@@周总结` would not parse at all and the reference would be retracted.
+  it('adds a leading separator when the caret follows a word', () => {
+    const result = at('问他', 2);
+    expect(result.value).toBe('问他 @@周总结 ');
+    expect(getAllAtSessionQueries(result.value).map((token) => token.query)).toEqual(['周总结']);
+  });
+
+  it('does not double a separator that is already there', () => {
+    const result = at('问他 ', 3);
+    expect(result.value).toBe('问他 @@周总结 ');
+    expect(result.value).not.toContain('  ');
+  });
+
+  it('separates on both sides when inserting mid-text', () => {
+    const result = at('问他觉得怎么样', 2);
+    expect(result.value).toBe('问他 @@周总结 觉得怎么样');
+    expect(getAllAtSessionQueries(result.value).map((token) => token.query)).toEqual(['周总结']);
+  });
+
+  it('reuses the existing separator on the trailing side', () => {
+    const result = at('问他 觉得怎么样', 3);
+    expect(result.value).toBe('问他 @@周总结 觉得怎么样');
+    expect(result.value).not.toContain('  ');
+  });
+
+  it('leaves the caret after the whole mention so typing continues cleanly', () => {
+    const result = at('问他', 2);
+    expect(result.value.slice(result.caret)).toBe('');
+    expect(getActiveAtSessionQuery(result.value, result.caret)).toBeNull();
+  });
+
+  it('clamps an out-of-range caret to the end', () => {
+    const result = at('问他', 99);
+    expect(result.value).toBe('问他 @@周总结 ');
+  });
+
+  it('parses alongside a mention that was already in the text', () => {
+    const result = at('问下 @@重构-鉴权模块 然后', '问下 @@重构-鉴权模块 然后'.length);
+    expect(getAllAtSessionQueries(result.value).map((token) => token.query)).toEqual(['重构-鉴权模块', '周总结']);
+  });
 });

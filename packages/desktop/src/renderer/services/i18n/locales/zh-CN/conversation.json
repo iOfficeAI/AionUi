@@ -749,6 +749,10 @@
     "truncated": "(较早输出已截断)"
   },
   "crossSession": {
+    "mentionAgain": "在输入框中提及会话 {{name}}",
+    "mentionAgainHint": "点击以在输入框中提及此会话",
+    "mentionUnavailable": "该会话已无法提及",
+    "mentionFailed": "无法提及该会话",
     "fromBadge": "来自会话「{{name}}」",
     "otherWorkspace": "不同工作目录",
     "rateLimitedTitle": "跨会话消息可能在空转",

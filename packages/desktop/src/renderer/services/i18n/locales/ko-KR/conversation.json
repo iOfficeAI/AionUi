@@ -749,6 +749,10 @@
     "truncated": "(이전 출력 잘림)"
   },
   "crossSession": {
+    "mentionAgain": "입력창에서 대화 {{name}} 멘션",
+    "mentionAgainHint": "클릭하여 이 대화를 입력창에서 멘션",
+    "mentionUnavailable": "해당 대화는 더 이상 멘션할 수 없습니다",
+    "mentionFailed": "해당 대화를 멘션할 수 없습니다",
     "fromBadge": "대화 \"{{name}}\"에서",
     "otherWorkspace": "다른 작업 공간",
     "rateLimitedTitle": "대화 간 메시지가 반복되는 것 같습니다",

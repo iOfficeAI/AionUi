@@ -749,6 +749,10 @@
     "truncated": "(較早輸出已截斷)"
   },
   "crossSession": {
+    "mentionAgain": "在輸入框中提及工作階段 {{name}}",
+    "mentionAgainHint": "點擊以在輸入框中提及此工作階段",
+    "mentionUnavailable": "該工作階段已無法提及",
+    "mentionFailed": "無法提及該工作階段",
     "fromBadge": "來自對話「{{name}}」",
     "otherWorkspace": "不同工作目錄",
     "rateLimitedTitle": "跨對話訊息可能在空轉",

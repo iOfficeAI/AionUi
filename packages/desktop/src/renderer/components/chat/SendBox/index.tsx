@@ -28,10 +28,11 @@ import {
   buildAtSessionInsertion,
   getActiveAtSessionQuery,
   getAllAtSessionQueries,
+  isAtSessionBoundaryChar,
   resolveAtSessionMenuKey,
 } from '@/renderer/utils/chat/atSessionQuery';
 import { buildAttachedMentionRanges } from '@/renderer/utils/chat/mentionHighlight';
-import { applyMentionInsertion } from '@/renderer/utils/chat/mentionInsertion';
+import { applyMentionInsertion, insertMentionAtCaret } from '@/renderer/utils/chat/mentionInsertion';
 import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { formatRelativeTime } from '@/renderer/utils/chat/relativeTime';
@@ -1258,6 +1259,56 @@ const SendBox: React.FC<{
       onSelectedSessionsChange(next);
     }
   }, [input, onSelectedSessionsChange, selectedSessions]);
+
+  /**
+   * Mention a conversation the user clicked on an earlier message.
+   *
+   * The caller has already resolved and validated the target, so this both
+   * inserts the token and attaches the reference — a token alone would look
+   * mentioned while carrying nothing, which is the failure this feature keeps
+   * producing.
+   */
+  const mentionSessionFromMessage = useCallback(
+    (target: { id: string; name: string }) => {
+      if (!canMentionSessions || !onSelectedSessionsChange) {
+        return;
+      }
+      const { value: nextValue, caret: nextCaret } = insertMentionAtCaret(
+        input,
+        caretPosition,
+        buildAtSessionInsertion(target.name),
+        isAtSessionBoundaryChar
+      );
+      sessionNameByIdRef.current[target.id] = target.name;
+      setInput(nextValue);
+      if (!(selectedSessions ?? []).some((ref) => ref.id === target.id)) {
+        onSelectedSessionsChange([...(selectedSessions ?? []), { id: target.id }]);
+      }
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+        setCaretPosition(nextCaret);
+      });
+    },
+    [canMentionSessions, caretPosition, getTextareaElement, input, onSelectedSessionsChange, selectedSessions, setInput]
+  );
+
+  useAddEventListener(
+    'sendbox.mention.session',
+    (target, targetConversationId) => {
+      // Several conversation views can be mounted at once, so only the send box
+      // the click belongs to may react — same guard the file lanes carry.
+      if (targetConversationId !== undefined && targetConversationId !== conversationContext?.conversation_id) {
+        return;
+      }
+      mentionSessionFromMessage(target);
+    },
+    [conversationContext?.conversation_id, mentionSessionFromMessage]
+  );
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();

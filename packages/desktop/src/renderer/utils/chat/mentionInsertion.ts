@@ -63,3 +63,37 @@ export function applyMentionInsertion(value: string, start: number, end: number,
     caret: start + insertion.length + suffix.length,
   };
 }
+
+/**
+ * Insert a complete mention at the caret, without a token to replace.
+ *
+ * Used when the mention comes from somewhere other than the picker — clicking a
+ * conversation chip on an earlier message, where the target is already known.
+ *
+ * Separators are needed on BOTH sides here, which is what makes this different
+ * from `applyMentionInsertion`. That function replaces a token, and a token's end
+ * is by construction either a boundary character or the end of the input, so only
+ * the trailing side could ever be missing. An arbitrary caret has no such
+ * guarantee: dropping `@@name` straight after `ask` yields `ask@@name`, and both
+ * lanes require the opening `@` to be preceded by a boundary — so the mention
+ * would not parse, the reconciliation would not find its name, and the reference
+ * it came with would be retracted on the very next render. The trailing side is
+ * the same story for whatever the caret was sitting in front of.
+ *
+ * `isBoundaryChar` is injected rather than imported so this file stays
+ * lane-agnostic; each lane owns its own alphabet.
+ */
+export function insertMentionAtCaret(
+  value: string,
+  caret: number,
+  insertion: string,
+  isBoundaryChar: (char: string) => boolean
+): MentionInsertion {
+  const safeCaret = Math.max(0, Math.min(caret, value.length));
+  const prefix = safeCaret > 0 && !isBoundaryChar(value[safeCaret - 1]) ? ' ' : '';
+  const suffix = safeCaret >= value.length || !isBoundaryChar(value[safeCaret]) ? ' ' : '';
+  return {
+    value: value.slice(0, safeCaret) + prefix + insertion + suffix + value.slice(safeCaret),
+    caret: safeCaret + prefix.length + insertion.length + suffix.length,
+  };
+}

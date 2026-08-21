@@ -749,6 +749,10 @@
     "truncated": "(sortie antérieure tronquée)"
   },
   "crossSession": {
+    "mentionAgain": "Mentionner la conversation {{name}} dans la zone de saisie",
+    "mentionAgainHint": "Cliquez pour mentionner cette conversation dans la zone de saisie",
+    "mentionUnavailable": "Cette conversation ne peut plus être mentionnée.",
+    "mentionFailed": "Impossible de mentionner cette conversation.",
     "fromBadge": "De la conversation {{name}}",
     "otherWorkspace": "espace de travail différent",
     "rateLimitedTitle": "Les messages entre conversations semblent boucler",

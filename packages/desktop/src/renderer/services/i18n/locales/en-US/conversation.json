@@ -749,6 +749,10 @@
     "truncated": "(earlier output truncated)"
   },
   "crossSession": {
+    "mentionAgain": "Mention conversation {{name}} in the message box",
+    "mentionAgainHint": "Click to mention this conversation in the message box",
+    "mentionUnavailable": "That conversation can no longer be mentioned.",
+    "mentionFailed": "Could not mention that conversation.",
     "fromBadge": "From conversation {{name}}",
     "otherWorkspace": "different workspace",
     "rateLimitedTitle": "Cross-conversation messages may be looping",

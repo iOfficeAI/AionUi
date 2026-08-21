@@ -767,6 +767,10 @@
     "truncated": "(ранній вивід обрізано)"
   },
   "crossSession": {
+    "mentionAgain": "Згадати діалог {{name}} у полі введення",
+    "mentionAgainHint": "Натисніть, щоб згадати цей діалог у полі введення",
+    "mentionUnavailable": "Цей діалог більше не можна згадати.",
+    "mentionFailed": "Не вдалося згадати цей діалог.",
     "fromBadge": "З розмови «{{name}}»",
     "otherWorkspace": "інша робоча тека",
     "rateLimitedTitle": "Повідомлення між розмовами, можливо, зациклилися",

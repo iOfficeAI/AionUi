@@ -6,6 +6,7 @@
 
 import type { IMessageText } from '@/common/chat/chatLib';
 import { parseFileMarker, resolveMessageFilePath } from './fileMarker';
+import SessionMentionAction from './SessionMentionAction';
 import { parseSessionMessageBlock, parseSessionsBlock } from './sessionMarkers';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -257,12 +258,14 @@ const MessageText: React.FC<{
               'self-end': isUserMessage,
             })}
           >
-            <span>
-              {t('conversation.crossSession.fromBadge', {
+            <SessionMentionAction
+              id={deliverySource.fromId}
+              name={deliverySource.fromName || deliverySource.fromId}
+              label={t('conversation.crossSession.fromBadge', {
                 name: deliverySource.fromName || deliverySource.fromId,
                 defaultValue: 'From conversation {{name}}',
               })}
-            </span>
+            />
             {deliverySource.workspace && deliverySource.workspace !== 'same' && (
               <span
                 className='px-4px rounded-4px'
@@ -277,14 +280,14 @@ const MessageText: React.FC<{
         {mentionedSessions.length > 0 && (
           <div className={classNames('mb-4px flex flex-wrap gap-4px', { 'self-end': isUserMessage })}>
             {mentionedSessions.map((session) => (
-              <span
+              <SessionMentionAction
                 key={session.id}
-                className='px-6px py-2px rounded-6px text-12px text-t-secondary'
-                style={{ background: 'var(--color-fill-2)' }}
+                id={session.id}
+                name={session.name}
+                label={`@@${session.name}`}
                 title={session.workspace}
-              >
-                @@{session.name}
-              </span>
+                chip
+              />
             ))}
           </div>
         )}
