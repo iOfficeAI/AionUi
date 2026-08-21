@@ -44,10 +44,15 @@ const ConversationPlanBar: React.FC<{ conversation_id: string }> = ({ conversati
     // container is wide enough for `.chat-surface-fluid` to reserve gutters.
     <div
       data-testid='conversation-plan-bar'
-      className={`${getChatSurfaceWidthClass()} shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 px-8px py-6px`}
+      // No horizontal padding on the root: `.chat-surface-fluid` sets a computed
+      // `width`, and with content-box that padding is ADDED on top — measured
+      // 663px against the send box group's 647px, i.e. the bar overhung it by
+      // exactly 2x8px. The inset lives on the children instead, which is also
+      // how CommandQueuePanel and ThoughtDisplay do it in this same stack.
+      className={`${getChatSurfaceWidthClass()} shrink-0 border-t border-solid border-3 border-s-0 border-e-0 border-b-0 py-6px`}
     >
       <div
-        className='flex items-center gap-8px cursor-pointer text-t-secondary select-none'
+        className='flex items-center gap-8px px-8px cursor-pointer text-t-secondary select-none'
         role='button'
         tabIndex={0}
         aria-expanded={expanded}
@@ -66,7 +71,7 @@ const ConversationPlanBar: React.FC<{ conversation_id: string }> = ({ conversati
       </div>
       {expanded && (
         <div
-          className='flex flex-col gap-6px pt-6px pl-22px overflow-y-auto overscroll-contain'
+          className='flex flex-col gap-6px pt-6px pl-30px pr-8px overflow-y-auto overscroll-contain'
           // Viewport-relative, matching CommandQueuePanel's cap in this same
           // stack. The zone above the send box can hold the queue, the thought
           // bar and a multi-line input at once; a FIXED cap here eats a large

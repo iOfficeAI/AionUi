@@ -102,6 +102,17 @@ describe('ConversationPlanBar', () => {
     expect(bar?.className).toContain(getChatSurfaceWidthClass());
   });
 
+  it('keeps horizontal padding off the root so it does not overhang the send box', () => {
+    // `.chat-surface-fluid` sets a computed `width`; the root resolves as
+    // content-box, so padding there is ADDED on top. Measured live: the bar came
+    // out 663px against the send box group's 647px — overhanging by exactly
+    // 2x8px. The inset belongs on the children.
+    const { container } = setup({ plan: plan('turn-id-1'), isProcessing: true, activeTurnId: 'turn-id-1' });
+    const bar = container.querySelector('[data-testid="conversation-plan-bar"]') as HTMLElement;
+    expect(bar.className).toContain('chat-surface-fluid');
+    expect(bar.className).not.toMatch(/(^|\s)-?p[xlre]-/);
+  });
+
   it('caps its height relative to the viewport, not at a fixed pixel value', () => {
     // The zone above the send box also holds CommandQueuePanel (capped at
     // min(36vh, 320px)), ThoughtDisplay and a growable input. A fixed cap here
