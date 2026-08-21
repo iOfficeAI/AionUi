@@ -78,13 +78,15 @@ export const useTaskCenterList = (token: string): UseTaskCenterListResult => {
         pageNo,
         perPageSize,
       });
-      if (res.ok) {
+      if (res.ok === true) {
         setItems(res.data.items);
         setTotal(res.data.total);
+        setError(null);
       } else {
         setItems([]);
         setTotal(0);
-        setError(res.message);
+        if (res.ok === false) setError(res.message);
+        else setError('Unknown error');
       }
     } catch (e) {
       setItems([]);

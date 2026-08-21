@@ -3,10 +3,27 @@
  * Copyright 2026 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import { Descriptions, Modal } from '@arco-design/web-react';
+import { Descriptions, Modal as ArcoModal } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
+
+// Arco Modal's TS typings don't play well with React 19's stricter children
+// inference (ModalProps extends PropsWithChildren but the runtime accepts the
+// children we pass). Cast to any to keep strict-mode happy without disabling
+// checks project-wide. Runtime behavior is unchanged.
+const Modal = ArcoModal as unknown as React.FC<{
+  title?: React.ReactNode;
+  visible?: boolean;
+  onCancel?: () => void;
+  onOk?: () => void;
+  okText?: React.ReactNode;
+  cancelText?: React.ReactNode;
+  hideCancel?: boolean;
+  width?: number;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}>;
 
 export interface TaskCenterDetailModalProps {
   visible: boolean;
@@ -16,50 +33,50 @@ export interface TaskCenterDetailModalProps {
 
 const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, item, onClose }) => {
   const { t } = useTranslation();
+  const tZh = (key: string): string => String(t(key, { lng: 'zh-CN' }));
   const [showRaw, setShowRaw] = useState(false);
 
   if (!item) return null;
 
   const basicData = [
-    { key: 'name', label: String(t('taskCenter.detail.fields.name')), value: item.name || '-' },
-    { key: 'mark', label: String(t('taskCenter.detail.fields.mark')), value: item.mark || '-' },
-    { key: 'projectName', label: String(t('taskCenter.detail.fields.projectName')), value: item.projectName || '-' },
-    { key: 'partName', label: String(t('taskCenter.detail.fields.partName')), value: item.partName || '-' },
+    { key: 'name', label: tZh('taskCenter.detail.fields.name'), value: item.name || '-' },
+    { key: 'mark', label: tZh('taskCenter.detail.fields.mark'), value: item.mark || '-' },
+    { key: 'projectName', label: tZh('taskCenter.detail.fields.projectName'), value: item.projectName || '-' },
+    { key: 'partName', label: tZh('taskCenter.detail.fields.partName'), value: item.partName || '-' },
     {
       key: 'milestoneName',
-      label: String(t('taskCenter.detail.fields.milestoneName')),
+      label: tZh('taskCenter.detail.fields.milestoneName'),
       value: item.milestoneName || '-',
     },
-    { key: 'typeDesc', label: String(t('taskCenter.detail.fields.typeDesc')), value: item.typeDesc || '-' },
+    { key: 'typeDesc', label: tZh('taskCenter.detail.fields.typeDesc'), value: item.typeDesc || '-' },
   ];
 
   const progressData = [
-    { key: 'urgencyDesc', label: String(t('taskCenter.detail.fields.urgencyDesc')), value: item.urgencyDesc || '-' },
-    { key: 'statusDesc', label: String(t('taskCenter.detail.fields.statusDesc')), value: item.statusDesc || '-' },
-    { key: 'deadlineTime', label: String(t('taskCenter.detail.fields.deadlineTime')), value: item.deadlineTime || '-' },
-    { key: 'startTime', label: String(t('taskCenter.detail.fields.startTime')), value: item.startTime || '-' },
-    { key: 'endTime', label: String(t('taskCenter.detail.fields.endTime')), value: item.endTime || '-' },
-    { key: 'closeTime', label: String(t('taskCenter.detail.fields.closeTime')), value: item.closeTime || '-' },
-    { key: 'creatorName', label: String(t('taskCenter.detail.fields.creatorName')), value: item.creatorName || '-' },
-    { key: 'createTime', label: String(t('taskCenter.detail.fields.createTime')), value: item.createTime || '-' },
-    { key: 'updatorName', label: String(t('taskCenter.detail.fields.updatorName')), value: item.updatorName || '-' },
-    { key: 'updateTime', label: String(t('taskCenter.detail.fields.updateTime')), value: item.updateTime || '-' },
+    { key: 'urgencyDesc', label: tZh('taskCenter.detail.fields.urgencyDesc'), value: item.urgencyDesc || '-' },
+    { key: 'statusDesc', label: tZh('taskCenter.detail.fields.statusDesc'), value: item.statusDesc || '-' },
+    { key: 'deadlineTime', label: tZh('taskCenter.detail.fields.deadlineTime'), value: item.deadlineTime || '-' },
+    { key: 'startTime', label: tZh('taskCenter.detail.fields.startTime'), value: item.startTime || '-' },
+    { key: 'endTime', label: tZh('taskCenter.detail.fields.endTime'), value: item.endTime || '-' },
+    { key: 'closeTime', label: tZh('taskCenter.detail.fields.closeTime'), value: item.closeTime || '-' },
+    { key: 'creatorName', label: tZh('taskCenter.detail.fields.creatorName'), value: item.creatorName || '-' },
+    { key: 'createTime', label: tZh('taskCenter.detail.fields.createTime'), value: item.createTime || '-' },
+    { key: 'updatorName', label: tZh('taskCenter.detail.fields.updatorName'), value: item.updatorName || '-' },
+    { key: 'updateTime', label: tZh('taskCenter.detail.fields.updateTime'), value: item.updateTime || '-' },
   ];
 
   return (
     <Modal
-      title={String(t('taskCenter.detail.title'))}
+      title={tZh('taskCenter.detail.title')}
       visible={visible}
       onCancel={onClose}
       onOk={onClose}
-      okText={String(t('common.close'))}
-      cancelText={null}
+      okText={tZh('common.close')}
+      hideCancel
       width={720}
-      style={{ maxHeight: '80vh' }}
     >
       <div className='flex flex-col gap-16px'>
         <section>
-          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{String(t('taskCenter.detail.basicInfo'))}</h3>
+          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{tZh('taskCenter.detail.basicInfo')}</h3>
           <Descriptions
             column={2}
             border
@@ -69,9 +86,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
         </section>
 
         <section>
-          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>
-            {String(t('taskCenter.detail.progressInfo'))}
-          </h3>
+          <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{tZh('taskCenter.detail.progressInfo')}</h3>
           <Descriptions
             column={2}
             border
@@ -82,7 +97,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
 
         {(item.content || item.remark) && (
           <section>
-            <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{String(t('taskCenter.detail.content'))}</h3>
+            <h3 className='m-0 mb-8px text-14px font-600 text-t-primary'>{tZh('taskCenter.detail.content')}</h3>
             {item.content && (
               <div className='mb-8px max-h-200px overflow-auto whitespace-pre-wrap rounded-6px bg-fill-2 p-10px text-13px text-t-primary'>
                 {item.content}
@@ -90,7 +105,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
             )}
             {item.remark && (
               <div>
-                <strong className='text-t-secondary'>{String(t('taskCenter.detail.remark'))}: </strong>
+                <strong className='text-t-secondary'>{tZh('taskCenter.detail.remark')}: </strong>
                 <span className='text-t-primary'>{item.remark}</span>
               </div>
             )}
@@ -103,7 +118,7 @@ const TaskCenterDetailModal: React.FC<TaskCenterDetailModalProps> = ({ visible, 
             className='cursor-pointer text-12px text-primary-6 hover:underline'
             onClick={() => setShowRaw((v) => !v)}
           >
-            {showRaw ? String(t('taskCenter.detail.hideRawFields')) : String(t('taskCenter.detail.showRawFields'))}
+            {showRaw ? tZh('taskCenter.detail.hideRawFields') : tZh('taskCenter.detail.showRawFields')}
           </button>
           {showRaw && (
             <pre className='mt-8px max-h-200px overflow-auto rounded-6px bg-fill-2 p-10px text-11px text-t-secondary'>

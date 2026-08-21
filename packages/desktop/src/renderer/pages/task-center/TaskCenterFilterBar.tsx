@@ -5,7 +5,7 @@
  */
 import { Input, Select, Button } from '@arco-design/web-react';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTaskCenterT } from './useTaskCenterT';
 
 export interface ProjectOption {
   id: string;
@@ -45,7 +45,7 @@ const TaskCenterFilterBar: React.FC<TaskCenterFilterBarProps> = ({
   onTypeChange,
   onReset,
 }) => {
-  const { t } = useTranslation();
+  const t = useTaskCenterT();
 
   return (
     <div className='flex flex-wrap items-center gap-8px px-20px py-12px bg-bg-1 rd-8px border border-solid border-[var(--color-border-2)]'>

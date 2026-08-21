@@ -5,9 +5,9 @@
  */
 import { Empty, Spin, Table, Tag, Typography } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
 import { isOverdue, statusToColor, urgencyToColor } from './types';
+import { useTaskCenterT } from './useTaskCenterT';
 
 const { Text } = Typography;
 
@@ -32,7 +32,7 @@ const TaskCenterTable: React.FC<TaskCenterTableProps> = ({
   onPerPageSizeChange,
   onView,
 }) => {
-  const { t } = useTranslation();
+  const t = useTaskCenterT();
 
   const columns = useMemo(
     () => [

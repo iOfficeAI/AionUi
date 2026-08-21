@@ -5,17 +5,17 @@
  */
 import { Button, Message } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import type { ITaskCenterRow } from '@/common/adapter/ipcBridge';
 import { useTaskCenterList } from './useTaskCenterList';
+import { useTaskCenterT } from './useTaskCenterT';
 import TaskCenterFilterBar, { type ProjectOption } from './TaskCenterFilterBar';
 import TaskCenterTable from './TaskCenterTable';
 import TaskCenterDetailModal from './TaskCenterDetailModal';
 import styles from './TaskCenter.module.css';
 
 const TaskCenterPage: React.FC = () => {
-  const { t } = useTranslation();
+  const t = useTaskCenterT();
   const { user, status } = useAuth();
   const token = user?.token ?? '';
   const list = useTaskCenterList(token);

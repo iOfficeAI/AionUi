@@ -5,11 +5,11 @@
  */
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { Clipboard } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import { useTaskCenterT } from '@renderer/pages/task-center/useTaskCenterT';
 
 interface SiderTaskCenterEntryProps {
   isMobile: boolean;
@@ -26,7 +26,7 @@ const SiderTaskCenterEntry: React.FC<SiderTaskCenterEntryProps> = ({
   siderTooltipProps,
   onClick,
 }) => {
-  const { t } = useTranslation();
+  const t = useTaskCenterT();
 
   if (collapsed) {
     return (
