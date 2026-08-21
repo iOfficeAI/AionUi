@@ -115,6 +115,14 @@ if (initialLanguage !== DEFAULT_LANGUAGE) {
     translation: getLocaleModules(initialLanguage),
   };
 }
+// Task center ships Chinese-only; preload zh-CN resources so the page can
+// render correctly before the user navigates there, regardless of the
+// global language setting.
+if (normalizeLanguageCode('zh-CN') !== initialLanguage && normalizeLanguageCode('zh-CN') !== DEFAULT_LANGUAGE) {
+  initialResources[normalizeLanguageCode('zh-CN')] = {
+    translation: getLocaleModules('zh-CN'),
+  };
+}
 
 // Initialize i18n with fallback and initial locale loaded synchronously to avoid FOUC.
 // NOTE: We intentionally do NOT use i18next-browser-languagedetector here.
