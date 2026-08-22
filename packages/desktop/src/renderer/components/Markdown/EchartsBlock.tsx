@@ -10,8 +10,8 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import * as echarts from 'echarts';
 
-import { Button, Message } from '@arco-design/web-react';
-import { ChartLine, CodeOne, Copy, PreviewOpen } from '@icon-park/react';
+import { Message } from '@arco-design/web-react';
+import { Copy, PreviewOpen } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { parseEChartsOption } from './echartsUtils';
@@ -32,6 +32,7 @@ function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPan
   const isPreviewPanel = previewContext?.isPreviewPanel ?? false;
   const showOpenInPanelButton = typeof openPreview === 'function' && !isPreviewPanel;
 
+  const preferredViewModeRef = useRef<'preview' | 'source'>('preview');
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview');
   const [renderError, setRenderError] = useState<string | null>(null);
 
@@ -123,7 +124,6 @@ function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPan
   const isValidChart = parsedOption !== null;
   const isDarkTheme = isDark;
   const codeTheme = isDarkTheme ? vs2015 : vs;
-  const panelBackground = isDarkTheme ? 'var(--color-bg-2, #232324)' : 'var(--color-fill-2, #f2f3f5)';
 
   return (
     <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...style }}>
@@ -132,6 +132,7 @@ function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPan
           border: '1px solid var(--bg-3)',
           borderRadius: '0.3rem',
           overflow: 'hidden',
+          overflowX: 'auto',
         }}
       >
         <div
@@ -140,38 +141,70 @@ function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPan
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '8px 12px',
             backgroundColor: 'var(--bg-2)',
+            padding: '6px 10px',
             borderBottom: '1px solid var(--bg-3)',
-            fontSize: '12px',
-            color: 'var(--text-secondary)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 500 }}>{t('preview.echartsTitle')}</span>
+            <span
+              style={{
+                textDecoration: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                lineHeight: '20px',
+              }}
+            >
+              {'<echarts>'}
+            </span>
+            {isValidChart && !renderError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div
+                  data-testid='echarts-toggle-preview'
+                  style={{
+                    cursor: 'pointer',
+                    color: viewMode === 'preview' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: '12px',
+                    lineHeight: '20px',
+                  }}
+                  onMouseDown={(event: React.MouseEvent) => {
+                    if (event.button === 0) {
+                      event.preventDefault();
+                      preferredViewModeRef.current = 'preview';
+                      setViewMode('preview');
+                    }
+                  }}
+                >
+                  {t('preview.preview')}
+                </div>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '12px', lineHeight: '20px' }}>/</span>
+                <div
+                  data-testid='echarts-toggle-source'
+                  style={{
+                    cursor: 'pointer',
+                    color: viewMode === 'source' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: '12px',
+                    lineHeight: '20px',
+                  }}
+                  onMouseDown={(event: React.MouseEvent) => {
+                    if (event.button === 0) {
+                      event.preventDefault();
+                      preferredViewModeRef.current = 'source';
+                      setViewMode('source');
+                    }
+                  }}
+                >
+                  {t('preview.source')}
+                </div>
+              </div>
+            )}
             {renderError && (
               <span style={{ color: 'var(--color-danger-6, #f53f3f)', fontSize: '11px' }}>
                 ({t('preview.renderError')})
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isValidChart && (
-              <Button
-                type='text'
-                size='mini'
-                icon={
-                  viewMode === 'preview' ? (
-                    <CodeOne theme='outline' size='14' />
-                  ) : (
-                    <ChartLine theme='outline' size='14' />
-                  )
-                }
-                onClick={() => setViewMode(viewMode === 'preview' ? 'source' : 'preview')}
-              >
-                {viewMode === 'preview' ? t('preview.viewSource') : t('preview.viewDiagram')}
-              </Button>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {showOpenInPanelButton && (
               <PreviewOpen
                 data-testid='echarts-open-in-panel'
@@ -214,8 +247,8 @@ function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPan
             style={{
               width: '100%',
               height: `${DEFAULT_CHART_HEIGHT}px`,
-              backgroundColor: panelBackground,
-              padding: '8px',
+              backgroundColor: 'var(--bg-1)',
+              padding: '12px',
               boxSizing: 'border-box',
             }}
           />
