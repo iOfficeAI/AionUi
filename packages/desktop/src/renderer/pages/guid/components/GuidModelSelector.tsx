@@ -31,6 +31,8 @@ type GuidModelSelectorProps = {
   modelList: IProvider[];
   current_model: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
+  autoEnabled?: boolean;
+  onSelectAuto?: () => Promise<void>;
 
   // ACP model state
   currentAcpCachedModelInfo: AcpModelInfo | null;
@@ -48,6 +50,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   modelList,
   current_model,
   setCurrentModel,
+  autoEnabled = false,
+  onSelectAuto,
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
@@ -65,8 +69,14 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 
   const geminiSelectedLabel = React.useMemo(() => {
     if (!current_model?.use_model) return '';
+    if (autoEnabled) {
+      return t('conversation.autoModel.pill', {
+        model: current_model.use_model,
+        defaultValue: `Auto · ${current_model.use_model}`,
+      });
+    }
     return current_model.use_model;
-  }, [current_model?.use_model]);
+  }, [autoEnabled, current_model?.use_model, t]);
 
   const geminiButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
@@ -115,7 +125,20 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   if (isGeminiMode) {
     // Provider-grouped models (e.g. aionrs). Build groups + a composite-id lookup
     // so the shared model list can search across providers and map back on select.
-    const providerModelGroups: RuntimeSelectorModelGroup[] = [];
+    const providerModelGroups: RuntimeSelectorModelGroup[] = [
+      {
+        key: 'aionui-auto',
+        title: t('conversation.autoModel.groupTitle', { defaultValue: 'Auto' }),
+        models: [
+          {
+            id: '__aionui_auto__::auto',
+            label: t('conversation.autoModel.optionLabel', {
+              defaultValue: 'Auto (planner/worker routing)',
+            }),
+          },
+        ],
+      },
+    ];
     const providerModelLookup = new Map<string, { provider: IProvider; modelName: string }>();
     for (const provider of enabledModelList) {
       const available_models = getAvailableModels(provider);
@@ -130,9 +153,11 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         }),
       });
     }
-    const currentProviderModelId = current_model
-      ? providerCompositeId(current_model.id, current_model.use_model || '')
-      : null;
+    const currentProviderModelId = autoEnabled
+      ? '__aionui_auto__::auto'
+      : current_model
+        ? providerCompositeId(current_model.id, current_model.use_model || '')
+        : null;
     const addModelItem = (
       <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
         <Plus theme='outline' size='12' />
@@ -145,7 +170,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         trigger='hover'
         droplist={
           <Menu selectedKeys={currentProviderModelId ? [currentProviderModelId] : []}>
-            {providerModelGroups.length === 0
+            {providerModelGroups.length <= 1
               ? [
                   <Menu.Item
                     key='no-models'
@@ -162,6 +187,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     groups={providerModelGroups}
                     currentModelId={currentProviderModelId}
                     onSelect={(id) => {
+                      if (id === '__aionui_auto__::auto') {
+                        void onSelectAuto?.();
+                        return;
+                      }
                       const entry = providerModelLookup.get(id);
                       if (!entry) return;
                       setCurrentModel({ ...entry.provider, use_model: entry.modelName } as TProviderWithModel).catch(

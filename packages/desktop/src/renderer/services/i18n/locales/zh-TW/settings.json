@@ -1408,5 +1408,20 @@
   "crossSessionMessageDesc": "允許 Agent 向你的其他對話傳送訊息。關閉後，輸入框的 @@ 對話提及與投遞功能會同時停用。",
   "crossSessionMessageDisabledBanner": "跨對話訊息已關閉，輸入框的 @@ 對話提及不可用。",
   "crossSessionMessageResume": "重新開啟",
-  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗"
+  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗",
+  "autoModel": {
+    "title": "Auto 模型路由",
+    "description": "為長時間執行的 aionrs 智能體綁定規劃、執行與輔助模型槽位。第一階段在選擇 Auto 時解析為具體模型；第二階段將在不重建智能體的情況下切換槽位。",
+    "preference": "槽位設為自動時",
+    "preferenceCost": "優先更低成本",
+    "preferenceBalance": "平衡成本與品質",
+    "preferenceQuality": "優先更高品質",
+    "automatic": "自動",
+    "slot": {
+      "planner": "規劃模型",
+      "worker": "執行模型",
+      "utility": "輔助模型"
+    },
+    "phaseNote": "目前 Auto 使用執行槽。規劃/輔助槽切換將在 Core 支援不停止智能體更換模型後落地。"
+  }
 }

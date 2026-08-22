@@ -81,6 +81,18 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  /**
+   * Auto planner/worker routing preferences (long-running aionrs agents).
+   * Mirrored in ConfigKeyMap.autoModel for configService.
+   */
+  autoModel?: {
+    preference: 'cost' | 'balance' | 'quality';
+    slots: {
+      planner: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+      worker: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+      utility: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+    };
+  };
 }
 
 /**
@@ -478,6 +490,21 @@ export type TChatConversation =
         last_token_usage?: TokenUsageData;
         /** Cron job ID that spawned this conversation */
         cron_job_id?: string;
+        /**
+         * Sticky Auto routing flag for this conversation (issue #4143).
+         * Concrete model always lives on conversation.model; this only marks Auto.
+         * Phase 2 will use `phase` for planner/worker switches without rebuild.
+         */
+        auto_model?: {
+          enabled: boolean;
+          preference?: 'cost' | 'balance' | 'quality';
+          phase?: 'planner' | 'worker' | 'utility';
+          last_resolved?: {
+            provider_id: string;
+            model: string;
+            slot: 'planner' | 'worker' | 'utility';
+          };
+        };
       }
     >;
 

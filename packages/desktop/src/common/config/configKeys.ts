@@ -31,6 +31,20 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
+  /**
+   * Auto planner/worker routing preferences for long-running aionrs agents.
+   * See docs/prds/conversations/auto-model.md and issue #4143.
+   */
+  autoModel:
+    | {
+        preference: 'cost' | 'balance' | 'quality';
+        slots: {
+          planner: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+          worker: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+          utility: { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
+        };
+      }
+    | undefined;
   // Removed: 'system.autoPreviewOfficeFiles'. It gated "auto-open a preview tab
   // when an Office file appears in the workspace", a behaviour that was dropped
   // along with its hook — leaving the toggle would have been a switch the user

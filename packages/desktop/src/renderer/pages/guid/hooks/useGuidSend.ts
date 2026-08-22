@@ -37,6 +37,8 @@ export type GuidSendDeps = {
   selectedThoughtLevelValue?: string;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   current_model: TProviderWithModel | undefined;
+  /** Sticky Auto selection for aionrs (issue #4143). */
+  autoEnabled?: boolean;
 
   guidDisabledBuiltinSkills: string[] | undefined;
   guidEnabledSkills: string[] | undefined;
@@ -85,6 +87,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedThoughtLevelValue,
     currentAcpCachedModelInfo,
     current_model,
+    autoEnabled = false,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
     assistantDefaultSkillIds,
@@ -186,6 +189,17 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             custom_workspace: isCustomWorkspace,
             selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
             selected_session_mcp_servers: selectedSessionMcpServersToSend,
+            auto_model: autoEnabled
+              ? {
+                  enabled: true,
+                  phase: 'worker',
+                  last_resolved: {
+                    provider_id: current_model.id,
+                    model: current_model.use_model,
+                    slot: 'worker',
+                  },
+                }
+              : { enabled: false },
           },
         });
 
@@ -288,6 +302,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedThoughtLevelValue,
     currentAcpCachedModelInfo,
     current_model,
+    autoEnabled,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
     assistantDefaultSkillIds,

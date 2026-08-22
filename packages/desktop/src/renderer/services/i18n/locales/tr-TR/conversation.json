@@ -783,5 +783,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Planı genişlet",
     "collapse": "Planı daralt"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (planner/worker yönlendirme)",
+    "pill": "Auto · {{model}}",
+    "noCandidates": "Auto için kullanılabilir model yok"
   }
 }

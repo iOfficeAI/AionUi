@@ -781,5 +781,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "گسترش برنامه",
     "collapse": "جمع کردن برنامه"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (مسیریابی planner/worker)",
+    "pill": "Auto · {{model}}",
+    "noCandidates": "مدلی برای Auto در دسترس نیست"
   }
 }

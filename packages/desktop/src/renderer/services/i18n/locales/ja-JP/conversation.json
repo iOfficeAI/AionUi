@@ -781,5 +781,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "プランを展開",
     "collapse": "プランを折りたたむ"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto（プランナー/ワーカー振り分け）",
+    "pill": "Auto · {{model}}",
+    "noCandidates": "Auto に使えるモデルがありません"
   }
 }

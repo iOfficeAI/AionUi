@@ -1406,5 +1406,20 @@
   "crossSessionMessageDesc": "Permite que los agentes envíen mensajes a tus otras conversaciones. Al desactivarlo también se desactiva la mención @@ en el cuadro de texto.",
   "crossSessionMessageDisabledBanner": "Los mensajes entre conversaciones están desactivados, la mención @@ no está disponible.",
   "crossSessionMessageResume": "Volver a activar",
-  "crossSessionMessageUpdateFailed": "No se pudo actualizar el ajuste de mensajes entre conversaciones"
+  "crossSessionMessageUpdateFailed": "No se pudo actualizar el ajuste de mensajes entre conversaciones",
+  "autoModel": {
+    "title": "Auto model routing",
+    "description": "Bind planner, worker, and utility slots for long-running aionrs agents. Phase 1 resolves a concrete model when you pick Auto; Phase 2 will switch slots without rebuilding the agent.",
+    "preference": "When slots are Automatic",
+    "preferenceCost": "Prefer lower cost",
+    "preferenceBalance": "Balance cost and quality",
+    "preferenceQuality": "Prefer higher quality",
+    "automatic": "Automatic",
+    "slot": {
+      "planner": "Planner model",
+      "worker": "Worker model",
+      "utility": "Utility model"
+    },
+    "phaseNote": "Today Auto uses the worker slot. Planner/utility switches land when Core can change models without stopping the agent."
+  }
 }

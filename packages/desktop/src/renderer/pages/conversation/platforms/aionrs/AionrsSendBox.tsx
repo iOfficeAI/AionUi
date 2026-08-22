@@ -503,6 +503,10 @@ const AionrsSendBox: React.FC<{
   const handleSheetModelSelect = useCallback(
     (value: string) => {
       if (runtimeConfig.isConfigOptionBlocked?.('model')) return;
+      if (value === '__aionui_auto__::auto') {
+        void modelSelection.handleSelectAuto();
+        return;
+      }
       // value format: `${providerId}::${modelName}`
       const [providerId, modelName] = value.split('::');
       const provider = modelSelection.providers.find((p) => p.id === providerId);
@@ -535,19 +539,34 @@ const AionrsSendBox: React.FC<{
       active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
     }));
 
-    const modelOptions: MobileActionSheetOption[] = modelSelection.providers.flatMap((provider) =>
-      modelSelection.getAvailableModels(provider).map((modelName) => ({
-        key: `${provider.id}::${modelName}`,
-        label: modelName,
-        description: provider.name,
-        active:
-          modelSelection.current_model?.id === provider.id && modelSelection.current_model?.use_model === modelName,
-      }))
-    );
+    const modelOptions: MobileActionSheetOption[] = [
+      {
+        key: '__aionui_auto__::auto',
+        label: t('conversation.autoModel.optionLabel', { defaultValue: 'Auto (planner/worker routing)' }),
+        description: t('conversation.autoModel.groupTitle', { defaultValue: 'Auto' }),
+        active: Boolean(modelSelection.autoEnabled),
+      },
+      ...modelSelection.providers.flatMap((provider) =>
+        modelSelection.getAvailableModels(provider).map((modelName) => ({
+          key: `${provider.id}::${modelName}`,
+          label: modelName,
+          description: provider.name,
+          active:
+            !modelSelection.autoEnabled &&
+            modelSelection.current_model?.id === provider.id &&
+            modelSelection.current_model?.use_model === modelName,
+        }))
+      ),
+    ];
 
     const currentModeLabel =
       modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
-    const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
+    const currentModelLabel = modelSelection.autoEnabled
+      ? t('conversation.autoModel.pill', {
+          model: modelSelection.current_model?.use_model || '',
+          defaultValue: `Auto · ${modelSelection.current_model?.use_model || ''}`,
+        })
+      : modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
 
     const entries: MobileActionSheetEntry[] = [
       {

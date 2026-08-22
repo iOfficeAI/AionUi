@@ -1406,5 +1406,20 @@
   "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
   "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
   "crossSessionMessageResume": "Yeniden aç",
-  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi",
+  "autoModel": {
+    "title": "Auto model routing",
+    "description": "Bind planner, worker, and utility slots for long-running aionrs agents. Phase 1 resolves a concrete model when you pick Auto; Phase 2 will switch slots without rebuilding the agent.",
+    "preference": "When slots are Automatic",
+    "preferenceCost": "Prefer lower cost",
+    "preferenceBalance": "Balance cost and quality",
+    "preferenceQuality": "Prefer higher quality",
+    "automatic": "Automatic",
+    "slot": {
+      "planner": "Planner model",
+      "worker": "Worker model",
+      "utility": "Utility model"
+    },
+    "phaseNote": "Today Auto uses the worker slot. Planner/utility switches land when Core can change models without stopping the agent."
+  }
 }
