@@ -117,4 +117,56 @@ describe('PreviewContext', () => {
     expect(result.current.activeTab?.content).toBe('modified');
     expect(result.current.activeTab?.isDirty).toBe(true);
   });
+
+  it('starts non-maximized and toggles the maximized flag', () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+    expect(result.current.isMaximized).toBe(false);
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    expect(result.current.isMaximized).toBe(true);
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    expect(result.current.isMaximized).toBe(false);
+  });
+
+  it('resets maximized when the panel is collapsed', () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+    act(() => {
+      result.current.openPreview('content', 'code');
+      result.current.toggleMaximized();
+    });
+    expect(result.current.isMaximized).toBe(true);
+    act(() => {
+      result.current.closePreview();
+    });
+    expect(result.current.isMaximized).toBe(false);
+  });
+
+  it('resets maximized when tabs are discarded for the scope', () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+    act(() => {
+      result.current.openPreview('content', 'code');
+      result.current.toggleMaximized();
+    });
+    expect(result.current.isMaximized).toBe(true);
+    act(() => {
+      result.current.clearPreviewForScope();
+    });
+    expect(result.current.isMaximized).toBe(false);
+  });
+
+  it('resets maximized when switching to a different preview scope', () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+    act(() => {
+      result.current.openPreview('content', 'code');
+      result.current.toggleMaximized();
+    });
+    expect(result.current.isMaximized).toBe(true);
+    act(() => {
+      result.current.closePreviewIfScopeChanged('project:some-other-project' as PreviewScopeKey);
+    });
+    expect(result.current.isMaximized).toBe(false);
+  });
 });

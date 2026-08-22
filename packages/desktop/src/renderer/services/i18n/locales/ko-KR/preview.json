@@ -3,6 +3,8 @@
   "downloadFile": "파일 다운로드",
   "closePreview": "미리보기 닫기",
   "collapsePanel": "패널 접기",
+  "maximizePanel": "최대화",
+  "restorePanel": "복원",
   "source": "소스",
   "code": "코드",
   "preview": "미리보기",

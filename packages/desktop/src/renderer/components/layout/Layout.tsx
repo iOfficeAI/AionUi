@@ -171,7 +171,11 @@ const Layout: React.FC<{
   // Use closePreview directly — closePreviewIfScopeChanged skips the call
   // when lastScopeRef is already null (e.g. on team routes where it was
   // never updated), which would leave the panel open.
-  const { closePreview: closePreviewOnRouteChange, isOpen: isPreviewOpen } = usePreviewContext();
+  const {
+    closePreview: closePreviewOnRouteChange,
+    isOpen: isPreviewOpen,
+    isMaximized: isPreviewMaximized,
+  } = usePreviewContext();
   // Layout-level explorer column width engine (stage3 FULL / P2): measure the
   // [content | explorer] row, clamp the explorer width so chat (+ preview) keep
   // their reserve. Active only when a project is bound and on desktop.
@@ -199,6 +203,10 @@ const Layout: React.FC<{
   // conversations so it is structurally persistent (no remount on same-project
   // switches). ChatLayout renders chat only in that case (previewHosted).
   const previewRegionActive = Boolean(currentProject) && !isMobile && isPreviewOpen;
+  // 最大化：隐藏聊天区、让预览铺满它腾出的空间；左侧边栏与右侧资源管理器列均不动。
+  // Maximized: hide the chat area and let the preview fill the space it vacated;
+  // the left sidebar and the right explorer column are both left untouched.
+  const previewMaximized = previewRegionActive && isPreviewMaximized;
   const { widthPx: previewWidthPx, createDragHandle: createPreviewRegionDragHandle } = useProjectPreviewRegionWidth(
     mainRowWidth,
     explorerCollapsed ? 0 : explorerWidthPx,
@@ -488,7 +496,11 @@ const Layout: React.FC<{
                     ? {
                         width: '100%',
                       }
-                    : undefined
+                    : previewMaximized
+                      ? // 最大化时聊天区隐藏（保持挂载不卸载，还原后即刻恢复）
+                        // Hidden while maximized (kept mounted so restoring is instant)
+                        { display: 'none' }
+                      : undefined
                 }
               >
                 <Outlet />
@@ -506,9 +518,14 @@ const Layout: React.FC<{
                   data-project-preview-region
                   className='preview-panel flex flex-col relative overflow-visible'
                   style={{
-                    width: `${Math.round(previewWidthPx)}px`,
-                    flexGrow: 0,
-                    flexShrink: 0,
+                    // 最大化时铺满聊天区腾出的空间（explorer 列仍占其固定宽度）；
+                    // 否则用拖拽得到的固定宽度。还原后自动回到该宽度。
+                    // Maximized: fill the space the chat vacated (the explorer column
+                    // keeps its own fixed width); otherwise the dragged fixed width,
+                    // which restoring returns to automatically.
+                    ...(previewMaximized
+                      ? { flexGrow: 1, flexShrink: 1, flexBasis: 0 }
+                      : { width: `${Math.round(previewWidthPx)}px`, flexGrow: 0, flexShrink: 0 }),
                     // 只保留左边框作为与会话区的分界；上/右/下不留边距，
                     // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
                     // Left border only, as the divider from the chat area. No outer
@@ -519,14 +536,18 @@ const Layout: React.FC<{
                     boxSizing: 'border-box',
                   }}
                 >
-                  {createPreviewRegionDragHandle({
-                    className: 'absolute top-0 bottom-0 z-30',
-                    style: { width: '20px', left: '-20px' },
-                    reverse: true,
-                    linePlacement: 'end',
-                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
-                    lineStyle: { width: '2px' },
-                  })}
+                  {/* 最大化时聊天区已隐藏，拖拽把手无处可拖，隐藏之。
+                      While maximized the chat is hidden, so the resize handle has
+                      nothing to drag against — hide it. */}
+                  {!previewMaximized &&
+                    createPreviewRegionDragHandle({
+                      className: 'absolute top-0 bottom-0 z-30',
+                      style: { width: '20px', left: '-20px' },
+                      reverse: true,
+                      linePlacement: 'end',
+                      lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
+                      lineStyle: { width: '2px' },
+                    })}
                   <div className='h-full w-full overflow-hidden'>
                     <PreviewPanel />
                   </div>

@@ -3,6 +3,8 @@
   "downloadFile": "Скачать файл",
   "closePreview": "Закрыть предпросмотр",
   "collapsePanel": "Свернуть панель",
+  "maximizePanel": "Развернуть",
+  "restorePanel": "Восстановить",
   "source": "Исходник",
   "code": "Код",
   "preview": "Предпросмотр",

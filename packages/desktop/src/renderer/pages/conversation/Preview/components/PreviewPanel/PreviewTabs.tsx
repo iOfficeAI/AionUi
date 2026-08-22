@@ -6,7 +6,7 @@
 
 import { iconColors } from '@/renderer/styles/colors';
 import { Close, Plus } from '@icon-park/react';
-import { IconShrink } from '@arco-design/web-react/icon';
+import { IconFullscreen, IconFullscreenExit, IconShrink } from '@arco-design/web-react/icon';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TabFadeState } from '../../hooks/useTabOverflow';
@@ -116,6 +116,22 @@ interface PreviewTabsProps {
   onClosePanel?: () => void;
 
   /**
+   * 面板是否已最大化（聊天区隐藏、预览铺满）。决定最大化按钮显示的图标与提示。
+   * Whether the panel is maximized (chat hidden, preview filling the area).
+   * Drives the maximize button's icon and tooltip.
+   */
+  isMaximized?: boolean;
+
+  /**
+   * 切换最大化回调；仅桌面端提供（移动端预览本就覆盖全屏，最大化无意义）。
+   * 未提供时不渲染最大化按钮。
+   * Toggle-maximize callback, supplied on desktop only (on mobile the preview is
+   * already a full overlay, so maximizing is meaningless). The maximize button is
+   * not rendered when this is absent.
+   */
+  onToggleMaximize?: () => void;
+
+  /**
    * 新建浏览器 tab 回调；仅在已有浏览器 tab 时提供，避免在纯文档场景出现无意义的加号
    * New browser tab callback. Only supplied when a browser tab already exists, so
    * the plus button never appears in a document-only panel.
@@ -143,6 +159,8 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
   onContextMenu,
   onClosePanel,
   onNewBrowserTab,
+  isMaximized,
+  onToggleMaximize,
 }) => {
   const { t } = useTranslation();
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
@@ -259,16 +277,33 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({
           )}
         </div>
 
-        {/* 收起面板按钮 / Collapse panel button */}
-        {onClosePanel && (
-          <div className='flex items-center h-full px-10px flex-shrink-0 rounded-se-[16px]'>
-            <div
-              className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
-              onClick={onClosePanel}
-              title={t('preview.collapsePanel')}
-            >
-              <IconShrink style={{ fontSize: 14, color: iconColors.secondary }} />
-            </div>
+        {/* 面板操作按钮：最大化 / 收起 / Panel actions: maximize / collapse */}
+        {(onToggleMaximize || onClosePanel) && (
+          <div className='flex items-center gap-4px h-full px-10px flex-shrink-0 rounded-se-[16px]'>
+            {/* 最大化 / 还原：隐藏聊天区让预览铺满，两侧面板保持不变
+                Maximize / restore: hide the chat area so the preview fills it; side panels stay unchanged */}
+            {onToggleMaximize && (
+              <div
+                className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+                onClick={onToggleMaximize}
+                title={isMaximized ? t('preview.restorePanel') : t('preview.maximizePanel')}
+              >
+                {isMaximized ? (
+                  <IconFullscreenExit style={{ fontSize: 14, color: iconColors.secondary }} />
+                ) : (
+                  <IconFullscreen style={{ fontSize: 14, color: iconColors.secondary }} />
+                )}
+              </div>
+            )}
+            {onClosePanel && (
+              <div
+                className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+                onClick={onClosePanel}
+                title={t('preview.collapsePanel')}
+              >
+                <IconShrink style={{ fontSize: 14, color: iconColors.secondary }} />
+              </div>
+            )}
           </div>
         )}
       </div>

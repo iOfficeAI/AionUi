@@ -85,12 +85,14 @@ const PreviewPanel: React.FC = () => {
   const { t, i18n } = useTranslation();
   const {
     isOpen,
+    isMaximized,
     tabs,
     activeTabId,
     activeTab,
     closeTab,
     switchTab,
     closePreview,
+    toggleMaximized,
     updateContent,
     saveContent,
     reloadTabContent,
@@ -1078,6 +1080,11 @@ const PreviewPanel: React.FC = () => {
           onCloseTab={handleCloseTab}
           onContextMenu={handleTabContextMenu}
           onClosePanel={handleClosePanel}
+          isMaximized={isMaximized}
+          // 移动端预览本就是全屏覆盖层，最大化无意义 —— 不提供回调即隐藏该按钮。
+          // On mobile the preview is already a full overlay, so maximizing is
+          // meaningless; omitting the callback hides the button.
+          onToggleMaximize={layout?.isMobile ? undefined : toggleMaximized}
           // 只要面板里已经有任意 tab（文件或浏览器），就露出「新建浏览器 tab」的加号，
           // 不必等用户先手动开过一次浏览器。面板本身为空时才隐藏，避免出现一个没有
           // 上下文的孤立加号。
