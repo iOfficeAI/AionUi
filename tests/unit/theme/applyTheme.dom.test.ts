@@ -79,4 +79,13 @@ describe('applyTheme', () => {
     applyTheme({ ...base, id: 'light', name: 'Light', appearance: 'light' } as Theme);
     expect(document.getElementById('theme-tokens')).toBeNull();
   });
+  it('updates meta theme-color to match theme bg-2 token or appearance default', () => {
+    applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    expect(meta?.content).toBe('#232324');
+
+    applyTheme({ ...base, id: 'custom', name: 'Custom', appearance: 'light', tokens: { 'bg-2': '#eef0f4' } } as Theme);
+    meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    expect(meta?.content).toBe('#eef0f4');
+  });
 });
