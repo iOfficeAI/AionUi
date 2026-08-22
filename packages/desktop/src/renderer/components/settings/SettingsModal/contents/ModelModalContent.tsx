@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
 import { supportsOpenAiApiMode } from '@/common/utils/modelCapabilities';
-import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip, Select, Typography } from '@arco-design/web-react';
 import {
   DeleteFour,
   Heartbeat,
@@ -19,7 +19,7 @@ import {
   SettingTwo,
   Write,
 } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -28,7 +28,9 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/mod
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { useModelProviderList, useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { listSlotModelOptions, useAutoModelSettings } from '@/renderer/hooks/agent/useAutoModelSettings';
+import type { AutoModelSlotBinding, AutoModelSlots } from '@/renderer/utils/autoModel';
 import { useSettingsViewMode } from '../settingsViewContext';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
@@ -104,6 +106,73 @@ const getProviderState = (platform: IProvider): { checked: boolean; indeterminat
 const isModelEnabled = (platform: IProvider, model: string): boolean => {
   if (!platform.model_enabled) return true; // 默认启用
   return platform.model_enabled[model] !== false;
+};
+
+const AUTO_SLOT_KEYS: Array<keyof AutoModelSlots> = ['planner', 'worker', 'utility'];
+
+const bindingToSelectValue = (binding: AutoModelSlotBinding): string => {
+  if (binding.mode === 'automatic') return 'automatic';
+  return `${binding.provider_id}::${binding.model}`;
+};
+
+const parseSelectValue = (value: string): AutoModelSlotBinding => {
+  if (value === 'automatic') return { mode: 'automatic' };
+  const [provider_id, ...rest] = value.split('::');
+  return { mode: 'fixed', provider_id, model: rest.join('::') };
+};
+
+/** Phase-1 Auto planner/worker slot bindings (issue #4143). */
+const AutoModelSettingsBlock: React.FC = () => {
+  const { t } = useTranslation();
+  const { settings, setPreference, setSlot } = useAutoModelSettings();
+  const { providers, getAvailableModels } = useModelProviderList();
+  const modelOptions = useMemo(
+    () => listSlotModelOptions(providers, getAvailableModels),
+    [getAvailableModels, providers]
+  );
+
+  return (
+    <div className='mb-16px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-14px py-12px'>
+      <Typography.Title heading={6} className='!mt-0 !mb-4px'>
+        {t('settings.autoModel.title')}
+      </Typography.Title>
+      <Typography.Paragraph className='!mb-12px text-12px text-t-secondary'>
+        {t('settings.autoModel.description')}
+      </Typography.Paragraph>
+      <div className='mb-12px'>
+        <div className='mb-6px text-12px text-t-secondary'>{t('settings.autoModel.preference')}</div>
+        <Select
+          value={settings.preference}
+          onChange={(value) => void setPreference(value)}
+          options={[
+            { label: t('settings.autoModel.preferenceCost'), value: 'cost' },
+            { label: t('settings.autoModel.preferenceBalance'), value: 'balance' },
+            { label: t('settings.autoModel.preferenceQuality'), value: 'quality' },
+          ]}
+        />
+      </div>
+      {AUTO_SLOT_KEYS.map((slot) => (
+        <div key={slot} className='mb-10px last:mb-0'>
+          <div className='mb-6px text-12px text-t-secondary'>{t(`settings.autoModel.slot.${slot}`)}</div>
+          <Select
+            value={bindingToSelectValue(settings.slots[slot])}
+            onChange={(value) => void setSlot(slot, parseSelectValue(String(value)))}
+            showSearch
+            options={[
+              { label: t('settings.autoModel.automatic'), value: 'automatic' },
+              ...modelOptions.map((option) => ({
+                label: `${option.provider.name} / ${option.modelName}`,
+                value: option.value,
+              })),
+            ]}
+          />
+        </div>
+      ))}
+      <Typography.Paragraph className='!mb-0 !mt-10px text-12px text-t-secondary'>
+        {t('settings.autoModel.phaseNote')}
+      </Typography.Paragraph>
+    </div>
+  );
 };
 
 const ModelModalContent: React.FC = () => {
@@ -402,7 +471,9 @@ const ModelModalContent: React.FC = () => {
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {!data || data.length === 0 ? (
+        <div className='space-y-16px'>
+          <AutoModelSettingsBlock />
+          {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
             <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
@@ -420,8 +491,7 @@ const ModelModalContent: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className='space-y-16px'>
-            {(data || []).map((platform: IProvider) => {
+            (data || []).map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
               return (
@@ -682,9 +752,9 @@ const ModelModalContent: React.FC = () => {
                   </Collapse.Item>
                 </Collapse>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </AionScrollArea>
     </div>
   );

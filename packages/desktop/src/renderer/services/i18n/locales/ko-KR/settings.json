@@ -1414,5 +1414,20 @@
   "crossSessionMessageDesc": "에이전트가 다른 대화로 메시지를 보낼 수 있게 합니다. 끄면 입력창의 @@ 대화 멘션도 비활성화됩니다.",
   "crossSessionMessageDisabledBanner": "대화 간 메시지가 꺼져 있어 입력창의 @@ 대화 멘션을 사용할 수 없습니다.",
   "crossSessionMessageResume": "다시 켜기",
-  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다"
+  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다",
+  "autoModel": {
+    "title": "Auto 모델 라우팅",
+    "description": "장시간 실행되는 aionrs 에이전트를 위해 planner, worker, utility 슬롯을 연결합니다. 1단계에서는 Auto 선택 시 구체 모델로 해석하고, 2단계에서는 에이전트를 재구성하지 않고 슬롯을 전환할 예정입니다.",
+    "preference": "슬롯이 자동일 때",
+    "preferenceCost": "비용 우선",
+    "preferenceBalance": "비용과 품질 균형",
+    "preferenceQuality": "품질 우선",
+    "automatic": "자동",
+    "slot": {
+      "planner": "Planner 모델",
+      "worker": "Worker 모델",
+      "utility": "Utility 모델"
+    },
+    "phaseNote": "현재 Auto는 worker 슬롯을 사용합니다. planner/utility 전환은 Core가 에이전트를 중지하지 않고 모델을 바꿀 수 있을 때 제공됩니다."
+  }
 }

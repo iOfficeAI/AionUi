@@ -782,5 +782,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expandir plan",
     "collapse": "Contraer plan"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (enrutamiento planner/worker)",
+    "pill": "Auto · {{model}}",
+    "noCandidates": "No hay modelos disponibles para Auto"
   }
 }

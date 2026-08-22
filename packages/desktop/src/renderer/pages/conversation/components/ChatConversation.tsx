@@ -152,7 +152,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
-    async (_provider: IProvider, modelName: string) => {
+    async (_provider: IProvider, modelName: string, meta?: { autoEnabled: boolean }) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       // Kill running agent on model switch — will be rebuilt with new model on next message
       if (runtimeView.activeTurnId) {
@@ -162,7 +162,27 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         });
         runtimeView.markStopAcknowledged(runtimeView.activeTurnId, result.runtime);
       }
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      const autoEnabled = Boolean(meta?.autoEnabled);
+      const ok = await ipcBridge.conversation.update.invoke({
+        id: conversation.id,
+        updates: {
+          model: selected,
+          extra: {
+            auto_model: autoEnabled
+              ? {
+                  enabled: true,
+                  phase: 'worker',
+                  last_resolved: {
+                    provider_id: selected.id,
+                    model: selected.use_model,
+                    slot: 'worker',
+                  },
+                }
+              : { enabled: false },
+          },
+        },
+        merge_extra: true,
+      });
       return Boolean(ok);
     },
     [conversation.id, runtimeView]
@@ -170,6 +190,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 
   const modelSelection = useAionrsModelSelection({
     initialModel: conversation.model,
+    initialAutoEnabled: Boolean(conversation.extra?.auto_model?.enabled),
     onSelectModel,
   });
   // Project conversations get the Layout-level Explorer column (stage3 FULL);
