@@ -1,6 +1,17 @@
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+
+/**
+ * The value currently in the text field the event fired on, or null when the
+ * event carries no such target. This is the authoritative, synchronous input
+ * text — unlike the controlled `input` prop, which updates a render later and
+ * can lag a fast keystroke.
+ */
+function readInputValue(event: ReactKeyboardEvent): string | null {
+  const target = event.currentTarget as { value?: unknown } | null;
+  return target && typeof target.value === 'string' ? target.value : null;
+}
 
 // Match slash followed by command name (alphanumeric, underscore, hyphen only)
 // 匹配斜杠后跟命令名（仅允许字母数字、下划线、连字符）
@@ -100,9 +111,19 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
 
   const isOpen = query !== null && !dismissed && filteredCommands.length > 0;
 
-  const executeCommand = useCallback(
-    (index: number) => {
-      const command = filteredCommands[index];
+  // Latest values mirrored into refs so the keydown handler can decide from a
+  // freshly-computed command list (see onKeyDown) without depending on the
+  // possibly-stale closure captured at render time.
+  const commandsRef = useRef(commands);
+  commandsRef.current = commands;
+  const dismissedRef = useRef(dismissed);
+  dismissedRef.current = dismissed;
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+
+  const executeFromList = useCallback(
+    (list: SlashCommandItem[], index: number) => {
+      const command = list[index];
       if (!command) {
         return false;
       }
@@ -116,11 +137,42 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
       setDismissed(true);
       return true;
     },
-    [filteredCommands, onExecuteBuiltin, onSelectTemplate]
+    [onExecuteBuiltin, onSelectTemplate]
+  );
+
+  const executeCommand = useCallback(
+    (index: number) => executeFromList(filteredCommands, index),
+    [executeFromList, filteredCommands]
   );
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent) => {
+      // Enter and Tab both accept the active command, matching the @-mention
+      // dropdown (see resolveAtFileMenuKey). Shift+Enter inserts a newline, so it
+      // must not accept; Tab always does.
+      const isAccept = (event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab';
+      if (isAccept) {
+        // Resolve the menu from the live DOM value, NOT the memoized isOpen /
+        // filteredCommands. The textarea is controlled by an async `input` prop,
+        // so on fast typing the keystroke can land before React re-renders this
+        // hook with the latest text; the captured state would then be stale and
+        // let the raw "/command" text send instead of selecting the command.
+        const liveValue = readInputValue(event) ?? input;
+        const liveQuery = matchSlashQuery(liveValue);
+        if (liveQuery === null || dismissedRef.current) {
+          return false;
+        }
+        const liveFiltered = filterSlashCommands(commandsRef.current, liveQuery);
+        if (liveFiltered.length === 0) {
+          return false;
+        }
+        event.preventDefault();
+        const index = Math.min(activeIndexRef.current, liveFiltered.length - 1);
+        return executeFromList(liveFiltered, index);
+      }
+
+      // Navigation and dismissal only act on a menu that is actually open. A
+      // stale-closed isOpen here is harmless: these keys never send a message.
       if (!isOpen) {
         return false;
       }
@@ -143,14 +195,9 @@ export function useSlashCommandController(options: UseSlashCommandControllerOpti
         return true;
       }
 
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        return executeCommand(activeIndex);
-      }
-
       return false;
     },
-    [activeIndex, executeCommand, filteredCommands.length, isOpen]
+    [executeFromList, filteredCommands.length, input, isOpen]
   );
 
   return {
