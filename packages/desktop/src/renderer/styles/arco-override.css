@@ -60,6 +60,12 @@
     'Liberation Mono',
     monospace
   );
+  /* Code-region font weight, mirroring --font-mono. applyFontWeights sets
+     --code-font-weight only when the user picks a code weight (empty otherwise),
+     so this falls back to `inherit`, keeping the built-in weight. Every
+     var(--font-mono) site declares font-weight: var(--font-mono-weight) next to
+     it, so the code-region weight follows the selection for free. */
+  --font-mono-weight: var(--code-font-weight, inherit);
   --code-font-size: 13px;
   --aion-overlay-bg: #ffffff;
   --aion-overlay-text: #1d2129;
@@ -101,6 +107,11 @@ body {
      base), so the whole app scales with the global size, while regions with
      their own size var (chat/markdown/code) still override within their scope. */
   font-size: var(--app-font-size, 14px);
+  /* Global ("app") region font weight. --app-font-weight is set by
+     applyFontWeights when a global weight is chosen (empty otherwise), so this
+     falls back to `normal`, keeping default rendering unchanged. Only text that
+     sets no weight of its own inherits it (headings/strong/buttons keep theirs). */
+  font-weight: var(--app-font-weight, normal);
   /* 根元素必须自己铺底色。Electron 窗口底色是固定的白色，html/body 若保持透明，
      任何布局缝隙都会漏出白色 —— 深色模式下就是刺眼的白边。
      The root must paint its own background. The Electron window's own background

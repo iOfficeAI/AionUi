@@ -9,6 +9,8 @@
   color: var(--text-primary);
   /* Markdown-region font; inherits the app/global font until a Markdown font is chosen. */
   font-family: var(--md-font-family, inherit);
+  /* Markdown-region weight; inherits the surrounding weight until one is chosen. */
+  font-weight: var(--md-font-weight, inherit);
   /* Comfortable reading size for the rendered preview (source editor is 13px mono). */
   font-size: var(--md-font-size, 15px);
   line-height: 1.7;
@@ -90,6 +92,7 @@
   border-radius: 4px;
   font-size: 0.875em;
   font-family: var(--font-mono);
+  font-weight: var(--font-mono-weight);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
@@ -106,6 +109,7 @@
 }
 .aionui-markdown :where(pre) :where(code) {
   font-family: var(--font-mono);
+  font-weight: var(--font-mono-weight);
 }
 
 /* Code block scrollbar — blends with surface */

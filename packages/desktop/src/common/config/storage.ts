@@ -28,6 +28,11 @@ export interface IConfigStorageRefer {
   'ui.fontFamily.chat'?: string;
   'ui.fontFamily.markdown'?: string;
   'ui.fontFamily.code'?: string;
+  /** Per-region configurable font weights (standard tiers), set in Appearance settings */
+  'ui.fontWeight.app'?: string;
+  'ui.fontWeight.chat'?: string;
+  'ui.fontWeight.markdown'?: string;
+  'ui.fontWeight.code'?: string;
   /** Last-known main window size and position, restored on next launch */
   'window.bounds'?: { x?: number; y?: number; width: number; height: number };
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */

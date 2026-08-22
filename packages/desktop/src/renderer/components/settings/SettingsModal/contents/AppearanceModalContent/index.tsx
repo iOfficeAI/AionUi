@@ -14,6 +14,7 @@ import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import FontSizeStepper from './FontSizeStepper';
 import FontFamilySelect from './FontFamilySelect';
+import FontWeightSelect from './FontWeightSelect';
 
 /**
  * Map each appearance region to its row-label i18n key. Regions match
@@ -60,7 +61,7 @@ const AppearanceModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
-  const { fontSizes, setFontSize, fontFamilies, setFontFamily } = useThemeContext();
+  const { fontSizes, setFontSize, fontFamilies, setFontFamily, fontWeights, setFontWeight } = useThemeContext();
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -84,6 +85,7 @@ const AppearanceModalContent: React.FC = () => {
                       value={fontFamilies[key]}
                       onChange={(family) => void setFontFamily(key, family)}
                     />
+                    <FontWeightSelect value={fontWeights[key]} onChange={(weight) => void setFontWeight(key, weight)} />
                     <FontSizeStepper
                       value={fontSizes[key]}
                       min={FONT_SIZE_SPECS[key].min}

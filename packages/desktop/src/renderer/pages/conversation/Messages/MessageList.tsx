@@ -752,7 +752,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
             <div
               ref={setContentRef}
               data-testid='message-list-content'
-              style={{ overflowAnchor: 'none', fontFamily: 'var(--chat-font-family, inherit)' }}
+              style={{
+                overflowAnchor: 'none',
+                fontFamily: 'var(--chat-font-family, inherit)',
+                fontWeight: 'var(--chat-font-weight, inherit)',
+              }}
             >
               <div className='h-10px' />
               {processedList.map((item, index) => (
