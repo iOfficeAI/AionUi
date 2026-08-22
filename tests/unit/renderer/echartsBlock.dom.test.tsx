@@ -37,8 +37,8 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => {
       const translations: Record<string, string> = {
         'preview.echartsTitle': 'ECharts Chart',
-        'preview.viewSource': 'View Source',
-        'preview.viewDiagram': 'View Diagram',
+        'preview.preview': 'Preview',
+        'preview.source': 'Source',
         'preview.openInPanelTooltip': 'Open in panel',
         'preview.renderError': 'Render Error',
         'common.copySuccess': 'Copied',
@@ -108,6 +108,7 @@ describe('EchartsBlock Component', () => {
     render(<EchartsBlock code={validChartCode} isDark={false} />);
 
     expect(screen.getByTestId('echarts-header')).toBeInTheDocument();
+    expect(screen.getByText('<echarts>')).toBeInTheDocument();
     expect(screen.getByTestId('echarts-diagram')).toBeInTheDocument();
     expect(mockInit).toHaveBeenCalled();
     expect(mockSetOption).toHaveBeenCalled();
@@ -118,14 +119,13 @@ describe('EchartsBlock Component', () => {
 
     expect(screen.getByTestId('echarts-diagram')).toBeInTheDocument();
 
-    const viewSourceBtn = screen.getByText('View Source');
-    fireEvent.click(viewSourceBtn);
+    const viewSourceToggle = screen.getByTestId('echarts-toggle-source');
+    fireEvent.mouseDown(viewSourceToggle, { button: 0 });
 
     expect(screen.queryByTestId('echarts-diagram')).not.toBeInTheDocument();
-    expect(screen.getByText('View Diagram')).toBeInTheDocument();
 
-    const viewDiagramBtn = screen.getByText('View Diagram');
-    fireEvent.click(viewDiagramBtn);
+    const viewPreviewToggle = screen.getByTestId('echarts-toggle-preview');
+    fireEvent.mouseDown(viewPreviewToggle, { button: 0 });
 
     expect(screen.getByTestId('echarts-diagram')).toBeInTheDocument();
   });
