@@ -51,6 +51,7 @@
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",
   "wavedromTitle": "WaveDrom Diyagramı",
+  "echartsTitle": "ECharts Grafiği",
   "oversized": {
     "title": "Dosya önizleme için çok büyük",
     "detail": "Dosya boyutu {{size}}, {{threshold}} sınırını aşıyor. Lütfen bir sistem düzenleyicisinde açın.",

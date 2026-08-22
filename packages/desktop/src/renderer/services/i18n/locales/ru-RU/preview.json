@@ -53,6 +53,7 @@
   "openInPanelTooltip": "Просмотреть в панели предпросмотра",
   "mermaidTitle": "Диаграмма Mermaid",
   "wavedromTitle": "Диаграмма WaveDrom",
+  "echartsTitle": "График ECharts",
   "oversized": {
     "title": "Файл слишком большой для предпросмотра",
     "detail": "Размер файла {{size}} превышает предел {{threshold}}. Откройте его в системном редакторе.",
