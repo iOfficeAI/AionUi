@@ -154,8 +154,10 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string, meta?: { autoEnabled: boolean }) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
-      // Kill running agent on model switch — will be rebuilt with new model on next message
-      if (runtimeView.activeTurnId) {
+      const sameProvider = conversation.model?.id === selected.id;
+      // Same-provider switches are hot-swapped by Core; only stop/rebuild when
+      // the provider itself changes (or Core lacks hot-swap and rebuilds later).
+      if (runtimeView.activeTurnId && !sameProvider) {
         const result = await ipcBridge.conversation.stop.invoke({
           conversation_id: conversation.id,
           turn_id: runtimeView.activeTurnId,
@@ -186,12 +188,13 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       });
       return Boolean(ok);
     },
-    [conversation.id, runtimeView]
+    [conversation.id, conversation.model?.id, runtimeView]
   );
 
   const modelSelection = useAionrsModelSelection({
     initialModel: conversation.model,
     initialAutoEnabled: Boolean(conversation.extra?.auto_model?.enabled),
+    initialAutoPhase: conversation.extra?.auto_model?.phase,
     onSelectModel,
   });
   // Project conversations get the Layout-level Explorer column (stage3 FULL);

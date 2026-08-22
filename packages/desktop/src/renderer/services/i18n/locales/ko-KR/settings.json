@@ -1428,6 +1428,6 @@
       "worker": "Worker 모델",
       "utility": "Utility 모델"
     },
-    "phaseNote": "현재 Auto는 worker 슬롯을 사용합니다. planner/utility 전환은 Core가 에이전트를 중지하지 않고 모델을 바꿀 수 있을 때 제공됩니다."
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
   }
 }

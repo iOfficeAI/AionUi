@@ -785,7 +785,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto（プランナー/ワーカー振り分け）",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "Auto に使えるモデルがありません"
   }
 }

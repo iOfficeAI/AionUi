@@ -785,7 +785,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto (planner/worker routing)",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "No available models for Auto"
   }
 }

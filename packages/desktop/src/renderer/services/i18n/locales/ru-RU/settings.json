@@ -1440,6 +1440,6 @@
       "worker": "Worker model",
       "utility": "Utility model"
     },
-    "phaseNote": "Today Auto uses the worker slot. Planner/utility switches land when Core can change models without stopping the agent."
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
   }
 }

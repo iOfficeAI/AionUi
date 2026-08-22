@@ -787,7 +787,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto (planner/worker yönlendirme)",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "Auto için kullanılabilir model yok"
   }
 }

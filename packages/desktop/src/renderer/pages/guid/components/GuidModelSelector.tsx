@@ -71,8 +71,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     if (!current_model?.use_model) return '';
     if (autoEnabled) {
       return t('conversation.autoModel.pill', {
+        phase: 'planner',
         model: current_model.use_model,
-        defaultValue: `Auto · ${current_model.use_model}`,
+        defaultValue: `Auto · planner/${current_model.use_model}`,
       });
     }
     return current_model.use_model;

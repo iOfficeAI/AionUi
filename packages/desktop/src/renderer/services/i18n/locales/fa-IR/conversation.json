@@ -785,7 +785,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto (مسیریابی planner/worker)",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "مدلی برای Auto در دسترس نیست"
   }
 }

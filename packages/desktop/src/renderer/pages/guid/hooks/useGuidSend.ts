@@ -196,11 +196,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             auto_model: autoEnabled
               ? {
                   enabled: true,
-                  phase: 'worker',
+                  phase: 'planner',
                   last_resolved: {
                     provider_id: current_model.id,
                     model: current_model.use_model,
-                    slot: 'worker',
+                    slot: 'planner',
                   },
                 }
               : { enabled: false },

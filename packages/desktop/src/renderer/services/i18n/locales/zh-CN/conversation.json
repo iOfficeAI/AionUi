@@ -785,7 +785,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto（规划/执行路由）",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "没有可用于 Auto 的模型"
   }
 }

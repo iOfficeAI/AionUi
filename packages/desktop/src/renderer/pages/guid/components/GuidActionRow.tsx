@@ -256,8 +256,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       ];
       currentModelLabel = autoEnabled
         ? t('conversation.autoModel.pill', {
+            phase: 'planner',
             model: current_model?.use_model || '',
-            defaultValue: `Auto · ${current_model?.use_model || ''}`,
+            defaultValue: `Auto · planner/${current_model?.use_model || ''}`,
           })
         : current_model?.use_model || '';
       onModelSelect = (key) => {

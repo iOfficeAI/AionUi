@@ -1428,6 +1428,6 @@
       "worker": "Worker モデル",
       "utility": "Utility モデル"
     },
-    "phaseNote": "現在 Auto は worker スロットを使用します。planner/utility 切替は、Core がエージェント停止なしでモデル変更できるようになってから実装されます。"
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
   }
 }

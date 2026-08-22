@@ -786,7 +786,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto (enrutamiento planner/worker)",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "No hay modelos disponibles para Auto"
   }
 }

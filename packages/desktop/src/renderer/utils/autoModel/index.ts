@@ -23,5 +23,9 @@ export {
   isAutoCompositeId,
 } from './constants';
 export { resolveAutoModel } from './resolveAutoModel';
+export { decideAutoModelPhase, looksLikeReplanRequest } from './decideAutoModelPhase';
+export { applyAutoModelForTurn, persistAutoModelConversationState } from './applyAutoModelForTurn';
+export type { ApplyAutoModelForTurnInput, ApplyAutoModelForTurnResult } from './applyAutoModelForTurn';
+export type { DecideAutoModelPhaseInput } from './decideAutoModelPhase';
 export { normalizeAutoModelSettings, readAutoModelSettings, writeAutoModelSettings } from './settings';
 export { preferenceWeight, scoreModelForSlots } from './tierHeuristics';

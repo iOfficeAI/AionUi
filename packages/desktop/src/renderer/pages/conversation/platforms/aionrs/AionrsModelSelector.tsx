@@ -69,14 +69,15 @@ const AionrsModelSelector: React.FC<{
     );
   }
 
-  const { providers, getAvailableModels, handleSelectModel, handleSelectAuto, autoEnabled } = selection;
+  const { providers, getAvailableModels, handleSelectModel, handleSelectAuto, autoEnabled, autoPhase } = selection;
 
   const label = getModelDisplayLabel({
     selected_value: current_model?.use_model,
     selectedLabel: autoEnabled
       ? t('conversation.autoModel.pill', {
+          phase: autoPhase || 'worker',
           model: current_model?.use_model || '',
-          defaultValue: `Auto · ${current_model?.use_model || ''}`,
+          defaultValue: `Auto · ${autoPhase || 'worker'}/${current_model?.use_model || ''}`,
         })
       : current_model?.use_model || '',
     defaultModelLabel,

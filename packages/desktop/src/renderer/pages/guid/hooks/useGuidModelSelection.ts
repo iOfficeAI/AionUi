@@ -83,7 +83,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
   const selectAutoModel = useCallback(async () => {
     try {
       const resolved = resolveAutoModel({
-        phase: 'worker',
+        phase: 'planner',
         settings: readAutoModelSettings(),
         providers: modelList,
         getAvailableModels,

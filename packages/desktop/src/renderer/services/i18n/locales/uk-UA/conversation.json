@@ -801,7 +801,7 @@
   "autoModel": {
     "groupTitle": "Auto",
     "optionLabel": "Auto (маршрутизація planner/worker)",
-    "pill": "Auto · {{model}}",
+    "pill": "Auto · {{phase}}/{{model}}",
     "noCandidates": "Немає доступних моделей для Auto"
   }
 }
