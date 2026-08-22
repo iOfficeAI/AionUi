@@ -3,6 +3,8 @@
   "downloadFile": "下載檔案",
   "closePreview": "關閉預覽",
   "collapsePanel": "收起面板",
+  "maximizePanel": "最大化",
+  "restorePanel": "還原",
   "source": "原文",
   "code": "Code",
   "preview": "預覽",

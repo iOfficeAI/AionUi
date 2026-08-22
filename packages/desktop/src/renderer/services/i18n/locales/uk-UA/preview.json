@@ -3,6 +3,8 @@
   "downloadFile": "Завантажити файл",
   "closePreview": "Закрити перегляд",
   "collapsePanel": "Згорнути панель",
+  "maximizePanel": "Розгорнути",
+  "restorePanel": "Відновити",
   "source": "Вихідний код",
   "code": "Код",
   "preview": "Перегляд",

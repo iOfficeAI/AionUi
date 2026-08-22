@@ -3,6 +3,8 @@
   "downloadFile": "Download file",
   "closePreview": "Close preview",
   "collapsePanel": "Collapse panel",
+  "maximizePanel": "Maximize",
+  "restorePanel": "Restore",
   "source": "Source",
   "code": "Code",
   "preview": "Preview",

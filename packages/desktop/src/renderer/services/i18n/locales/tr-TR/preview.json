@@ -3,6 +3,8 @@
   "downloadFile": "Dosyayı İndir",
   "closePreview": "Önizlemeyi Kapat",
   "collapsePanel": "Paneli Daralt",
+  "maximizePanel": "Büyüt",
+  "restorePanel": "Geri Yükle",
   "source": "Kaynak",
   "code": "Kod",
   "preview": "Önizleme",

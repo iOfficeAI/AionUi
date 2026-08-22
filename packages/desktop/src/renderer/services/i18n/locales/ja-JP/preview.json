@@ -3,6 +3,8 @@
   "downloadFile": "ファイルをダウンロード",
   "closePreview": "プレビューを閉じる",
   "collapsePanel": "パネルを閉じる",
+  "maximizePanel": "最大化",
+  "restorePanel": "元に戻す",
   "source": "ソース",
   "code": "Code",
   "preview": "プレビュー",
