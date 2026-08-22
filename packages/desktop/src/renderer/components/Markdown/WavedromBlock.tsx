@@ -39,12 +39,12 @@ type WavedromBlockProps = {
 // in WavedromBlock.
 
 // Session-wide id allocation: each WavedromBlock instance reserves one number
-// at mount time (it becomes the SVG root id `svgcontent_<n>` above), so every
-// diagram in the document gets a unique id even when several instances mount in
-// the same commit. The counter is only read inside the svg memo and advanced in
-// the ref initializer / commit effect — never inside the memo itself — keeping
-// the memo pure; a StrictMode double-invoke merely skips numbers, which is
-// harmless for uniqueness.
+// on its first render (it becomes the SVG root id `svgcontent_<n>` above), so
+// every diagram in the document gets a unique id even when several instances
+// render in the same commit — the reservations run synchronously in component
+// order, so earlier mounts always pick lower numbers. The counter is never
+// touched inside the svg memo, which stays pure; a StrictMode double-render
+// only re-reads the already-reserved ref and reserves nothing again.
 let nextDiagramIndex = 0;
 
 // The bundled dark skin is a mechanical "swap black for white" job: its
@@ -175,9 +175,15 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   // theme for the source-view highlight and for a future 'auto' mode.
   const renderTheme = resolveWaveRenderTheme(WAVEDROM_THEME_MODE, currentTheme);
 
-  // Diagram id for this instance: reserved once at mount from the module
-  // counter so it stays unique across every instance for the life of the page.
-  const idRef = useRef<number>(nextDiagramIndex++);
+  // Diagram id for this instance: reserved lazily on the first render from the
+  // module counter so it stays unique across every instance for the life of the
+  // page. useRef's argument is evaluated on every render, so a raw
+  // `useRef(nextDiagramIndex++)` would bump the counter on each re-render —
+  // the sentinel guard runs the reservation exactly once instead.
+  const idRef = useRef<number>(-1);
+  if (idRef.current < 0) {
+    idRef.current = nextDiagramIndex++;
+  }
 
   // Pan/zoom transform for the rendered diagram (only used when enablePanZoom).
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
@@ -220,13 +226,6 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
     () => renderWaveSvg(debouncedCode, renderTheme === 'dark', idRef.current),
     [debouncedCode, renderTheme]
   );
-
-  // Keep the module counter ahead of every mounted instance so later mounts
-  // reserve fresh ids. The bump happens here — after the render committed —
-  // never inside the svg memo, which stays pure.
-  useEffect(() => {
-    nextDiagramIndex += 1;
-  }, [svg]);
 
   // Restore the user's preferred view once a fresh diagram renders; invalid
   // input stays on the source view. A re-render also replaces the overlay
