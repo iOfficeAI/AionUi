@@ -13,9 +13,7 @@ export type AutoModelPhase = 'planner' | 'worker' | 'utility';
 export type AutoModelPreference = 'cost' | 'balance' | 'quality';
 
 /** One bound model, or automatic heuristic fill. */
-export type AutoModelSlotBinding =
-  | { mode: 'automatic' }
-  | { mode: 'fixed'; provider_id: string; model: string };
+export type AutoModelSlotBinding = { mode: 'automatic' } | { mode: 'fixed'; provider_id: string; model: string };
 
 export type AutoModelSlots = {
   planner: AutoModelSlotBinding;

@@ -25,10 +25,7 @@ const supportsVision = (provider: IProvider, modelName: string): boolean => {
 
 type Candidate = { provider: IProvider; modelName: string; score: number };
 
-const collectCandidates = (
-  input: ResolveAutoModelInput,
-  slot: AutoModelPhase
-): Candidate[] => {
+const collectCandidates = (input: ResolveAutoModelInput, slot: AutoModelPhase): Candidate[] => {
   const out: Candidate[] = [];
   for (const provider of input.providers) {
     if (provider.enabled === false) continue;

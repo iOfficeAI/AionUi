@@ -31,9 +31,7 @@ describe('scoreModelForSlots', () => {
 });
 
 describe('resolveAutoModel', () => {
-  const providers = [
-    provider('p1', ['claude-haiku-4', 'claude-sonnet-4', 'claude-opus-4']),
-  ];
+  const providers = [provider('p1', ['claude-haiku-4', 'claude-sonnet-4', 'claude-opus-4'])];
   const getAvailableModels = (p: IProvider) => p.models;
 
   it('picks a concrete model for the worker slot automatically', () => {

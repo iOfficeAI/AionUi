@@ -25,11 +25,7 @@ export type AionrsModelSelection = {
 export type UseAionrsModelSelectionOptions = {
   initialModel: TProviderWithModel | undefined;
   initialAutoEnabled?: boolean;
-  onSelectModel: (
-    provider: IProvider,
-    modelName: string,
-    meta?: { autoEnabled: boolean }
-  ) => Promise<boolean>;
+  onSelectModel: (provider: IProvider, modelName: string, meta?: { autoEnabled: boolean }) => Promise<boolean>;
 };
 
 export const useAionrsModelSelection = ({

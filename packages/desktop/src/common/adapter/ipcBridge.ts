@@ -1869,6 +1869,20 @@ export interface ICreateConversationParams {
     remote_agent_id?: string;
     extra_skill_paths?: string[];
     team_id?: string;
+    /**
+     * Sticky Auto routing flag (issue #4143).
+     * Concrete model is always on `model`; this only marks Auto selection.
+     */
+    auto_model?: {
+      enabled: boolean;
+      preference?: 'cost' | 'balance' | 'quality';
+      phase?: 'planner' | 'worker' | 'utility';
+      last_resolved?: {
+        provider_id: string;
+        model: string;
+        slot: 'planner' | 'worker' | 'utility';
+      };
+    };
   };
 }
 
