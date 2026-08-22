@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import CodeBlock from './CodeBlock';
+import InlineMath from './InlineMath';
 import LocalFileLink from './LocalFileLink';
 import ShadowView from './ShadowView';
 import { MARKDOWN_REMARK_PLUGINS, MarkdownTable, MarkdownTd } from './markdownComponents';
@@ -83,11 +84,17 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
     // unmounts/remounts all custom components → hooks & DOM state are lost.
     const components = useMemo(
       () => ({
-        span: ({ node: _node, className: cn, children: ch, ...rest }: Record<string, unknown>) => (
-          <span {...(rest as React.HTMLAttributes<HTMLSpanElement>)} className={cn as string}>
-            {ch as React.ReactNode}
-          </span>
-        ),
+        span: ({ node: _node, className: cn, children: ch, ...rest }: Record<string, unknown>) => {
+          const classNameStr = (cn as string) || '';
+          if (classNameStr.includes('katex-inline')) {
+            return <InlineMath math={String(ch || '')} className={classNameStr} style={rest.style as React.CSSProperties} />;
+          }
+          return (
+            <span {...(rest as React.HTMLAttributes<HTMLSpanElement>)} className={classNameStr}>
+              {ch as React.ReactNode}
+            </span>
+          );
+        },
         code: (props: Record<string, unknown>) => (
           <CodeBlock
             {...(props as Parameters<typeof CodeBlock>[0])}

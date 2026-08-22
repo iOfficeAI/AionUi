@@ -6,15 +6,13 @@
 
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
-import katex from 'katex';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import MathBlock from './MathBlock';
 import MermaidBlock from './MermaidBlock';
-import WavedromBlock from './WavedromBlock';
-import EchartsBlock from './EchartsBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
 
 const PREVIEW_LINES = 3;
@@ -30,10 +28,9 @@ type CodeBlockProps = {
   node?: unknown;
   hiddenCodeCopyButton?: boolean;
   codeStyle?: React.CSSProperties;
-  // Enable drag-to-pan + zoom on rendered diagrams (Mermaid, WaveDrom). Chat
-  // messages and the preview panel both opt in; other surfaces keep diagrams
-  // static.
-  diagramPanZoom?: boolean;
+  // Enable drag-to-pan + zoom on rendered Mermaid diagrams. Chat messages and the
+  // preview panel both opt in; other surfaces keep diagrams static.
+  mermaidPanZoom?: boolean;
   [key: string]: unknown;
 };
 
@@ -70,42 +67,23 @@ function CodeBlock(props: CodeBlockProps) {
     node: _node,
     hiddenCodeCopyButton: _h,
     codeStyle: _c,
-    diagramPanZoom: _dpz,
+    mermaidPanZoom: _mpz,
     ...rest
   } = props;
   const match = /language-(\w+)/.exec(className || '');
   const language = match?.[1] || 'text';
 
-  // KaTeX math blocks
+  // KaTeX math blocks with interactive toolbar & preview panel zoom
   if (language === 'latex' || language === 'math' || language === 'tex') {
     const latexSource = String(children).replace(/\n$/, '');
     const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
     if (!isFullDocument) {
-      try {
-        const html = katex.renderToString(latexSource, { displayMode: true, throwOnError: false });
-        return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
-      } catch {
-        // fall through
-      }
+      return <MathBlock code={latexSource} style={props.codeStyle} enablePanZoom={props.mermaidPanZoom} />;
     }
   }
 
   if (language === 'mermaid') {
-    return <MermaidBlock code={formatCode(children)} style={props.codeStyle} enablePanZoom={props.diagramPanZoom} />;
-  }
-
-  if (language === 'wavedrom' || language === 'wavejson') {
-    return <WavedromBlock code={formatCode(children)} style={props.codeStyle} enablePanZoom={props.diagramPanZoom} />;
-  }
-
-  if (language === 'echarts' || language === 'echart' || language === 'chart') {
-    return (
-      <EchartsBlock
-        code={formatCode(children)}
-        isDark={currentTheme === 'dark'}
-        diagramPanZoom={props.diagramPanZoom}
-      />
-    );
+    return <MermaidBlock code={formatCode(children)} style={props.codeStyle} enablePanZoom={props.mermaidPanZoom} />;
   }
 
   // Inline code (single line)
