@@ -25,11 +25,9 @@ describe('decideAutoModelPhase', () => {
   });
 
   it('escalates to planner after worker failures or replan text', () => {
-    expect(
-      decideAutoModelPhase({ hasPriorUserTurns: true, userInput: 'ok', consecutiveWorkerFailures: 2 })
-    ).toBe('planner');
-    expect(decideAutoModelPhase({ hasPriorUserTurns: true, userInput: 'rethink the architecture' })).toBe(
+    expect(decideAutoModelPhase({ hasPriorUserTurns: true, userInput: 'ok', consecutiveWorkerFailures: 2 })).toBe(
       'planner'
     );
+    expect(decideAutoModelPhase({ hasPriorUserTurns: true, userInput: 'rethink the architecture' })).toBe('planner');
   });
 });
