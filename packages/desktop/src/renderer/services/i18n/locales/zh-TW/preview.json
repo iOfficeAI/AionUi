@@ -59,6 +59,7 @@
   "openInPanelTooltip": "在預覽面板中查看",
   "mermaidTitle": "Mermaid 圖表",
   "wavedromTitle": "WaveDrom 波形圖",
+  "echartsTitle": "ECharts 圖表",
   "oversized": {
     "title": "檔案過大，無法預覽",
     "detail": "檔案大小 {{size}} 超過 {{threshold}}，請使用系統編輯器開啟。",

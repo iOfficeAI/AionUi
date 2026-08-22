@@ -1311,6 +1311,7 @@ export type I18nKey =
   | 'preview.downloadDiff'
   | 'preview.downloadFile'
   | 'preview.downloadMarkdown'
+  | 'preview.echartsTitle'
   | 'preview.edit'
   | 'preview.editor'
   | 'preview.errors.conversionFailed'

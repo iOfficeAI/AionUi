@@ -14,6 +14,7 @@ import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
 import WavedromBlock from './WavedromBlock';
+import EchartsBlock from './EchartsBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
 
 const PREVIEW_LINES = 3;
@@ -95,6 +96,16 @@ function CodeBlock(props: CodeBlockProps) {
 
   if (language === 'wavedrom' || language === 'wavejson') {
     return <WavedromBlock code={formatCode(children)} style={props.codeStyle} enablePanZoom={props.diagramPanZoom} />;
+  }
+
+  if (language === 'echarts' || language === 'echart' || language === 'chart') {
+    return (
+      <EchartsBlock
+        code={formatCode(children)}
+        isDark={currentTheme === 'dark'}
+        diagramPanZoom={props.diagramPanZoom}
+      />
+    );
   }
 
   // Inline code (single line)
