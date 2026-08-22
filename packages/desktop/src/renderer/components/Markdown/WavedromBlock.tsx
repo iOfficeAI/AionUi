@@ -31,10 +31,21 @@ type WavedromBlockProps = {
   enablePanZoom?: boolean;
 };
 
-// Module-level counter so every rendered diagram gets a unique `svgcontent_<n>`
-// id (WaveDrom derives it from the index passed to renderAny); duplicate ids in
-// the DOM would otherwise accumulate when several diagrams share a message.
-let diagramIndex = 0;
+// WaveDrom derives the diagram's root id `svgcontent_<n>` from the index passed
+// to renderAny, and applies the skin's lane geometry only for index 0 (its lane
+// parameters live in a module-level singleton that later diagrams inherit). The
+// caller therefore hands in an index that starts at 0 for the session's first
+// diagram and is unique across diagrams — see the nextDiagramIndex allocation
+// in WavedromBlock.
+
+// Session-wide id allocation: each WavedromBlock instance reserves one number
+// at mount time (it becomes the SVG root id `svgcontent_<n>` above), so every
+// diagram in the document gets a unique id even when several instances mount in
+// the same commit. The counter is only read inside the svg memo and advanced in
+// the ref initializer / commit effect — never inside the memo itself — keeping
+// the memo pure; a StrictMode double-invoke merely skips numbers, which is
+// harmless for uniqueness.
+let nextDiagramIndex = 0;
 
 // The bundled dark skin is a mechanical "swap black for white" job: its
 // multi-bit value labels (s8-s15) and the gap fill (s6) are near-black, so they
@@ -128,8 +139,12 @@ const PAN_CLICK_THRESHOLD = 4;
  * parser the official WaveDrom editor uses) so hand-written or LLM-generated
  * WaveJSON with comments or trailing commas still renders; anything that does
  * not describe signal/assign/reg lanes falls back to the source view.
+ *
+ * `index` is the unique diagram id reserved for this instance from the module
+ * counter (see the comment above); it must stay pure — no mutation here — so
+ * the caller can safely drive it from a memo.
  */
-const renderWaveSvg = (code: string, isDark: boolean): string | null => {
+const renderWaveSvg = (code: string, isDark: boolean, index: number): string | null => {
   const skin: WaveSkin = isDark ? waveSkinDarkRemapped : waveSkinDefault;
   try {
     const parsed: unknown = JSON5.parse(code.trim());
@@ -137,7 +152,7 @@ const renderWaveSvg = (code: string, isDark: boolean): string | null => {
     const source = parsed as WaveSource;
     const hasLanes = Array.isArray(source.signal) || Array.isArray(source.assign) || Array.isArray(source.reg);
     if (!hasLanes) return null;
-    const tree = WaveDrom.renderAny(diagramIndex++, source, skin);
+    const tree = WaveDrom.renderAny(index, source, skin);
     return withResponsiveSvg(WaveDrom.onml.stringify(tree));
   } catch {
     return null;
@@ -159,6 +174,10 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   // 'light' regardless of the app theme — the observer above still tracks the
   // theme for the source-view highlight and for a future 'auto' mode.
   const renderTheme = resolveWaveRenderTheme(WAVEDROM_THEME_MODE, currentTheme);
+
+  // Diagram id for this instance: reserved once at mount from the module
+  // counter so it stays unique across every instance for the life of the page.
+  const idRef = useRef<number>(nextDiagramIndex++);
 
   // Pan/zoom transform for the rendered diagram (only used when enablePanZoom).
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
@@ -197,7 +216,17 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   // render theme changes and returns null for invalid input (source view
   // fallback). In light-only mode the render theme never changes with the app
   // theme, so the diagram is not re-rendered on theme switches.
-  const svg = useMemo(() => renderWaveSvg(debouncedCode, renderTheme === 'dark'), [debouncedCode, renderTheme]);
+  const svg = useMemo(
+    () => renderWaveSvg(debouncedCode, renderTheme === 'dark', idRef.current),
+    [debouncedCode, renderTheme]
+  );
+
+  // Keep the module counter ahead of every mounted instance so later mounts
+  // reserve fresh ids. The bump happens here — after the render committed —
+  // never inside the svg memo, which stays pure.
+  useEffect(() => {
+    nextDiagramIndex += 1;
+  }, [svg]);
 
   // Restore the user's preferred view once a fresh diagram renders; invalid
   // input stays on the source view. A re-render also replaces the overlay
@@ -214,14 +243,18 @@ function WavedromBlock({ code, style, showOpenInPanelButton = true, enablePanZoo
   // Backdrop for the rendered diagram (and the zoom overlay card): stays in
   // lock-step with the skin via the shared render theme, see PANEL_BG above.
   const panelBackground = PANEL_BG[renderTheme];
-  const summary = code
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find(Boolean);
-  const previewTitle =
-    summary && summary.length > 0
+  // First non-empty line of the source doubles as the preview panel title,
+  // truncated to 48 chars; memoized since it only changes with the source or
+  // the locale.
+  const previewTitle = useMemo(() => {
+    const summary = code
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+    return summary && summary.length > 0
       ? `${t('preview.wavedromTitle')}: ${summary.slice(0, 48)}${summary.length > 48 ? '...' : ''}`
       : t('preview.wavedromTitle');
+  }, [code, t]);
 
   const zoomBy = (delta: number) =>
     setTransform((prev) => ({
