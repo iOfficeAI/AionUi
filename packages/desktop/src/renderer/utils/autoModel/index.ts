@@ -4,7 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type { AutoModelConversationExtra, AutoModelPhase, AutoModelPreference, AutoModelSettings, AutoModelSlotBinding, AutoModelSlots, ResolveAutoModelInput, ResolveAutoModelResult } from './types';
+export type {
+  AutoModelConversationExtra,
+  AutoModelPhase,
+  AutoModelPreference,
+  AutoModelSettings,
+  AutoModelSlotBinding,
+  AutoModelSlots,
+  ResolveAutoModelInput,
+  ResolveAutoModelResult,
+} from './types';
 export {
   AUTO_MODEL_COMPOSITE_ID,
   AUTO_MODEL_CONFIG_KEY,

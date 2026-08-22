@@ -25,7 +25,16 @@ export const scoreModelForSlots = (modelName: string): TierScore => {
     (/(sonnet|gpt-4\.1(?!-mini)|qwen.*max|gemini.*pro)/i.test(name) ? 3 : 0);
 
   const worker =
-    matchScore(name, [/sonnet/i, /gpt-4\.1(?!-mini)/i, /gpt-4o(?!-mini)/i, /qwen.*max/i, /qwen.*plus/i, /gemini.*pro/i, /deepseek-chat/i, /coder/i]) +
+    matchScore(name, [
+      /sonnet/i,
+      /gpt-4\.1(?!-mini)/i,
+      /gpt-4o(?!-mini)/i,
+      /qwen.*max/i,
+      /qwen.*plus/i,
+      /gemini.*pro/i,
+      /deepseek-chat/i,
+      /coder/i,
+    ]) +
     (utility > 4 ? 1 : 0) +
     (planner > 6 ? 2 : 4);
 
@@ -41,11 +50,7 @@ const matchScore = (name: string, patterns: RegExp[]): number => {
 };
 
 /** Preference biases which automatic candidate wins within a seat. */
-export const preferenceWeight = (
-  preference: AutoModelPreference,
-  slot: AutoModelPhase,
-  scores: TierScore
-): number => {
+export const preferenceWeight = (preference: AutoModelPreference, slot: AutoModelPhase, scores: TierScore): number => {
   const base = scores[slot];
   if (preference === 'cost') {
     if (slot === 'planner') return base - scores.utility * 0.5;

@@ -167,6 +167,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         id: conversation.id,
         updates: {
           model: selected,
+          // merge_extra patch — same cast pattern as useAionrsMessage token usage.
           extra: {
             auto_model: autoEnabled
               ? {
@@ -179,7 +180,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
                   },
                 }
               : { enabled: false },
-          },
+          } as TChatConversation['extra'],
         },
         merge_extra: true,
       });
