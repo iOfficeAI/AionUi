@@ -84,5 +84,5 @@ export function buildAttachedMentionRanges(params: AttachedMentionRangesParams):
     ranges.push({ start: token.start, end: token.end });
   }
 
-  return ranges.sort((left, right) => left.start - right.start);
+  return ranges.toSorted((left, right) => left.start - right.start);
 }
