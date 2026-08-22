@@ -27,10 +27,8 @@ const DEFAULT_CHART_HEIGHT = 360;
 
 function EchartsBlock({ code, isDark = false, style, diagramPanZoom: _diagramPanZoom }: EchartsBlockProps) {
   const { t } = useTranslation();
-  const previewContext = usePreviewContext();
-  const openPreview = previewContext?.openPreview;
-  const isPreviewPanel = previewContext?.isPreviewPanel ?? false;
-  const showOpenInPanelButton = typeof openPreview === 'function' && !isPreviewPanel;
+  const { openPreview } = usePreviewContext();
+  const showOpenInPanelButton = typeof openPreview === 'function';
 
   const preferredViewModeRef = useRef<'preview' | 'source'>('preview');
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview');

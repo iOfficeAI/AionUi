@@ -17,6 +17,16 @@
   -webkit-app-region: drag;
 }
 
+/* Progressive Web App Window Controls Overlay (Edge / Chrome) */
+.app-titlebar--pwa-wco {
+  -webkit-app-region: drag;
+  height: env(titlebar-area-height, 38px);
+  min-height: env(titlebar-area-height, 38px);
+  line-height: env(titlebar-area-height, 38px);
+  padding-left: calc(env(titlebar-area-x, 0px) + 8px);
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 8px);
+}
+
 .app-titlebar--mobile {
   height: 48px;
   min-height: 48px;
