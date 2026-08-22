@@ -100,6 +100,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           style={{
             fontSize: '13px',
             fontFamily: 'var(--font-mono)',
+            fontWeight: 'var(--font-mono-weight)',
             height: '100%',
           }}
         />

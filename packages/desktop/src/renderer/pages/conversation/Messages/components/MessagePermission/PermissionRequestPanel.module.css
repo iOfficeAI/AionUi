@@ -90,6 +90,7 @@
   color: var(--color-text-1);
   background: transparent;
   font-family: var(--font-mono);
+  font-weight: var(--font-mono-weight);
   font-size: 11px;
   line-height: 1.45;
   overflow-wrap: anywhere;

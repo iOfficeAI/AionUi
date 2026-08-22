@@ -151,6 +151,7 @@ export const createInitStyle = (
     font-size:var(--code-font-size, 13px);
     line-height:20px;
     font-family: var(--font-mono);
+    font-weight: var(--font-mono-weight);
   }
 
   .markdown-shadow-body>p:last-child{
@@ -186,6 +187,7 @@ export const createInitStyle = (
     border-radius: 4px;
     font-size: 0.875em;
     font-family: var(--font-mono);
+    font-weight: var(--font-mono-weight);
   }
   blockquote {
     border-left: 3px solid var(--bg-3);
