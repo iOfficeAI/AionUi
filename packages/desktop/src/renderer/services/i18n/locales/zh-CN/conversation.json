@@ -775,5 +775,11 @@
     "rateLimited": "会话「{{from}}」与「{{to}}」之间的自动消息过于频繁，可能在空转。",
     "stopBoth": "停止这两个会话",
     "disableFeature": "关闭跨会话消息"
+  },
+  "planBar": {
+    "title": "计划",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "展开计划",
+    "collapse": "收起计划"
   }
 }

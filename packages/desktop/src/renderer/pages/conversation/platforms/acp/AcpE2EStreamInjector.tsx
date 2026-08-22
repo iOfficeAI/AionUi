@@ -6,6 +6,12 @@
 
 import type { TMessage } from '@/common/chat/chatLib';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import type { TConversationRuntimeSummary } from '@/common/config/storage';
+import {
+  localSendAccepted,
+  localSendStarted,
+  turnCompleted,
+} from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import React, { useEffect } from 'react';
 
 const STREAM_TICK_MS = 35;
@@ -25,6 +31,11 @@ type StreamController = {
   emitFileChange: (path: string, oldText: string, newText: string) => Promise<void>;
   emitAgentStatusError: (agentName: string) => Promise<void>;
   emitFollowUpExchange: () => Promise<void>;
+  emitPlan: (
+    entries: Array<{ content: string; status: 'pending' | 'in_progress' | 'completed' }>,
+    options?: { msgId?: string; turnId?: string }
+  ) => Promise<void>;
+  endPlanTurn: (options?: { turnId?: string }) => Promise<void>;
 };
 
 type StreamRegistry = {
@@ -102,7 +113,48 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
 
     const registry = (window.__AIONUI_E2E_MESSAGE_STREAM__ ??= { controllers: {} });
 
+    // The plan bar gates on the RUNTIME view (isProcessing + activeTurnId), not
+    // on the message list, so injecting a plan row alone would never show it.
+    // These controllers drive both halves so an e2e exercises the real gate.
+    const runningRuntime = (turnId: string): TConversationRuntimeSummary => ({
+      state: 'running',
+      can_send_message: false,
+      has_task: true,
+      is_processing: true,
+      pending_confirmations: 0,
+      turn_id: turnId,
+      supports_midturn_delivery: false,
+    });
+
     registry.controllers[conversationId] = {
+      emitPlan: async (entries, options) => {
+        const msgId = options?.msgId ?? 'e2e-plan-msg';
+        const turnId = options?.turnId ?? 'e2e-plan-turn';
+        localSendStarted(conversationId);
+        localSendAccepted(conversationId, turnId, runningRuntime(turnId), msgId);
+        addOrUpdateMessage({
+          // Deterministic id mirroring the persisted row's primary key, so a
+          // second emitPlan updates the same card instead of stacking one.
+          id: `plan:${msgId}`,
+          msg_id: msgId,
+          conversation_id: conversationId,
+          type: 'plan',
+          position: 'left',
+          created_at: Date.now(),
+          content: { entries, turn_id: turnId },
+        } as TMessage);
+      },
+      endPlanTurn: async (options) => {
+        const turnId = options?.turnId ?? 'e2e-plan-turn';
+        turnCompleted(conversationId, turnId, {
+          state: 'idle',
+          can_send_message: true,
+          has_task: false,
+          is_processing: false,
+          pending_confirmations: 0,
+          turn_id: null,
+        });
+      },
       runScenario: async (options?: RunScenarioOptions) => {
         const historyPairs = options?.historyPairs ?? 18;
         const lines = options?.lines ?? 160;

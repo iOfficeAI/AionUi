@@ -781,5 +781,11 @@
     "rateLimited": "As mensagens automáticas entre \"{{from}}\" e \"{{to}}\" estão excepcionalmente frequentes e podem estar em loop.",
     "stopBoth": "Parar as duas conversas",
     "disableFeature": "Desativar mensagens entre conversas"
+  },
+  "planBar": {
+    "title": "Plano",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expandir plano",
+    "collapse": "Recolher plano"
   }
 }

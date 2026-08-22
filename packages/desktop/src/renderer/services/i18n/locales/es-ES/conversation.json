@@ -776,5 +776,11 @@
     "rateLimited": "Los mensajes automáticos entre «{{from}}» y «{{to}}» son inusualmente frecuentes y podrían estar en bucle.",
     "stopBoth": "Detener ambas conversaciones",
     "disableFeature": "Desactivar los mensajes entre conversaciones"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expandir plan",
+    "collapse": "Contraer plan"
   }
 }

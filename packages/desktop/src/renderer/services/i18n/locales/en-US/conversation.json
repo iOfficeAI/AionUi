@@ -775,5 +775,11 @@
     "rateLimited": "Automatic messages between \"{{from}}\" and \"{{to}}\" are unusually frequent and may be looping.",
     "stopBoth": "Stop both conversations",
     "disableFeature": "Turn off cross-conversation messages"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expand plan",
+    "collapse": "Collapse plan"
   }
 }

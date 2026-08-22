@@ -777,5 +777,11 @@
     "rateLimited": "\"{{from}}\" ve \"{{to}}\" arasındaki otomatik mesajlar olağandışı sıklıkta; döngüye girmiş olabilir.",
     "stopBoth": "Her iki sohbeti durdur",
     "disableFeature": "Sohbetler arası mesajları kapat"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Planı genişlet",
+    "collapse": "Planı daralt"
   }
 }

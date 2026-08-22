@@ -62,7 +62,12 @@ interface MessageIndex {
 
 function getMessageIndexKey(message: TMessage): string | undefined {
   if (!message.msg_id) return undefined;
-  return message.type === 'thinking' ? `thinking:${message.msg_id}` : message.msg_id;
+  // Every frame of a turn shares one msg_id, so any type that needs its own
+  // slot in the shared msgIdIndex must namespace its key. Without this, a plan
+  // update resolves to whatever frame was appended last and rewrites it.
+  if (message.type === 'thinking') return `thinking:${message.msg_id}`;
+  if (message.type === 'plan') return `plan:${message.msg_id}`;
+  return message.msg_id;
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
@@ -359,25 +364,23 @@ export function composeMessageWithIndex(
     return list.concat(message);
   }
 
-  // plan message: update content and move to end of list
+  // plan message: a full-replacement snapshot, updated in place.
+  // The key is namespaced (see getMessageIndexKey) because the whole turn shares
+  // one msg_id. The type guard is a second line of defence: a stale index entry
+  // must never let a plan overwrite a different kind of message.
   if (message.type === 'plan' && message.msg_id) {
-    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    const planKey = `plan:${message.msg_id}`;
+    const existingIdx = index.msgIdIndex.get(planKey);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
-      const newList = list.slice();
-      newList.splice(existingIdx, 1);
-      const updated = { ...existingMsg, ...message, content: message.content } as TMessage;
-      newList.push(updated);
-      // Rebuild index after splice
-      const rebuilt = buildMessageIndex(newList);
-      index.msgIdIndex = rebuilt.msgIdIndex;
-      index.call_idIndex = rebuilt.call_idIndex;
-      index.tool_call_idIndex = rebuilt.tool_call_idIndex;
-      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
-      return newList;
+      if (existingMsg.type === 'plan') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, content: message.content } as TMessage;
+        return newList;
+      }
     }
     const newIdx = list.length;
-    index.msgIdIndex.set(message.msg_id, newIdx);
+    index.msgIdIndex.set(planKey, newIdx);
     return list.concat(message);
   }
 

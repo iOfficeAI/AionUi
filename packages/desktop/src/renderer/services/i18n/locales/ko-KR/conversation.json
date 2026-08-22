@@ -775,5 +775,11 @@
     "rateLimited": "\"{{from}}\"와 \"{{to}}\" 사이의 자동 메시지가 비정상적으로 잦아 반복되는 것 같습니다.",
     "stopBoth": "두 대화 모두 중지",
     "disableFeature": "대화 간 메시지 끄기"
+  },
+  "planBar": {
+    "title": "계획",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "계획 펼치기",
+    "collapse": "계획 접기"
   }
 }

@@ -775,5 +775,11 @@
     "rateLimited": "「{{from}}」と「{{to}}」の間の自動メッセージが異常に頻繁で、空転している可能性があります。",
     "stopBoth": "両方の会話を停止",
     "disableFeature": "会話間メッセージをオフにする"
+  },
+  "planBar": {
+    "title": "プラン",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "プランを展開",
+    "collapse": "プランを折りたたむ"
   }
 }
