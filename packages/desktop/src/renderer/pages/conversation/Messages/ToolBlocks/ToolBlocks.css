@@ -114,6 +114,7 @@ body[arco-theme='dark'] .tool-block {
   }
 }
 .tool-block__dot {
+  display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
