@@ -82,4 +82,9 @@ describe('GenericToolBlock', () => {
     expect(screen.getByText(/"a":1/)).toBeInTheDocument();
     expect(screen.getByText('ok')).toBeInTheDocument();
   });
+
+  it('shows the text exactly once when summary equals the title (ACP natural-language titles)', () => {
+    render(<GenericToolBlock block={block({ title: '查看主进程各模块文件', summary: '查看主进程各模块文件' })} />);
+    expect(screen.getAllByText('查看主进程各模块文件')).toHaveLength(1);
+  });
 });
