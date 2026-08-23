@@ -37,7 +37,7 @@ const block = (
 });
 
 describe('ToolGroupBlock', () => {
-  it('renders read and edit runs as separate list segments with action titles', () => {
+  it('renders read and edit runs as separate list segments with batch titles', () => {
     render(
       <ToolGroupBlock
         blocks={[
@@ -48,9 +48,9 @@ describe('ToolGroupBlock', () => {
         ]}
       />
     );
-    expect(screen.getByText('messages.toolBlocks.readTitle')).toBeInTheDocument();
-    expect(screen.getByText('messages.toolBlocks.editTitle')).toBeInTheDocument();
-    expect(screen.queryByText('messages.toolBlocks.fileOpsTitle')).not.toBeInTheDocument();
+    expect(screen.getByText('messages.toolBlocks.batchReadFiles')).toBeInTheDocument();
+    expect(screen.getByText('messages.toolBlocks.batchEditFiles')).toBeInTheDocument();
+    expect(screen.queryByText('messages.toolBlocks.readTitle')).not.toBeInTheDocument();
     expect(screen.getByText('a.ts')).toBeInTheDocument();
     expect(screen.getByText('b.ts')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('ToolGroupBlock', () => {
         ]}
       />
     );
-    expect(screen.getByText('messages.toolBlocks.bashTitle')).toBeInTheDocument();
+    expect(screen.getByText('messages.toolBlocks.batchRunCommands')).toBeInTheDocument();
     fireEvent.click(screen.getByText('cargo test'));
     // expanded body shows the command line AND the output (reference layout)
     expect(screen.getAllByText('cargo test')).toHaveLength(2);

@@ -121,17 +121,18 @@ const BashTimeline: React.FC<{ blocks: UnifiedToolBlock[] }> = ({ blocks }) => {
   );
 };
 
+/** Aggregated segments always hold ≥2 blocks (singles fall back to the
+ * single-block components), so their titles are the batch variants —
+ * matching the reference project's "Batch run commands (N)" wording. */
 const SEGMENT_TITLE: Record<string, string> = {
-  'bash-timeline': 'messages.toolBlocks.bashTitle',
+  'bash-timeline': 'messages.toolBlocks.batchRunCommands',
   todo: 'messages.toolBlocks.todoTitle',
 };
 
-/** List segment headers name the actual action (read vs edit vs search)
- * instead of a vague "file operations". */
 const LIST_TITLE: Record<string, string> = {
-  read: 'messages.toolBlocks.readTitle',
-  edit: 'messages.toolBlocks.editTitle',
-  search: 'messages.toolBlocks.searchTitle',
+  read: 'messages.toolBlocks.batchReadFiles',
+  edit: 'messages.toolBlocks.batchEditFiles',
+  search: 'messages.toolBlocks.batchSearch',
 };
 
 /** Isolated (non-grouped) block: render through the same single-block
