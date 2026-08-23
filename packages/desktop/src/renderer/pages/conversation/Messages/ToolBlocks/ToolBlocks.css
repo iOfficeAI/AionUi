@@ -176,3 +176,37 @@ body[arco-theme='dark'] .tool-block {
   height: 16px;
   border-radius: 4px;
 }
+
+.tool-block__mono {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.tool-block__command {
+  background: var(--color-fill-2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  color: var(--color-text-1);
+  overflow-x: auto;
+}
+.tool-block__output--error {
+  color: var(--color-danger-6);
+}
+.tool-detail-label {
+  font-size: 11px;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+.tool-detail-content {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  background: var(--color-fill-1);
+  border-radius: 6px;
+  color: var(--color-text-2);
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

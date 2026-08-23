@@ -1,0 +1,62 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
+import BashToolBlock from '@/renderer/pages/conversation/Messages/ToolBlocks/BashToolBlock';
+import EditToolBlock from '@/renderer/pages/conversation/Messages/ToolBlocks/EditToolBlock';
+import GenericToolBlock from '@/renderer/pages/conversation/Messages/ToolBlocks/GenericToolBlock';
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('@/renderer/components/base/FileChangesPanel', () => ({
+  __esModule: true,
+  default: () => <div data-testid='file-changes-panel' />,
+}));
+vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
+  useDiffPreviewHandlers: () => ({ handleFileClick: vi.fn(), handleDiffClick: vi.fn() }),
+}));
+
+const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock =>
+  ({ key: 'k', category: 'generic', status: 'completed', title: 'Tool', outputKind: 'text', raw: { type: 'tool_call' } as never, ...extra });
+
+describe('BashToolBlock', () => {
+  it('renders command summary and error output in red', () => {
+    render(<BashToolBlock block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })} />);
+    expect(screen.getAllByText('cargo build').length).toBeGreaterThan(0);
+    expect(screen.getByText(/error: failed/).className).toContain('tool-block__output--error');
+  });
+});
+
+describe('EditToolBlock', () => {
+  it('renders diff counts as chips and FileChangesPanel with reconstructed patch', () => {
+    render(
+      <EditToolBlock
+        block={block({
+          category: 'edit',
+          fileName: 'a.ts',
+          filePath: '/ws/a.ts',
+          diff: { added: 2, removed: 1 },
+          input: JSON.stringify({ file_path: '/ws/a.ts', old_string: 'x', new_string: 'y' }, null, 2),
+        })}
+      />
+    );
+    expect(screen.getByText('+2')).toBeInTheDocument();
+    expect(screen.getByText('-1')).toBeInTheDocument();
+    expect(screen.getByTestId('file-changes-panel')).toBeInTheDocument();
+  });
+});
+
+describe('GenericToolBlock', () => {
+  it('renders raw title and expands to show input/output', () => {
+    render(<GenericToolBlock block={block({ title: 'SomeMcpTool', input: '{"a":1}', output: 'ok' })} />);
+    expect(screen.getAllByText('SomeMcpTool').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /genericTitle/ }));
+    expect(screen.getByText(/"a":1/)).toBeInTheDocument();
+    expect(screen.getByText('ok')).toBeInTheDocument();
+  });
+});
