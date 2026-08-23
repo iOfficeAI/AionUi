@@ -51,6 +51,21 @@ const ErrorActions: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => (
   </div>
 );
 
+/** Monochrome file icon for read-list entries; follows currentColor so it
+ * adapts to the active theme. */
+const FileEntryIcon: React.FC<{ size?: number }> = ({ size = 12 }) => (
+  <svg
+    className='tool-block__icon'
+    viewBox='0 0 1024 1024'
+    width={size}
+    height={size}
+    fill='currentColor'
+    aria-hidden='true'
+  >
+    <path d='M569.6 64L832 326.4v556.8c0 44.8-32 76.8-76.8 76.8H268.8c-44.8 0-76.8-32-76.8-76.8V140.8C192 96 224 64 268.8 64h300.8zM256 128v768h512V384H512V128H256z m288 486.4v57.6h-192v-57.6h192z m128-134.4v64h-320v-64h320z m57.6-160L576 166.4V320h153.6z' />
+  </svg>
+);
+
 const FileRow: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
   const [expanded, setExpanded] = useState(false);
   const hasDetail = Boolean(block.input || block.output);
@@ -61,7 +76,11 @@ const FileRow: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
         className={`flex items-center gap-8px py-6px px-8px rd-4px${hasDetail ? ' cursor-pointer' : ''}`}
         onClick={() => hasDetail && setExpanded(!expanded)}
       >
-        <CategoryIcon category={block.category} iconKey={getToolIconKey(block.title)} small />
+        {block.category === 'read' ? (
+          <FileEntryIcon size={12} />
+        ) : (
+          <CategoryIcon category={block.category} iconKey={getToolIconKey(block.title)} small />
+        )}
         <span className='tool-block__mono text-1 text-12px'>{block.fileName ?? block.summary ?? block.title}</span>
         {block.lineRange && <span className='text-4 text-11px'>{block.lineRange}</span>}
         {block.diff && (
