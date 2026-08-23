@@ -70,7 +70,7 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({ category, titleKey, sum
         }}
       >
         {expandable ? (
-          <span className='color-text-3' style={{ fontSize: 10, display: 'inline-flex' }}>
+          <span className='text-3' style={{ fontSize: 10, display: 'inline-flex' }}>
             {expanded ? <IconDown style={{ fontSize: 10 }} /> : <IconRight style={{ fontSize: 10 }} />}
           </span>
         ) : null}

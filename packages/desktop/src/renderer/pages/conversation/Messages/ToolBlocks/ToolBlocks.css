@@ -210,3 +210,22 @@ body[arco-theme='dark'] .tool-block {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.tool-block__todo-check {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.tool-block__todo-check[data-status='in_progress']::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tool-cat-edit-fg);
+  animation: tool-block-breathing 1.5s ease-in-out infinite;
+}
