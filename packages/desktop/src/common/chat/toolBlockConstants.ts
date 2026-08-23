@@ -89,9 +89,9 @@ export interface ToolBlockMeta {
 export const TOOL_BLOCK_META: Record<ToolCategory, ToolBlockMeta> = {
   edit: { titleKey: 'messages.toolBlocks.editTitle', icon: 'Edit' },
   bash: { titleKey: 'messages.toolBlocks.bashTitle', icon: 'Terminal' },
-  read: { titleKey: 'messages.toolBlocks.readTitle', icon: 'File' },
+  read: { titleKey: 'messages.toolBlocks.readTitle', icon: 'FileCode' },
   search: { titleKey: 'messages.toolBlocks.searchTitle', icon: 'Search' },
-  task: { titleKey: 'messages.toolBlocks.taskTitle', icon: 'Setting' },
-  todo: { titleKey: 'messages.toolBlocks.todoTitle', icon: 'CheckList' },
-  generic: { titleKey: 'messages.toolBlocks.genericTitle', icon: 'Toolbox' },
+  task: { titleKey: 'messages.toolBlocks.taskTitle', icon: 'SettingTwo' },
+  todo: { titleKey: 'messages.toolBlocks.todoTitle', icon: 'Checklist' },
+  generic: { titleKey: 'messages.toolBlocks.genericTitle', icon: 'Toolkit' },
 };

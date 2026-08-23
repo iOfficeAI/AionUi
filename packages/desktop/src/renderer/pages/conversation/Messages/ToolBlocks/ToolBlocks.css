@@ -1,0 +1,178 @@
+/* Tool block unified rendering styles. Category color tokens: light values on
+ * :root, dark overrides via Arco's dark theme attribute. */
+
+:root {
+  --tool-cat-edit-bg: #e8f3ff;
+  --tool-cat-edit-fg: #165dff;
+  --tool-cat-bash-bg: #fff7e8;
+  --tool-cat-bash-fg: #ff7d00;
+  --tool-cat-read-bg: #e8ffea;
+  --tool-cat-read-fg: #00b42a;
+  --tool-cat-search-bg: #f4eefe;
+  --tool-cat-search-fg: #722ed1;
+  --tool-cat-task-bg: #e8fffb;
+  --tool-cat-task-fg: #14c9c9;
+  --tool-cat-todo-bg: #fffce8;
+  --tool-cat-todo-fg: #f7ba1e;
+  --tool-cat-generic-bg: #f2f3f5;
+  --tool-cat-generic-fg: #86909c;
+  --tool-block-bg: var(--color-bg-2);
+  --tool-block-border: transparent;
+  --tool-diff-add-bg: #e8ffea;
+  --tool-diff-del-bg: #ffece8;
+  --tool-diff-add-fg: #00b42a;
+  --tool-diff-del-fg: #f53f3f;
+}
+
+body[arco-theme='dark'] {
+  --tool-cat-edit-bg: rgba(22, 93, 255, 0.15);
+  --tool-cat-bash-bg: rgba(255, 125, 0, 0.15);
+  --tool-cat-read-bg: rgba(0, 180, 42, 0.15);
+  --tool-cat-search-bg: rgba(114, 46, 209, 0.18);
+  --tool-cat-task-bg: rgba(20, 201, 201, 0.15);
+  --tool-cat-todo-bg: rgba(247, 186, 30, 0.15);
+  --tool-cat-generic-bg: rgba(134, 144, 156, 0.15);
+  --tool-block-bg: var(--color-fill-1);
+  --tool-block-border: var(--color-border-2);
+  --tool-diff-add-bg: rgba(0, 180, 42, 0.15);
+  --tool-diff-del-bg: rgba(245, 63, 63, 0.15);
+}
+
+.tool-block {
+  background: var(--tool-block-bg);
+  border: 1px solid var(--tool-block-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin: 8px 0;
+}
+body[arco-theme='dark'] .tool-block {
+  box-shadow: none;
+}
+
+.tool-block__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-block__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+.tool-block__body--open {
+  grid-template-rows: 1fr;
+}
+.tool-block__body-inner {
+  overflow: hidden;
+  border-top: 1px solid var(--color-fill-2);
+}
+.tool-block__body--open .tool-block__body-inner {
+  padding: 8px 12px 10px 34px;
+}
+
+.tool-block__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-1);
+}
+.tool-block__summary {
+  font-size: 12px;
+  color: var(--color-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-block__count {
+  font-size: 11px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--color-fill-2);
+  color: var(--color-text-3);
+  flex-shrink: 0;
+}
+.tool-block__count--add {
+  background: var(--tool-diff-add-bg);
+  color: var(--tool-diff-add-fg);
+}
+.tool-block__count--del {
+  background: var(--tool-diff-del-bg);
+  color: var(--tool-diff-del-fg);
+}
+
+@keyframes tool-block-breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+}
+.tool-block__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tool-block__dot--pending,
+.tool-block__dot--running {
+  background: #ff7d00;
+  animation: tool-block-breathing 1.5s ease-in-out infinite;
+}
+.tool-block__dot--completed {
+  background: #00b42a;
+}
+.tool-block__dot--error {
+  background: #f53f3f;
+}
+.tool-block__dot--canceled {
+  background: var(--color-text-4);
+}
+
+.tool-block__icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--tool-cat-generic-bg);
+  color: var(--tool-cat-generic-fg);
+}
+.tool-block__icon--edit {
+  background: var(--tool-cat-edit-bg);
+  color: var(--tool-cat-edit-fg);
+}
+.tool-block__icon--bash {
+  background: var(--tool-cat-bash-bg);
+  color: var(--tool-cat-bash-fg);
+}
+.tool-block__icon--read {
+  background: var(--tool-cat-read-bg);
+  color: var(--tool-cat-read-fg);
+}
+.tool-block__icon--search {
+  background: var(--tool-cat-search-bg);
+  color: var(--tool-cat-search-fg);
+}
+.tool-block__icon--task {
+  background: var(--tool-cat-task-bg);
+  color: var(--tool-cat-task-fg);
+}
+.tool-block__icon--todo {
+  background: var(--tool-cat-todo-bg);
+  color: var(--tool-cat-todo-fg);
+}
+.tool-block__icon--sm {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
