@@ -21,7 +21,7 @@ const ICONS: Record<ToolCategory, React.ComponentType<{ theme?: string; size?: n
 /** Monochrome outline category icon rendered in the tool block header. */
 const CategoryIcon: React.FC<{ category: ToolCategory; small?: boolean }> = ({ category, small }) => {
   const Icon = ICONS[category] ?? Toolkit;
-  return <Icon className='tool-block__icon' theme='outline' size={small ? 12 : 14} />;
+  return <Icon className='tool-block__icon' theme='outline' size={small ? 12 : 16} />;
 };
 
 export default CategoryIcon;

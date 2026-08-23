@@ -14,7 +14,6 @@ const ReadToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => (
   <ToolBlockShell
     category='read'
     status={block.status}
-    title={block.title}
     summary={[block.fileName, block.lineRange].filter(Boolean).join(' ')}
   >
     <ToolBlockDetail block={block} showInput={false} />

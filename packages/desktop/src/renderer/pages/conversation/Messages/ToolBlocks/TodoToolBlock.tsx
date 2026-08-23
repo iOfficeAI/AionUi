@@ -26,7 +26,6 @@ const TodoToolBlock: React.FC<{ block: UnifiedToolBlock; updateCount?: number }>
     <ToolBlockShell
       category='todo'
       status={block.status}
-      title={block.title}
       chips={
         <>
           {updateCount !== undefined && updateCount > 1 && (

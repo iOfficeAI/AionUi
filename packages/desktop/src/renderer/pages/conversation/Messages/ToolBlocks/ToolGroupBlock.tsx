@@ -102,7 +102,7 @@ const BashTimeline: React.FC<{ blocks: UnifiedToolBlock[] }> = ({ blocks }) => {
               style={{ background: 'var(--color-fill-2)' }}
               onClick={() => setOpenKey(openKey === block.key ? null : block.key)}
             >
-              {truncate(block.command ?? block.summary ?? block.title, 60)}
+              {truncate(block.summary ?? block.command ?? block.title, 60)}
             </div>
             {block.status === 'error' && <ErrorActions block={block} />}
             {openKey === block.key && (block.input || block.output) && (

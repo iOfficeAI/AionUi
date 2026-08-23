@@ -13,12 +13,7 @@ import ToolBlockShell from './ToolBlockShell';
 /** Bash block: human description (or command) in the header; full command
  * line and output below, output in red on error. */
 const BashToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => (
-  <ToolBlockShell
-    category='bash'
-    status={block.status}
-    title={block.title}
-    summary={truncate(block.summary ?? block.command, 60)}
-  >
+  <ToolBlockShell category='bash' status={block.status} summary={truncate(block.summary ?? block.command, 60)}>
     {block.command && <div className='tool-block__mono tool-block__command'>{block.command}</div>}
     <ToolBlockDetail block={block} showInput={false} outputError={block.status === 'error'} />
   </ToolBlockShell>
