@@ -100,12 +100,15 @@ vi.mock('@/renderer/pages/conversation/Messages/ToolBlocks/UnifiedToolRenderer',
   },
 }));
 
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroup', () => ({
-  default: ({ message }: { message: IMessageToolGroup }) => (
-    <div data-testid='tool-group' data-message-id={message.id}>
-      tool_group
-    </div>
-  ),
+vi.mock('@/renderer/pages/conversation/Messages/ToolBlocks/ToolGroupBlock', () => ({
+  default: ({ messages, messageId }: { messages?: Array<{ id: string }>; messageId?: string }) =>
+    messageId ? (
+      <div data-testid='tool-group' data-message-id={messageId}>
+        tool_group
+      </div>
+    ) : (
+      <div data-testid='tool-summary'>{(messages ?? []).map((message) => message.id).join(',')}</div>
+    ),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageAgentStatus', () => ({
@@ -134,12 +137,6 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageCronTrigger', 
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageSkillSuggest', () => ({
   default: () => <div>skill_suggest</div>,
-}));
-
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary', () => ({
-  default: ({ messages }: { messages: Array<IMessageToolGroup | IMessageAcpToolCall> }) => (
-    <div data-testid='tool-summary'>{messages.map((message) => message.id).join(',')}</div>
-  ),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/MessageFileChanges', () => ({

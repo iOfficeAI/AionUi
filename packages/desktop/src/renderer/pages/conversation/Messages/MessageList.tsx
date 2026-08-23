@@ -39,8 +39,7 @@ import {
 import MessageAgentStatus from './components/MessageAgentStatus';
 import MessageTips from './components/MessageTips';
 import UnifiedToolRenderer from './ToolBlocks/UnifiedToolRenderer';
-import MessageToolGroup from './components/MessageToolGroup';
-import MessageToolGroupSummary from './components/MessageToolGroupSummary';
+import ToolGroupBlock from './ToolBlocks/ToolGroupBlock';
 import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
@@ -285,8 +284,18 @@ const MessageItem: React.FC<{
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
           return <UnifiedToolRenderer message={message}></UnifiedToolRenderer>;
-        case 'tool_group':
-          return <MessageToolGroup message={message}></MessageToolGroup>;
+        case 'tool_group': {
+          const confirmationItems = message.content.filter((item) => item.confirmationDetails) as never[];
+          const toolItems = message.content.filter((item) => !item.confirmationDetails);
+          return (
+            <ToolGroupBlock
+              messages={[{ ...message, content: toolItems } as never]}
+              confirmationItems={confirmationItems}
+              messageId={message.id}
+              conversationId={message.conversation_id}
+            ></ToolGroupBlock>
+          );
+        }
         case 'agent_status':
           return <MessageAgentStatus message={message}></MessageAgentStatus>;
         case 'permission':
@@ -703,7 +712,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
-          {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
+          {item.type === 'tool_summary' && <ToolGroupBlock messages={item.messages}></ToolGroupBlock>}
         </div>
       );
     }
