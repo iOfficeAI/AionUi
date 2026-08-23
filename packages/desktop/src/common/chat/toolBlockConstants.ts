@@ -21,6 +21,7 @@ const BASH_TOOL_NAMES = new Set([
   'shellcommand',
   'execute',
   'run_command',
+  'runcommand',
   'terminal',
 ]);
 const READ_TOOL_NAMES = new Set(['read', 'read_file', 'view_file', 'viewfile', 'read_multiple_files', 'open_file']);
