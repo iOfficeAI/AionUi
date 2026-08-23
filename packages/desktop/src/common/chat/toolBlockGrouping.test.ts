@@ -46,11 +46,20 @@ describe('partitionByParent', () => {
 });
 
 describe('groupIntoSegments', () => {
-  it('merges consecutive file-ish blocks into a list segment', () => {
-    const segments = groupIntoSegments([block('r1', 'read'), block('e1', 'edit'), block('s1', 'search')]);
-    expect(segments).toHaveLength(1);
-    expect(segments[0].kind).toBe('list');
-    expect((segments[0] as Extract<ToolSegment, { kind: 'list' }>).blocks).toHaveLength(3);
+  it('merges consecutive same-category file blocks and splits on category change', () => {
+    // Each list segment keeps one action (read vs edit vs search) so the
+    // header can name the action instead of a vague "file operations".
+    const segments = groupIntoSegments([
+      block('r1', 'read'),
+      block('r2', 'read'),
+      block('e1', 'edit'),
+      block('e2', 'edit'),
+    ]);
+    expect(segments.map((s) => s.kind)).toEqual(['list', 'list']);
+    const readSeg = segments[0] as Extract<ToolSegment, { kind: 'list' }>;
+    const editSeg = segments[1] as Extract<ToolSegment, { kind: 'list' }>;
+    expect(readSeg.blocks.map((b) => b.key)).toEqual(['r1', 'r2']);
+    expect(editSeg.blocks.map((b) => b.key)).toEqual(['e1', 'e2']);
   });
 
   it('merges consecutive bash blocks into a timeline segment', () => {
@@ -78,9 +87,9 @@ describe('groupIntoSegments', () => {
     expect(segments.map((s) => s.kind)).toEqual(['single', 'single', 'single']);
   });
 
-  it('task blocks aggregate into a list segment', () => {
+  it('task blocks render individually (subagent cards, not list rows)', () => {
     const segments = groupIntoSegments([block('t1', 'task'), block('t2', 'task')]);
-    expect(segments[0].kind).toBe('list');
+    expect(segments.map((s) => s.kind)).toEqual(['single', 'single']);
   });
 
   it('single-block categories do not form segments of one when isolated', () => {

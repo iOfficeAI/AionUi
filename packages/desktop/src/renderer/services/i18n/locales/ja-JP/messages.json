@@ -107,7 +107,6 @@
   "toolBlocks.executeCommand": "コマンドを実行",
   "toolBlocks.exploreTitle": "探索",
   "toolBlocks.fileMatch": "ファイルマッチ",
-  "toolBlocks.fileOpsTitle": "ファイル操作",
   "toolBlocks.findFile": "ファイルを検索",
   "toolBlocks.genericTitle": "ツール",
   "toolBlocks.inputLabel": "入力",

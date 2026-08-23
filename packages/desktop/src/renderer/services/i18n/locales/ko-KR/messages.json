@@ -107,7 +107,6 @@
   "toolBlocks.executeCommand": "명령 실행",
   "toolBlocks.exploreTitle": "탐색",
   "toolBlocks.fileMatch": "파일 매칭",
-  "toolBlocks.fileOpsTitle": "파일 작업",
   "toolBlocks.findFile": "파일 찾기",
   "toolBlocks.genericTitle": "도구",
   "toolBlocks.inputLabel": "입력",

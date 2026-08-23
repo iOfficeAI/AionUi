@@ -37,16 +37,20 @@ const block = (
 });
 
 describe('ToolGroupBlock', () => {
-  it('renders a file list segment: rows with icon/file/line/status', () => {
+  it('renders read and edit runs as separate list segments with action titles', () => {
     render(
       <ToolGroupBlock
         blocks={[
           block('r1', 'read', { fileName: 'a.ts', lineRange: 'L1-10' }),
+          block('r2', 'read', { fileName: 'c.ts' }),
           block('e1', 'edit', { fileName: 'b.ts', diff: { added: 2, removed: 1 } }),
+          block('e2', 'edit', { fileName: 'd.ts', diff: { added: 1, removed: 1 } }),
         ]}
       />
     );
-    expect(screen.getByText('messages.toolBlocks.fileOpsTitle')).toBeInTheDocument();
+    expect(screen.getByText('messages.toolBlocks.readTitle')).toBeInTheDocument();
+    expect(screen.getByText('messages.toolBlocks.editTitle')).toBeInTheDocument();
+    expect(screen.queryByText('messages.toolBlocks.fileOpsTitle')).not.toBeInTheDocument();
     expect(screen.getByText('a.ts')).toBeInTheDocument();
     expect(screen.getByText('b.ts')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();

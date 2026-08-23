@@ -111,7 +111,6 @@
   "toolBlocks.executeCommand": "Выполнить команду",
   "toolBlocks.exploreTitle": "Исследовать",
   "toolBlocks.fileMatch": "Совпадение файлов",
-  "toolBlocks.fileOpsTitle": "Операции с файлами",
   "toolBlocks.findFile": "Найти файл",
   "toolBlocks.genericTitle": "Инструмент",
   "toolBlocks.inputLabel": "Ввод",

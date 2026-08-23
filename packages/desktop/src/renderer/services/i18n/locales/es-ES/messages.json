@@ -107,7 +107,6 @@
   "toolBlocks.executeCommand": "Ejecutar comando",
   "toolBlocks.exploreTitle": "Explorar",
   "toolBlocks.fileMatch": "Coincidencia de archivos",
-  "toolBlocks.fileOpsTitle": "Operaciones de archivos",
   "toolBlocks.findFile": "Buscar archivo",
   "toolBlocks.genericTitle": "Herramienta",
   "toolBlocks.inputLabel": "Entrada",

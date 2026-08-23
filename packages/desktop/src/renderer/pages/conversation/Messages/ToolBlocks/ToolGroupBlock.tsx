@@ -122,9 +122,16 @@ const BashTimeline: React.FC<{ blocks: UnifiedToolBlock[] }> = ({ blocks }) => {
 };
 
 const SEGMENT_TITLE: Record<string, string> = {
-  list: 'messages.toolBlocks.fileOpsTitle',
   'bash-timeline': 'messages.toolBlocks.bashTitle',
   todo: 'messages.toolBlocks.todoTitle',
+};
+
+/** List segment headers name the actual action (read vs edit vs search)
+ * instead of a vague "file operations". */
+const LIST_TITLE: Record<string, string> = {
+  read: 'messages.toolBlocks.readTitle',
+  edit: 'messages.toolBlocks.editTitle',
+  search: 'messages.toolBlocks.searchTitle',
 };
 
 /** Isolated (non-grouped) block: render through the same single-block
@@ -190,12 +197,16 @@ const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
         if (segment.kind === 'todo') {
           return <TodoToolBlock key={segment.latest.key} block={segment.latest} updateCount={segment.updateCount} />;
         }
-        const titleKey = SEGMENT_TITLE[segment.kind];
+        const listCategory = segment.blocks[0].category;
+        const titleKey =
+          segment.kind === 'list'
+            ? (LIST_TITLE[listCategory] ?? 'messages.toolBlocks.genericTitle')
+            : SEGMENT_TITLE[segment.kind];
         const doneCount = segment.blocks.filter((b) => b.status === 'completed').length;
         return (
           <div key={segment.blocks[0].key} className='tool-block'>
             <div className='tool-block__header' style={{ cursor: 'default' }}>
-              <CategoryIcon category={segment.kind === 'bash-timeline' ? 'bash' : 'read'} />
+              <CategoryIcon category={segment.kind === 'bash-timeline' ? 'bash' : listCategory} />
               <span className='tool-block__title'>{t(titleKey)}</span>
               <span className='tool-block__count'>{segment.blocks.length}</span>
               <span className='tool-block__count'>

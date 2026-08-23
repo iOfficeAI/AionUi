@@ -33,9 +33,10 @@ export type ToolSegment =
   | { kind: 'bash-timeline'; blocks: UnifiedToolBlock[] }
   | { kind: 'todo'; blocks: UnifiedToolBlock[]; latest: UnifiedToolBlock; updateCount: number };
 
-const LIST_CATEGORIES = new Set(['read', 'edit', 'search', 'task']);
+const LIST_CATEGORIES = new Set(['read', 'edit', 'search']);
 
-/** Aggregate consecutive same-category root blocks into segments. */
+/** Aggregate consecutive same-category root blocks into segments. List
+ * segments hold ONE category so the header names the actual action. */
 export function groupIntoSegments(blocks: UnifiedToolBlock[]): ToolSegment[] {
   const segments: ToolSegment[] = [];
   const pushSegment = (kind: ToolSegment['kind'], members: UnifiedToolBlock[]) => {
@@ -51,6 +52,7 @@ export function groupIntoSegments(blocks: UnifiedToolBlock[]): ToolSegment[] {
   };
 
   let currentKind: ToolSegment['kind'] | null = null;
+  let currentCategory: UnifiedToolBlock['category'] | null = null;
   let currentMembers: UnifiedToolBlock[] = [];
   for (const block of blocks) {
     const kind: ToolSegment['kind'] =
@@ -61,11 +63,17 @@ export function groupIntoSegments(blocks: UnifiedToolBlock[]): ToolSegment[] {
           : LIST_CATEGORIES.has(block.category)
             ? 'list'
             : 'single';
-    if (currentKind !== null && kind === currentKind && kind !== 'single') {
+    const sameGroup =
+      currentKind !== null &&
+      kind === currentKind &&
+      kind !== 'single' &&
+      (kind !== 'list' || block.category === currentCategory);
+    if (sameGroup) {
       currentMembers.push(block);
     } else {
       pushSegment(currentKind ?? 'single', currentMembers);
       currentKind = kind;
+      currentCategory = block.category;
       currentMembers = [block];
     }
   }

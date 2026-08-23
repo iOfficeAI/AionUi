@@ -113,7 +113,6 @@
   "toolBlocks.executeCommand": "Виконати команду",
   "toolBlocks.exploreTitle": "Дослідити",
   "toolBlocks.fileMatch": "Збіг файлів",
-  "toolBlocks.fileOpsTitle": "Операції з файлами",
   "toolBlocks.findFile": "Знайти файл",
   "toolBlocks.genericTitle": "Інструмент",
   "toolBlocks.inputLabel": "Введення",

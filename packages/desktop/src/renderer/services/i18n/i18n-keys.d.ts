@@ -1269,7 +1269,6 @@ export type I18nKey =
   | 'messages.toolBlocks.executeCommand'
   | 'messages.toolBlocks.exploreTitle'
   | 'messages.toolBlocks.fileMatch'
-  | 'messages.toolBlocks.fileOpsTitle'
   | 'messages.toolBlocks.findFile'
   | 'messages.toolBlocks.genericTitle'
   | 'messages.toolBlocks.inputLabel'

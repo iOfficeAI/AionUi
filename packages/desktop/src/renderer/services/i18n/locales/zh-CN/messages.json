@@ -107,7 +107,6 @@
   "toolBlocks.executeCommand": "执行命令",
   "toolBlocks.exploreTitle": "探索",
   "toolBlocks.fileMatch": "文件匹配",
-  "toolBlocks.fileOpsTitle": "文件操作",
   "toolBlocks.findFile": "查找文件",
   "toolBlocks.genericTitle": "工具",
   "toolBlocks.inputLabel": "输入",
