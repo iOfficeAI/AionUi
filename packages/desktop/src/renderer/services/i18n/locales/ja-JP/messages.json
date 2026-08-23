@@ -97,5 +97,19 @@
   "requestDetails": "リクエスト内容:",
   "delivery": {
     "pending": "未読"
-  }
+  },
+  "toolBlocks.editTitle": "ファイルを編集",
+  "toolBlocks.bashTitle": "コマンドを実行",
+  "toolBlocks.readTitle": "ファイルを読み込み",
+  "toolBlocks.searchTitle": "検索",
+  "toolBlocks.taskTitle": "サブエージェント",
+  "toolBlocks.todoTitle": "タスクリスト",
+  "toolBlocks.genericTitle": "ツール",
+  "toolBlocks.fileOpsTitle": "ファイル操作",
+  "toolBlocks.updatedNTimes": "{{count}} 回更新",
+  "toolBlocks.progressXY": "{{done}}/{{total}} 完了",
+  "toolBlocks.taskStepsLabel": "{{count}} ステップ",
+  "toolBlocks.taskPromptLabel": "プロンプト",
+  "toolBlocks.inputLabel": "入力",
+  "toolBlocks.outputLabel": "出力"
 }

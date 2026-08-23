@@ -97,5 +97,19 @@
   "requestDetails": "Détails de la demande :",
   "delivery": {
     "pending": "Non lu"
-  }
+  },
+  "toolBlocks.editTitle": "Modifier le fichier",
+  "toolBlocks.bashTitle": "Exécuter la commande",
+  "toolBlocks.readTitle": "Lire le fichier",
+  "toolBlocks.searchTitle": "Rechercher",
+  "toolBlocks.taskTitle": "Sous-agent",
+  "toolBlocks.todoTitle": "Liste des tâches",
+  "toolBlocks.genericTitle": "Outil",
+  "toolBlocks.fileOpsTitle": "Opérations sur les fichiers",
+  "toolBlocks.updatedNTimes": "Mis à jour {{count}} fois",
+  "toolBlocks.progressXY": "{{done}}/{{total}} terminé",
+  "toolBlocks.taskStepsLabel": "{{count}} étapes",
+  "toolBlocks.taskPromptLabel": "Invite",
+  "toolBlocks.inputLabel": "Entrée",
+  "toolBlocks.outputLabel": "Sortie"
 }

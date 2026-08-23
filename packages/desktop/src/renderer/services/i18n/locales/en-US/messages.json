@@ -97,5 +97,19 @@
   "requestDetails": "Request details:",
   "delivery": {
     "pending": "Unread"
-  }
+  },
+  "toolBlocks.editTitle": "Edit file",
+  "toolBlocks.bashTitle": "Run command",
+  "toolBlocks.readTitle": "Read file",
+  "toolBlocks.searchTitle": "Search",
+  "toolBlocks.taskTitle": "Subagent",
+  "toolBlocks.todoTitle": "Task list",
+  "toolBlocks.genericTitle": "Tool",
+  "toolBlocks.fileOpsTitle": "File operations",
+  "toolBlocks.updatedNTimes": "Updated {{count}} times",
+  "toolBlocks.progressXY": "{{done}}/{{total}} done",
+  "toolBlocks.taskStepsLabel": "{{count}} steps",
+  "toolBlocks.taskPromptLabel": "Prompt",
+  "toolBlocks.inputLabel": "Input",
+  "toolBlocks.outputLabel": "Output"
 }

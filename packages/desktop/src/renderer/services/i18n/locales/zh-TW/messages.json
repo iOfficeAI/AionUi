@@ -97,5 +97,19 @@
   "requestDetails": "請求內容：",
   "delivery": {
     "pending": "未讀"
-  }
+  },
+  "toolBlocks.editTitle": "編輯檔案",
+  "toolBlocks.bashTitle": "執行命令",
+  "toolBlocks.readTitle": "讀取檔案",
+  "toolBlocks.searchTitle": "搜尋",
+  "toolBlocks.taskTitle": "子代理",
+  "toolBlocks.todoTitle": "任務清單",
+  "toolBlocks.genericTitle": "工具",
+  "toolBlocks.fileOpsTitle": "檔案操作",
+  "toolBlocks.updatedNTimes": "更新 {{count}} 次",
+  "toolBlocks.progressXY": "{{done}}/{{total}} 完成",
+  "toolBlocks.taskStepsLabel": "{{count}} 步",
+  "toolBlocks.taskPromptLabel": "任務描述",
+  "toolBlocks.inputLabel": "輸入",
+  "toolBlocks.outputLabel": "輸出"
 }

@@ -103,5 +103,19 @@
   "requestDetails": "Деталі запиту:",
   "delivery": {
     "pending": "Непрочитано"
-  }
+  },
+  "toolBlocks.editTitle": "Редагувати файл",
+  "toolBlocks.bashTitle": "Виконати команду",
+  "toolBlocks.readTitle": "Прочитати файл",
+  "toolBlocks.searchTitle": "Пошук",
+  "toolBlocks.taskTitle": "Субагент",
+  "toolBlocks.todoTitle": "Список завдань",
+  "toolBlocks.genericTitle": "Інструмент",
+  "toolBlocks.fileOpsTitle": "Операції з файлами",
+  "toolBlocks.updatedNTimes": "Оновлено {{count}} разів",
+  "toolBlocks.progressXY": "{{done}}/{{total}} виконано",
+  "toolBlocks.taskStepsLabel": "{{count}} кроків",
+  "toolBlocks.taskPromptLabel": "Запит",
+  "toolBlocks.inputLabel": "Введення",
+  "toolBlocks.outputLabel": "Виведення"
 }

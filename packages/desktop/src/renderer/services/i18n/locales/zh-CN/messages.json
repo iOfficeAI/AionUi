@@ -97,5 +97,19 @@
   "requestDetails": "请求内容：",
   "delivery": {
     "pending": "未读"
-  }
+  },
+  "toolBlocks.editTitle": "编辑文件",
+  "toolBlocks.bashTitle": "执行命令",
+  "toolBlocks.readTitle": "读取文件",
+  "toolBlocks.searchTitle": "搜索",
+  "toolBlocks.taskTitle": "子代理",
+  "toolBlocks.todoTitle": "任务清单",
+  "toolBlocks.genericTitle": "工具",
+  "toolBlocks.fileOpsTitle": "文件操作",
+  "toolBlocks.updatedNTimes": "更新 {{count}} 次",
+  "toolBlocks.progressXY": "{{done}}/{{total}} 完成",
+  "toolBlocks.taskStepsLabel": "{{count}} 步",
+  "toolBlocks.taskPromptLabel": "任务描述",
+  "toolBlocks.inputLabel": "输入",
+  "toolBlocks.outputLabel": "输出"
 }

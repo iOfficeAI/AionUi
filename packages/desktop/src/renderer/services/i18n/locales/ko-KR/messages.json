@@ -97,5 +97,19 @@
   "requestDetails": "요청 내용:",
   "delivery": {
     "pending": "읽지 않음"
-  }
+  },
+  "toolBlocks.editTitle": "파일 편집",
+  "toolBlocks.bashTitle": "명령 실행",
+  "toolBlocks.readTitle": "파일 읽기",
+  "toolBlocks.searchTitle": "검색",
+  "toolBlocks.taskTitle": "하위 에이전트",
+  "toolBlocks.todoTitle": "작업 목록",
+  "toolBlocks.genericTitle": "도구",
+  "toolBlocks.fileOpsTitle": "파일 작업",
+  "toolBlocks.updatedNTimes": "{{count}}회 업데이트됨",
+  "toolBlocks.progressXY": "{{done}}/{{total}} 완료",
+  "toolBlocks.taskStepsLabel": "{{count}}단계",
+  "toolBlocks.taskPromptLabel": "프롬프트",
+  "toolBlocks.inputLabel": "입력",
+  "toolBlocks.outputLabel": "출력"
 }

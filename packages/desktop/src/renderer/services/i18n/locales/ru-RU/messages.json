@@ -101,5 +101,19 @@
   "requestDetails": "Детали запроса:",
   "delivery": {
     "pending": "Непрочитано"
-  }
+  },
+  "toolBlocks.editTitle": "Изменить файл",
+  "toolBlocks.bashTitle": "Выполнить команду",
+  "toolBlocks.readTitle": "Прочитать файл",
+  "toolBlocks.searchTitle": "Поиск",
+  "toolBlocks.taskTitle": "Субагент",
+  "toolBlocks.todoTitle": "Список задач",
+  "toolBlocks.genericTitle": "Инструмент",
+  "toolBlocks.fileOpsTitle": "Операции с файлами",
+  "toolBlocks.updatedNTimes": "Обновлено {{count}} раз",
+  "toolBlocks.progressXY": "{{done}}/{{total}} выполнено",
+  "toolBlocks.taskStepsLabel": "{{count}} шагов",
+  "toolBlocks.taskPromptLabel": "Запрос",
+  "toolBlocks.inputLabel": "Ввод",
+  "toolBlocks.outputLabel": "Вывод"
 }
