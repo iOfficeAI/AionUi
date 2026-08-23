@@ -19,7 +19,7 @@ import GenericToolBlock from './GenericToolBlock';
 /** Compact step row inside a Task block; click to expand full detail. */
 const StepRow: React.FC<{ step: UnifiedToolBlock }> = ({ step }) => {
   const [expanded, setExpanded] = useState(false);
-  const hasDetail = Boolean(step.input || step.output);
+  const hasDetail = Boolean(step.command || step.input || step.output);
   const summary = truncate(step.command ?? step.fileName ?? step.summary ?? step.title, 60);
   return (
     <div>
@@ -38,6 +38,7 @@ const StepRow: React.FC<{ step: UnifiedToolBlock }> = ({ step }) => {
       </div>
       {expanded && hasDetail && (
         <div className='m-l-24px'>
+          {step.command && <div className='tool-block__mono tool-block__command'>{step.command}</div>}
           <ToolBlockDetail block={step} outputError={step.status === 'error'} />
         </div>
       )}

@@ -63,6 +63,8 @@ describe('ToolGroupBlock', () => {
     );
     expect(screen.getByText('messages.toolBlocks.bashTitle')).toBeInTheDocument();
     fireEvent.click(screen.getByText('cargo test'));
+    // expanded body shows the command line AND the output (reference layout)
+    expect(screen.getAllByText('cargo test')).toHaveLength(2);
     expect(screen.getByText('ok')).toBeInTheDocument();
   });
 

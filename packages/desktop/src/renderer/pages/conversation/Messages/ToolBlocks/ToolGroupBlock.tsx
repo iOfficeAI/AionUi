@@ -105,8 +105,9 @@ const BashTimeline: React.FC<{ blocks: UnifiedToolBlock[] }> = ({ blocks }) => {
               {truncate(block.summary ?? block.command ?? block.title, 60)}
             </div>
             {block.status === 'error' && <ErrorActions block={block} />}
-            {openKey === block.key && (block.input || block.output) && (
+            {openKey === block.key && (block.command || block.input || block.output) && (
               <div className='mt-4px'>
+                {block.command && <div className='tool-block__mono tool-block__command'>{block.command}</div>}
                 <ToolBlockDetail block={block} showInput={false} outputError={block.status === 'error'} />
               </div>
             )}
