@@ -158,13 +158,37 @@ const buildBlock = (
   ...partial,
 });
 
+/** Some backends (claude-style) put the tool *description* into the name
+ * field, so name matching fails. The raw arg keys are then the only reliable
+ * signal — infer the category from the tool's parameter signature. */
+function inferCategoryFromArgs(source: Record<string, unknown> | undefined): ToolCategory {
+  if (!source) return 'generic';
+  const keys = new Set(Object.keys(source));
+  if (keys.has('todos')) return 'todo';
+  if (keys.has('subagent_type') || keys.has('subagentType') || keys.has('agent_type')) return 'task';
+  if (
+    keys.has('old_string') ||
+    keys.has('old_text') ||
+    keys.has('new_string') ||
+    keys.has('new_text') ||
+    keys.has('edits')
+  )
+    return 'edit';
+  if (keys.has('command') || keys.has('cmd')) return 'bash';
+  if (keys.has('url') || keys.has('pattern') || keys.has('query')) return 'search';
+  if (keys.has('content')) return 'edit';
+  if (keys.has('file_path') || keys.has('path') || keys.has('file_name') || keys.has('notebook_path')) return 'read';
+  return 'generic';
+}
+
 // ===== per-type normalizers =====
 
 function normalizeToolCall(message: IMessageToolCall): UnifiedToolBlock | undefined {
   const { call_id, name, status, input, output, args, description, parent_call_id } = message.content;
   if (!call_id) return undefined;
   const source = asRecord(input ?? args);
-  const category = categorizeToolName(name);
+  const nameCategory = categorizeToolName(name);
+  const category = nameCategory !== 'generic' ? nameCategory : inferCategoryFromArgs(source);
   const filePath = pickString(source, ['file_path', 'path', 'file_name', 'fileName']);
   const oldText = source.old_string ?? source.old_text;
   const newText = source.new_string ?? source.new_text;
@@ -251,7 +275,13 @@ function normalizeAcpToolCall(message: IMessageAcpToolCall): UnifiedToolBlock | 
   const rawInput = asRecord(update.rawInput ?? update.raw_input);
   // Task/todo tools are identified by title (name) even on the ACP path.
   const nameCategory = categorizeToolName(update.title);
-  const category = nameCategory !== 'generic' ? nameCategory : mapAcpKindToCategory(update.kind);
+  const kindCategory = mapAcpKindToCategory(update.kind);
+  const category =
+    nameCategory !== 'generic'
+      ? nameCategory
+      : kindCategory !== 'generic'
+        ? kindCategory
+        : inferCategoryFromArgs(rawInput);
   const filePath = pickString(rawInput, ['file_path', 'path', 'file_name']);
   const outputText = Array.isArray(update.content)
     ? update.content

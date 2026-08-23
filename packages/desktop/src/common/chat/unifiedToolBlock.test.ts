@@ -73,6 +73,34 @@ describe('normalizeUnifiedToolBlocks: tool_call', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0].category).toBe('generic');
   });
+
+  it('infers category from arg keys when the name is a natural-language description', () => {
+    // Claude-style backends can put the tool description into `name`;
+    // the args signature is the only reliable signal.
+    const [block] = normalizeUnifiedToolBlocks([
+      baseToolCall({
+        name: '查看主进程各模块文件',
+        args: { command: 'ls src/main', description: '查看主进程各模块文件' },
+        input: { command: 'ls src/main', description: '查看主进程各模块文件' },
+      }),
+    ]);
+    expect(block.category).toBe('bash');
+    expect(block.command).toBe('ls src/main');
+    expect(block.summary).toBe('查看主进程各模块文件');
+  });
+
+  it('infers read/edit/search/todo/task from arg signatures', () => {
+    const infer = (args: Record<string, unknown>) =>
+      normalizeUnifiedToolBlocks([baseToolCall({ name: '做点什么', args })])[0].category;
+    expect(infer({ file_path: '/ws/a.ts', offset: 1 })).toBe('read');
+    expect(infer({ file_path: '/ws/a.ts', old_string: 'x', new_string: 'y' })).toBe('edit');
+    expect(infer({ file_path: '/ws/a.ts', content: 'x' })).toBe('edit');
+    expect(infer({ pattern: 'foo', path: '/ws' })).toBe('search');
+    expect(infer({ url: 'https://x', prompt: 'p' })).toBe('search');
+    expect(infer({ todos: [] })).toBe('todo');
+    expect(infer({ subagent_type: 'explore', prompt: 'p' })).toBe('task');
+    expect(infer({ random: true })).toBe('generic');
+  });
 });
 
 describe('normalizeUnifiedToolBlocks: tool_group', () => {
