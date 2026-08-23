@@ -7,6 +7,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
+import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
 import GenericToolBlock from './GenericToolBlock';
 import ToolBlockShell from './ToolBlockShell';
 
@@ -26,6 +27,7 @@ const TodoToolBlock: React.FC<{ block: UnifiedToolBlock; updateCount?: number }>
     <ToolBlockShell
       category='todo'
       status={block.status}
+      titleKey={getToolTitleKey(block.title)}
       chips={
         <>
           {updateCount !== undefined && updateCount > 1 && (

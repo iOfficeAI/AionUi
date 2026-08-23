@@ -21,8 +21,15 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock =>
-  ({ key: 'k', category: 'task', status: 'completed', title: 'Task', outputKind: 'text', raw: { type: 'tool_call' } as never, ...extra });
+const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
+  key: 'k',
+  category: 'task',
+  status: 'completed',
+  title: 'Task',
+  outputKind: 'text',
+  raw: { type: 'tool_call' } as never,
+  ...extra,
+});
 
 describe('TaskToolBlock', () => {
   it('renders subagent type chip, prompt, nested steps and aggregates running status', () => {
@@ -45,7 +52,9 @@ describe('TaskToolBlock', () => {
   });
 
   it('expands a step row to reveal its output', () => {
-    const steps = [block({ key: 's1', category: 'generic', status: 'completed', title: 'Mcp', input: '{"a":1}', output: 'ok' })];
+    const steps = [
+      block({ key: 's1', category: 'generic', status: 'completed', title: 'Mcp', input: '{"a":1}', output: 'ok' }),
+    ];
     render(<TaskToolBlock block={block({ prompt: 'p' })} steps={steps} />);
     fireEvent.click(screen.getByText('Mcp'));
     expect(screen.getByText('ok')).toBeInTheDocument();
@@ -85,6 +94,6 @@ describe('TodoToolBlock', () => {
 
   it('falls back to generic rendering when todoItems is empty', () => {
     render(<TodoToolBlock block={block({ category: 'todo', title: 'TodoWrite' })} />);
-    expect(screen.getAllByText('TodoWrite').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('messages.toolBlocks.todoTitle').length).toBeGreaterThan(0);
   });
 });

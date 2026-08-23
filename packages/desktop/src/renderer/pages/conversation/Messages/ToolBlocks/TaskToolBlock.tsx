@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { hasRunningStatus } from '@/common/chat/unifiedToolBlock';
+import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
 import { truncate } from '@/common/chat/toolBlockPresentation';
 import CategoryIcon from './CategoryIcon';
 import StatusDot from './StatusDot';
@@ -62,6 +63,7 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
     <ToolBlockShell
       category='task'
       status={aggregatedStatus}
+      titleKey={getToolTitleKey(block.title)}
       summary={truncate(block.summary, 60)}
       chips={
         steps.length > 0 ? (

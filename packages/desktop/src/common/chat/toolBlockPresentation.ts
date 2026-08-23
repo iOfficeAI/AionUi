@@ -28,3 +28,68 @@ export function diffCountLabel(
   if (!diff || (diff.added === 0 && diff.removed === 0)) return undefined;
   return { added: `+${diff.added}`, removed: `-${diff.removed}` };
 }
+
+/** Humanize an unknown tool name for the block header: snake_case ->
+ * "Mcp Search Docs", CamelCase -> "Web Search". Natural-language titles
+ * (ACP descriptions, lowercase names) pass through unchanged. */
+export function prettifyToolName(name: string): string {
+  if (name.includes('_')) {
+    return name
+      .split('_')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  if (/^[A-Z]/.test(name)) {
+    return name.replace(/([A-Z])/g, ' $1').trim();
+  }
+  return name;
+}
+
+export type BashCommandKind = 'read' | 'list' | 'search' | 'run';
+
+const READ_COMMAND = /^(cat|head|tail|less|more|nl|bat)\b/;
+const SED_PRINT = /^sed\s+-n\b/;
+const LIST_COMMAND = /^(ls|tree|find)\b|^git\s+ls-(files|tree)\b/;
+const SEARCH_COMMAND = /^(grep|rg|ag|ack)\b|^git\s+grep\b/;
+
+const unwrapShellCommand = (command: string): string => {
+  let current = command.trim();
+  const wrapper = current.match(/^\/bin\/(?:zsh|bash|sh)\s+(?:-lc|-c)\s+([\s\S]+)$/);
+  if (wrapper)
+    current = wrapper[1]
+      .trim()
+      .replace(/^['"]|['"]$/g, '')
+      .replace(/'\\''/g, "'");
+  return current;
+};
+
+const stripQuotes = (token: string) => token.replace(/^['"]|['"]$/g, '');
+
+const firstPathToken = (line: string): string | undefined => {
+  const tokens = line.split(/\s+/);
+  const skip = tokens[0] === 'git' ? 2 : 1;
+  for (const token of tokens.slice(skip)) {
+    if (token.startsWith('-')) continue;
+    return stripQuotes(token);
+  }
+  return undefined;
+};
+
+const sedPath = (line: string): string | undefined => {
+  const match = line.match(/^sed\s+-n\s+\S+\s+(\S+)$/);
+  return match ? stripQuotes(match[1]) : undefined;
+};
+
+/** Classify a shell command by what it actually does (read/list/search/run)
+ * so generic command tools can show a precise action title and target path. */
+export function classifyBashCommand(command: string | undefined): { kind: BashCommandKind; path?: string } {
+  if (!command) return { kind: 'run' };
+  const first = unwrapShellCommand(command).split('\n')[0].trim();
+  const lower = first.toLowerCase();
+  if (SED_PRINT.test(lower)) return { kind: 'read', path: sedPath(first) };
+  if (READ_COMMAND.test(lower)) return { kind: 'read', path: firstPathToken(first) };
+  if (LIST_COMMAND.test(lower)) return { kind: 'list', path: firstPathToken(first) };
+  if (SEARCH_COMMAND.test(lower)) return { kind: 'search' };
+  return { kind: 'run' };
+}

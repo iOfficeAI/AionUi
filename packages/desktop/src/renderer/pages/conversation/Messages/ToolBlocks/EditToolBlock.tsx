@@ -10,6 +10,7 @@ import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHand
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import { createTwoFilesPatch } from 'diff';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
+import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
 import { diffCountLabel } from '@/common/chat/toolBlockPresentation';
 import ToolBlockShell from './ToolBlockShell';
 
@@ -17,6 +18,7 @@ import ToolBlockShell from './ToolBlockShell';
  * existing FileChangesPanel diff view (visual consistency with file summaries). */
 const EditToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
   const counts = diffCountLabel(block.diff);
+  const titleKey = getToolTitleKey(block.title);
   const args = useMemo(() => {
     try {
       return block.input ? (JSON.parse(block.input) as Record<string, unknown>) : {};
@@ -41,6 +43,7 @@ const EditToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
     <ToolBlockShell
       category='edit'
       status={block.status}
+      titleKey={titleKey}
       summary={block.fileName}
       chips={
         counts ? (

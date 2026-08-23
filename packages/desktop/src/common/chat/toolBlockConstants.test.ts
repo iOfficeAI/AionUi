@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { categorizeToolName, mapAcpKindToCategory, TOOL_BLOCK_META, type ToolCategory } from './toolBlockConstants';
+import {
+  categorizeToolName,
+  getToolTitleKey,
+  mapAcpKindToCategory,
+  TOOL_BLOCK_META,
+  type ToolCategory,
+} from './toolBlockConstants';
 
 describe('categorizeToolName', () => {
   it.each([
@@ -49,6 +55,23 @@ describe('mapAcpKindToCategory', () => {
     ['think', 'generic'],
   ] as Array<[string, ToolCategory]>)('maps kind %s -> %s', (kind, expected) => {
     expect(mapAcpKindToCategory(kind)).toBe(expected);
+  });
+});
+
+describe('getToolTitleKey', () => {
+  it('maps known tool names to specific title keys (beyond category defaults)', () => {
+    expect(getToolTitleKey('Write')).toBe('messages.toolBlocks.writeFile');
+    expect(getToolTitleKey('replace_string')).toBe('messages.toolBlocks.replaceString');
+    expect(getToolTitleKey('apply_patch')).toBe('messages.toolBlocks.applyPatch');
+    expect(getToolTitleKey('TodoWrite')).toBe('messages.toolBlocks.todoTitle');
+    expect(getToolTitleKey('Glob')).toBe('messages.toolBlocks.fileMatch');
+    expect(getToolTitleKey('WebSearch')).toBe('messages.toolBlocks.webSearch');
+    expect(getToolTitleKey('execute_command')).toBe('messages.toolBlocks.executeCommand');
+  });
+
+  it('returns undefined for unknown names so the caller can prettify', () => {
+    expect(getToolTitleKey('SomeMcpTool')).toBeUndefined();
+    expect(getToolTitleKey(undefined)).toBeUndefined();
   });
 });
 

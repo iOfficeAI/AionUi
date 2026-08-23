@@ -6,17 +6,38 @@
 
 import React from 'react';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
+import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
+import { classifyBashCommand, prettifyToolName } from '@/common/chat/toolBlockPresentation';
 import ToolBlockDetail from './ToolBlockDetail';
 import ToolBlockShell from './ToolBlockShell';
 
-/** Fallback for every tool name we do not special-case. The raw tool name is
- * the header title (the user's only identity cue), the body shows the full
- * input/output. ACP titles are natural-language descriptions that can equal
- * the summary — render the summary only when it adds information. */
+/** Fallback for every tool name we do not special-case. Header title follows
+ * the reference design: known names show a translated action title, command
+ * tools are classified by what the command does (read/list/search), and
+ * unknown names are prettified (snake_case/CamelCase -> spaced words).
+ * ACP titles are natural-language descriptions that can equal the summary —
+ * render the summary only when it adds information. */
 const GenericToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
+  const nameKey = getToolTitleKey(block.title);
+  const commandKind = !nameKey && block.command ? classifyBashCommand(block.command).kind : 'run';
+  const commandKey =
+    commandKind === 'read'
+      ? 'messages.toolBlocks.readTitle'
+      : commandKind === 'list'
+        ? 'messages.toolBlocks.listFilesTitle'
+        : commandKind === 'search'
+          ? 'messages.toolBlocks.searchTitle'
+          : undefined;
+  const titleKey = nameKey ?? commandKey;
   const summary = block.summary && block.summary !== block.title ? block.summary : block.fileName;
   return (
-    <ToolBlockShell category='generic' status={block.status} title={block.title} summary={summary}>
+    <ToolBlockShell
+      category='generic'
+      status={block.status}
+      titleKey={titleKey}
+      title={titleKey ? undefined : prettifyToolName(block.title)}
+      summary={summary}
+    >
       <ToolBlockDetail block={block} outputError={block.status === 'error'} />
     </ToolBlockShell>
   );

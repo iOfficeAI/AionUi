@@ -93,3 +93,58 @@ export const TOOL_BLOCK_META: Record<ToolCategory, ToolBlockMeta> = {
   todo: { titleKey: 'messages.toolBlocks.todoTitle' },
   generic: { titleKey: 'messages.toolBlocks.genericTitle' },
 };
+
+/** Known tool names -> a more specific title than the category default
+ * (e.g. write/edit both map to category `edit` but show different actions).
+ * Keys are lowercase; lookup via getToolTitleKey. */
+const TOOL_NAME_TITLE_KEYS: Record<string, string> = {
+  edit: 'messages.toolBlocks.editTitle',
+  edit_file: 'messages.toolBlocks.editTitle',
+  multi_edit: 'messages.toolBlocks.editTitle',
+  replace: 'messages.toolBlocks.replaceString',
+  replace_string: 'messages.toolBlocks.replaceString',
+  write: 'messages.toolBlocks.writeFile',
+  writefile: 'messages.toolBlocks.writeFile',
+  write_to_file: 'messages.toolBlocks.writeFile',
+  apply_patch: 'messages.toolBlocks.applyPatch',
+  bash: 'messages.toolBlocks.bashTitle',
+  run_terminal_cmd: 'messages.toolBlocks.bashTitle',
+  shell_command: 'messages.toolBlocks.bashTitle',
+  execute_command: 'messages.toolBlocks.executeCommand',
+  executecommand: 'messages.toolBlocks.executeCommand',
+  read: 'messages.toolBlocks.readTitle',
+  read_file: 'messages.toolBlocks.readTitle',
+  view_file: 'messages.toolBlocks.readTitle',
+  viewfile: 'messages.toolBlocks.readTitle',
+  open_file: 'messages.toolBlocks.readTitle',
+  read_multiple_files: 'messages.toolBlocks.readTitle',
+  grep: 'messages.toolBlocks.searchTitle',
+  search: 'messages.toolBlocks.searchTitle',
+  search_files: 'messages.toolBlocks.searchTitle',
+  codebase_search: 'messages.toolBlocks.searchTitle',
+  glob: 'messages.toolBlocks.fileMatch',
+  find: 'messages.toolBlocks.findFile',
+  list: 'messages.toolBlocks.listFilesTitle',
+  fetch: 'messages.toolBlocks.webFetch',
+  webfetch: 'messages.toolBlocks.webFetch',
+  web_search: 'messages.toolBlocks.webSearch',
+  websearch: 'messages.toolBlocks.webSearch',
+  task: 'messages.toolBlocks.taskTitle',
+  agent: 'messages.toolBlocks.taskTitle',
+  todowrite: 'messages.toolBlocks.todoTitle',
+  todo_write: 'messages.toolBlocks.todoTitle',
+  update_plan: 'messages.toolBlocks.updatePlan',
+  delete: 'messages.toolBlocks.deleteFile',
+  explore: 'messages.toolBlocks.exploreTitle',
+  createdirectory: 'messages.toolBlocks.createDirectory',
+  movefile: 'messages.toolBlocks.moveFile',
+  copyfile: 'messages.toolBlocks.copyFile',
+};
+
+/** Case-insensitive tool name -> specific i18n title key; undefined for
+ * unknown names (caller falls back to the category title or a prettified
+ * raw name). */
+export function getToolTitleKey(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  return TOOL_NAME_TITLE_KEYS[name.toLowerCase()];
+}

@@ -75,12 +75,23 @@ describe('EditToolBlock', () => {
 });
 
 describe('GenericToolBlock', () => {
-  it('renders raw title and expands to show input/output', () => {
+  it('renders a prettified tool name and expands to show input/output', () => {
     render(<GenericToolBlock block={block({ title: 'SomeMcpTool', input: '{"a":1}', output: 'ok' })} />);
-    expect(screen.getAllByText('SomeMcpTool').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Some Mcp Tool').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: /genericTitle/ }));
     expect(screen.getByText(/"a":1/)).toBeInTheDocument();
     expect(screen.getByText('ok')).toBeInTheDocument();
+  });
+
+  it('shows a translated action title for known tool names', () => {
+    render(<GenericToolBlock block={block({ title: 'Glob', summary: '*.ts' })} />);
+    expect(screen.getByText('messages.toolBlocks.fileMatch')).toBeInTheDocument();
+    expect(screen.getByText('*.ts')).toBeInTheDocument();
+  });
+
+  it('classifies generic command tools by what the command does', () => {
+    render(<GenericToolBlock block={block({ title: 'shell', command: 'cat src/a.ts' })} />);
+    expect(screen.getByText('messages.toolBlocks.readTitle')).toBeInTheDocument();
   });
 
   it('shows the text exactly once when summary equals the title (ACP natural-language titles)', () => {
