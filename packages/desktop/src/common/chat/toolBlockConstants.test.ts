@@ -69,6 +69,16 @@ describe('getToolTitleKey', () => {
     expect(getToolTitleKey('execute_command')).toBe('messages.toolBlocks.executeCommand');
   });
 
+  it('maps no-underscore agent variants (gemini/codex naming)', () => {
+    expect(getToolTitleKey('ReadFile')).toBe('messages.toolBlocks.readTitle');
+    expect(getToolTitleKey('WriteToFile')).toBe('messages.toolBlocks.writeFile');
+    expect(getToolTitleKey('ListDirectory')).toBe('messages.toolBlocks.listFilesTitle');
+    expect(getToolTitleKey('SearchText')).toBe('messages.toolBlocks.searchTitle');
+    expect(getToolTitleKey('GoogleWebSearch')).toBe('messages.toolBlocks.webSearch');
+    expect(getToolTitleKey('DeleteFile')).toBe('messages.toolBlocks.deleteFile');
+    expect(getToolTitleKey('RunCommand')).toBe('messages.toolBlocks.bashTitle');
+  });
+
   it('returns undefined for unknown names so the caller can prettify', () => {
     expect(getToolTitleKey('SomeMcpTool')).toBeUndefined();
     expect(getToolTitleKey(undefined)).toBeUndefined();

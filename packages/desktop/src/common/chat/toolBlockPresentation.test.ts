@@ -95,6 +95,18 @@ describe('getToolIconKey', () => {
     expect(getToolIconKey('Bash')).toBe('bash');
   });
 
+  it('maps no-underscore agent variants (gemini/codex naming)', () => {
+    expect(getToolIconKey('ReadFile')).toBe('read');
+    expect(getToolIconKey('EditFile')).toBe('edit');
+    expect(getToolIconKey('WriteToFile')).toBe('write');
+    expect(getToolIconKey('ListDirectory')).toBe('glob');
+    expect(getToolIconKey('SearchText')).toBe('search');
+    expect(getToolIconKey('GoogleWebSearch')).toBe('search');
+    expect(getToolIconKey('DeleteFile')).toBe('delete');
+    expect(getToolIconKey('RunCommand')).toBe('bash');
+    expect(getToolIconKey('ShellCommand')).toBe('bash');
+  });
+
   it('refines command tools by what the command does (when a command is given)', () => {
     expect(getToolIconKey('execute_command', 'cat a.ts')).toBe('read');
     expect(getToolIconKey('execute_command', 'ls packages')).toBe('glob');
