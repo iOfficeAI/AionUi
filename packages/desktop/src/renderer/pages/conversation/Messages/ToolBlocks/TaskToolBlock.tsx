@@ -4,46 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { hasRunningStatus } from '@/common/chat/unifiedToolBlock';
 import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
-import { getToolIconKey, truncate } from '@/common/chat/toolBlockPresentation';
-import CategoryIcon from './CategoryIcon';
-import StatusDot from './StatusDot';
-import ToolBlockDetail from './ToolBlockDetail';
-import ToolBlockShell from './ToolBlockShell';
+import { truncate } from '@/common/chat/toolBlockPresentation';
+import BashToolBlock from './BashToolBlock';
+import EditToolBlock from './EditToolBlock';
 import GenericToolBlock from './GenericToolBlock';
+import ReadToolBlock from './ReadToolBlock';
+import TodoToolBlock from './TodoToolBlock';
+import ToolBlockShell from './ToolBlockShell';
 
-/** Compact step row inside a Task block; click to expand full detail. */
-const StepRow: React.FC<{ step: UnifiedToolBlock }> = ({ step }) => {
-  const [expanded, setExpanded] = useState(false);
-  const hasDetail = Boolean(step.command || step.input || step.output);
-  const summary = truncate(step.command ?? step.fileName ?? step.summary ?? step.title, 60);
-  return (
-    <div>
-      <div
-        role='button'
-        aria-expanded={expanded}
-        className='flex items-center gap-8px py-4px px-8px rd-4px cursor-pointer'
-        onClick={() => {
-          if (hasDetail) setExpanded(!expanded);
-        }}
-      >
-        <CategoryIcon category={step.category} iconKey={getToolIconKey(step.title)} small />
-        <span className='tool-block__mono flex-1 min-w-0 truncate text-1'>{summary}</span>
-        {step.lineRange && <span className='text-4 text-11px'>{step.lineRange}</span>}
-        <StatusDot status={step.status} small />
-      </div>
-      {expanded && hasDetail && (
-        <div className='m-l-24px'>
-          {step.command && <div className='tool-block__mono tool-block__command'>{step.command}</div>}
-          <ToolBlockDetail block={step} outputError={step.status === 'error'} />
-        </div>
-      )}
-    </div>
-  );
+/** Render a subagent step through the same single-block components as a
+ * top-level tool call, so nested execution looks identical to flat execution. */
+const renderStep = (step: UnifiedToolBlock): React.ReactNode => {
+  switch (step.category) {
+    case 'edit':
+      return <EditToolBlock block={step} />;
+    case 'bash':
+      return <BashToolBlock block={step} />;
+    case 'read':
+      return <ReadToolBlock block={step} />;
+    case 'todo':
+      return <TodoToolBlock block={step} />;
+    default:
+      return <GenericToolBlock block={step} />;
+  }
 };
 
 interface TaskToolBlockProps {
@@ -52,8 +40,9 @@ interface TaskToolBlockProps {
   steps: UnifiedToolBlock[];
 }
 
-/** Subagent call block: subagent type chip + prompt + compact nested steps.
- * Status aggregates from the steps (running step keeps the block running). */
+/** Subagent call block: subagent type chip + prompt + nested steps rendered as
+ * full tool blocks. Status aggregates from the steps (running step keeps the
+ * block running). */
 const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
   const { t } = useTranslation();
   if (!block.prompt && !block.subagentType && steps.length === 0) {
@@ -65,7 +54,6 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
       category='task'
       status={aggregatedStatus}
       titleKey={getToolTitleKey(block.title)}
-      iconKey={getToolIconKey(block.title)}
       summary={truncate(block.summary, 60)}
       chips={
         steps.length > 0 ? (
@@ -95,9 +83,11 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
       {steps.length > 0 && (
         <div className='mb-6px'>
           <div className='tool-detail-label'>{t('messages.toolBlocks.taskStepsLabel', { count: steps.length })}</div>
-          {steps.map((step) => (
-            <StepRow key={step.key} step={step} />
-          ))}
+          <div className='flex flex-col gap-8px'>
+            {steps.map((step) => (
+              <div key={step.key}>{renderStep(step)}</div>
+            ))}
+          </div>
         </div>
       )}
       {block.output && (

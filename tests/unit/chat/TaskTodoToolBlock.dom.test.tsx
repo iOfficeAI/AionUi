@@ -32,7 +32,7 @@ const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
 });
 
 describe('TaskToolBlock', () => {
-  it('renders subagent type chip, prompt, nested steps and aggregates running status', () => {
+  it('renders subagent type chip, prompt, and nested steps as full tool blocks', () => {
     const steps = [
       block({ key: 's1', category: 'read', status: 'completed', fileName: 'a.ts', title: 'Read' }),
       block({ key: 's2', category: 'bash', status: 'running', command: 'grep x', title: 'Bash' }),
@@ -45,13 +45,15 @@ describe('TaskToolBlock', () => {
     );
     expect(screen.getByText('general-purpose')).toBeInTheDocument();
     expect(screen.getByText('investigate')).toBeInTheDocument();
+    // steps render through the full single-block components: read summary,
+    // bash command (header summary + auto-expanded command line while running)
     expect(screen.getByText('a.ts')).toBeInTheDocument();
-    expect(screen.getByText('grep x')).toBeInTheDocument();
+    expect(screen.getAllByText('grep x').length).toBeGreaterThan(0);
     // step count chip + steps section label
     expect(screen.getAllByText('messages.toolBlocks.taskStepsLabel:2').length).toBeGreaterThan(0);
   });
 
-  it('expands a step row to reveal its output', () => {
+  it('expands a nested step block to reveal its output', () => {
     const steps = [
       block({ key: 's1', category: 'generic', status: 'completed', title: 'Mcp', input: '{"a":1}', output: 'ok' }),
     ];
