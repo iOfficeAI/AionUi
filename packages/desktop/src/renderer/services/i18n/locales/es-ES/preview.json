@@ -52,6 +52,7 @@
   "noTabs": "Sin pestañas abiertas",
   "openInPanelTooltip": "Ver en panel de vista previa",
   "mermaidTitle": "Diagrama Mermaid",
+  "wavedromTitle": "Diagrama WaveDrom",
   "oversized": {
     "title": "El archivo es demasiado grande para previsualizarlo",
     "detail": "El tamaño del archivo {{size}} supera el límite de {{threshold}}. Ábrelo en un editor del sistema.",
@@ -169,5 +170,5 @@
   "zoomIn": "Acercar",
   "zoomOut": "Alejar",
   "zoomReset": "Restablecer vista",
-  "mermaidZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar"
+  "diagramZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar"
 }

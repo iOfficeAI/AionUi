@@ -14,8 +14,8 @@ import { Copy, PreviewOpen, Refresh, ZoomIn, ZoomOut } from '@icon-park/react';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MermaidZoomOverlay from './MermaidZoomOverlay';
-import { getSvgIntrinsicSize } from './markdownUtils';
+import DiagramZoomOverlay from './DiagramZoomOverlay';
+import { withResponsiveSvg } from './markdownUtils';
 
 type MermaidBlockProps = {
   code: string;
@@ -46,24 +46,6 @@ const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
     fontFamily: 'inherit',
   });
   initializedTheme = theme;
-};
-
-const withResponsiveSvg = (svg: string): string => {
-  // Cap the inline diagram at min(container, natural width): narrow diagrams
-  // (e.g. top-down layouts) render 1:1 at their natural size instead of being
-  // stretched across the message column; wide diagrams still fit the column.
-  const intrinsicWidth = getSvgIntrinsicSize(svg)?.width;
-  const maxWidth = intrinsicWidth ? `min(100%, ${intrinsicWidth}px)` : '100%';
-  return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
-    if (/style\s*=/.test(attrs)) {
-      return `<svg${attrs.replace(
-        /style\s*=\s*(["'])(.*?)\1/i,
-        (_styleMatch, quote: string, styleValue: string) =>
-          ` style=${quote}${styleValue};max-width: ${maxWidth}; height: auto; display: block;${quote}`
-      )}>`;
-    }
-    return `<svg${attrs} style="max-width: ${maxWidth}; height: auto; display: block;">`;
-  });
 };
 
 function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom = false }: MermaidBlockProps) {
@@ -459,7 +441,9 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
           />
         )}
       </div>
-      {isZoomOpen && svg && <MermaidZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} />}
+      {isZoomOpen && svg && (
+        <DiagramZoomOverlay svg={svg} onClose={() => setIsZoomOpen(false)} ariaLabel={t('preview.mermaidTitle')} />
+      )}
     </div>
   );
 }

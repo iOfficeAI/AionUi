@@ -52,6 +52,7 @@
   "noTabs": "タブはありません",
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
+  "wavedromTitle": "WaveDrom 波形図",
   "oversized": {
     "title": "ファイルが大きすぎてプレビューできません",
     "detail": "ファイルサイズ {{size}} が上限 {{threshold}} を超えています。システムのエディタで開いてください。",
@@ -169,5 +170,5 @@
   "zoomIn": "拡大",
   "zoomOut": "縮小",
   "zoomReset": "表示をリセット",
-  "mermaidZoomHint": "スクロールでズーム • ドラッグで移動 • ESC で閉じる"
+  "diagramZoomHint": "スクロールでズーム • ドラッグで移動 • ESC で閉じる"
 }

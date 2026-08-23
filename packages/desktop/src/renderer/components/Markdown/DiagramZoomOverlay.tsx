@@ -10,9 +10,18 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { getSvgIntrinsicSize, type DiagramSize } from './markdownUtils';
 
-type MermaidZoomOverlayProps = {
+type DiagramZoomOverlayProps = {
   svg: string;
   onClose: () => void;
+  /** Accessible name for the dialog (e.g. the diagram type title). */
+  ariaLabel: string;
+  /**
+   * Explicit card backdrop color. Diagram types whose strokes depend on the
+   * backdrop (WaveDrom: the dark skin paints pure-white lines) pass a
+   * deterministic color here so lines stay visible even when the --bg-1 token
+   * resolves to the wrong value; other types keep the token default.
+   */
+  panelBackground?: string;
 };
 
 const MIN_SCALE = 0.1;
@@ -36,21 +45,37 @@ const toolbarButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-// MermaidBlock injects `max-width: min(100%, <natural width>)` into the SVG root
+// Diagram blocks inject `max-width: min(100%, <natural width>)` into the SVG root
 // so inline diagrams never stretch past their natural size. Drop that cap here:
 // the overlay panel already sizes the wrapper from the natural dimensions and
-// the SVG must fill it.
+// the SVG must fill it. Roots with a viewBox (Mermaid, WaveDrom) are also forced
+// to fill the panel: WaveDrom carries fixed pixel width/height attributes, so
+// without the width/height rules it would render at its natural size inside the
+// scaled card — smaller than the card and top-left instead of centered.
 const stripInlineMaxWidth = (svg: string): string =>
-  svg.replace(/<svg\b[^>]*>/i, (tag) => tag.replace(/max-width\s*:\s*[^;"']+;?/gi, ''));
+  svg.replace(/<svg\b[^>]*>/i, (tag) => {
+    const cleaned = tag.replace(/max-width\s*:\s*[^;"']+;?/gi, '');
+    if (!/\bviewBox\s*=/.test(cleaned)) return cleaned;
+    const fillRules = 'width: 100%; height: 100%;';
+    const styleMatch = /(\sstyle\s*=\s*)(["'])([\s\S]*?)\2/i.exec(cleaned);
+    if (styleMatch) {
+      return cleaned.replace(
+        styleMatch[0],
+        `${styleMatch[1]}${styleMatch[2]}${styleMatch[3]}${fillRules}${styleMatch[2]}`
+      );
+    }
+    return cleaned.replace(/\/?\s*>$/, (tail) => ` style="${fillRules}"${tail}`);
+  });
 
 /**
- * Fullscreen mermaid viewer opened by clicking a rendered diagram.
+ * Fullscreen diagram viewer opened by clicking a rendered diagram (shared by the
+ * Mermaid and WaveDrom blocks).
  *
  * Interaction follows the classic lightbox pattern: wheel zooms around the fit
  * scale (0.1x-10x), dragging pans, ESC / backdrop click / the close button close
  * it. Visuals stick to AionUi tokens: Arco mask, --bg-* panels and icon-park icons
- * in the same order as the inline MermaidBlock header (zoom out / zoom in /
- * reset), plus a close action.
+ * in the same order as the inline block header (zoom out / zoom in / reset), plus
+ * a close action.
  *
  * Sizing: the card hugs the diagram's natural aspect ratio and grows with the
  * zoom level. The overlay root is the only clip window, so content is cut off
@@ -61,7 +86,7 @@ const stripInlineMaxWidth = (svg: string): string =>
  * constrains the fit — a tall diagram fits by height instead of stretching
  * across the screen.
  */
-function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
+function DiagramZoomOverlay({ svg, onClose, ariaLabel, panelBackground }: DiagramZoomOverlayProps) {
   const { t } = useTranslation();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [base, setBase] = useState<DiagramSize | null>(null);
@@ -187,10 +212,10 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
   return createPortal(
     <div
       ref={overlayRef}
-      data-testid='mermaid-zoom-overlay'
+      data-testid='diagram-zoom-overlay'
       role='dialog'
       aria-modal='true'
-      aria-label={t('preview.mermaidTitle')}
+      aria-label={ariaLabel}
       onClick={(event: React.MouseEvent) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -222,7 +247,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
       >
         <button
           type='button'
-          data-testid='mermaid-overlay-zoom-out'
+          data-testid='diagram-overlay-zoom-out'
           title={t('preview.zoomOut')}
           style={toolbarButtonStyle}
           onClick={() => zoomBy(1 / BUTTON_ZOOM_FACTOR)}
@@ -231,7 +256,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
         </button>
         <button
           type='button'
-          data-testid='mermaid-overlay-zoom-in'
+          data-testid='diagram-overlay-zoom-in'
           title={t('preview.zoomIn')}
           style={toolbarButtonStyle}
           onClick={() => zoomBy(BUTTON_ZOOM_FACTOR)}
@@ -240,7 +265,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
         </button>
         <button
           type='button'
-          data-testid='mermaid-overlay-zoom-reset'
+          data-testid='diagram-overlay-zoom-reset'
           title={t('preview.zoomReset')}
           style={toolbarButtonStyle}
           onClick={resetView}
@@ -249,7 +274,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
         </button>
         <button
           type='button'
-          data-testid='mermaid-overlay-close'
+          data-testid='diagram-overlay-close'
           title={t('common.close')}
           style={toolbarButtonStyle}
           onClick={onClose}
@@ -259,14 +284,14 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
       </div>
 
       <div
-        data-testid='mermaid-zoom-content'
+        data-testid='diagram-zoom-content'
         onPointerDown={handlePanPointerDown}
         onPointerMove={handlePanPointerMove}
         onPointerUp={endPan}
         onPointerCancel={endPan}
         style={{
           padding: '12px',
-          background: 'var(--bg-1)',
+          background: panelBackground ?? 'var(--bg-1)',
           borderRadius: '8px',
           flexShrink: 0,
           cursor: isPanning ? 'grabbing' : 'grab',
@@ -279,7 +304,7 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
       />
 
       <div
-        data-testid='mermaid-zoom-hint'
+        data-testid='diagram-zoom-hint'
         style={{
           position: 'fixed',
           bottom: '20px',
@@ -295,11 +320,11 @@ function MermaidZoomOverlay({ svg, onClose }: MermaidZoomOverlayProps) {
           pointerEvents: 'none',
         }}
       >
-        {t('preview.mermaidZoomHint')}
+        {t('preview.diagramZoomHint')}
       </div>
     </div>,
     document.body
   );
 }
 
-export default React.memo(MermaidZoomOverlay);
+export default React.memo(DiagramZoomOverlay);
