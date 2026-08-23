@@ -11,7 +11,7 @@ import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import { createTwoFilesPatch } from 'diff';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
-import { diffCountLabel } from '@/common/chat/toolBlockPresentation';
+import { diffCountLabel, getToolIconKey } from '@/common/chat/toolBlockPresentation';
 import ToolBlockShell from './ToolBlockShell';
 
 /** Edit block: header with file name + diff-count chips; body reuses the
@@ -44,6 +44,7 @@ const EditToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
       category='edit'
       status={block.status}
       titleKey={titleKey}
+      iconKey={getToolIconKey(block.title)}
       summary={block.fileName}
       chips={
         counts ? (

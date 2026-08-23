@@ -7,7 +7,7 @@
 import React from 'react';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
-import { classifyBashCommand, prettifyToolName } from '@/common/chat/toolBlockPresentation';
+import { classifyBashCommand, getToolIconKey, prettifyToolName } from '@/common/chat/toolBlockPresentation';
 import ToolBlockDetail from './ToolBlockDetail';
 import ToolBlockShell from './ToolBlockShell';
 
@@ -34,6 +34,7 @@ const GenericToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
     <ToolBlockShell
       category='generic'
       status={block.status}
+      iconKey={getToolIconKey(block.title, block.command)}
       titleKey={titleKey}
       title={titleKey ? undefined : prettifyToolName(block.title)}
       summary={summary}

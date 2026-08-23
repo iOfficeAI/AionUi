@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import type { ToolCategory } from '@/common/chat/toolBlockConstants';
 import { TOOL_BLOCK_META } from '@/common/chat/toolBlockConstants';
+import type { ToolIconKey } from '@/common/chat/toolBlockPresentation';
 import type { UnifiedToolStatus } from '@/common/chat/unifiedToolBlock';
 import CategoryIcon from './CategoryIcon';
 import StatusDot from './StatusDot';
@@ -20,6 +21,8 @@ export interface ToolBlockShellProps {
   titleKey?: string;
   /** Custom header title (e.g. the raw tool name); defaults to the translated titleKey. */
   title?: React.ReactNode;
+  /** Per-tool icon (getToolIconKey); defaults to the category icon. */
+  iconKey?: ToolIconKey;
   summary?: React.ReactNode;
   status: UnifiedToolStatus;
   /** Extra header chips (e.g. diff counts, progress badges). */
@@ -36,6 +39,7 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
   category,
   titleKey,
   title,
+  iconKey,
   summary,
   status,
   chips,
@@ -85,7 +89,7 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
             {expanded ? <IconDown style={{ fontSize: 10 }} /> : <IconRight style={{ fontSize: 10 }} />}
           </span>
         ) : null}
-        <CategoryIcon category={category} />
+        <CategoryIcon category={category} iconKey={iconKey} />
         <span className='tool-block__title'>{title ?? t(titleKey ?? meta.titleKey)}</span>
         {chips}
         {summary !== undefined && (

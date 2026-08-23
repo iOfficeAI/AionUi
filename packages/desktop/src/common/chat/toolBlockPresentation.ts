@@ -93,3 +93,72 @@ export function classifyBashCommand(command: string | undefined): { kind: BashCo
   if (SEARCH_COMMAND.test(lower)) return { kind: 'search' };
   return { kind: 'run' };
 }
+
+/** Per-tool icon kinds, mirroring the reference icon map: write gets a
+ * pencil, glob a folder, web fetch a globe, delete a trash bin... */
+export type ToolIconKey =
+  | 'read'
+  | 'edit'
+  | 'write'
+  | 'bash'
+  | 'search'
+  | 'glob'
+  | 'task'
+  | 'web'
+  | 'delete'
+  | 'plan'
+  | 'generic';
+
+const TOOL_NAME_ICON_KEYS: Record<string, ToolIconKey> = {
+  read: 'read',
+  read_file: 'read',
+  view_file: 'read',
+  viewfile: 'read',
+  open_file: 'read',
+  read_multiple_files: 'read',
+  edit: 'edit',
+  edit_file: 'edit',
+  multi_edit: 'edit',
+  replace: 'edit',
+  replace_string: 'edit',
+  apply_patch: 'edit',
+  write: 'write',
+  writefile: 'write',
+  write_to_file: 'write',
+  bash: 'bash',
+  run_terminal_cmd: 'bash',
+  shell_command: 'bash',
+  execute_command: 'bash',
+  executecommand: 'bash',
+  grep: 'search',
+  search: 'search',
+  search_files: 'search',
+  codebase_search: 'search',
+  websearch: 'search',
+  web_search: 'search',
+  glob: 'glob',
+  list: 'glob',
+  find: 'search',
+  fetch: 'web',
+  webfetch: 'web',
+  task: 'task',
+  agent: 'task',
+  todowrite: 'plan',
+  todo_write: 'plan',
+  update_plan: 'plan',
+  delete: 'delete',
+};
+
+/** Tool name (+ optional command for command tools) -> icon kind. Passing a
+ * command refines command-family tools by what the command does, matching the
+ * reference getToolCodicon; dedicated bash blocks simply omit the command. */
+export function getToolIconKey(name: string | undefined, command?: string): ToolIconKey {
+  const nameKey = name ? TOOL_NAME_ICON_KEYS[name.toLowerCase()] : undefined;
+  if (command && nameKey === 'bash') {
+    const kind = classifyBashCommand(command).kind;
+    if (kind === 'read') return 'read';
+    if (kind === 'list') return 'glob';
+    if (kind === 'search') return 'search';
+  }
+  return nameKey ?? 'generic';
+}

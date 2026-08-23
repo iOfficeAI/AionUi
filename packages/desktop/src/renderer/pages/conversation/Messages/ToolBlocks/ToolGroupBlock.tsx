@@ -11,7 +11,7 @@ import type { IMessageToolGroup } from '@/common/chat/chatLib';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { hasRunningStatus, normalizeUnifiedToolBlocks } from '@/common/chat/unifiedToolBlock';
 import { groupIntoSegments, partitionByParent } from '@/common/chat/toolBlockGrouping';
-import { truncate } from '@/common/chat/toolBlockPresentation';
+import { getToolIconKey, truncate } from '@/common/chat/toolBlockPresentation';
 import ButlerDiagnoseButton from '@/renderer/components/base/ButlerDiagnoseButton';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import type { ToolConfirmationOutcome } from '@/renderer/utils/common';
@@ -61,7 +61,7 @@ const FileRow: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
         className={`flex items-center gap-8px py-6px px-8px rd-4px${hasDetail ? ' cursor-pointer' : ''}`}
         onClick={() => hasDetail && setExpanded(!expanded)}
       >
-        <CategoryIcon category={block.category} small />
+        <CategoryIcon category={block.category} iconKey={getToolIconKey(block.title)} small />
         <span className='tool-block__mono text-1 text-12px'>{block.fileName ?? block.summary ?? block.title}</span>
         {block.lineRange && <span className='text-4 text-11px'>{block.lineRange}</span>}
         {block.diff && (

@@ -6,6 +6,7 @@ import {
   diffCountLabel,
   prettifyToolName,
   classifyBashCommand,
+  getToolIconKey,
 } from './toolBlockPresentation';
 
 describe('relativizePath', () => {
@@ -77,5 +78,36 @@ describe('classifyBashCommand', () => {
   });
   it('unwraps /bin/zsh -lc command wrappers', () => {
     expect(classifyBashCommand("/bin/zsh -lc 'cat a.ts'")).toEqual({ kind: 'read', path: 'a.ts' });
+  });
+});
+
+describe('getToolIconKey', () => {
+  it('maps tool names to per-tool icons like the reference design', () => {
+    expect(getToolIconKey('Read')).toBe('read');
+    expect(getToolIconKey('Edit')).toBe('edit');
+    expect(getToolIconKey('Write')).toBe('write');
+    expect(getToolIconKey('Glob')).toBe('glob');
+    expect(getToolIconKey('WebFetch')).toBe('web');
+    expect(getToolIconKey('WebSearch')).toBe('search');
+    expect(getToolIconKey('delete')).toBe('delete');
+    expect(getToolIconKey('TodoWrite')).toBe('plan');
+    expect(getToolIconKey('Task')).toBe('task');
+    expect(getToolIconKey('Bash')).toBe('bash');
+  });
+
+  it('refines command tools by what the command does (when a command is given)', () => {
+    expect(getToolIconKey('execute_command', 'cat a.ts')).toBe('read');
+    expect(getToolIconKey('execute_command', 'ls packages')).toBe('glob');
+    expect(getToolIconKey('execute_command', 'rg foo')).toBe('search');
+    expect(getToolIconKey('execute_command', 'cargo build')).toBe('bash');
+  });
+
+  it('keeps the dedicated bash icon fixed when no command is passed', () => {
+    expect(getToolIconKey('Bash')).toBe('bash');
+  });
+
+  it('falls back to generic', () => {
+    expect(getToolIconKey('SomeMcpTool')).toBe('generic');
+    expect(getToolIconKey(undefined)).toBe('generic');
   });
 });

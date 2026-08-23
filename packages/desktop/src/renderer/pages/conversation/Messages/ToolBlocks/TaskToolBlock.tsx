@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import { hasRunningStatus } from '@/common/chat/unifiedToolBlock';
 import { getToolTitleKey } from '@/common/chat/toolBlockConstants';
-import { truncate } from '@/common/chat/toolBlockPresentation';
+import { getToolIconKey, truncate } from '@/common/chat/toolBlockPresentation';
 import CategoryIcon from './CategoryIcon';
 import StatusDot from './StatusDot';
 import ToolBlockDetail from './ToolBlockDetail';
@@ -31,7 +31,7 @@ const StepRow: React.FC<{ step: UnifiedToolBlock }> = ({ step }) => {
           if (hasDetail) setExpanded(!expanded);
         }}
       >
-        <CategoryIcon category={step.category} small />
+        <CategoryIcon category={step.category} iconKey={getToolIconKey(step.title)} small />
         <span className='tool-block__mono flex-1 min-w-0 truncate text-1'>{summary}</span>
         {step.lineRange && <span className='text-4 text-11px'>{step.lineRange}</span>}
         <StatusDot status={step.status} small />
@@ -64,6 +64,7 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
       category='task'
       status={aggregatedStatus}
       titleKey={getToolTitleKey(block.title)}
+      iconKey={getToolIconKey(block.title)}
       summary={truncate(block.summary, 60)}
       chips={
         steps.length > 0 ? (
