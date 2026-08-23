@@ -102,6 +102,7 @@ function CodeBlock(props: CodeBlockProps) {
     return (
       <EchartsBlock
         code={formatCode(children)}
+        style={props.codeStyle}
         isDark={currentTheme === 'dark'}
         diagramPanZoom={props.diagramPanZoom}
       />
