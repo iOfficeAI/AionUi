@@ -223,4 +223,25 @@ describe('WebUI browser bridge socket', () => {
 
     expect(FakeWebSocket.instances).toHaveLength(afterAuthFailure + 1);
   });
+
+  it('cancels a pending backoff retry when the login flow reconnects', async () => {
+    await loadBrowserAdapter();
+
+    // Burn one retry so the next one is queued a full second out, then leave a
+    // retry pending — this is the state a user is in when they sign in while
+    // the socket is still failing.
+    await expectReconnectAt(500, 1);
+    latestSocket().acceptUpgrade();
+    latestSocket().close();
+
+    const beforeLogin = FakeWebSocket.instances.length;
+    (window as unknown as { __websocketReconnect?: () => void }).__websocketReconnect?.();
+
+    // Login dials straight away instead of waiting out the backoff.
+    expect(FakeWebSocket.instances).toHaveLength(beforeLogin + 1);
+
+    // The superseded timer must not fire a second, duplicate dial afterwards.
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(FakeWebSocket.instances).toHaveLength(beforeLogin + 1);
+  });
 });
