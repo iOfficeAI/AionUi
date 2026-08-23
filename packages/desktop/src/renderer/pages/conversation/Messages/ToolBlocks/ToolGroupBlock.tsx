@@ -14,7 +14,7 @@ import { groupIntoSegments, partitionByParent } from '@/common/chat/toolBlockGro
 import { truncate } from '@/common/chat/toolBlockPresentation';
 import ButlerDiagnoseButton from '@/renderer/components/base/ButlerDiagnoseButton';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
-import { ToolConfirmationOutcome } from '@/renderer/utils/common';
+import type { ToolConfirmationOutcome } from '@/renderer/utils/common';
 import ConfirmationCard from '../components/ToolConfirmationCard';
 import CategoryIcon from './CategoryIcon';
 import StatusDot from './StatusDot';
@@ -42,9 +42,7 @@ export interface ToolGroupBlockProps {
 /** Diagnose + feedback action row shown for failed tool calls. */
 const ErrorActions: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => (
   <div className='mt-4px flex justify-end'>
-    <ButlerDiagnoseButton
-      errorText={[block.title, block.summary, block.output].filter(Boolean).join('\n')}
-    />
+    <ButlerDiagnoseButton errorText={[block.title, block.summary, block.output].filter(Boolean).join('\n')} />
     <FeedbackButton module='conversation-session' />
   </div>
 );
@@ -111,7 +109,9 @@ const BashTimeline: React.FC<{ blocks: UnifiedToolBlock[] }> = ({ blocks }) => {
           </div>
         </div>
       ))}
-      <span className='self-end text-3 text-11px'>{t('messages.toolBlocks.progressXY', { done, total: blocks.length })}</span>
+      <span className='self-end text-3 text-11px'>
+        {t('messages.toolBlocks.progressXY', { done, total: blocks.length })}
+      </span>
     </div>
   );
 };
@@ -147,7 +147,11 @@ const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
   return (
     <div className='tool-block'>
       {confirmationItems.map((item) => (
-        <ConfirmationCard key={item.call_id} content={item} onConfirm={(outcome) => handleConfirm(item.call_id, outcome)} />
+        <ConfirmationCard
+          key={item.call_id}
+          content={item}
+          onConfirm={(outcome) => handleConfirm(item.call_id, outcome)}
+        />
       ))}
       {segments.map((segment, index) => {
         if (segment.kind === 'single') {
@@ -169,13 +173,18 @@ const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
           );
         }
         const titleKey = SEGMENT_TITLE[segment.kind];
-        const doneCount = segment.kind === 'todo' ? undefined : segment.blocks.filter((b) => b.status === 'completed').length;
+        const doneCount =
+          segment.kind === 'todo' ? undefined : segment.blocks.filter((b) => b.status === 'completed').length;
         return (
           <div key={index} className={index > 0 ? 'mt-4px' : undefined}>
             <div className='tool-block__header' style={{ cursor: 'default' }}>
-              <CategoryIcon category={segment.kind === 'bash-timeline' ? 'bash' : segment.kind === 'todo' ? 'todo' : 'read'} />
+              <CategoryIcon
+                category={segment.kind === 'bash-timeline' ? 'bash' : segment.kind === 'todo' ? 'todo' : 'read'}
+              />
               <span className='tool-block__title'>{t(titleKey)}</span>
-              <span className='tool-block__count'>{segment.kind === 'todo' ? segment.updateCount : segment.blocks.length}</span>
+              <span className='tool-block__count'>
+                {segment.kind === 'todo' ? segment.updateCount : segment.blocks.length}
+              </span>
               {doneCount !== undefined && (
                 <span className='tool-block__count'>
                   {t('messages.toolBlocks.progressXY', { done: doneCount, total: segment.blocks.length })}

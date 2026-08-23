@@ -70,7 +70,10 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
       }
     >
       {block.subagentType && (
-        <span className='tool-block__count' style={{ background: 'var(--tool-cat-task-bg)', color: 'var(--tool-cat-task-fg)' }}>
+        <span
+          className='tool-block__count'
+          style={{ background: 'var(--tool-cat-task-bg)', color: 'var(--tool-cat-task-fg)' }}
+        >
           {block.subagentType}
         </span>
       )}

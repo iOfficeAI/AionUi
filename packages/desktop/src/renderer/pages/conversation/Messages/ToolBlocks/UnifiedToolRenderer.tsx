@@ -15,7 +15,10 @@ import TaskToolBlock from './TaskToolBlock';
 import TodoToolBlock from './TodoToolBlock';
 
 /** Renders ONE tool message (any of the three types) via the unified pipeline. */
-const UnifiedToolRenderer: React.FC<{ message: ToolMessage; steps?: UnifiedToolBlock[] }> = ({ message, steps = [] }) => {
+const UnifiedToolRenderer: React.FC<{ message: ToolMessage; steps?: UnifiedToolBlock[] }> = ({
+  message,
+  steps = [],
+}) => {
   const blocks = normalizeUnifiedToolBlocks([message]);
   if (blocks.length === 0) return null;
   const block = blocks[0];

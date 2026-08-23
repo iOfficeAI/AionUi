@@ -22,8 +22,19 @@ vi.mock('@/renderer/pages/conversation/Messages/components/ToolConfirmationCard'
   default: () => <div data-testid='confirmation-card' />,
 }));
 
-const block = (key: string, category: UnifiedToolBlock['category'], extra: Partial<UnifiedToolBlock> = {}): UnifiedToolBlock =>
-  ({ key, category, status: 'completed', title: key, outputKind: 'text', raw: { type: 'tool_call' } as never, ...extra });
+const block = (
+  key: string,
+  category: UnifiedToolBlock['category'],
+  extra: Partial<UnifiedToolBlock> = {}
+): UnifiedToolBlock => ({
+  key,
+  category,
+  status: 'completed',
+  title: key,
+  outputKind: 'text',
+  raw: { type: 'tool_call' } as never,
+  ...extra,
+});
 
 describe('ToolGroupBlock', () => {
   it('renders a file list segment: rows with icon/file/line/status', () => {

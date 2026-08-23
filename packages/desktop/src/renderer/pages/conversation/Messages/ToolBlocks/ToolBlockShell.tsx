@@ -30,7 +30,15 @@ export interface ToolBlockShellProps {
 /** Shared card container: colored icon + title + summary + status dot header,
  * grid 0fr->1fr collapsible body. Auto-expands while running, auto-collapses on
  * settle unless the user toggled it (userTouched). */
-const ToolBlockShell: React.FC<ToolBlockShellProps> = ({ category, titleKey, summary, status, chips, expandable = true, children }) => {
+const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
+  category,
+  titleKey,
+  summary,
+  status,
+  chips,
+  expandable = true,
+  children,
+}) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [userTouched, setUserTouched] = useState(false);

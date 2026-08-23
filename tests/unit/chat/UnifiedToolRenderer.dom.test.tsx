@@ -35,7 +35,9 @@ describe('UnifiedToolRenderer', () => {
 
   it('renders nothing for a message that fails normalization', () => {
     render(
-      <UnifiedToolRenderer message={{ id: 'x', conversation_id: 'c', type: 'tool_call', content: { call_id: '', name: 'X' } } as never} />
+      <UnifiedToolRenderer
+        message={{ id: 'x', conversation_id: 'c', type: 'tool_call', content: { call_id: '', name: 'X' } } as never}
+      />
     );
     expect(screen.queryByText('messages.toolBlocks.genericTitle')).not.toBeInTheDocument();
   });

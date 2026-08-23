@@ -31,7 +31,9 @@ const TodoToolBlock: React.FC<{ block: UnifiedToolBlock; updateCount?: number }>
           {updateCount !== undefined && updateCount > 1 && (
             <span className='tool-block__count'>{t('messages.toolBlocks.updatedNTimes', { count: updateCount })}</span>
           )}
-          <span className='tool-block__count'>{t('messages.toolBlocks.progressXY', { done, total: items.length })}</span>
+          <span className='tool-block__count'>
+            {t('messages.toolBlocks.progressXY', { done, total: items.length })}
+          </span>
         </>
       }
     >
