@@ -222,7 +222,7 @@ function normalizeToolGroupItem(
             removed: (fileDiff.match(/^-[^-]/gm) ?? []).length,
           }
         : undefined,
-    command: category === 'bash' ? description || undefined : undefined,
+    command: undefined,
     summary: description || undefined,
     input: undefined,
     output: resultText ?? fileDiff,

@@ -21,14 +21,37 @@ vi.mock('@/renderer/hooks/file/useDiffPreviewHandlers', () => ({
   useDiffPreviewHandlers: () => ({ handleFileClick: vi.fn(), handleDiffClick: vi.fn() }),
 }));
 
-const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock =>
-  ({ key: 'k', category: 'generic', status: 'completed', title: 'Tool', outputKind: 'text', raw: { type: 'tool_call' } as never, ...extra });
+const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
+  key: 'k',
+  category: 'generic',
+  status: 'completed',
+  title: 'Tool',
+  outputKind: 'text',
+  raw: { type: 'tool_call' } as never,
+  ...extra,
+});
 
 describe('BashToolBlock', () => {
   it('renders command summary and error output in red', () => {
-    render(<BashToolBlock block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })} />);
+    render(
+      <BashToolBlock
+        block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })}
+      />
+    );
     expect(screen.getAllByText('cargo build').length).toBeGreaterThan(0);
     expect(screen.getByText(/error: failed/).className).toContain('tool-block__output--error');
+  });
+
+  it('prefers the human description in the header and shows the command only once', () => {
+    render(<BashToolBlock block={block({ category: 'bash', command: 'ls -la', summary: '查看项目根目录结构' })} />);
+    // header shows the description; the raw command lives only in the body
+    expect(screen.getByText('查看项目根目录结构')).toBeInTheDocument();
+    expect(screen.getAllByText('ls -la')).toHaveLength(1);
+  });
+
+  it('shows the description exactly once when no separate command exists (tool_group path)', () => {
+    render(<BashToolBlock block={block({ category: 'bash', summary: '查看项目根目录结构' })} />);
+    expect(screen.getAllByText('查看项目根目录结构')).toHaveLength(1);
   });
 });
 

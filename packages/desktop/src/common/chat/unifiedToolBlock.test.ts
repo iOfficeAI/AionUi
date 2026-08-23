@@ -103,7 +103,8 @@ describe('normalizeUnifiedToolBlocks: tool_group', () => {
       ['bash', 'running'],
       ['search', 'error'],
     ]);
-    expect(blocks[1].command).toBe('cargo build');
+    expect(blocks[1].summary).toBe('cargo build');
+    expect(blocks[1].command).toBeUndefined();
   });
 
   it('skips confirmation-only items (rendered by the confirmation card, not tool blocks)', () => {
