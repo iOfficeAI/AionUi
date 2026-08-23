@@ -28,7 +28,9 @@ describe('UnifiedToolRenderer', () => {
       content: { call_id: 'c1', name: 'Bash', status: 'completed', args: { command: 'ls' }, output: 'a\nb' },
     };
     render(<UnifiedToolRenderer message={message} />);
-    expect(screen.getByText('messages.toolBlocks.bashTitle')).toBeInTheDocument();
+    // header shows the raw tool name, aria-label keeps the i18n key
+    expect(screen.getByRole('button', { name: 'messages.toolBlocks.bashTitle' })).toBeInTheDocument();
+    expect(screen.getByText('Bash')).toBeInTheDocument();
     // command shows up in both header summary and body command line
     expect(screen.getAllByText('ls').length).toBeGreaterThan(0);
   });

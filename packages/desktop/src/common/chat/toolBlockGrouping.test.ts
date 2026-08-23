@@ -2,8 +2,19 @@ import { describe, expect, it } from 'vitest';
 import type { UnifiedToolBlock } from './unifiedToolBlock';
 import { partitionByParent, groupIntoSegments, type ToolSegment } from './toolBlockGrouping';
 
-const block = (key: string, category: UnifiedToolBlock['category'], extra: Partial<UnifiedToolBlock> = {}): UnifiedToolBlock =>
-  ({ key, category, status: 'completed', title: key, outputKind: 'text', raw: { type: 'tool_call' } as never, ...extra });
+const block = (
+  key: string,
+  category: UnifiedToolBlock['category'],
+  extra: Partial<UnifiedToolBlock> = {}
+): UnifiedToolBlock => ({
+  key,
+  category,
+  status: 'completed',
+  title: key,
+  outputKind: 'text',
+  raw: { type: 'tool_call' } as never,
+  ...extra,
+});
 
 describe('partitionByParent', () => {
   it('routes child blocks under their parent task and keeps order otherwise', () => {
@@ -50,7 +61,12 @@ describe('groupIntoSegments', () => {
   it('merges consecutive todo blocks keeping only the latest with update count', () => {
     const segments = groupIntoSegments([
       block('t1', 'todo', { todoItems: [{ content: 'a', status: 'completed' }] }),
-      block('t2', 'todo', { todoItems: [{ content: 'a', status: 'completed' }, { content: 'b', status: 'in_progress' }] }),
+      block('t2', 'todo', {
+        todoItems: [
+          { content: 'a', status: 'completed' },
+          { content: 'b', status: 'in_progress' },
+        ],
+      }),
     ]);
     const seg = segments[0] as Extract<ToolSegment, { kind: 'todo' }>;
     expect(seg.updateCount).toBe(2);

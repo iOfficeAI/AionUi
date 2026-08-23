@@ -50,6 +50,13 @@ body[arco-theme='dark'] .tool-block {
   box-shadow: none;
 }
 
+/* Stack of sibling tool cards (single blocks + grouped segments). */
+.tool-block-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .tool-block__header {
   display: flex;
   align-items: center;
@@ -137,44 +144,8 @@ body[arco-theme='dark'] .tool-block {
 }
 
 .tool-block__icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--color-text-2);
   flex-shrink: 0;
-  background: var(--tool-cat-generic-bg);
-  color: var(--tool-cat-generic-fg);
-}
-.tool-block__icon--edit {
-  background: var(--tool-cat-edit-bg);
-  color: var(--tool-cat-edit-fg);
-}
-.tool-block__icon--bash {
-  background: var(--tool-cat-bash-bg);
-  color: var(--tool-cat-bash-fg);
-}
-.tool-block__icon--read {
-  background: var(--tool-cat-read-bg);
-  color: var(--tool-cat-read-fg);
-}
-.tool-block__icon--search {
-  background: var(--tool-cat-search-bg);
-  color: var(--tool-cat-search-fg);
-}
-.tool-block__icon--task {
-  background: var(--tool-cat-task-bg);
-  color: var(--tool-cat-task-fg);
-}
-.tool-block__icon--todo {
-  background: var(--tool-cat-todo-bg);
-  color: var(--tool-cat-todo-fg);
-}
-.tool-block__icon--sm {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
 }
 
 .tool-block__mono {

@@ -53,11 +53,10 @@ describe('mapAcpKindToCategory', () => {
 });
 
 describe('TOOL_BLOCK_META', () => {
-  it('covers every category with an i18n key and icon', () => {
+  it('covers every category with an i18n key', () => {
     const categories: ToolCategory[] = ['edit', 'bash', 'read', 'search', 'task', 'todo', 'generic'];
     for (const c of categories) {
       expect(TOOL_BLOCK_META[c].titleKey).toMatch(/^messages\.toolBlocks\./);
-      expect(TOOL_BLOCK_META[c].icon).toBeTruthy();
     }
   });
 });

@@ -50,7 +50,12 @@ describe('normalizeUnifiedToolBlocks: tool_call', () => {
     const [block] = normalizeUnifiedToolBlocks([
       baseToolCall({
         name: 'TodoWrite',
-        args: { todos: [{ content: 'step 1', status: 'completed' }, { content: 'step 2', status: 'in_progress' }] },
+        args: {
+          todos: [
+            { content: 'step 1', status: 'completed' },
+            { content: 'step 2', status: 'in_progress' },
+          ],
+        },
       }),
     ]);
     expect(block.category).toBe('todo');
@@ -103,7 +108,13 @@ describe('normalizeUnifiedToolBlocks: tool_group', () => {
 
   it('skips confirmation-only items (rendered by the confirmation card, not tool blocks)', () => {
     const blocks = normalizeUnifiedToolBlocks([
-      group([{ name: 'Read', status: 'Confirming', confirmationDetails: { type: 'edit', title: 't', file_name: 'a.ts', file_diff: '' } as never }]),
+      group([
+        {
+          name: 'Read',
+          status: 'Confirming',
+          confirmationDetails: { type: 'edit', title: 't', file_name: 'a.ts', file_diff: '' } as never,
+        },
+      ]),
     ]);
     expect(blocks).toHaveLength(0);
   });
@@ -132,7 +143,12 @@ describe('normalizeUnifiedToolBlocks: acp_tool_call', () => {
 
   it('prefers task/todo name matching over kind for task tools', () => {
     const [block] = normalizeUnifiedToolBlocks([
-      acp({ kind: 'other', title: 'Task', status: 'completed', rawInput: { subagent_type: 'explore', prompt: 'p' } } as never),
+      acp({
+        kind: 'other',
+        title: 'Task',
+        status: 'completed',
+        rawInput: { subagent_type: 'explore', prompt: 'p' },
+      } as never),
     ]);
     expect(block.category).toBe('task');
     expect(block.subagentType).toBe('explore');
@@ -147,6 +163,8 @@ describe('normalizeUnifiedToolBlocks: acp_tool_call', () => {
   });
 
   it('skips messages without update', () => {
-    expect(normalizeUnifiedToolBlocks([{ id: 'x', conversation_id: 'c', type: 'acp_tool_call', content: {} as never }])).toEqual([]);
+    expect(
+      normalizeUnifiedToolBlocks([{ id: 'x', conversation_id: 'c', type: 'acp_tool_call', content: {} as never }])
+    ).toEqual([]);
   });
 });

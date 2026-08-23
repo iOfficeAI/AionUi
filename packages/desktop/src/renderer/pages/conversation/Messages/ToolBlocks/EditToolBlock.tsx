@@ -41,6 +41,7 @@ const EditToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
     <ToolBlockShell
       category='edit'
       status={block.status}
+      title={block.title}
       summary={block.fileName}
       chips={
         counts ? (

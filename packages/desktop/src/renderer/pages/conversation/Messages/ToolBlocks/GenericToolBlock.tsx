@@ -9,12 +9,16 @@ import type { UnifiedToolBlock } from '@/common/chat/unifiedToolBlock';
 import ToolBlockDetail from './ToolBlockDetail';
 import ToolBlockShell from './ToolBlockShell';
 
-/** Fallback for every tool name we do not special-case. Always renders:
- * the raw tool name is the summary (the user's only identity cue), the body
- * shows the full input/output. */
+/** Fallback for every tool name we do not special-case. The raw tool name is
+ * the header title (the user's only identity cue), the body shows the full
+ * input/output. */
 const GenericToolBlock: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => (
-  <ToolBlockShell category='generic' status={block.status} summary={block.summary ?? block.title ?? block.fileName}>
-    <span className='tool-block__title tool-block__mono'>{block.title}</span>
+  <ToolBlockShell
+    category='generic'
+    status={block.status}
+    title={block.title}
+    summary={block.summary ?? block.fileName}
+  >
     <ToolBlockDetail block={block} outputError={block.status === 'error'} />
   </ToolBlockShell>
 );

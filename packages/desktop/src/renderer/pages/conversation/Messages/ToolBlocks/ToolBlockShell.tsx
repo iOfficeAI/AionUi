@@ -18,6 +18,8 @@ export interface ToolBlockShellProps {
   category: ToolCategory;
   /** Custom title key; defaults to the category's meta title. */
   titleKey?: string;
+  /** Custom header title (e.g. the raw tool name); defaults to the translated titleKey. */
+  title?: React.ReactNode;
   summary?: React.ReactNode;
   status: UnifiedToolStatus;
   /** Extra header chips (e.g. diff counts, progress badges). */
@@ -27,12 +29,13 @@ export interface ToolBlockShellProps {
   children?: React.ReactNode;
 }
 
-/** Shared card container: colored icon + title + summary + status dot header,
+/** Shared card container: category icon + title + summary + status dot header,
  * grid 0fr->1fr collapsible body. Auto-expands while running, auto-collapses on
  * settle unless the user toggled it (userTouched). */
 const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
   category,
   titleKey,
+  title,
   summary,
   status,
   chips,
@@ -83,7 +86,7 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
           </span>
         ) : null}
         <CategoryIcon category={category} />
-        <span className='tool-block__title'>{t(titleKey ?? meta.titleKey)}</span>
+        <span className='tool-block__title'>{title ?? t(titleKey ?? meta.titleKey)}</span>
         {chips}
         {summary !== undefined && (
           <span className='tool-block__summary' title={typeof summary === 'string' ? summary : undefined}>

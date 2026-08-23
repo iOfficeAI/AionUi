@@ -80,18 +80,16 @@ export function mapAcpKindToCategory(kind: string | undefined): ToolCategory {
 }
 
 export interface ToolBlockMeta {
-  /** i18n key for the block header title. */
+  /** i18n key for the block header title (fallback when no raw tool name). */
   titleKey: string;
-  /** Icon-park icon name rendered inside the colored square. */
-  icon: string;
 }
 
 export const TOOL_BLOCK_META: Record<ToolCategory, ToolBlockMeta> = {
-  edit: { titleKey: 'messages.toolBlocks.editTitle', icon: 'Edit' },
-  bash: { titleKey: 'messages.toolBlocks.bashTitle', icon: 'Terminal' },
-  read: { titleKey: 'messages.toolBlocks.readTitle', icon: 'FileCode' },
-  search: { titleKey: 'messages.toolBlocks.searchTitle', icon: 'Search' },
-  task: { titleKey: 'messages.toolBlocks.taskTitle', icon: 'SettingTwo' },
-  todo: { titleKey: 'messages.toolBlocks.todoTitle', icon: 'Checklist' },
-  generic: { titleKey: 'messages.toolBlocks.genericTitle', icon: 'Toolkit' },
+  edit: { titleKey: 'messages.toolBlocks.editTitle' },
+  bash: { titleKey: 'messages.toolBlocks.bashTitle' },
+  read: { titleKey: 'messages.toolBlocks.readTitle' },
+  search: { titleKey: 'messages.toolBlocks.searchTitle' },
+  task: { titleKey: 'messages.toolBlocks.taskTitle' },
+  todo: { titleKey: 'messages.toolBlocks.todoTitle' },
+  generic: { titleKey: 'messages.toolBlocks.genericTitle' },
 };

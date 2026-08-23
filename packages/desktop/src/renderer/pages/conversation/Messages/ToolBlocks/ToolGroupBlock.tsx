@@ -16,7 +16,11 @@ import ButlerDiagnoseButton from '@/renderer/components/base/ButlerDiagnoseButto
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import type { ToolConfirmationOutcome } from '@/renderer/utils/common';
 import ConfirmationCard from '../components/ToolConfirmationCard';
+import BashToolBlock from './BashToolBlock';
 import CategoryIcon from './CategoryIcon';
+import EditToolBlock from './EditToolBlock';
+import GenericToolBlock from './GenericToolBlock';
+import ReadToolBlock from './ReadToolBlock';
 import StatusDot from './StatusDot';
 import TaskToolBlock from './TaskToolBlock';
 import TodoToolBlock from './TodoToolBlock';
@@ -54,7 +58,7 @@ const FileRow: React.FC<{ block: UnifiedToolBlock }> = ({ block }) => {
     <div>
       <div
         role='button'
-        className='flex items-center gap-8px py-6px px-8px rd-4px cursor-pointer'
+        className={`flex items-center gap-8px py-6px px-8px rd-4px${hasDetail ? ' cursor-pointer' : ''}`}
         onClick={() => hasDetail && setExpanded(!expanded)}
       >
         <CategoryIcon category={block.category} small />
@@ -122,6 +126,25 @@ const SEGMENT_TITLE: Record<string, string> = {
   todo: 'messages.toolBlocks.todoTitle',
 };
 
+/** Isolated (non-grouped) block: render through the same single-block
+ * components as UnifiedToolRenderer so it stays expandable. */
+const renderSingleBlock = (block: UnifiedToolBlock, steps: UnifiedToolBlock[]) => {
+  switch (block.category) {
+    case 'edit':
+      return <EditToolBlock block={block} />;
+    case 'bash':
+      return <BashToolBlock block={block} />;
+    case 'read':
+      return <ReadToolBlock block={block} />;
+    case 'task':
+      return <TaskToolBlock block={block} steps={steps} />;
+    case 'todo':
+      return <TodoToolBlock block={block} />;
+    default:
+      return <GenericToolBlock block={block} />;
+  }
+};
+
 /** Grouped rendering for a run of consecutive tool messages: file list rows,
  * bash timeline, merged todo snapshot, nested task steps. */
 const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
@@ -145,7 +168,7 @@ const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
   };
 
   return (
-    <div className='tool-block'>
+    <div className='tool-block-group'>
       {confirmationItems.map((item) => (
         <ConfirmationCard
           key={item.call_id}
@@ -153,51 +176,37 @@ const ToolGroupBlock: React.FC<ToolGroupBlockProps> = ({
           onConfirm={(outcome) => handleConfirm(item.call_id, outcome)}
         />
       ))}
-      {segments.map((segment, index) => {
+      {segments.map((segment) => {
         if (segment.kind === 'single') {
           const block = segment.block;
-          if (block.category === 'task')
-            return <TaskToolBlock key={block.key} block={block} steps={childrenByParent.get(block.key) ?? []} />;
-          if (block.category === 'todo') return <TodoToolBlock key={block.key} block={block} />;
           return (
             <div key={block.key}>
-              <div className='tool-block__header'>
-                <CategoryIcon category={block.category} small />
-                <span className='tool-block__summary'>{block.fileName ?? block.summary ?? block.title}</span>
-                <span style={{ marginLeft: 'auto' }}>
-                  <StatusDot status={block.status} small />
-                </span>
-              </div>
+              {renderSingleBlock(block, childrenByParent.get(block.key) ?? [])}
               {block.status === 'error' && <ErrorActions block={block} />}
             </div>
           );
         }
+        if (segment.kind === 'todo') {
+          return <TodoToolBlock key={segment.latest.key} block={segment.latest} updateCount={segment.updateCount} />;
+        }
         const titleKey = SEGMENT_TITLE[segment.kind];
-        const doneCount =
-          segment.kind === 'todo' ? undefined : segment.blocks.filter((b) => b.status === 'completed').length;
+        const doneCount = segment.blocks.filter((b) => b.status === 'completed').length;
         return (
-          <div key={index} className={index > 0 ? 'mt-4px' : undefined}>
+          <div key={segment.blocks[0].key} className='tool-block'>
             <div className='tool-block__header' style={{ cursor: 'default' }}>
-              <CategoryIcon
-                category={segment.kind === 'bash-timeline' ? 'bash' : segment.kind === 'todo' ? 'todo' : 'read'}
-              />
+              <CategoryIcon category={segment.kind === 'bash-timeline' ? 'bash' : 'read'} />
               <span className='tool-block__title'>{t(titleKey)}</span>
+              <span className='tool-block__count'>{segment.blocks.length}</span>
               <span className='tool-block__count'>
-                {segment.kind === 'todo' ? segment.updateCount : segment.blocks.length}
+                {t('messages.toolBlocks.progressXY', { done: doneCount, total: segment.blocks.length })}
               </span>
-              {doneCount !== undefined && (
-                <span className='tool-block__count'>
-                  {t('messages.toolBlocks.progressXY', { done: doneCount, total: segment.blocks.length })}
-                </span>
-              )}
               <span style={{ marginLeft: 'auto' }}>
                 <StatusDot status={running ? 'running' : 'completed'} />
               </span>
             </div>
-            <div className='tool-block__body-inner' style={{ paddingTop: 4, paddingBottom: 6 }}>
+            <div style={{ padding: '2px 8px 8px' }}>
               {segment.kind === 'bash-timeline' && <BashTimeline blocks={segment.blocks} />}
               {segment.kind === 'list' && segment.blocks.map((b) => <FileRow key={b.key} block={b} />)}
-              {segment.kind === 'todo' && <TodoToolBlock block={segment.latest} updateCount={segment.updateCount} />}
             </div>
           </div>
         );
