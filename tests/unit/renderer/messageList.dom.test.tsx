@@ -84,8 +84,20 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageTips', () => (
   default: () => <div>tips</div>,
 }));
 
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolCall', () => ({
-  default: () => <div>tool_call</div>,
+vi.mock('@/renderer/pages/conversation/Messages/ToolBlocks/UnifiedToolRenderer', () => ({
+  default: ({ message }: { message: IMessageAcpToolCall | { type: string } }) => {
+    if (message.type !== 'acp_tool_call') return <div>tool_call</div>;
+    const acp = message as IMessageAcpToolCall;
+    return (
+      <div
+        data-testid='acp-tool-call'
+        data-message-id={acp.id}
+        data-diff-count={acp.content.update.content?.filter((item) => item.type === 'diff').length ?? 0}
+      >
+        acp_tool_call
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroup', () => ({
@@ -106,18 +118,6 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessagePermission', (
 
 vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpPermission', () => ({
   default: () => <div>acp_permission</div>,
-}));
-
-vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall', () => ({
-  default: ({ message }: { message: IMessageAcpToolCall }) => (
-    <div
-      data-testid='acp-tool-call'
-      data-message-id={message.id}
-      data-diff-count={message.content.update.content?.filter((item) => item.type === 'diff').length ?? 0}
-    >
-      acp_tool_call
-    </div>
-  ),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessagePlan', () => ({

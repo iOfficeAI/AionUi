@@ -18,7 +18,6 @@ import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/Mess
 import MessageQuestion from './MessageQuestion';
 import MessagePermission from './components/MessagePermission';
 import MessageAcpTerminalOutput from '@renderer/pages/conversation/Messages/acp/MessageAcpTerminalOutput';
-import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 import classNames from 'classnames';
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +38,7 @@ import {
 } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
 import MessageTips from './components/MessageTips';
-import MessageToolCall from './components/MessageToolCall';
+import UnifiedToolRenderer from './ToolBlocks/UnifiedToolRenderer';
 import MessageToolGroup from './components/MessageToolGroup';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
 import MessageCronTrigger from './components/MessageCronTrigger';
@@ -285,7 +284,7 @@ const MessageItem: React.FC<{
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
-          return <MessageToolCall message={message}></MessageToolCall>;
+          return <UnifiedToolRenderer message={message}></UnifiedToolRenderer>;
         case 'tool_group':
           return <MessageToolGroup message={message}></MessageToolGroup>;
         case 'agent_status':
@@ -297,7 +296,7 @@ const MessageItem: React.FC<{
         case 'ask':
           return <MessageQuestion message={message}></MessageQuestion>;
         case 'acp_tool_call':
-          return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+          return <UnifiedToolRenderer message={message}></UnifiedToolRenderer>;
         case 'acp_terminal_output':
           return <MessageAcpTerminalOutput message={message}></MessageAcpTerminalOutput>;
         case 'thinking':
