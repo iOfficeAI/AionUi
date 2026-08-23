@@ -30,12 +30,18 @@ export default defineConfig({
           environment: 'node',
           include: [
             'packages/web-host/src/**/*.test.ts',
+            'packages/desktop/src/**/*.test.ts',
             'tests/unit/**/*.test.ts',
             'tests/unit/**/test_*.ts',
             'tests/integration/**/*.test.ts',
             'tests/regression/**/*.test.ts',
           ],
-          exclude: ['tests/unit/**/*.dom.test.ts', 'tests/unit/**/*.dom.test.tsx'],
+          exclude: [
+            'tests/unit/**/*.dom.test.ts',
+            'tests/unit/**/*.dom.test.tsx',
+            'packages/desktop/src/**/*.dom.test.ts',
+            'packages/desktop/src/**/*.dom.test.tsx',
+          ],
           setupFiles: ['./tests/vitest.setup.ts'],
         },
       },
@@ -45,7 +51,12 @@ export default defineConfig({
         test: {
           name: 'dom',
           environment: 'jsdom',
-          include: ['tests/unit/**/*.dom.test.ts', 'tests/unit/**/*.dom.test.tsx'],
+          include: [
+            'tests/unit/**/*.dom.test.ts',
+            'tests/unit/**/*.dom.test.tsx',
+            'packages/desktop/src/**/*.dom.test.ts',
+            'packages/desktop/src/**/*.dom.test.tsx',
+          ],
           setupFiles: ['./tests/vitest.dom.setup.ts'],
         },
       },
