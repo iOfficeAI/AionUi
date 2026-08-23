@@ -69,4 +69,36 @@ describe('ToolBlockShell', () => {
     );
     expect(bodyIsOpen()).toBe(true);
   });
+
+  it('renders a status dot with the status-mapped class', () => {
+    const { container, rerender } = render(
+      <ToolBlockShell category='bash' titleKey='messages.toolBlocks.bashTitle' status='running'>
+        <div data-testid='detail'>detail</div>
+      </ToolBlockShell>
+    );
+    expect(container.querySelector('.tool-block__dot--running')).not.toBeNull();
+
+    rerender(
+      <ToolBlockShell category='bash' titleKey='messages.toolBlocks.bashTitle' status='completed'>
+        <div data-testid='detail'>detail</div>
+      </ToolBlockShell>
+    );
+    expect(container.querySelector('.tool-block__dot--completed')).not.toBeNull();
+
+    rerender(
+      <ToolBlockShell category='bash' titleKey='messages.toolBlocks.bashTitle' status='error'>
+        <div data-testid='detail'>detail</div>
+      </ToolBlockShell>
+    );
+    expect(container.querySelector('.tool-block__dot--error')).not.toBeNull();
+  });
+
+  it('does not auto-expand while running when autoExpand is false', () => {
+    render(
+      <ToolBlockShell category='task' titleKey='messages.toolBlocks.taskTitle' status='running' autoExpand={false}>
+        <div data-testid='detail'>detail</div>
+      </ToolBlockShell>
+    );
+    expect(bodyIsOpen()).toBe(false);
+  });
 });

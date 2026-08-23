@@ -53,6 +53,7 @@ const TaskToolBlock: React.FC<TaskToolBlockProps> = ({ block, steps }) => {
     <ToolBlockShell
       category='task'
       status={aggregatedStatus}
+      autoExpand={false}
       titleKey={getToolTitleKey(block.title)}
       summary={truncate(block.summary, 60)}
       chips={

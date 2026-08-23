@@ -32,6 +32,17 @@ const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
 });
 
 describe('TaskToolBlock', () => {
+  it('keeps the body collapsed by default even while running', () => {
+    render(
+      <TaskToolBlock
+        block={block({ status: 'running', subagentType: 'general-purpose', prompt: 'investigate' })}
+        steps={[]}
+      />
+    );
+    expect(screen.queryByText('general-purpose')).not.toBeInTheDocument();
+    expect(screen.queryByText('investigate')).not.toBeInTheDocument();
+  });
+
   it('renders subagent type chip, prompt, and nested steps as full tool blocks', () => {
     const steps = [
       block({ key: 's1', category: 'read', status: 'completed', fileName: 'a.ts', title: 'Read' }),
@@ -43,6 +54,8 @@ describe('TaskToolBlock', () => {
         steps={steps}
       />
     );
+    // body is collapsed by default (autoExpand=false); expand to reveal nested content
+    fireEvent.click(screen.getByRole('button', { name: 'messages.toolBlocks.taskTitle' }));
     expect(screen.getByText('general-purpose')).toBeInTheDocument();
     expect(screen.getByText('investigate')).toBeInTheDocument();
     // steps render through the full single-block components: read summary,

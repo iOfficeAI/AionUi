@@ -29,6 +29,9 @@ export interface ToolBlockShellProps {
   chips?: React.ReactNode;
   /** When false the header is not clickable and no chevron renders. */
   expandable?: boolean;
+  /** When false the body never auto-expands on running/pending status
+   * (still manually toggleable). Defaults to true. */
+  autoExpand?: boolean;
   children?: React.ReactNode;
 }
 
@@ -44,6 +47,7 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
   status,
   chips,
   expandable = true,
+  autoExpand = true,
   children,
 }) => {
   const { t } = useTranslation();
@@ -52,14 +56,14 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
   const prevStatusRef = useRef<UnifiedToolStatus>(status);
 
   useEffect(() => {
-    if (userTouched) {
+    if (userTouched || !autoExpand) {
       prevStatusRef.current = status;
       return;
     }
     if (status === 'running' || status === 'pending') setExpanded(true);
     else if (prevStatusRef.current === 'running' || prevStatusRef.current === 'pending') setExpanded(false);
     prevStatusRef.current = status;
-  }, [status, userTouched]);
+  }, [status, userTouched, autoExpand]);
 
   const toggle = () => {
     if (!expandable) return;
