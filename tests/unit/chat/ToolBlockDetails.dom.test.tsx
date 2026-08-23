@@ -38,7 +38,8 @@ describe('BashToolBlock', () => {
         block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })}
       />
     );
-    // no description -> the command line lives only in the body
+    // no description -> the command line lives only in the body (expand to reveal it)
+    fireEvent.click(screen.getByRole('button'));
     expect(screen.getAllByText('cargo build')).toHaveLength(1);
     expect(screen.getByText(/error: failed/).className).toContain('tool-block__output--error');
   });
@@ -47,6 +48,8 @@ describe('BashToolBlock', () => {
     render(<BashToolBlock block={block({ category: 'bash', command: 'ls -la', summary: '查看项目根目录结构' })} />);
     // header shows the description; the raw command lives only in the body
     expect(screen.getByText('查看项目根目录结构')).toBeInTheDocument();
+    expect(screen.queryByText('ls -la')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
     expect(screen.getAllByText('ls -la')).toHaveLength(1);
   });
 
@@ -71,6 +74,7 @@ describe('EditToolBlock', () => {
     );
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.getByText('-1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
     expect(screen.getByTestId('file-changes-panel')).toBeInTheDocument();
   });
 });

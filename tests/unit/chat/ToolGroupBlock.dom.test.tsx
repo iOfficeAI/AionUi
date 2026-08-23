@@ -81,6 +81,8 @@ describe('ToolGroupBlock', () => {
         ]}
       />
     );
+    // expand the todo block body to reveal its checklist items
+    fireEvent.click(screen.getByRole('button', { name: 'messages.toolBlocks.todoTitle' }));
     expect(screen.getByText('new')).toBeInTheDocument();
     expect(screen.queryByText('old')).not.toBeInTheDocument();
   });

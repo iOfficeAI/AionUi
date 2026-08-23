@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { IMessageToolCall } from '@/common/chat/chatLib';
 import UnifiedToolRenderer from '@/renderer/pages/conversation/Messages/ToolBlocks/UnifiedToolRenderer';
@@ -31,7 +31,8 @@ describe('UnifiedToolRenderer', () => {
     // header shows the translated category title (action word, not the raw tool name)
     expect(screen.getByRole('button', { name: 'messages.toolBlocks.bashTitle' })).toBeInTheDocument();
     expect(screen.getByText('messages.toolBlocks.bashTitle')).toBeInTheDocument();
-    // command shows up in both header summary and body command line
+    // command lives in the collapsed body; expand to reveal it
+    fireEvent.click(screen.getByRole('button', { name: 'messages.toolBlocks.bashTitle' }));
     expect(screen.getAllByText('ls').length).toBeGreaterThan(0);
   });
 

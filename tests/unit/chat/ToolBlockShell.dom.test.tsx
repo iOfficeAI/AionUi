@@ -11,9 +11,9 @@ import ToolBlockShell from '@/renderer/pages/conversation/Messages/ToolBlocks/To
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
-/** jsdom does not apply the grid-row collapse CSS, so expand state is asserted
- * via the `--open` modifier class on the body wrapper. */
-const bodyIsOpen = () => screen.getByTestId('tool-block-body').classList.contains('tool-block__body--open');
+/** The body wrapper is only rendered when expanded, so presence of the body
+ * test id is the expand-state signal. */
+const bodyIsOpen = () => screen.queryByTestId('tool-block-body') !== null;
 
 describe('ToolBlockShell', () => {
   it('renders header with title and summary, body collapsed until expanded', () => {
@@ -24,7 +24,7 @@ describe('ToolBlockShell', () => {
     );
     expect(screen.getByText('messages.toolBlocks.bashTitle')).toBeInTheDocument();
     expect(screen.getByText('cargo test')).toBeInTheDocument();
-    expect(screen.getByTestId('detail')).toBeInTheDocument();
+    expect(screen.queryByTestId('detail')).not.toBeInTheDocument();
     expect(bodyIsOpen()).toBe(false);
   });
 

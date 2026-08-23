@@ -9,7 +9,7 @@ import {
   Checklist,
   Delete,
   Edit,
-  Eyes,
+  FileCodeOne,
   Folder,
   Globe,
   Pencil,
@@ -22,7 +22,7 @@ import type { ToolCategory } from '@/common/chat/toolBlockConstants';
 import type { ToolIconKey } from '@/common/chat/toolBlockPresentation';
 
 const ICONS: Record<ToolIconKey, React.ComponentType<{ theme?: string; size?: number | string }>> = {
-  read: Eyes,
+  read: FileCodeOne,
   edit: Edit,
   write: Pencil,
   bash: Terminal,

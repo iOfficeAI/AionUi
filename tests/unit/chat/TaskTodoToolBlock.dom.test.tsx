@@ -58,6 +58,8 @@ describe('TaskToolBlock', () => {
       block({ key: 's1', category: 'generic', status: 'completed', title: 'Mcp', input: '{"a":1}', output: 'ok' }),
     ];
     render(<TaskToolBlock block={block({ prompt: 'p' })} steps={steps} />);
+    // expand the task block body to reveal nested steps, then expand the step
+    fireEvent.click(screen.getByRole('button', { name: 'messages.toolBlocks.taskTitle' }));
     fireEvent.click(screen.getByText('Mcp'));
     expect(screen.getByText('ok')).toBeInTheDocument();
   });

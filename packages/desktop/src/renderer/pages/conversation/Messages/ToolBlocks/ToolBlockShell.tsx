@@ -33,8 +33,8 @@ export interface ToolBlockShellProps {
 }
 
 /** Shared card container: category icon + title + summary + status dot header,
- * grid 0fr->1fr collapsible body. Auto-expands while running, auto-collapses on
- * settle unless the user toggled it (userTouched). */
+ * conditionally rendered collapsible body. Auto-expands while running,
+ * auto-collapses on settle unless the user toggled it (userTouched). */
 const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
   category,
   titleKey,
@@ -101,8 +101,8 @@ const ToolBlockShell: React.FC<ToolBlockShellProps> = ({
           <StatusDot status={status} />
         </span>
       </div>
-      {expandable && children ? (
-        <div data-testid='tool-block-body' className={`tool-block__body${expanded ? ' tool-block__body--open' : ''}`}>
+      {expandable && children && expanded ? (
+        <div data-testid='tool-block-body' className='tool-block__body'>
           <div className='tool-block__body-inner'>{children}</div>
         </div>
       ) : null}
