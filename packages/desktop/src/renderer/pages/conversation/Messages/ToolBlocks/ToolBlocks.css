@@ -90,6 +90,8 @@ body[arco-theme='dark'] .tool-block {
 .tool-block__summary {
   font-size: 12px;
   color: var(--color-text-3);
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

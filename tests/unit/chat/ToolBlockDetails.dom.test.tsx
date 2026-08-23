@@ -32,13 +32,14 @@ const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
 });
 
 describe('BashToolBlock', () => {
-  it('renders command summary and error output in red', () => {
+  it('shows the command in the body (not the header) and error output in red', () => {
     render(
       <BashToolBlock
         block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })}
       />
     );
-    expect(screen.getAllByText('cargo build').length).toBeGreaterThan(0);
+    // no description -> the command line lives only in the body
+    expect(screen.getAllByText('cargo build')).toHaveLength(1);
     expect(screen.getByText(/error: failed/).className).toContain('tool-block__output--error');
   });
 
