@@ -239,6 +239,11 @@ export const createInitStyle = (
       border: 1px solid var(--bg-3);
       background-color: var(--bg-1);
       font-weight: bold;
+      /* Without this the UA default (text-align: center) applies and the header
+         row is centred while every body row is start-aligned. GFM alignment
+         markers (:---, :---:, ---:) still win: remark-gfm emits them as an
+         inline style, which outranks this rule. */
+      text-align: start;
     }
     td{
         padding: 8px;
