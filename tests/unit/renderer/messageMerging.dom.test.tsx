@@ -8,16 +8,19 @@ import React, { type PropsWithChildren } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
+import { emitter } from '@/renderer/utils/emitter';
 import type { IMessageAcpToolCall, IMessageText, IMessageThinking } from '@/common/chat/chatLib';
 import {
   MessageListLoadingProvider,
   MessageListProvider,
   MessagePaginationProvider,
+  clearMessageListCache,
   useAddOrUpdateMessage,
   useMessageLstCache,
   useMessageList,
   useReplaceWithAnchorWindow,
 } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAutoScroll } from '@/renderer/pages/conversation/Messages/useAutoScroll';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -144,6 +147,7 @@ async function flushMessageQueue(): Promise<void> {
 describe('message merging', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    clearMessageListCache();
   });
 
   afterEach(() => {
@@ -280,6 +284,317 @@ describe('message merging', () => {
       limit: 50,
       content_mode: 'compact',
     });
+  });
+
+  it('restores a fresh message page without requesting it again after remount', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'cached response')],
+      oldest_cursor: 'oldest',
+      newest_cursor: 'newest',
+      has_more_before: true,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(first.result.current.messages).toHaveLength(1);
+    first.unmount();
+    invoke.mockClear();
+
+    const second = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    expect(second.result.current.messages).toHaveLength(1);
+    expect((second.result.current.messages[0] as IMessageText).content.content).toBe('cached response');
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('opens a cached conversation at the latest message without requesting the page again', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'cached response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndScrollHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      const messages = useMessageList();
+      return {
+        messages,
+        autoScroll: useAutoScroll({ messages, itemCount: messages.length }),
+      };
+    }
+
+    const first = renderHook(() => useCacheAndScrollHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    first.unmount();
+    invoke.mockClear();
+
+    const scroller = document.createElement('div');
+    Object.defineProperties(scroller, {
+      scrollTop: { configurable: true, writable: true, value: 120 },
+      scrollHeight: { configurable: true, writable: true, value: 1_000 },
+      clientHeight: { configurable: true, writable: true, value: 400 },
+    });
+    const scrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      if (typeof top === 'number') scroller.scrollTop = top;
+    });
+    scroller.scrollTo = scrollTo;
+    const content = document.createElement('div');
+    const second = renderHook(() => useCacheAndScrollHarness(), { wrapper: CacheWrapper });
+
+    act(() => {
+      second.result.current.autoScroll.handleScrollerRef(scroller);
+      second.result.current.autoScroll.handleContentRef(content);
+    });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(second.result.current.messages).toHaveLength(1);
+    expect(invoke).not.toHaveBeenCalled();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 600, behavior: 'auto' });
+  });
+
+  it('shows a stale cached page immediately while revalidating it in the background', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'old response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    first.unmount();
+    vi.advanceTimersByTime(30_001);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'new response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+    invoke.mockClear();
+
+    const second = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    expect((second.result.current.messages[0] as IMessageText).content.content).toBe('old response');
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect((second.result.current.messages[0] as IMessageText).content.content).toBe('new response');
+  });
+
+  it('does not restore message data after the authentication cache is cleared', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'private response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => emitter.emit('auth.cacheCleared'));
+    first.unmount();
+    invoke.mockClear();
+
+    renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache a response that completes after authentication cache is cleared', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    let resolveFirst:
+      | ((value: {
+          items: IMessageText[];
+          oldest_cursor: null;
+          newest_cursor: null;
+          has_more_before: false;
+          has_more_after: false;
+        }) => void)
+      | undefined;
+    invoke.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        })
+    );
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    act(() => emitter.emit('auth.cacheCleared'));
+    await act(async () => {
+      resolveFirst?.({
+        items: [createTextMessage('private-agent', 'private response')],
+        oldest_cursor: null,
+        newest_cursor: null,
+        has_more_before: false,
+        has_more_after: false,
+      });
+      await Promise.resolve();
+    });
+    expect(first.result.current.messages).toEqual([]);
+    first.unmount();
+    invoke.mockResolvedValue({
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+    invoke.mockClear();
+
+    renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops cached messages when the conversation is deleted', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'deleted response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => emitter.emit('conversation.deleted', CONVERSATION_ID));
+    first.unmount();
+    invoke.mockClear();
+
+    renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps cached messages when a different conversation is deleted', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'cached response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => emitter.emit('conversation.deleted', 'conversation-2'));
+    first.unmount();
+    invoke.mockClear();
+
+    const second = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    expect(second.result.current.messages).toHaveLength(1);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('evicts an older cached page when the in-memory list grows beyond the cache limit', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValue({
+      items: [createTextMessage('cached-agent', 'old response')],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    function useCacheAndListHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return { messages: useMessageList() };
+    }
+
+    const first = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    first.unmount();
+    vi.advanceTimersByTime(30_001);
+    invoke.mockResolvedValue({
+      items: Array.from({ length: 201 }, (_, index) => createTextMessage(`large-${index}`, `response ${index}`)),
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    const second = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(second.result.current.messages).toHaveLength(202);
+    second.unmount();
+    invoke.mockImplementation(() => new Promise(() => {}));
+    invoke.mockClear();
+
+    const third = renderHook(() => useCacheAndListHarness(), { wrapper: CacheWrapper });
+
+    expect(third.result.current.messages).toEqual([]);
+    expect(invoke).toHaveBeenCalledTimes(1);
   });
 
   it('flips a pending user message to finish when message.statusChanged arrives for it', async () => {
