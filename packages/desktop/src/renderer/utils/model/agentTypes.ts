@@ -65,6 +65,13 @@ export type AgentEnvEntry = {
  */
 export type BehaviorPolicy = {
   supports_side_question?: boolean;
+  /**
+   * Gates team-mode eligibility. Persisted by the backend and seeded `false`
+   * for custom agents, so a custom ACP agent stays unselectable in a team
+   * until it is set — even when the agent advertises
+   * `agentCapabilities.mcpCapabilities.stdio: true` at init.
+   */
+  supports_team?: boolean;
 };
 
 /**

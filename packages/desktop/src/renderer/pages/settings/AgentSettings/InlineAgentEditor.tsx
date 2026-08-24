@@ -264,7 +264,10 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     const skeleton: CustomAgentAdvancedOverrides = {
       yolo_id: advancedVal.yolo_id ?? '',
       native_skills_dirs: advancedVal.native_skills_dirs ?? [],
-      behavior_policy: advancedVal.behavior_policy ?? { supports_side_question: false },
+      // Both keys are shown in the skeleton so the panel is self-documenting:
+      // `supports_team` is otherwise undiscoverable, yet required for a custom
+      // ACP agent to be selectable in a team.
+      behavior_policy: advancedVal.behavior_policy ?? { supports_side_question: false, supports_team: false },
       description: advancedVal.description ?? '',
     };
     return JSON.stringify(skeleton, null, 2);
@@ -318,9 +321,17 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         }
         if (p.behavior_policy && typeof p.behavior_policy === 'object') {
           const bp = p.behavior_policy as Record<string, unknown>;
+          // Build incrementally: assigning a fresh object per key would drop the
+          // sibling flag. `supports_team` was previously discarded here, so a user
+          // typing it into the JSON panel saw it silently vanish on save.
+          const policy: NonNullable<CustomAgentAdvancedOverrides['behavior_policy']> = {};
           if (typeof bp.supports_side_question === 'boolean') {
-            next.behavior_policy = { supports_side_question: bp.supports_side_question };
+            policy.supports_side_question = bp.supports_side_question;
           }
+          if (typeof bp.supports_team === 'boolean') {
+            policy.supports_team = bp.supports_team;
+          }
+          if (Object.keys(policy).length > 0) next.behavior_policy = policy;
         }
         if (typeof p.description === 'string' && p.description.trim()) next.description = p.description;
         setAdvanced(next);
