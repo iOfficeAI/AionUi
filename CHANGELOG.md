@@ -1,5 +1,239 @@
 # Changelog
 
+## [2.1.60](https://github.com/iOfficeAI/AionUi/compare/v2.1.59...v2.1.60) (2026-08-21)
+
+### Desktop
+
+#### Features
+
+- **chat:** @@ conversation mentions and cross-conversation delivery UI (#4131)
+- **conversation:** allow empty-input start with assistant empty state (#4127)
+- **layout:** resizable desktop sider with snap-collapse (#4128)
+- **sidebar:** archive-first UI and archived page (#4126)
+- **explorer:** refresh a root via backend remount (#4121)
+- **renderer:** enable mermaid pan/zoom in chat markdown (#4108)
+
+#### Bug Fixes
+
+- **desktop:** log attribution for uncaught main-process errors (#4112)
+
+#### Refactoring
+
+- **feedback:** attach account email automatically (#4117)
+
+### Core ([v0.1.71](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.71))
+
+#### Features
+
+- **project:** add fs/remount to rebuild stale mounts (#910)
+- **session-message:** deliver messages across a user's conversations (#914)
+- **sidebar:** archive foundation and aggregated read model (#911)
+
+#### Bug Fixes
+
+- **app:** fall back to default log dir when custom log dir is unusable (AIONUI-231) (#898)
+- **claude:** append the assistant preset instead of replacing the system prompt (#900)
+- **codex:** send the assistant preset as developerInstructions, not baseInstructions (#897)
+- **conversation:** apply agent session titles at the relay level (#896)
+- **extension:** bound the builtin-skills materialize lock acquisition (AIONUI-168) (#903)
+- **project:** keep mounted targets when one fs/subscribe target fails (AIONUI-236) (#902)
+- **runtime:** log npm/npx probe stderr and missing-executable snapshot (AIONUI-62) (#904)
+
+---
+
+## [2.1.59](https://github.com/iOfficeAI/AionUi/compare/v2.1.58...v2.1.59) (2026-08-19)
+
+### Desktop
+
+#### Features
+
+- **explorer:** new file/dir + grouped row menu (#4102)
+- **feedback:** add optional contact email field (#4096)
+- **explorer:** drag-to-transfer files across the project tree (#4090)
+
+#### Bug Fixes
+
+- **markdown:** keep inline markup at the heading's size inside chat headings (#4104)
+- **acp:** render relative images in agent replies (#4103)
+- **desktop:** stop renderer launch-failed reload storm with backoff and throttled relaunch (#4100)
+- **ui:** make monochrome logos follow the theme color (#3614)
+- **security:** block path traversal in HTML renderer resource inlining (#4097)
+- **markdown:** render chat KaTeX formulas once in Shadow DOM (#4091)
+
+#### Refactoring
+
+- **media:** read image root from ConversationContext (#4105)
+
+### Core ([v0.1.70](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.70))
+
+#### Features
+
+- **monitor:** add fs/createFile command (#891)
+- **monitor:** back explorer drag-transfer with fs/copy and fs/move (#877)
+- **session:** distinguish Task subagents from background tasks (#890)
+
+#### Bug Fixes
+
+- **agent:** pair native media blocks with a link to the same file (#876)
+- **antigravity:** collapse agy's U+FFFD runs at text_delta joins (#888)
+- **antigravity:** route Team over the CLI, which is what agy was already using (#881)
+- **app:** bound the graceful-shutdown tail so the data-dir instance lock is released (#884)
+- **app:** harden the shutdown watchdog force-exit path
+- **app:** harden the shutdown watchdog force-exit path
+- **app:** keep backend_binary_path cmd.exe-launchable on Windows (#887)
+- **app:** reuse the app-level ConversationService in build_cron_state (#885)
+
+---
+
+## [2.1.58](https://github.com/iOfficeAI/AionUi/compare/v2.1.57...v2.1.58) (2026-08-18)
+
+### Desktop
+
+#### Features
+
+- **renderer:** add math formula rendering support for markdown viewer (#4079)
+- **theme:** activate structured token channel and add custom-theme guide (#4081)
+- **team:** runtime restart controls, model refresh button and team UX fixes (#3893)
+- **i18n:** right-to-left layout for Persian (fa-IR) (#4069)
+
+#### Bug Fixes
+
+- **chat:** align compose actions and draft queue draining (#4082)
+- **i18n:** align directory paths to the page direction, not hardcoded end (#4086)
+- **web-host:** stop leaking PREBUILDS_ONLY into aioncore agent subprocesses (#4078)
+- **i18n:** RTL polish pass — LTR paths/file names, shorthand paddings, mirrored chevrons (#4077)
+- **i18n:** locale-aware cron titles and byte sizes, Traditional Chinese mapping (#4075)
+- **i18n:** adopt i18next plural forms for count-bearing strings (#4074)
+- **i18n:** backfill every missing translation and wire webFsPicker into i18n (#4072)
+- **i18n:** quick-wins batch — Arco locales, tray French, hardcoded strings, stale title (#4071)
+- **i18n:** format numbers and dates against the app language, not the host locale (#4068)
+
+### Core ([v0.1.69](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.69))
+
+#### Features
+
+- **claude:** label tool steps by what they do (#870)
+- **team:** team mode reliability improvements, model switch persistence and runtime restart (#787)
+
+#### Bug Fixes
+
+- **claude:** three follow-ups to the tool-step labels (#872)
+
+---
+
+## [2.1.57](https://github.com/iOfficeAI/AionUi/compare/v2.1.56...v2.1.57) (2026-08-17)
+
+### Desktop
+
+#### Features
+
+- **chat:** mid-turn interjection — allow sending while a turn is in flight (#4012)
+- **explorer:** themed file-tree icons and SCM sidebar polish (#4057)
+
+#### Bug Fixes
+
+- **web-host:** pause client socket before splicing to avoid dropping upload bytes (#4066)
+- **explorer:** remove duplicate desktop toggle (#4065)
+- **web-host:** pick the real LAN IP for the WebUI access URL (#4060)
+
+### Core ([v0.1.68](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.68))
+
+#### Features
+
+- **codex:** auto-name sessions and label command steps (#868)
+- **conversation:** mid-turn interjection — deliver messages while a turn is in flight (#836)
+
+#### Bug Fixes
+
+- **acp:** give a first-run npx agent room to install before initialize times out (#854)
+- **acp:** stop collapsing agent failures into an opaque -32603 (#869)
+- **agents:** launch omp through its local CLI instead of the npx bridge (#855)
+- **antigravity:** read the HTTP status before parsing the hook decision (#867)
+- **auth:** stop CSRF rejecting agy's PreToolUse callback (#860)
+- **runtime:** find agent CLIs installed by bun and by vendor installers (#856)
+
+---
+
+## [2.1.56](https://github.com/iOfficeAI/AionUi/compare/v2.1.55...v2.1.56) (2026-08-14)
+
+### Desktop
+
+#### Features
+
+- **sidebar:** allow marking a conversation as unread (#4028)
+- **agent:** show a deferred mode switch as pending instead of switched (#4031)
+
+#### Refactoring
+
+- **theme:** remove deprecated community themes, keep official (#3922)
+
+### Core ([v0.1.67](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.67))
+
+#### Features
+
+- **session:** report a deferred mode switch as pending instead of observed (#846)
+
+#### Bug Fixes
+
+- restore direct CLI Team MCP capabilities (#853)
+
+---
+
+## [2.1.55](https://github.com/iOfficeAI/AionUi/compare/v2.1.54...v2.1.55) (2026-08-13)
+
+### Desktop
+
+#### Features
+
+- **conversation:** surface fork entry point in aionrs chats
+
+#### Bug Fixes
+
+- **update:** reject downgrade offers in update check (#4010)
+
+### Core ([v0.1.66](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.66))
+
+#### Features
+
+- **conversation:** support forking aionrs conversations
+
+#### Bug Fixes
+
+- **session:** retry claude session-title generation with timeout and observability (#843)
+
+---
+
+## [2.1.54](https://github.com/iOfficeAI/AionUi/compare/v2.1.53...v2.1.54) (2026-08-12)
+
+### Desktop
+
+#### Features
+
+- **backend:** honor AIONUI_BACKEND_BIN override in desktop resolver (#3988)
+- **channel:** add Discord channel configuration UI (#3956)
+- **conversation:** open selected links in built-in or system browser (#3959)
+- **preview:** add save button to editable file toolbar (#3964)
+- **preview:** enable mermaid pan/zoom controls in markdown viewer (#3958)
+- **startup:** dedicated dialog for database created by newer AionUi (downgrade) (#3998)
+
+#### Bug Fixes
+
+- **explorer:** stop React #185 loadMore loop (#3966)
+- **preview:** download PDF, DOCX, XLSX, and PPTX (#3973)
+
+### Core ([v0.1.65](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.65))
+
+#### Features
+
+- **db:** dedicated startup stage for database created by a newer app (downgrade) (#834)
+
+#### Bug Fixes
+
+- **antigravity:** parse TSV output from `agy models` (#797)
+- **conversation:** tell the client when a turn is cancelled before its agent exists (#827)
+
+---
+
 ## [2.1.53](https://github.com/iOfficeAI/AionUi/compare/v2.1.52...v2.1.53) (2026-08-10)
 
 ### Desktop

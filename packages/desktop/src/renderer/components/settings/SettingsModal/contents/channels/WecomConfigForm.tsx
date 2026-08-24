@@ -10,6 +10,7 @@ import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistan
 import { resolveLocaleKey } from '@/common/utils';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
+import { formatDateTime } from '@/renderer/services/i18n/format';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -37,7 +38,7 @@ const PreferenceRow: React.FC<{
       <div className='flex items-center gap-8px'>
         <span className='text-14px text-t-primary'>
           {label}
-          {required && <span className='text-red-500 ml-2px'>*</span>}
+          {required && <span className='text-red-500 ms-2px'>*</span>}
         </span>
         {extra}
       </div>
@@ -274,13 +275,12 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
   // Format timestamp
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+    return formatDateTime(timestamp, i18n.language);
   };
 
   // Calculate remaining time
-  const getRemainingTime = (expiresAt: number) => {
-    const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
-    return `${remaining} min`;
+  const getRemainingMinutes = (expiresAt: number) => {
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
@@ -407,7 +407,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       {!hasExistingUsers && (
         <div className='flex justify-end'>
           {pluginStatus?.hasToken && !botId.trim() && !secret.trim() ? (
-            <span className='text-12px text-t-tertiary mr-12px self-center'>
+            <span className='text-12px text-t-tertiary me-12px self-center'>
               {t('settings.wecom.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
             </span>
           ) : null}
@@ -559,7 +559,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {/* Pending Pairings */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
@@ -603,7 +603,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
                       {t('settings.assistant.pairingCode', 'Code')}:{' '}
                       <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
                       <span className='mx-8px'>|</span>
-                      {t('settings.assistant.expiresIn', 'Expires in')}: {getRemainingTime(pairing.expiresAt)}
+                      {t('settings.assistant.expiresInMinutes', { count: getRemainingMinutes(pairing.expiresAt) })}
                     </div>
                   </div>
                   <div className='flex items-center gap-8px'>
@@ -634,7 +634,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {/* Authorized Users */}
       {authorizedUsers.length > 0 && (
-        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
+        <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={

@@ -57,6 +57,7 @@
   --message-user-bg: #e9efff; /* 用户消息背景（浅蓝） */
   --message-tips-bg: #f0f4ff; /* 提示信息背景（浅蓝） */
   --workspace-btn-bg: #eff0f1; /* 工作区按钮背景 */
+  --thought-gradient: linear-gradient(90deg, #f0f3ff 0%, #f2f2f2 100%); /* 思考面板背景渐变 */
 
   /* Special Colors - Light Mode */
   --fill: #f7f8fa; /* 填充色 */
@@ -129,6 +130,7 @@
   --message-user-bg: #1e2a3a; /* 用户消息背景（深蓝灰） */
   --message-tips-bg: #1a2333; /* 提示信息背景（深蓝灰） */
   --workspace-btn-bg: #1f1f1f; /* 工作区按钮背景 */
+  --thought-gradient: linear-gradient(135deg, #464767 0%, #323232 100%); /* 思考面板背景渐变 */
 
   /* Special Colors - Dark Mode */
   --fill: #1a1a1a; /* 填充色 */

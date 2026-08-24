@@ -34,6 +34,11 @@ const GLIBC_VERSION_RE = /GLIBC_(\d+\.\d+)/g;
 const GLIBC_NOT_FOUND_RE = /GLIBC_\d+\.\d+[\s\S]{0,160}not found|not found[\s\S]{0,160}GLIBC_\d+\.\d+/i;
 const PACKAGED_APP_MARKER_ENTRIES = new Set(['app.asar', 'app.asar.unpacked/']);
 const DATA_MIGRATION_BOUNDARY_STAGES = new Set(['database.migration', 'database.schema_repair']);
+// aioncore's downgrade detection: the local database was written by a NEWER
+// AionUi than the one currently running (see AionCore `database.rs`,
+// DATABASE_NEWER_THAN_APP_STAGE). The database is intact — the fix is
+// upgrading, so this must not fall into the generic migration-failure bucket.
+const DATABASE_NEWER_THAN_APP_BOUNDARY_STAGE = 'database.newer_than_app';
 const RECOVERABLE_DATABASE_CORRUPTION_BOUNDARY_STAGE = 'database.recoverable_corruption';
 const LOCAL_DATA_REPAIR_BOUNDARY_CODE = 'BOOTSTRAP_SERVICE_INIT_FAILED';
 const LOCAL_DATA_REPAIR_BOUNDARY_STAGE = 'services.init';
@@ -313,6 +318,17 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
     backendBoundaryStage
   );
   if (transientConcurrentStartupFailure) return transientConcurrentStartupFailure;
+
+  if (
+    backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&
+    backendBoundaryStage === DATABASE_NEWER_THAN_APP_BOUNDARY_STAGE
+  ) {
+    return {
+      reason: 'backend_database_newer_than_app',
+      backendBoundaryCode,
+      backendBoundaryStage,
+    };
+  }
 
   if (
     backendBoundaryCode === 'BOOTSTRAP_DATA_INIT_FAILED' &&

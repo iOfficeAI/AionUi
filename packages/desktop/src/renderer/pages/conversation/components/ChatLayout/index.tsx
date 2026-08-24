@@ -71,7 +71,7 @@ const ChatLayout: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
 
   // Preview panel state
-  const { isOpen: isPreviewOpenRaw } = usePreviewContext();
+  const { isOpen: isPreviewOpenRaw, isMaximized } = usePreviewContext();
   // Only hoist to the Layout host on desktop. On mobile (narrow width < 768) the
   // host is not rendered (`previewRegionActive` in Layout.tsx is gated on
   // `!isMobile`), so hoisting there would leave the preview with no renderer at
@@ -83,6 +83,14 @@ const ChatLayout: React.FC<{
   // ChatLayout must behave as if there is no preview: chat fills, no split, no
   // preview panel. Everywhere below uses `isPreviewOpen` for that local decision.
   const isPreviewOpen = isPreviewOpenRaw && !previewHosted;
+  // 最大化（仅桌面）：隐藏聊天区、让内联预览铺满；工作区右栏保持不变。
+  // 项目会话的预览被提升到 Layout host（previewHosted），其最大化在 Layout 处理，
+  // 这里的 isPreviewOpen 已排除该情况。
+  // Maximized (desktop only): hide the chat area so the inline preview fills it;
+  // the right workspace sider stays unchanged. Project conversations hoist the
+  // preview to the Layout host (previewHosted) and handle maximizing there —
+  // isPreviewOpen already excludes that case here.
+  const previewMaximized = isDesktop && isPreviewOpen && isMaximized;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -259,7 +267,10 @@ const ChatLayout: React.FC<{
                 flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
                 flexShrink: 0,
                 flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
-                display: isPreviewOpen && isMobile ? 'none' : 'flex',
+                // 最大化时（桌面）隐藏聊天区，预览铺满；移动端预览打开即覆盖聊天区。
+                // Hidden when maximized (desktop) so the preview fills; on mobile an
+                // open preview already covers the chat.
+                display: (isPreviewOpen && isMobile) || previewMaximized ? 'none' : 'flex',
                 minWidth: '240px',
               }}
               onClick={() => {
@@ -295,7 +306,11 @@ const ChatLayout: React.FC<{
                   boxSizing: 'border-box',
                 }}
               >
+                {/* 最大化时聊天区隐藏，拖拽把手无处可拖，隐藏之。
+                    While maximized the chat is hidden, so the resize handle has
+                    nothing to drag against — hide it. */}
                 {isDesktop &&
+                  !previewMaximized &&
                   createPreviewDragHandle({
                     className: 'absolute top-0 bottom-0 z-30',
                     style: { width: '20px', left: '-20px' },
@@ -325,7 +340,7 @@ const ChatLayout: React.FC<{
           >
             {isDesktop &&
               !rightSiderCollapsed &&
-              createWorkspaceDragHandle({ className: 'absolute left-0 top-0 bottom-0', style: {}, reverse: true })}
+              createWorkspaceDragHandle({ className: 'absolute start-0 top-0 bottom-0', style: {}, reverse: true })}
             <WorkspacePanelHeader
               collapsed={rightSiderCollapsed}
               onToggle={() => dispatchWorkspaceToggleEvent()}

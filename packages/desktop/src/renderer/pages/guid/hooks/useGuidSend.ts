@@ -16,7 +16,6 @@ import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
-import type { AcpModelInfo } from '../types';
 
 export type GuidSendDeps = {
   // Input state
@@ -35,7 +34,6 @@ export type GuidSendDeps = {
   selectedMode: string;
   selectedAcpModel: string | null;
   selectedThoughtLevelValue?: string;
-  currentAcpCachedModelInfo: AcpModelInfo | null;
   current_model: TProviderWithModel | undefined;
 
   guidDisabledBuiltinSkills: string[] | undefined;
@@ -83,7 +81,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     selectedThoughtLevelValue,
-    currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
@@ -152,11 +149,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Omitting it lets the agent start on its own default, which is what a user
     // who has not picked a model means. The cron dialog already gates the same
     // value this way (`resolvedBackend !== 'aionrs' → undefined`).
+    //
+    // The cached `current_model_id` is NOT a fallback for the same reason, and it
+    // used to defeat the very intent described above. It is whatever the LAST
+    // session of this agent wrote back, so an unpicked conversation inherited a
+    // stranger's choice: for claude that was usually its `default` row, which
+    // PINS the account default and overrides the user's own ANTHROPIC_MODEL — so
+    // the app ran a different model than `claude` in a terminal did, and the
+    // picker contradicted itself (the row promised one model, the session used
+    // another). Omit it: no pick means no override, and the agent resolves the
+    // model from the user's own config.
     const assistantOverrideModel =
-      selectedAcpModel ||
-      currentAcpCachedModelInfo?.current_model_id ||
-      (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) ||
-      undefined;
+      selectedAcpModel || (assistantBackend === 'aionrs' ? current_model?.use_model : undefined) || undefined;
     const assistantOverrides = {
       model: assistantOverrideModel,
       permission: selectedMode || undefined,
@@ -207,11 +211,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         emitter.emit('chat.history.refresh');
 
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        // Empty input = "start chat": create the conversation but do not stash an
+        // initial message, so the window opens idle on the empty state instead of
+        // auto-sending a blank first turn.
+        if (input.trim()) {
+          const initialMessage = {
+            input,
+            files: files.length > 0 ? files : undefined,
+          };
+          sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        }
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
@@ -256,11 +265,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
       emitter.emit('chat.history.refresh');
 
-      const initialMessage = {
-        input,
-        files: files.length > 0 ? files : undefined,
-      };
-      sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+      // Empty input = "start chat": create the conversation but do not stash an
+      // initial message, so the window opens idle on the empty state instead of
+      // auto-sending a blank first turn.
+      if (input.trim()) {
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+      }
 
       await navigate(`/conversation/${conversation.id}`);
     } catch (error: unknown) {
@@ -276,7 +290,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     selectedThoughtLevelValue,
-    currentAcpCachedModelInfo,
     current_model,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
@@ -327,7 +340,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim() || !selectedAssistantId;
+  // Calculate button disabled state. Empty input is allowed once an assistant is
+  // picked — that path creates an empty conversation ("start chat") rather than
+  // sending a message, so the gate only blocks while loading or with no assistant.
+  const isButtonDisabled = loading || !selectedAssistantId;
 
   return {
     handleSend,

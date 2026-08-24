@@ -19,6 +19,7 @@ import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
@@ -27,7 +28,7 @@ import { Attention, Robot } from '@icon-park/react';
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
   const { presetAssistants } = useConversationAssistants();
@@ -206,9 +207,9 @@ const ScheduledTasksPage: React.FC = () => {
                   job.target.execution_mode === 'new_conversation'
                     ? t('cron.page.form.newConversation')
                     : t('cron.page.form.existingConversation');
-                const nextRun = job.state.next_run_at_ms ? formatNextRun(job.state.next_run_at_ms) : '-';
+                const nextRun = job.state.next_run_at_ms ? formatNextRun(job.state.next_run_at_ms, i18n.language) : '-';
                 const errorHint = job.state.last_error
-                  ? `${t('cron.lastError')}：${job.state.last_error}`
+                  ? t('cron.lastErrorWithDetail', { error: job.state.last_error })
                   : t('cron.status.error');
 
                 return (
@@ -225,7 +226,12 @@ const ScheduledTasksPage: React.FC = () => {
                       <Tooltip content={agentMeta.name}>
                         <div className='flex h-24px w-24px shrink-0 items-center justify-center overflow-hidden rounded-50% bg-fill-2 text-11px text-t-secondary'>
                           {agentMeta.logo ? (
-                            <img src={agentMeta.logo} alt={agentMeta.name} className='h-full w-full object-cover' />
+                            <ThemedLogo
+                              src={agentMeta.logo}
+                              alt={agentMeta.name}
+                              className='object-cover'
+                              style={{ width: 24, height: 24 }}
+                            />
                           ) : agentMeta.emoji ? (
                             agentMeta.emoji
                           ) : (

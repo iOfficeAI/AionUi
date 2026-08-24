@@ -212,7 +212,7 @@ const ConfirmationDetails: React.FC<{
               );
             })}
           </Radio.Group>
-          <div className='flex justify-start pl-20px'>
+          <div className='flex justify-start ps-20px'>
             <Button type='primary' size='mini' disabled={!selected} onClick={() => onConfirm(selected)}>
               {t('messages.confirm')}
             </Button>
@@ -556,7 +556,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               }
               content={
                 <div>
-                  <Tag className={'mr-4px'}>
+                  <Tag className={'me-4px'}>
                     {name}
                     {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                   </Tag>

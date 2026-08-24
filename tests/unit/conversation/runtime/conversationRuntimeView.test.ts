@@ -16,6 +16,9 @@ import {
   localSendStarted,
   localSendFailedConversationRuntimeView,
   localSendStartedConversationRuntimeView,
+  localRestartFailedConversationRuntimeView,
+  localRestartStartedConversationRuntimeView,
+  localRestartSucceededConversationRuntimeView,
   localStopAcknowledged,
   localStopAcknowledgedConversationRuntimeView,
   localStopRequested,
@@ -104,6 +107,73 @@ describe('conversationRuntimeViewStore', () => {
       localSubmitting: true,
       hydrated: true,
     });
+  });
+
+  it('closes the send gate immediately while a local runtime restart is pending', () => {
+    const running = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        is_processing: true,
+        turn_id: 'turn-before-restart',
+      })
+    ).view;
+
+    const { view } = localRestartStartedConversationRuntimeView(running, conversation_id);
+
+    expect(view).toMatchObject({
+      state: 'restarting',
+      isProcessing: true,
+      canSendMessage: false,
+      hydrated: true,
+    });
+  });
+
+  it('reopens the send gate from the authoritative restart response', () => {
+    const restarting = localRestartStartedConversationRuntimeView(undefined, conversation_id).view;
+
+    const { view } = localRestartSucceededConversationRuntimeView(
+      restarting,
+      conversation_id,
+      runtime({
+        has_task: true,
+      })
+    );
+
+    expect(view).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      hasBackendRuntime: true,
+    });
+  });
+
+  it('uses a refreshed backend summary when restart fails', () => {
+    const restarting = localRestartStartedConversationRuntimeView(undefined, conversation_id).view;
+    const refreshed = runtime({
+      state: 'running',
+      can_send_message: false,
+      has_task: true,
+      is_processing: true,
+      turn_id: 'turn-still-running',
+    });
+
+    const { view, logs } = localRestartFailedConversationRuntimeView(
+      restarting,
+      conversation_id,
+      refreshed,
+      'restart rejected'
+    );
+
+    expect(view).toMatchObject({
+      state: 'running',
+      activeTurnId: 'turn-still-running',
+      isProcessing: true,
+      canSendMessage: false,
+    });
+    expect(logs[0]).toMatchObject({ event: 'local_restart_failed', data: { reason: 'restart rejected' } });
   });
 
   it('clears a failed local send gate and restores sendability without backend runtime', () => {
@@ -476,6 +546,60 @@ describe('conversationRuntimeViewStore', () => {
         turn_id: 'turn-1',
       },
     });
+  });
+
+  it('keeps the input box usable mid-turn when the backend delivers mid-turn', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: true,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(true);
+  });
+
+  it('keeps the input box locked mid-turn for agents that cannot deliver mid-turn', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: false,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(false);
+  });
+
+  it('keeps the input box locked while a confirmation is pending even for mid-turn-capable backends', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'waiting_confirmation',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+        supports_midturn_delivery: true,
+      })
+    );
+
+    expect(view.canSendMessage).toBe(false);
   });
 
   it('defaults to an idle view before hydration', () => {

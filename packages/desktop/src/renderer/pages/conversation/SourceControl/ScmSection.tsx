@@ -68,7 +68,7 @@ export const ScmSection: React.FC<ScmSectionProps> = ({
         <span className='text-13px font-600 uppercase tracking-wide text-t-secondary truncate'>{title}</span>
         {badge != null && <span className='text-12px text-t-tertiary flex-shrink-0'>{badge}</span>}
         {actions != null && (
-          <span className='ml-auto flex items-center gap-2px' onClick={(e) => e.stopPropagation()}>
+          <span className='ms-auto flex items-center gap-2px' onClick={(e) => e.stopPropagation()}>
             {actions}
           </span>
         )}
@@ -120,7 +120,7 @@ export const ScmSectionDivider: React.FC<{
       role='separator'
       aria-orientation='horizontal'
     >
-      <div className='absolute left-0 right-0 -top-3px h-7px' />
+      <div className='absolute start-0 end-0 -top-3px h-7px' />
     </div>
   );
 };

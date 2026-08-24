@@ -77,7 +77,7 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
           /* storage unavailable — non-fatal */
         }
       } catch {
-        setError(t('webFsPicker.loadFailed', { defaultValue: 'Cannot open this directory' }));
+        setError(t('fileSelection.webFsPicker.loadFailed', { defaultValue: 'Cannot open this directory' }));
         setEntries([]);
       } finally {
         setLoading(false);
@@ -142,8 +142,8 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
   }, [fileMode, selected, currentDir, settle]);
 
   const title = wantsDirectory
-    ? t('webFsPicker.titleDirectory', { defaultValue: 'Select a folder on the server' })
-    : t('webFsPicker.titleFile', { defaultValue: 'Select a file on the server' });
+    ? t('fileSelection.webFsPicker.titleDirectory', { defaultValue: 'Select a folder on the server' })
+    : t('fileSelection.webFsPicker.titleFile', { defaultValue: 'Select a file on the server' });
 
   return (
     <Modal
@@ -160,14 +160,14 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
             title={fileMode && selected.length > 0 ? selected.join('\n') : currentDir}
           >
             {fileMode && selected.length > 0
-              ? t('webFsPicker.selectedCount', {
+              ? t('fileSelection.webFsPicker.selectedCount', {
                   defaultValue: '{{count}} selected',
                   count: selected.length,
                 })
               : currentDir}
           </span>
           <span style={{ flexShrink: 0 }}>
-            <Button onClick={() => settle(undefined)} style={{ marginRight: 8 }}>
+            <Button onClick={() => settle(undefined)} style={{ marginInlineEnd: 8 }}>
               {t('common.cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button type='primary' disabled={confirmDisabled} onClick={handleConfirm}>
@@ -179,7 +179,7 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
     >
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <Button onClick={() => void load(parentOf(currentDir))} disabled={loading || currentDir === '/'}>
-          {t('webFsPicker.up', { defaultValue: 'Up' })}
+          {t('fileSelection.webFsPicker.up', { defaultValue: 'Up' })}
         </Button>
         <Input
           value={pathDraft}
@@ -188,7 +188,7 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
           placeholder='/path/to/folder'
         />
         <Button onClick={() => void load(pathDraft.trim() || '/')} disabled={loading}>
-          {t('webFsPicker.go', { defaultValue: 'Go' })}
+          {t('fileSelection.webFsPicker.go', { defaultValue: 'Go' })}
         </Button>
       </div>
 
@@ -209,7 +209,7 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
           <div style={{ padding: 16, color: 'var(--color-text-3)' }}>{error}</div>
         ) : visibleEntries.length === 0 ? (
           <div style={{ padding: 16, color: 'var(--color-text-3)' }}>
-            {t('webFsPicker.empty', { defaultValue: 'Nothing here' })}
+            {t('fileSelection.webFsPicker.empty', { defaultValue: 'Nothing here' })}
           </div>
         ) : (
           visibleEntries.map((entry) => {

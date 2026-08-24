@@ -5,6 +5,7 @@
   "nextRun": "Prochaine exécution",
   "lastRun": "Dernière exécution",
   "lastError": "Erreur",
+  "lastErrorWithDetail": "Dernière erreur : {{error}}",
   "message": "Message",
   "goToConversation": "Aller à la conversation",
   "status": {
@@ -81,6 +82,8 @@
       "prompt": "Prompt",
       "promptRequired": "Le prompt est requis",
       "promptPlaceholder": "Instructions pour l'agent à exécuter",
+      "queue": "Protection de file d'attente",
+      "queueHint": "Si activée, un nouveau déclenchement est ignoré tant que la conversation planifiée précédente est encore en cours, sans interrompre l'assistant.",
       "frequency": "Fréquence",
       "cronExpr": "Expression Cron",
       "cronExprRequired": "L'expression cron est requise",
@@ -124,6 +127,20 @@
       "dailyAt": "Chaque jour à {{time}}",
       "weekdaysAt": "Jours ouvrables à {{time}}",
       "weeklyAt": "Chaque {{day}} à {{time}}"
+    },
+    "custom": {
+      "modeLabel": "Motif de répétition",
+      "interval": "À intervalle régulier",
+      "monthly": "Mensuel",
+      "advanced": "Expression Cron avancée",
+      "every": "Tous les",
+      "unit": "Unité",
+      "minutes": "Minutes",
+      "hours": "Heures",
+      "time": "Heure",
+      "weekdays": "Jours de la semaine",
+      "monthDay": "Jour du mois",
+      "preview": "Cron généré"
     },
     "searchPlaceholder": "Rechercher des tâches...",
     "noSearchResults": "Aucune tâche planifiée correspondante."

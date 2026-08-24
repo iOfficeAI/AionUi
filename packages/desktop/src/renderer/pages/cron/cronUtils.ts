@@ -6,6 +6,7 @@
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { formatDate, formatDateTime } from '@/renderer/services/i18n/format';
 import type { TFunction } from 'i18next';
 
 const WEEKDAY_LABEL_KEY_BY_VALUE: Record<string, string> = {
@@ -96,24 +97,26 @@ export function createCronSchedule(expr: string, description: string): Extract<I
 }
 
 /**
- * Format next run time for display
+ * Format next run time for display, in the app language.
+ *
+ * @param locale app language (`i18n.language`)
  */
-export function formatNextRun(next_run_at_ms?: number): string {
+export function formatNextRun(next_run_at_ms: number | undefined, locale?: string): string {
   if (!next_run_at_ms) return '-';
-  const date = new Date(next_run_at_ms);
-  return date.toLocaleString();
+  return formatDateTime(next_run_at_ms, locale);
 }
 
-function formatTwoDigit(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
-export function formatCronRunConversationTitle(jobName: string, runAtMs: number): string {
-  const date = new Date(runAtMs);
-  const day = formatTwoDigit(date.getDate());
-  const month = formatTwoDigit(date.getMonth() + 1);
-  const year = formatTwoDigit(date.getFullYear() % 100);
-  return `${jobName.trim()} ${day}-${month}-${year}`;
+/**
+ * Title for a scheduled run's conversation, e.g. "daily report 08/17/26".
+ *
+ * The date part follows the app language: the previous hardcoded DD-MM-YY read
+ * as the wrong date in month-first locales (05-07-26 is May 7 to a US reader).
+ *
+ * @param language app language (`i18n.language`)
+ */
+export function formatCronRunConversationTitle(jobName: string, runAtMs: number, language?: string): string {
+  const dateLabel = formatDate(runAtMs, language, { year: '2-digit', month: '2-digit', day: '2-digit' });
+  return `${jobName.trim()} ${dateLabel}`;
 }
 
 /**

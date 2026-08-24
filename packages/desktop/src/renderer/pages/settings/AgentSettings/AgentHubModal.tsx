@@ -6,6 +6,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentAvatar, useAgentLogos } from '@renderer/utils/model/agentLogo';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
@@ -94,7 +95,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
       style={{ width: 1000, maxWidth: '96vw' }}
     >
       <div>
-        <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-left'>
+        <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-start'>
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
             {t('settings.agentManagement.marketContributionHint', {
               defaultValue: 'Want a new Agent listed here?',
@@ -148,7 +149,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
                     {avatar.kind === 'image' ? (
-                      <img
+                      <ThemedLogo
                         src={avatar.value}
                         alt={agent.display_name}
                         className='h-36px w-36px rounded-10px object-contain'

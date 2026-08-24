@@ -274,7 +274,7 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, fileRef,
           <div className='text-16px text-danger mb-8px'>{error.message}</div>
           {!error.code && <div className='text-12px text-t-secondary mb-12px'>{t(keys.installHint)}</div>}
           {showServerInstallGuide && (
-            <div className='text-left mb-12px'>
+            <div className='text-start mb-12px'>
               <div className='text-12px text-t-secondary mb-8px'>{t('preview.office.serverInstall.hint')}</div>
               <code className='block select-all rounded-8px bg-2 px-10px py-8px text-12px text-t-primary'>
                 {OFFICECLI_SERVER_INSTALL_COMMAND}

@@ -128,11 +128,24 @@ describe('a full storage quota is reported', () => {
   const flush = () => act(() => void vi.advanceTimersByTime(300));
 
   it('raises persistQuotaExceededAt when writes cannot succeed', () => {
-    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      const err = new Error('QuotaExceededError');
-      err.name = 'QuotaExceededError';
-      throw err;
-    });
+    const originalStorage = window.localStorage;
+    const quotaStorage: Storage = {
+      get length() {
+        return originalStorage.length;
+      },
+      clear: () => originalStorage.clear(),
+      getItem: (key) => originalStorage.getItem(key),
+      key: (index) => originalStorage.key(index),
+      removeItem: (key) => originalStorage.removeItem(key),
+      setItem: () => {
+        const err = new Error('QuotaExceededError');
+        err.name = 'QuotaExceededError';
+        throw err;
+      },
+    };
+
+    Object.defineProperty(window, 'localStorage', { value: quotaStorage, configurable: true });
+    Object.defineProperty(globalThis, 'localStorage', { value: quotaStorage, configurable: true });
 
     try {
       mount();
@@ -144,7 +157,8 @@ describe('a full storage quota is reported', () => {
       // The signal the UI turns into a visible warning. Silence was the bug.
       expect(ctx.persistQuotaExceededAt).not.toBeNull();
     } finally {
-      setItem.mockRestore();
+      Object.defineProperty(window, 'localStorage', { value: originalStorage, configurable: true });
+      Object.defineProperty(globalThis, 'localStorage', { value: originalStorage, configurable: true });
     }
   });
 

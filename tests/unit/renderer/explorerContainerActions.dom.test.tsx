@@ -43,19 +43,25 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   ExplorerPanel: ({
     roots,
     onRemoveRoot,
+    onRefreshRoot,
     onOpenFile,
     onAddToChat,
     onCopyRelativePath,
     onCopyAbsolutePath,
     onImportFiles,
+    onNewFile,
+    onNewDir,
   }: {
     roots: Array<{ title: string }>;
     onRemoveRoot?: (id: string) => void;
+    onRefreshRoot?: (id: string) => void;
     onOpenFile?: (pe: string, rel: string) => void;
     onAddToChat?: (pe: string, rel: string, name: string, isFile: boolean) => void;
     onCopyRelativePath?: (pe: string, rel: string, name: string) => void;
     onCopyAbsolutePath?: (pe: string, rel: string) => void;
     onImportFiles?: (pe: string, rel: string, paths: string[]) => void;
+    onNewFile?: (pe: string, dirRel: string) => void;
+    onNewDir?: (pe: string, dirRel: string) => void;
   }) => (
     <div>
       <span data-testid='roots'>{roots.map((r) => r.title).join(',')}</span>
@@ -75,6 +81,9 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
       <button data-testid='do-remove' onClick={() => onRemoveRoot?.('peA')}>
         rm
       </button>
+      <button data-testid='do-refresh' onClick={() => onRefreshRoot?.('peA')}>
+        refresh
+      </button>
       <button data-testid='do-open' onClick={() => onOpenFile?.('peA', 'docs/readme.md')}>
         open
       </button>
@@ -83,6 +92,15 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
       </button>
       <button data-testid='do-import' onClick={() => onImportFiles?.('peA', 'sub', ['/os/a.txt', '/os/b.txt'])}>
         import
+      </button>
+      <button data-testid='do-new-file' onClick={() => onNewFile?.('peA', 'src')}>
+        new-file
+      </button>
+      <button data-testid='do-new-file-root' onClick={() => onNewFile?.('peA', '')}>
+        new-file-root
+      </button>
+      <button data-testid='do-new-dir' onClick={() => onNewDir?.('peA', 'src')}>
+        new-dir
       </button>
     </div>
   ),
@@ -116,6 +134,7 @@ vi.mock('@/common', () => ({
 }));
 
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
+import * as explorerStore from '@/renderer/pages/conversation/explorer/explorerStore';
 import { resetExplorerStoreForTest } from '@/renderer/pages/conversation/explorer/explorerStore';
 
 const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
@@ -254,6 +273,19 @@ describe('ExplorerContainer attach/remove', () => {
     await waitFor(() => expect(removeFolder).toHaveBeenCalledWith({ project_id: 'p1', pe_id: 'peA' }));
     await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2));
   });
+
+  it('refreshes one root: remounts its WS listings AND revalidates HTTP detail (runtime_status/caution icon)', async () => {
+    // refreshRoot asks the backend to remount the pe's watched dirs (re-arm watch,
+    // re-read baseline) without touching its subscriptions; mutate() re-fetches
+    // project.get so a recovered/degraded root's runtime_status (the caution icon,
+    // HTTP-sourced not WS-sourced) updates.
+    const refreshSpy = vi.spyOn(explorerStore, 'refreshRoot');
+    renderIt();
+    await screen.findByTestId('roots');
+    fireEvent.click(screen.getByTestId('do-refresh'));
+    await waitFor(() => expect(refreshSpy).toHaveBeenCalledWith('peA'));
+    await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2)); // initial + revalidate
+  });
 });
 
 describe('ExplorerContainer add-to-chat', () => {
@@ -376,5 +408,72 @@ describe('ExplorerContainer A-paste import', () => {
     renderIt();
     fireEvent.click(await screen.findByTestId('do-copy-abs'));
     await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.copyFailed'));
+  });
+});
+
+describe('ExplorerContainer new file / new folder', () => {
+  const nameInput = () => screen.findByPlaceholderText('conversation.explorer.namePlaceholder');
+  // Create-mode dialog OK button label is common.create (rename uses common.save).
+  const clickCreate = () => fireEvent.click(screen.getByRole('button', { name: 'common.create' }));
+  const type = (input: HTMLElement, value: string) => fireEvent.change(input, { target: { value } });
+
+  it('new file: dispatches fs/createFile with the parent dir joined to the typed name', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-file'));
+    type(await nameInput(), 'index.ts');
+    clickCreate();
+    await waitFor(() =>
+      expect(fsRead).toHaveBeenCalledWith('fs/createFile', { file: { pe_id: 'peA', relative_path: 'src/index.ts' } })
+    );
+  });
+
+  it('new folder: dispatches fs/mkdir with the parent dir joined to the typed name', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-dir'));
+    type(await nameInput(), 'utils');
+    clickCreate();
+    await waitFor(() =>
+      expect(fsRead).toHaveBeenCalledWith('fs/mkdir', { dir: { pe_id: 'peA', relative_path: 'src/utils' } })
+    );
+  });
+
+  it('new file at a pe-root (targetDir "") joins to a bare name — no leading slash', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-file-root'));
+    type(await nameInput(), 'top.ts');
+    clickCreate();
+    await waitFor(() =>
+      expect(fsRead).toHaveBeenCalledWith('fs/createFile', { file: { pe_id: 'peA', relative_path: 'top.ts' } })
+    );
+  });
+
+  it('empty name is a no-op: no request dispatched, no error toast', async () => {
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-file'));
+    await nameInput(); // dialog is open with an empty default
+    clickCreate(); // submit with the empty default
+    // The builder returns null on a blank name, so submit bails before any await:
+    // nothing goes over the wire and no failure surfaces — a clean dismissal, not
+    // an error. (Assert on behavior: Arco keeps the modal mounted-but-hidden.)
+    expect(fsRead).not.toHaveBeenCalled();
+    expect(Message.error).not.toHaveBeenCalled();
+  });
+
+  it('surfaces newFileFailed when the create request throws (e.g. name already exists)', async () => {
+    fsRead.mockRejectedValueOnce(new Error('exists'));
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-file'));
+    type(await nameInput(), 'dup.ts');
+    clickCreate();
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.newFileFailed'));
+  });
+
+  it('surfaces newDirFailed when the mkdir request throws', async () => {
+    fsRead.mockRejectedValueOnce(new Error('exists'));
+    renderIt();
+    fireEvent.click(await screen.findByTestId('do-new-dir'));
+    type(await nameInput(), 'dup');
+    clickCreate();
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('conversation.explorer.newDirFailed'));
   });
 });

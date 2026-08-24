@@ -14,6 +14,7 @@ import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManaged
 import { managedAgentSearchText } from '@/renderer/utils/model/agentTypes';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { selectableAssistants } from '@/renderer/utils/model/assistantSelection';
 import { useTranslation } from 'react-i18next';
 
@@ -248,7 +249,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       >
         <span className='inline-flex h-20px w-20px items-center justify-center overflow-hidden rounded-999px bg-fill-2'>
           {avatar.kind === 'image' ? (
-            <img src={avatar.value} alt='' className='h-full w-full object-contain' />
+            <ThemedLogo src={avatar.value} alt='' className='object-contain' style={{ width: 20, height: 20 }} />
           ) : avatar.kind === 'emoji' ? (
             <span className={styles.assistantCardEmoji}>{avatar.value}</span>
           ) : (
@@ -266,7 +267,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     <div
       data-testid='assistant-overflow-panel'
       data-overflow-columns={overflowColumns}
-      className={`absolute left-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg ${styles.assistantOverflowPanel}`}
+      className={`absolute start-0 top-[calc(100%+8px)] z-100 w-full rounded-12px border border-border-2 p-8px shadow-lg ${styles.assistantOverflowPanel}`}
       style={{ background: 'var(--bg-base, #fff)' }}
     >
       {showOverflowSearch ? (
@@ -308,7 +309,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
               <Button
                 data-testid='assistant-more-btn'
                 type='text'
-                className={`!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
+                className={`!ms-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100 ${styles.assistantSelectorInactive}`}
                 onClick={() => setMoreVisible((visible) => !visible)}
               >
                 <span>{t('common.more', { defaultValue: 'More' })}</span>

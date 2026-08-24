@@ -3,6 +3,8 @@
   "downloadFile": "下載檔案",
   "closePreview": "關閉預覽",
   "collapsePanel": "收起面板",
+  "maximizePanel": "最大化",
+  "restorePanel": "還原",
   "source": "原文",
   "code": "Code",
   "preview": "預覽",
@@ -24,6 +26,8 @@
   "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
   "closeTabsTitle": "關閉標籤頁",
   "closeTabsMessage": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
+  "closeTabsMessage_one": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
+  "closeTabsMessage_other": "有 {{count}} 個標籤頁尚未儲存，是否儲存後再關閉？",
   "saveAndClose": "儲存並關閉",
   "closeWithoutSave": "不儲存",
   "pptTitle": "PowerPoint 簡報",
@@ -35,10 +39,16 @@
   "openInSystemApp": "使用系統預設應用開啟",
   "openInSystemSuccess": "已在系統預設應用中開啟",
   "openInSystemFailed": "開啟檔案失敗",
+  "close": "關閉",
   "closeLeft": "關閉左側",
   "closeRight": "關閉右側",
   "closeOthers": "關閉其他",
   "closeAll": "全部關閉",
+  "closeUnmodified": "關閉未修改",
+  "copyPath": "複製路徑",
+  "copyRelativePath": "複製相對路徑",
+  "openLocation": "開啟檔案所在資料夾",
+  "openLocationFailed": "無法開啟所在資料夾",
   "readOnlyLabel": "唯讀預覽",
   "pathLabel": "路徑",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "尚無標籤",
   "openInPanelTooltip": "在預覽面板中查看",
   "mermaidTitle": "Mermaid 圖表",
+  "wavedromTitle": "WaveDrom 波形圖",
   "oversized": {
     "title": "檔案過大，無法預覽",
     "detail": "檔案大小 {{size}} 超過 {{threshold}}，請使用系統編輯器開啟。",
@@ -161,5 +172,9 @@
     "confirmMessage": "此標籤頁有未儲存的變更，重新載入會以磁碟上的內容覆蓋它們。",
     "discardAndRefresh": "放棄變更並重新整理",
     "officeNotWired": "Office 文件的重新整理尚未接入——請關閉後重新開啟檔案以查看變更。"
-  }
+  },
+  "zoomIn": "放大",
+  "zoomOut": "縮小",
+  "zoomReset": "重設視圖",
+  "diagramZoomHint": "滾輪縮放 • 拖曳平移 • ESC 關閉"
 }

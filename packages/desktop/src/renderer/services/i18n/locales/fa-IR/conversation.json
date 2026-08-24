@@ -43,7 +43,11 @@
     "batchExportConfirm": "{{count}} موضوع انتخاب‌شده خروجی گرفته شود؟",
     "batchDelete": "حذف گروهی",
     "batchDeleteConfirm": "{{count}} موضوع انتخاب‌شده حذف شود؟",
+    "batchDeleteConfirm_one": "{{count}} موضوع انتخاب‌شده حذف شود؟",
+    "batchDeleteConfirm_other": "{{count}} موضوع انتخاب‌شده حذف شود؟",
     "batchDeleteSuccess": "{{count}} موضوع حذف شد",
+    "batchDeleteSuccess_one": "{{count}} موضوع حذف شد",
+    "batchDeleteSuccess_other": "{{count}} موضوع حذف شد",
     "batchNoSelection": "لطفاً ابتدا موضوعات را انتخاب کنید",
     "export": "خروجی",
     "exportDialogTitle": "خروجی موضوعات",
@@ -58,6 +62,8 @@
     "exportFailed": "خروجی ناموفق بود",
     "pin": "سنجاق",
     "unpin": "برداشتن سنجاق",
+    "markAsUnread": "علامت‌گذاری به عنوان خوانده‌نشده",
+    "markAsRead": "علامت‌گذاری به عنوان خوانده‌شده",
     "pinned": "سنجاق‌شده",
     "pinFailed": "عملیات سنجاق ناموفق بود",
     "pinnedSection": "سنجاق‌شده",
@@ -69,20 +75,21 @@
     "earlier": "قدیمی‌تر",
     "projectsSection": "پروژه‌ها",
     "conversationsSection": "مکالمات",
-    "removeProjectTitle": "حذف پروژه",
-    "removeProject": "حذف پروژه",
-    "removeProjectConfirm": "پروژه «{{name}}» حذف شود؟ {{count}} مکالمه مرتبط نیز حذف خواهند شد.",
-    "removeProjectConfirmTeams": "همچنین {{teams}} تیم مرتبط نیز حذف خواهند شد.",
-    "removeProjectListMore": "{{count}} مورد دیگر",
     "newConversationInProject": "چت جدید در این پروژه",
     "deleting": "در حال حذف...",
     "reorderPinned": "برای تغییر ترتیب گفتگوی سنجاق‌شده بکشید",
     "forkedFrom": "انشعاب از «{{name}}»",
     "forkedConversation": "گفتگوی منشعب",
-    "loadMore": "بارگیری بیشتر",
-    "newTeamInProject": "تیم جدید در این پروژه",
-    "projectCreateMenu": "ایجاد",
-    "collapseAllProjects": "جمع کردن همه پروژه‌ها"
+    "archive": "بایگانی",
+    "archiveSuccess": "بایگانی شد",
+    "archiveFailed": "بایگانی ناموفق بود",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -433,7 +440,9 @@
     "searchHint": "برای جستجوی کلمات کلیدی اینجا کلیک کنید",
     "empty": "هنوز نوبت پرسش و پاسخی وجود ندارد",
     "noMatch": "محتوای منطبقی یافت نشد",
-    "count": "{{count}} نوبت"
+    "count": "{{count}} نوبت",
+    "count_one": "{{count}} نوبت",
+    "count_other": "{{count}} نوبت"
   },
   "chat": {
     "noModelSelected": "مدلی برای جلسه فعلی انتخاب نشده، امکان ارسال پیام وجود ندارد",
@@ -451,6 +460,7 @@
     "switchAgentFailed": "تغییر ایجنت ناموفق بود",
     "speech": {
       "recordTooltip": "شروع ورودی صوتی",
+      "recordTooltipWithShortcut": "ورودی صوتی cmd+M",
       "pickFileTooltip": "انتخاب فایل صوتی",
       "stopTooltip": "توقف ضبط",
       "processing": "در حال رونویسی صوت...",
@@ -497,6 +507,8 @@
     "reorder": "برای ترتیب‌دهی مجدد دستور صف‌شده بکشید",
     "remove": "حذف",
     "files": "{{count}} فایل",
+    "files_one": "{{count}} فایل",
+    "files_other": "{{count}} فایل",
     "pausedAfterFailure": "دستور صف‌شده بعدی نتوانست شروع شود. برای ادامه، آن را ویرایش، ترتیب‌دهی یا حذف کنید.",
     "emptyInput": "دستورات صف‌شده نمی‌توانند خالی باشند.",
     "queueFull": "صف پر است. قبل از افزودن بیشتر، یک دستور حذف کنید.",
@@ -514,7 +526,14 @@
     "mode": {
       "auto": "ارسال خودکار",
       "manual": "ارسال دستی"
-    }
+    },
+    "addToQueue": "افزودن به جعبه پیش‌نویس",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "وقتی این عامل در حال پاسخ‌دهی است، مداخله پشتیبانی نمی‌شود. در عوض از «افزودن به جعبه پیش‌نویس» استفاده کنید.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "زمینه استفاده‌شده",
@@ -573,7 +592,8 @@
   },
   "sendbox": {
     "hint": "برای دستورات /، برای ارجاع فایل‌ها @ و برای تاریخچه پیام‌ها ↑/↓ را بزنید",
-    "mediaPathFallback": "این ایجنت از این نوع فایل به‌صورت بومی پشتیبانی نمی‌کند؛ به‌صورت مسیر فایل ارسال خواهد شد."
+    "mediaPathFallback": "این ایجنت از این نوع فایل به‌صورت بومی پشتیبانی نمی‌کند؛ به‌صورت مسیر فایل ارسال خواهد شد.",
+    "hintWithSessions": "/ برای دستورات، @ برای فایل‌ها، @@ برای گفتگوها، ↑/↓ برای تاریخچه"
   },
   "agentTip": {
     "codes": {
@@ -621,11 +641,16 @@
       "rename": "تغییر نام",
       "addToChat": "افزودن به گفتگو",
       "copyRelativePath": "کپی کردن مسیر نسبی",
-      "copyAbsolutePath": "کپی کردن مسیر مطلق"
+      "copyAbsolutePath": "کپی کردن مسیر مطلق",
+      "refresh": "تازه‌سازی",
+      "newFile": "فایل جدید",
+      "newDir": "پوشه جدید"
     },
     "namePlaceholder": "نام",
     "deleteConfirm": "«{{name}}» حذف شود؟ این عمل قابل بازگردانی نیست.",
     "renameFailed": "تغییر نام ناموفق بود",
+    "newFileFailed": "ایجاد فایل ناموفق بود",
+    "newDirFailed": "ایجاد پوشه ناموفق بود",
     "tabs": {
       "files": "پرونده‌ها",
       "changes": "تغییرات"
@@ -634,6 +659,8 @@
     "imported": "{{count}} فایل وارد شد",
     "importPartialFailed": "{{copied}} کپی شد، {{failed}} ناموفق (تداخل نام یا پشتیبانی‌نشده)",
     "importFailed": "وارد کردن فایل‌ها ناموفق بود",
+    "copyNodeFailed": "کپی ناموفق بود",
+    "moveNodeFailed": "انتقال ناموفق بود",
     "search": {
       "placeholder": "جستجوی فایل‌ها بر اساس نام",
       "searching": "در حال جستجو…",
@@ -703,8 +730,14 @@
         "confirmDiscardMixed": "ویرایش {{tracked}} پرونده به‌طور برگشت‌ناپذیر از دست می‌رود؛ {{untracked}} پرونده تازه به زباله‌دان می‌رود.",
         "discardConfirmButton": "دور ریختن",
         "okStage": "{{count}} پرونده آماده شد",
+        "okStage_one": "{{count}} پرونده آماده شد",
+        "okStage_other": "{{count}} پرونده آماده شد",
         "okUnstage": "آماده‌سازی {{count}} پرونده لغو شد",
+        "okUnstage_one": "آماده‌سازی {{count}} پرونده لغو شد",
+        "okUnstage_other": "آماده‌سازی {{count}} پرونده لغو شد",
         "okDiscard": "{{count}} پرونده دور ریخته شد",
+        "okDiscard_one": "{{count}} پرونده دور ریخته شد",
+        "okDiscard_other": "{{count}} پرونده دور ریخته شد",
         "partial": "{{succeeded}} از {{total}} انجام شد —— {{failed}} کامل نشد",
         "partialDetail": "کامل‌نشده: {{files}}",
         "rejectedBlocked": "چیزی تغییر نکرد —— نخست تضاد را برطرف کنید",
@@ -713,7 +746,9 @@
         "retry": "تلاش دوباره",
         "notSent": "درخواست به بک‌اند نرسید و چیزی تغییر نکرد. می‌توانید دوباره تلاش کنید.",
         "outcomeUnknown": "پیش از رسیدن پاسخ، اتصال بازنشانی شد — این عمل ممکن است کامل شده باشد یا نه. پیش از تلاش دوباره، بازخوانی کنید و فهرست پرونده‌ها را بررسی کنید.",
-        "allFailed": "هیچ‌یک از {{count}} پرونده پردازش نشد"
+        "allFailed": "هیچ‌یک از {{count}} پرونده پردازش نشد",
+        "allFailed_one": "هیچ‌یک از {{count}} پرونده پردازش نشد",
+        "allFailed_other": "هیچ‌یک از {{count}} پرونده پردازش نشد"
       }
     },
     "pathCopied": "مسیر کپی شد",
@@ -725,5 +760,26 @@
     "exited": "کد خروج {{code}}",
     "stop": "توقف",
     "truncated": "(خروجی قبلی کوتاه شد)"
+  },
+  "emptyState": {
+    "greeting": "سلام! بگویید چه نیاز دارید تا شروع کنم."
+  },
+  "crossSession": {
+    "mentionAgain": "اشاره به گفتگوی {{name}} در کادر پیام",
+    "mentionAgainHint": "برای اشاره به این گفتگو در کادر پیام کلیک کنید",
+    "mentionUnavailable": "دیگر نمی‌توان به آن گفتگو اشاره کرد.",
+    "mentionFailed": "اشاره به آن گفتگو ممکن نشد.",
+    "fromBadge": "از گفتگوی «{{name}}»",
+    "otherWorkspace": "فضای کاری متفاوت",
+    "rateLimitedTitle": "ممکن است پیام‌های بین گفتگوها در حلقه افتاده باشند",
+    "rateLimited": "پیام‌های خودکار بین «{{from}}» و «{{to}}» به‌طور غیرعادی مکرر هستند و ممکن است در حلقه افتاده باشند.",
+    "stopBoth": "توقف هر دو گفتگو",
+    "disableFeature": "خاموش کردن پیام‌های بین گفتگوها"
+  },
+  "planBar": {
+    "title": "برنامه",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "گسترش برنامه",
+    "collapse": "جمع کردن برنامه"
   }
 }

@@ -35,7 +35,7 @@
 .layout-sider {
   overflow-x: hidden;
   box-shadow: none !important;
-  border-right: 1px solid var(--border-base);
+  border-inline-end: 1px solid var(--border-base);
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
@@ -151,11 +151,11 @@
 }
 
 /* Message component positioning - center in conversation area (exclude left sider) */
-/* Use padding-left offset while keeping inner message centered */
+/* Use padding-inline-start offset while keeping inner message centered */
 .arco-message-wrapper {
-  left: 0 !important;
+  inset-inline-start: 0 !important;
   width: 100% !important;
-  padding-left: 266px;
+  padding-inline-start: 266px;
   box-sizing: border-box;
   z-index: 10001 !important;
 }
@@ -247,7 +247,7 @@
 
   /* Mobile: remove left padding for message wrapper */
   .arco-message-wrapper {
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   /* Sidebar conversation title + secondary timeline text */
@@ -260,4 +260,15 @@
     font-size: 14px !important;
     line-height: 20px !important;
   }
+}
+
+/* Direction-implying icons (chevrons meaning "enter/forward") must mirror under RTL. */
+[dir='rtl'] .rtl-mirror {
+  transform: scaleX(-1);
+}
+
+/* LTR islands (paths, file names) inside an RTL layout: pin the text to the
+   page's reading edge. LTR pages keep the island's natural left alignment. */
+[dir='rtl'] .rtl-text-right {
+  text-align: right;
 }

@@ -1,6 +1,8 @@
 {
   "fileChanges": "ファイル変更",
   "fileChangesCount": "{{count}} 件のファイル変更",
+  "fileChangesCount_one": "{{count}} 件のファイル変更",
+  "fileChangesCount_other": "{{count}} 件のファイル変更",
   "conversationInProgress": "現在、会話中です...",
   "confirm": "確認",
   "canceledExecution": "実行がキャンセルされました",
@@ -22,9 +24,14 @@
     "searchAria": "会話を検索"
   },
   "availableCommands": "{{count}} 個の利用可能なコマンド",
+  "availableCommands_one": "{{count}} 個の利用可能なコマンド",
+  "availableCommands_other": "{{count}} 個の利用可能なコマンド",
   "atFile.hint": "ファイルを検索するには入力してください",
   "atFile.menuLabel": "ファイル参照",
   "atFile.loading": "読み込み中...",
+  "atSession.hint": "入力して会話を検索",
+  "atSession.empty": "会話が見つかりません",
+  "atSession.menuLabel": "会話メンション",
   "slash.title": "コマンド",
   "slash.hint": "/ を入力してコマンドメニューを開く",
   "slash.empty": "コマンドが見つかりません",
@@ -87,5 +94,8 @@
   "askDeclined": "スキップ済み",
   "askOther": "その他",
   "askOtherPlaceholder": "回答を入力",
-  "requestDetails": "リクエスト内容:"
+  "requestDetails": "リクエスト内容:",
+  "delivery": {
+    "pending": "未読"
+  }
 }

@@ -3,6 +3,8 @@
   "downloadFile": "دانلود فایل",
   "closePreview": "بستن پیش‌نمایش",
   "collapsePanel": "جمع کردن پنل",
+  "maximizePanel": "بزرگ‌نمایی",
+  "restorePanel": "بازگردانی",
   "source": "منبع",
   "code": "کد",
   "preview": "پیش‌نمایش",
@@ -24,6 +26,8 @@
   "closeTabMessage": "محتوای فعلی ذخیره نشده است. آیا می‌خواهید قبل از بستن ذخیره کنید؟",
   "closeTabsTitle": "بستن تب‌ها",
   "closeTabsMessage": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
+  "closeTabsMessage_one": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
+  "closeTabsMessage_other": "{{count}} تب تغییرات ذخیره‌نشده دارند. پیش از بستن ذخیره شوند؟",
   "saveAndClose": "ذخیره و بستن",
   "closeWithoutSave": "ذخیره نکن",
   "pptTitle": "ارائه PowerPoint",
@@ -35,10 +39,16 @@
   "openInSystemApp": "باز کردن در برنامه سیستم",
   "openInSystemSuccess": "در برنامه پیش‌فرض سیستم باز شد",
   "openInSystemFailed": "باز کردن با برنامه سیستم ناموفق بود",
+  "close": "بستن",
   "closeLeft": "بستن سمت چپ",
   "closeRight": "بستن سمت راست",
   "closeOthers": "بستن بقیه",
   "closeAll": "بستن همه",
+  "closeUnmodified": "بستن تغییرنیافته‌ها",
+  "copyPath": "کپی مسیر",
+  "copyRelativePath": "کپی مسیر نسبی",
+  "openLocation": "نمایش در پوشه",
+  "openLocationFailed": "باز کردن پوشه حاوی ناموفق بود",
   "readOnlyLabel": "پیش‌نمایش فقط‌خواندنی",
   "pathLabel": "مسیر",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "تبی باز نیست",
   "openInPanelTooltip": "مشاهده در پنل پیش‌نمایش",
   "mermaidTitle": "نمودار Mermaid",
+  "wavedromTitle": "نمودار WaveDrom",
   "oversized": {
     "title": "حجم فایل برای پیش‌نمایش بیش از حد زیاد است",
     "detail": "حجم فایل {{size}} از محدودیت {{threshold}} بیشتر است. لطفاً آن را در ویرایشگر سیستم باز کنید.",
@@ -161,5 +172,9 @@
     "confirmMessage": "این تب تغییرات ذخیره‌نشده دارد. بازخوانی آن‌ها را با محتوای دیسک جایگزین می‌کند.",
     "discardAndRefresh": "صرف‌نظر از تغییرات و بازخوانی",
     "officeNotWired": "بازخوانی اسناد Office هنوز فراهم نیست — برای دیدن تغییرات فایل را ببندید و دوباره باز کنید."
-  }
+  },
+  "zoomIn": "بزرگ‌نمایی",
+  "zoomOut": "کوچک‌نمایی",
+  "zoomReset": "بازنشانی نما",
+  "diagramZoomHint": "برای بزرگنمایی اسکرول کنید • برای جابهجایی بکشید • ESC برای بستن"
 }

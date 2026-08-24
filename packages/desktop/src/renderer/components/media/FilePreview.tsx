@@ -6,6 +6,8 @@
 
 import { Close } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatByteSize } from '@/renderer/services/i18n/format';
 import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
 import { Image, Tooltip } from '@arco-design/web-react';
@@ -22,15 +24,6 @@ const IMAGE_RETRY_DELAY_MS = 800;
 const isImageFile = (path: string): boolean => {
   const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
   return IMAGE_EXTS.has(ext);
-};
-
-// 格式化文件大小
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0B';
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
 };
 
 interface FilePreviewProps {
@@ -53,6 +46,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   // Extract filename directly from path without cleaning timestamp suffix
   const file_name = path.split(/[\\/]/).pop() || '';
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
+  const { i18n } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
 
@@ -61,7 +55,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     ipcBridge.fs.getFileMetadata
       .invoke({ path })
       .then((metadata) => {
-        setFileSize(formatFileSize(metadata.size));
+        setFileSize(formatByteSize(metadata.size, i18n.language));
       })
       .catch((error) => {
         console.error('[FilePreview] Failed to get file metadata:', { path, error });
@@ -132,10 +126,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
         </div>
         {!readonly && (
           <div
-            className='absolute -top-4px -right-4px w-16px h-16px rd-50% bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10 border-1 border-solid border-gray-200 dark:border-gray-600'
+            className='absolute -top-4px -end-4px w-16px h-16px rd-50% bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10 border-1 border-solid border-gray-200 dark:border-gray-600'
             onClick={handleRemove}
           >
-            <Close theme='filled' size='10' fill='#666' />
+            <Close theme='filled' size='10' fill='var(--text-secondary)' />
           </div>
         )}
       </div>
@@ -160,10 +154,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
       </div>
       {!readonly && (
         <div
-          className='absolute -top-4px -right-4px w-16px h-16px rd-50% bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10 border-1 border-solid border-gray-200 dark:border-gray-600'
+          className='absolute -top-4px -end-4px w-16px h-16px rd-50% bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10 border-1 border-solid border-gray-200 dark:border-gray-600'
           onClick={handleRemove}
         >
-          <Close theme='filled' size='10' fill='#666' />
+          <Close theme='filled' size='10' fill='var(--text-secondary)' />
         </div>
       )}
     </div>

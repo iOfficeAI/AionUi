@@ -21,13 +21,12 @@ import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversati
 import { setCurrentConversation } from '@renderer/pages/conversation/explorer/currentConversationStore';
 import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
 import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
+import { useResizableSplit } from '@renderer/hooks/ui/useResizableSplit';
 import { useProjectPreviewRegionWidth } from '@renderer/hooks/ui/useProjectPreviewRegionWidth';
 import { useProjectPanelCollapse } from '@renderer/hooks/ui/useProjectPanelCollapse';
-import { isMacEnvironment } from '@renderer/pages/conversation/utils/detectPlatform';
 import { dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import { MIN_PREVIEW_PANEL_PX } from '@renderer/pages/conversation/utils/layoutCalc';
 import { PreviewPanel } from '@renderer/pages/conversation/Preview';
-import { ExpandLeft } from '@icon-park/react';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
@@ -94,8 +93,9 @@ const UpdateModal = React.lazy(() => import('@/renderer/components/settings/Upda
 
 const DEFAULT_SIDER_WIDTH = 260;
 const DESKTOP_COLLAPSED_WIDTH = 0;
-const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
-const SIDER_DRAG_HYSTERESIS = 6;
+// 桌面侧栏连续可调：下限 200；低于此值拖拽即吸附收起（消灭旧 130 死区）。
+// 上限 = 窗口宽 50%（动态随窗口）。
+const SIDER_MIN_WIDTH = 200;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
 const MOBILE_SIDER_MIN_WIDTH = 260;
 const MOBILE_SIDER_MAX_WIDTH = 420;
@@ -171,7 +171,11 @@ const Layout: React.FC<{
   // Use closePreview directly — closePreviewIfScopeChanged skips the call
   // when lastScopeRef is already null (e.g. on team routes where it was
   // never updated), which would leave the panel open.
-  const { closePreview: closePreviewOnRouteChange, isOpen: isPreviewOpen } = usePreviewContext();
+  const {
+    closePreview: closePreviewOnRouteChange,
+    isOpen: isPreviewOpen,
+    isMaximized: isPreviewMaximized,
+  } = usePreviewContext();
   // Layout-level explorer column width engine (stage3 FULL / P2): measure the
   // [content | explorer] row, clamp the explorer width so chat (+ preview) keep
   // their reserve. Active only when a project is bound and on desktop.
@@ -190,7 +194,6 @@ const Layout: React.FC<{
     isMobile,
     active: Boolean(currentProject),
   });
-  const isMacRuntime = isMacEnvironment();
   const toggleExplorer = useCallback(() => {
     dispatchWorkspaceToggleEvent();
   }, []);
@@ -200,6 +203,10 @@ const Layout: React.FC<{
   // conversations so it is structurally persistent (no remount on same-project
   // switches). ChatLayout renders chat only in that case (previewHosted).
   const previewRegionActive = Boolean(currentProject) && !isMobile && isPreviewOpen;
+  // 最大化：隐藏聊天区、让预览铺满它腾出的空间；左侧边栏与右侧资源管理器列均不动。
+  // Maximized: hide the chat area and let the preview fill the space it vacated;
+  // the left sidebar and the right explorer column are both left untouched.
+  const previewMaximized = previewRegionActive && isPreviewMaximized;
   const { widthPx: previewWidthPx, createDragHandle: createPreviewRegionDragHandle } = useProjectPreviewRegionWidth(
     mainRowWidth,
     explorerCollapsed ? 0 : explorerWidthPx,
@@ -227,10 +234,20 @@ const Layout: React.FC<{
   }, [location.pathname, workspaceAvailable, closePreviewOnRouteChange]);
 
   const collapsedRef = useRef(collapsed);
-  const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
-    active: false,
-    startX: 0,
-    startWidth: DEFAULT_SIDER_WIDTH,
+
+  // 桌面侧栏连续可调宽 + 记忆宽度 + 收起吸附。复用 useResizableSplit
+  // 的 pointer/rAF 拖拽管线：拖到 <200 吸附收起（onCollapsedChange→collapsed），
+  // ≥200 跟手且写盘，双击分隔线恢复 260。上限动态跟随窗口 50%。移动端不使用。
+  const { splitRatio: desktopSiderWidth, createDragHandle: createSiderDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: DEFAULT_SIDER_WIDTH,
+    minWidth: SIDER_MIN_WIDTH,
+    maxWidth: Math.max(SIDER_MIN_WIDTH, Math.round(viewportWidth * 0.5)),
+    storageKey: 'sider-width-px',
+    collapseThreshold: SIDER_MIN_WIDTH,
+    collapsedWidth: DESKTOP_COLLAPSED_WIDTH,
+    collapsed,
+    onCollapsedChange: setCollapsed,
   });
 
   // 检测移动端并响应窗口大小变化
@@ -333,59 +350,10 @@ const Layout: React.FC<{
         MOBILE_SIDER_MIN_WIDTH,
         Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
       )
-    : DEFAULT_SIDER_WIDTH;
+    : desktopSiderWidth;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
-
-  const beginSiderResizeDrag = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      if (isMobile) return;
-      event.preventDefault();
-      dragStateRef.current = {
-        active: true,
-        startX: event.clientX,
-        startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
-      };
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    },
-    [isMobile]
-  );
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      const dragState = dragStateRef.current;
-      if (!dragState.active) return;
-
-      const draggedWidth = dragState.startWidth + (event.clientX - dragState.startX);
-      // Add a small hysteresis zone to avoid rapid toggling near the snap threshold.
-      const shouldCollapse = collapsedRef.current
-        ? draggedWidth < SIDER_DRAG_SNAP_THRESHOLD + SIDER_DRAG_HYSTERESIS
-        : draggedWidth <= SIDER_DRAG_SNAP_THRESHOLD - SIDER_DRAG_HYSTERESIS;
-      if (shouldCollapse !== collapsedRef.current) {
-        setCollapsed(shouldCollapse);
-      }
-    };
-
-    const endDrag = () => {
-      if (!dragStateRef.current.active) return;
-      dragStateRef.current.active = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    const handleBlur = () => endDrag();
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', endDrag);
-      window.removeEventListener('blur', handleBlur);
-      endDrag();
-    };
-  }, []);
 
   const siderStyle = isMobile
     ? {
@@ -423,7 +391,7 @@ const Layout: React.FC<{
             >
               <ArcoLayout.Header
                 className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                  'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
                   isMobile && 'layout-sider-header--mobile',
                   {
                     'cursor-pointer group ': collapsed,
@@ -504,16 +472,12 @@ const Layout: React.FC<{
                     } as any)
                   : sider}
               </ArcoLayout.Content>
-              {!isMobile && (
-                <div
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                  style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
-                  aria-hidden='true'
-                >
-                  <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
-                </div>
-              )}
+              {!isMobile &&
+                createSiderDragHandle({
+                  className: 'z-20',
+                  style: { right: '-4px', width: '8px' },
+                  linePlacement: 'start',
+                })}
             </ArcoLayout.Sider>
 
             {/* Content + project Explorer share one measured flex row (stage3
@@ -532,7 +496,11 @@ const Layout: React.FC<{
                     ? {
                         width: '100%',
                       }
-                    : undefined
+                    : previewMaximized
+                      ? // 最大化时聊天区隐藏（保持挂载不卸载，还原后即刻恢复）
+                        // Hidden while maximized (kept mounted so restoring is instant)
+                        { display: 'none' }
+                      : undefined
                 }
               >
                 <Outlet />
@@ -550,9 +518,14 @@ const Layout: React.FC<{
                   data-project-preview-region
                   className='preview-panel flex flex-col relative overflow-visible'
                   style={{
-                    width: `${Math.round(previewWidthPx)}px`,
-                    flexGrow: 0,
-                    flexShrink: 0,
+                    // 最大化时铺满聊天区腾出的空间（explorer 列仍占其固定宽度）；
+                    // 否则用拖拽得到的固定宽度。还原后自动回到该宽度。
+                    // Maximized: fill the space the chat vacated (the explorer column
+                    // keeps its own fixed width); otherwise the dragged fixed width,
+                    // which restoring returns to automatically.
+                    ...(previewMaximized
+                      ? { flexGrow: 1, flexShrink: 1, flexBasis: 0 }
+                      : { width: `${Math.round(previewWidthPx)}px`, flexGrow: 0, flexShrink: 0 }),
                     // 只保留左边框作为与会话区的分界；上/右/下不留边距，
                     // 否则窗口底色会从缝隙里透出来（深色模式下尤其突兀）。
                     // Left border only, as the divider from the chat area. No outer
@@ -563,14 +536,18 @@ const Layout: React.FC<{
                     boxSizing: 'border-box',
                   }}
                 >
-                  {createPreviewRegionDragHandle({
-                    className: 'absolute top-0 bottom-0 z-30',
-                    style: { width: '20px', left: '-20px' },
-                    reverse: true,
-                    linePlacement: 'end',
-                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
-                    lineStyle: { width: '2px' },
-                  })}
+                  {/* 最大化时聊天区已隐藏，拖拽把手无处可拖，隐藏之。
+                      While maximized the chat is hidden, so the resize handle has
+                      nothing to drag against — hide it. */}
+                  {!previewMaximized &&
+                    createPreviewRegionDragHandle({
+                      className: 'absolute top-0 bottom-0 z-30',
+                      style: { width: '20px', left: '-20px' },
+                      reverse: true,
+                      linePlacement: 'end',
+                      lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
+                      lineStyle: { width: '2px' },
+                    })}
                   <div className='h-full w-full overflow-hidden'>
                     <PreviewPanel />
                   </div>
@@ -580,39 +557,13 @@ const Layout: React.FC<{
                 <ProjectPanelHost
                   widthPx={explorerWidthPx}
                   collapsed={explorerCollapsed}
-                  onToggle={toggleExplorer}
-                  showChevron={!isMacRuntime}
                   dragHandle={createExplorerDragHandle({
-                    className: 'absolute left-0 top-0 bottom-0 z-20',
+                    className: 'absolute start-0 top-0 bottom-0 z-20',
                     reverse: true,
                   })}
                 />
               )}
             </div>
-
-            {/* Desktop expand button when the explorer is collapsed. Not on mac
-                (the Titlebar workspace button owns the toggle there). */}
-            {!isMobile && !isMacRuntime && Boolean(currentProject) && explorerCollapsed && (
-              <button
-                type='button'
-                className='workspace-toggle-floating fixed z-101 flex items-center justify-center'
-                style={{
-                  top: '50%',
-                  right: '0px',
-                  transform: 'translateY(-50%)',
-                  width: '20px',
-                  height: '64px',
-                  borderTopLeftRadius: '10px',
-                  borderBottomLeftRadius: '10px',
-                  backgroundColor: 'var(--bg-2)',
-                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
-                }}
-                onClick={toggleExplorer}
-                aria-label='Expand explorer'
-              >
-                <ExpandLeft size={16} />
-              </button>
-            )}
 
             {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
             {isMobile && Boolean(currentProject) && (

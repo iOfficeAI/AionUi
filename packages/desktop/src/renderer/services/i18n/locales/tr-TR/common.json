@@ -39,6 +39,8 @@
   "expandMore": "Daha Fazla",
   "collapse": "Daralt",
   "viewMoreLines": "Daha Fazla Göster ({{count}} satır)",
+  "viewMoreLines_one": "Daha Fazla Göster ({{count}} satır)",
+  "viewMoreLines_other": "Daha Fazla Göster ({{count}} satır)",
   "success": "Başarılı",
   "error": "Hata",
   "saveSuccess": "Başarıyla kaydedildi",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "Daha yeni bir AionUi sürümü gerekli",
+      "description": "Yerel verileriniz AionUi'nin daha yeni bir sürümü tarafından oluşturuldu ve bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez.",
+      "descriptionWithVersion": "Yerel verileriniz şu an yüklü olandan (v{{currentVersion}}) daha yeni bir AionUi sürümü tarafından oluşturuldu; bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
@@ -194,5 +201,6 @@
     "second_short": "sn"
   },
   "selectedCount": "{{count}} seçili",
-  "selectedSkills": "Seçili beceriler"
+  "selectedSkills": "Seçili beceriler",
+  "aiAssistant": "Yapay Zekâ Asistanı"
 }

@@ -11,7 +11,7 @@ The Preview module is the file preview and editing system in AionUi, supporting 
 - Open multiple files simultaneously, each displayed in its own tab
 - Smart tab reuse: Same file won't be opened multiple times
 - Tab overflow handling: Automatically shows fade effect and scroll support
-- Context menu: Close current, close others, close all
+- Context menu: close this / left / right / others / unmodified / all tabs, copy the file path or workspace-relative path, and show the file in the OS file manager
 
 ### 2. File Type Support
 
@@ -318,12 +318,20 @@ Register global keyboard shortcuts.
 Supported shortcuts:
 
 - `Cmd/Ctrl + S` - Save current tab
-- `Cmd/Ctrl + W` - Close current tab (not implemented, reserved)
+- `Cmd/Ctrl + W` - Close current tab
+
+`Cmd/Ctrl + W` is scoped to `scopeRef`: only keystrokes originating inside the
+preview panel close a tab, so pressing it in the chat area keeps its usual
+meaning. Unlike the app's other shortcuts it deliberately does not yield to the
+code editor — pressing it mid-edit means "close this tab", and unsaved content
+is protected by the close confirmation rather than by ignoring the key.
 
 ```typescript
 usePreviewKeyboardShortcuts({
   isDirty: activeTab?.isDirty,
   onSave: () => saveContent(),
+  onCloseActiveTab: () => handleCloseTab(activeTabId),
+  scopeRef: panelRootRef,
 });
 ```
 

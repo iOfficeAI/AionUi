@@ -163,7 +163,7 @@ const TaskCard: React.FC<Props> = ({ task, identity }) => {
             </span>
           </Tooltip>
         )}
-        <span className='ml-auto shrink-0' title={time.full}>
+        <span className='ms-auto shrink-0' title={time.full}>
           {time.label}
         </span>
       </div>

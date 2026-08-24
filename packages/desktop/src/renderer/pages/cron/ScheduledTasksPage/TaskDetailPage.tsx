@@ -16,6 +16,7 @@ import { useConversationAssistants } from '@renderer/pages/conversation/hooks/us
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { formatCronRunConversationTitle, formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
@@ -35,7 +36,7 @@ const resolveTeamId = (conversation: TChatConversation): string | undefined => {
 };
 
 const TaskDetailPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { job_id } = useParams<{ job_id: string }>();
   const [job, setJob] = useState<ICronJob | null>(null);
@@ -147,7 +148,11 @@ const TaskDetailPage: React.FC = () => {
 
         if (latestConversation) {
           if (job.target.execution_mode === 'new_conversation') {
-            const nextName = formatCronRunConversationTitle(job.name, latestConversation.created_at || Date.now());
+            const nextName = formatCronRunConversationTitle(
+              job.name,
+              latestConversation.created_at || Date.now(),
+              i18n.language
+            );
             if (latestConversation.name !== nextName) {
               await ipcBridge.conversation.update.invoke({
                 id: result.conversation_id,
@@ -389,7 +394,7 @@ const TaskDetailPage: React.FC = () => {
             )}
             {job.state.next_run_at_ms && (
               <span className='text-14px text-t-secondary'>
-                {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
+                {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms, i18n.language)}
               </span>
             )}
           </div>
@@ -470,7 +475,7 @@ const TaskDetailPage: React.FC = () => {
                         )}
                         <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{conv.name || conv.id}</span>
                         <span className='shrink-0 text-13px text-t-secondary'>
-                          {formatNextRun(getActivityTime(conv))}
+                          {formatNextRun(getActivityTime(conv), i18n.language)}
                         </span>
                       </div>
                       {index < conversations.length - 1 && <div className='h-1px w-full bg-[var(--color-border-2)]' />}
@@ -481,8 +486,8 @@ const TaskDetailPage: React.FC = () => {
                 <div className='text-14px text-t-secondary'>
                   <span>{t('cron.detail.noHistory')}</span>
                   {job.enabled && job.state.next_run_at_ms && (
-                    <span className='ml-4px'>
-                      · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
+                    <span className='ms-4px'>
+                      · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms, i18n.language)}
                     </span>
                   )}
                 </div>
@@ -505,7 +510,7 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
                   {assistantIdentity.logo ? (
-                    <img
+                    <ThemedLogo
                       src={assistantIdentity.logo}
                       alt={assistantIdentity.name}
                       className='h-28px w-28px rounded-50%'

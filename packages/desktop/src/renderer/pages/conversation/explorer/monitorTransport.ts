@@ -161,6 +161,10 @@ export function initExplorerRuntime(): MonitorClient {
       const result = (await monitor.request('fs/subscribe', { targets: refs })) as MonitorRequestResult;
       return { snapshots: result.snapshots };
     },
+    remount: async (refs: DirRef[]): Promise<SubscribeResult> => {
+      const result = (await monitor.request('fs/remount', { targets: refs })) as MonitorRequestResult;
+      return { snapshots: result.snapshots };
+    },
     unsubscribe: (refs: DirRef[]): void => {
       monitor.notify('fs/unsubscribe', { targets: refs });
     },

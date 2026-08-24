@@ -16,6 +16,7 @@ import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/Assista
 import { Tooltip } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatNameList } from '@/renderer/services/i18n/list';
 
 /**
  * Assistants that have this skill attached (enabled or custom list).
@@ -33,25 +34,25 @@ const SkillUsedByStack: React.FC<{ assistants: Assistant[]; max?: number }> = ({
 
   const shown = assistants.slice(0, max);
   const overflow = assistants.length - shown.length;
-  const names = assistants.map((a) => a.name_i18n?.[localeKey] || a.name).join('、');
+  const names = formatNameList(
+    assistants.map((a) => a.name_i18n?.[localeKey] || a.name),
+    i18n.language
+  );
 
   return (
     <Tooltip
-      content={
-        t('settings.skillsHub.usedByCount', {
-          count: assistants.length,
-          defaultValue: `Used by ${assistants.length} assistant(s)`,
-        }) +
-        '：' +
-        names
-      }
+      content={t('settings.skillsHub.usedByTooltip', {
+        count: assistants.length,
+        names,
+        defaultValue: `Used by ${assistants.length} assistant(s): ${names}`,
+      })}
     >
       <div className='flex items-center' data-testid='skill-used-by-stack'>
         {shown.map((assistant, index) => (
           <div
             key={assistant.id}
             className='overflow-hidden rounded-full border-2 border-solid border-bg-2'
-            style={{ marginLeft: index === 0 ? 0 : -7, zIndex: shown.length - index }}
+            style={{ marginInlineStart: index === 0 ? 0 : -7, zIndex: shown.length - index }}
           >
             <AssistantAvatar assistant={assistant} size={22} />
           </div>
@@ -59,7 +60,7 @@ const SkillUsedByStack: React.FC<{ assistants: Assistant[]; max?: number }> = ({
         {overflow > 0 && (
           <div
             className='flex items-center justify-center rounded-full border-2 border-solid border-bg-2 bg-fill-3 text-9px font-600 text-t-secondary'
-            style={{ width: 22, height: 22, marginLeft: -7 }}
+            style={{ width: 22, height: 22, marginInlineStart: -7 }}
           >
             +{overflow}
           </div>

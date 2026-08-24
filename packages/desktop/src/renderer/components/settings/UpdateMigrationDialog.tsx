@@ -140,7 +140,7 @@ const UpdateMigrationDialog: React.FC = () => {
           <p className='mb-8px'>
             <strong>{t('update.migration.letter.whyTitle')}</strong> {t('update.migration.letter.whyLead')}
           </p>
-          <ul className='mb-8px pl-20px list-disc'>
+          <ul className='mb-8px ps-20px list-disc'>
             <li className='mb-4px'>{t('update.migration.letter.whyReason1')}</li>
             <li className='mb-4px'>{t('update.migration.letter.whyReason2')}</li>
             <li>{t('update.migration.letter.whyReason3')}</li>
@@ -153,7 +153,7 @@ const UpdateMigrationDialog: React.FC = () => {
           <p className='mb-8px'>
             <strong>{t('update.migration.letter.promisesTitle')}</strong>
           </p>
-          <ul className='mb-20px pl-20px list-disc'>
+          <ul className='mb-20px ps-20px list-disc'>
             <li className='mb-4px'>
               <strong>{t('update.migration.letter.promise1Bold')}</strong>
               {t('update.migration.letter.promise1Rest')}
@@ -165,7 +165,7 @@ const UpdateMigrationDialog: React.FC = () => {
           <p className='mb-8px'>
             <strong>{t('update.migration.letter.choicesTitle')}</strong>
           </p>
-          <ul className='mb-20px pl-20px list-disc'>
+          <ul className='mb-20px ps-20px list-disc'>
             <li className='mb-4px'>
               <strong>{t('update.migration.letter.choice1Bold')}</strong>
               {t('update.migration.letter.choice1Rest')}
@@ -176,7 +176,7 @@ const UpdateMigrationDialog: React.FC = () => {
           <p className='mb-24px'>{t('update.migration.letter.closing')}</p>
           {/* Signature block: right-aligned above a hairline, like a hand-signed letter */}
           <div className='flex justify-end'>
-            <div className='text-right pt-12px border-t border-[var(--border-base)] min-w-160px'>
+            <div className='text-end pt-12px border-t border-[var(--border-base)] min-w-160px'>
               <span className='text-15px' style={LETTER_SERIF}>
                 {t('update.migration.letter.signature')}
               </span>
@@ -187,7 +187,7 @@ const UpdateMigrationDialog: React.FC = () => {
             the fold, so users notice the letter scrolls even without hovering the
             scrollbar. Disappears once they reach the end. */}
         {hasMoreBelow && (
-          <div className='absolute bottom-0 left-0 right-0 h-56px pointer-events-none flex items-end justify-center bg-gradient-to-t from-[var(--dialog-fill-0)] to-transparent'>
+          <div className='absolute bottom-0 start-0 end-0 h-56px pointer-events-none flex items-end justify-center bg-gradient-to-t from-[var(--dialog-fill-0)] to-transparent'>
             <Down theme='outline' size={18} fill='currentColor' className='text-t-secondary animate-bounce mb-4px' />
           </div>
         )}

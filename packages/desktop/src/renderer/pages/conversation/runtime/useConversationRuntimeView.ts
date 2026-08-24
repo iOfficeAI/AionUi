@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
+import { reconcileGeneratingFromRuntime } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
@@ -17,6 +18,9 @@ import {
   localSendAccepted,
   localSendFailed,
   localSendStarted,
+  localRestartFailed,
+  localRestartStarted,
+  localRestartSucceeded,
   localStopAcknowledged,
   localStopRequested,
   resetLocalGate,
@@ -34,11 +38,15 @@ type UseConversationRuntimeViewReturn = {
   isProcessing: boolean;
   canSendMessage: boolean;
   activeTurnId: string | null;
+  supportsMidturnDelivery: boolean;
   markSendStarted: () => void;
   markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
   markSendFailed: (failure: ConversationRuntimeSendFailure) => void;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
+  markRestartStarted: () => void;
+  markRestartSucceeded: (runtime: TConversationRuntimeSummary) => void;
+  markRestartFailed: (runtime: TConversationRuntimeSummary | null, reason: string) => void;
   resetLocalGate: (reason: string) => void;
 };
 
@@ -84,7 +92,14 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
         if (cancelled) {
           return;
         }
-        flushRuntimeViewLogs(hydrateSucceeded(conversation_id, getRuntimeOrNull(conversation?.runtime)));
+        const runtime = getRuntimeOrNull(conversation?.runtime);
+        flushRuntimeViewLogs(hydrateSucceeded(conversation_id, runtime));
+        // Reconcile the sidebar spinner against authoritative runtime state:
+        // a missed WS frame (window reload/reconnect race) can otherwise
+        // leave the row dark even though the runtime is still processing.
+        if (runtime) {
+          reconcileGeneratingFromRuntime(conversation_id, runtime.is_processing === true);
+        }
       })
       .catch((error: unknown) => {
         if (cancelled) {
@@ -137,6 +152,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   const markSendAccepted = useCallback(
     (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => {
       flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, runtime, msg_id));
+      reconcileGeneratingFromRuntime(conversation_id, runtime.is_processing === true);
     },
     [conversation_id]
   );
@@ -167,6 +183,24 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     [conversation_id]
   );
 
+  const markRestartStarted = useCallback(() => {
+    flushRuntimeViewLogs(localRestartStarted(conversation_id));
+  }, [conversation_id]);
+
+  const markRestartSucceeded = useCallback(
+    (runtime: TConversationRuntimeSummary) => {
+      flushRuntimeViewLogs(localRestartSucceeded(conversation_id, runtime));
+    },
+    [conversation_id]
+  );
+
+  const markRestartFailed = useCallback(
+    (runtime: TConversationRuntimeSummary | null, reason: string) => {
+      flushRuntimeViewLogs(localRestartFailed(conversation_id, runtime, normalizeReason(reason)));
+    },
+    [conversation_id]
+  );
+
   const resetLocalRuntimeGate = useCallback(
     (reason: string) => {
       flushRuntimeViewLogs(resetLocalGate(conversation_id, normalizeReason(reason)));
@@ -181,11 +215,15 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     isProcessing: view.isProcessing,
     canSendMessage: view.canSendMessage,
     activeTurnId: view.activeTurnId,
+    supportsMidturnDelivery: view.supportsMidturnDelivery,
     markSendStarted,
     markSendAccepted,
     markSendFailed,
     markStopRequested,
     markStopAcknowledged,
+    markRestartStarted,
+    markRestartSucceeded,
+    markRestartFailed,
     resetLocalGate: resetLocalRuntimeGate,
   };
 };

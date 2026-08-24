@@ -87,22 +87,22 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ roots, peNames, onReve
   return (
     <div className='h-full flex flex-col min-h-0'>
       {/* pt-8px 让搜索框跟上方 tab 栏那条分割线拉开距离，不再贴着它。
-          pl-12px 把输入框外框对到面板基准线；输入框自带 12px 内边距会把里面的放大镜
-          推到 24px，用 !pl-8px 收成 8px，图标正好落在 20px —— 与 tab 文字、树箭头
+          ps-12px 把输入框外框对到面板基准线；输入框自带 12px 内边距会把里面的放大镜
+          推到 24px，用 !ps-8px 收成 8px，图标正好落在 20px —— 与 tab 文字、树箭头
           同一条线（见 ExplorerContainer.tsx 的基准线说明）。
 
           pt-8px lifts the box off the tab bar's bottom border instead of touching it.
-          pl-12px puts the input's outer border on the panel baseline; the input's own
-          12px inner padding would push the magnifier to 24px, so !pl-8px trims it to
+          ps-12px puts the input's outer border on the panel baseline; the input's own
+          12px inner padding would push the magnifier to 24px, so !ps-8px trims it to
           8px and lands the icon at 20px — the same line as the tab text and the tree
           arrow (see the baseline note in ExplorerContainer.tsx). */}
-      <div className='flex-shrink-0 pl-12px pr-8px pt-8px pb-4px'>
+      <div className='flex-shrink-0 ps-12px pe-8px pt-8px pb-4px'>
         <Input
           value={query}
           onChange={onQueryChange}
           allowClear
           size='small'
-          className='[&_.arco-input-inner-wrapper]:!pl-8px'
+          className='[&_.arco-input-inner-wrapper]:!ps-8px'
           prefix={<Search theme='outline' size='14' />}
           placeholder={t('conversation.explorer.search.placeholder')}
           aria-label={t('conversation.explorer.search.placeholder')}
@@ -114,22 +114,22 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ roots, peNames, onReve
           showing the tree (never a blank pane) even though our query is non-empty
           — the user re-owns by typing in the box again.
 
-          pl-12px 把树的行外框放到面板基准线上；行内箭头再由 arco-override.css 的
+          ps-12px 把树的行外框放到面板基准线上；行内箭头再由 arco-override.css 的
           .workspace-tree 规则补 8px，落到 20px。
-          pl-12px puts the tree's row boxes on the panel baseline; the arrow inside
+          ps-12px puts the tree's row boxes on the panel baseline; the arrow inside
           is then offset a further 8px by the .workspace-tree rules in
           arco-override.css, landing at 20px. */}
-      <div className='flex-1 min-h-0 overflow-auto pl-12px' style={active && owned ? { display: 'none' } : undefined}>
+      <div className='flex-1 min-h-0 overflow-auto ps-12px' style={active && owned ? { display: 'none' } : undefined}>
         {children}
       </div>
 
       {active && owned && (
-        // pl-4px + 行自身 px-8px = 12px，与树、搜索框外框同一条基准线，
+        // ps-4px + 行自身 px-8px = 12px，与树、搜索框外框同一条基准线，
         // 这样输入时结果列表顶掉树的一刻不会横向跳动。
-        // pl-4px plus each row's own px-8px lands on the same 12px baseline as the
+        // ps-4px plus each row's own px-8px lands on the same 12px baseline as the
         // tree and the search box, so the list replacing the tree as you type does
         // not shift sideways.
-        <div className='flex-1 min-h-0 overflow-auto pl-4px pr-4px'>
+        <div className='flex-1 min-h-0 overflow-auto ps-4px pe-4px'>
           {showSearching && (
             <div className='px-8px py-6px text-t-secondary text-13px'>
               {t('conversation.explorer.search.searching')}
@@ -154,10 +154,14 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ roots, peNames, onReve
               title={hit.relative_path}
             >
               <FileTypeIcon node={{ name: hit.name, relativePath: hit.relative_path, isFile: true }} />
-              <span className='overflow-hidden text-ellipsis whitespace-nowrap flex-shrink-0 max-w-[45%]'>
+              {/* File names/paths are code-like: keep LTR under an RTL document. */}
+              <span dir='ltr' className='overflow-hidden text-ellipsis whitespace-nowrap flex-shrink-0 max-w-[45%]'>
                 {hit.name}
               </span>
-              <span className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-1 min-w-0'>
+              <span
+                dir='ltr'
+                className='overflow-hidden text-ellipsis whitespace-nowrap text-t-tertiary text-12px flex-1 min-w-0'
+              >
                 {peLabeledPath(hit.pe_id, hit.relative_path, peNames)}
               </span>
               {onAddHit && (

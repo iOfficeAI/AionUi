@@ -17,5 +17,6 @@
   "permission": "권한",
   "switchMode": "권한 모드",
   "switchSuccess": "모드가 성공적으로 전환되었습니다",
+  "switchPendingNextTurn": "다음 턴부터 적용됩니다",
   "switchFailed": "모드 전환에 실패했습니다"
 }

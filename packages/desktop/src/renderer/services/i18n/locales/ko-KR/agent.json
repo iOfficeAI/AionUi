@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "클릭하여 이 멤버를 깨우기"
+  },
+  "runtimeRestart": {
+    "tooltip": "에이전트 다시 연결",
+    "confirmContent": "에이전트 프로세스를 재시작하여 외부 CLI 구성 변경(채널 전환 등)을 적용합니다. 채팅 기록은 유지되며 가능하면 세션이 재개됩니다.",
+    "success": "에이전트가 다시 연결되었습니다",
+    "failed": "에이전트 다시 연결에 실패했습니다",
+    "initializingTooltip": "에이전트를 초기화하는 중입니다. 완료된 후 다시 연결하세요",
+    "processingTooltip": "현재 답변이 완료된 후 다시 연결하세요"
   }
 }

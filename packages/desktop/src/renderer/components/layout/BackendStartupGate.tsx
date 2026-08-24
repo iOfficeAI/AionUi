@@ -20,6 +20,7 @@ export function shouldShowBackendStartupFailureDialog(
     reason === 'backend_incomplete_installation' ||
     reason === 'backend_package_architecture_mismatch' ||
     reason === 'backend_data_migration_failed' ||
+    reason === 'backend_database_newer_than_app' ||
     reason === 'backend_local_data_repair_failed' ||
     reason === 'backend_recoverable_database_corruption' ||
     reason === 'backend_transient_concurrent_startup' ||

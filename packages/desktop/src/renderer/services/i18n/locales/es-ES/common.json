@@ -38,6 +38,8 @@
   "expandMore": "Ver más",
   "collapse": "Contraer",
   "viewMoreLines": "Ver más ({{count}} líneas)",
+  "viewMoreLines_one": "Ver más ({{count}} línea)",
+  "viewMoreLines_other": "Ver más ({{count}} líneas)",
   "success": "Éxito",
   "error": "Error",
   "saveSuccess": "Guardado correctamente",
@@ -100,6 +102,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "Se requiere una versión más reciente de AionUi",
+      "description": "Tus datos locales fueron creados por una versión más reciente de AionUi y esta versión no puede abrirlos. Actualiza AionUi a la última versión para continuar; tus datos están intactos y no es necesario reinstalar ni restablecer nada.",
+      "descriptionWithVersion": "Tus datos locales fueron creados por una versión de AionUi más reciente que la instalada ahora (v{{currentVersion}}), por lo que esta versión no puede abrirlos. Actualiza AionUi a la última versión para continuar; tus datos están intactos y no es necesario reinstalar ni restablecer nada."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
@@ -194,5 +201,6 @@
   },
   "goBack": "Back",
   "selectedCount": "{{count}} seleccionado(s)",
-  "selectedSkills": "Habilidades seleccionadas"
+  "selectedSkills": "Habilidades seleccionadas",
+  "aiAssistant": "Asistente de IA"
 }

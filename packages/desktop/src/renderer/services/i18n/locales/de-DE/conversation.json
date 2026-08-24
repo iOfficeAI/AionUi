@@ -43,7 +43,11 @@
     "batchExportConfirm": "{{count}} ausgewählte Themen exportieren?",
     "batchDelete": "Stapellöschung",
     "batchDeleteConfirm": "{{count}} ausgewählte Themen löschen?",
+    "batchDeleteConfirm_one": "{{count}} ausgewähltes Thema löschen?",
+    "batchDeleteConfirm_other": "{{count}} ausgewählte Themen löschen?",
     "batchDeleteSuccess": "{{count}} Themen gelöscht",
+    "batchDeleteSuccess_one": "{{count}} Thema gelöscht",
+    "batchDeleteSuccess_other": "{{count}} Themen gelöscht",
     "batchNoSelection": "Bitte zuerst Themen auswählen",
     "export": "Exportieren",
     "exportDialogTitle": "Themen exportieren",
@@ -58,6 +62,8 @@
     "exportFailed": "Export fehlgeschlagen",
     "pin": "Anheften",
     "unpin": "Loslösen",
+    "markAsUnread": "Als ungelesen markieren",
+    "markAsRead": "Als gelesen markieren",
     "pinned": "Angeheftet",
     "pinFailed": "Anheften fehlgeschlagen",
     "pinnedSection": "Angeheftet",
@@ -69,20 +75,21 @@
     "earlier": "Früher",
     "projectsSection": "Projekte",
     "conversationsSection": "Unterhaltungen",
-    "removeProjectTitle": "Projekt entfernen",
-    "removeProject": "Projekt entfernen",
-    "removeProjectConfirm": "Projekt \"{{name}}\" entfernen? Die {{count}} zugehörige(n) Unterhaltung(en) werden ebenfalls entfernt.",
-    "removeProjectConfirmTeams": "Außerdem werden {{teams}} zugehörige(s) Team(s) entfernt.",
-    "removeProjectListMore": "+{{count}} weitere",
     "newConversationInProject": "Neuer Chat in diesem Projekt",
     "deleting": "Wird gelöscht...",
     "reorderPinned": "Ziehen, um angeheftete Unterhaltung neu anzuordnen",
     "forkedFrom": "Verzweigt von „{{name}}“",
     "forkedConversation": "Verzweigte Unterhaltung",
-    "loadMore": "Mehr laden",
-    "newTeamInProject": "Neues Team in diesem Projekt",
-    "projectCreateMenu": "Erstellen",
-    "collapseAllProjects": "Alle Projekte einklappen"
+    "archive": "Archivieren",
+    "archiveSuccess": "Archiviert",
+    "archiveFailed": "Archivieren fehlgeschlagen",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -433,7 +440,9 @@
     "searchHint": "Hier klicken, um nach Stichwörtern zu suchen",
     "empty": "Noch keine Frage-Antwort-Runden",
     "noMatch": "Keine übereinstimmenden Inhalte gefunden",
-    "count": "{{count}} Runden"
+    "count": "{{count}} Runden",
+    "count_one": "{{count}} Runde",
+    "count_other": "{{count}} Runden"
   },
   "chat": {
     "noModelSelected": "Kein Modell für die aktuelle Sitzung ausgewählt, Nachricht kann nicht gesendet werden",
@@ -452,6 +461,7 @@
     "switchAgentFailed": "Agentenwechsel fehlgeschlagen",
     "speech": {
       "recordTooltip": "Spracheingabe starten",
+      "recordTooltipWithShortcut": "Spracheingabe cmd+M",
       "pickFileTooltip": "Audiodatei auswählen",
       "stopTooltip": "Aufnahme stoppen",
       "processing": "Audio wird transkribiert...",
@@ -498,6 +508,8 @@
     "reorder": "Zum Neuanordnen ziehen",
     "remove": "Entfernen",
     "files": "{{count}} Dateien",
+    "files_one": "{{count}} Datei",
+    "files_other": "{{count}} Dateien",
     "pausedAfterFailure": "Der nächste wartende Befehl konnte nicht gestartet werden. Bearbeite, ordne neu an oder entferne ihn, um fortzufahren.",
     "emptyInput": "Wartende Befehle dürfen nicht leer sein.",
     "queueFull": "Warteschlange ist voll. Entferne einen Befehl, bevor du weitere hinzufügst.",
@@ -515,7 +527,14 @@
     "mode": {
       "auto": "Auto senden",
       "manual": "Manuell senden"
-    }
+    },
+    "addToQueue": "Zum Entwurfsfach hinzufügen",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Ein Einwurf wird nicht unterstützt, während dieser Agent antwortet. Verwende stattdessen „Zum Entwurfsfach hinzufügen“.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "Kontext verwendet",
@@ -574,7 +593,8 @@
   },
   "sendbox": {
     "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren, ↑/↓ für den Nachrichtenverlauf",
-    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet."
+    "mediaPathFallback": "Dieser Agent unterstützt diesen Dateityp nicht nativ; die Datei wird als Dateipfad gesendet.",
+    "hintWithSessions": "/ für Befehle, @ für Dateien, @@ für Unterhaltungen, ↑/↓ für Verlauf"
   },
   "agentTip": {
     "codes": {
@@ -622,11 +642,16 @@
       "rename": "Umbenennen",
       "addToChat": "Zum Chat hinzufügen",
       "copyRelativePath": "Relativen Pfad kopieren",
-      "copyAbsolutePath": "Absoluten Pfad kopieren"
+      "copyAbsolutePath": "Absoluten Pfad kopieren",
+      "refresh": "Aktualisieren",
+      "newFile": "Neue Datei",
+      "newDir": "Neuer Ordner"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "„{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
     "renameFailed": "Umbenennen fehlgeschlagen",
+    "newFileFailed": "Datei konnte nicht erstellt werden",
+    "newDirFailed": "Ordner konnte nicht erstellt werden",
     "tabs": {
       "files": "Dateien",
       "changes": "Änderungen"
@@ -635,6 +660,8 @@
     "imported": "{{count}} Datei(en) importiert",
     "importPartialFailed": "{{copied}} kopiert, {{failed}} fehlgeschlagen (Namenskonflikte oder nicht unterstützt)",
     "importFailed": "Import der Dateien fehlgeschlagen",
+    "copyNodeFailed": "Kopieren fehlgeschlagen",
+    "moveNodeFailed": "Verschieben fehlgeschlagen",
     "search": {
       "placeholder": "Dateien nach Name suchen",
       "searching": "Suche läuft…",
@@ -704,8 +731,14 @@
         "confirmDiscardMixed": "Änderungen an {{tracked}} Datei(en) gehen unwiderruflich verloren; {{untracked}} neue Datei(en) landen im Papierkorb.",
         "discardConfirmButton": "Verwerfen",
         "okStage": "{{count}} Dateien vorgemerkt",
+        "okStage_one": "{{count}} Datei vorgemerkt",
+        "okStage_other": "{{count}} Dateien vorgemerkt",
         "okUnstage": "Vormerkung für {{count}} Dateien aufgehoben",
+        "okUnstage_one": "Vormerkung für {{count}} Datei aufgehoben",
+        "okUnstage_other": "Vormerkung für {{count}} Dateien aufgehoben",
         "okDiscard": "{{count}} Dateien verworfen",
+        "okDiscard_one": "{{count}} Datei verworfen",
+        "okDiscard_other": "{{count}} Dateien verworfen",
         "partial": "{{succeeded}} von {{total}} erledigt —— {{failed}} konnten nicht abgeschlossen werden",
         "partialDetail": "Nicht abgeschlossen: {{files}}",
         "rejectedBlocked": "Es wurde nichts geändert —— lösen Sie zuerst den Konflikt",
@@ -714,7 +747,9 @@
         "retry": "Wiederholen",
         "notSent": "Die Anfrage hat das Backend nicht erreicht — es wurde nichts geändert. Sie können es erneut versuchen.",
         "outcomeUnknown": "Die Verbindung wurde vor einer Antwort zurückgesetzt — diese Aktion kann abgeschlossen sein oder auch nicht. Aktualisieren und die Dateiliste prüfen, bevor Sie es erneut versuchen.",
-        "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden"
+        "allFailed": "Keine der {{count}} Datei(en) konnte verarbeitet werden",
+        "allFailed_one": "{{count}} Datei konnte nicht verarbeitet werden",
+        "allFailed_other": "Keine der {{count}} Dateien konnte verarbeitet werden"
       }
     },
     "pathCopied": "Pfad kopiert",
@@ -726,5 +761,26 @@
     "exited": "Exit {{code}}",
     "stop": "Stopp",
     "truncated": "(frühere Ausgabe gekürzt)"
+  },
+  "emptyState": {
+    "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."
+  },
+  "crossSession": {
+    "mentionAgain": "Unterhaltung {{name}} im Eingabefeld erwähnen",
+    "mentionAgainHint": "Klicken, um diese Unterhaltung im Eingabefeld zu erwähnen",
+    "mentionUnavailable": "Diese Unterhaltung kann nicht mehr erwähnt werden.",
+    "mentionFailed": "Diese Unterhaltung konnte nicht erwähnt werden.",
+    "fromBadge": "Aus Unterhaltung {{name}}",
+    "otherWorkspace": "anderer Arbeitsbereich",
+    "rateLimitedTitle": "Nachrichten zwischen Unterhaltungen laufen möglicherweise im Kreis",
+    "rateLimited": "Automatische Nachrichten zwischen „{{from}}“ und „{{to}}“ sind ungewöhnlich häufig und laufen möglicherweise im Kreis.",
+    "stopBoth": "Beide Unterhaltungen stoppen",
+    "disableFeature": "Nachrichten zwischen Unterhaltungen ausschalten"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Plan ausklappen",
+    "collapse": "Plan einklappen"
   }
 }

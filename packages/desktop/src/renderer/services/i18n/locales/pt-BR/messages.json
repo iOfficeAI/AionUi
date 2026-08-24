@@ -1,6 +1,8 @@
 {
   "fileChanges": "Alterações de Arquivo",
   "fileChangesCount": "{{count}} Alterações de Arquivo",
+  "fileChangesCount_one": "{{count}} Alteração de Arquivo",
+  "fileChangesCount_other": "{{count}} Alterações de Arquivo",
   "conversationInProgress": "Uma conversa está em andamento no momento...",
   "confirm": "Confirmar",
   "canceledExecution": "Execução cancelada",
@@ -22,9 +24,14 @@
     "searchAria": "Pesquisar na conversa"
   },
   "availableCommands": "{{count}} Comandos Disponíveis",
+  "availableCommands_one": "{{count}} Comando Disponível",
+  "availableCommands_other": "{{count}} Comandos Disponíveis",
   "atFile.hint": "Digite para procurar arquivos",
   "atFile.menuLabel": "Menções de arquivo",
   "atFile.loading": "Carregando...",
+  "atSession.hint": "Digite para pesquisar suas conversas",
+  "atSession.empty": "Nenhuma conversa encontrada",
+  "atSession.menuLabel": "Menções de conversa",
   "slash.title": "Comandos",
   "slash.hint": "Digite / para abrir o menu de comandos",
   "slash.empty": "Nenhum comando encontrado",
@@ -87,5 +94,8 @@
   "askDeclined": "Ignorado",
   "askOther": "Outro",
   "askOtherPlaceholder": "Digite sua resposta",
-  "requestDetails": "Detalhes da solicitação:"
+  "requestDetails": "Detalhes da solicitação:",
+  "delivery": {
+    "pending": "Não lido"
+  }
 }

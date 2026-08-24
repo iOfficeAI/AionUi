@@ -65,6 +65,12 @@ import jaJP from '@arco-design/web-react/es/locale/ja-JP';
 import zhCN from '@arco-design/web-react/es/locale/zh-CN';
 import zhTW from '@arco-design/web-react/es/locale/zh-TW';
 import koKR from '@arco-design/web-react/es/locale/ko-KR';
+import trTR from '@arco-design/web-react/es/locale/tr-TR';
+import ruRU from '@arco-design/web-react/es/locale/ru-RU';
+import ptBR from '@arco-design/web-react/es/locale/pt-BR';
+import deDE from '@arco-design/web-react/es/locale/de-DE';
+import esES from '@arco-design/web-react/es/locale/es-ES';
+import frFR from '@arco-design/web-react/es/locale/fr-FR';
 import { useTranslation } from 'react-i18next';
 
 // Styles
@@ -83,6 +89,7 @@ configService.initialize().catch((err) => {
 
 // i18n
 import './services/i18n';
+import { isRtlLanguage } from './services/i18n/direction';
 import { registerPwa } from './services/registerPwa';
 
 import { ipcBridge } from '@/common';
@@ -112,32 +119,54 @@ import {
 } from './components/layout/InstallationIntegrityDialog';
 import { createRuntimeInstallationReconciler } from './services/runtime/runtimeInstallationReconciler';
 
-// Patch Korean locale with missing properties from English locale
-const koKRComplete = {
-  ...koKR,
-  Calendar: {
-    ...koKR.Calendar,
-    monthFormat: enUS.Calendar.monthFormat,
-    yearFormat: enUS.Calendar.yearFormat,
-  },
-  DatePicker: {
-    ...koKR.DatePicker,
-    Calendar: {
-      ...koKR.DatePicker.Calendar,
-      monthFormat: enUS.Calendar.monthFormat,
-      yearFormat: enUS.Calendar.yearFormat,
-    },
-  },
-  Form: enUS.Form,
-  ColorPicker: enUS.ColorPicker,
+// Arco ships several locales that predate its newer components: sections such
+// as Form, ColorPicker and the Calendar month/year formats are missing there.
+// Backfill anything absent from the English locale so every entry satisfies the
+// full locale shape (generalises the previous hand-written ko-KR patch).
+type ArcoLocaleInput = Omit<Partial<typeof enUS>, 'Calendar' | 'DatePicker'> & {
+  Calendar?: Partial<(typeof enUS)['Calendar']>;
+  DatePicker?: Omit<Partial<(typeof enUS)['DatePicker']>, 'Calendar'> & {
+    Calendar?: Partial<(typeof enUS)['DatePicker']['Calendar']>;
+  };
 };
 
+const completeArcoLocale = (locale: ArcoLocaleInput): typeof enUS => ({
+  ...enUS,
+  ...locale,
+  Calendar: {
+    ...enUS.Calendar,
+    ...locale.Calendar,
+    monthFormat: locale.Calendar?.monthFormat ?? enUS.Calendar.monthFormat,
+    yearFormat: locale.Calendar?.yearFormat ?? enUS.Calendar.yearFormat,
+  },
+  DatePicker: {
+    ...enUS.DatePicker,
+    ...locale.DatePicker,
+    Calendar: {
+      ...enUS.DatePicker.Calendar,
+      ...locale.DatePicker?.Calendar,
+      monthFormat: locale.DatePicker?.Calendar?.monthFormat ?? enUS.Calendar.monthFormat,
+      yearFormat: locale.DatePicker?.Calendar?.yearFormat ?? enUS.Calendar.yearFormat,
+    },
+  },
+  Form: locale.Form ?? enUS.Form,
+  ColorPicker: locale.ColorPicker ?? enUS.ColorPicker,
+});
+
+// Every language AionUi ships that Arco publishes a locale for. Arco has no
+// uk-UA or fa-IR locale; those fall back to English component strings.
 const arcoLocales: Record<string, typeof enUS> = {
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,
-  'ko-KR': koKRComplete,
+  'ko-KR': completeArcoLocale(koKR),
   'en-US': enUS,
+  'tr-TR': completeArcoLocale(trTR),
+  'ru-RU': completeArcoLocale(ruRU),
+  'pt-BR': completeArcoLocale(ptBR),
+  'de-DE': completeArcoLocale(deDE),
+  'es-ES': completeArcoLocale(esES),
+  'fr-FR': completeArcoLocale(frFR),
 };
 
 const INSTALLATION_INTEGRITY_FAILURES = new Set<RuntimeFailureKind>([
@@ -303,7 +332,11 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
   } = useTranslation();
   const arcoLocale = arcoLocales[language] ?? enUS;
 
-  return React.createElement(ConfigProvider, { theme: { primaryColor: '#4E5969' }, locale: arcoLocale }, children);
+  return React.createElement(
+    ConfigProvider,
+    { theme: { primaryColor: '#4E5969' }, locale: arcoLocale, rtl: isRtlLanguage(language) },
+    children
+  );
 };
 
 const Main = () => {
@@ -343,6 +376,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const isIncompatibleRuntime = failure.reason === 'backend_incompatible_runtime';
   const isPackageArchitectureMismatch = failure.reason === 'backend_package_architecture_mismatch';
   const isDataMigrationFailure = failure.reason === 'backend_data_migration_failed';
+  const isDatabaseNewerThanApp = failure.reason === 'backend_database_newer_than_app';
   const isLocalDataRepairFailure = failure.reason === 'backend_local_data_repair_failed';
   const isRecoverableDatabaseCorruption = failure.reason === 'backend_recoverable_database_corruption';
   const isTransientConcurrentStartup = failure.reason === 'backend_transient_concurrent_startup';
@@ -359,23 +393,29 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
           deviceArch: failure.deviceArch ?? 'arm64',
           expectedArch: failure.expectedDownloadArch ?? 'arm64',
         })
-      : isDataMigrationFailure
-        ? t('common.backendStartup.dataMigration.description')
-        : isLocalDataRepairFailure
-          ? t('common.backendStartup.localDataRepair.description')
-          : isTransientConcurrentStartup
-            ? t('common.backendStartup.transientConcurrentStartup.description')
-            : isStartupDirectoryFailure
-              ? t('common.backendStartup.startupDirectory.description')
-              : isRecoverableDatabaseCorruption
-                ? t('common.backendStartup.recoverableDatabaseCorruption.description')
-                : isBackendExited
-                  ? t('common.backendStartup.exited.description')
-                  : isPortReportTimeout
-                    ? t('common.backendStartup.portReportTimeout.description')
-                    : isIncompleteInstallation
-                      ? getBackendStartupInstallationDescription(t)
-                      : t('common.backendStartup.startupFailed.description');
+      : isDatabaseNewerThanApp
+        ? failure.appVersion
+          ? t('common.backendStartup.databaseNewerThanApp.descriptionWithVersion', {
+              currentVersion: failure.appVersion,
+            })
+          : t('common.backendStartup.databaseNewerThanApp.description')
+        : isDataMigrationFailure
+          ? t('common.backendStartup.dataMigration.description')
+          : isLocalDataRepairFailure
+            ? t('common.backendStartup.localDataRepair.description')
+            : isTransientConcurrentStartup
+              ? t('common.backendStartup.transientConcurrentStartup.description')
+              : isStartupDirectoryFailure
+                ? t('common.backendStartup.startupDirectory.description')
+                : isRecoverableDatabaseCorruption
+                  ? t('common.backendStartup.recoverableDatabaseCorruption.description')
+                  : isBackendExited
+                    ? t('common.backendStartup.exited.description')
+                    : isPortReportTimeout
+                      ? t('common.backendStartup.portReportTimeout.description')
+                      : isIncompleteInstallation
+                        ? getBackendStartupInstallationDescription(t)
+                        : t('common.backendStartup.startupFailed.description');
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
@@ -392,15 +432,17 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
                   ? 'startup_directory'
                   : isLocalDataRepairFailure
                     ? 'local_data_repair'
-                    : isDataMigrationFailure
-                      ? 'data_migration'
-                      : isBackendExited
-                        ? 'backend_exited'
-                        : isPortReportTimeout
-                          ? 'port_report_timeout'
-                          : isIncompleteInstallation
-                            ? 'incomplete_installation'
-                            : 'startup_failed'
+                    : isDatabaseNewerThanApp
+                      ? 'database_newer_than_app'
+                      : isDataMigrationFailure
+                        ? 'data_migration'
+                        : isBackendExited
+                          ? 'backend_exited'
+                          : isPortReportTimeout
+                            ? 'port_report_timeout'
+                            : isIncompleteInstallation
+                              ? 'incomplete_installation'
+                              : 'startup_failed'
           }
           diagnostics={{
             source: 'backend_startup_failure',

@@ -26,6 +26,9 @@ const { useCronJobConversationsMock } = vi.hoisted(() => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    // The page formats next-run timestamps against the app language, so the
+    // mock has to expose `i18n` the way the real hook does.
+    i18n: { language: 'en-US' },
   }),
 }));
 
@@ -196,7 +199,7 @@ describe('TaskDetailPage', () => {
     await waitFor(() =>
       expect(updateConversationInvokeMock).toHaveBeenCalledWith({
         id: 'conv-run',
-        updates: { name: '问好 01-07-26' },
+        updates: { name: '问好 07/01/26' },
       })
     );
     expect(navigateMock).toHaveBeenCalledWith('/conversation/conv-run');

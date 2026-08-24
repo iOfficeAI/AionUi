@@ -3,6 +3,8 @@
   "downloadFile": "Baixar arquivo",
   "closePreview": "Fechar visualização",
   "collapsePanel": "Recolher painel",
+  "maximizePanel": "Maximizar",
+  "restorePanel": "Restaurar",
   "source": "Fonte",
   "code": "Código",
   "preview": "Pré-visualização",
@@ -24,6 +26,8 @@
   "closeTabMessage": "O conteúdo atual não foi salvo. Deseja salvar antes de fechar?",
   "closeTabsTitle": "Fechar abas",
   "closeTabsMessage": "{{count}} abas têm alterações não salvas. Salvar antes de fechar?",
+  "closeTabsMessage_one": "{{count}} aba tem alterações não salvas. Salvar antes de fechar?",
+  "closeTabsMessage_other": "{{count}} abas têm alterações não salvas. Salvar antes de fechar?",
   "saveAndClose": "Salvar e Fechar",
   "closeWithoutSave": "Não Salvar",
   "pptTitle": "Apresentação do PowerPoint",
@@ -35,10 +39,16 @@
   "openInSystemApp": "Abrir no aplicativo do sistema",
   "openInSystemSuccess": "Aberto no aplicativo padrão do sistema",
   "openInSystemFailed": "Falha ao abrir com o aplicativo do sistema",
+  "close": "Fechar",
   "closeLeft": "Fechar à Esquerda",
   "closeRight": "Fechar à Direita",
   "closeOthers": "Fechar Outras",
   "closeAll": "Fechar Todas",
+  "closeUnmodified": "Fechar Não Modificadas",
+  "copyPath": "Copiar Caminho",
+  "copyRelativePath": "Copiar Caminho Relativo",
+  "openLocation": "Mostrar na pasta",
+  "openLocationFailed": "Falha ao abrir a pasta que contém o arquivo",
   "readOnlyLabel": "Pré-visualização somente leitura",
   "pathLabel": "Caminho",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "Nenhuma guia aberta",
   "openInPanelTooltip": "Ver no painel de visualização",
   "mermaidTitle": "Diagrama Mermaid",
+  "wavedromTitle": "Diagrama WaveDrom",
   "oversized": {
     "title": "Arquivo muito grande para pré-visualizar",
     "detail": "O tamanho do arquivo {{size}} excede o limite de {{threshold}}. Abra-o em um editor do sistema.",
@@ -161,5 +172,9 @@
     "confirmMessage": "Esta aba tem alterações não salvas. Recarregar as substitui pelo conteúdo do disco.",
     "discardAndRefresh": "Descartar alterações e recarregar",
     "officeNotWired": "A atualização de documentos do Office ainda não está disponível — feche e reabra o arquivo para ver as alterações."
-  }
+  },
+  "zoomIn": "Ampliar",
+  "zoomOut": "Reduzir",
+  "zoomReset": "Redefinir visualização",
+  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar"
 }

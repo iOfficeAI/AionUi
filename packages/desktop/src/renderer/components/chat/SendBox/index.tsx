@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
+import AtSessionMenu from '@/renderer/components/chat/AtSessionMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
@@ -21,7 +22,20 @@ import {
   getAllAtFileQueries,
   resolveAtFileMenuKey,
 } from '@/renderer/utils/chat/atFileQuery';
+import type { SessionMentionTarget, SessionRef } from '@/common/adapter/ipcBridge';
+import { useSessionMentionSearch } from '@/renderer/hooks/chat/useSessionMentionSearch';
+import {
+  buildAtSessionInsertion,
+  getActiveAtSessionQuery,
+  getAllAtSessionQueries,
+  isAtSessionBoundaryChar,
+  resolveAtSessionMenuKey,
+} from '@/renderer/utils/chat/atSessionQuery';
+import { buildAttachedMentionRanges } from '@/renderer/utils/chat/mentionHighlight';
+import { applyMentionInsertion, insertMentionAtCaret } from '@/renderer/utils/chat/mentionInsertion';
+import { reconcileSessionRefs } from './sessionMentionReconcile';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
+import { formatRelativeTime } from '@/renderer/utils/chat/relativeTime';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
@@ -30,8 +44,10 @@ import { useProjectMentionSearch } from '@/renderer/pages/conversation/explorer/
 import { peLabeledPath } from '@/renderer/pages/conversation/explorer/search/searchModel';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
-import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
+import { isPlatformPrimaryModifier } from '@/renderer/utils/ui/keyboardShortcuts';
+import { isMacOS } from '@/renderer/utils/platform';
+import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
@@ -60,10 +76,49 @@ const constVoid = (): void => undefined;
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
-const AT_FILE_HIGHLIGHT_COLOR = 'var(--primary)';
+/** Both mention lanes share one colour: the user needs to know a token is a
+ *  live reference, not which kind it is, and a second colour would need a
+ *  legend this UI does not have. */
+const MENTION_HIGHLIGHT_COLOR = 'var(--primary)';
 // Max items shown in the `@` dropdown (both data sources); the result panel skin
 // is unbounded (streaming append) — this caps only the inline mention menu.
 const AT_FILE_MENTION_LIMIT = 8;
+
+const SendArrowIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor' aria-hidden='true'>
+    <path d='M12 19V5' strokeWidth='2.7' strokeLinecap='round' />
+    <path d='M6.5 10.5 12 5l5.5 5.5' strokeWidth='2.7' strokeLinecap='round' strokeLinejoin='round' />
+  </svg>
+);
+
+const DraftBoxActionIcon: React.FC<{ size?: number; color?: string; strokeWidth?: number }> = ({
+  size = 16,
+  color = 'currentColor',
+  strokeWidth = 1.3,
+}) => (
+  <svg width={size} height={size} viewBox='0 0 24 24' fill='none' aria-hidden='true'>
+    <path
+      d='M8.2 6.2h7.6l1.45 5.55v4.45A2.45 2.45 0 0 1 14.8 18.65H9.2a2.45 2.45 0 0 1-2.45-2.45v-4.45L8.2 6.2Z'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinejoin='round'
+    />
+    <path
+      d='M7 11.75h3.2l1.05 1.55h1.5l1.05-1.55H17'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    />
+    <path
+      d='M12 7.35v4.15m0 0 1.65-1.65M12 11.5l-1.65-1.65'
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    />
+  </svg>
+);
 
 const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
   if (typeof item === 'string') {
@@ -178,9 +233,17 @@ function extractBtwQuestion(value: string): string | null {
 const SendBox: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
-  onSend: (message: string) => Promise<void>;
+  onSend: (message: string) => Promise<void | false>;
   onStop?: () => Promise<void>;
   disabled?: boolean;
+  /**
+   * Disables only the send button's click affordance (visual + non-clickable)
+   * without swapping it for the stop button while loading — used to hard-block
+   * interjection on backends that can't accept a mid-turn send. Enter still
+   * reaches `onSend`; the caller is responsible for rejecting it there (so it
+   * can show its own toast/copy).
+   */
+  sendDisabled?: boolean;
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
@@ -192,6 +255,10 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
+  onAddToDraft?: () => void;
+  addToDraftDisabled?: boolean;
+  addToDraftTooltip?: React.ReactNode;
+  sendDisabledTooltip?: React.ReactNode;
   slash_commands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
@@ -199,6 +266,16 @@ const SendBox: React.FC<{
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
+  /** `@@` session references the user has picked. Authoritative; the visible
+   *  token is only a label. */
+  selectedSessions?: SessionRef[];
+  onSelectedSessionsChange?: (sessions: SessionRef[]) => void;
+  /** Master switch (spec §5.7). When off, `@@` must not trigger at all —
+   *  otherwise the user picks a target the agent cannot deliver to. */
+  crossSessionEnabled?: boolean;
+  /** Team conversations must not be senders (spec §9.2), so `@@` is unavailable
+   *  there. Both conditions gate the trigger. */
+  isTeamConversation?: boolean;
   onSelectedWorkspaceItemsChange?: (items: FileSelectionItem[]) => void;
   bottomHint?: React.ReactNode;
   /**
@@ -211,6 +288,15 @@ const SendBox: React.FC<{
   active?: boolean;
   /** Called when the textarea gains focus, so the team layer can sync tab selection. */
   onFocused?: () => void;
+  /**
+   * Floats at the send box's top-right corner with zero flow impact (rendered
+   * inside the box's own root, absolutely positioned, so it never reflows the
+   * box or any sibling above it). Anchored to the box's own top edge — unlike
+   * anchoring from an ancestor's bottom, this tracks correctly through
+   * multi-line growth. Paints inside the root's own stacking context, so it
+   * sits above both the box's surface and a preceding ThoughtDisplay bar.
+   */
+  topRightOverlay?: React.ReactNode;
 }> = ({
   onSend,
   onStop,
@@ -220,6 +306,7 @@ const SendBox: React.FC<{
   tools,
   rightTools,
   disabled,
+  sendDisabled = false,
   placeholder,
   value: input = '',
   onChange: setInput = constVoid,
@@ -228,6 +315,10 @@ const SendBox: React.FC<{
   defaultMultiLine = false,
   lockMultiLine = false,
   sendButtonPrefix,
+  onAddToDraft,
+  addToDraftDisabled = false,
+  addToDraftTooltip,
+  sendDisabledTooltip,
   slash_commands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
@@ -235,11 +326,19 @@ const SendBox: React.FC<{
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
+  selectedSessions,
+  onSelectedSessionsChange,
+  // Defaults to OFF: a call site that does not thread `sessions` through to
+  // the wire must not offer `@@`, or the user picks a target that silently
+  // never reaches the agent. Opt in explicitly.
+  crossSessionEnabled = false,
+  isTeamConversation = false,
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
   active = true,
   onFocused,
+  topRightOverlay,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -249,7 +348,7 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -276,6 +375,12 @@ const SendBox: React.FC<{
   const [workspaceMentionLoading, setWorkspaceMentionLoading] = useState(false);
   const [atFileMenuActiveIndex, setAtFileMenuActiveIndex] = useState(0);
   const [dismissedAtFileToken, setDismissedAtFileToken] = useState<string | null>(null);
+  const [atSessionMenuActiveIndex, setAtSessionMenuActiveIndex] = useState(0);
+  const [dismissedAtSessionToken, setDismissedAtSessionToken] = useState<string | null>(null);
+  /** id → name for the sessions the user picked, so reconciliation can match a
+   *  `@@name` token back to a ref. Kept here rather than as a prop: only this
+   *  component knows which names it inserted. */
+  const sessionNameByIdRef = useRef<Record<string, string>>({});
   const mentionOwnedPathsRef = useRef<Set<string>>(new Set());
   const everMentionOwnedPathsRef = useRef<Set<string>>(new Set());
   const externalOwnedPathsRef = useRef<Set<string>>(new Set());
@@ -439,6 +544,27 @@ const SendBox: React.FC<{
     return `${conversationContext.workspace}:${activeAtFileQuery.start}`;
   }, [activeAtFileQuery, conversationContext?.workspace]);
   const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
+  // `@@` lane. Gated on BOTH the master switch and "not a team conversation"
+  // (spec §5.7 rule 4): a picker the agent cannot act on is worse than none.
+  const canMentionSessions = crossSessionEnabled && !isTeamConversation;
+  const activeAtSessionQuery = useMemo(() => {
+    if (!canMentionSessions) {
+      return null;
+    }
+    return getActiveAtSessionQuery(input, caretPosition);
+  }, [canMentionSessions, caretPosition, input]);
+  const activeAtSessionTokenKey = useMemo(() => {
+    if (!activeAtSessionQuery) {
+      return null;
+    }
+    return `${activeAtSessionQuery.start}:${activeAtSessionQuery.rawQuery}`;
+  }, [activeAtSessionQuery]);
+  // Empty when the feature is unavailable: a `@@` the agent cannot act on is
+  // literal text, so painting it would claim a reference that does not exist.
+  const allAtSessionQueries = useMemo(
+    () => (canMentionSessions ? getAllAtSessionQueries(input) : []),
+    [canMentionSessions, input]
+  );
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
     () => getConversationInputHistory(messageList, conversationContext?.conversation_id),
@@ -589,7 +715,17 @@ const SendBox: React.FC<{
     }
     return filterWorkspaceMentionItems(workspaceMentionItems, deferredAtFileQuery);
   }, [deferredAtFileQuery, projectMention.active, projectMention.items, workspaceMentionItems]);
-  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen;
+  const isAtSessionMenuOpen =
+    canMentionSessions &&
+    Boolean(activeAtSessionQuery) &&
+    activeAtSessionTokenKey !== dismissedAtSessionToken &&
+    !isCommandMenuOpen;
+  const sessionMentionSearch = useSessionMentionSearch({
+    query: activeAtSessionQuery?.query ?? '',
+    conversationId: conversationContext?.conversation_id ?? '',
+    enabled: isAtSessionMenuOpen && Boolean(conversationContext?.conversation_id),
+  });
+  const isOverlayOpen = isCommandMenuOpen || btwCommand.isOpen || isAtFileMenuOpen || isAtSessionMenuOpen;
 
   const getTextareaElement = useCallback((): HTMLTextAreaElement | null => {
     const textarea = containerRef.current?.querySelector('textarea');
@@ -723,6 +859,10 @@ const SendBox: React.FC<{
     return conversationExport.handleKeyDown(event) || slashController.onKeyDown(event);
   };
 
+  const handleTextAreaKeyUp = (event: React.KeyboardEvent) => {
+    syncCaretPosition(event.currentTarget);
+  };
+
   const renderExportFileNamePanel = () => {
     return (
       <div
@@ -843,6 +983,18 @@ const SendBox: React.FC<{
     }
     setAtFileMenuActiveIndex(0);
   }, [activeAtFileTokenKey]);
+
+  useEffect(() => {
+    setAtSessionMenuActiveIndex(0);
+  }, [activeAtSessionTokenKey]);
+
+  useEffect(() => {
+    if (!sessionMentionSearch.items.length) {
+      setAtSessionMenuActiveIndex(0);
+      return;
+    }
+    setAtSessionMenuActiveIndex((previous) => Math.min(previous, sessionMentionSearch.items.length - 1));
+  }, [sessionMentionSearch.items]);
 
   useEffect(() => {
     if (!visibleAtFileMenuItems.length) {
@@ -1001,8 +1153,15 @@ const SendBox: React.FC<{
       if (!nextInsertion) {
         return;
       }
-      const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
-      const nextCaret = activeAtFileQuery.start + nextInsertion.length;
+      // Trailing space when the mention ends the input: without it the next `@`
+      // is not recognised as a new token, so a second file could not be
+      // mentioned without the user typing the separator by hand.
+      const { value: nextValue, caret: nextCaret } = applyMentionInsertion(
+        input,
+        activeAtFileQuery.start,
+        activeAtFileQuery.end,
+        nextInsertion
+      );
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
       const path = getSelectedItemKey(item);
 
@@ -1045,6 +1204,110 @@ const SendBox: React.FC<{
       selectedWorkspaceItems,
       setInput,
     ]
+  );
+
+  const insertSelectedAtSession = useCallback(
+    (item: SessionMentionTarget) => {
+      if (!activeAtSessionQuery) {
+        return;
+      }
+      const nextInsertion = buildAtSessionInsertion(item.name);
+      // Trailing space when the mention ends the input — same rule as the `@`
+      // lane, and the reason a second `@@` can be typed at all.
+      const { value: nextValue, caret: nextCaret } = applyMentionInsertion(
+        input,
+        activeAtSessionQuery.start,
+        activeAtSessionQuery.end,
+        nextInsertion
+      );
+
+      // Still dismissed explicitly: the trailing space closes the menu on its
+      // own by putting the caret past a boundary, but the user can move the
+      // caret back into the token, and mentions spliced mid-text get no space.
+      setDismissedAtSessionToken(`${activeAtSessionQuery.start}:${nextInsertion.slice(2)}`);
+      setInput(nextValue);
+      // Remember the name so reconciliation can map the token back to this id.
+      sessionNameByIdRef.current[item.id] = item.name;
+      if (onSelectedSessionsChange) {
+        const already = (selectedSessions ?? []).some((ref) => ref.id === item.id);
+        if (!already) {
+          onSelectedSessionsChange([...(selectedSessions ?? []), { id: item.id }]);
+        }
+      }
+
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+        setCaretPosition(nextCaret);
+      });
+    },
+    [activeAtSessionQuery, getTextareaElement, input, onSelectedSessionsChange, selectedSessions, setInput]
+  );
+
+  // Deleting a `@@` token must retract the reference. Same shape as the file
+  // reconciliation above: the token is a label, the ref list is authoritative.
+  useEffect(() => {
+    if (!selectedSessions?.length || !onSelectedSessionsChange) {
+      return;
+    }
+    const next = reconcileSessionRefs(input, selectedSessions, sessionNameByIdRef.current);
+    if (next.length !== selectedSessions.length) {
+      onSelectedSessionsChange(next);
+    }
+  }, [input, onSelectedSessionsChange, selectedSessions]);
+
+  /**
+   * Mention a conversation the user clicked on an earlier message.
+   *
+   * The caller has already resolved and validated the target, so this both
+   * inserts the token and attaches the reference — a token alone would look
+   * mentioned while carrying nothing, which is the failure this feature keeps
+   * producing.
+   */
+  const mentionSessionFromMessage = useCallback(
+    (target: { id: string; name: string }) => {
+      if (!canMentionSessions || !onSelectedSessionsChange) {
+        return;
+      }
+      const { value: nextValue, caret: nextCaret } = insertMentionAtCaret(
+        input,
+        caretPosition,
+        buildAtSessionInsertion(target.name),
+        isAtSessionBoundaryChar
+      );
+      sessionNameByIdRef.current[target.id] = target.name;
+      setInput(nextValue);
+      if (!(selectedSessions ?? []).some((ref) => ref.id === target.id)) {
+        onSelectedSessionsChange([...(selectedSessions ?? []), { id: target.id }]);
+      }
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+        setCaretPosition(nextCaret);
+      });
+    },
+    [canMentionSessions, caretPosition, getTextareaElement, input, onSelectedSessionsChange, selectedSessions, setInput]
+  );
+
+  useAddEventListener(
+    'sendbox.mention.session',
+    (target, targetConversationId) => {
+      // Several conversation views can be mounted at once, so only the send box
+      // the click belongs to may react — same guard the file lanes carry.
+      if (targetConversationId !== undefined && targetConversationId !== conversationContext?.conversation_id) {
+        return;
+      }
+      mentionSessionFromMessage(target);
+    },
+    [conversationContext?.conversation_id, mentionSessionFromMessage]
   );
 
   // 使用共享的输入法合成处理
@@ -1201,6 +1464,46 @@ const SendBox: React.FC<{
     [applyHistoryInput, exitHistoryNavigation, historyNavigationIndex, inputHistory, latestInputRef]
   );
 
+  const handleAtSessionMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent): boolean => {
+      if (!isAtSessionMenuOpen || !activeAtSessionTokenKey) {
+        return false;
+      }
+      // Key→action contract lives in the pure `resolveAtSessionMenuKey`.
+      const items = sessionMentionSearch.items;
+      const action = resolveAtSessionMenuKey(event.key, items.length > 0);
+      if (!action) {
+        return false;
+      }
+      event.preventDefault();
+      if (action === 'dismiss') {
+        setDismissedAtSessionToken(activeAtSessionTokenKey);
+        return true;
+      }
+      if (action === 'down') {
+        setAtSessionMenuActiveIndex((previous) => (previous + 1) % items.length);
+        return true;
+      }
+      if (action === 'up') {
+        setAtSessionMenuActiveIndex((previous) => (previous - 1 + items.length) % items.length);
+        return true;
+      }
+      const selectedItem = items[atSessionMenuActiveIndex];
+      if (!selectedItem) {
+        return false;
+      }
+      insertSelectedAtSession(selectedItem);
+      return true;
+    },
+    [
+      activeAtSessionTokenKey,
+      atSessionMenuActiveIndex,
+      insertSelectedAtSession,
+      isAtSessionMenuOpen,
+      sessionMentionSearch.items,
+    ]
+  );
+
   const handleAtFileMenuKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (!isAtFileMenuOpen || !activeAtFileTokenKey) {
@@ -1317,6 +1620,11 @@ const SendBox: React.FC<{
     setReplyQuote(null);
 
     onSend(finalMessage)
+      .then((result) => {
+        if (result === false) {
+          setInput(finalMessage);
+        }
+      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);
@@ -1358,23 +1666,100 @@ const SendBox: React.FC<{
 
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
-  // Calculate button disabled state
-  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
+  const addToDraftLabel = t('conversation.commandQueue.addToQueue', { defaultValue: 'Save to Draft box' });
+  const sendNowLabel = t('conversation.commandQueue.sendNow', { defaultValue: 'Send now' });
+  const enterShortcutLabel = t('conversation.commandQueue.enterShortcut', { defaultValue: 'Enter' });
+  const addToDraftShortcutLabel = t('conversation.commandQueue.addToQueueShortcut', {
+    defaultValue: isMacOS() ? '⌘ + Enter' : 'Ctrl + Enter',
+  });
+  const sendActionTooltip =
+    sendDisabled && sendDisabledTooltip ? sendDisabledTooltip : `${sendNowLabel} · ${enterShortcutLabel}`;
+  const draftActionBaseTooltip = addToDraftTooltip ?? addToDraftLabel;
 
-  // Reusable send button component
-  const sendButton = (
-    <Button
-      shape='circle'
-      type='primary'
-      disabled={isButtonDisabled}
-      className='send-button-custom'
-      icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-      onClick={() => {
-        sendMessageHandler();
-      }}
-      data-testid='sendbox-send-btn'
-    />
+  const handlePrimaryAction = () => {
+    sendMessageHandler();
+  };
+
+  const handleAddToDraftClick = () => {
+    if (disabled || addToDraftDisabled || isUploading || !hasDraftToSend || !onAddToDraft) return;
+    onAddToDraft();
+  };
+
+  const handleAddToDraftShortcut = (event: React.KeyboardEvent) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.altKey ||
+      event.repeat ||
+      !isPlatformPrimaryModifier(event.nativeEvent)
+    ) {
+      return false;
+    }
+
+    event.preventDefault();
+    handleAddToDraftClick();
+    return true;
+  };
+
+  const isSendActionDisabled = disabled || sendDisabled || isUploading || !hasDraftToSend;
+  const isDraftActionDisabled = disabled || addToDraftDisabled || isUploading || !hasDraftToSend || !onAddToDraft;
+  const hasDraftAction = Boolean(onAddToDraft);
+  const sendButtonShapeStyle: React.CSSProperties = {
+    width: 32,
+    minWidth: 32,
+    height: 32,
+    minHeight: 32,
+    padding: 0,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    clipPath: 'circle(50% at 50% 50%)',
+    boxShadow: 'none',
+  };
+
+  const primaryActionButton = (
+    <Tooltip content={sendActionTooltip} position='top'>
+      <span className='sendbox-send-tooltip-anchor' style={sendButtonShapeStyle}>
+        <Button
+          shape='circle'
+          type='text'
+          disabled={isSendActionDisabled}
+          className={`send-button-custom ${
+            isSendActionDisabled ? 'send-button-custom--disabled' : 'send-button-custom--enabled'
+          }`}
+          style={sendButtonShapeStyle}
+          icon={<SendArrowIcon size={16} />}
+          onClick={handlePrimaryAction}
+          data-testid='sendbox-send-btn'
+          aria-label={typeof sendActionTooltip === 'string' ? sendActionTooltip : sendNowLabel}
+        />
+      </span>
+    </Tooltip>
   );
+
+  const draftActionTooltip =
+    typeof draftActionBaseTooltip === 'string'
+      ? `${draftActionBaseTooltip} · ${addToDraftShortcutLabel}`
+      : draftActionBaseTooltip;
+  const draftActionTitle = typeof draftActionTooltip === 'string' ? draftActionTooltip : addToDraftLabel;
+  const draftActionIcon = <DraftBoxActionIcon size={20} strokeWidth={1.25} />;
+  const draftActionButton = hasDraftAction ? (
+    <Tooltip content={draftActionTooltip} position='top'>
+      <span className='sendbox-draft-tooltip-anchor'>
+        <Button
+          shape='circle'
+          type='secondary'
+          disabled={isDraftActionDisabled}
+          className={`sendbox-draft-tool-action ${
+            isDraftActionDisabled ? 'sendbox-draft-tool-action--disabled' : 'sendbox-draft-tool-action--enabled'
+          }`}
+          icon={draftActionIcon}
+          onClick={handleAddToDraftClick}
+          data-testid='sendbox-add-to-draft-btn'
+          aria-label={draftActionTitle}
+        />
+      </span>
+    </Tooltip>
+  ) : null;
 
   const stopButton = (
     <Button
@@ -1393,17 +1778,78 @@ const SendBox: React.FC<{
       if (compactActions || !hasDraftToSend || disabled || isUploading) {
         return stopButton;
       }
-      return sendButton;
+      return primaryActionButton;
     }
 
     if (isLoading || loading) {
       return stopButton;
     }
 
-    return sendButton;
+    return primaryActionButton;
   };
 
-  const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
+  /**
+   * Paint a mention only when a reference is really attached to it.
+   *
+   * The overlay used to colour every match of the `@…` text pattern, which made
+   * a hand-typed `@config.json` indistinguishable from one picked out of the
+   * dropdown — and only the pick attaches anything. Select-all + cut + paste is
+   * the sharpest version: the reconciliation retracts the references while the
+   * input is momentarily empty, the pasted text looks identical, and the message
+   * goes out with no `[[AION_FILES]]` / `[[AION_SESSIONS]]` block at all. The
+   * references cannot be recovered from the pasted text (a conversation name is
+   * not a unique address), so making the loss VISIBLE is the fix.
+   */
+  const attachedFileKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const item of selectedWorkspaceItems ?? []) {
+      for (const key of getSelectedItemMatchKeys(item)) {
+        keys.add(key);
+      }
+    }
+    return keys;
+  }, [selectedWorkspaceItems]);
+  const attachedSessionNames = useMemo(
+    () =>
+      (selectedSessions ?? [])
+        .map((ref) => sessionNameByIdRef.current[ref.id])
+        .filter((name): name is string => Boolean(name)),
+    // `sessionNameByIdRef` is a ref, but it is written in the same commit that
+    // grows `selectedSessions`, so that dependency covers it.
+    [selectedSessions]
+  );
+  const highlightRanges = useMemo(
+    () =>
+      buildAttachedMentionRanges({
+        fileTokens: allAtFileQueries,
+        attachedFileKeys,
+        sessionTokens: allAtSessionQueries,
+        attachedSessionNames,
+      }),
+    [allAtFileQueries, allAtSessionQueries, attachedFileKeys, attachedSessionNames]
+  );
+
+  const shouldUseHighlightOverlay = !isComposingState && highlightRanges.length > 0;
+
+  /**
+   * The placeholder advertises `@@` only where it works.
+   *
+   * The switch's own description promises that turning it off disables the `@@`
+   * mention, and the disabled banner exists to explain why `@@` does nothing — a
+   * placeholder teaching a syntax the conversation has no use for would
+   * contradict both. Team conversations are excluded for the same reason.
+   *
+   * The two variants are separate strings rather than one string plus a clause
+   * because the existing wording is already 94 characters in fr-FR before the
+   * "send a message to …" prefix is prepended; appending a fourth clause would
+   * truncate. The `@@` variant is phrased tighter instead, so it is no longer —
+   * in most locales shorter — than the one it replaces.
+   */
+  const sendboxHint = canMentionSessions
+    ? t('conversation.sendbox.hintWithSessions', {
+        defaultValue: 'Type / for commands, @ for files, @@ for conversations, ↑/↓ for history',
+      })
+    : t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' });
 
   const mobilePlusButton = isMobileCompact ? (
     <Button
@@ -1433,7 +1879,9 @@ const SendBox: React.FC<{
     const segments: React.ReactNode[] = [];
     let cursor = 0;
 
-    allAtFileQueries.forEach((match, index) => {
+    // Ranges arrive sorted by `start` and never overlap, so slicing between them
+    // reproduces the input exactly.
+    highlightRanges.forEach((match, index) => {
       if (cursor < match.start) {
         segments.push(
           <span className='sendbox-highlight-text' key={`text-${cursor}`}>
@@ -1446,7 +1894,7 @@ const SendBox: React.FC<{
         <span
           className='sendbox-highlight-mention'
           key={`mention-${match.start}-${index}`}
-          style={{ color: AT_FILE_HIGHLIGHT_COLOR }}
+          style={{ color: MENTION_HIGHLIGHT_COLOR }}
         >
           {input.slice(match.start, match.end)}
         </span>
@@ -1463,10 +1911,21 @@ const SendBox: React.FC<{
     }
 
     return segments;
-  }, [allAtFileQueries, input]);
+  }, [highlightRanges, input]);
 
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`.trim()}>
+      {topRightOverlay && (
+        // Zero-height overlay: absolutely positioned inside the box's own
+        // root, so it never reflows the box or a preceding ThoughtDisplay
+        // bar. Anchored to the box's own top edge (not an ancestor's bottom),
+        // so it tracks correctly through multi-line growth. It paints inside
+        // this root's own stacking context (the root already carries the
+        // caller's z-index, e.g. z-10, which is how the box's surface covers
+        // ThoughtDisplay's tucked band) — z-3 here only needs to beat the
+        // panel's own untouched content, not re-fight that outer stacking.
+        <div className='absolute end-12px top--28px z-3 pointer-events-auto'>{topRightOverlay}</div>
+      )}
       <div
         ref={containerRef}
         className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
@@ -1495,8 +1954,30 @@ const SendBox: React.FC<{
           parentTaskRunning={Boolean(loading || isLoading)}
           question={btwCommand.question}
         />
+        {isAtSessionMenuOpen && (
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
+            <AtSessionMenu
+              activeIndex={atSessionMenuActiveIndex}
+              emptyText={
+                activeAtSessionQuery?.query
+                  ? t('messages.atSession.empty', { defaultValue: 'No conversations found' })
+                  : t('messages.atSession.hint', { defaultValue: 'Type to search your conversations' })
+              }
+              items={sessionMentionSearch.items}
+              label={t('messages.atSession.menuLabel', { defaultValue: 'Conversation mentions' })}
+              loading={sessionMentionSearch.loading}
+              loadingText={t('messages.atFile.loading', { defaultValue: 'Loading...' })}
+              onHoverItem={setAtSessionMenuActiveIndex}
+              onSelectItem={insertSelectedAtSession}
+              // Cursor paging: one page is 20, so without this the picker could
+              // only ever reach the 20 highest-ranked conversations.
+              onReachEnd={sessionMentionSearch.loadMore}
+              formatRelativeTime={(modifiedAt) => formatRelativeTime(modifiedAt, i18n.language)}
+            />
+          </div>
+        )}
         {isAtFileMenuOpen && (
-          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             <AtFileMenu
               activeIndex={atFileMenuActiveIndex}
               emptyText={
@@ -1524,7 +2005,7 @@ const SendBox: React.FC<{
           </div>
         )}
         {isCommandMenuOpen && (
-          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+          <div className='absolute start-12px end-12px bottom-[calc(100%+8px)] z-70'>
             {conversationExport.step === 'menu' ? (
               <SlashCommandMenu
                 title={t('messages.export.menuTitle')}
@@ -1641,7 +2122,10 @@ const SendBox: React.FC<{
                     : 'flex-shrink-0 sendbox-tools'
               }
             >
-              {renderedTools}
+              <span className='sendbox-left-tool-group'>
+                {renderedTools}
+                {draftActionButton}
+              </span>
             </div>
           )}
           <div
@@ -1671,15 +2155,12 @@ const SendBox: React.FC<{
               value={input}
               placeholder={
                 isMobileCompact
-                  ? (placeholder ??
-                    (bottomHint as string | undefined) ??
-                    t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+                  ? (placeholder ?? (bottomHint as string | undefined) ?? sendboxHint)
                   : placeholder
-                    ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
-                    : ((bottomHint as string | undefined) ??
-                      t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+                    ? `${placeholder}  ${bottomHint ?? sendboxHint}`
+                    : ((bottomHint as string | undefined) ?? sendboxHint)
               }
-              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}ps-0 pe-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
                 width: '100%',
@@ -1707,9 +2188,7 @@ const SendBox: React.FC<{
               }}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
-              onKeyUp={(event) => {
-                syncCaretPosition(event.currentTarget);
-              }}
+              onKeyUp={handleTextAreaKeyUp}
               onSelect={(event) => {
                 syncCaretPosition(event.currentTarget);
               }}
@@ -1718,8 +2197,14 @@ const SendBox: React.FC<{
               }}
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+              onKeyDown={createKeyDownHandler(handlePrimaryAction, (event) => {
+                return (
+                  handleAddToDraftShortcut(event) ||
+                  handleAtSessionMenuKeyDown(event) ||
+                  handleAtFileMenuKeyDown(event) ||
+                  handleOverlayKeyDown(event) ||
+                  handleHistoryKeyDown(event)
+                );
               })}
             ></Input.TextArea>
           </div>
@@ -1742,7 +2227,10 @@ const SendBox: React.FC<{
                     : 'sendbox-tools'
               }
             >
-              {renderedTools}
+              <span className='sendbox-left-tool-group'>
+                {renderedTools}
+                {draftActionButton}
+              </span>
             </div>
             <div className='sendbox-actions flex items-center gap-1'>
               {renderedRightTools}

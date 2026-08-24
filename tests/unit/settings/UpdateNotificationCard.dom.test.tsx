@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
 }));
 
 vi.mock('@/renderer/components/Markdown', () => ({
@@ -157,7 +157,8 @@ describe('UpdateNotificationCard', () => {
 
     const card = await screen.findByTestId('update-notification-card');
     expect(card).toHaveClass('fixed');
-    expect(card).toHaveClass('right-24px');
+    // Inline-end anchoring: bottom-right in LTR, bottom-left under RTL (fa-IR).
+    expect(card).toHaveClass('end-24px');
     expect(card).toHaveClass('bottom-24px');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
@@ -306,8 +307,9 @@ describe('UpdateNotificationCard', () => {
     const progressBar = await screen.findByRole('progressbar');
     expect(progressBar).toHaveAttribute('aria-valuenow', '42');
     expect(screen.getByText('42%')).toBeInTheDocument();
-    expect(screen.getByText('1.0 MB / 4.0 MB')).toBeInTheDocument();
-    expect(screen.getByText('512.0 KB/s')).toBeInTheDocument();
+    // Trailing zeros are no longer forced: formatByteSize uses maximumFractionDigits.
+    expect(screen.getByText('1 MB / 4 MB')).toBeInTheDocument();
+    expect(screen.getByText('512 KB/s')).toBeInTheDocument();
 
     await act(async () => {
       mocks.updateOpenHandler?.({ source: 'menu' });

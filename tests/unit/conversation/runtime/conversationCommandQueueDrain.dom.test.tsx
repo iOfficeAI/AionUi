@@ -185,6 +185,11 @@ describe('useConversationCommandQueue drain', () => {
     });
 
     act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
+
+    act(() => {
       result.current.enqueue({ input: 'queued follow-up', files: [] });
     });
     await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -210,6 +215,7 @@ describe('useConversationCommandQueue drain', () => {
           },
         ],
         isPaused: false,
+        mode: 'auto',
         [legacyHandoffKey]: true,
       })
     );
@@ -222,7 +228,37 @@ describe('useConversationCommandQueue drain', () => {
 
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({ input: 'legacy persisted follow-up' }));
-    await waitFor(() => expect(sessionStorage.getItem(storageKey('conv-legacy'))).toBeNull());
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem(storageKey('conv-legacy')) ?? '{}')).toMatchObject({
+        items: [],
+        mode: 'auto',
+      })
+    );
+  });
+
+  it('continues auto-draining when a send finishes before a busy state is observed', async () => {
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    sessionStorage.setItem(
+      storageKey('conv-fast-finish'),
+      JSON.stringify({
+        items: [
+          { id: 'queued-fast-1', input: 'first fast command', files: [], created_at: 1 },
+          { id: 'queued-fast-2', input: 'second fast command', files: [], created_at: 2 },
+        ],
+        isPaused: false,
+        mode: 'auto',
+      })
+    );
+
+    renderQueue({
+      conversation_id: 'conv-fast-finish',
+      runtimeGate: idleGate,
+      onExecute,
+    });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
+    expect(onExecute).toHaveBeenNthCalledWith(1, expect.objectContaining({ input: 'first fast command' }));
+    expect(onExecute).toHaveBeenNthCalledWith(2, expect.objectContaining({ input: 'second fast command' }));
   });
 
   it('continues draining queued commands after the active conversation hook unmounts', async () => {
@@ -232,6 +268,11 @@ describe('useConversationCommandQueue drain', () => {
       runtimeGate: processingGate,
       onExecute,
     });
+
+    act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
 
     act(() => {
       result.current.enqueue({ input: 'queued after switch', files: [] });
@@ -256,11 +297,11 @@ describe('useConversationCommandQueue drain', () => {
       onExecute,
     });
 
+    expect(result.current.mode).toBe('manual');
+
     act(() => {
-      result.current.toggleMode();
       result.current.enqueue({ input: 'send only when requested', files: [] });
     });
-    await waitFor(() => expect(result.current.mode).toBe('manual'));
     await waitFor(() => expect(result.current.items).toHaveLength(1));
 
     unmount();
@@ -311,6 +352,11 @@ describe('useConversationCommandQueue drain', () => {
     });
 
     act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
+
+    act(() => {
       result.current.enqueue({ input: 'first queued command', files: [] });
       result.current.enqueue({ input: 'second queued command', files: [] });
     });
@@ -322,7 +368,12 @@ describe('useConversationCommandQueue drain', () => {
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
     expect(onExecute).toHaveBeenNthCalledWith(1, expect.objectContaining({ input: 'first queued command' }));
     expect(onExecute).toHaveBeenNthCalledWith(2, expect.objectContaining({ input: 'second queued command' }));
-    await waitFor(() => expect(sessionStorage.getItem(storageKey('conv-background-many'))).toBeNull());
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem(storageKey('conv-background-many')) ?? '{}')).toMatchObject({
+        items: [],
+        mode: 'auto',
+      })
+    );
   });
 
   it('pauses and restores the background command when execution fails', async () => {
@@ -332,6 +383,11 @@ describe('useConversationCommandQueue drain', () => {
       runtimeGate: processingGate,
       onExecute,
     });
+
+    act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
 
     act(() => {
       result.current.enqueue({ input: 'retry me later', files: [] });
@@ -358,6 +414,11 @@ describe('useConversationCommandQueue drain', () => {
     });
 
     act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
+
+    act(() => {
       result.current.enqueue({ input: 'queued while busy', files: [] });
     });
 
@@ -375,12 +436,12 @@ describe('useConversationCommandQueue drain', () => {
   });
 
   it('retries after release when the blocked gate was observed before the busy catch', async () => {
-    let rerenderQueue: ReturnType<typeof renderQueue>['rerender'] = () => undefined;
+    const rerenderQueueRef: { current: ReturnType<typeof renderQueue>['rerender'] } = { current: () => undefined };
     let attempts = 0;
     const onExecute = vi.fn(async () => {
       attempts += 1;
       if (attempts === 1) {
-        rerenderQueue({ gate: processingGate, busy: true });
+        rerenderQueueRef.current({ gate: processingGate, busy: true });
         await new Promise((resolve) => setTimeout(resolve, 0));
         throw busyError();
       }
@@ -390,7 +451,12 @@ describe('useConversationCommandQueue drain', () => {
       runtimeGate: idleGate,
       onExecute,
     });
-    rerenderQueue = rerender;
+    rerenderQueueRef.current = rerender;
+
+    act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
 
     act(() => {
       result.current.enqueue({ input: 'retry after already observed blocked gate', files: [] });
@@ -422,6 +488,11 @@ describe('useConversationCommandQueue drain', () => {
     );
 
     act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
+
+    act(() => {
       result.current.enqueue({ input: 'send once', files: [] });
     });
     await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -443,6 +514,11 @@ describe('useConversationCommandQueue drain', () => {
       runtimeGate: idleGate,
       onExecute,
     });
+
+    act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
 
     act(() => {
       result.current.enqueue({ input: 'queued while runtime closes', files: [] });
@@ -470,6 +546,11 @@ describe('useConversationCommandQueue drain', () => {
     });
 
     act(() => {
+      result.current.toggleMode();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('auto'));
+
+    act(() => {
       result.current.enqueue({ input: 'retry after turn completion', files: [] });
     });
     await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -490,6 +571,11 @@ describe('useConversationCommandQueue drain', () => {
     emitTurnCompleted('conv-background-busy');
 
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(sessionStorage.getItem(storageKey('conv-background-busy'))).toBeNull());
+    await waitFor(() =>
+      expect(JSON.parse(sessionStorage.getItem(storageKey('conv-background-busy')) ?? '{}')).toMatchObject({
+        items: [],
+        mode: 'auto',
+      })
+    );
   });
 });

@@ -1,6 +1,8 @@
 {
   "fileChanges": "文件变更",
   "fileChangesCount": "{{count}} 个文件变更",
+  "fileChangesCount_one": "{{count}} 个文件变更",
+  "fileChangesCount_other": "{{count}} 个文件变更",
   "conversationInProgress": "当前正在进行对话中...",
   "confirm": "确认",
   "canceledExecution": "已取消执行",
@@ -22,9 +24,14 @@
     "searchAria": "搜索对话内容"
   },
   "availableCommands": "{{count}} 个可用命令",
+  "availableCommands_one": "{{count}} 个可用命令",
+  "availableCommands_other": "{{count}} 个可用命令",
   "atFile.hint": "输入以搜索文件",
   "atFile.menuLabel": "文件提及",
   "atFile.loading": "加载中...",
+  "atSession.hint": "输入以搜索会话",
+  "atSession.empty": "未找到会话",
+  "atSession.menuLabel": "会话提及",
   "slash.title": "命令",
   "slash.hint": "输入 / 打开命令菜单",
   "slash.empty": "未找到命令",
@@ -87,5 +94,8 @@
   "askDeclined": "已跳过",
   "askOther": "其它",
   "askOtherPlaceholder": "输入你的回答",
-  "requestDetails": "请求内容："
+  "requestDetails": "请求内容：",
+  "delivery": {
+    "pending": "未读"
+  }
 }

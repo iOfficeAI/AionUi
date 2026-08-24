@@ -38,7 +38,7 @@ vi.mock('@/common/config/configService', () => {
   };
 });
 
-import { useFontSizes } from '@renderer/hooks/ui/useFontSizes';
+import { useFontSizes } from '@renderer/hooks/ui/font/useFontSizes';
 import { configService } from '@/common/config/configService';
 
 describe('useFontSizes', () => {

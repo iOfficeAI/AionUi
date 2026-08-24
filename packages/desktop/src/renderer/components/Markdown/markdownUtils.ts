@@ -238,3 +238,52 @@ export const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProper
   }
   return {};
 };
+
+export type DiagramSize = { width: number; height: number };
+
+/**
+ * Cap an inline SVG diagram at min(container, natural width): narrow diagrams
+ * (e.g. top-down layouts) render 1:1 at their natural size instead of being
+ * stretched across the message column; wide diagrams still fit the column.
+ * Shared by MermaidBlock and WavedromBlock.
+ */
+export const withResponsiveSvg = (svg: string): string => {
+  const intrinsicWidth = getSvgIntrinsicSize(svg)?.width;
+  const maxWidth = intrinsicWidth ? `min(100%, ${intrinsicWidth}px)` : '100%';
+  return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    if (/style\s*=/.test(attrs)) {
+      return `<svg${attrs.replace(
+        /style\s*=\s*(["'])(.*?)\1/i,
+        (_styleMatch, quote: string, styleValue: string) =>
+          ` style=${quote}${styleValue};max-width: ${maxWidth}; height: auto; display: block;${quote}`
+      )}>`;
+    }
+    return `<svg${attrs} style="max-width: ${maxWidth}; height: auto; display: block;">`;
+  });
+};
+
+/**
+ * Extract a diagram SVG's natural size from its markup so callers can size it by
+ * its own aspect ratio instead of by the container. Mermaid always emits a
+ * viewBox; numeric width/height attributes are a fallback for hand-written SVGs.
+ */
+export const getSvgIntrinsicSize = (svg: string): DiagramSize | null => {
+  const svgTag = /<svg\b[^>]*>/i.exec(svg)?.[0];
+  if (!svgTag) return null;
+
+  const viewBox = /viewBox\s*=\s*["']\s*[\d.eE+-]+\s+[\d.eE+-]+\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s*["']/i.exec(svgTag);
+  if (viewBox) {
+    const width = parseFloat(viewBox[1]);
+    const height = parseFloat(viewBox[2]);
+    if (width > 0 && height > 0) return { width, height };
+  }
+
+  const widthAttr = /width\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
+  const heightAttr = /height\s*=\s*["']([\d.]+)\s*(?:px)?["']/i.exec(svgTag);
+  if (widthAttr && heightAttr) {
+    const width = parseFloat(widthAttr[1]);
+    const height = parseFloat(heightAttr[1]);
+    if (width > 0 && height > 0) return { width, height };
+  }
+  return null;
+};

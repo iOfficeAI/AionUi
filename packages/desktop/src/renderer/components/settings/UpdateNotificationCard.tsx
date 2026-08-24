@@ -22,7 +22,7 @@ const renderNotificationLayer = (node: React.ReactElement) => {
 };
 
 const UpdateNotificationCard: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { state, versionLabel, actions } = useUpdateNotificationController();
   const { openFeedback } = useFeedback();
   const [releaseLogVisible, setReleaseLogVisible] = React.useState(false);
@@ -53,7 +53,7 @@ const UpdateNotificationCard: React.FC = () => {
         data-mini-status={state.status}
         data-ring-stroke-width='8'
         aria-label={t('update.restoreUpdateNotification')}
-        className='fixed right-24px bottom-24px z-1000 w-52px h-52px rd-full bg-1 shadow-lg flex items-center justify-center cursor-pointer'
+        className='fixed end-24px bottom-24px z-1000 w-52px h-52px rd-full bg-1 shadow-lg flex items-center justify-center cursor-pointer'
         onClick={actions.restore}
       >
         <Progress
@@ -85,7 +85,8 @@ const UpdateNotificationCard: React.FC = () => {
         <div className='flex justify-between gap-12px text-12px text-t-tertiary'>
           <span>{percent}%</span>
           <span>
-            {formatUpdateSize(state.progress.transferred)} / {formatUpdateSize(state.progress.total)}
+            {formatUpdateSize(state.progress.transferred, i18n.language)} /{' '}
+            {formatUpdateSize(state.progress.total, i18n.language)}
           </span>
           <span className='text-[rgb(var(--primary-6))] font-500'>{state.progress.speed}</span>
         </div>
@@ -258,7 +259,7 @@ const UpdateNotificationCard: React.FC = () => {
     <>
       <section
         data-testid='update-notification-card'
-        className='fixed right-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+        className='fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
       >
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download

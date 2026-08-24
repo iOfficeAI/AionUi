@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -130,26 +130,72 @@ const SendBoxHarness = ({
   onFocused,
   disabled,
   initialValue = '',
+  onSend = vi.fn().mockResolvedValue(undefined),
+  onAddToDraft,
 }: {
   active?: boolean;
   onFocused?: () => void;
   disabled?: boolean;
   initialValue?: string;
+  onSend?: (message: string) => Promise<void | false>;
+  onAddToDraft?: () => void;
 }) => {
   const [value, setValue] = useState(initialValue);
   return (
     <SendBox
       value={value}
       onChange={setValue}
-      onSend={vi.fn().mockResolvedValue(undefined)}
+      onSend={onSend}
       active={active}
       onFocused={onFocused}
       disabled={disabled}
+      onAddToDraft={onAddToDraft}
     />
   );
 };
 
 describe('SendBox active-controlled focus', () => {
+  it('keeps Enter mapped to Send while Draft box has its own icon action', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    const onAddToDraft = vi.fn();
+
+    render(<SendBoxHarness initialValue='queued draft' onSend={onSend} onAddToDraft={onAddToDraft} />);
+    fireEvent.click(screen.getByTestId('sendbox-add-to-draft-btn'));
+
+    expect(onAddToDraft).toHaveBeenCalledTimes(1);
+    expect(onSend).not.toHaveBeenCalled();
+
+    const textarea = screen.getByTestId('sendbox-input');
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
+
+    expect(onSend).toHaveBeenCalledWith('queued draft');
+  });
+
+  it('restores the input when the parent blocks sending', async () => {
+    const onSend = vi.fn().mockResolvedValue(false);
+
+    render(<SendBoxHarness initialValue='blocked message' onSend={onSend} />);
+
+    const textarea = screen.getByTestId('sendbox-input') as HTMLTextAreaElement;
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' });
+
+    expect(onSend).toHaveBeenCalledWith('blocked message');
+    await waitFor(() => expect(textarea.value).toBe('blocked message'));
+  });
+
+  it('uses the platform primary Enter shortcut for Draft box without sending', () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    const onAddToDraft = vi.fn();
+
+    render(<SendBoxHarness initialValue='save this for later' onSend={onSend} onAddToDraft={onAddToDraft} />);
+
+    const textarea = screen.getByTestId('sendbox-input');
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter', ctrlKey: true });
+
+    expect(onAddToDraft).toHaveBeenCalledTimes(1);
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
   it('focuses the textarea on mount when active is true (desktop)', async () => {
     layoutState.isMobile = false;
     render(<SendBoxHarness active={true} />);

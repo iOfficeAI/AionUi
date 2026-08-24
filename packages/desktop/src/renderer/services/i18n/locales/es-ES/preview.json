@@ -3,6 +3,8 @@
   "downloadFile": "Descargar archivo",
   "closePreview": "Cerrar vista previa",
   "collapsePanel": "Contraer panel",
+  "maximizePanel": "Maximizar",
+  "restorePanel": "Restaurar",
   "source": "Fuente",
   "code": "Código",
   "preview": "Vista previa",
@@ -24,6 +26,8 @@
   "closeTabMessage": "El contenido actual no se ha guardado. ¿Deseas guardarlo antes de cerrar?",
   "closeTabsTitle": "Cerrar pestañas",
   "closeTabsMessage": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
+  "closeTabsMessage_one": "{{count}} pestaña tiene cambios sin guardar. ¿Guardar antes de cerrar?",
+  "closeTabsMessage_other": "{{count}} pestañas tienen cambios sin guardar. ¿Guardar antes de cerrar?",
   "saveAndClose": "Guardar y cerrar",
   "closeWithoutSave": "No guardar",
   "pptTitle": "Presentación de PowerPoint",
@@ -35,10 +39,16 @@
   "openInSystemApp": "Abrir en aplicación del sistema",
   "openInSystemSuccess": "Abierto en la aplicación predeterminada del sistema",
   "openInSystemFailed": "Error al abrir con la aplicación del sistema",
+  "close": "Cerrar",
   "closeLeft": "Cerrar izquierda",
   "closeRight": "Cerrar derecha",
   "closeOthers": "Cerrar otros",
   "closeAll": "Cerrar todo",
+  "closeUnmodified": "Cerrar sin modificar",
+  "copyPath": "Copiar ruta",
+  "copyRelativePath": "Copiar ruta relativa",
+  "openLocation": "Mostrar en carpeta",
+  "openLocationFailed": "Error al abrir la carpeta contenedora",
   "readOnlyLabel": "Vista previa de solo lectura",
   "pathLabel": "Ruta",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "Sin pestañas abiertas",
   "openInPanelTooltip": "Ver en panel de vista previa",
   "mermaidTitle": "Diagrama Mermaid",
+  "wavedromTitle": "Diagrama WaveDrom",
   "oversized": {
     "title": "El archivo es demasiado grande para previsualizarlo",
     "detail": "El tamaño del archivo {{size}} supera el límite de {{threshold}}. Ábrelo en un editor del sistema.",
@@ -161,5 +172,9 @@
     "confirmMessage": "Esta pestaña tiene cambios sin guardar. Recargar los reemplaza por el contenido del disco.",
     "discardAndRefresh": "Descartar cambios y actualizar",
     "officeNotWired": "Actualizar documentos de Office todavía no está disponible: cierra y vuelve a abrir el archivo para ver los cambios."
-  }
+  },
+  "zoomIn": "Acercar",
+  "zoomOut": "Alejar",
+  "zoomReset": "Restablecer vista",
+  "diagramZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar"
 }

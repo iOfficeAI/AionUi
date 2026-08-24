@@ -24,7 +24,7 @@ const FALLBACK_COLOR = 'bg-gray-400';
 const AgentStatusBadge: React.FC<Props> = ({ status, testId, overlay = true }) => {
   const color = STATUS_CONFIG[status]?.color ?? FALLBACK_COLOR;
   const overlayClass = overlay
-    ? 'absolute -bottom-1px -right-1px w-8px h-8px border-2 border-solid border-[color:var(--color-bg-base)]'
+    ? 'absolute -bottom-1px -end-1px w-8px h-8px border-2 border-solid border-[color:var(--color-bg-base)]'
     : 'inline-block w-2 h-2';
   return (
     <span

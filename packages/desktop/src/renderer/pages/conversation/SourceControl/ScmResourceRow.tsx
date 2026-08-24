@@ -236,7 +236,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
       className={`group flex items-center gap-6px px-8px py-3px rd-4px cursor-pointer hover:bg-2 min-w-0 ${
         selected ? 'bg-2' : ''
       }`}
-      style={indent ? { paddingLeft: 8 + indent } : undefined}
+      style={indent ? { paddingInlineStart: 8 + indent } : undefined}
       title={hint ?? resource.repo_relative_path}
     >
       <span
@@ -251,6 +251,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
           browser check: inherited stayed rgb(0,0,0) under dark, while text-t-primary
           resolves to #fff). conflicted/failed keep danger; everything else is primary. */}
       <span
+        dir='ltr'
         className={`overflow-hidden text-ellipsis whitespace-nowrap text-13px ${
           kind === 'conflicted' || failed ? 'text-danger' : 'text-t-primary'
         } ${resource.state === 'deleted' ? 'line-through' : ''}`}
@@ -263,7 +264,7 @@ export const ScmResourceRow: React.FC<ScmResourceRowProps> = ({
         </span>
       )}
       {actionable && (
-        <span className='flex items-center flex-shrink-0 ml-auto'>
+        <span className='flex items-center flex-shrink-0 ms-auto'>
           {canDiscard && actionButton('discard', <Undo theme='outline' size='13' />)}
           {stagingActions &&
             (resource.staged === true

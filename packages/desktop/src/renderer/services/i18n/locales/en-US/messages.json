@@ -1,6 +1,8 @@
 {
   "fileChanges": "File Changes",
   "fileChangesCount": "{{count}} File Changes",
+  "fileChangesCount_one": "{{count}} File Change",
+  "fileChangesCount_other": "{{count}} File Changes",
   "conversationInProgress": "A conversation is currently in progress...",
   "confirm": "Confirm",
   "canceledExecution": "Execution canceled",
@@ -22,9 +24,14 @@
     "searchAria": "Search conversation"
   },
   "availableCommands": "{{count}} Available Commands",
+  "availableCommands_one": "{{count}} Available Command",
+  "availableCommands_other": "{{count}} Available Commands",
   "atFile.hint": "Type to search for files",
   "atFile.menuLabel": "File mentions",
   "atFile.loading": "Loading...",
+  "atSession.hint": "Type to search your conversations",
+  "atSession.empty": "No conversations found",
+  "atSession.menuLabel": "Conversation mentions",
   "slash.title": "Commands",
   "slash.hint": "Type / to open command menu",
   "slash.empty": "No commands found",
@@ -87,5 +94,8 @@
   "askDeclined": "Dismissed",
   "askOther": "Other",
   "askOtherPlaceholder": "Type your answer",
-  "requestDetails": "Request details:"
+  "requestDetails": "Request details:",
+  "delivery": {
+    "pending": "Unread"
+  }
 }

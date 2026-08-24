@@ -47,7 +47,11 @@
     "batchExportConfirm": "Export {{count}} selected topics?",
     "batchDelete": "Batch Delete",
     "batchDeleteConfirm": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_one": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_other": "Delete {{count}} selected topics?",
     "batchDeleteSuccess": "{{count}} topics deleted",
+    "batchDeleteSuccess_one": "{{count}} topics deleted",
+    "batchDeleteSuccess_other": "{{count}} topics deleted",
     "batchNoSelection": "Please select topics first",
     "export": "Export",
     "exportDialogTitle": "Export Topics",
@@ -62,6 +66,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "읽지 않음으로 표시",
+    "markAsRead": "읽음으로 표시",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
@@ -69,20 +75,21 @@
     "deleteFailed": "삭제에 실패했습니다",
     "projectsSection": "프로젝트",
     "conversationsSection": "대화",
-    "removeProjectTitle": "프로젝트 제거",
-    "removeProject": "프로젝트 제거",
-    "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
-    "removeProjectConfirmTeams": "프로젝트의 팀 {{teams}}개도 함께 제거됩니다.",
-    "removeProjectListMore": "외 {{count}}개",
     "newConversationInProject": "이 프로젝트에서 새 대화",
     "deleting": "삭제 중...",
     "reorderPinned": "드래그하여 고정된 대화 순서 변경",
     "forkedFrom": "“{{name}}”에서 분기됨",
     "forkedConversation": "분기된 대화",
-    "loadMore": "더 보기",
-    "newTeamInProject": "이 프로젝트에 새 팀",
-    "projectCreateMenu": "만들기",
-    "collapseAllProjects": "모든 프로젝트 접기"
+    "archive": "보관",
+    "archiveSuccess": "보관됨",
+    "archiveFailed": "보관 실패",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "메시지 검색",
@@ -433,7 +440,9 @@
     "searchHint": "여기를 클릭해 키워드를 검색하세요",
     "empty": "아직 문답 내용이 없습니다",
     "noMatch": "일치하는 내용이 없습니다",
-    "count": "{{count}} 건"
+    "count": "{{count}} 건",
+    "count_one": "{{count}} 건",
+    "count_other": "{{count}} 건"
   },
   "chat": {
     "noModelSelected": "현재 세션에 선택된 모델이 없어 메시지를 보낼 수 없습니다",
@@ -451,6 +460,7 @@
     "switchAgentFailed": "에이전트 전환 실패",
     "speech": {
       "recordTooltip": "음성 입력 시작",
+      "recordTooltipWithShortcut": "음성 입력 cmd+M",
       "pickFileTooltip": "오디오 파일 선택",
       "stopTooltip": "녹음 중지",
       "processing": "오디오를 전사하는 중...",
@@ -497,6 +507,8 @@
     "reorder": "드래그하여 대기 명령 순서 변경",
     "remove": "삭제",
     "files": "{{count}}개 파일",
+    "files_one": "{{count}}개 파일",
+    "files_other": "{{count}}개 파일",
     "pausedAfterFailure": "다음 대기 명령을 시작할 수 없습니다. 편집, 재정렬 또는 삭제 후 계속하세요.",
     "emptyInput": "대기 명령은 비워 둘 수 없습니다.",
     "queueFull": "대기열이 가득 찼습니다. 일부 명령을 제거한 뒤 다시 추가하세요.",
@@ -514,7 +526,14 @@
     "mode": {
       "auto": "자동 전송",
       "manual": "수동 전송"
-    }
+    },
+    "addToQueue": "Draft box에 추가",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "이 에이전트가 응답하는 동안에는 끼어들기를 지원하지 않습니다. Draft box에 추가를 사용하세요.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "사용된 컨텍스트",
@@ -573,7 +592,8 @@
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조, ↑/↓ 로 메시지 기록 전환",
-    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다."
+    "mediaPathFallback": "이 에이전트는 이 파일 형식을 기본적으로 지원하지 않으므로 파일 경로로 전송됩니다.",
+    "hintWithSessions": "/ 로 명령, @ 로 파일, @@ 로 대화 참조, ↑/↓ 로 기록"
   },
   "agentTip": {
     "codes": {
@@ -621,11 +641,16 @@
       "rename": "이름 바꾸기",
       "addToChat": "채팅에 추가",
       "copyRelativePath": "상대 경로 복사",
-      "copyAbsolutePath": "절대 경로 복사"
+      "copyAbsolutePath": "절대 경로 복사",
+      "refresh": "새로 고침",
+      "newFile": "새 파일",
+      "newDir": "새 폴더"
     },
     "namePlaceholder": "이름",
     "deleteConfirm": "“{{name}}”을(를) 삭제할까요? 이 작업은 취소할 수 없습니다.",
     "renameFailed": "이름을 바꾸지 못했습니다",
+    "newFileFailed": "파일을 만들지 못했습니다",
+    "newDirFailed": "폴더를 만들지 못했습니다",
     "tabs": {
       "files": "파일",
       "changes": "변경"
@@ -634,6 +659,8 @@
     "imported": "{{count}}개 파일을 가져왔습니다",
     "importPartialFailed": "{{copied}}개 복사, {{failed}}개 실패(이름 충돌 또는 미지원)",
     "importFailed": "파일 가져오기에 실패했습니다",
+    "copyNodeFailed": "복사에 실패했습니다",
+    "moveNodeFailed": "이동에 실패했습니다",
     "search": {
       "placeholder": "파일 이름으로 검색",
       "searching": "검색 중…",
@@ -703,8 +730,14 @@
         "confirmDiscardMixed": "{{tracked}}개 파일의 편집 내용은 되돌릴 수 없이 사라지고, 새 파일 {{untracked}}개는 휴지통으로 이동됩니다.",
         "discardConfirmButton": "버리기",
         "okStage": "파일 {{count}}개를 스테이징했습니다",
+        "okStage_one": "파일 {{count}}개를 스테이징했습니다",
+        "okStage_other": "파일 {{count}}개를 스테이징했습니다",
         "okUnstage": "파일 {{count}}개의 스테이징을 취소했습니다",
+        "okUnstage_one": "파일 {{count}}개의 스테이징을 취소했습니다",
+        "okUnstage_other": "파일 {{count}}개의 스테이징을 취소했습니다",
         "okDiscard": "파일 {{count}}개를 버렸습니다",
+        "okDiscard_one": "파일 {{count}}개를 버렸습니다",
+        "okDiscard_other": "파일 {{count}}개를 버렸습니다",
         "partial": "{{total}}개 중 {{succeeded}}개 완료 —— {{failed}}개는 완료하지 못했습니다",
         "partialDetail": "완료되지 않음: {{files}}",
         "rejectedBlocked": "아무것도 변경되지 않았습니다 —— 먼저 충돌을 해결하세요",
@@ -713,7 +746,9 @@
         "retry": "다시 시도",
         "notSent": "요청이 백엔드에 전달되지 않아 아무것도 변경되지 않았습니다. 다시 시도할 수 있습니다.",
         "outcomeUnknown": "응답이 오기 전에 연결이 재설정되었습니다 — 이 작업은 완료되었을 수도, 되지 않았을 수도 있습니다. 다시 시도하기 전에 새로 고쳐 파일 목록을 확인하세요.",
-        "allFailed": "{{count}}개 파일을 모두 처리하지 못했습니다"
+        "allFailed": "{{count}}개 파일을 모두 처리하지 못했습니다",
+        "allFailed_one": "{{count}}개 파일을 모두 처리하지 못했습니다",
+        "allFailed_other": "{{count}}개 파일을 모두 처리하지 못했습니다"
       }
     },
     "pathCopied": "경로가 복사되었습니다",
@@ -725,5 +760,26 @@
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
     "truncated": "(이전 출력 잘림)"
+  },
+  "emptyState": {
+    "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."
+  },
+  "crossSession": {
+    "mentionAgain": "입력창에서 대화 {{name}} 멘션",
+    "mentionAgainHint": "클릭하여 이 대화를 입력창에서 멘션",
+    "mentionUnavailable": "해당 대화는 더 이상 멘션할 수 없습니다",
+    "mentionFailed": "해당 대화를 멘션할 수 없습니다",
+    "fromBadge": "대화 \"{{name}}\"에서",
+    "otherWorkspace": "다른 작업 공간",
+    "rateLimitedTitle": "대화 간 메시지가 반복되는 것 같습니다",
+    "rateLimited": "\"{{from}}\"와 \"{{to}}\" 사이의 자동 메시지가 비정상적으로 잦아 반복되는 것 같습니다.",
+    "stopBoth": "두 대화 모두 중지",
+    "disableFeature": "대화 간 메시지 끄기"
+  },
+  "planBar": {
+    "title": "계획",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "계획 펼치기",
+    "collapse": "계획 접기"
   }
 }

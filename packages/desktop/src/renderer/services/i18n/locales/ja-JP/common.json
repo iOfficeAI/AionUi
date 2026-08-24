@@ -39,6 +39,8 @@
   "expandMore": "さらに表示",
   "collapse": "折りたたむ",
   "viewMoreLines": "もっと見る ({{count}} 行)",
+  "viewMoreLines_one": "もっと見る ({{count}} 行)",
+  "viewMoreLines_other": "もっと見る ({{count}} 行)",
   "success": "成功",
   "error": "エラー",
   "saveSuccess": "保存に成功しました",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "新しいバージョンの AionUi が必要です",
+      "description": "ローカルデータはより新しいバージョンの AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。",
+      "descriptionWithVersion": "ローカルデータは現在のバージョン v{{currentVersion}} より新しい AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。"
     },
     "localDataRepair": {
       "title": "Local data repair failed",
@@ -194,5 +201,6 @@
     "second_short": "秒"
   },
   "selectedCount": "選択済み {{count}}",
-  "selectedSkills": "選択済みスキル"
+  "selectedSkills": "選択済みスキル",
+  "aiAssistant": "AI アシスタント"
 }

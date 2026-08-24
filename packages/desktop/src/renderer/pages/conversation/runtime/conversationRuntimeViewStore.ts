@@ -17,6 +17,10 @@ export type ConversationRuntimeView = {
   localSubmitting: boolean;
   hydrated: boolean;
   localStopping: boolean;
+  /** Mirrors the backend runtime's `supports_midturn_delivery` bit. Lets UI
+   * (e.g. the command queue) bypass client-side queuing for backends that can
+   * accept a message while a turn is already running. */
+  supportsMidturnDelivery: boolean;
 };
 
 export type ConversationRuntimeViewLogEvent =
@@ -32,6 +36,9 @@ export type ConversationRuntimeViewLogEvent =
   | 'local_send_busy'
   | 'local_stop_requested'
   | 'local_stop_acknowledged'
+  | 'local_restart_started'
+  | 'local_restart_succeeded'
+  | 'local_restart_failed'
   | 'runtime_view_cleaned';
 
 export type ConversationRuntimeViewLogLevel = 'info' | 'warn';
@@ -97,6 +104,7 @@ export const createDefaultConversationRuntimeView = (conversation_id: string): C
   localSubmitting: false,
   hydrated: false,
   localStopping: false,
+  supportsMidturnDelivery: false,
 });
 
 const summarizeView = (view: ConversationRuntimeView): Record<string, unknown> => ({
@@ -145,12 +153,17 @@ const viewFromRuntimeSummary = (
     activeTurnId,
     state: pendingLocalSend && runtime.state === 'idle' ? 'starting' : runtime.state,
     isProcessing: pendingLocalSend || isCancelling || runtime.is_processing,
-    canSendMessage: !pendingLocalSend && !isCancelling && runtime.can_send_message,
+    canSendMessage:
+      !pendingLocalSend &&
+      !isCancelling &&
+      (runtime.can_send_message ||
+        (runtime.supports_midturn_delivery === true && runtime.state !== 'waiting_confirmation')),
     pendingConfirmations: runtime.pending_confirmations,
     hasBackendRuntime: true,
     hydrated: true,
     localSubmitting: pendingLocalSend,
     localStopping,
+    supportsMidturnDelivery: runtime.supports_midturn_delivery === true,
   };
 };
 
@@ -365,6 +378,54 @@ export const localStopAcknowledgedConversationRuntimeView = (
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
   const view = viewFromRuntimeSummary(base, runtime, metadata, { preservePendingLocalSend: false });
   return withLogs(view, [createLog('info', 'local_stop_acknowledged', view, { turn_id })]);
+};
+
+export const localRestartStartedConversationRuntimeView = (
+  previous: ConversationRuntimeView | undefined,
+  conversation_id: string
+): ConversationRuntimeSnapshot => {
+  const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
+  const view: ConversationRuntimeView = {
+    ...base,
+    state: 'restarting',
+    isProcessing: true,
+    canSendMessage: false,
+    localSubmitting: false,
+    localStopping: false,
+    hydrated: true,
+  };
+  return withLogs(view, [createLog('info', 'local_restart_started', view)]);
+};
+
+export const localRestartSucceededConversationRuntimeView = (
+  previous: ConversationRuntimeView | undefined,
+  conversation_id: string,
+  runtime: TConversationRuntimeSummary
+): ConversationRuntimeSnapshot => {
+  const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
+  const view = viewFromRuntimeSummary(base, runtime, createRuntimeMetadata(), { preservePendingLocalSend: false });
+  return withLogs(view, [createLog('info', 'local_restart_succeeded', view)]);
+};
+
+export const localRestartFailedConversationRuntimeView = (
+  previous: ConversationRuntimeView | undefined,
+  conversation_id: string,
+  runtime: TConversationRuntimeSummary | null,
+  reason: string
+): ConversationRuntimeSnapshot => {
+  const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
+  const view = runtime
+    ? viewFromRuntimeSummary(base, runtime, createRuntimeMetadata(), { preservePendingLocalSend: false })
+    : {
+        ...base,
+        state: 'idle' as const,
+        isProcessing: false,
+        canSendMessage: true,
+        localSubmitting: false,
+        localStopping: false,
+        hydrated: true,
+      };
+  return withLogs(view, [createLog('warn', 'local_restart_failed', view, { reason })]);
 };
 
 export const resetLocalGateConversationRuntimeView = (
@@ -590,6 +651,31 @@ export const localStopAcknowledged = (
         )
   );
 };
+
+export const localRestartStarted = (conversation_id: string): ConversationRuntimeViewLogEntry[] =>
+  setConversationRuntimeSnapshot(
+    conversation_id,
+    localRestartStartedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
+  );
+
+export const localRestartSucceeded = (
+  conversation_id: string,
+  runtime: TConversationRuntimeSummary
+): ConversationRuntimeViewLogEntry[] =>
+  setConversationRuntimeSnapshot(
+    conversation_id,
+    localRestartSucceededConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, runtime)
+  );
+
+export const localRestartFailed = (
+  conversation_id: string,
+  runtime: TConversationRuntimeSummary | null,
+  reason: string
+): ConversationRuntimeViewLogEntry[] =>
+  setConversationRuntimeSnapshot(
+    conversation_id,
+    localRestartFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, runtime, reason)
+  );
 
 export const resetLocalGate = (conversation_id: string, reason: string): ConversationRuntimeViewLogEntry[] =>
   setConversationRuntimeSnapshot(

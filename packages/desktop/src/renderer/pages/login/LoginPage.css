@@ -31,7 +31,7 @@ body.login-page-active {
   width: 500px;
   height: 500px;
   top: -250px;
-  left: -250px;
+  inset-inline-start: -250px;
   animation-delay: 0s;
 }
 
@@ -39,7 +39,7 @@ body.login-page-active {
   width: 350px;
   height: 350px;
   bottom: -175px;
-  right: -175px;
+  inset-inline-end: -175px;
   animation-delay: 5s;
 }
 
@@ -47,7 +47,7 @@ body.login-page-active {
   width: 250px;
   height: 250px;
   top: 50%;
-  right: 10%;
+  inset-inline-end: 10%;
   animation-delay: 10s;
 }
 
@@ -198,7 +198,7 @@ body.login-page-active {
 
 .login-page__input-icon {
   position: absolute;
-  left: 14px;
+  inset-inline-start: 14px;
   width: 16px;
   height: 16px;
   color: #999;
@@ -208,7 +208,9 @@ body.login-page-active {
 .login-page__input {
   width: 100%;
   height: 44px;
-  padding: 10px 14px 10px 44px;
+  padding-block: 10px;
+  padding-inline-start: 44px;
+  padding-inline-end: 14px;
   border: 1px solid #ddd;
   border-radius: 12px;
   font-size: 15px;
@@ -228,7 +230,7 @@ body.login-page-active {
 
 .login-page__toggle-password {
   position: absolute;
-  right: 14px;
+  inset-inline-end: 14px;
   width: 18px;
   height: 18px;
   padding: 0;

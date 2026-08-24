@@ -3,6 +3,8 @@
   "downloadFile": "下载文件",
   "closePreview": "关闭预览",
   "collapsePanel": "收起面板",
+  "maximizePanel": "最大化",
+  "restorePanel": "还原",
   "source": "原文",
   "code": "代码",
   "preview": "预览",
@@ -24,6 +26,8 @@
   "closeTabMessage": "当前内容还未保存，是否保存后再关闭？",
   "closeTabsTitle": "关闭标签页",
   "closeTabsMessage": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
+  "closeTabsMessage_one": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
+  "closeTabsMessage_other": "有 {{count}} 个标签页未保存，是否保存后再关闭？",
   "saveAndClose": "保存并关闭",
   "closeWithoutSave": "不保存",
   "pptTitle": "PowerPoint 演示文稿",
@@ -35,10 +39,16 @@
   "openInSystemApp": "使用系统默认应用打开",
   "openInSystemSuccess": "已在系统默认应用中打开",
   "openInSystemFailed": "打开文件失败",
+  "close": "关闭",
   "closeLeft": "关闭左侧",
   "closeRight": "关闭右侧",
   "closeOthers": "关闭其他",
   "closeAll": "全部关闭",
+  "closeUnmodified": "关闭未修改",
+  "copyPath": "复制路径",
+  "copyRelativePath": "复制相对路径",
+  "openLocation": "打开文件所在目录",
+  "openLocationFailed": "无法打开所在目录",
   "readOnlyLabel": "只读预览",
   "pathLabel": "路径",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "暂无标签页",
   "openInPanelTooltip": "在预览面板中查看",
   "mermaidTitle": "Mermaid 图表",
+  "wavedromTitle": "WaveDrom 波形图",
   "oversized": {
     "title": "文件过大，无法预览",
     "detail": "文件尺寸 {{size}} 超过 {{threshold}}，请用系统编辑器打开。",
@@ -161,5 +172,9 @@
     "confirmMessage": "该标签页有未保存的修改，重新加载会用磁盘上的内容覆盖它们。",
     "discardAndRefresh": "放弃修改并刷新",
     "officeNotWired": "Office 文档的刷新尚未接入——请关闭后重新打开文件以查看改动。"
-  }
+  },
+  "zoomIn": "放大",
+  "zoomOut": "缩小",
+  "zoomReset": "重置视图",
+  "diagramZoomHint": "滚轮缩放 • 拖拽平移 • ESC 关闭"
 }

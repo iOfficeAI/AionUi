@@ -45,7 +45,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       )}
       style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
-      {leading && <div className='shrink-0 flex items-center pl-8px'>{leading}</div>}
+      {leading && <div className='shrink-0 flex items-center ps-8px'>{leading}</div>}
       <div className='min-w-0 flex-1 px-8px py-5px'>
         {editingTitle && canRenameTitle ? (
           <Input
@@ -105,7 +105,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       {!editingTitle && (
         <div className='w-0 flex items-center overflow-hidden opacity-0 transition-all duration-180 group-hover:w-40px group-hover:opacity-100 group-focus-within:w-40px group-focus-within:opacity-100'>
           <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_44%,transparent)]' />
-          <div className='ml-4px mr-4px flex items-center justify-center'>
+          <div className='ms-4px me-4px flex items-center justify-center'>
             <ConversationTitleMinimap conversation_id={conversation_id} />
           </div>
         </div>

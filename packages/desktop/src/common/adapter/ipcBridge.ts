@@ -73,12 +73,15 @@ import type {
   ITeamTaskItem,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
+  IInterruptTeamAgentParams,
   IPauseTeamSlotParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
+  ITeamInterruptAgentResponse,
   TTeam,
   TeamAssistant,
+  TeamContextResetResponse,
 } from '../types/team/teamTypes';
 import type {
   AutoUpdateReadyResult,
@@ -149,7 +152,6 @@ const httpGetClientSetting = <T>(key: string) => ({
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
 // ---------------------------------------------------------------------------
-
 export const shell = {
   openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
@@ -181,6 +183,85 @@ export const assistants = {
     }
   ),
   import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
+};
+
+// ---------------------------------------------------------------------------
+// Cross-session mentions — the `@@` picker's data source.
+// ---------------------------------------------------------------------------
+
+/** A conversation the user referenced with `@@`. Id only, deliberately: the
+ *  name is mutable (an agent can rename a conversation), so a client-supplied
+ *  name may already be stale. The backend resolves it from the id. */
+export type SessionRef = { id: string };
+
+export type SessionMentionTarget = {
+  id: string;
+  name: string;
+  /** Project name, for the picker's secondary line. Absent when unbound. */
+  project?: string;
+  modified_at: number;
+};
+
+export type SessionMentionableParams = {
+  /** Excluded from the results — you cannot `@@` the conversation you are in. */
+  current_conversation_id: string;
+  q?: string;
+  project_id?: string;
+  limit?: number;
+  cursor?: string;
+  /** Narrow to one conversation, to ask "is this id still mentionable?" and to
+   *  read back its CURRENT name. Used when mentioning a conversation off an
+   *  earlier message, where the chip's name may be stale and the target may have
+   *  become ineligible since. */
+  id?: string;
+};
+
+export type SessionMessageRateLimitedPayload = {
+  /** REQUIRED for filtering: the event bus fans out to every connection, so
+   *  dropping this would show one user's conversation names to everyone. */
+  user_id: string;
+  from_conversation_id: string;
+  from_name: string;
+  to_conversation_id: string;
+  to_name: string;
+  window_count: number;
+  gate: 'outbound' | 'pair';
+};
+
+export const sessionMessage = {
+  rateLimited: wsEmitter<SessionMessageRateLimitedPayload>('sessionMessage.rateLimited'),
+};
+
+export const sessionMention = {
+  list: httpGet<{ items: SessionMentionTarget[]; next_cursor?: string }, SessionMentionableParams>((p) => {
+    const params = new URLSearchParams({ current_conversation_id: p.current_conversation_id });
+    if (p.q) params.set('q', p.q);
+    if (p.project_id) params.set('project_id', p.project_id);
+    if (p.limit) params.set('limit', String(p.limit));
+    if (p.cursor) params.set('cursor', p.cursor);
+    if (p.id) params.set('id', p.id);
+    return `/api/session-messages/mentionable?${params.toString()}`;
+  }),
+};
+
+// ---------------------------------------------------------------------------
+// Auth — identity of the current client
+// ---------------------------------------------------------------------------
+
+export const auth = {
+  /**
+   * Which user id the backend attributes THIS client's requests to.
+   *
+   * Deliberately not `GET /api/auth/user`: the auth router builds its own
+   * `AuthState` whose identity mode is only ever `AionPro` or `UserSession`, so
+   * in local identity mode that endpoint answers 401 while every ordinary route
+   * is happily serving an injected default user. `/api/system/current-user`
+   * sits behind the ORDINARY auth middleware, so it reports the same identity
+   * the rest of the API scopes data by — in every identity mode.
+   *
+   * Desktop needs this at all because `AuthContext` keeps `user` null there.
+   */
+  currentUser: httpGet<{ id: string; username: string }>('/api/system/current-user'),
 };
 
 // ---------------------------------------------------------------------------
@@ -261,6 +342,17 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/runtime/ensure`,
     () => undefined
   ),
+  /**
+   * Restart the conversation's agent runtime: tears down the cached CLI agent
+   * process (cancelling any active turn) and respawns it, resuming the session
+   * when possible. Chat history is preserved. Used after external CLI config
+   * changes (e.g. a ccswitch channel switch) that a running process cannot
+   * pick up on its own.
+   */
+  restartRuntime: httpPost<EnsureConversationRuntimeResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/runtime/restart`,
+    () => undefined
+  ),
   activeLease: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/active-lease`,
     () => undefined
@@ -279,6 +371,10 @@ export const conversation = {
     (p) => ({
       content: p.input,
       files: p.files,
+      // `@@` session references. Omitting this silently breaks the feature end
+      // to end: the backend's send-boundary resolver would always see an empty
+      // list and neither side would report an error.
+      sessions: p.sessions,
       loading_id: p.loading_id,
       inject_skills: p.inject_skills,
     })
@@ -327,12 +423,29 @@ export const conversation = {
   userCreated: wsEmitter<{
     conversation_id: string;
     msg_id: string;
+    /** Present when the send request carried a client-generated id, letting
+     * callers correlate this row with the outgoing send without matching on
+     * text/time. Not the canonical id — `msg_id` (the server-assigned id) is
+     * what the message list keys on. */
+    client_msg_id?: string;
     content: string;
     position: 'right';
-    status: 'finish';
+    /** 'pending' for a message delivered mid-turn that the agent hasn't
+     * consumed yet (see `message.statusChanged`); 'finish' otherwise. */
+    status: 'finish' | 'pending';
     hidden: boolean;
     created_at: number;
   }>('message.userCreated'),
+  /** Fired when the agent actually consumes a mid-turn-delivered message
+   * (claude command_lifecycle Started; codex synthetic receipt). Flips the
+   * message row from 'pending' to 'finish'; correlate by `msg_id`, never by
+   * text/time. */
+  statusChanged: wsEmitter<{
+    user_id: string;
+    conversation_id: string;
+    msg_id: string;
+    status: 'finish' | 'pending' | 'error';
+  }>('message.statusChanged'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
@@ -359,6 +472,9 @@ export const conversation = {
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
       turn_id: (rawRuntime.turn_id ?? rawRuntime.turnId ?? null) as string | null,
+      supports_midturn_delivery: (rawRuntime.supports_midturn_delivery ??
+        rawRuntime.supportsMidturnDelivery ??
+        false) as boolean,
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -1261,6 +1377,15 @@ export const database = {
     import('@/common/chat/chatLib').TMessage,
     { conversation_id: string; message_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/messages/${encodeURIComponent(p.message_id)}`),
+  /**
+   * Newest message of one type, or null. Serves the plan bar: `upsert_message`
+   * does not refresh `created_at`, so a plan row stays anchored at the start of
+   * its turn and a busy turn buries it outside the paginated load.
+   */
+  getLatestConversationMessageOfType: httpGet<
+    import('@/common/chat/chatLib').TMessage | null,
+    { conversation_id: string; type: string }
+  >((p) => `/api/conversations/${p.conversation_id}/messages/latest?type=${encodeURIComponent(p.type)}`),
   getUserConversations: withResponseMap(
     httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
       (p) => {
@@ -1280,60 +1405,6 @@ export const database = {
     ),
     fromApiSearchResult
   ),
-};
-
-// ---------------------------------------------------------------------------
-// Sidebar read model (grouped + paginated left panel)
-// ---------------------------------------------------------------------------
-export const sidebar = {
-  // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
-  // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
-  get: withResponseMap(
-    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[] }>((p) => {
-      const params = new URLSearchParams();
-      if (p.limit) params.set('limit', String(p.limit));
-      for (const w of p.win ?? []) params.append('win', w);
-      const qs = params.toString();
-      return `/api/sidebar${qs ? `?${qs}` : ''}`;
-    }),
-    fromApiSidebar
-  ),
-  // One more window of a single group (the "+10" paging). `scope` is the group token,
-  // `cursor` the keyset cursor from the previous page.
-  items: withResponseMap(
-    httpGet<import('@/common/types/sidebar').SidebarItemsResponse, { scope: string; cursor?: string; limit?: number }>(
-      (p) => {
-        const params = new URLSearchParams();
-        params.set('scope', p.scope);
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
-        return `/api/sidebar/items?${params.toString()}`;
-      }
-    ),
-    fromApiSidebarItems
-  ),
-  // Remove a project and everything classified into its group (teams + standalone
-  // conversations), BR-19 "所见即所删". With `dry_run` nothing is deleted and the
-  // response reports the counts that *would* be removed (used for the confirm
-  // dialog). A missing / non-standard project maps to 404.
-  removeProject: httpDelete<
-    import('@/common/types/sidebar').RemoveProjectResult,
-    { project_id: string; dry_run?: boolean }
-  >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
-};
-
-// Ordering (pin / unpin). Pin truth = a `user_order` row existing; both calls are
-// idempotent and take no body. v1 only the `pinned` scene.
-export const order = {
-  pinned: {
-    put: httpPut<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
-      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`,
-      () => undefined
-    ),
-    delete: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
-      (p) => `/api/order/pinned/${p.item_type}/${encodeURIComponent(p.item_id)}`
-    ),
-  },
 };
 
 // Preview panel
@@ -1449,6 +1520,14 @@ export const systemSettings = {
   getKeepAwake: httpGetClientSetting<boolean>('keepAwake'),
   setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
   changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
+  // Cross-session messaging master switch. NOTE the channel differs from the
+  // sibling switches above: this one is a TYPED COLUMN on `system_settings`
+  // (migration 040), so it goes through `/api/settings`, not the
+  // `/api/settings/client` KV. `changeLanguage` right above is the precedent.
+  getCrossSessionMessageEnabled: httpGet<{ cross_session_message_enabled: boolean }, void>('/api/settings'),
+  setCrossSessionMessageEnabled: httpPatch<void, { enabled: boolean }>('/api/settings', (p) => ({
+    cross_session_message_enabled: p.enabled,
+  })),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
   getSaveUploadToWorkspace: httpGetClientSetting<boolean>('saveUploadToWorkspace'),
   setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
@@ -1704,6 +1783,9 @@ interface ISendMessageParams {
   files?: ChatFileRef[];
   loading_id?: string;
   inject_skills?: string[];
+  /** Conversations the user referenced with `@@`. Ids only — the backend
+   *  resolves the (mutable) name from the id. */
+  sessions?: SessionRef[];
 }
 
 // Server-assigned identifier for the newly created user message. Clients must
@@ -1896,6 +1978,10 @@ export interface IConversationTurnCompletedEvent {
     is_processing: boolean;
     pending_confirmations: number;
     turn_id: string | null;
+    /** Whether a message sent right now reaches the agent without waiting for
+     * the current turn to end. The ONLY capability bit the frontend may gate
+     * mid-turn UI on. */
+    supports_midturn_delivery: boolean;
   };
   workspace: string;
   model: {
@@ -2198,6 +2284,14 @@ export const team = {
   getConfigOptions: httpGet<GetConfigOptionsResponse, { team_id: string; conversation_id: string }>(
     (p) => `/api/teams/${p.team_id}/conversations/${encodeURIComponent(p.conversation_id)}/config-options`
   ),
+  setConfigOption: httpPut<
+    SetConfigOptionResponse,
+    { team_id: string; conversation_id: string; option_id: string; value: string }
+  >(
+    (p) =>
+      `/api/teams/${p.team_id}/conversations/${encodeURIComponent(p.conversation_id)}/config-options/${encodeURIComponent(p.option_id)}`,
+    (p): SetConfigOptionRequest => ({ value: p.value })
+  ),
   activeLease: httpPost<void, { team_id: string }>(
     (p) => `/api/teams/${p.team_id}/active-lease`,
     () => undefined
@@ -2205,6 +2299,10 @@ export const team = {
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })
+  ),
+  updateAgentModel: httpPatch<void, { team_id: string; slot_id: string; model_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/model`,
+    (p) => ({ model_id: p.model_id })
   ),
   renameTeam: httpPatch<void, { id: string; name: string }>(
     (p) => `/api/teams/${p.id}/name`,
@@ -2254,8 +2352,29 @@ export const team = {
       files: p.files,
     })
   ),
+  interruptAgent: httpPost<ITeamInterruptAgentResponse, IInterruptTeamAgentParams>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/interrupt`,
+    (p) => ({
+      message: p.input,
+      files: p.files,
+      reason: p.reason,
+      queued_policy: p.queued_policy ?? 'retain',
+    })
+  ),
   attachAgent: httpPost<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/attach`
+  ),
+  /**
+   * Force-restart a team member's agent runtime (kill the cached CLI process
+   * and rebuild it via the team attach chain, preserving the resume anchor).
+   * Synchronous: resolves once the member is Ready again. Returns HTTP 409
+   * with code TEAM_MEMBER_BUSY while the member is mid-reply.
+   */
+  restartAgentRuntime: httpPost<void, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/runtime/restart`
+  ),
+  resetAgentContext: httpPost<TeamContextResetResponse, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/context/reset`
   ),
   cancelRun: httpPost<void, ICancelTeamRunParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,
@@ -2300,4 +2419,90 @@ export const team = {
   childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
   childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
   slotWorkChanged: wsEmitter<ITeamSlotWorkChangedEvent>('team.slotWorkChanged'),
+};
+
+export const sidebar = {
+  // First screen: pinned → project area (real projects + dir pseudo-groups) → chats.
+  // `win` is a repeated query param (one per group to widen); `limit` caps items per group.
+  get: withResponseMap(
+    httpGet<import('@/common/types/sidebar').SidebarResponse, { limit?: number; win?: string[]; archived?: boolean }>(
+      (p) => {
+        const params = new URLSearchParams();
+        if (p.limit) params.set('limit', String(p.limit));
+        for (const w of p.win ?? []) params.append('win', w);
+        // Flip the read to the archive slice. The archived page reuses this same
+        // grouped read model — only the backend `archived_at` predicate changes.
+        if (p.archived) params.set('archived', 'true');
+        const qs = params.toString();
+        return `/api/sidebar${qs ? `?${qs}` : ''}`;
+      }
+    ),
+    fromApiSidebar
+  ),
+  // One more window of a single group (the "+10" paging). `scope` is the group token,
+  // `cursor` the keyset cursor from the previous page. `archived` pages the archive
+  // slice (mirrors `get`) — the archived management page pages its groups this way.
+  items: withResponseMap(
+    httpGet<
+      import('@/common/types/sidebar').SidebarItemsResponse,
+      { scope: string; cursor?: string; limit?: number; archived?: boolean }
+    >((p) => {
+      const params = new URLSearchParams();
+      params.set('scope', p.scope);
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      if (p.archived) params.set('archived', 'true');
+      return `/api/sidebar/items?${params.toString()}`;
+    }),
+    fromApiSidebarItems
+  ),
+  // Remove a project and everything classified into its group (teams + standalone
+  // conversations), BR-19 "所见即所删". With `dry_run` nothing is deleted and the
+  // response reports the counts that *would* be removed (used for the confirm
+  // dialog). A missing / non-standard project maps to 404.
+  removeProject: httpDelete<
+    import('@/common/types/sidebar').RemoveProjectResult,
+    { project_id: string; dry_run?: boolean }
+  >((p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}${p.dry_run ? '?dry_run=true' : ''}`),
+  // Archive a conversation/team (moves its slice out of the active sidebar and
+  // unpins it). Team members cascade with the team. Both take no body; a missing
+  // or foreign id maps to 404.
+  archive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an archived conversation/team to the active sidebar.
+  unarchive: httpPost<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/${p.item_type}/${encodeURIComponent(p.item_id)}/unarchive`,
+    () => undefined
+  ),
+  // Empty the archive: hard-delete every archived team (members cascade) and every
+  // independent archived conversation. Returns the removed counts.
+  deleteArchived: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult>('/api/sidebar/archived'),
+  // Permanently delete a single archived unit (a conversation row or a team, whose
+  // members cascade). The id is validated against the archived slice — an active,
+  // foreign, or team-member id maps to 404.
+  deleteArchivedItem: httpDelete<void, { item_type: import('@/common/types/sidebar').OrderItemType; item_id: string }>(
+    (p) => `/api/sidebar/archived/${p.item_type}/${encodeURIComponent(p.item_id)}`
+  ),
+  // Archive an entire standard project in one request: every unit classified into
+  // its group (teams cascade to members, path-merged unbound conversations
+  // included) moves to the archive slice and is unpinned. Dir pseudo-groups have
+  // no project_id and instead loop `archive` over their items. Missing /
+  // non-standard project maps to 404.
+  archiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/archive`,
+    () => undefined
+  ),
+  // Restore an entire archived standard project in one request.
+  unarchiveProject: httpPost<void, { project_id: string }>(
+    (p) => `/api/sidebar/project/${encodeURIComponent(p.project_id)}/unarchive`,
+    () => undefined
+  ),
+  // Hard-delete every archived unit of a standard project (teams cascade). The
+  // project record is kept. Returns the removed counts. Missing / non-standard
+  // project maps to 404.
+  deleteArchivedProject: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult, { project_id: string }>(
+    (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
+  ),
 };

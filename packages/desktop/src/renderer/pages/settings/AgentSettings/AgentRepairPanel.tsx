@@ -229,7 +229,7 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
         <Typography.Text className='block text-11px font-medium text-t-secondary'>
           {t('settings.repair.envScenariosTitle')}
         </Typography.Text>
-        <ul className='my-4px pl-16px text-11px leading-18px text-t-tertiary'>
+        <ul className='my-4px ps-16px text-11px leading-18px text-t-tertiary'>
           <li>{t('settings.repair.envScenarioApiKey')}</li>
           <li>{t('settings.repair.envScenarioBaseUrl')}</li>
           <li>{t('settings.repair.envScenarioProxy')}</li>

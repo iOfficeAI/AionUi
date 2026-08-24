@@ -39,6 +39,8 @@
   "expandMore": "نمایش بیشتر",
   "collapse": "جمع کردن",
   "viewMoreLines": "نمایش بیشتر ({{count}} خط)",
+  "viewMoreLines_one": "نمایش بیشتر ({{count}} خط)",
+  "viewMoreLines_other": "نمایش بیشتر ({{count}} خط)",
   "success": "موفقیت",
   "error": "خطا",
   "saveSuccess": "با موفقیت ذخیره شد",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "گزارش تشخیصی ارسال شد",
       "diagnosticsReportSuccess": "گزارش تشخیصی ارسال شد",
       "diagnosticsReportFailed": "ارسال گزارش تشخیصی ناموفق بود"
+    },
+    "databaseNewerThanApp": {
+      "title": "به نسخه جدیدتر AionUi نیاز است",
+      "description": "داده‌های محلی شما توسط نسخه جدیدتری از AionUi ایجاد شده‌اند و این نسخه نمی‌تواند آن‌ها را باز کند. برای ادامه، AionUi را به آخرین نسخه به‌روزرسانی کنید؛ داده‌های شما سالم هستند و نیازی به نصب مجدد یا بازنشانی نیست.",
+      "descriptionWithVersion": "داده‌های محلی شما توسط نسخه‌ای از AionUi جدیدتر از نسخه فعلی (v{{currentVersion}}) ایجاد شده‌اند و این نسخه نمی‌تواند آن‌ها را باز کند. برای ادامه، AionUi را به آخرین نسخه به‌روزرسانی کنید؛ داده‌های شما سالم هستند و نیازی به نصب مجدد یا بازنشانی نیست."
     },
     "localDataRepair": {
       "title": "ترمیم داده‌های محلی ناموفق بود",
@@ -194,5 +201,6 @@
     "second_short": "ث"
   },
   "selectedCount": "{{count}} انتخاب‌شده",
-  "selectedSkills": "مهارت‌های انتخاب‌شده"
+  "selectedSkills": "مهارت‌های انتخاب‌شده",
+  "aiAssistant": "دستیار هوش مصنوعی"
 }

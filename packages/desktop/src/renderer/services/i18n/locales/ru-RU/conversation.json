@@ -43,7 +43,15 @@
     "batchExportConfirm": "Экспортировать {{count}} выбранных тем?",
     "batchDelete": "Массовое удаление",
     "batchDeleteConfirm": "Удалить {{count}} выбранных тем?",
+    "batchDeleteConfirm_one": "Удалить {{count}} выбранную тему?",
+    "batchDeleteConfirm_other": "Удалить {{count}} выбранных тем?",
+    "batchDeleteConfirm_few": "Удалить {{count}} выбранные темы?",
+    "batchDeleteConfirm_many": "Удалить {{count}} выбранных тем?",
     "batchDeleteSuccess": "Удалено {{count}} тем",
+    "batchDeleteSuccess_one": "Удалена {{count}} тема",
+    "batchDeleteSuccess_other": "Удалено {{count}} тем",
+    "batchDeleteSuccess_few": "Удалено {{count}} темы",
+    "batchDeleteSuccess_many": "Удалено {{count}} тем",
     "batchNoSelection": "Сначала выберите темы",
     "export": "Экспортировать",
     "exportDialogTitle": "Экспорт тем",
@@ -58,6 +66,8 @@
     "exportFailed": "Ошибка экспорта",
     "pin": "Закрепить",
     "unpin": "Открепить",
+    "markAsUnread": "Пометить как непрочитанное",
+    "markAsRead": "Пометить как прочитанное",
     "pinned": "Закреплено",
     "pinFailed": "Не удалось закрепить",
     "pinnedSection": "Закреплённые",
@@ -69,20 +79,21 @@
     "earlier": "Ранее",
     "projectsSection": "Проекты",
     "conversationsSection": "Беседы",
-    "removeProjectTitle": "Удалить проект",
-    "removeProject": "Удалить проект",
-    "removeProjectConfirm": "Удалить проект «{{name}}»? Беседы в проекте тоже будут удалены: {{count}}.",
-    "removeProjectConfirmTeams": "Команды в проекте тоже будут удалены: {{teams}}.",
-    "removeProjectListMore": "Ещё {{count}}",
     "newConversationInProject": "Новая беседа в этом проекте",
     "deleting": "Удаление...",
     "reorderPinned": "Перетащите, чтобы изменить порядок закреплённых бесед",
     "forkedFrom": "Ответвление от «{{name}}»",
     "forkedConversation": "Ответвлённая беседа",
-    "loadMore": "Загрузить ещё",
-    "newTeamInProject": "Новая команда в этом проекте",
-    "projectCreateMenu": "Создать",
-    "collapseAllProjects": "Свернуть все проекты"
+    "archive": "Архивировать",
+    "archiveSuccess": "Архивировано",
+    "archiveFailed": "Не удалось архивировать",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -433,7 +444,11 @@
     "searchHint": "Нажмите здесь для поиска по ключевым словам",
     "empty": "Пока нет вопросов и ответов",
     "noMatch": "Соответствующий контент не найден",
-    "count": "{{count}} ходов"
+    "count": "{{count}} ходов",
+    "count_one": "{{count}} ход",
+    "count_other": "{{count}} ходов",
+    "count_few": "{{count}} хода",
+    "count_many": "{{count}} ходов"
   },
   "chat": {
     "noModelSelected": "Модель для текущей сессии не выбрана, невозможно отправить сообщение",
@@ -451,6 +466,7 @@
     "switchAgentFailed": "Не удалось переключить агента",
     "speech": {
       "recordTooltip": "Начать голосовой ввод",
+      "recordTooltipWithShortcut": "Голосовой ввод cmd+M",
       "pickFileTooltip": "Выбрать аудиофайл",
       "stopTooltip": "Остановить запись",
       "processing": "Транскрибирование аудио...",
@@ -497,6 +513,10 @@
     "reorder": "Перетащите для изменения порядка",
     "remove": "Удалить",
     "files": "{{count}} файлов",
+    "files_one": "{{count}} файл",
+    "files_other": "{{count}} файлов",
+    "files_few": "{{count}} файла",
+    "files_many": "{{count}} файлов",
     "pausedAfterFailure": "Следующая команда в очереди не может запуститься. Отредактируйте, измените порядок или удалите для продолжения.",
     "emptyInput": "Команды в очереди не могут быть пустыми.",
     "queueFull": "Очередь заполнена. Удалите команду перед добавлением.",
@@ -514,7 +534,14 @@
     "mode": {
       "auto": "Авто-отправка",
       "manual": "Ручная отправка"
-    }
+    },
+    "addToQueue": "Добавить в черновики",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Вставка сообщений не поддерживается, пока этот агент отвечает. Используйте «Добавить в черновики».",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "контекст использован",
@@ -573,7 +600,8 @@
   },
   "sendbox": {
     "hint": "Введите / для команд, @ для ссылок на файлы, ↑/↓ для истории сообщений",
-    "mediaPathFallback": "Этот агент не поддерживает данный тип файла нативно; он будет отправлен в виде пути к файлу."
+    "mediaPathFallback": "Этот агент не поддерживает данный тип файла нативно; он будет отправлен в виде пути к файлу.",
+    "hintWithSessions": "/ — команды, @ — файлы, @@ — беседы, ↑/↓ — история"
   },
   "agentTip": {
     "codes": {
@@ -621,11 +649,16 @@
       "rename": "Переименовать",
       "addToChat": "Добавить в чат",
       "copyRelativePath": "Копировать относительный путь",
-      "copyAbsolutePath": "Копировать абсолютный путь"
+      "copyAbsolutePath": "Копировать абсолютный путь",
+      "refresh": "Обновить",
+      "newFile": "Новый файл",
+      "newDir": "Новая папка"
     },
     "namePlaceholder": "Имя",
     "deleteConfirm": "Удалить «{{name}}»? Это действие нельзя отменить.",
     "renameFailed": "Не удалось переименовать",
+    "newFileFailed": "Не удалось создать файл",
+    "newDirFailed": "Не удалось создать папку",
     "tabs": {
       "files": "Файлы",
       "changes": "Изменения"
@@ -634,6 +667,8 @@
     "imported": "Импортировано файлов: {{count}}",
     "importPartialFailed": "Скопировано: {{copied}}, с ошибкой: {{failed}} (конфликты имён или не поддерживается)",
     "importFailed": "Не удалось импортировать файлы",
+    "copyNodeFailed": "Не удалось скопировать",
+    "moveNodeFailed": "Не удалось переместить",
     "search": {
       "placeholder": "Поиск файлов по имени",
       "searching": "Поиск…",
@@ -703,8 +738,20 @@
         "confirmDiscardMixed": "Правки в {{tracked}} файле(ах) будут безвозвратно потеряны; {{untracked}} новых файла(ов) попадут в корзину.",
         "discardConfirmButton": "Отменить",
         "okStage": "Проиндексировано файлов: {{count}}",
+        "okStage_one": "Проиндексировано файлов: {{count}}",
+        "okStage_other": "Проиндексировано файлов: {{count}}",
+        "okStage_few": "Проиндексировано файлов: {{count}}",
+        "okStage_many": "Проиндексировано файлов: {{count}}",
         "okUnstage": "Убрано из индекса файлов: {{count}}",
+        "okUnstage_one": "Убрано из индекса файлов: {{count}}",
+        "okUnstage_other": "Убрано из индекса файлов: {{count}}",
+        "okUnstage_few": "Убрано из индекса файлов: {{count}}",
+        "okUnstage_many": "Убрано из индекса файлов: {{count}}",
         "okDiscard": "Отменены изменения в {{count}} файлах",
+        "okDiscard_one": "Отменены изменения в {{count}} файле",
+        "okDiscard_other": "Отменены изменения в {{count}} файлах",
+        "okDiscard_few": "Отменены изменения в {{count}} файлах",
+        "okDiscard_many": "Отменены изменения в {{count}} файлах",
         "partial": "Выполнено {{succeeded}} из {{total}} —— не удалось: {{failed}}",
         "partialDetail": "Не выполнено: {{files}}",
         "rejectedBlocked": "Ничего не изменено —— сначала устраните конфликт",
@@ -713,7 +760,11 @@
         "retry": "Повторить",
         "notSent": "Запрос не дошёл до сервера, ничего не изменено. Можно повторить.",
         "outcomeUnknown": "Соединение сброшено до получения ответа — операция могла завершиться, а могла и нет. Обновите и проверьте список файлов, прежде чем повторять.",
-        "allFailed": "Ни один из {{count}} файл(ов) не удалось обработать"
+        "allFailed": "Ни один из {{count}} файл(ов) не удалось обработать",
+        "allFailed_one": "Не удалось обработать {{count}} файл",
+        "allFailed_other": "Не удалось обработать ни один из {{count}} файлов",
+        "allFailed_few": "Не удалось обработать ни один из {{count}} файлов",
+        "allFailed_many": "Не удалось обработать ни один из {{count}} файлов"
       }
     },
     "pathCopied": "Путь скопирован",
@@ -725,5 +776,26 @@
     "exited": "Код {{code}}",
     "stop": "Остановить",
     "truncated": "(ранний вывод усечён)"
+  },
+  "emptyState": {
+    "greeting": "Здравствуйте! Расскажите, что нужно, и я начну."
+  },
+  "crossSession": {
+    "mentionAgain": "Упомянуть беседу {{name}} в поле ввода",
+    "mentionAgainHint": "Нажмите, чтобы упомянуть эту беседу в поле ввода",
+    "mentionUnavailable": "Эту беседу больше нельзя упомянуть.",
+    "mentionFailed": "Не удалось упомянуть эту беседу.",
+    "fromBadge": "Из беседы «{{name}}»",
+    "otherWorkspace": "другая рабочая папка",
+    "rateLimitedTitle": "Сообщения между беседами, возможно, зациклились",
+    "rateLimited": "Автоматические сообщения между «{{from}}» и «{{to}}» приходят необычно часто — возможно, они зациклились.",
+    "stopBoth": "Остановить обе беседы",
+    "disableFeature": "Отключить сообщения между беседами"
+  },
+  "planBar": {
+    "title": "План",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Развернуть план",
+    "collapse": "Свернуть план"
   }
 }

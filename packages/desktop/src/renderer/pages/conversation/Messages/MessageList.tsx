@@ -38,7 +38,6 @@ import {
   useMessagePaginationState,
 } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
-import MessagePlan from './components/MessagePlan';
 import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
@@ -301,11 +300,14 @@ const MessageItem: React.FC<{
           return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
         case 'acp_terminal_output':
           return <MessageAcpTerminalOutput message={message}></MessageAcpTerminalOutput>;
-        case 'plan':
-          return <MessagePlan message={message}></MessagePlan>;
         case 'thinking':
           return <MessageThinking message={message}></MessageThinking>;
+        // Both are filtered out of `processedList` above and never reach this
+        // switch. These arms exist only to keep the `default` branch's
+        // exhaustiveness check (`getUnhandledMessageType`) satisfied — a plan
+        // renders in ConversationPlanBar, not as a stream row.
         case 'available_commands':
+        case 'plan':
           return null;
         default:
           return <div>{t('messages.unknownMessageType', { type: getUnhandledMessageType(message) })}</div>;
@@ -405,6 +407,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       // Skip hidden and available_commands messages
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
+      // A plan renders in ConversationPlanBar, never in the stream. Filtered
+      // here rather than rendered as null: a null row still occupies a slot.
+      if (message.type === 'plan') continue;
       if (message.type === 'tool_group') {
         const writeFileResults = message.content.flatMap((item) =>
           item.name === 'WriteFile' && isWriteFileResult(item.result_display) ? [item.result_display] : []
@@ -744,7 +749,15 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
             onScroll={handleMessageListScroll}
             onWheel={handleWheel}
           >
-            <div ref={setContentRef} data-testid='message-list-content' style={{ overflowAnchor: 'none' }}>
+            <div
+              ref={setContentRef}
+              data-testid='message-list-content'
+              style={{
+                overflowAnchor: 'none',
+                fontFamily: 'var(--chat-font-family, inherit)',
+                fontWeight: 'var(--chat-font-weight, inherit)',
+              }}
+            >
               <div className='h-10px' />
               {processedList.map((item, index) => (
                 <React.Fragment key={getProcessedItemAnchorId(item) || index}>{renderItem(index, item)}</React.Fragment>
@@ -758,7 +771,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       {showScrollButton && (
         <>
           {/* Gradient mask */}
-          <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
+          <div className='absolute bottom-0 start-0 end-0 h-100px pointer-events-none' />
           {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
             <div

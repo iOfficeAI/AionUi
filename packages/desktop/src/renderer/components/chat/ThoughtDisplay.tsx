@@ -6,7 +6,6 @@
 
 import { Tag, Spin, Button } from '@arco-design/web-react';
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 export interface ThoughtData {
@@ -28,10 +27,6 @@ type ThoughtDisplayProps = {
   externalElapsedSource?: boolean;
 };
 
-// Background gradient constants
-const GRADIENT_DARK = 'linear-gradient(135deg, #464767 0%, #323232 100%)';
-const GRADIENT_LIGHT = 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)';
-
 const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   thought,
   style = 'default',
@@ -42,7 +37,6 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   startedAtMs,
   externalElapsedSource,
 }) => {
-  const { theme } = useThemeContext();
   const { t } = useTranslation();
 
   // Format elapsed time with localized units
@@ -113,9 +107,11 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     return () => clearInterval(timer);
   }, [externalElapsedSource, startedAtMs, running, thought?.subject]);
 
-  // Calculate final style based on theme and style prop
+  // Calculate final style based on style prop. The theme-aware gradient is
+  // resolved via the `--thought-gradient` token so it follows light/dark and any
+  // custom theme override.
   const containerStyle = useMemo(() => {
-    const background = theme === 'dark' ? GRADIENT_DARK : GRADIENT_LIGHT;
+    const background = 'var(--thought-gradient)';
 
     if (style === 'compact') {
       return {
@@ -129,7 +125,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     return {
       background,
     };
-  }, [theme, style]);
+  }, [style]);
 
   // Hide when not running and no thought data
   if (!thought?.subject && !running && !statusText) {
@@ -150,7 +146,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
             parallel-view column. */}
         <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
           {statusText ?? t('conversation.chat.processing')}
-          {showElapsed && <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
+          {showElapsed && <span className='ms-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
         </span>
         {onRetryStart && (
           <Button className='flex-shrink-0' size='mini' type='text' onClick={onRetryStart}>

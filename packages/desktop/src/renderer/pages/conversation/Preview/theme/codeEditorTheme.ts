@@ -18,7 +18,7 @@ export const codeEditorFontTheme = (): Extension => {
   const cfg = getCodeEditorConfig();
   return EditorView.theme({
     '&': { fontSize: cfg.fontSize },
-    '.cm-content': { fontFamily: cfg.fontFamily, lineHeight: cfg.lineHeight },
+    '.cm-content': { fontFamily: cfg.fontFamily, fontWeight: cfg.fontWeight, lineHeight: cfg.lineHeight },
     '.cm-gutters': { fontFamily: cfg.fontFamily },
   });
 };

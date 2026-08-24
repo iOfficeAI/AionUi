@@ -8,6 +8,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button, Switch } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal';
+import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
@@ -653,7 +654,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 return (
                   <div className='flex items-center gap-8px'>
                     {avatar.kind === 'image' ? (
-                      <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
+                      <ThemedLogo src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                     ) : avatar.kind === 'emoji' ? (
                       <span className='text-14px leading-16px'>{avatar.value}</span>
                     ) : (
@@ -675,7 +676,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
                     >
                       {avatar.kind === 'image' ? (
-                        <img src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
+                        <ThemedLogo src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                       ) : avatar.kind === 'emoji' ? (
                         <span className='text-14px leading-16px'>{avatar.value}</span>
                       ) : (
@@ -711,7 +712,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     value={option.value}
                     className={`m-0 min-w-0 text-14px text-t-secondary ${isExecutionModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
+                    <span className='ps-4px text-14px font-medium text-t-primary'>{option.label}</span>
                   </Radio>
                 );
               })}

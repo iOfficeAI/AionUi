@@ -36,13 +36,27 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
 }));
 
+// FeedbackReportModal reads useAuth() to silently attach the signed-in user's
+// account email to the report. Mock it with a mutable holder so individual
+// tests can flip between a logged-out user (no email attached) and one that
+// carries an email.
+const authMock = vi.hoisted(() => ({
+  user: null as { id: string; username: string; email?: string } | null,
+}));
+
+vi.mock('@/renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({ user: authMock.user }),
+}));
+
 const sentryMocks = vi.hoisted(() => {
   const setTag = vi.fn();
+  const setUser = vi.fn();
   return {
     setTag,
+    setUser,
     captureEvent: vi.fn(),
-    withScope: vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => {
-      callback({ setTag });
+    withScope: vi.fn((callback: (scope: { setTag: typeof setTag; setUser: typeof setUser }) => void) => {
+      callback({ setTag, setUser });
     }),
   };
 });
@@ -66,7 +80,9 @@ describe('FeedbackReportModal — prefill', () => {
     // Ensure no leftover global electronAPI from other tests interferes.
     (window as unknown as { electronAPI?: unknown }).electronAPI = undefined;
     window.location.hash = '';
+    authMock.user = null;
     sentryMocks.setTag.mockClear();
+    sentryMocks.setUser.mockClear();
     sentryMocks.captureEvent.mockClear();
     sentryMocks.withScope.mockClear();
   });
@@ -251,5 +267,47 @@ describe('FeedbackReportModal — prefill', () => {
     expect(path).toContain('route_at_submit=%23%2Fconversation%2Fconv-1');
     expect(path).toContain('selected_module=system-settings');
     expect(options.method).toBe('GET');
+  });
+
+  it('attaches the signed-in account email to the feedback event', async () => {
+    authMock.user = { id: 'u1', username: 'user-one', email: '  me@account.com  ' };
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} defaultModule='conversation-session' />);
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'something broke');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
+
+    await waitFor(() => {
+      expect(sentryMocks.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    // The account email rides along on THIS event's scoped user (trimmed), with
+    // no visible field for the reporter to fill in or edit.
+    expect(sentryMocks.setUser).toHaveBeenCalledWith({ email: 'me@account.com' });
+  });
+
+  it('submits without a scoped user when the signed-in user has no email', async () => {
+    authMock.user = { id: 'u1', username: 'user-one' };
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} defaultModule='conversation-session' />);
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'something broke');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
+
+    await waitFor(() => {
+      expect(sentryMocks.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sentryMocks.setUser).not.toHaveBeenCalled();
+  });
+
+  it('no longer renders the contact email field or its account-fill button', () => {
+    authMock.user = { id: 'u1', username: 'user-one', email: 'me@account.com' };
+    renderModal(<FeedbackReportModal visible={true} onCancel={vi.fn()} />);
+    // Positive control: the description field still renders, so the modal mounted.
+    expect(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder')).toBeInTheDocument();
+    // The removed contact email input and its "use account email" button are gone.
+    expect(screen.queryByPlaceholderText('settings.bugReportContactEmailPlaceholder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-feedback-use-account-email')).not.toBeInTheDocument();
   });
 });

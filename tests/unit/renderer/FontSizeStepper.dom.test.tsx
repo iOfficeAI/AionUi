@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
 }));
 
-import FontSizeStepper from '@renderer/components/settings/FontSizeStepper';
+import FontSizeStepper from '@renderer/components/settings/SettingsModal/contents/AppearanceModalContent/FontSizeStepper';
 
 const DECREASE = 'settings.fontSizeDecrease';
 const INCREASE = 'settings.fontSizeIncrease';

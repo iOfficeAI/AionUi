@@ -19,6 +19,7 @@ const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted
 
 type MockAcpModelInfoResult = {
   model_info: AcpModelInfo | null;
+  isRuntimeReady: boolean;
   canSwitch: boolean;
   isLoading: boolean;
   isSetting: boolean;
@@ -49,6 +50,7 @@ const thoughtLevel: AcpDerivedOption = {
 
 const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpModelInfoResult => ({
   model_info: modelInfo,
+  isRuntimeReady: true,
   canSwitch: true,
   isLoading: false,
   isSetting: false,
@@ -189,6 +191,23 @@ describe('AcpModelSelector runtime options', () => {
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
   });
 
+  it('reports runtime readiness changes to its parent', () => {
+    const onRuntimeReadyChange = vi.fn();
+    useAcpModelInfoMock.mockReturnValue(makeResult({ isRuntimeReady: false }));
+    const { rerender } = render(
+      <AcpModelSelector conversation_id='conversation-1' backend='codex' onRuntimeReadyChange={onRuntimeReadyChange} />
+    );
+
+    expect(onRuntimeReadyChange).toHaveBeenLastCalledWith(false);
+
+    useAcpModelInfoMock.mockReturnValue(makeResult({ isRuntimeReady: true }));
+    rerender(
+      <AcpModelSelector conversation_id='conversation-1' backend='codex' onRuntimeReadyChange={onRuntimeReadyChange} />
+    );
+
+    expect(onRuntimeReadyChange).toHaveBeenLastCalledWith(true);
+  });
+
   it('shows a plain loading slot while runtime config is initializing', () => {
     useAcpModelInfoMock.mockReturnValue(makeResult({ model_info: null, canSwitch: false, isLoading: true }));
 
@@ -217,6 +236,20 @@ describe('AcpModelSelector runtime options', () => {
     render(<AcpModelSelector conversation_id='conversation-1' backend='codex' prepareSetRuntime={prepareSetRuntime} />);
 
     expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining({ prepareSetRuntime }));
+  });
+
+  // The backend persists the selection in the same request that switches the
+  // runtime, so the selector reports success immediately and synchronously.
+  // It used to chain a second persistence call whose failure was surfaced as
+  // "model switch failed" even though the runtime had already switched.
+  it('reports selection success without chaining a second persistence step', () => {
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+    const hookArgs = useAcpModelInfoMock.mock.calls[0][0];
+
+    const result = hookArgs.onSelectModelSuccess('gpt-5.6-sol');
+
+    expect(result).toBeUndefined();
+    expect(messageSuccessMock).toHaveBeenCalledWith('agent.model.switchSuccess');
   });
 
   it('shows the model submenu before the thought level submenu, each with its current value', () => {

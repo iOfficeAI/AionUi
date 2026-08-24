@@ -43,7 +43,11 @@
     "batchExportConfirm": "¿Exportar {{count}} temas seleccionados?",
     "batchDelete": "Eliminar por lotes",
     "batchDeleteConfirm": "¿Eliminar {{count}} temas seleccionados?",
+    "batchDeleteConfirm_one": "¿Eliminar {{count}} tema seleccionado?",
+    "batchDeleteConfirm_other": "¿Eliminar {{count}} temas seleccionados?",
     "batchDeleteSuccess": "{{count}} temas eliminados",
+    "batchDeleteSuccess_one": "{{count}} tema eliminado",
+    "batchDeleteSuccess_other": "{{count}} temas eliminados",
     "batchNoSelection": "Por favor selecciona temas primero",
     "export": "Exportar",
     "exportDialogTitle": "Exportar temas",
@@ -58,6 +62,8 @@
     "exportFailed": "Error en la exportación",
     "pin": "Fijar",
     "unpin": "Desfijar",
+    "markAsUnread": "Marcar como no leído",
+    "markAsRead": "Marcar como leído",
     "pinned": "Fijado",
     "pinFailed": "Error en la operación de fijar",
     "pinnedSection": "Fijados",
@@ -69,20 +75,21 @@
     "earlier": "Anterior",
     "projectsSection": "Proyectos",
     "conversationsSection": "Conversaciones",
-    "removeProjectTitle": "Quitar proyecto",
-    "removeProject": "Quitar proyecto",
-    "removeProjectConfirm": "¿Quitar el proyecto \"{{name}}\"? Sus {{count}} conversación(es) también se quitarán.",
-    "removeProjectConfirmTeams": "También se quitarán {{teams}} equipo(s) del proyecto.",
-    "removeProjectListMore": "+{{count}} más",
     "newConversationInProject": "Nuevo chat en este proyecto",
     "deleting": "Eliminando...",
     "reorderPinned": "Arrastra para reordenar la conversación fijada",
     "forkedFrom": "Bifurcada de “{{name}}”",
     "forkedConversation": "Conversación bifurcada",
-    "loadMore": "Cargar más",
-    "newTeamInProject": "Nuevo equipo en este proyecto",
-    "projectCreateMenu": "Crear",
-    "collapseAllProjects": "Contraer todos los proyectos"
+    "archive": "Archivar",
+    "archiveSuccess": "Archivado",
+    "archiveFailed": "Error al archivar",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",
@@ -433,7 +440,9 @@
     "searchHint": "Haz clic aquí para buscar palabras clave",
     "empty": "Sin turnos de preguntas y respuestas aún",
     "noMatch": "No se encontró contenido coincidente",
-    "count": "{{count}} turnos"
+    "count": "{{count}} turnos",
+    "count_one": "{{count}} turno",
+    "count_other": "{{count}} turnos"
   },
   "chat": {
     "noModelSelected": "No hay modelo seleccionado para la sesión actual, no se puede enviar el mensaje",
@@ -452,6 +461,7 @@
     "switchAgentFailed": "Error al cambiar de agente",
     "speech": {
       "recordTooltip": "Iniciar entrada de voz",
+      "recordTooltipWithShortcut": "Entrada de voz cmd+M",
       "pickFileTooltip": "Seleccionar un archivo de audio",
       "stopTooltip": "Detener grabación",
       "processing": "Transcribiendo audio...",
@@ -498,6 +508,8 @@
     "reorder": "Arrastrar para reordenar el comando en cola",
     "remove": "Quitar",
     "files": "{{count}} archivos",
+    "files_one": "{{count}} archivo",
+    "files_other": "{{count}} archivos",
     "pausedAfterFailure": "El siguiente comando en cola no pudo iniciar. Edítalo, reordénalo o quítalo para continuar.",
     "emptyInput": "Los comandos en cola no pueden estar vacíos.",
     "queueFull": "La cola está llena. Quita un comando antes de agregar más.",
@@ -515,7 +527,14 @@
     "mode": {
       "auto": "Envío automático",
       "manual": "Envío manual"
-    }
+    },
+    "addToQueue": "Añadir al buzón de borradores",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "No se admite interrumpir mientras este agente está respondiendo. Usa Añadir al buzón de borradores en su lugar.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "contexto usado",
@@ -574,7 +593,8 @@
   },
   "sendbox": {
     "hint": "Escribe / para comandos, @ para referenciar archivos y ↑/↓ para el historial de mensajes",
-    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo."
+    "mediaPathFallback": "Este agente no admite este tipo de archivo de forma nativa; se enviará como ruta de archivo.",
+    "hintWithSessions": "/ para comandos, @ para archivos, @@ para conversaciones, ↑/↓ para el historial"
   },
   "agentTip": {
     "codes": {
@@ -622,11 +642,16 @@
       "rename": "Cambiar nombre",
       "addToChat": "Añadir al chat",
       "copyRelativePath": "Copiar ruta relativa",
-      "copyAbsolutePath": "Copiar ruta absoluta"
+      "copyAbsolutePath": "Copiar ruta absoluta",
+      "refresh": "Actualizar",
+      "newFile": "Nuevo archivo",
+      "newDir": "Nueva carpeta"
     },
     "namePlaceholder": "Nombre",
     "deleteConfirm": "¿Eliminar «{{name}}»? Esto no se puede deshacer.",
     "renameFailed": "No se pudo cambiar el nombre",
+    "newFileFailed": "No se pudo crear el archivo",
+    "newDirFailed": "No se pudo crear la carpeta",
     "tabs": {
       "files": "Archivos",
       "changes": "Cambios"
@@ -635,6 +660,8 @@
     "imported": "{{count}} archivo(s) importado(s)",
     "importPartialFailed": "{{copied}} copiado(s), {{failed}} con error (conflictos de nombre o no admitidos)",
     "importFailed": "Error al importar los archivos",
+    "copyNodeFailed": "Error al copiar",
+    "moveNodeFailed": "Error al mover",
     "search": {
       "placeholder": "Buscar archivos por nombre",
       "searching": "Buscando…",
@@ -704,8 +731,14 @@
         "confirmDiscardMixed": "Las ediciones de {{tracked}} archivo(s) se perderán de forma irreversible; {{untracked}} archivo(s) nuevo(s) irán a la papelera.",
         "discardConfirmButton": "Descartar",
         "okStage": "{{count}} archivos preparados",
+        "okStage_one": "{{count}} archivo preparado",
+        "okStage_other": "{{count}} archivos preparados",
         "okUnstage": "{{count}} archivos quitados de preparados",
+        "okUnstage_one": "{{count}} archivo quitado de preparados",
+        "okUnstage_other": "{{count}} archivos quitados de preparados",
         "okDiscard": "{{count}} archivos descartados",
+        "okDiscard_one": "{{count}} archivo descartado",
+        "okDiscard_other": "{{count}} archivos descartados",
         "partial": "{{succeeded}} de {{total}} completados —— {{failed}} no se pudieron completar",
         "partialDetail": "No completados: {{files}}",
         "rejectedBlocked": "No se cambió nada —— resuelve primero el conflicto",
@@ -714,7 +747,9 @@
         "retry": "Reintentar",
         "notSent": "La solicitud no llegó al backend: no se cambió nada. Puedes volver a intentarlo.",
         "outcomeUnknown": "La conexión se restableció antes de recibir respuesta: esta acción puede haberse completado o no. Actualiza y revisa la lista de archivos antes de reintentar.",
-        "allFailed": "No se pudo procesar ninguno de los {{count}} archivo(s)"
+        "allFailed": "No se pudo procesar ninguno de los {{count}} archivo(s)",
+        "allFailed_one": "No se pudo procesar {{count}} archivo",
+        "allFailed_other": "No se pudo procesar ninguno de los {{count}} archivos"
       }
     },
     "pathCopied": "Ruta copiada",
@@ -726,5 +761,26 @@
     "exited": "Salida {{code}}",
     "stop": "Detener",
     "truncated": "(salida anterior truncada)"
+  },
+  "emptyState": {
+    "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."
+  },
+  "crossSession": {
+    "mentionAgain": "Mencionar la conversación {{name}} en el cuadro de mensaje",
+    "mentionAgainHint": "Haz clic para mencionar esta conversación en el cuadro de mensaje",
+    "mentionUnavailable": "Esa conversación ya no se puede mencionar.",
+    "mentionFailed": "No se pudo mencionar esa conversación.",
+    "fromBadge": "De la conversación {{name}}",
+    "otherWorkspace": "espacio de trabajo distinto",
+    "rateLimitedTitle": "Los mensajes entre conversaciones podrían estar en bucle",
+    "rateLimited": "Los mensajes automáticos entre «{{from}}» y «{{to}}» son inusualmente frecuentes y podrían estar en bucle.",
+    "stopBoth": "Detener ambas conversaciones",
+    "disableFeature": "Desactivar los mensajes entre conversaciones"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Expandir plan",
+    "collapse": "Contraer plan"
   }
 }

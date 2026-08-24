@@ -2,5 +2,14 @@
   "selectFile": "انتخاب فایل",
   "selectDirectory": "انتخاب پوشه",
   "pleaseSelectFile": "لطفاً یک فایل انتخاب کنید",
-  "pleaseSelectDirectory": "لطفاً یک پوشه انتخاب کنید"
+  "pleaseSelectDirectory": "لطفاً یک پوشه انتخاب کنید",
+  "webFsPicker": {
+    "loadFailed": "نمی‌توان این پوشه را باز کرد",
+    "titleDirectory": "یک پوشه روی سرور انتخاب کنید",
+    "titleFile": "یک فایل روی سرور انتخاب کنید",
+    "selectedCount": "{{count}} انتخاب شد",
+    "up": "بالا",
+    "go": "برو",
+    "empty": "اینجا چیزی نیست"
+  }
 }

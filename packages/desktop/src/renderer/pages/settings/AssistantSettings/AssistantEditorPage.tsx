@@ -40,7 +40,7 @@ const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activ
                 : t('settings.editAssistant', { defaultValue: 'Assistant Details' }))}
           </div>
         </div>
-        <div className='ml-auto flex items-center gap-8px'>
+        <div className='ms-auto flex items-center gap-8px'>
           {canDelete && (
             <Button
               status='danger'

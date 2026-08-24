@@ -54,7 +54,7 @@ const conversation = {
 const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationRowProps => ({
   conversation,
   isGenerating: false,
-  hasCompletionUnread: false,
+  hasUnread: false,
   collapsed: false,
   tooltipEnabled: false,
   batchMode: false,
@@ -67,30 +67,30 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   onMenuVisibleChange: vi.fn(),
   onEditStart: vi.fn(),
   onCreateCronTask: vi.fn(),
-  onDelete: vi.fn(),
+  onArchive: vi.fn(),
   onTogglePin: vi.fn(),
   getJobStatus: () => 'none',
   ...overrides,
 });
 
 describe('conversation scheduled-task menu item', () => {
-  it('renders the Timer action between Rename and Delete and invokes it for the selected row', async () => {
+  it('renders the Timer action between Rename and Archive and invokes it for the selected row', async () => {
     const onCreateCronTask = vi.fn();
     const onEditStart = vi.fn();
-    const onDelete = vi.fn();
-    render(<ConversationRow {...makeProps({ onCreateCronTask, onDelete, onEditStart })} />);
+    const onArchive = vi.fn();
+    render(<ConversationRow {...makeProps({ onCreateCronTask, onArchive, onEditStart })} />);
 
     const rename = await screen.findByText('conversation.history.rename');
     const createCronTask = screen.getByText('conversation.history.createCronTask');
-    const deleteItem = screen.getByText('conversation.history.deleteTitle');
+    const archiveItem = screen.getByText('conversation.history.archive');
 
     expect(rename.compareDocumentPosition(createCronTask) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(createCronTask.compareDocumentPosition(deleteItem) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(createCronTask.compareDocumentPosition(archiveItem) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     fireEvent.click(rename);
     await waitFor(() => expect(onEditStart).toHaveBeenCalledWith(conversation));
-    fireEvent.click(deleteItem);
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(conversation.id));
+    fireEvent.click(archiveItem);
+    await waitFor(() => expect(onArchive).toHaveBeenCalledWith(conversation));
     fireEvent.click(createCronTask);
     await waitFor(() => expect(onCreateCronTask).toHaveBeenCalledWith(conversation));
   });

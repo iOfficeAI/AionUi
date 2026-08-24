@@ -374,7 +374,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
             )}
             onClick={() => setActiveTab(item.key)}
           >
-            <span className='mr-12px text-16px line-height-[10px]'>{item.icon}</span>
+            <span className='me-12px text-16px line-height-[10px]'>{item.icon}</span>
             <span className='text-14px font-500 flex-1 lh-22px'>{item.label}</span>
           </div>
         ))}
@@ -409,7 +409,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
             {isMobile ? mobileMenu : desktopMenu}
 
             <AionScrollArea
-              className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+              className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col ps-24px gap-16px')}
             >
               {renderBuiltinContent()}
               {renderExtensionTabs()}

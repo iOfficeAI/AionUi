@@ -47,5 +47,13 @@
   },
   "warmup": {
     "clickToWake": "点击唤醒该成员"
+  },
+  "runtimeRestart": {
+    "tooltip": "重连代理",
+    "confirmContent": "将重启代理进程，以读取最新的 CLI 配置（例如切换渠道后）。聊天记录不会丢失，代理会尽可能恢复当前会话。",
+    "success": "代理已重连",
+    "failed": "代理重连失败",
+    "initializingTooltip": "代理正在初始化，请稍后再重连",
+    "processingTooltip": "请等当前回复结束后再重连"
   }
 }

@@ -341,7 +341,7 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolb
 
             {/* 选中的元素路径 */}
             {selectedElement && (
-              <div className='text-12px text-t-secondary ml-8px'>
+              <div className='text-12px text-t-secondary ms-8px'>
                 {t('preview.html.selectedLabel')} <code className='bg-bg-3 px-4px rd-2px'>{selectedElement.path}</code>
               </div>
             )}
@@ -377,7 +377,7 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolb
       <div className='flex-1 flex overflow-hidden'>
         {/* 左侧：代码编辑器（编辑模式时显示） */}
         {editMode && (
-          <div className='flex-1 overflow-hidden border-r border-border-base'>
+          <div className='flex-1 overflow-hidden border-e border-border-base'>
             <MonacoEditor
               height='100%'
               language='html'

@@ -5,6 +5,7 @@
   "nextRun": "下次執行",
   "lastRun": "上次執行",
   "lastError": "錯誤訊息",
+  "lastErrorWithDetail": "上次錯誤：{{error}}",
   "message": "執行內容",
   "goToConversation": "跳轉到所屬對話",
   "status": {

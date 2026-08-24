@@ -6,14 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
-import { flattenSidebarConversations, scopeToToken } from '@/common/adapter/sidebarMapper';
-import type { SidebarGroup, SidebarResponse } from '@/common/types/sidebar';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
-
-/** Per-group window sizes: first screen shows 10, "load more" pages 10 at a time. */
-const FIRST_SCREEN_LIMIT = 10;
-const LOAD_MORE_LIMIT = 10;
 
 /**
  * Whitelist of message types that indicate content generation is in progress.
@@ -29,6 +23,11 @@ const isGeneratingStreamMessage = (type: string): boolean => {
     type === 'thought' ||
     type === 'thinking' ||
     type === 'tool_group' ||
+    // Direct-CLI (non-ACP) sessions stream individual `tool_call` frames
+    // instead of `tool_group` — measured live: 31 of 34 frames in a 55s tool
+    // stretch were `tool_call`. Without this, long tool runs on direct-CLI
+    // backends can leave the sidebar spinner dark for the whole stretch.
+    type === 'tool_call' ||
     type === 'acp_tool_call' ||
     type === 'acp_permission' ||
     type === 'permission' ||
@@ -126,27 +125,47 @@ export const getSidebarStreamGuardDecision = ({
 };
 
 type ConversationListSyncSnapshot = {
-  /** Backend sidebar read model (grouped, windowed) — the render source of truth. */
-  sidebar: SidebarResponse;
-  /** Flat conversation list derived from `sidebar` (batch selection, fork-name lookup). */
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
+  manualUnreadConversationIds: Set<string>;
 };
 
-const EMPTY_SIDEBAR: SidebarResponse = { groups: [], has_more_groups: false };
+/**
+ * Renderer-local, persisted manual "mark as unread" set. Unlike the transient
+ * completion-unread set (session-only, auto-cleared on open), this survives app
+ * restarts so a user can deliberately flag a conversation to return to later.
+ * Stored in localStorage, matching the existing collapsed-sections / workspace
+ * expansion / team-pinned persistence pattern.
+ */
+const MANUAL_UNREAD_STORAGE_KEY = 'conversation-manual-unread-ids';
+
+const readStoredManualUnread = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(MANUAL_UNREAD_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    return new Set(Array.isArray(arr) ? arr.filter((id): id is string => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const persistManualUnread = () => {
+  try {
+    localStorage.setItem(MANUAL_UNREAD_STORAGE_KEY, JSON.stringify([...manualUnreadConversationIdsState]));
+  } catch {
+    // ignore
+  }
+};
 
 const listeners = new Set<() => void>();
 
 let isStoreInitialized = false;
-let sidebarState: SidebarResponse = EMPTY_SIDEBAR;
-// First-screen snapshot per group token, captured on every full refresh, so
-// collapsing a group can reset it to the first window without a network request
-// (the "收起重置不发请求" rule).
-let firstScreenGroupsByToken = new Map<string, SidebarGroup>();
 let conversationsState: TChatConversation[] = [];
 let generatingConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
+let manualUnreadConversationIdsState = readStoredManualUnread();
 let completedConversationIdsState = new Set<string>();
 let conversation_idsState = new Set<string>();
 // Full id → owning project_id map over ALL loaded conversations (incl. the team
@@ -159,18 +178,18 @@ let conversation_idsState = new Set<string>();
 let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
-  sidebar: sidebarState,
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
+  manualUnreadConversationIds: manualUnreadConversationIdsState,
 };
 
 const emitStoreChange = () => {
   snapshotState = {
-    sidebar: sidebarState,
     conversations: conversationsState,
     generatingConversationIds: generatingConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
+    manualUnreadConversationIds: manualUnreadConversationIdsState,
   };
   listeners.forEach((listener) => listener());
 };
@@ -202,133 +221,72 @@ export const setConversationProjectMapForTest = (entries: Array<[string, string 
   projectIdByIdState = new Map(entries);
 };
 
-/**
- * Recompute the derived flat list + the two id-keyed maps from a sidebar
- * response. The sidebar folds team member conversations into their team row, so:
- * - `conversation_idsState` = every conversation id ∪ every team's member ids ∪
- *   team ids. Windowing means a stream can arrive for an id outside the current
- *   window; the responseStream guard adds such ids on sight (see below) so it
- *   refreshes once rather than looping.
- * - `projectIdByIdState` = each conversation's own `project_id`; a folded team
- *   member inherits its owning group's project (a project-bound team's row sits
- *   in that Project group), so `TeamPage`'s synchronous leader-project lookup and
- *   the conversation view's stale-tree guard keep resolving without an extra fetch.
- */
-const rebuildDerivedFromSidebar = (response: SidebarResponse) => {
-  conversationsState = flattenSidebarConversations(response);
-
-  const ids = new Set<string>();
-  const projectById = new Map<string, string | null>();
-  for (const group of response.groups) {
-    const groupProjectId = group.scope.type === 'project' ? group.scope.project_id : null;
-    for (const item of group.items) {
-      if (item.type === 'conversation') {
-        const conversation = item.conversation;
-        ids.add(conversation.id);
-        projectById.set(conversation.id, conversation.project_id ?? groupProjectId ?? null);
-      } else {
-        ids.add(item.team_id);
-        for (const memberId of item.member_conversation_ids) {
-          ids.add(memberId);
-          if (!projectById.has(memberId)) {
-            projectById.set(memberId, groupProjectId);
-          }
-        }
-      }
-    }
-  }
-  conversation_idsState = ids;
-  projectIdByIdState = projectById;
-};
-
-const applySidebarResponse = (response: SidebarResponse) => {
-  sidebarState = response;
-  firstScreenGroupsByToken = new Map(response.groups.map((group) => [scopeToToken(group.scope), group]));
-  rebuildDerivedFromSidebar(response);
-  emitStoreChange();
-};
-
 const refreshConversations = () => {
-  void ipcBridge.sidebar.get
-    .invoke({ limit: FIRST_SCREEN_LIMIT })
-    .then((response) => {
-      applySidebarResponse(response ?? EMPTY_SIDEBAR);
-    })
-    .catch((error) => {
-      console.error('[WorkspaceGroupedHistory] Failed to load sidebar:', error);
-      applySidebarResponse(EMPTY_SIDEBAR);
-    });
-};
+  void ipcBridge.database.getUserConversations
+    .invoke({ limit: 10000 })
+    .then((result) => {
+      const items = result?.items;
+      if (items && Array.isArray(items)) {
+        const filteredData = items.filter((conv) => {
+          // Legacy rows from the pre-provider-probe health check flow are hidden
+          // from normal history. New health checks must not create conversations.
+          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
+          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+        });
+        conversationsState = filteredData;
+        // Use ALL conversation IDs (including team/legacy health-check rows) so the
+        // responseStream listener recognises them as known and doesn't
+        // trigger an infinite refreshConversations loop.
+        conversation_idsState = new Set(items.map((conversation) => conversation.id));
+        // Map ALL rows (unfiltered) so a team member conversation's project_id is
+        // resolvable too — the team route looks up its leader conversation here.
+        projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
+        emitStoreChange();
+        return;
+      }
 
-/** Ensure a conversation id counts as "known" so late/out-of-window stream
- *  frames don't trigger a refresh loop. */
-const noteKnownConversation = (conversation_id: string) => {
-  if (conversation_idsState.has(conversation_id)) {
-    return;
-  }
-  conversation_idsState = new Set(conversation_idsState).add(conversation_id);
-};
-
-/** Page one more window into a group (the "+10" affordance). No-op when the
- *  group is gone or has nothing more. */
-const loadMoreGroup = (token: string) => {
-  const group = sidebarState.groups.find((candidate) => scopeToToken(candidate.scope) === token);
-  if (!group || !group.has_more) {
-    return;
-  }
-  void ipcBridge.sidebar.items
-    .invoke({ scope: token, cursor: group.next_cursor, limit: LOAD_MORE_LIMIT })
-    .then((page) => {
-      const groups = sidebarState.groups.map((candidate) => {
-        if (scopeToToken(candidate.scope) !== token) {
-          return candidate;
-        }
-        return {
-          ...candidate,
-          items: [...candidate.items, ...page.items],
-          has_more: page.has_more,
-          next_cursor: page.next_cursor,
-        };
-      });
-      sidebarState = { ...sidebarState, groups };
-      rebuildDerivedFromSidebar(sidebarState);
+      conversationsState = [];
+      conversation_idsState = new Set();
+      projectIdByIdState = new Map();
       emitStoreChange();
     })
     .catch((error) => {
-      console.error('[WorkspaceGroupedHistory] Failed to page sidebar group:', error);
+      console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
+      conversationsState = [];
+      conversation_idsState = new Set();
+      projectIdByIdState = new Map();
+      emitStoreChange();
     });
 };
 
-/** Reset a group back to its first-screen window (used when the group is
- *  collapsed) without issuing a request. */
-const resetGroup = (token: string) => {
-  const firstScreen = firstScreenGroupsByToken.get(token);
-  if (!firstScreen) {
-    return;
-  }
-  const current = sidebarState.groups.find((candidate) => scopeToToken(candidate.scope) === token);
-  // Nothing paged beyond the first screen → no state change needed.
-  if (!current || current.items.length <= firstScreen.items.length) {
-    return;
-  }
-  const groups = sidebarState.groups.map((candidate) =>
-    scopeToToken(candidate.scope) === token ? firstScreen : candidate
-  );
-  sidebarState = { ...sidebarState, groups };
-  rebuildDerivedFromSidebar(sidebarState);
-  emitStoreChange();
+/** Source of a generating-state transition, logged for field diagnosis. */
+type GeneratingTransitionSource = 'stream' | 'reconcile' | 'terminal' | 'turnCompleted' | 'deleted';
+
+const logGeneratingTransition = (conversation_id: string, next: boolean, source: GeneratingTransitionSource) => {
+  void ipcBridge.application.writeRendererLog
+    .invoke({
+      level: 'info',
+      tag: 'conversationListSync',
+      message: next ? 'sidebar_generating_on' : 'sidebar_generating_off',
+      data: {
+        conversation_id,
+        source,
+      },
+    })
+    .catch(() => {});
 };
 
-const markGenerating = (conversation_id: string) => {
+const markGenerating = (conversation_id: string, source: GeneratingTransitionSource = 'stream') => {
   if (generatingConversationIdsState.has(conversation_id)) {
     return;
   }
 
   generatingConversationIdsState = new Set(generatingConversationIdsState).add(conversation_id);
+  logGeneratingTransition(conversation_id, true, source);
   emitStoreChange();
 };
 
-const clearGenerating = (conversation_id: string) => {
+const clearGenerating = (conversation_id: string, source: GeneratingTransitionSource = 'terminal') => {
   if (!generatingConversationIdsState.has(conversation_id)) {
     return;
   }
@@ -336,7 +294,33 @@ const clearGenerating = (conversation_id: string) => {
   const next = new Set(generatingConversationIdsState);
   next.delete(conversation_id);
   generatingConversationIdsState = next;
+  logGeneratingTransition(conversation_id, false, source);
   emitStoreChange();
+};
+
+/**
+ * Pure decision helper: whether a runtime summary's `is_processing` bit
+ * should light the sidebar spinner. Clearing is intentionally NOT handled
+ * here (and never by this reconcile path) — an idle-looking runtime summary
+ * must not fight a live background stream that's still mid-flight; only
+ * terminal stream frames / turn.completed are allowed to clear the flag.
+ */
+export const shouldReconcileMarkGenerating = (isProcessing: boolean): boolean => isProcessing === true;
+
+/**
+ * Reconciles the sidebar spinner with authoritative runtime state (e.g. a
+ * per-conversation hydrate or send-accepted response). Call this whenever a
+ * runtime summary's `is_processing` bit is in hand for a conversation — it
+ * covers the case where a WS stream frame was missed (window reload/reconnect
+ * race) and the store would otherwise never know the turn is still running.
+ */
+export const reconcileGeneratingFromRuntime = (conversation_id: string, isProcessing: boolean): void => {
+  if (!conversation_id) {
+    return;
+  }
+  if (shouldReconcileMarkGenerating(isProcessing)) {
+    markGenerating(conversation_id, 'reconcile');
+  }
 };
 
 const markCompletionUnread = (conversation_id: string) => {
@@ -356,6 +340,28 @@ const clearCompletionUnreadState = (conversation_id: string) => {
   const next = new Set(completionUnreadConversationIdsState);
   next.delete(conversation_id);
   completionUnreadConversationIdsState = next;
+  emitStoreChange();
+};
+
+const markManualUnreadState = (conversation_id: string) => {
+  if (manualUnreadConversationIdsState.has(conversation_id)) {
+    return;
+  }
+
+  manualUnreadConversationIdsState = new Set(manualUnreadConversationIdsState).add(conversation_id);
+  persistManualUnread();
+  emitStoreChange();
+};
+
+const clearManualUnreadState = (conversation_id: string) => {
+  if (!manualUnreadConversationIdsState.has(conversation_id)) {
+    return;
+  }
+
+  const next = new Set(manualUnreadConversationIdsState);
+  next.delete(conversation_id);
+  manualUnreadConversationIdsState = next;
+  persistManualUnread();
   emitStoreChange();
 };
 
@@ -408,8 +414,9 @@ const initializeConversationListSyncStore = () => {
   addEventListener('chat.history.refresh', refreshConversations);
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
-      clearGenerating(event.conversation_id);
+      clearGenerating(event.conversation_id, 'deleted');
       clearCompletionUnreadState(event.conversation_id);
+      clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
     }
     refreshConversations();
@@ -421,9 +428,6 @@ const initializeConversationListSyncStore = () => {
     }
 
     if (!conversation_idsState.has(conversation_id)) {
-      // New (or windowed-out) conversation: mark known first so repeated frames
-      // for a row outside the current window refresh once, not on every frame.
-      noteKnownConversation(conversation_id);
       refreshConversations();
     }
 
@@ -432,7 +436,7 @@ const initializeConversationListSyncStore = () => {
       if (wasGenerating && activeConversationIdState !== conversation_id) {
         markCompletionUnread(conversation_id);
       }
-      clearGenerating(conversation_id);
+      clearGenerating(conversation_id, 'terminal');
       return;
     }
 
@@ -450,7 +454,7 @@ const initializeConversationListSyncStore = () => {
       return;
     }
     if (decision.markGenerating) {
-      markGenerating(conversation_id);
+      markGenerating(conversation_id, 'stream');
     }
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
@@ -458,7 +462,7 @@ const initializeConversationListSyncStore = () => {
       markCompletionUnread(event.session_id);
     }
     markCompleted(event.session_id, event.turn_id);
-    clearGenerating(event.session_id);
+    clearGenerating(event.session_id, 'turnCompleted');
     refreshConversations();
   });
 };
@@ -468,26 +472,27 @@ export const useConversationListSync = () => {
     initializeConversationListSyncStore();
   }, []);
 
-  const { sidebar, conversations, generatingConversationIds, completionUnreadConversationIds } = useSyncExternalStore(
-    subscribeConversationListSync,
-    getConversationListSyncSnapshot,
-    getConversationListSyncSnapshot
-  );
+  const { conversations, generatingConversationIds, completionUnreadConversationIds, manualUnreadConversationIds } =
+    useSyncExternalStore(
+      subscribeConversationListSync,
+      getConversationListSyncSnapshot,
+      getConversationListSyncSnapshot
+    );
 
   const clearCompletionUnread = useCallback((conversation_id: string) => {
     clearCompletionUnreadState(conversation_id);
   }, []);
 
+  const markManualUnread = useCallback((conversation_id: string) => {
+    markManualUnreadState(conversation_id);
+  }, []);
+
+  const clearManualUnread = useCallback((conversation_id: string) => {
+    clearManualUnreadState(conversation_id);
+  }, []);
+
   const setActiveConversation = useCallback((conversation_id: string | null) => {
     setActiveConversationState(conversation_id);
-  }, []);
-
-  const loadMore = useCallback((token: string) => {
-    loadMoreGroup(token);
-  }, []);
-
-  const resetGroupWindow = useCallback((token: string) => {
-    resetGroup(token);
   }, []);
 
   const isConversationGenerating = useCallback(
@@ -504,14 +509,21 @@ export const useConversationListSync = () => {
     [completionUnreadConversationIds]
   );
 
+  const isManualUnread = useCallback(
+    (conversation_id: string) => {
+      return manualUnreadConversationIds.has(conversation_id);
+    },
+    [manualUnreadConversationIds]
+  );
+
   return {
-    sidebar,
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
     clearCompletionUnread,
+    isManualUnread,
+    markManualUnread,
+    clearManualUnread,
     setActiveConversation,
-    loadMore,
-    resetGroupWindow,
   };
 };

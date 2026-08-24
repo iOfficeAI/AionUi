@@ -47,7 +47,11 @@
     "batchExportConfirm": "Export {{count}} selected topics?",
     "batchDelete": "Batch Delete",
     "batchDeleteConfirm": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_one": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_other": "Delete {{count}} selected topics?",
     "batchDeleteSuccess": "{{count}} topics deleted",
+    "batchDeleteSuccess_one": "{{count}} topics deleted",
+    "batchDeleteSuccess_other": "{{count}} topics deleted",
     "batchNoSelection": "Please select topics first",
     "export": "Export",
     "exportDialogTitle": "Export Topics",
@@ -62,6 +66,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "未読にする",
+    "markAsRead": "既読にする",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
@@ -69,20 +75,21 @@
     "deleteFailed": "削除に失敗しました",
     "projectsSection": "プロジェクト",
     "conversationsSection": "会話",
-    "removeProjectTitle": "プロジェクトを削除",
-    "removeProject": "プロジェクトを削除",
-    "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
-    "removeProjectConfirmTeams": "プロジェクト内の {{teams}} 個のチームも削除されます。",
-    "removeProjectListMore": "ほか{{count}}件",
     "newConversationInProject": "このプロジェクト内で新しい会話",
     "deleting": "削除中...",
     "reorderPinned": "ドラッグしてピン留め会話の順序を変更",
     "forkedFrom": "「{{name}}」から分岐",
     "forkedConversation": "分岐した会話",
-    "loadMore": "さらに読み込む",
-    "newTeamInProject": "このプロジェクトに新しいチーム",
-    "projectCreateMenu": "作成",
-    "collapseAllProjects": "すべてのプロジェクトを折りたたむ"
+    "archive": "アーカイブ",
+    "archiveSuccess": "アーカイブしました",
+    "archiveFailed": "アーカイブに失敗しました",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -433,7 +440,9 @@
     "searchHint": "ここをクリックしてキーワードを検索",
     "empty": "まだQ&Aがありません",
     "noMatch": "一致する内容が見つかりません",
-    "count": "{{count}} 件"
+    "count": "{{count}} 件",
+    "count_one": "{{count}} 件",
+    "count_other": "{{count}} 件"
   },
   "chat": {
     "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
@@ -451,6 +460,7 @@
     "switchAgentFailed": "エージェントの切り替えに失敗しました",
     "speech": {
       "recordTooltip": "音声入力を開始",
+      "recordTooltipWithShortcut": "音声入力 cmd+M",
       "pickFileTooltip": "音声ファイルを選択",
       "stopTooltip": "録音を停止",
       "processing": "音声を文字起こし中...",
@@ -497,6 +507,8 @@
     "reorder": "ドラッグしてキュー内コマンドの順序を変更",
     "remove": "削除",
     "files": "{{count}} 個のファイル",
+    "files_one": "{{count}} 個のファイル",
+    "files_other": "{{count}} 個のファイル",
     "pausedAfterFailure": "次のキュー中の指示を開始できませんでした。編集、並べ替え、または削除して続行してください。",
     "emptyInput": "キュー中の指示を空にはできません。",
     "queueFull": "キューがいっぱいです。追加する前にいくつか削除してください。",
@@ -514,7 +526,14 @@
     "mode": {
       "auto": "自動送信",
       "manual": "手動送信"
-    }
+    },
+    "addToQueue": "下書きボックスに追加",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "このエージェントが応答中は割り込みができません。「下書きボックスに追加」をご利用ください。",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "コンテキスト使用量",
@@ -573,7 +592,8 @@
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照、↑/↓ でメッセージ履歴",
-    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。"
+    "mediaPathFallback": "このエージェントはこのファイル形式をネイティブに扱えないため、ファイルパスとして送信されます。",
+    "hintWithSessions": "/ でコマンド、@ でファイル、@@ で会話を参照、↑/↓ で履歴"
   },
   "agentTip": {
     "codes": {
@@ -621,11 +641,16 @@
       "rename": "名前を変更",
       "addToChat": "チャットに追加",
       "copyRelativePath": "相対パスをコピー",
-      "copyAbsolutePath": "絶対パスをコピー"
+      "copyAbsolutePath": "絶対パスをコピー",
+      "refresh": "更新",
+      "newFile": "新規ファイル",
+      "newDir": "新規フォルダー"
     },
     "namePlaceholder": "名前",
     "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
     "renameFailed": "名前の変更に失敗しました",
+    "newFileFailed": "ファイルの作成に失敗しました",
+    "newDirFailed": "フォルダーの作成に失敗しました",
     "tabs": {
       "files": "ファイル",
       "changes": "変更"
@@ -634,6 +659,8 @@
     "imported": "{{count}} 件のファイルをインポートしました",
     "importPartialFailed": "{{copied}} 件コピー、{{failed}} 件失敗（名前の重複または非対応）",
     "importFailed": "ファイルのインポートに失敗しました",
+    "copyNodeFailed": "コピーに失敗しました",
+    "moveNodeFailed": "移動に失敗しました",
     "search": {
       "placeholder": "ファイル名で検索",
       "searching": "検索中…",
@@ -703,8 +730,14 @@
         "confirmDiscardMixed": "{{tracked}} 個のファイルの編集は失われ元に戻せません。{{untracked}} 個の新規ファイルはゴミ箱に移動されます。",
         "discardConfirmButton": "破棄",
         "okStage": "{{count}} 個のファイルをステージしました",
+        "okStage_one": "{{count}} 個のファイルをステージしました",
+        "okStage_other": "{{count}} 個のファイルをステージしました",
         "okUnstage": "{{count}} 個のファイルのステージを解除しました",
+        "okUnstage_one": "{{count}} 個のファイルのステージを解除しました",
+        "okUnstage_other": "{{count}} 個のファイルのステージを解除しました",
         "okDiscard": "{{count}} 個のファイルを破棄しました",
+        "okDiscard_one": "{{count}} 個のファイルを破棄しました",
+        "okDiscard_other": "{{count}} 個のファイルを破棄しました",
         "partial": "{{total}} 件のうち {{succeeded}} 件完了 —— {{failed}} 件は未完了",
         "partialDetail": "未完了: {{files}}",
         "rejectedBlocked": "何も変更されていません —— まず競合を解決してください",
@@ -713,7 +746,9 @@
         "retry": "再試行",
         "notSent": "リクエストがバックエンドに届かず、何も変更されていません。再試行できます。",
         "outcomeUnknown": "応答が届く前に接続がリセットされました——この操作は完了した可能性も、していない可能性もあります。再試行の前に更新してファイル一覧を確認してください。",
-        "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした"
+        "allFailed": "{{count}} 個のファイルはいずれも処理できませんでした",
+        "allFailed_one": "{{count}} 個のファイルはいずれも処理できませんでした",
+        "allFailed_other": "{{count}} 個のファイルはいずれも処理できませんでした"
       }
     },
     "pathCopied": "パスをコピーしました",
@@ -725,5 +760,26 @@
     "exited": "終了コード {{code}}",
     "stop": "停止",
     "truncated": "(以前の出力は切り捨て)"
+  },
+  "emptyState": {
+    "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"
+  },
+  "crossSession": {
+    "mentionAgain": "入力欄で会話 {{name}} にメンション",
+    "mentionAgainHint": "クリックしてこの会話を入力欄でメンション",
+    "mentionUnavailable": "この会話はメンションできなくなりました",
+    "mentionFailed": "この会話にメンションできませんでした",
+    "fromBadge": "会話「{{name}}」から",
+    "otherWorkspace": "別のワークスペース",
+    "rateLimitedTitle": "会話間メッセージが空転している可能性があります",
+    "rateLimited": "「{{from}}」と「{{to}}」の間の自動メッセージが異常に頻繁で、空転している可能性があります。",
+    "stopBoth": "両方の会話を停止",
+    "disableFeature": "会話間メッセージをオフにする"
+  },
+  "planBar": {
+    "title": "プラン",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "プランを展開",
+    "collapse": "プランを折りたたむ"
   }
 }

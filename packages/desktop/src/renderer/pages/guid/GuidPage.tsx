@@ -262,7 +262,6 @@ const GuidPage: React.FC = () => {
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
     selectedThoughtLevelValue: agentSelection.selectedThoughtLevelValue,
-    currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
     current_model: modelSelection.current_model,
 
     guidDisabledBuiltinSkills,
@@ -302,11 +301,14 @@ const GuidPage: React.FC = () => {
 
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
-        if (!guidInput.input.trim()) return;
+        // Empty input is allowed — it creates an empty conversation ("start
+        // chat"). Mirror the send button's gate so Enter and click behave
+        // identically (blocked only while loading or with no assistant).
+        if (send.isButtonDisabled) return;
         send.sendMessageHandler();
       }
     },
-    [guidInput.input, send.sendMessageHandler, slashController]
+    [send.isButtonDisabled, send.sendMessageHandler, slashController]
   );
 
   const handleSelectAssistant = useCallback(
@@ -667,7 +669,7 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            <p className='text-2xl font-semibold mb-0 text-0 text-center'>{t('conversation.welcome.title')}</p>
+            <p className='text-2xl font-semibold mb-0 text-t-primary text-center'>{t('conversation.welcome.title')}</p>
           </div>
 
           <AssistantSelectionArea
@@ -702,8 +704,8 @@ const GuidPage: React.FC = () => {
           />
 
           {selectedAssistantPrompts.length > 0 ? (
-            <div className='mt-18px w-full animate-fade-in pl-20px'>
-              <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
+            <div className='mt-18px w-full animate-fade-in ps-20px'>
+              <div className={`${styles.assistantPromptHint} mb-10px text-start`}>
                 {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
               </div>
               <div className='flex flex-col gap-9px'>
@@ -711,7 +713,7 @@ const GuidPage: React.FC = () => {
                   <Button
                     key={`${index}-${prompt}`}
                     type='text'
-                    className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
+                    className='group !h-auto !w-full !border-none !bg-transparent !px-0 !py-6px !text-start !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!bg-transparent hover:!text-t-primary'
                     onClick={() => {
                       guidInput.setInput(prompt);
                       guidInput.handleTextareaFocus();
@@ -721,7 +723,7 @@ const GuidPage: React.FC = () => {
                     <ArrowRightUp
                       theme='outline'
                       size='13'
-                      className='ml-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
+                      className='ms-6px inline-flex flex-shrink-0 align-[-1px] text-t-primary opacity-0 transition-opacity group-hover:opacity-100'
                     />
                   </Button>
                 ))}

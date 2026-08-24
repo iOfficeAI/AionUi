@@ -39,6 +39,8 @@
   "expandMore": "더 보기",
   "collapse": "접기",
   "viewMoreLines": "더 보기 ({{count}}줄)",
+  "viewMoreLines_one": "더 보기 ({{count}}줄)",
+  "viewMoreLines_other": "더 보기 ({{count}}줄)",
   "success": "성공",
   "error": "오류",
   "saveSuccess": "저장 성공",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "최신 버전의 AionUi가 필요합니다",
+      "description": "로컬 데이터가 더 최신 버전의 AionUi에서 생성되어 현재 버전에서는 열 수 없습니다. AionUi를 최신 버전으로 업데이트하면 계속 사용할 수 있습니다. 데이터는 그대로 유지되며 재설치나 초기화는 필요하지 않습니다.",
+      "descriptionWithVersion": "로컬 데이터가 현재 버전 v{{currentVersion}}보다 최신 버전의 AionUi에서 생성되어 현재 버전에서는 열 수 없습니다. AionUi를 최신 버전으로 업데이트하면 계속 사용할 수 있습니다. 데이터는 그대로 유지되며 재설치나 초기화는 필요하지 않습니다."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
@@ -194,5 +201,6 @@
     "second_short": "초"
   },
   "selectedCount": "선택됨 {{count}}",
-  "selectedSkills": "선택된 스킬"
+  "selectedSkills": "선택된 스킬",
+  "aiAssistant": "AI 어시스턴트"
 }

@@ -90,6 +90,7 @@
   color: var(--color-text-1);
   background: transparent;
   font-family: var(--font-mono);
+  font-weight: var(--font-mono-weight);
   font-size: 11px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -137,7 +138,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  text-align: left;
+  text-align: start;
   transition: background-color 0.16s ease;
 }
 
@@ -158,7 +159,7 @@
 }
 
 .optionButton :global(.arco-btn-loading-icon) {
-  margin-right: 8px;
+  margin-inline-end: 8px;
 }
 
 .optionLabel {

@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 import { resolveActiveTheme } from '@/common/theme/resolveTheme';
 import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
 import { processCustomCss } from './customCssProcessor';
+import { tokensToCss } from './tokensToCss';
 import { getSystemPrefersDark } from './systemAppearance';
 
 const TOKENS_STYLE_ID = 'theme-tokens';
@@ -25,14 +26,6 @@ function upsertStyle(id: string, css: string | null, root: Document = document):
   el.id = id;
   el.textContent = css;
   root.head.appendChild(el); // (re)append to keep it last in <head>
-}
-
-function tokensToCss(tokens?: Record<string, string>): string | null {
-  if (!tokens || Object.keys(tokens).length === 0) return null;
-  const body = Object.entries(tokens)
-    .map(([k, v]) => `  ${k}: ${v};`)
-    .join('\n');
-  return `:root {\n${body}\n}`;
 }
 
 function isElectronRenderer(): boolean {

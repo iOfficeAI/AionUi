@@ -370,10 +370,9 @@ export function buildTreeData(cache: FactCache, expanded: ReadonlySet<PeKey>, ro
 
 // ── File operations (A): pure request builders ──────────────────────────────
 // The tree only knows `{pe_id, relative_path}`, so file ops map to WS fs/*
-// commands over that identity (never absolute paths). Scope mirrors the legacy
-// tree's context menu: rename + delete only (no new-file/new-folder — the old
-// tree never had those). Builders are pure so the path math + no-op detection
-// can be unit-tested away from the UI.
+// commands over that identity (never absolute paths). Scope: rename + delete,
+// plus create-file / create-dir inside a directory node. Builders are pure so
+// the path math + no-op detection can be unit-tested away from the UI.
 
 /** A rename dialog request. `origRel` is the full pe-relative path being renamed. */
 export type RenameRequest = {
@@ -409,4 +408,185 @@ export function buildRenameRequest(dialog: RenameRequest, rawName: string): FsOp
 /** Build the WS fs/remove request for deleting an entry. */
 export function buildRemoveRequest(peId: string, relativePath: string): FsOpRequest {
   return { method: 'fs/remove', params: { target: { pe_id: peId, relative_path: relativePath } } };
+}
+
+/**
+ * Build the WS `fs/mkdir` request to create a directory named `rawName` inside
+ * `parentDir` (pe-relative; `''` = the pe root). Returns `null` for an
+ * empty/whitespace name so the caller skips the round-trip and just closes the
+ * dialog, mirroring `buildRenameRequest`'s no-op handling. `name` is a single
+ * segment joined under `parentDir`; the backend's lexical + realpath containment
+ * guard rejects any escape, and the parent dir's subscription delivers the
+ * `added` delta that materializes the new node.
+ */
+export function buildMkdirRequest(peId: string, parentDir: string, rawName: string): FsOpRequest | null {
+  const name = rawName.trim();
+  if (!name) return null;
+  return { method: 'fs/mkdir', params: { dir: { pe_id: peId, relative_path: joinRel(parentDir, name) } } };
+}
+
+/**
+ * Build the WS `fs/createFile` request to create an empty file named `rawName`
+ * inside `parentDir`. Same no-op-on-empty and containment semantics as
+ * `buildMkdirRequest`; the backend `create_new` open fails rather than
+ * truncating if the name is already taken.
+ */
+export function buildCreateFileRequest(peId: string, parentDir: string, rawName: string): FsOpRequest | null {
+  const name = rawName.trim();
+  if (!name) return null;
+  return { method: 'fs/createFile', params: { file: { pe_id: peId, relative_path: joinRel(parentDir, name) } } };
+}
+
+// ── Drag-to-copy/move (source B/C): pure model ──────────────────────────────
+// A tree node can be dragged onto a directory node to copy or move it there.
+// The payload rides a custom drag MIME so an internal drag is distinguishable
+// from an OS-file drop (which carries `Files`). Op selection, guards, and the
+// request shape are all pure so the full dragStart→dragOver→drop sequence can be
+// replayed in a headless test.
+
+/** Copy vs move — the two transfer directions distinguished by modifier key. */
+export type TransferOp = 'copy' | 'move';
+
+/** Custom drag MIME carrying an internal pe-ref (vs an OS `Files` drop). */
+export const PE_REF_DRAG_MIME = 'application/x-aionui-pe-ref';
+
+/** The dragged node's identity + display facts, serialized onto the drag MIME. */
+export type DragPeRef = {
+  pe_id: string;
+  relative_path: string;
+  name: string;
+  isDir: boolean;
+};
+
+/** Serialize a dragged node to the drag-transfer string. */
+export function serializePeRef(ref: DragPeRef): string {
+  return JSON.stringify(ref);
+}
+
+/**
+ * Parse the drag-transfer string back to a `DragPeRef`. Returns `null` for
+ * anything malformed (an OS-file drop, a foreign app's payload, a truncated
+ * string), so the caller falls back to the OS-file path.
+ */
+export function parsePeRef(raw: string): DragPeRef | null {
+  try {
+    const obj = JSON.parse(raw) as Partial<DragPeRef>;
+    if (
+      obj &&
+      typeof obj.pe_id === 'string' &&
+      typeof obj.relative_path === 'string' &&
+      typeof obj.name === 'string' &&
+      typeof obj.isDir === 'boolean'
+    ) {
+      return { pe_id: obj.pe_id, relative_path: obj.relative_path, name: obj.name, isDir: obj.isDir };
+    }
+  } catch {
+    // Not our JSON — treat as absent.
+  }
+  return null;
+}
+
+/**
+ * Whether the copy modifier is held, per OS convention: Option (Alt) on macOS,
+ * Ctrl elsewhere. The base drag (no modifier) is move within a pe and copy
+ * across pes; the modifier flips that (see `resolveTransferOp`).
+ */
+export function isCopyModifierPressed(e: { altKey: boolean; ctrlKey: boolean }, isMac: boolean): boolean {
+  return isMac ? e.altKey : e.ctrlKey;
+}
+
+/**
+ * Resolve the transfer op from context. Within one pe the default gesture is a
+ * move (Finder/Explorer convention for same-volume drag); across pes the default
+ * is a copy (cross-volume convention). The modifier inverts the default either
+ * way, so the same key always means "the other thing".
+ */
+export function resolveTransferOp(samePe: boolean, copyModifier: boolean): TransferOp {
+  const base: TransferOp = samePe ? 'move' : 'copy';
+  if (!copyModifier) return base;
+  return base === 'move' ? 'copy' : 'move';
+}
+
+/**
+ * Whether dropping `source` into directory `target` as `op` is a legal transfer.
+ * Blocks the two shapes the backend also rejects, but here they gate the drop
+ * cursor so the user sees it is disallowed before releasing:
+ *   1. Into itself or its own subtree (same pe) — a dir cannot contain itself.
+ *   2. A move into the source's current parent — a no-op (copy there is allowed,
+ *      producing an auto-renamed duplicate, matching Finder's option-drag).
+ * A pe root (`relative_path === ''`) is never a valid drag source (it is a
+ * binding, not an entry) — its whole-pe subtree makes case 1 reject it.
+ */
+export function isTransferAllowed(source: DragPeRef, target: DirRef, op: TransferOp): boolean {
+  if (source.relative_path === '') return false; // pe root is not a draggable entry
+  if (isDescendantOrSelf(peKey(target.pe_id, target.relative_path), peKey(source.pe_id, source.relative_path))) {
+    return false;
+  }
+  if (op === 'move' && source.pe_id === target.pe_id && parentRel(source.relative_path) === target.relative_path) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Build the WS `fs/copy` / `fs/move` request. `from` is the dragged node's
+ * identity; `toDir` is the *target directory* — the backend preserves the source
+ * basename and auto-renames on collision (`name copy`, `name copy 2`, …), so the
+ * front end never computes the destination path (it lacks absolute paths and
+ * would race the tree). Guard with `isTransferAllowed` before calling.
+ */
+export function buildTransferRequest(op: TransferOp, from: DirRef, toDir: DirRef): FsOpRequest {
+  const method = op === 'copy' ? 'fs/copy' : 'fs/move';
+  return {
+    method,
+    params: {
+      from: { pe_id: from.pe_id, relative_path: from.relative_path },
+      to_dir: { pe_id: toDir.pe_id, relative_path: toDir.relative_path },
+    },
+  };
+}
+
+// ── Context menu structure: pure section builder ─────────────────────────────
+// The right-click / more-menu items are grouped into ordered sections drawn with
+// a divider line between them. Which items are enabled depends on the node (file
+// vs directory vs pe root) and the runtime (some actions are desktop-only), so
+// the section computation is pure and table-driven: the panel resolves each
+// capability to a boolean and this returns the ordered, non-empty sections.
+
+/** A context-menu action key (stable; also the arco `Menu.Item` key). */
+export type ExplorerMenuItemKey =
+  | 'addToChat'
+  | 'revealInFolder'
+  | 'copyRelativePath'
+  | 'copyAbsolutePath'
+  | 'refresh'
+  | 'newFile'
+  | 'newDir'
+  | 'rename'
+  | 'delete'
+  | 'remove';
+
+/** Whether each context-menu action is enabled for the current node + runtime. */
+export type ExplorerMenuCaps = Record<ExplorerMenuItemKey, boolean>;
+
+/**
+ * The context menu grouped into ordered sections:
+ *   1. add-to-chat
+ *   2. read-only utilities (open location, copy relative, copy absolute, refresh)
+ *   3. mutate (new file, new dir, rename, delete, remove-from-project)
+ * `refresh` is a root-only reload (re-fetch the pe root's listings); it sits with
+ * the other non-mutating node utilities rather than the mutate group so it never
+ * neighbours the destructive remove/delete. Only enabled items appear, and only
+ * non-empty sections are returned — so the caller draws a divider simply between
+ * adjacent returned sections, and the "only between two non-empty sections, never
+ * leading/trailing/doubled" property falls out of dropping the empty sections
+ * here. Returns `[]` when no action is enabled (the node then shows no menu at all).
+ */
+export function explorerContextMenuSections(caps: ExplorerMenuCaps): ExplorerMenuItemKey[][] {
+  const sections: ExplorerMenuItemKey[][] = [
+    ['addToChat'],
+    ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath', 'refresh'],
+    ['newFile', 'newDir', 'rename', 'delete', 'remove'],
+  ];
+  return sections.map((keys) => keys.filter((key) => caps[key])).filter((keys) => keys.length > 0);
 }

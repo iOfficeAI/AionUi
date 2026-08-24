@@ -116,6 +116,64 @@ describe('classifyBackendStartupFailure — genuine data damage still severe', (
   });
 });
 
+// Sentry ELECTRON-31Z — a database written by a NEWER AionUi (downgrade) is
+// intact and only needs an app update. It must surface the dedicated
+// upgrade-required reason instead of the misleading migration-failure dialog.
+describe('classifyBackendStartupFailure — database newer than app (downgrade)', () => {
+  it('classifies database.newer_than_app as the dedicated downgrade reason', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'early_exit',
+        backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+        backendBoundaryStage: 'database.newer_than_app',
+        stderrTail:
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.newer_than_app databasePath=/db/aionui-backend.db dbMigrationVersion=39 appMigrationVersion=37: failed to initialize application data',
+      },
+      message: 'aioncore exited before health check passed',
+      name: 'BackendStartupError',
+    });
+
+    expect(result).toEqual({
+      reason: 'backend_database_newer_than_app',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.newer_than_app',
+    });
+  });
+
+  it('keeps generic migration failures in the data-migration bucket', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        stage: 'early_exit',
+        backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+        backendBoundaryStage: 'database.migration',
+        stderrTail:
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+      },
+      message: 'aioncore exited before health check passed',
+      name: 'BackendStartupError',
+    });
+
+    expect(result).toEqual({
+      reason: 'backend_data_migration_failed',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.migration',
+    });
+  });
+
+  it('does not classify the downgrade stage under other boundary codes', () => {
+    const result = classifyBackendStartupFailure({
+      details: {
+        backendBoundaryCode: 'BOOTSTRAP_SERVICE_INIT_FAILED',
+        backendBoundaryStage: 'database.newer_than_app',
+      },
+      message: 'aioncore exited before health check passed',
+      name: 'BackendStartupError',
+    });
+
+    expect(result.reason).not.toBe('backend_database_newer_than_app');
+  });
+});
+
 // Sentry 127971136 — a health-check timeout on a process that was observed
 // listening and kept alive is a recoverable "slow startup", and a listening
 // process that then exits is an honest failure. Neither may fall back to the

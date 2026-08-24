@@ -3,6 +3,8 @@
   "downloadFile": "Download file",
   "closePreview": "Close preview",
   "collapsePanel": "Collapse panel",
+  "maximizePanel": "Maximize",
+  "restorePanel": "Restore",
   "source": "Source",
   "code": "Code",
   "preview": "Preview",
@@ -24,6 +26,8 @@
   "closeTabMessage": "The current content has not been saved. Do you want to save before closing?",
   "closeTabsTitle": "Close Tabs",
   "closeTabsMessage": "{{count}} tabs have unsaved changes. Save them before closing?",
+  "closeTabsMessage_one": "{{count}} tab has unsaved changes. Save it before closing?",
+  "closeTabsMessage_other": "{{count}} tabs have unsaved changes. Save them before closing?",
   "saveAndClose": "Save and Close",
   "closeWithoutSave": "Don't Save",
   "pptTitle": "PowerPoint Presentation",
@@ -35,10 +39,16 @@
   "openInSystemApp": "Open in system app",
   "openInSystemSuccess": "Opened in system default app",
   "openInSystemFailed": "Failed to open with system app",
+  "close": "Close",
   "closeLeft": "Close Left",
   "closeRight": "Close Right",
   "closeOthers": "Close Others",
   "closeAll": "Close All",
+  "closeUnmodified": "Close Unmodified",
+  "copyPath": "Copy Path",
+  "copyRelativePath": "Copy Relative Path",
+  "openLocation": "Show in folder",
+  "openLocationFailed": "Failed to open containing folder",
   "readOnlyLabel": "Read-only preview",
   "pathLabel": "Path",
   "missingFile": {
@@ -48,6 +58,7 @@
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
+  "wavedromTitle": "WaveDrom Diagram",
   "oversized": {
     "title": "File too large to preview",
     "detail": "File size {{size}} exceeds the {{threshold}} limit. Please open it in a system editor.",
@@ -161,5 +172,9 @@
     "confirmMessage": "This tab has unsaved changes. Reloading replaces them with what is on disk.",
     "discardAndRefresh": "Discard changes and reload",
     "officeNotWired": "Refreshing Office documents is not available yet — close and reopen the file to see changes."
-  }
+  },
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "zoomReset": "Reset view",
+  "diagramZoomHint": "Scroll to zoom • Drag to pan • ESC to close"
 }

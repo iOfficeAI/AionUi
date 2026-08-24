@@ -47,7 +47,11 @@
     "batchExportConfirm": "Export {{count}} selected topics?",
     "batchDelete": "Batch Delete",
     "batchDeleteConfirm": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_one": "Delete {{count}} selected topics?",
+    "batchDeleteConfirm_other": "Delete {{count}} selected topics?",
     "batchDeleteSuccess": "{{count}} topics deleted",
+    "batchDeleteSuccess_one": "{{count}} topics deleted",
+    "batchDeleteSuccess_other": "{{count}} topics deleted",
     "batchNoSelection": "Please select topics first",
     "export": "Export",
     "exportDialogTitle": "Export Topics",
@@ -62,6 +66,8 @@
     "exportFailed": "Export failed",
     "pin": "Pin",
     "unpin": "Unpin",
+    "markAsUnread": "Okunmadı olarak işaretle",
+    "markAsRead": "Okundu olarak işaretle",
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
@@ -69,20 +75,21 @@
     "deleteFailed": "Silme başarısız oldu",
     "projectsSection": "Projeler",
     "conversationsSection": "Konuşmalar",
-    "removeProjectTitle": "Projeyi kaldır",
-    "removeProject": "Projeyi kaldır",
-    "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
-    "removeProjectConfirmTeams": "Projedeki {{teams}} takım da kaldırılacak.",
-    "removeProjectListMore": "+{{count}} daha",
     "newConversationInProject": "Bu projede yeni konuşma",
     "deleting": "Siliniyor...",
     "reorderPinned": "Sabitlenmiş sohbetin sırasını değiştirmek için sürükleyin",
     "forkedFrom": "“{{name}}” konuşmasından çatallandı",
     "forkedConversation": "Çatallanmış konuşma",
-    "loadMore": "Daha fazla yükle",
-    "newTeamInProject": "Bu projede yeni ekip",
-    "projectCreateMenu": "Oluştur",
-    "collapseAllProjects": "Tüm projeleri daralt"
+    "archive": "Arşivle",
+    "archiveSuccess": "Arşivlendi",
+    "archiveFailed": "Arşivleme başarısız",
+    "batchArchive": "Batch archive",
+    "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
+    "batchArchiveSuccess": "Archived {{count}} topics",
+    "archiveProject": "Archive project",
+    "archiveProjectTitle": "Archive project",
+    "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
+    "archiving": "Archiving..."
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -418,7 +425,9 @@
     "searchHint": "Anahtar kelime aramak için buraya tıkla",
     "empty": "Henüz soru-cevap içeriği yok",
     "noMatch": "Eşleşen içerik bulunamadı",
-    "count": "{{count}} dönüş"
+    "count": "{{count}} dönüş",
+    "count_one": "{{count}} dönüş",
+    "count_other": "{{count}} dönüş"
   },
   "chat": {
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",
@@ -436,6 +445,7 @@
     "switchAgentFailed": "Ajan değiştirilemedi",
     "speech": {
       "recordTooltip": "Sesli girişi başlat",
+      "recordTooltipWithShortcut": "Sesli giriş cmd+M",
       "pickFileTooltip": "Ses dosyası seç",
       "stopTooltip": "Kaydı durdur",
       "processing": "Ses yazıya dönüştürülüyor...",
@@ -482,6 +492,8 @@
     "reorder": "Sıradaki komutu yeniden sıralamak için sürükleyin",
     "remove": "Kaldır",
     "files": "{{count}} dosya",
+    "files_one": "{{count}} dosya",
+    "files_other": "{{count}} dosya",
     "pausedAfterFailure": "Sıradaki komut başlatılamadı. Devam etmek için düzenleyin, yeniden sıralayın veya kaldırın.",
     "emptyInput": "Kuyruktaki komutlar boş olamaz.",
     "queueFull": "Kuyruk dolu. Yeni komut eklemeden önce bazılarını kaldırın.",
@@ -499,7 +511,14 @@
     "mode": {
       "auto": "Otomatik gönder",
       "manual": "Elle gönder"
-    }
+    },
+    "addToQueue": "Taslak kutusuna ekle",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Bu aracı yanıt verirken araya girmek desteklenmiyor. Bunun yerine Taslak kutusuna ekle'yi kullanın.",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "This agent is still working, so the message can’t be sent directly. Save it to Draft box and send it later.",
+    "addToQueueBusyHint": "Save to Draft box and send it later."
   },
   "contextUsage": {
     "contextUsed": "bağlam kullanıldı",
@@ -575,7 +594,8 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın, ↑/↓ ile mesaj geçmişi",
-    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek."
+    "mediaPathFallback": "Bu ajan bu dosya türünü yerel olarak desteklemiyor; dosya yolu olarak gönderilecek.",
+    "hintWithSessions": "Komutlar için /, dosyalar için @, sohbetler için @@, geçmiş için ↑/↓"
   },
   "agentTip": {
     "codes": {
@@ -623,11 +643,16 @@
       "rename": "Yeniden adlandır",
       "addToChat": "Sohbete ekle",
       "copyRelativePath": "Göreli yolu kopyala",
-      "copyAbsolutePath": "Mutlak yolu kopyala"
+      "copyAbsolutePath": "Mutlak yolu kopyala",
+      "refresh": "Yenile",
+      "newFile": "Yeni dosya",
+      "newDir": "Yeni klasör"
     },
     "namePlaceholder": "Ad",
     "deleteConfirm": "“{{name}}” silinsin mi? Bu geri alınamaz.",
     "renameFailed": "Yeniden adlandırılamadı",
+    "newFileFailed": "Dosya oluşturulamadı",
+    "newDirFailed": "Klasör oluşturulamadı",
     "tabs": {
       "files": "Dosyalar",
       "changes": "Değişiklikler"
@@ -636,6 +661,8 @@
     "imported": "{{count}} dosya içe aktarıldı",
     "importPartialFailed": "{{copied}} kopyalandı, {{failed}} başarısız (ad çakışması veya desteklenmiyor)",
     "importFailed": "Dosyalar içe aktarılamadı",
+    "copyNodeFailed": "Kopyalanamadı",
+    "moveNodeFailed": "Taşınamadı",
     "search": {
       "placeholder": "Dosya adına göre ara",
       "searching": "Aranıyor…",
@@ -705,8 +732,14 @@
         "confirmDiscardMixed": "{{tracked}} dosyadaki düzenlemeler geri alınamaz şekilde kaybolacak; {{untracked}} yeni dosya çöp kutusuna gidecek.",
         "discardConfirmButton": "Sil",
         "okStage": "{{count}} dosya hazırlandı",
+        "okStage_one": "{{count}} dosya hazırlandı",
+        "okStage_other": "{{count}} dosya hazırlandı",
         "okUnstage": "{{count}} dosyanın hazırlaması geri alındı",
+        "okUnstage_one": "{{count}} dosyanın hazırlaması geri alındı",
+        "okUnstage_other": "{{count}} dosyanın hazırlaması geri alındı",
         "okDiscard": "{{count}} dosya silindi",
+        "okDiscard_one": "{{count}} dosya silindi",
+        "okDiscard_other": "{{count}} dosya silindi",
         "partial": "{{total}} işlemden {{succeeded}} tamamlandı —— {{failed}} tamamlanamadı",
         "partialDetail": "Tamamlanamayan: {{files}}",
         "rejectedBlocked": "Hiçbir şey değişmedi —— önce çakışmayı çözün",
@@ -715,7 +748,9 @@
         "retry": "Yeniden dene",
         "notSent": "İstek arka uca ulaşmadı, hiçbir şey değişmedi. Yeniden deneyebilirsiniz.",
         "outcomeUnknown": "Yanıt gelmeden bağlantı sıfırlandı — bu işlem tamamlanmış da olabilir, olmamış da. Yeniden denemeden önce yenileyip dosya listesini kontrol edin.",
-        "allFailed": "{{count}} dosyanın hiçbiri işlenemedi"
+        "allFailed": "{{count}} dosyanın hiçbiri işlenemedi",
+        "allFailed_one": "{{count}} dosyanın hiçbiri işlenemedi",
+        "allFailed_other": "{{count}} dosyanın hiçbiri işlenemedi"
       }
     },
     "pathCopied": "Yol kopyalandı",
@@ -727,5 +762,26 @@
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
     "truncated": "(önceki çıktı kesildi)"
+  },
+  "emptyState": {
+    "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."
+  },
+  "crossSession": {
+    "mentionAgain": "{{name}} sohbetini mesaj alanında an",
+    "mentionAgainHint": "Bu sohbeti mesaj alanında anmak için tıklayın",
+    "mentionUnavailable": "Bu sohbet artık anılamıyor.",
+    "mentionFailed": "Bu sohbet anılamadı.",
+    "fromBadge": "{{name}} sohbetinden",
+    "otherWorkspace": "farklı çalışma alanı",
+    "rateLimitedTitle": "Sohbetler arası mesajlar döngüye girmiş olabilir",
+    "rateLimited": "\"{{from}}\" ve \"{{to}}\" arasındaki otomatik mesajlar olağandışı sıklıkta; döngüye girmiş olabilir.",
+    "stopBoth": "Her iki sohbeti durdur",
+    "disableFeature": "Sohbetler arası mesajları kapat"
+  },
+  "planBar": {
+    "title": "Plan",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Planı genişlet",
+    "collapse": "Planı daralt"
   }
 }

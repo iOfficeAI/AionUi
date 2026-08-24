@@ -16,6 +16,28 @@ export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'fail
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
 
+export type TeamContextResetAvailability =
+  | 'ready'
+  | 'initializing'
+  | 'busy'
+  | 'dormant'
+  | 'failed'
+  | 'removing'
+  | 'session_stopped'
+  | 'unsupported'
+  | 'leader_not_targetable';
+
+export type TeamContextResetCapability = {
+  supported: boolean;
+  availability: TeamContextResetAvailability;
+};
+
+export type TeamContextResetResponse = {
+  reset_status: 'completed' | 'not_applied';
+  runtime_status: 'ready' | 'failed';
+  preserved_unread_count: number;
+};
+
 /** Persisted assistant configuration within a team */
 export type TeamAssistant = {
   slot_id: string;
@@ -29,6 +51,7 @@ export type TeamAssistant = {
   assistant_id?: string;
   model?: string;
   pending_confirmations?: number;
+  context_reset: TeamContextResetCapability;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
@@ -62,6 +85,11 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
   slot_id: string;
 };
 
+export type IInterruptTeamAgentParams = ISendTeamAgentMessageParams & {
+  reason?: string;
+  queued_policy?: 'retain' | 'discard';
+};
+
 export type TeamRunTargetRole = 'lead' | 'teammate';
 export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
 export type TeamSlotWorkState = 'idle' | 'queued' | 'starting' | 'running' | 'paused' | 'blocked';
@@ -87,6 +115,13 @@ export type ITeamRunAck = {
   enqueue_status: TeamMessageEnqueueStatus;
   message_id: string;
   run: ITeamRunEvent;
+};
+
+export type ITeamInterruptAgentResponse = {
+  outcome: 'interrupted' | 'queued_no_active_turn' | 'completed_race';
+  interrupted_turn_id?: string;
+  message_id: string;
+  target: ITeamSlotWork;
 };
 
 export type ICancelTeamRunParams = {
@@ -131,6 +166,8 @@ export type ITeamChildTurnEvent = {
   conversation_id: string;
   turn_id: string;
   status: TeamRunStatus;
+  reason?: string;
+  replacement_message_id?: string;
 };
 
 /**

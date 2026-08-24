@@ -43,7 +43,11 @@
     "batchExportConfirm": "确定导出已选的 {{count}} 个话题吗？",
     "batchDelete": "批量删除",
     "batchDeleteConfirm": "确定删除已选的 {{count}} 个话题吗？",
+    "batchDeleteConfirm_one": "确定删除已选的 {{count}} 个话题吗？",
+    "batchDeleteConfirm_other": "确定删除已选的 {{count}} 个话题吗？",
     "batchDeleteSuccess": "已删除 {{count}} 个话题",
+    "batchDeleteSuccess_one": "已删除 {{count}} 个话题",
+    "batchDeleteSuccess_other": "已删除 {{count}} 个话题",
     "batchNoSelection": "请先选择话题",
     "export": "导出",
     "exportDialogTitle": "导出话题",
@@ -58,6 +62,8 @@
     "exportFailed": "导出失败",
     "pin": "置顶",
     "unpin": "取消置顶",
+    "markAsUnread": "标为未读",
+    "markAsRead": "标为已读",
     "pinned": "已置顶",
     "pinFailed": "置顶操作失败",
     "pinnedSection": "置顶",
@@ -69,20 +75,21 @@
     "earlier": "更早",
     "projectsSection": "项目",
     "conversationsSection": "对话",
-    "removeProjectTitle": "移除项目",
-    "removeProject": "移除项目",
-    "removeProjectConfirm": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
-    "removeProjectConfirmTeams": "项目下的 {{teams}} 个团队也会被一起移除。",
-    "removeProjectListMore": "还有 {{count}} 项",
     "newConversationInProject": "在此项目中新建对话",
     "deleting": "删除中...",
     "reorderPinned": "拖动以调整置顶会话顺序",
     "forkedFrom": "分叉自「{{name}}」",
     "forkedConversation": "分叉会话",
-    "loadMore": "加载更多",
-    "newTeamInProject": "在此项目中新建团队",
-    "projectCreateMenu": "新建",
-    "collapseAllProjects": "收起全部项目"
+    "archive": "归档",
+    "archiveSuccess": "已归档",
+    "archiveFailed": "归档失败",
+    "batchArchive": "批量归档",
+    "batchArchiveConfirm": "确定归档已选的 {{count}} 个话题吗？归档后可在设置的归档页恢复或删除。",
+    "batchArchiveSuccess": "已归档 {{count}} 个话题",
+    "archiveProject": "归档项目",
+    "archiveProjectTitle": "归档项目",
+    "archiveProjectConfirm": "确定归档项目「{{name}}」吗？项目下的 {{count}} 个对话也会一起归档。归档后可在设置的归档页恢复或删除。",
+    "archiving": "归档中..."
   },
   "historySearch": {
     "tooltip": "检索会话",
@@ -433,7 +440,9 @@
     "searchHint": "点击这里搜索关键词",
     "empty": "暂无问答内容",
     "noMatch": "未找到匹配内容",
-    "count": "{{count}} 条"
+    "count": "{{count}} 条",
+    "count_one": "{{count}} 条",
+    "count_other": "{{count}} 条"
   },
   "chat": {
     "noModelSelected": "当前会话未选择模型，无法发送消息",
@@ -498,6 +507,8 @@
     "reorder": "拖动以调整排队指令顺序",
     "remove": "移除",
     "files": "{{count}} 个文件",
+    "files_one": "{{count}} 个文件",
+    "files_other": "{{count}} 个文件",
     "pausedAfterFailure": "下一条排队指令启动失败。请编辑、调整顺序或移除后再继续。",
     "emptyInput": "排队指令不能为空。",
     "queueFull": "队列已满，请先移除部分指令再继续添加。",
@@ -515,7 +526,14 @@
     "mode": {
       "auto": "自动发送",
       "manual": "手动发送"
-    }
+    },
+    "addToQueue": "存到草稿箱",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "enterShortcut": "Enter",
+    "actionMode": "Choose send action",
+    "midturnBlockedSendHint": "当前 Agent 正在处理，暂时不能直接发送。可以先存到草稿箱，稍后发送。",
+    "addToQueueBusyHint": "先存到草稿箱，稍后发送。"
   },
   "contextUsage": {
     "contextUsed": "上下文已使用",
@@ -574,7 +592,8 @@
   },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件，↑/↓ 切换历史消息",
-    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。"
+    "mediaPathFallback": "该 Agent 不原生支持此文件类型，将以文件路径形式发送。",
+    "hintWithSessions": "输入 / 唤起命令，@ 引用文件，@@ 引用会话，↑/↓ 切换历史消息"
   },
   "agentTip": {
     "codes": {
@@ -622,11 +641,16 @@
       "rename": "重命名",
       "addToChat": "添加到聊天",
       "copyRelativePath": "复制相对路径",
-      "copyAbsolutePath": "复制绝对路径"
+      "copyAbsolutePath": "复制绝对路径",
+      "refresh": "刷新",
+      "newFile": "新建文件",
+      "newDir": "新建目录"
     },
     "namePlaceholder": "名称",
     "deleteConfirm": "删除“{{name}}”？此操作无法撤销。",
     "renameFailed": "重命名失败",
+    "newFileFailed": "新建文件失败",
+    "newDirFailed": "新建目录失败",
     "tabs": {
       "files": "文件",
       "changes": "变更"
@@ -635,6 +659,8 @@
     "imported": "已导入 {{count}} 个文件",
     "importPartialFailed": "已复制 {{copied}} 个，{{failed}} 个失败（重名或不支持）",
     "importFailed": "导入文件失败",
+    "copyNodeFailed": "复制失败",
+    "moveNodeFailed": "移动失败",
     "search": {
       "placeholder": "按文件名搜索",
       "searching": "搜索中…",
@@ -704,8 +730,14 @@
         "confirmDiscardMixed": "{{tracked}} 个文件的修改将丢失且无法撤销；{{untracked}} 个新文件将被移到回收站。",
         "discardConfirmButton": "丢弃",
         "okStage": "已暂存 {{count}} 个文件",
+        "okStage_one": "已暂存 {{count}} 个文件",
+        "okStage_other": "已暂存 {{count}} 个文件",
         "okUnstage": "已取消暂存 {{count}} 个文件",
+        "okUnstage_one": "已取消暂存 {{count}} 个文件",
+        "okUnstage_other": "已取消暂存 {{count}} 个文件",
         "okDiscard": "已丢弃 {{count}} 个文件",
+        "okDiscard_one": "已丢弃 {{count}} 个文件",
+        "okDiscard_other": "已丢弃 {{count}} 个文件",
         "partial": "已完成 {{succeeded}}/{{total}} —— {{failed}} 个未能完成",
         "partialDetail": "未完成：{{files}}",
         "rejectedBlocked": "未改动任何内容 —— 请先解决冲突",
@@ -714,7 +746,9 @@
         "retry": "重试",
         "notSent": "请求没有发出到后端，未改动任何内容。可以重试。",
         "outcomeUnknown": "连接在收到答复前已重置——此操作可能已完成，也可能未完成。请刷新并核对文件列表，确认后再决定是否重试。",
-        "allFailed": "{{count}} 个文件都未能处理"
+        "allFailed": "{{count}} 个文件都未能处理",
+        "allFailed_one": "{{count}} 个文件都未能处理",
+        "allFailed_other": "{{count}} 个文件都未能处理"
       }
     },
     "pathCopied": "已复制路径",
@@ -726,5 +760,26 @@
     "exited": "退出码 {{code}}",
     "stop": "停止",
     "truncated": "(较早输出已截断)"
+  },
+  "emptyState": {
+    "greeting": "你好！说说你的需求，我这就开始。"
+  },
+  "crossSession": {
+    "mentionAgain": "在输入框中提及会话 {{name}}",
+    "mentionAgainHint": "点击以在输入框中提及此会话",
+    "mentionUnavailable": "该会话已无法提及",
+    "mentionFailed": "无法提及该会话",
+    "fromBadge": "来自会话「{{name}}」",
+    "otherWorkspace": "不同工作目录",
+    "rateLimitedTitle": "跨会话消息可能在空转",
+    "rateLimited": "会话「{{from}}」与「{{to}}」之间的自动消息过于频繁，可能在空转。",
+    "stopBoth": "停止这两个会话",
+    "disableFeature": "关闭跨会话消息"
+  },
+  "planBar": {
+    "title": "计划",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "展开计划",
+    "collapse": "收起计划"
   }
 }

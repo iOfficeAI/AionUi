@@ -5,6 +5,7 @@
   "nextRun": "اجرای بعدی",
   "lastRun": "آخرین اجرا",
   "lastError": "خطا",
+  "lastErrorWithDetail": "آخرین خطا: {{error}}",
   "message": "پیام",
   "goToConversation": "رفتن به مکالمه",
   "status": {

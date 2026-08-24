@@ -67,7 +67,7 @@
   gap: 8px;
   padding: 10px 14px;
   margin-top: 6px;
-  margin-left: 20px;
+  margin-inline-start: 20px;
   background: color-mix(in srgb, var(--aou-1) 50%, #fff);
   border-radius: 8px;
 }
@@ -77,8 +77,8 @@
 }
 
 .tool-detail-panel {
-  border-left: 2px solid var(--color-border-2, #e5e6eb);
-  padding-left: 10px;
+  border-inline-start: 2px solid var(--color-border-2, #e5e6eb);
+  padding-inline-start: 10px;
   margin-bottom: 4px;
 }
 

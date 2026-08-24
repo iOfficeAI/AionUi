@@ -39,6 +39,8 @@
   "expandMore": "Expand More",
   "collapse": "Collapse",
   "viewMoreLines": "View More ({{count}} lines)",
+  "viewMoreLines_one": "View More ({{count}} line)",
+  "viewMoreLines_other": "View More ({{count}} lines)",
   "success": "Success",
   "error": "Error",
   "saveSuccess": "Saved successfully",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
+    },
+    "databaseNewerThanApp": {
+      "title": "A newer version of AionUi is required",
+      "description": "Your local data was created by a newer version of AionUi, and this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed.",
+      "descriptionWithVersion": "Your local data was created by a version of AionUi newer than the one installed now (v{{currentVersion}}), so this version can't open it. Update AionUi to the latest version to continue — your data is intact, and no reinstall or data reset is needed."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
@@ -194,5 +201,6 @@
     "second_short": "s"
   },
   "selectedCount": "Selected {{count}}",
-  "selectedSkills": "Selected skills"
+  "selectedSkills": "Selected skills",
+  "aiAssistant": "AI Assistant"
 }

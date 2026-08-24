@@ -62,7 +62,12 @@ interface MessageIndex {
 
 function getMessageIndexKey(message: TMessage): string | undefined {
   if (!message.msg_id) return undefined;
-  return message.type === 'thinking' ? `thinking:${message.msg_id}` : message.msg_id;
+  // Every frame of a turn shares one msg_id, so any type that needs its own
+  // slot in the shared msgIdIndex must namespace its key. Without this, a plan
+  // update resolves to whatever frame was appended last and rewrites it.
+  if (message.type === 'thinking') return `thinking:${message.msg_id}`;
+  if (message.type === 'plan') return `plan:${message.msg_id}`;
+  return message.msg_id;
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
@@ -359,25 +364,23 @@ export function composeMessageWithIndex(
     return list.concat(message);
   }
 
-  // plan message: update content and move to end of list
+  // plan message: a full-replacement snapshot, updated in place.
+  // The key is namespaced (see getMessageIndexKey) because the whole turn shares
+  // one msg_id. The type guard is a second line of defence: a stale index entry
+  // must never let a plan overwrite a different kind of message.
   if (message.type === 'plan' && message.msg_id) {
-    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    const planKey = `plan:${message.msg_id}`;
+    const existingIdx = index.msgIdIndex.get(planKey);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
-      const newList = list.slice();
-      newList.splice(existingIdx, 1);
-      const updated = { ...existingMsg, ...message, content: message.content } as TMessage;
-      newList.push(updated);
-      // Rebuild index after splice
-      const rebuilt = buildMessageIndex(newList);
-      index.msgIdIndex = rebuilt.msgIdIndex;
-      index.call_idIndex = rebuilt.call_idIndex;
-      index.tool_call_idIndex = rebuilt.tool_call_idIndex;
-      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
-      return newList;
+      if (existingMsg.type === 'plan') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, content: message.content } as TMessage;
+        return newList;
+      }
     }
     const newIdx = list.length;
-    index.msgIdIndex.set(message.msg_id, newIdx);
+    index.msgIdIndex.set(planKey, newIdx);
     return list.concat(message);
   }
 
@@ -929,8 +932,17 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
+  const list = useMessageList();
   const setLoading = useUpdateMessageListLoading();
   const setPagination = useUpdateMessagePaginationState();
+  // Mirrors the current list into a ref so the turnCompleted handler below
+  // can inspect it synchronously without re-subscribing to the WS event on
+  // every list change (useState's functional updater runs asynchronously,
+  // so update((list) => ...) can't be used for a synchronous read here).
+  const listRef = useRef(list);
+  useEffect(() => {
+    listRef.current = list;
+  }, [list]);
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
     const result = await loadLatestConversationMessages(key, {
       limit: DEFAULT_MESSAGE_PAGE_LIMIT,
@@ -1003,6 +1015,58 @@ export const useMessageLstCache = (key: string) => {
       });
     });
   }, [key, update]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    // Flips a mid-turn-delivered user message's badge from "unread" to
+    // consumed once the agent actually picks it up (claude command_lifecycle
+    // Started; codex synthetic receipt). Correlates by msg_id — the same
+    // server-assigned id message.userCreated used to add the row — never by
+    // text/time.
+    return ipcBridge.conversation.statusChanged.on((payload) => {
+      if (payload.conversation_id !== key) {
+        return;
+      }
+
+      update((list) =>
+        list.map((message) => (message.msg_id === payload.msg_id ? { ...message, status: payload.status } : message))
+      );
+    });
+  }, [key, update]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    // Reconciliation backstop at every turn boundary. The live statusChanged
+    // flip above is best-effort — a live window can miss the event (codex
+    // ack-timeout, a WS gap, or a row left orphaned by a server restart) and
+    // then never self-heal because the conversation stays mounted and never
+    // reloads. The DB row is the authoritative source of truth, so once a
+    // turn for this conversation finishes we re-pull the latest page if (and
+    // only if) a right-position text message is still showing 'pending' —
+    // loadMessages's merge (preferPersistedOrLiveMessage) lets DB truth win
+    // without disturbing anything else in the list.
+    return ipcBridge.conversation.turnCompleted.on((payload) => {
+      if (payload.session_id !== key) {
+        return;
+      }
+
+      const hasPendingDelivery = listRef.current.some(
+        (message) => message.type === 'text' && message.position === 'right' && message.status === 'pending'
+      );
+
+      if (hasPendingDelivery) {
+        void loadMessages().catch((error) => {
+          console.error('[useMessageLstCache] Failed to reconcile pending messages after turn completion:', error);
+        });
+      }
+    });
+  }, [key, loadMessages]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

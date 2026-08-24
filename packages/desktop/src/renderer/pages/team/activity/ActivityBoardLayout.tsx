@@ -82,7 +82,7 @@ const BoardColumn: React.FC<{
             />
           </div>
         )}
-        <span className='ml-auto text-11px text-[color:var(--color-text-3)]'>{laneItems.length}</span>
+        <span className='ms-auto text-11px text-[color:var(--color-text-3)]'>{laneItems.length}</span>
       </div>
       <div ref={scrollRef} className='flex-1 overflow-auto flex flex-col gap-8px p-8px'>
         {laneItems.length === 0 ? (

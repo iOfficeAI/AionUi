@@ -11,7 +11,7 @@ Preview 模块是 AionUi 中的文件预览和编辑系统，支持多种文件�
 - 同时打开多个文件，每个文件在独立 Tab 中显示
 - 智能 Tab 复用：相同文件不会重复打开
 - Tab 溢出处理：自动显示渐变效果和滚动支持
-- 右键菜单：关闭当前、关闭其他、关闭全部
+- 右键菜单：关闭当前 / 左侧 / 右侧 / 其他 / 未修改 / 全部 Tab，复制路径 / 相对路径，打开文件所在目录
 
 ### 2. 文件类型支持
 
@@ -318,12 +318,19 @@ function SendBox() {
 支持的快捷键：
 
 - `Cmd/Ctrl + S` - 保存当前 Tab
-- `Cmd/Ctrl + W` - 关闭当前 Tab（未实现，预留）
+- `Cmd/Ctrl + W` - 关闭当前 Tab
+
+`Cmd/Ctrl + W` 以 `scopeRef` 限定作用域：只有源自预览面板内部的按键才会关闭 Tab，
+在聊天区按下时保持原有含义。与应用内其它快捷键不同，它刻意不回避代码编辑器 ——
+编辑过程中按下就是要关掉这个 Tab，未保存的内容由关闭确认弹窗兜底，而不是靠吞掉
+快捷键来保护。
 
 ```typescript
 usePreviewKeyboardShortcuts({
   isDirty: activeTab?.isDirty,
   onSave: () => saveContent(),
+  onCloseActiveTab: () => handleCloseTab(activeTabId),
+  scopeRef: panelRootRef,
 });
 ```
 

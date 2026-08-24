@@ -39,6 +39,8 @@
   "expandMore": "Voir plus",
   "collapse": "Réduire",
   "viewMoreLines": "Voir plus ({{count}} lignes)",
+  "viewMoreLines_one": "Voir plus ({{count}} ligne)",
+  "viewMoreLines_other": "Voir plus ({{count}} lignes)",
   "success": "Succès",
   "error": "Erreur",
   "saveSuccess": "Enregistré avec succès",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic"
+    },
+    "databaseNewerThanApp": {
+      "title": "Une version plus récente d'AionUi est requise",
+      "description": "Vos données locales ont été créées par une version plus récente d'AionUi et cette version ne peut pas les ouvrir. Mettez à jour AionUi vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire.",
+      "descriptionWithVersion": "Vos données locales ont été créées par une version d'AionUi plus récente que celle installée actuellement (v{{currentVersion}}), cette version ne peut donc pas les ouvrir. Mettez à jour AionUi vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire."
     },
     "localDataRepair": {
       "title": "La réparation des données locales a échoué",
@@ -192,5 +199,8 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
-  }
+  },
+  "selectedCount": "{{count}} sélectionné(s)",
+  "selectedSkills": "Compétences sélectionnées",
+  "aiAssistant": "Assistant IA"
 }

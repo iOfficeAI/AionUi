@@ -1,8 +1,10 @@
 import { ipcBridge } from '@/common';
+import { normalizeTeamStatus } from '@/common/adapter/teamMapper';
 import type {
   ITeamChildTurnEvent,
   ITeamRunAck,
   ITeamRunEvent,
+  ITeamRunStateResponse,
   ITeamSlotWork,
   ITeamSlotWorkChangedEvent,
   TeamRunStatus,
@@ -11,8 +13,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type TeamRunViewRun = ITeamRunEvent;
 export type TeamRunViewChildTurn = ITeamChildTurnEvent;
+export type TeamRunReconcileResult = 'applied' | 'superseded' | 'failed';
 
 const TERMINAL_RUN_STATUSES = new Set<TeamRunStatus>(['completed', 'cancelled', 'failed']);
+const TERMINAL_AGENT_STATUSES = new Set(['idle', 'completed', 'failed', 'dormant']);
+const ORPHAN_RECONCILE_DELAY_MS = 500;
+const AGENT_STATUS_RECONCILE_DELAY_MS = 250;
 
 export type TeamRunViewState = {
   activeRun?: TeamRunViewRun;
@@ -75,37 +81,97 @@ const indexSlotWork = (slotWork?: ITeamSlotWork[] | null): Record<string, ITeamS
   return indexed;
 };
 
+const mergeSlotWork = (
+  current: Record<string, ITeamSlotWork | undefined>,
+  incoming?: ITeamSlotWork[] | null
+): Record<string, ITeamSlotWork | undefined> => ({
+  ...current,
+  ...indexSlotWork(incoming),
+});
+
+const hasOrphanedProcessingWork = (state: TeamRunViewState): boolean => {
+  if (state.activeRun || state.sessionStopped) return false;
+  return Object.values(state.slotWorkBySlot).some(
+    (work) =>
+      work &&
+      work.state !== 'paused' &&
+      (work.state === 'queued' ||
+        work.state === 'starting' ||
+        work.state === 'running' ||
+        work.queued_foreground_count > 0 ||
+        work.queued_background_count > 0)
+  );
+};
+
 export const useTeamRunView = (team_id: string) => {
   const [state, setState] = useState<TeamRunViewState>(emptyState);
   const reconcileSeq = useRef(0);
+  const liveEventVersion = useRef(0);
 
   useEffect(() => {
     reconcileSeq.current += 1;
+    liveEventVersion.current += 1;
     setState(emptyState);
   }, [team_id]);
+
+  const reconcile = useCallback(
+    async (source = 'manual'): Promise<TeamRunReconcileResult> => {
+      const requestSnapshot = async (attempt: 0 | 1): Promise<TeamRunReconcileResult> => {
+        const seq = ++reconcileSeq.current;
+        const requestedAtLiveEventVersion = liveEventVersion.current;
+        let snapshot: ITeamRunStateResponse;
+        try {
+          snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
+        } catch (error) {
+          console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
+          return 'failed';
+        }
+
+        if (seq !== reconcileSeq.current || requestedAtLiveEventVersion !== liveEventVersion.current) {
+          return attempt === 0 ? requestSnapshot(1) : 'superseded';
+        }
+
+        const activeRun = snapshot.active_run ?? undefined;
+        if (activeRun) debugTeamRunEvent(`reconcile:${source}`, activeRun);
+        setState({
+          activeRun,
+          childTurnsBySlot: {},
+          slotWorkBySlot: indexSlotWork(snapshot.slot_work),
+          sessionStopped: false,
+        });
+        return 'applied';
+      };
+      return requestSnapshot(0);
+    },
+    [team_id]
+  );
 
   const applyRunEvent = useCallback(
     (event: ITeamRunEvent, source = 'websocket') => {
       if (event.team_id !== team_id) return;
+      liveEventVersion.current += 1;
       debugTeamRunEvent(source, event);
       setState((prev) => {
         if (TERMINAL_RUN_STATUSES.has(event.status)) {
           return {
             activeRun: undefined,
             childTurnsBySlot: prev.childTurnsBySlot,
-            slotWorkBySlot: indexSlotWork(event.slot_work),
+            slotWorkBySlot: mergeSlotWork(prev.slotWorkBySlot, event.slot_work),
             sessionStopped: false,
           };
         }
         return {
           activeRun: event,
           childTurnsBySlot: prev.childTurnsBySlot,
-          slotWorkBySlot: indexSlotWork(event.slot_work),
+          slotWorkBySlot: mergeSlotWork(prev.slotWorkBySlot, event.slot_work),
           sessionStopped: false,
         };
       });
+      if (TERMINAL_RUN_STATUSES.has(event.status)) {
+        void reconcile(`terminal-run:${event.status}`);
+      }
     },
-    [team_id]
+    [reconcile, team_id]
   );
 
   const applyAck = useCallback(
@@ -113,31 +179,6 @@ export const useTeamRunView = (team_id: string) => {
       applyRunEvent(ack.run, 'ack');
     },
     [applyRunEvent]
-  );
-
-  const reconcile = useCallback(
-    async (source = 'manual'): Promise<boolean> => {
-      const seq = ++reconcileSeq.current;
-      try {
-        const snapshot = await ipcBridge.team.getRunState.invoke({ team_id });
-        setState((prev) => {
-          if (seq !== reconcileSeq.current) return prev;
-          const activeRun = snapshot.active_run ?? undefined;
-          if (activeRun) debugTeamRunEvent(`reconcile:${source}`, activeRun);
-          return {
-            activeRun,
-            childTurnsBySlot: {},
-            slotWorkBySlot: indexSlotWork(snapshot.slot_work),
-            sessionStopped: false,
-          };
-        });
-        return true;
-      } catch (error) {
-        console.warn('[Renderer:teamRunView] run_state_reconcile_failed', { source, team_id, error });
-        return false;
-      }
-    },
-    [team_id]
   );
 
   const applyChildStarted = useCallback(
@@ -179,6 +220,7 @@ export const useTeamRunView = (team_id: string) => {
   const applySlotWork = useCallback(
     (event: ITeamSlotWorkChangedEvent) => {
       if (event.team_id !== team_id) return;
+      liveEventVersion.current += 1;
       setState((prev) => ({
         ...prev,
         slotWorkBySlot: {
@@ -190,11 +232,56 @@ export const useTeamRunView = (team_id: string) => {
     [team_id]
   );
 
+  const applyLocalPause = useCallback((slot_id: string) => {
+    liveEventVersion.current += 1;
+    setState((prev) => {
+      const work = prev.slotWorkBySlot[slot_id];
+      if (!work) return prev;
+      return {
+        ...prev,
+        slotWorkBySlot: {
+          ...prev.slotWorkBySlot,
+          [slot_id]: {
+            ...work,
+            state: 'paused',
+            active_turn_id: null,
+            active_turn_started_at_ms: null,
+            active_turn_elapsed_ms: null,
+            active_turn_slow: null,
+            active_turn_slow_threshold_ms: null,
+          },
+        },
+      };
+    });
+  }, []);
+
   useEffect(() => {
     void reconcile('load');
   }, [reconcile]);
 
+  // A terminal run can legitimately carry one last running slot snapshot while
+  // run-less trailing work finishes. If its final slot event is missed, poll the
+  // authoritative snapshot at a bounded interval until the orphaned busy shape
+  // clears. One timer per render avoids overlapping requests.
   useEffect(() => {
+    if (!hasOrphanedProcessingWork(state)) return;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const reconcileOrphan = async () => {
+      const reconciled = await reconcile('orphaned-slot-work');
+      if (!cancelled && reconciled !== 'applied') {
+        retryTimer = setTimeout(() => void reconcileOrphan(), ORPHAN_RECONCILE_DELAY_MS);
+      }
+    };
+    retryTimer = setTimeout(() => void reconcileOrphan(), ORPHAN_RECONCILE_DELAY_MS);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [reconcile, state]);
+
+  useEffect(() => {
+    let agentStatusReconcileTimer: ReturnType<typeof setTimeout> | undefined;
     const unsubs = [
       ipcBridge.team.runAccepted.on(applyRunEvent),
       ipcBridge.team.runStarted.on(applyRunEvent),
@@ -206,6 +293,16 @@ export const useTeamRunView = (team_id: string) => {
       ipcBridge.team.childTurnCompleted.on(applyChildTerminal),
       ipcBridge.team.childTurnCancelled.on(applyChildTerminal),
       ipcBridge.team.slotWorkChanged.on(applySlotWork),
+      ipcBridge.team.agentStatusChanged.on((event) => {
+        if (event.team_id !== team_id) return;
+        const status = normalizeTeamStatus(event.status);
+        if (!TERMINAL_AGENT_STATUSES.has(status)) return;
+        if (agentStatusReconcileTimer) clearTimeout(agentStatusReconcileTimer);
+        agentStatusReconcileTimer = setTimeout(() => {
+          agentStatusReconcileTimer = undefined;
+          void reconcile(`team.agentStatusChanged:${status}`);
+        }, AGENT_STATUS_RECONCILE_DELAY_MS);
+      }),
       ipcBridge.realtime.reconnected.on(() => {
         void reconcile('realtime.reconnected');
       }),
@@ -235,6 +332,7 @@ export const useTeamRunView = (team_id: string) => {
       }),
     ];
     return () => {
+      if (agentStatusReconcileTimer) clearTimeout(agentStatusReconcileTimer);
       unsubs.forEach((unsubscribe) => unsubscribe());
     };
   }, [applyChildStarted, applyChildTerminal, applySlotWork, applyRunEvent, reconcile, team_id]);
@@ -243,8 +341,9 @@ export const useTeamRunView = (team_id: string) => {
     () => ({
       state,
       applyAck,
+      applyLocalPause,
       reconcile,
     }),
-    [applyAck, reconcile, state]
+    [applyAck, applyLocalPause, reconcile, state]
   );
 };

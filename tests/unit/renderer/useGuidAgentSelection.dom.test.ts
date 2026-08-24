@@ -268,7 +268,12 @@ describe('useGuidAssistantSelection', () => {
       expect(result.current.selectedAssistantId).toBe('custom-1781258588874-26ad');
     });
 
-    expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
+    // The catalog is READ from the right agent, but it must NOT become a selection: its
+    // `current_model_id` is whatever the agent's last session wrote back, not this user's
+    // intent. Seeding it made every fresh conversation inherit a stranger's pick — for
+    // claude usually its `default` row, which pins the account default and overrides the
+    // user's own ANTHROPIC_MODEL, so the app ran a different model than the CLI did.
+    expect(result.current.selectedAcpModel).toBeNull();
     expect(result.current.currentAcpCachedModelInfo).toEqual({
       current_model_id: 'global.anthropic.claude-opus-4-8',
       current_model_label: 'Opus 4.8',
@@ -394,9 +399,12 @@ describe('useGuidAssistantSelection', () => {
       })
     );
 
+    // Nothing is picked until the user picks: the catalog's own `current_model_id` must
+    // not masquerade as a selection.
     await waitFor(() => {
-      expect(result.current.selectedAcpModel).toBe('default');
+      expect(result.current.selectedAssistantId).toBe('assistant-with-runtime-models');
     });
+    expect(result.current.selectedAcpModel).toBeNull();
 
     act(() => {
       result.current.setSelectedAcpModel('global.anthropic.claude-opus-4-8');
@@ -404,6 +412,7 @@ describe('useGuidAssistantSelection', () => {
 
     expect(result.current.selectedAcpModel).toBe('global.anthropic.claude-opus-4-8');
 
+    // A catalog refresh for the SAME assistant must not disturb the user's pick.
     mockManagedAgents = [buildManagedAgent()];
     rerender();
 

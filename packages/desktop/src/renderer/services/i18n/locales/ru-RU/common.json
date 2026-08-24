@@ -39,6 +39,10 @@
   "expandMore": "Показать больше",
   "collapse": "Свернуть",
   "viewMoreLines": "Показать ещё ({{count}} строк)",
+  "viewMoreLines_one": "Показать ещё ({{count}} строка)",
+  "viewMoreLines_other": "Показать ещё ({{count}} строк)",
+  "viewMoreLines_few": "Показать ещё ({{count}} строки)",
+  "viewMoreLines_many": "Показать ещё ({{count}} строк)",
   "success": "Успешно",
   "error": "Ошибка",
   "saveSuccess": "Сохранено успешно",
@@ -100,6 +104,11 @@
       "diagnosticsSent": "Диагностика отправлена",
       "diagnosticsReportSuccess": "Диагностический отчёт отправлен",
       "diagnosticsReportFailed": "Не удалось отправить диагностический отчёт"
+    },
+    "databaseNewerThanApp": {
+      "title": "Требуется более новая версия AionUi",
+      "description": "Ваши локальные данные созданы более новой версией AionUi, и эта версия не может их открыть. Обновите AionUi до последней версии, чтобы продолжить — данные не повреждены, переустановка или сброс не требуются.",
+      "descriptionWithVersion": "Ваши локальные данные созданы версией AionUi новее установленной сейчас (v{{currentVersion}}), поэтому эта версия не может их открыть. Обновите AionUi до последней версии, чтобы продолжить — данные не повреждены, переустановка или сброс не требуются."
     },
     "localDataRepair": {
       "title": "Не удалось восстановить локальные данные",
@@ -194,5 +203,6 @@
     "second_short": "с"
   },
   "selectedCount": "Выбрано {{count}}",
-  "selectedSkills": "Выбранные навыки"
+  "selectedSkills": "Выбранные навыки",
+  "aiAssistant": "ИИ-ассистент"
 }

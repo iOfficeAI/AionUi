@@ -23,6 +23,7 @@ import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-desig
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatTime } from '@/renderer/services/i18n/format';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /**
@@ -71,7 +72,7 @@ const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
  * WebUI settings content component
  */
 const WebuiModalContent: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const talkToButler = useTalkToButler();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -536,8 +537,7 @@ const WebuiModalContent: React.FC = () => {
 
   // 格式化过期时间 / Format expiration time
   const formatExpiresAt = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return formatTime(timestamp, i18n.language, { hour: '2-digit', minute: '2-digit' });
   };
 
   // 获取实际密码 / Get actual password
@@ -560,7 +560,7 @@ const WebuiModalContent: React.FC = () => {
       <div className='flex flex-col h-full w-full'>
         <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
           <div className='space-y-16px'>
-            <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
+            <h2 className='text-20px font-500 text-t-primary m-0'>{t('settings.channels', 'Channels')}</h2>
             <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
               <ChannelModalContentLazy />
             </Suspense>
@@ -828,8 +828,8 @@ const WebuiModalContent: React.FC = () => {
               className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}
             >
               <Communication theme='outline' size='15' />
-              <span>Channels</span>
-              <span className='inline-flex items-center gap-4px ml-2px'>
+              <span>{t('settings.channels', 'Channels')}</span>
+              <span className='inline-flex items-center gap-4px ms-2px'>
                 {CHANNEL_LOGOS.map((item) => (
                   <span
                     key={item.alt}

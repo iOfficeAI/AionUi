@@ -39,6 +39,8 @@
   "expandMore": "展开更多",
   "collapse": "收起",
   "viewMoreLines": "查看更多 ({{count}} 行)",
+  "viewMoreLines_one": "查看更多 ({{count}} 行)",
+  "viewMoreLines_other": "查看更多 ({{count}} 行)",
   "success": "成功",
   "error": "错误",
   "saveSuccess": "保存成功",
@@ -101,6 +103,11 @@
       "diagnosticsSent": "诊断报告已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败"
+    },
+    "databaseNewerThanApp": {
+      "title": "需要更新 AionUi",
+      "description": "本地数据由更高版本的 AionUi 创建，当前版本无法打开。请将 AionUi 更新到最新版本即可继续使用，数据完好无损，无需重装或重置数据。",
+      "descriptionWithVersion": "本地数据由比当前版本 v{{currentVersion}} 更新的 AionUi 创建，当前版本无法打开。请将 AionUi 更新到最新版本即可继续使用，数据完好无损，无需重装或重置数据。"
     },
     "localDataRepair": {
       "title": "本地数据修复失败",
@@ -194,5 +201,6 @@
     "second_short": "秒"
   },
   "selectedCount": "已选 {{count}}",
-  "selectedSkills": "已选技能"
+  "selectedSkills": "已选技能",
+  "aiAssistant": "AI 助手"
 }

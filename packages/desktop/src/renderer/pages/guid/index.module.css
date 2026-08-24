@@ -63,7 +63,7 @@
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  margin-right: 0;
+  margin-inline-end: 0;
 }
 
 /* 方案E：模型 + 权限各自独立 tb-btn，中间有竖线分隔 */
@@ -128,7 +128,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  margin-left: auto;
+  margin-inline-start: auto;
   min-width: 0;
 }
 
@@ -136,7 +136,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px 10px 14px;
+  padding-block: 6px 10px;
+  padding-inline-start: 14px;
+  padding-inline-end: 6px;
   background: transparent;
 }
 
@@ -184,7 +186,9 @@
   color: var(--color-text-2);
   background: transparent;
   border: none;
-  padding: 4px 4px 4px 6px;
+  padding-block: 4px;
+  padding-inline-start: 6px;
+  padding-inline-end: 4px;
   cursor: pointer;
   font-family: inherit;
   transition:
@@ -212,7 +216,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  margin-right: 2px;
+  margin-inline-end: 2px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -392,7 +396,7 @@
   }
 
   .actionEntry {
-    margin-right: 0;
+    margin-inline-end: 0;
   }
 
   .actionConfigGroup {
@@ -404,13 +408,13 @@
   }
 
   .actionConfigGroupWithDivider > :first-child::after {
-    right: -6px;
+    inset-inline-end: -6px;
     height: 16px;
   }
 
   .actionSubmit {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-inline-start: 8px;
   }
 }
 
@@ -511,7 +515,9 @@
   position: relative;
   max-height: 200px;
   overflow-y: auto;
-  padding: 4px 6px 4px 4px;
+  padding-block: 4px;
+  padding-inline-start: 4px;
+  padding-inline-end: 6px;
   scrollbar-width: thin;
 }
 

@@ -2,5 +2,14 @@
   "selectFile": "Dosya Seç",
   "selectDirectory": "Klasör Seç",
   "pleaseSelectFile": "Lütfen bir dosya seçin",
-  "pleaseSelectDirectory": "Lütfen bir klasör seçin"
+  "pleaseSelectDirectory": "Lütfen bir klasör seçin",
+  "webFsPicker": {
+    "loadFailed": "Bu dizin açılamıyor",
+    "titleDirectory": "Sunucuda bir klasör seçin",
+    "titleFile": "Sunucuda bir dosya seçin",
+    "selectedCount": "{{count}} seçildi",
+    "up": "Yukarı",
+    "go": "Git",
+    "empty": "Burada bir şey yok"
+  }
 }

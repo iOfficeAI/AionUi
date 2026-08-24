@@ -8,7 +8,12 @@ import React, { useMemo, useState } from 'react';
 import { Button, Slider } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
-import { FONT_SCALE_DEFAULT, FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP } from '@renderer/hooks/ui/useFontScale';
+import {
+  FONT_SCALE_DEFAULT,
+  FONT_SCALE_MAX,
+  FONT_SCALE_MIN,
+  FONT_SCALE_STEP,
+} from '@renderer/hooks/ui/font/useFontScale';
 
 // 浮点数比较容差 / Floating point comparison tolerance
 const EPSILON = 0.001;
@@ -124,11 +129,8 @@ const ScaleControl: React.FC = () => {
             +
           </Button>
         </div>
-        <div className='flex items-center gap-10px ml-auto'>
-          <span
-            className='text-13px text-t-primary text-right min-w-56px'
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
+        <div className='flex items-center gap-10px ms-auto'>
+          <span className='text-13px text-t-primary text-end min-w-56px' style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formattedValue}
           </span>
           <Button
