@@ -9,6 +9,9 @@ import { downloadFileFromPath, downloadFileFromRef, downloadTextContent } from '
 import { formatFileSize } from '@/renderer/services/FileService';
 import { CONTENT_FREE_TYPES, formatSizeAboveLimit } from '@/renderer/utils/file/previewPayload';
 import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
+import { copyText } from '@/renderer/utils/ui/clipboard';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { canCopyAbsolutePath, canRevealInFolder, previewTabPaths } from './previewTabPaths';
 import { isRefreshActionable, refreshButtonState, refreshStateToken } from './refreshButtonState';
 import { reloadViaViewer } from '../../context/tabReloaderRegistry';
 import {
@@ -130,6 +133,9 @@ const PreviewPanel: React.FC = () => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ show: false, x: 0, y: 0, tabId: null });
 
   // 容器引用 / Container refs
+  // panelRootRef 界定 Cmd/Ctrl+W 的作用域：只有面板内部按下才算关 tab
+  // panelRootRef scopes Cmd/Ctrl+W — only keystrokes inside the panel close a tab
+  const panelRootRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -252,11 +258,6 @@ const PreviewPanel: React.FC = () => {
   const handleCancelRefresh = useCallback(() => {
     setRefreshConfirm({ show: false, tabId: null });
   }, []);
-
-  usePreviewKeyboardShortcuts({
-    isDirty: activeTab?.isDirty,
-    onSave: () => void handleSaveActiveTab(),
-  });
 
   // 新建浏览器 tab（tab 栏加号）/ New browser tab (plus button in the tab bar)
   const handleNewBrowserTab = useCallback(() => openBrowserTab(), [openBrowserTab]);
@@ -479,10 +480,117 @@ const PreviewPanel: React.FC = () => {
     [tabs, requestCloseBatch]
   );
 
+  // 关闭所有未修改的 tabs / Close all unmodified tabs.
+  //
+  // 用途是清掉「只是看过」的那一批，所以按 dirty 与否筛选、不管位置，未保存的
+  // tab 一律留下。因为选出来的全是干净 tab，requestCloseBatch 不会弹确认 ——
+  // 这正是这一项的意义：无需二次确认的批量清理。
+  //
+  // Clears the tabs that were only read, so it filters by dirty state rather than
+  // position and always leaves unsaved tabs open. Since every selected tab is
+  // clean, requestCloseBatch never raises a confirmation — which is the point of
+  // this entry: a bulk tidy-up that needs no second thought.
+  const handleCloseUnmodified = useCallback(() => {
+    requestCloseBatch(tabs.filter((tab) => !tab.isDirty));
+  }, [tabs, requestCloseBatch]);
+
   // 关闭全部 tabs / Close all tabs
   const handleCloseAll = useCallback(() => {
     requestCloseBatch(tabs);
   }, [tabs, requestCloseBatch]);
+
+  // 复制结果的统一提示 / Single place to report a copy's outcome.
+  const reportCopy = useCallback(
+    (done: Promise<unknown>) => {
+      void done.then(
+        () => messageApi.success(t('common.copySuccess')),
+        () => messageApi.error(t('common.copyFailed'))
+      );
+    },
+    [messageApi, t]
+  );
+
+  // 复制绝对路径（浏览器 tab 则是 URL）。
+  //
+  // 两条路，取决于渲染进程手上到底有没有这个字符串：
+  //  - `filePath` / `url`：本进程就有，走 copyText。它比 navigator.clipboard 多
+  //    一层退路 —— WebUI 经 HTTP 访问时不是安全上下文，Clipboard API 不可用。
+  //  - `projectRef`：Explorer 打开的项目文件，前端从不持有绝对路径，交给后端
+  //    resolve 并由后端写剪贴板（与 Explorer 自己的「复制绝对路径」同一通道）。
+  //    仅桌面端可用：远程 WebUI 不该看到宿主机的设备路径，所以映射那里已经把
+  //    这项在非 Electron 下置灰，这里再挡一次，避免调用路径被别处复用时漏掉。
+  //
+  // Copy the absolute path (a URL, for browser tabs). Two routes, depending on
+  // whether the renderer actually holds the string:
+  //  - `filePath` / `url`: it is right here, so copyText handles it — adding the
+  //    fallback navigator.clipboard lacks when the WebUI is served over HTTP and
+  //    is therefore not a secure context.
+  //  - `projectRef`: an Explorer-opened project file, whose absolute path the
+  //    front end never holds; the backend resolves it and writes the clipboard
+  //    itself (the same channel as the Explorer's own copy-absolute-path).
+  //    Desktop only — a remote WebUI must not be shown host device paths, so the
+  //    mapping below already greys this out off Electron and this guard repeats
+  //    it in case the handler is ever reused from somewhere else.
+  const handleCopyPath = useCallback(
+    (tabId: string) => {
+      const tab = tabs.find((item) => item.id === tabId);
+      const absolute = tab ? previewTabPaths(tab).absolute : undefined;
+      if (!absolute) return;
+
+      if (absolute.kind !== 'projectRef') {
+        reportCopy(copyText(absolute.value));
+        return;
+      }
+
+      if (!isElectronDesktop()) return;
+      reportCopy(
+        ipcBridge.fs.copyAbsolutePath.invoke({ pe_id: absolute.pe_id, relative_path: absolute.relative_path })
+      );
+    },
+    [tabs, reportCopy]
+  );
+
+  // 复制 workspace 相对路径。纯前端字符串，桌面端和 WebUI 都可用。
+  // Copy the workspace-relative path — a pure front-end string, so it works on
+  // both desktop and the WebUI.
+  const handleCopyRelativePath = useCallback(
+    (tabId: string) => {
+      const tab = tabs.find((item) => item.id === tabId);
+      const relative = tab ? previewTabPaths(tab).relative : undefined;
+      if (!relative) return;
+      reportCopy(copyText(relative));
+    },
+    [tabs, reportCopy]
+  );
+
+  // 在系统文件管理器中定位该文件（Finder / 资源管理器）。
+  //
+  // 与复制路径同样的两条路：项目文件交后端 resolve 后 showItemInFolder，前端已有
+  // 绝对路径的直接走 shell 通道。URL 走不到这里 —— canRevealInFolder 已把浏览器
+  // tab 排除，这里的 `url` 分支只是把这条不变量写进代码，而不是靠调用方自觉。
+  //
+  // Locate the file in the OS file manager (Finder / Explorer). Same two routes as
+  // copy-path: a project file is resolved backend-side and revealed there, while a
+  // path the renderer already holds goes straight through the shell channel. A URL
+  // never reaches this — canRevealInFolder excludes browser tabs — and the `url`
+  // branch below states that invariant in code rather than trusting callers.
+  const handleRevealInFolder = useCallback(
+    (tabId: string) => {
+      const tab = tabs.find((item) => item.id === tabId);
+      const absolute = tab ? previewTabPaths(tab).absolute : undefined;
+      if (!absolute || !isElectronDesktop()) return;
+
+      const failed = () => messageApi.error(t('preview.openLocationFailed'));
+      if (absolute.kind === 'filePath') {
+        void ipcBridge.shell.showItemInFolder.invoke(absolute.value).catch(failed);
+        return;
+      }
+      if (absolute.kind === 'projectRef') {
+        void ipcBridge.fs.reveal.invoke({ pe_id: absolute.pe_id, relative_path: absolute.relative_path }).catch(failed);
+      }
+    },
+    [tabs, messageApi, t]
+  );
 
   // 收起面板：只改可见性，tab 留着照常持久化 —— 但仍要过 dirty 确认，
   // 否则「收起」会变成一条静默丢弃未保存内容的路径。
@@ -493,6 +601,27 @@ const PreviewPanel: React.FC = () => {
   const handleClosePanel = useCallback(() => {
     requestCloseBatch(tabs, closePreview);
   }, [tabs, requestCloseBatch, closePreview]);
+
+  // Cmd/Ctrl+W 的目标是当前 tab；没有当前 tab 时什么也不做，让按键落回默认行为。
+  // Cmd/Ctrl+W targets the active tab; with none open it does nothing and lets
+  // the keystroke fall through to its default behaviour.
+  const handleCloseActiveTab = useCallback(() => {
+    if (!activeTabId) return;
+    handleCloseTab(activeTabId);
+  }, [activeTabId, handleCloseTab]);
+
+  // 快捷键挂在这里而不是更靠上：它依赖上面的 handleCloseTab / handleSaveActiveTab，
+  // 提前调用会撞上 const 的暂时性死区。
+  //
+  // Registered here rather than higher up: it depends on handleCloseTab and
+  // handleSaveActiveTab above, and calling it earlier would hit their temporal
+  // dead zone.
+  usePreviewKeyboardShortcuts({
+    isDirty: activeTab?.isDirty,
+    onSave: () => void handleSaveActiveTab(),
+    onCloseActiveTab: handleCloseActiveTab,
+    scopeRef: panelRootRef,
+  });
 
   // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
   // Destructure defensively and bail out AFTER the last hook below.
@@ -1038,13 +1167,19 @@ const PreviewPanel: React.FC = () => {
   };
 
   // 将 tabs 转换为 PreviewTab 类型 / Convert tabs to PreviewTab type
-  const previewTabs: PreviewTab[] = tabs.map((tab) => ({
-    id: tab.id,
-    title: tab.title,
-    isDirty: tab.isDirty,
-    favicon: tab.content_type === 'browser' ? tab.metadata?.favicon : undefined,
-    agentActive: tab.content_type === 'browser' ? tab.metadata?.agentActive : undefined,
-  }));
+  const previewTabs: PreviewTab[] = tabs.map((tab) => {
+    const paths = previewTabPaths(tab);
+    return {
+      id: tab.id,
+      title: tab.title,
+      isDirty: tab.isDirty,
+      favicon: tab.content_type === 'browser' ? tab.metadata?.favicon : undefined,
+      agentActive: tab.content_type === 'browser' ? tab.metadata?.agentActive : undefined,
+      canCopyPath: canCopyAbsolutePath(paths.absolute, isElectronDesktop()),
+      canCopyRelativePath: Boolean(paths.relative),
+      canRevealInFolder: canRevealInFolder(paths.absolute, isElectronDesktop()),
+    };
+  });
 
   // 浏览器 tab 常驻挂载，切 tab 不销毁 webview / Browser tabs stay mounted across switches
   const browserTabs = tabs.filter((tab) => tab.content_type === 'browser');
@@ -1054,7 +1189,7 @@ const PreviewPanel: React.FC = () => {
       {/* bg-1 是必需的：面板必须自己铺满底色，不能依赖外层容器
           bg-1 is required: the panel paints its own background rather than
           relying on an outer container, so no window backdrop shows through. */}
-      <div className='h-full flex flex-col bg-1'>
+      <div ref={panelRootRef} className='h-full flex flex-col bg-1'>
         {messageContextHolder}
 
         {/* 确认对话框 / Confirmation modals */}
@@ -1146,10 +1281,15 @@ const PreviewPanel: React.FC = () => {
           tabs={previewTabs}
           currentTheme={currentTheme}
           onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })}
+          onCloseTab={handleCloseTab}
           onCloseLeft={handleCloseLeft}
           onCloseRight={handleCloseRight}
           onCloseOthers={handleCloseOthers}
+          onCloseUnmodified={handleCloseUnmodified}
           onCloseAll={handleCloseAll}
+          onCopyPath={handleCopyPath}
+          onCopyRelativePath={handleCopyRelativePath}
+          onRevealInFolder={handleRevealInFolder}
         />
       </div>
     </PreviewToolbarExtrasProvider>
