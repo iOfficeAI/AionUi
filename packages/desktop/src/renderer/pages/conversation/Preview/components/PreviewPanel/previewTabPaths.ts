@@ -69,6 +69,18 @@ export interface PreviewTabPathSource {
 const stripTrailingSeparators = (value: string): string => value.replace(/[\\/]+$/, '');
 
 /**
+ * 这个路径是不是 Windows 形态（有盘符，或含反斜杠）。
+ *
+ * 由字符串本身判断而非运行平台：这个模块是纯函数，而且路径可能来自后端主机 ——
+ * 后端跑在哪个系统上，前端不该假设。
+ *
+ * Whether this looks like a Windows path (drive letter, or backslashes). Decided
+ * from the string rather than the running platform: this module is pure, and the
+ * path may describe the backend host, whose OS the front end must not assume.
+ */
+const isWindowsPath = (value: string): boolean => /^[a-zA-Z]:[\\/]/.test(value) || value.includes('\\');
+
+/**
  * 把绝对路径转成相对 workspace 的路径；不在 workspace 内则返回 undefined。
  * Convert an absolute path to one relative to the workspace root, or undefined
  * when the file does not live inside it.
@@ -77,7 +89,25 @@ const toWorkspaceRelative = (absolute: string, workspace?: string): string | und
   if (!workspace) return undefined;
 
   const root = stripTrailingSeparators(workspace);
-  if (!root || !absolute.startsWith(root)) return undefined;
+  if (!root) return undefined;
+
+  // Windows 路径大小写不敏感，`C:\repo` 与 `c:\repo` 是同一个目录 —— 两个字符串
+  // 来自不同来源时盘符大小写常常不一致，逐字节比较会把文件判成「不在 workspace
+  // 内」，「复制相对路径」于是在 Windows 上莫名置灰。
+  //
+  // POSIX 不能这么折叠：`/Repo` 和 `/repo` 确实是两个不同的目录，忽略大小写会给出
+  // 一个错误的相对路径。所以判据取自路径形态，而不是一刀切。
+  //
+  // Windows paths are case-insensitive — `C:\repo` and `c:\repo` are one directory
+  // — and when the two strings come from different sources their drive letters
+  // often disagree. A byte-wise comparison then reads the file as outside the
+  // workspace, silently greying out copy-relative-path on Windows.
+  //
+  // POSIX must not fold this way: `/Repo` and `/repo` really are two directories,
+  // and ignoring case would hand back a relative path that is simply wrong. Hence
+  // the test is on the shape of the path rather than applied uniformly.
+  const fold = (value: string): string => (isWindowsPath(absolute) ? value.toLowerCase() : value);
+  if (!fold(absolute).startsWith(fold(root))) return undefined;
 
   // 必须在边界上是分隔符：否则 `/repo/src` 会被当成住在 `/repo/s` 下面 ——
   // 共同前缀冒充了包含关系。

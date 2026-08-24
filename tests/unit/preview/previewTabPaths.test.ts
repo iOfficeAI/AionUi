@@ -88,6 +88,41 @@ describe('previewTabPaths — file tabs', () => {
   });
 });
 
+describe('previewTabPaths — Windows paths', () => {
+  // Runnable from any OS: these are string-shape cases, not filesystem calls.
+  const winTab = (path: string, workspace: string) =>
+    previewTabPaths(tab({ metadata: { fileRef: { kind: 'local', path }, workspace } }));
+
+  it('splits on backslashes and keeps them in the result', () => {
+    expect(winTab('C:\\repo\\src\\main.ts', 'C:\\repo').relative).toBe('src\\main.ts');
+  });
+
+  it('tolerates a root written with a trailing backslash', () => {
+    expect(winTab('C:\\repo\\src\\main.ts', 'C:\\repo\\').relative).toBe('src\\main.ts');
+  });
+
+  it('still refuses a sibling that merely shares a prefix', () => {
+    expect(winTab('C:\\repo-backup\\src\\main.ts', 'C:\\repo').relative).toBeUndefined();
+  });
+
+  it('matches despite a drive letter written in a different case', () => {
+    // Windows paths are case-insensitive, and the two strings reach us from
+    // different sources; a byte-wise compare greyed the entry out for no reason.
+    expect(winTab('c:\\repo\\src\\main.ts', 'C:\\repo').relative).toBe('src\\main.ts');
+  });
+
+  it('matches despite a directory written in a different case', () => {
+    expect(winTab('C:\\Repo\\src\\main.ts', 'c:\\repo').relative).toBe('src\\main.ts');
+  });
+
+  it('keeps POSIX comparison case-sensitive, where the cases are two directories', () => {
+    const paths = previewTabPaths(
+      tab({ metadata: { fileRef: { kind: 'local', path: '/home/me/Repo/a.ts' }, workspace: '/home/me/repo' } })
+    );
+    expect(paths.relative).toBeUndefined();
+  });
+});
+
 describe('previewTabPaths — project refs', () => {
   it('uses the ref identity as the relative path', () => {
     const paths = previewTabPaths(
