@@ -56,7 +56,6 @@ const createDeps = (): GuidSendDeps => ({
   selectedAssistantBackend: 'claude',
   selectedMode: 'bypassPermissions',
   selectedAcpModel: 'claude-opus',
-  currentAcpCachedModelInfo: null,
   current_model: undefined,
   guidDisabledBuiltinSkills: undefined,
   guidEnabledSkills: undefined,
@@ -257,7 +256,6 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAssistantBackend = 'antigravity';
     deps.selectedAcpModel = null;
-    deps.currentAcpCachedModelInfo = null;
     deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -276,7 +274,6 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAssistantBackend = 'aionrs';
     deps.selectedAcpModel = null;
-    deps.currentAcpCachedModelInfo = null;
     deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -288,15 +285,16 @@ describe('useGuidSend', () => {
     expect(payload.assistant.conversation_overrides.model).toBe('gemini-3.1-pro-preview');
   });
 
-  it('prefers the agent catalog model once it has been probed', async () => {
-    // The path that makes this bug invisible after first use.
+  it('sends no model override for a CLI agent when the user has not picked one', async () => {
+    // The agent's own catalog is NOT a stand-in for the user's intent. It used to be
+    // substituted here, so an unpicked conversation inherited whatever the agent's LAST
+    // session had written back — for claude usually its `default` row, which pins the
+    // account default and overrides the user's own ANTHROPIC_MODEL. Omitting the override
+    // is what lets the agent resolve the model from the user's config, exactly as its CLI
+    // does; the aionrs provider model stays gated to aionrs.
     const deps = createDeps();
     deps.selectedAssistantBackend = 'antigravity';
     deps.selectedAcpModel = null;
-    deps.currentAcpCachedModelInfo = {
-      current_model_id: 'gemini-3.6-flash-low',
-      available_models: [{ id: 'gemini-3.6-flash-low', label: 'low' }],
-    } as never;
     deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -305,7 +303,24 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant.conversation_overrides.model).toBe('gemini-3.6-flash-low');
+    expect(payload.assistant.conversation_overrides.model).toBeUndefined();
+  });
+
+  it('sends the model the user actually picked for a CLI agent', async () => {
+    const deps = createDeps();
+    deps.selectedAssistantBackend = 'claude';
+    deps.selectedAcpModel = 'default';
+    deps.current_model = { id: 'p1', name: 'Gemini', use_model: 'gemini-3.1-pro-preview' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    // `default` is a real row of claude's catalog, not a synonym for "unpicked": it must
+    // travel so the agent runs the account default the row advertises.
+    expect(payload.assistant.conversation_overrides.model).toBe('default');
   });
 
   it('does not create a conversation without assistant identity', async () => {

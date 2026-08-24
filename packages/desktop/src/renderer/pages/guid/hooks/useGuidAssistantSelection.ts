@@ -252,11 +252,25 @@ export const useGuidAssistantSelection = ({
 
   const modelSelectionScopeRef = useRef<string | null>(null);
   useEffect(() => {
-    const runtimeModelId =
-      selectedAgentRuntimeModelInfo?.current_model_id || selectedAgentRuntimeModelInfo?.available_models[0]?.id;
-    const fallbackModelId =
-      runtimeModelId ||
-      (selectedAssistantModels.length > 0 ? resolveInitialAssistantModel(selectedAssistantModels) : null);
+    // A CLI agent's runtime catalog must NOT seed a selection. `current_model_id` there is
+    // whatever the LAST session of this agent wrote back — not this user's intent — and
+    // `available_models[0]` is the agent's own "Default" row, which for claude is a REAL
+    // choice (it pins the account default, overriding the user's ANTHROPIC_MODEL). Seeding
+    // either one turned "I have not picked a model" into a silent pick, so a fresh
+    // conversation could never start on the model `claude` itself would have used.
+    //
+    // `null` is the meaningful value: `useGuidSend` omits the model override entirely, and
+    // the agent then resolves it from the user's own config, exactly as its CLI does. The
+    // picker renders this as no checkmark + the generic "default model" label, and once a
+    // session exists the backend reports the model it actually resolved to.
+    //
+    // Assistants backed by an API provider have no runtime catalog; they keep seeding from
+    // their own `models` list, which is a real per-assistant configuration.
+    const fallbackModelId = selectedAgentRuntimeModelInfo
+      ? null
+      : selectedAssistantModels.length > 0
+        ? resolveInitialAssistantModel(selectedAssistantModels)
+        : null;
     const availableModelIds = new Set(
       selectedAgentRuntimeModelInfo?.available_models.map((model) => model.id) ?? selectedAssistantModels
     );
