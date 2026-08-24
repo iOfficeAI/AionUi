@@ -19,7 +19,7 @@ type ChatTitleEditorProps = {
   leading?: React.ReactNode;
 };
 
-// Inline title display with double-click-to-edit rename support
+// Inline title display with click-to-edit rename support
 const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   editingTitle,
   titleDraft,
@@ -35,6 +35,19 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Conversations started from an empty input are persisted with an empty name,
+  // so the title renders as nothing. Without a placeholder the header looks
+  // blank and the click-to-rename region collapses to zero height, leaving no
+  // way to name the conversation. The placeholder is display-only — the rename
+  // draft still starts from the stored (empty) name.
+  const isTitleBlank = typeof title === 'string' && title.trim() === '';
+  const displayTitle = isTitleBlank ? t('conversation.historySearch.untitled') : title;
+
+  const startEditing = () => {
+    if (!canRenameTitle) return;
+    setEditingTitle(true);
+  };
+
   return (
     <div
       className={classNames(
@@ -46,8 +59,8 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
       {leading && <div className='shrink-0 flex items-center ps-8px'>{leading}</div>}
-      <div className='min-w-0 flex-1 px-8px py-5px'>
-        {editingTitle && canRenameTitle ? (
+      {editingTitle && canRenameTitle ? (
+        <div className='min-w-0 flex-1 px-8px py-5px'>
           <Input
             autoFocus
             value={titleDraft}
@@ -77,31 +90,42 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
             placeholder={t('conversation.history.renamePlaceholder')}
             size='default'
           />
-        ) : (
+        </div>
+      ) : (
+        // The whole padded region is the rename trigger: an empty title leaves
+        // the text span with no box to hit, and the padding alone is only 10px
+        // tall. `min-h-24px` sits below the natural height of a rendered title
+        // (~29px), so it never affects layout — it only guarantees a usable hit
+        // area if the title text is ever absent.
+        <div
+          data-testid='chat-title-editor-trigger'
+          role={canRenameTitle ? 'button' : undefined}
+          tabIndex={canRenameTitle ? 0 : undefined}
+          className={classNames(
+            'min-w-0 flex-1 px-8px py-5px min-h-24px',
+            canRenameTitle && 'cursor-text focus:outline-none'
+          )}
+          onClick={startEditing}
+          onKeyDown={(event) => {
+            if (!canRenameTitle) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              startEditing();
+            }
+          }}
+        >
           <span
-            role={canRenameTitle ? 'button' : undefined}
-            tabIndex={canRenameTitle ? 0 : undefined}
             className={classNames(
-              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold text-t-primary transition-colors duration-150',
+              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold transition-colors duration-150',
+              isTitleBlank ? 'text-t-tertiary' : 'text-t-primary',
               canRenameTitle &&
-                'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
+                'group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))]'
             )}
-            onClick={() => {
-              if (!canRenameTitle) return;
-              setEditingTitle(true);
-            }}
-            onKeyDown={(event) => {
-              if (!canRenameTitle) return;
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                setEditingTitle(true);
-              }
-            }}
           >
-            {title}
+            {displayTitle}
           </span>
-        )}
-      </div>
+        </div>
+      )}
       {!editingTitle && (
         <div className='w-0 flex items-center overflow-hidden opacity-0 transition-all duration-180 group-hover:w-40px group-hover:opacity-100 group-focus-within:w-40px group-focus-within:opacity-100'>
           <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_44%,transparent)]' />
