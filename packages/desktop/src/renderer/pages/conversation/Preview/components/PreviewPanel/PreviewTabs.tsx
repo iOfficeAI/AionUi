@@ -60,6 +60,34 @@ export interface PreviewTab {
    * Agent is currently driving this browser tab
    */
   agentActive?: boolean;
+
+  /**
+   * 这个 tab 的绝对路径（浏览器 tab 为其 URL）是否可复制。刻意只给布尔值：
+   * 项目文件的绝对路径由后端解析并直接写剪贴板，渲染进程拿不到那个字符串，
+   * 菜单也就不该假装自己持有它。
+   *
+   * Whether this tab's absolute path (the URL, for browser tabs) can be copied.
+   * Deliberately a boolean: a project file's absolute path is resolved and written
+   * to the clipboard by the backend, so the renderer never holds the string and the
+   * menu must not pretend otherwise.
+   */
+  canCopyPath?: boolean;
+
+  /**
+   * 是否有可复制的 workspace 相对路径。文件不在 workspace 内时没有。
+   * Whether a workspace-relative path is available; absent for files outside it.
+   */
+  canCopyRelativePath?: boolean;
+
+  /**
+   * 能否在系统文件管理器中定位该文件。浏览器 tab（URL 没有所在目录）和远程
+   * WebUI（文件管理器会开在后端主机上）下不可用。
+   *
+   * Whether the file can be located in the OS file manager. Unavailable for
+   * browser tabs (a URL has no containing folder) and on a remote WebUI (the file
+   * manager would open on the backend host).
+   */
+  canRevealInFolder?: boolean;
 }
 
 /**
