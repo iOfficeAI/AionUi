@@ -6,6 +6,8 @@
  * so existing renderer code works without changes.
  */
 
+import { refreshSession, WS_CLOSE_POLICY_VIOLATION } from './sessionRefresh';
+
 // ---------------------------------------------------------------------------
 // Base URL
 // ---------------------------------------------------------------------------
@@ -172,13 +174,55 @@ function redactForLog(value: unknown, depth = 0): unknown {
   );
 }
 
+const REFRESH_ENDPOINT = '/api/auth/refresh';
+
+/**
+ * Paths where a 401 is a genuine credential decision rather than an expired
+ * session — refreshing and replaying them would be recursive or nonsensical.
+ */
+function isAuthEndpoint(path: string): boolean {
+  return path.startsWith(REFRESH_ENDPOINT) || path === '/login' || path === '/logout';
+}
+
+/**
+ * Resolve the Core CSRF double-submit token for the current context.
+ *
+ * The open-source WebUI removed its CSRF layer with the legacy webserver (M6);
+ * a double-submit scheme is slated to return in M7. Until then this is a stub
+ * that reports "no token available", so the shared session-refresh primitive
+ * (`sessionRefresh.ts`) attaches no `x-csrf-token` header and the backend —
+ * which enforces no CSRF check here — accepts the request unchanged.
+ *
+ * It exists as the single seam every state-changing request would call for its
+ * token, so restoring CSRF in M7 (and the aionpro superset, whose backend does
+ * enforce the double-submit check) only swaps this body — no caller changes.
+ *
+ * Returns '' — always, for now.
+ */
+export function resolveCoreCsrfToken(): string {
+  return '';
+}
+
+function sendHttpRequest(
+  method: string,
+  path: string,
+  headers: Record<string, string>,
+  body?: unknown
+): Promise<Response> {
+  const url = `${getBaseUrl()}${path}`;
+  return fetch(url, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
 export async function httpRequest<T>(
   method: string,
   path: string,
   body?: unknown,
   options?: HttpRequestOptions
 ): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 
   if (body !== undefined) {
@@ -194,11 +238,20 @@ export async function httpRequest<T>(
     body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
   );
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response = await sendHttpRequest(method, path, headers, body);
+
+  // Expired access cookie → 401. Attempt one silent session refresh, then replay
+  // the original request — the WebUI half of the #4124 fix. refreshSession() is a
+  // no-op outside browser mode and single-flights concurrent 401s into one POST.
+  // The auth endpoints themselves are skipped to avoid recursion.
+  if (response.status === 401 && !isAuthEndpoint(path)) {
+    console.debug(`[httpBridge] ${method} ${path} → 401, attempting session refresh`);
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      console.debug(`[httpBridge] session refreshed, replaying ${method} ${path}`);
+      response = await sendHttpRequest(method, path, headers, body);
+    }
+  }
 
   if (!response.ok) {
     // Response body can only be consumed once — read as text, then try JSON
@@ -396,6 +449,14 @@ function ensureWs(): void {
   current.addEventListener('close', (e) => {
     console.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
     if (ws === current) ws = null;
+    if (e.code === WS_CLOSE_POLICY_VIOLATION) {
+      // Auth policy violation (expired/missing session). Blindly reconnecting with
+      // the same dead cookie is the #4124 loop — refresh once and only reconnect if
+      // it succeeds. On failure the realtime stream stays down until re-auth;
+      // browser.ts's bridge socket drives the /login redirect.
+      void handleWsAuthClose();
+      return;
+    }
     scheduleWsReconnect();
   });
 
@@ -432,6 +493,19 @@ function scheduleWsReconnect(): void {
     wsReconnectTimer = null;
     ensureWs();
   }, delay);
+}
+
+/**
+ * Handle a realtime socket closed for auth policy violation (code 1008): attempt
+ * one shared session refresh, then reconnect only if the session was renewed.
+ * A failed refresh means the session is truly dead — we stop rather than loop.
+ */
+async function handleWsAuthClose(): Promise<void> {
+  const refreshed = await refreshSession();
+  if (refreshed) {
+    wsReconnectAttempt = 0;
+    ensureWs();
+  }
 }
 
 /**
