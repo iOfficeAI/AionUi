@@ -261,13 +261,13 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
 
   // Serialization lives in `advancedOverrides.ts` so the round-trip is unit-testable — a key
   // silently dropped while parsing is indistinguishable, for the user, from one that was saved.
-  const buildJsonFromAdvanced = useCallback((advancedVal: CustomAgentAdvancedOverrides) => buildAdvancedJson(advancedVal), []);
-
+  // Called directly rather than wrapped in `useCallback`: it is a module-level pure function, so it
+  // is already stable across renders.
   useEffect(() => {
     if (!isJsonEditingRef.current) {
-      setJsonInput(buildJsonFromAdvanced(advanced));
+      setJsonInput(buildAdvancedJson(advanced));
     }
-  }, [advanced, buildJsonFromAdvanced]);
+  }, [advanced]);
 
   useEffect(() => {
     setTestStatus('idle');
