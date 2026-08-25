@@ -80,10 +80,19 @@ if (win.electronAPI) {
 
   type QueuedMessage = { name: string; data: unknown };
 
+  const BASE_RECONNECT_DELAY = 500;
+  const MAX_RECONNECT_DELAY = 8000;
+  // A connection must hold this long before the backoff is considered recovered.
+  // A server that accepts the upgrade and drops it right away (rejected auth,
+  // backend restarting) still fires `open`, so resetting the delay there alone
+  // would keep the backoff pinned at its minimum forever.
+  const STABLE_CONNECTION_MS = 5000;
+
   let socket: WebSocket | null = null;
   let emitterRef: { emit: (name: string, data: unknown) => void } | null = null;
   let reconnectTimer: number | null = null;
-  let reconnectDelay = 500;
+  let reconnectDelay = BASE_RECONNECT_DELAY;
+  let connectedAt = 0;
   let shouldReconnect = true; // Flag to control reconnection
 
   const messageQueue: QueuedMessage[] = [];
@@ -110,7 +119,7 @@ if (win.electronAPI) {
 
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = null;
-      reconnectDelay = Math.min(reconnectDelay * 2, 8000);
+      reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
       connect();
     }, reconnectDelay);
   };
@@ -151,7 +160,7 @@ if (win.electronAPI) {
     const currentSocket = socket;
 
     currentSocket.addEventListener('open', () => {
-      reconnectDelay = 500;
+      connectedAt = Date.now();
       flushQueue();
     });
 
@@ -226,6 +235,14 @@ if (win.electronAPI) {
         socket = null;
       }
 
+      // Only credit the backoff if the connection actually held for a while.
+      // Otherwise an accept-then-immediately-drop server keeps the delay at its
+      // minimum and the client hammers it forever.
+      if (connectedAt !== 0 && Date.now() - connectedAt >= STABLE_CONNECTION_MS) {
+        reconnectDelay = BASE_RECONNECT_DELAY;
+      }
+      connectedAt = 0;
+
       scheduleReconnect();
     });
 
@@ -236,6 +253,20 @@ if (win.electronAPI) {
 
   // 4.确保在发送/订阅前已经发起连接
   const ensureSocket = () => {
+    // 认证已终止时不得重连，否则 emit 会绕过上面的“停止重连”逻辑
+    // A terminal auth error deliberately stops reconnection; emit() must not restart it.
+    if (!shouldReconnect) {
+      return;
+    }
+
+    // 已有退避重连在排队时不要立即重拨，否则退避形同虚设
+    // A backoff reconnect is already queued — let it run. Dialling here instead
+    // would tie the reconnect rate to how often the app emits bridge events
+    // rather than to the backoff, turning a failing connection into a storm.
+    if (reconnectTimer !== null) {
+      return;
+    }
+
     if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
       connect();
     }
@@ -271,7 +302,11 @@ if (win.electronAPI) {
   // Expose reconnection control for login flow
   win.__websocketReconnect = () => {
     shouldReconnect = true;
-    reconnectDelay = 500;
+    reconnectDelay = BASE_RECONNECT_DELAY;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     connect();
   };
 }
