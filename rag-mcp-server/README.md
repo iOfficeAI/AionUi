@@ -57,9 +57,11 @@ Server 将以 stdio 模式运行，等待 MCP 客户端连接。
 加载本地 PDF 文件到知识库。
 
 **参数：**
+
 - `pdf_path` (string, 必填): PDF 文件的绝对路径
 
 **示例：**
+
 ```json
 {
   "pdf_path": "C:/Users/xxx/Documents/test.pdf"
@@ -71,10 +73,12 @@ Server 将以 stdio 模式运行，等待 MCP 客户端连接。
 基于知识库回答问题。
 
 **参数：**
+
 - `question` (string, 必填): 用户的问题
 - `top_k` (integer, 可选): 检索最相关的文档块数量，默认 3
 
 **示例：**
+
 ```json
 {
   "question": "这份文档的主要内容是什么？",
@@ -106,13 +110,13 @@ Server 将以 stdio 模式运行，等待 MCP 客户端连接。
 
 ## 技术栈
 
-| 组件 | 技术 |
-|------|------|
-| LLM | 通义千问 (qwen-plus) |
-| Embedding | DashScope text-embedding-v3 |
-| 向量数据库 | ChromaDB (本地持久化) |
-| PDF 解析 | pdfplumber |
-| MCP 协议 | mcp (Python SDK) |
+| 组件       | 技术                        |
+| ---------- | --------------------------- |
+| LLM        | 通义千问 (qwen-plus)        |
+| Embedding  | DashScope text-embedding-v3 |
+| 向量数据库 | ChromaDB (本地持久化)       |
+| PDF 解析   | pdfplumber                  |
+| MCP 协议   | mcp (Python SDK)            |
 
 ## 项目结构
 
@@ -127,6 +131,7 @@ rag-mcp-server/
 ├── .env               # 环境变量（需自行创建，已 gitignore）
 └── chroma_data/       # ChromaDB 数据目录（自动生成）
 ```
+
 # RAG MCP Server
 
 基于阿里云 DashScope 的 RAG（检索增强生成）MCP Server，为 AionUi Agent 提供知识库问答能力。
@@ -190,9 +195,11 @@ Server 会通过 stdio 与 AionUi Agent 通信。
 加载 PDF 文件到知识库。
 
 **参数：**
+
 - `pdf_path` (string): PDF 文件的绝对路径
 
 **示例：**
+
 ```json
 {
   "pdf_path": "C:/Users/xxx/Documents/test.pdf"
@@ -204,10 +211,12 @@ Server 会通过 stdio 与 AionUi Agent 通信。
 基于知识库回答问题。
 
 **参数：**
+
 - `question` (string): 用户问题
 - `top_k` (integer, 可选): 检索的文档块数量，默认 3
 
 **示例：**
+
 ```json
 {
   "question": "什么是 RAG？",
@@ -240,14 +249,14 @@ rag-mcp-server/
 
 ## 📝 配置说明
 
-| 环境变量 | 默认值 | 说明 |
-|---------|--------|------|
-| `DASHSCOPE_API_KEY` | - | DashScope API Key（必填） |
-| `LLM_MODEL` | `qwen-plus` | LLM 模型名称 |
-| `EMBEDDING_MODEL` | `text-embedding-v3` | Embedding 模型名称 |
-| `CHROMA_PERSIST_DIR` | `./chroma_data` | ChromaDB 数据目录 |
-| `CHUNK_SIZE` | `500` | 文档分块大小（字符数） |
-| `CHUNK_OVERLAP` | `50` | 分块重叠大小（字符数） |
+| 环境变量             | 默认值              | 说明                      |
+| -------------------- | ------------------- | ------------------------- |
+| `DASHSCOPE_API_KEY`  | -                   | DashScope API Key（必填） |
+| `LLM_MODEL`          | `qwen-plus`         | LLM 模型名称              |
+| `EMBEDDING_MODEL`    | `text-embedding-v3` | Embedding 模型名称        |
+| `CHROMA_PERSIST_DIR` | `./chroma_data`     | ChromaDB 数据目录         |
+| `CHUNK_SIZE`         | `500`               | 文档分块大小（字符数）    |
+| `CHUNK_OVERLAP`      | `50`                | 分块重叠大小（字符数）    |
 
 ## 🧪 测试
 

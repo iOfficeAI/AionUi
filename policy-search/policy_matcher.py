@@ -292,11 +292,11 @@ class PolicyMatcher:
         requirements = policy.get("requirements", {})
         for cat_data in requirements.values():
             conditions.extend(cat_data.get("conditions", []))
-        
+
         # 兼容旧格式（如果有 conditions 字段）
         if not conditions and "conditions" in policy:
             conditions = policy.get("conditions", [])
-        
+
         matches = []
         missing = []
         manual_review = []

@@ -4,12 +4,12 @@
 
 ## 功能概述
 
-| 工具 | 功能 |
-|------|------|
-| `load_policy_document` | 加载 PDF/文本政策文档，LLM 自动提取元数据和结构化条件 |
-| `query_policy` | 根据用户个人信息逐条匹配政策条件，返回匹配结果和原文引用 |
-| `list_policies` | 列出知识库中的政策文件，支持按学校/分类/年份筛选 |
-| `clear_knowledge_base` | 清空知识库 |
+| 工具                   | 功能                                                     |
+| ---------------------- | -------------------------------------------------------- |
+| `load_policy_document` | 加载 PDF/文本政策文档，LLM 自动提取元数据和结构化条件    |
+| `query_policy`         | 根据用户个人信息逐条匹配政策条件，返回匹配结果和原文引用 |
+| `list_policies`        | 列出知识库中的政策文件，支持按学校/分类/年份筛选         |
+| `clear_knowledge_base` | 清空知识库                                               |
 
 ## 架构
 
@@ -96,6 +96,7 @@ python server.py
 ```
 
 Agent 会调用 `load_policy_document`，自动完成：
+
 1. 读取 PDF 文本
 2. LLM 提取元数据（学校、年份、标题、分类）
 3. 分块后 LLM 提取所有条件（GPA、论文、竞赛等）
@@ -110,6 +111,7 @@ Agent 会调用 `load_policy_document`，自动完成：
 ```
 
 Agent 会调用 `query_policy`，返回：
+
 - 每个政策的总体判定（`likely_eligible` / `not_eligible` 等）
 - 每个条件的逐条对比结果
 - 原文引用（`source_quote`）
@@ -128,29 +130,29 @@ Agent 会调用 `query_policy`，返回：
 
 ## 条件类型说明
 
-| 类型 | 含义 | 匹配方式 |
-|------|------|----------|
-| `hard` | 硬性门槛 | 自动数值比较 |
-| `scoring` | 评分项 | 自动计算得分 |
-| `ranking` | 排名项 | 自动百分比比较 |
-| `bonus` | 加分项 | 部分自动 + 人工核实 |
-| `preference` | 优先条件 | 需人工评估 |
-| `procedural` | 流程性要求 | 需用户自行确认 |
-| `qualitative` | 模糊定性条件 | 需人工审核 |
+| 类型          | 含义         | 匹配方式            |
+| ------------- | ------------ | ------------------- |
+| `hard`        | 硬性门槛     | 自动数值比较        |
+| `scoring`     | 评分项       | 自动计算得分        |
+| `ranking`     | 排名项       | 自动百分比比较      |
+| `bonus`       | 加分项       | 部分自动 + 人工核实 |
+| `preference`  | 优先条件     | 需人工评估          |
+| `procedural`  | 流程性要求   | 需用户自行确认      |
+| `qualitative` | 模糊定性条件 | 需人工审核          |
 
 ## 用户信息字段
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `school` | string | 学校名称 |
-| `year` | integer | 年份 |
-| `gpa` | number | GPA 绩点 |
-| `gpa_rank_percent` | number | 排名百分比（如 12.5 = 前12.5%） |
-| `english.cet4` | number | CET-4 分数 |
-| `english.cet6` | number | CET-6 分数 |
-| `papers[]` | array | 论文列表（type/author_order/count） |
-| `competitions[]` | array | 竞赛列表（level/award） |
-| `extra` | object | 自定义扩展字段 |
+| 字段               | 类型    | 说明                                |
+| ------------------ | ------- | ----------------------------------- |
+| `school`           | string  | 学校名称                            |
+| `year`             | integer | 年份                                |
+| `gpa`              | number  | GPA 绩点                            |
+| `gpa_rank_percent` | number  | 排名百分比（如 12.5 = 前12.5%）     |
+| `english.cet4`     | number  | CET-4 分数                          |
+| `english.cet6`     | number  | CET-6 分数                          |
+| `papers[]`         | array   | 论文列表（type/author_order/count） |
+| `competitions[]`   | array   | 竞赛列表（level/award）             |
+| `extra`            | object  | 自定义扩展字段                      |
 
 ## 项目结构
 

@@ -205,15 +205,15 @@ class PolicyParser:
     def extract_metadata_from_filename(self, filename: str) -> Dict[str, Any]:
         """
         从文件名中提取元数据（学校、年份、分类等）
-        
+
         Args:
             filename: 文件名（不含路径）
-        
+
         Returns:
             部分元数据字典
         """
         metadata = {}
-        
+
         # 提取学校名称（常见模式）
         school_patterns = [
             r'(重庆邮电大学|重邮|CQUPT)',
@@ -235,12 +235,12 @@ class PolicyParser:
             if match:
                 metadata['school'] = match.group(1)
                 break
-        
+
         # 提取年份（4位数字，1990-2030）
         year_match = re.search(r'(199\d|20[0-3]\d)', filename)
         if year_match:
             metadata['year'] = int(year_match.group(1))
-        
+
         # 提取分类关键词
         category_keywords = {
             'postgraduate_recommendation': ['保研', '推免', '推荐免试'],
@@ -258,7 +258,7 @@ class PolicyParser:
                     break
             if 'category' in metadata:
                 break
-        
+
         return metadata
 
     def extract_metadata(self, text: str, filename: str = None) -> Dict[str, Any]:
@@ -285,7 +285,7 @@ class PolicyParser:
         if filename:
             filename_metadata = self.extract_metadata_from_filename(filename)
             logger.info(f"从文件名提取的元数据: {filename_metadata}")
-        
+
         # 2. 从文本内容提取（使用 LLM）
         system_prompt = """你是一个高校政策文档分析专家。请从文档中提取元数据信息，以 JSON 格式返回。
 
@@ -334,7 +334,7 @@ class PolicyParser:
                     logger.info(f"LLM 提取成功: school={school}, title={title}")
                     return llm_metadata
                 logger.warning(f"LLM 提取结果不完整（第{attempt+1}次）: school={school}, title={title}")
-        
+
         # 3. 如果 LLM 提取失败或不完整，使用文件名提取结果作为兜底
         if filename_metadata:
             logger.info("使用文件名提取的元数据作为兜底")
@@ -349,7 +349,7 @@ class PolicyParser:
                 "effective_date": llm_metadata.get('effective_date', 'unknown') if llm_metadata else 'unknown',
             }
             return merged
-        
+
         # 4. 如果都没有，返回默认值
         logger.warning("元数据提取失败，返回默认值")
         return {
@@ -554,15 +554,15 @@ class PolicyParser:
     def extract_metadata_from_filename(self, filename: str) -> Dict[str, Any]:
         """
         从文件名中提取元数据（学校、年份、分类等）
-        
+
         Args:
             filename: 文件名（不含路径）
-        
+
         Returns:
             部分元数据字典
         """
         metadata = {}
-        
+
         # 提取学校名称（常见模式）
         school_patterns = [
             r'(重庆邮电大学|重邮|CQUPT)',
@@ -584,12 +584,12 @@ class PolicyParser:
             if match:
                 metadata['school'] = match.group(1)
                 break
-        
+
         # 提取年份（4位数字，1990-2030）
         year_match = re.search(r'(199\d|20[0-3]\d)', filename)
         if year_match:
             metadata['year'] = int(year_match.group(1))
-        
+
         # 提取分类关键词
         category_keywords = {
             'postgraduate_recommendation': ['保研', '推免', '推荐免试'],
@@ -607,7 +607,7 @@ class PolicyParser:
                     break
             if 'category' in metadata:
                 break
-        
+
         return metadata
 
     def parse_document(self, document_path: str) -> Dict[str, Any]:
@@ -630,7 +630,7 @@ class PolicyParser:
 
         # 3. 调用 LLM 提取元数据
         metadata = self.extract_metadata(text)
-        
+
         # 4. 用文件名元数据补充 LLM 提取的元数据
         if filename_metadata.get('school') and metadata.get('school') == '未知':
             metadata['school'] = filename_metadata['school']
@@ -638,7 +638,7 @@ class PolicyParser:
             metadata['year'] = filename_metadata['year']
         if filename_metadata.get('category') and metadata.get('category') == 'other':
             metadata['category'] = filename_metadata['category']
-        
+
         logger.info(f"最终元数据: {metadata.get('title')} ({metadata.get('category')})")
 
         # 5. 提取条件（按类别分组）

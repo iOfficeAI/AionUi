@@ -1,10 +1,6 @@
 \# AionUi-Campus Baseline
 
-
-
 \## 1. 基线信息
-
-
 
 \- 基线日期：2026-08-07
 
@@ -12,31 +8,17 @@
 
 \- 基线 Commit：`f98d9f719de9c639f739470ea49f01a6b0a22687`
 
-
-
 \## 2. Git 仓库
-
-
 
 \### 团队仓库
 
-
-
 \- Origin: `https://github.com/ai-campus-2026/AionUi-Campus.git`
-
-
 
 \### AionUi 上游仓库
 
-
-
 \- Upstream: `https://github.com/iOfficeAI/AionUi.git`
 
-
-
 \## 3. 分支策略
-
-
 
 \- `main`：稳定、可演示、可发布版本
 
@@ -50,11 +32,7 @@
 
 \- `test/\*`：测试与评测分支
 
-
-
 \### 分支保护
-
-
 
 \- \[x] `main` 已启用 GitHub Ruleset
 
@@ -68,15 +46,9 @@
 
 \- \[x] PR 至少需要 1 个 Approval
 
-
-
 \## 4. 当前验证状态
 
-
-
 \### AionUi-Campus
-
-
 
 \- \[x] Git 仓库正常
 
@@ -88,11 +60,7 @@
 
 \- \[ ] 团队五人环境全部验收
 
-
-
 \### AionCore
-
-
 
 ### AionCore
 
@@ -103,22 +71,13 @@
 - 工作区状态：Clean
 - 管理方式：作为 AionUi-Campus 的上游/底层依赖使用，不建立团队 develop 分支，不向官方仓库推送比赛代码。
 
-
 \## 5. 当前版本关系
-
-
 
 `baseline-20260807`、`main` 与 `develop` 均从以下 Commit 开始：
 
-
-
 `f98d9f719de9c639f739470ea49f01a6b0a22687`
 
-
-
 \## 6. 后续要求
-
-
 
 1\. 团队成员不得直接向 `main` 或 `develop` 推送比赛功能代码。
 

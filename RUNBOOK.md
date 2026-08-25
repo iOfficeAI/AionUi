@@ -1,11 +1,11 @@
 # AionUi-Campus 团队运行与环境复现手册（RUNBOOK）
 
-**项目：** 2026 年第二届重庆市 AI 大模型创新应用大赛 · “创意 AI 校园”  
-**仓库：** `ai-campus-2026/AionUi-Campus`  
-**适用系统：** Windows 10 / 11 + PowerShell  
-**文档版本：** V1.0  
-**基线日期：** 2026-08-07  
-**维护人：** 1 号负责人 / 队长  
+**项目：** 2026 年第二届重庆市 AI 大模型创新应用大赛 · “创意 AI 校园”
+**仓库：** `ai-campus-2026/AionUi-Campus`
+**适用系统：** Windows 10 / 11 + PowerShell
+**文档版本：** V1.0
+**基线日期：** 2026-08-07
+**维护人：** 1 号负责人 / 队长
 
 ---
 
@@ -258,17 +258,17 @@ cargo --version
 
 # 7. 推荐/要求版本
 
-| 组件 | 团队要求 / 建议 | 当前已验证情况 |
-|---|---|---|
-| Windows | Windows 10 / 11 x64 | Windows 环境已验证 |
-| Git | 可正常 clone / fetch / pull / push | 必需 |
-| Node.js | `>=22` 且 `<25` | 队长已验证 24.14.0 |
-| Bun | 稳定版 | 队长已验证 1.3.14 |
-| Python | 3.11+ | 队长已验证 3.12.5 |
-| Rust | AionCore 项目锁定 1.95.0 | 必须按项目工具链 |
-| Cargo | 随 Rust 工具链 | 必需 |
-| AionCore | `0.1.61` | 当前团队锁定 |
-| Electron | 跟随仓库 lockfile/package | 不单独追最新版 |
+| 组件     | 团队要求 / 建议                    | 当前已验证情况     |
+| -------- | ---------------------------------- | ------------------ |
+| Windows  | Windows 10 / 11 x64                | Windows 环境已验证 |
+| Git      | 可正常 clone / fetch / pull / push | 必需               |
+| Node.js  | `>=22` 且 `<25`                    | 队长已验证 24.14.0 |
+| Bun      | 稳定版                             | 队长已验证 1.3.14  |
+| Python   | 3.11+                              | 队长已验证 3.12.5  |
+| Rust     | AionCore 项目锁定 1.95.0           | 必须按项目工具链   |
+| Cargo    | 随 Rust 工具链                     | 必需               |
+| AionCore | `0.1.61`                           | 当前团队锁定       |
+| Electron | 跟随仓库 lockfile/package          | 不单独追最新版     |
 
 **原则：符合要求就不要为了“更新”而更新。**
 
@@ -1236,23 +1236,23 @@ AionCore 属于当前谨慎修改区域。
 
 # 35. 常见故障速查
 
-| 现象 | 优先判断 | 推荐处理 |
-|---|---|---|
-| `bun` 无法识别 | PATH 未刷新 | 重新打开 PowerShell，执行 `bun --version` |
-| rustup 有但 rustc 不正常 | 工具链不完整 | 安装 Rust 1.95.0 minimal |
-| Rust 下载很慢 / 失败 | 网络问题 | 临时使用 rsproxy |
-| Cargo 提示 native build tools | C++ 工具缺失 | 安装 VS C++ Build Tools |
-| `aws-lc-sys / NASM failed` | 本地 NASM 汇编问题 | 按本 RUNBOOK 第 15 节处理 |
-| `aioncore` 找不到 | Cargo bin 不在 PATH | 临时加入 `%USERPROFILE%\.cargo\bin` |
-| `bun install` ECONNRESET | Electron 下载中断 | 设置 `ELECTRON_MIRROR` |
-| Electron uninstall / executable missing | 二进制不完整 | 清缓存 / 重装 Electron 二进制 |
-| `path.txt` = False | Electron 未完整下载 | 执行 Electron 修复流程 |
-| 安装看似卡住 | postinstall / 原生编译 | 先等待并观察，不立即中断 |
-| 某成员能跑、某成员不能跑 | 版本/路径不一致 | 对照版本表和基线 |
-| push main/develop 被拒绝 | 分支保护生效 | 从任务分支发 PR |
-| PR 无法 Merge | 缺 Approval | 找 Write 权限成员审核 |
-| Approval 不生效 | Reviewer 只有 Read | 给该成员仓库 Write 权限 |
-| 看不到最新文件 | 本地未 fetch/pull | `git fetch origin` + `git switch develop` + `git pull` |
+| 现象                                    | 优先判断               | 推荐处理                                               |
+| --------------------------------------- | ---------------------- | ------------------------------------------------------ |
+| `bun` 无法识别                          | PATH 未刷新            | 重新打开 PowerShell，执行 `bun --version`              |
+| rustup 有但 rustc 不正常                | 工具链不完整           | 安装 Rust 1.95.0 minimal                               |
+| Rust 下载很慢 / 失败                    | 网络问题               | 临时使用 rsproxy                                       |
+| Cargo 提示 native build tools           | C++ 工具缺失           | 安装 VS C++ Build Tools                                |
+| `aws-lc-sys / NASM failed`              | 本地 NASM 汇编问题     | 按本 RUNBOOK 第 15 节处理                              |
+| `aioncore` 找不到                       | Cargo bin 不在 PATH    | 临时加入 `%USERPROFILE%\.cargo\bin`                    |
+| `bun install` ECONNRESET                | Electron 下载中断      | 设置 `ELECTRON_MIRROR`                                 |
+| Electron uninstall / executable missing | 二进制不完整           | 清缓存 / 重装 Electron 二进制                          |
+| `path.txt` = False                      | Electron 未完整下载    | 执行 Electron 修复流程                                 |
+| 安装看似卡住                            | postinstall / 原生编译 | 先等待并观察，不立即中断                               |
+| 某成员能跑、某成员不能跑                | 版本/路径不一致        | 对照版本表和基线                                       |
+| push main/develop 被拒绝                | 分支保护生效           | 从任务分支发 PR                                        |
+| PR 无法 Merge                           | 缺 Approval            | 找 Write 权限成员审核                                  |
+| Approval 不生效                         | Reviewer 只有 Read     | 给该成员仓库 Write 权限                                |
+| 看不到最新文件                          | 本地未 fetch/pull      | `git fetch origin` + `git switch develop` + `git pull` |
 
 ---
 

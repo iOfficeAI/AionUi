@@ -304,10 +304,10 @@ async def _handle_load_policy(arguments: Dict[str, Any]) -> List[TextContent]:
 
     try:
         logger.info(f"开始加载文档: {document_path}")
-        
+
         # 1. 解析文档（同步阻塞操作，放到线程池执行，避免阻塞事件循环）
         policy_data = await asyncio.to_thread(parser.parse_document, document_path)
-        
+
         # 统计条件总数（兼容新旧格式）
         total_conds = 0
         requirements = policy_data.get("requirements", {})
@@ -317,7 +317,7 @@ async def _handle_load_policy(arguments: Dict[str, Any]) -> List[TextContent]:
             total_conds += len(conds)
             logger.info(f"[DEBUG]   {cat_key}: {len(conds)} conditions")
         logger.info(f"文档解析完成，条件数: {total_conds}")
-        
+
         # 如果 requirements 为空，记录详细信息
         if total_conds == 0:
             logger.warning(f"[DEBUG] requirements 为空! policy_data keys: {list(policy_data.keys())}")
@@ -355,7 +355,7 @@ async def _handle_load_policy(arguments: Dict[str, Any]) -> List[TextContent]:
                 "label": cat_data.get("label", cat_key),
                 "count": len(cat_data.get("conditions", []))
             }
-        
+
         result = {
             "success": True,
             "doc_id": doc_id,

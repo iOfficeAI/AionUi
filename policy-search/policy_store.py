@@ -103,7 +103,7 @@ class PolicyStore:
                 if existing_policy and existing_policy.get("meta", {}).get("source_file") == source_file:
                     logger.info(f"文档已存在，跳过重复存储: {source_file} -> {entry['doc_id']}")
                     return entry["doc_id"]
-        
+
         # 不存在则创建新文档
         doc_id = self._generate_doc_id(school, year, category)
         policy_data["meta"]["doc_id"] = doc_id
