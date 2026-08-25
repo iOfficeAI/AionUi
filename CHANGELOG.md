@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.1.61](https://github.com/iOfficeAI/AionUi/compare/v2.1.60...v2.1.61) (2026-08-25)
+
+### Desktop
+
+#### Features
+
+- **preview:** fix off-screen tab context menu and add tab actions (#4164)
+- **renderer:** render WaveDrom timing diagrams in markdown (#4135)
+- **chat:** accept slash command with Tab and fix Enter send race (#4154)
+- **preview:** add maximize toggle for the preview panel (#4153)
+- **settings:** add font weight selection (#4152)
+- **plan:** pin the plan above the send box and fix the duplicate-card merge (#4133)
+- **settings:** add font family selection (#4138)
+- **settings:** page archived groups with load-more (#4137)
+
+#### Bug Fixes
+
+- **markdown:** align table header with body rows (#4167)
+- **conversation:** make empty conversation title clickable to rename (#4169)
+- **guid:** stop turning "no model picked" into a silent pick (#4162)
+
+### Core ([v0.1.72](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.72))
+
+#### Features
+
+- **auth:** account/secret CLI and decoupled encryption root (#917)
+- **conversation:** persist plan snapshots and expose them for rehydration (#916)
+- **sidebar:** tear down agent processes on archive (#925)
+
+#### Bug Fixes
+
+- **auth:** extend JWT TTL to 30d to match cookie (#918)
+- **claude:** apply model selection in-band so it matches the claude CLI (#928)
+- **cli:** register unindexed top-level subcommands in the capability index (#929)
+
+#### Performance Improvements
+
+- slim auto-inject skill descriptions to the injection budget (#930)
+
+---
+
 ## [2.1.60](https://github.com/iOfficeAI/AionUi/compare/v2.1.59...v2.1.60) (2026-08-21)
 
 ### Desktop
