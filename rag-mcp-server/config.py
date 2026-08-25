@@ -10,10 +10,10 @@ class Config:
     """全局配置"""
 
     # DashScope API Key
-    DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "sk-ws-H.EEPMYLD.w6kE.MEYCIQCVPbUCmtDYsjiGUpEzKyRHpzqHf2euvK1BHJWEf4mwAgIhAO5aDDbWLt3R6eZCcGgKAj8B1O9Tnt3jSjmXCGdKKjkH")
+    DASHSCOPE_API_KEY: str = os.getenv("DASHSCOPE_API_KEY", "")
 
     # LLM 模型
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "qwen-plus")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "qwen3.7-plus")
 
     # Embedding 模型
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-v4")
