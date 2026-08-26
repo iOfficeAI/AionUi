@@ -739,6 +739,12 @@ export const useAcpMessage = (
       .catch(() => {});
   }, [conversation_id, options?.prepareRuntime]);
 
+  // Populate the slash command palette on mount so existing ACP conversations
+  // show agent commands immediately, not only after a live stream event.
+  useEffect(() => {
+    fetchSlashCommands();
+  }, [fetchSlashCommands]);
+
   return {
     thought,
     setThought,
