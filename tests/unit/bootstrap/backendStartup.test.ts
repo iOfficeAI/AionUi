@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,7 +52,7 @@ describe('startBackendOrExit', () => {
     });
 
     expect(result).toEqual({ ok: false });
-    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start aioncore:', error);
+    expect(logError).toHaveBeenCalledWith('[AIbang] Failed to start aioncore:', error);
     expect(captureFailure).toHaveBeenCalledWith(error);
     expect(exitApp).toHaveBeenCalledWith(1);
     expect(calls).toEqual(['capture-start', 'capture-end', 'exit']);
@@ -78,7 +78,7 @@ describe('startBackendOrExit', () => {
     });
 
     expect(result).toEqual({ ok: false });
-    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start aioncore:', error);
+    expect(logError).toHaveBeenCalledWith('[AIbang] Failed to start aioncore:', error);
     expect(captureFailure).toHaveBeenCalledWith(error);
     expect(exitApp).not.toHaveBeenCalled();
     expect(onStarted).not.toHaveBeenCalled();

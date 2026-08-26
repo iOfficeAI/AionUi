@@ -11,8 +11,8 @@ describe('classifyBackendStartupFailure', () => {
     error.details = {
       stage: 'early_exit',
       stderrTail:
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
+        "/opt/AIbang/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
+        "/opt/AIbang/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -74,8 +74,8 @@ describe('classifyBackendStartupFailure', () => {
     };
     error.details = {
       stage: 'spawn_error',
-      binaryPath: 'D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
-      causeMessage: 'spawn D:\\apps\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe ENOENT',
+      binaryPath: 'D:\\apps\\AIbang\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+      causeMessage: 'spawn D:\\apps\\AIbang\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe ENOENT',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -112,7 +112,7 @@ describe('classifyBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.migration',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aibang-backend.db: failed to initialize application data',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -131,7 +131,7 @@ describe('classifyBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.recoverable_corruption',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aibang-backend.db: failed to initialize application data',
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -290,7 +290,7 @@ describe('classifyBackendStartupFailure', () => {
   });
 
   it('classifies packaged macOS architecture mismatches separately from generic startup failures', () => {
-    const error = new Error('AionUi package architecture does not match this Mac') as Error & {
+    const error = new Error('AIbang package architecture does not match this Mac') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
@@ -408,7 +408,7 @@ describe('getInstallationIntegrityModalActions', () => {
       } as any
     );
 
-    // The root cause is fully understood (database from a newer AionUi), so
+    // The root cause is fully understood (database from a newer AIbang), so
     // no diagnostics button — a single unambiguous "download latest" action.
     expect(actions.downloadText).toBe('common.backendStartup.incompleteInstallation.downloadLatest');
     expect(actions.reportText).toBeUndefined();

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Anchor-based live transcript insertion (streaming voice input, Task B5):

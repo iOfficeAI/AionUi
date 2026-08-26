@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -87,7 +87,7 @@ function writeProbePng(): string {
     chunk('IDAT', zlib.deflateSync(Buffer.concat(rows))),
     chunk('IEND', Buffer.alloc(0)),
   ]);
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-img-')), 'probe-red-square.png');
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-img-')), 'probe-red-square.png');
   fs.writeFileSync(file, png);
   return file;
 }

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +35,7 @@ async function runWithTimeout(
   const timeout = new Promise<void>((resolve) => {
     timeoutId = setTimeout(() => {
       timedOut = true;
-      logWarn('[AionUi] Cleanup timed out after 10s, forcing quit');
+      logWarn('[AIbang] Cleanup timed out after 10s, forcing quit');
       resolve();
     }, timeoutMs);
   });
@@ -47,7 +47,7 @@ async function runWithTimeout(
 }
 
 async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
-  deps.logInfo('[AionUi] before-quit');
+  deps.logInfo('[AIbang] before-quit');
   deps.setIsQuitting(true);
   deps.markExplicitQuit();
   deps.destroyTray();

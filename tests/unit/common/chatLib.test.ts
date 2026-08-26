@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -506,7 +506,7 @@ describe('transformMessage', () => {
         error: {
           message: 'AionUI failed while sending the message',
           code: 'AIONUI_INTERNAL_ERROR',
-          ownership: 'aionui',
+          ownership: 'aibang',
           detail: 'Failed to write Codex sandbox config',
           retryable: true,
           feedback_recommended: true,
@@ -526,7 +526,7 @@ describe('transformMessage', () => {
     expect(transformed.content.error).toEqual({
       message: 'AionUI failed while sending the message',
       code: 'AIONUI_INTERNAL_ERROR',
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: 'Failed to write Codex sandbox config',
       retryable: true,
       feedback_recommended: true,

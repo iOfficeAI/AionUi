@@ -5,7 +5,7 @@ import { findAssistantIdForBackend, goToGuid } from '../../../helpers';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import { httpDelete, httpPost } from '../../../helpers/httpBridge';
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'aibang:e2e-message-stream-conversation-id';
 const EMPTY_TURN_TEXT = '这次请求没有产生任何可见回复。';
 
 type CreatedConversation = {

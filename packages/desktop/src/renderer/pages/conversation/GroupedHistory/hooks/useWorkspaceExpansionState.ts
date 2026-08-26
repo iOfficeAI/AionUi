@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-export const WORKSPACE_EXPANSION_STORAGE_KEY = 'aionui_workspace_expansion';
-export const WORKSPACE_EXPANSION_EVENT = 'aionui:workspace-expansion-changed';
+export const WORKSPACE_EXPANSION_STORAGE_KEY = 'aibang_workspace_expansion';
+export const WORKSPACE_EXPANSION_EVENT = 'aibang:workspace-expansion-changed';
 
 type WorkspaceExpansionChangeDetail = {
   expandedWorkspaces: string[];

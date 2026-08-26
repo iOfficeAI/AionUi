@@ -1,4 +1,4 @@
-export const CHAT_MESSAGE_JUMP_EVENT = 'aionui-chat-message-jump';
+export const CHAT_MESSAGE_JUMP_EVENT = 'aibang-chat-message-jump';
 
 export interface ChatMessageJumpDetail {
   conversation_id: string;
@@ -26,7 +26,7 @@ export function dispatchChatMessageJump(detail: ChatMessageJumpDetail) {
  * decoupled: the rail asks, the header decides, and neither has to reach into
  * the other's tree or lift the panel's state.
  */
-export const CHAT_SEARCH_PANEL_OPEN_EVENT = 'aionui-chat-search-panel-open';
+export const CHAT_SEARCH_PANEL_OPEN_EVENT = 'aibang-chat-search-panel-open';
 
 export interface ChatSearchPanelOpenDetail {
   conversation_id: string;

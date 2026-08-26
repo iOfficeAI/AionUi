@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -64,8 +64,8 @@ describe('backgroundUtils', () => {
     const existingCss = `${BACKGROUND_BLOCK_START}\nOLD BLOCK CONTENT\n${BACKGROUND_BLOCK_END}`;
     const result = injectBackgroundCssBlock(existingCss, testImageUrl);
     expect(result).not.toContain('OLD BLOCK CONTENT');
-    const startCount = (result.match(/\/\* AionUi Theme Background Start \*\//g) || []).length;
-    const endCount = (result.match(/\/\* AionUi Theme Background End \*\//g) || []).length;
+    const startCount = (result.match(/\/\* AIbang Theme Background Start \*\//g) || []).length;
+    const endCount = (result.match(/\/\* AIbang Theme Background End \*\//g) || []).length;
     expect(startCount).toBe(1);
     expect(endCount).toBe(1);
   });

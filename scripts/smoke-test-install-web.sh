@@ -39,7 +39,7 @@ echo ""
 echo "2. Running installation..."
 export MIRROR="$MIRROR"
 export VERSION="${VERSION:-latest}"
-export INSTALL_DIR="/tmp/aionui-web-smoke-test"
+export INSTALL_DIR="/tmp/aibang-web-smoke-test"
 export BIN_DIR="/tmp/smoke-bin"
 export CREATE_SYMLINK=1
 export UPDATE_PATH=0  # Don't modify shell profile in container
@@ -56,14 +56,14 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
 fi
 echo "✓ Installation directory exists"
 
-if [[ ! -x "${INSTALL_DIR}/aionui-web" ]]; then
-    echo "❌ CLI executable not found or not executable: ${INSTALL_DIR}/aionui-web"
+if [[ ! -x "${INSTALL_DIR}/aibang-web" ]]; then
+    echo "❌ CLI executable not found or not executable: ${INSTALL_DIR}/aibang-web"
     exit 1
 fi
 echo "✓ CLI executable exists"
 
-if [[ ! -L "${BIN_DIR}/aionui-web" ]]; then
-    echo "❌ Symlink not found: ${BIN_DIR}/aionui-web"
+if [[ ! -L "${BIN_DIR}/aibang-web" ]]; then
+    echo "❌ Symlink not found: ${BIN_DIR}/aibang-web"
     exit 1
 fi
 echo "✓ Symlink created"
@@ -72,7 +72,7 @@ echo "✓ Symlink created"
 echo ""
 echo "4. Testing version command..."
 export PATH="${BIN_DIR}:$PATH"
-VERSION_OUTPUT=$(aionui-web version 2>&1 || echo "")
+VERSION_OUTPUT=$(aibang-web version 2>&1 || echo "")
 if [[ -z "$VERSION_OUTPUT" ]]; then
     echo "❌ version command returned empty"
     exit 1

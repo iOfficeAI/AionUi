@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -47,7 +47,7 @@ describe('useDesktopTurnNotification', () => {
     emitStream({ type: 'finish', conversation_id: 's1', turn_id: 't1' });
     expect(showInvoke).toHaveBeenCalledTimes(1);
     expect(showInvoke).toHaveBeenCalledWith({
-      title: 'AionUi',
+      title: 'AIbang',
       body: 'settings.browserNotification.bodyTurnCompleted',
       conversation_id: 's1',
     });

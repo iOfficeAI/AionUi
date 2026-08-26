@@ -1,4 +1,4 @@
-// Core types for @aionui/web-host (M3 interface contract, locked for M4-M8)
+// Core types for @aibang/web-host (M3 interface contract, locked for M4-M8)
 
 /**
  * App metadata injected by host environment (Electron or Node)

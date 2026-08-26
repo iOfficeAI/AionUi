@@ -554,7 +554,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     child.stderr?.emit(
       'data',
       Buffer.from(
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/aibang-backend.db: failed to initialize application data\n'
       )
     );
     child.emit('exit', 1, null);
@@ -589,7 +589,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     child.stderr?.emit(
       'data',
       Buffer.from(
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/path/aibang-backend.db: failed to initialize application data\n'
       )
     );
     child.emit('close', 1, null);
@@ -1396,7 +1396,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .mockRejectedValueOnce(makePeerAlreadyRunningError())
       .mockResolvedValueOnce(58672);
 
-    const started = mgr.start('/data/aionui-backend.db');
+    const started = mgr.start('/data/aibang-backend.db');
     await vi.runAllTimersAsync();
 
     await expect(started).resolves.toBe(58672);
@@ -1413,7 +1413,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
       .mockRejectedValue(makePeerAlreadyRunningError());
 
-    const started = mgr.start('/data/aionui-backend.db');
+    const started = mgr.start('/data/aibang-backend.db');
     const assertion = expect(started).rejects.toMatchObject({
       details: { backendBoundaryCode: 'BOOTSTRAP_PEER_ALREADY_RUNNING' },
     });
@@ -1438,7 +1438,7 @@ describe('BackendLifecycleManager.start peer retry', () => {
       .spyOn(mgr as unknown as AttemptStartSpyTarget, 'attemptStart')
       .mockRejectedValue(nonPeerError);
 
-    await expect(mgr.start('/data/aionui-backend.db')).rejects.toBe(nonPeerError);
+    await expect(mgr.start('/data/aibang-backend.db')).rejects.toBe(nonPeerError);
     expect(attemptStart).toHaveBeenCalledTimes(1);
   });
 });

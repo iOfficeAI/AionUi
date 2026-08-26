@@ -64,15 +64,15 @@ jobs:
                 issue_number,
                 body: [
                   CLAIM_MARKER,
-                  '🎁 This issue is part of the **AionUi × Kimi contributor campaign** — merge 3 campaign PRs, get a free Kimi Allegretto plan ($39/mo value).',
+                  '🎁 This issue is part of the **AIbang × Kimi contributor campaign** — merge 3 campaign PRs, get a free Kimi Allegretto plan ($39/mo value).',
                   '',
                   '**To claim this issue:**',
                   '1. Comment below with your fix approach (a brief plan is enough)',
                   '2. If it looks good, @IceyLiu will assign it to you',
                   '3. Submit your PR referencing this issue (`Fixes #' + issue_number + '`)',
                   '',
-                  '📋 Full rules: https://x.com/AionUi/status/2079493379914961069',
-                  '🙋 Claim your reward: https://github.com/iOfficeAI/AionUi/discussions/3640',
+                  '📋 Full rules: https://x.com/AIbang/status/2079493379914961069',
+                  '🙋 Claim your reward: https://github.com/iOfficeAI/AIbang/discussions/3640',
                 ].join('\n'),
               });
               core.info('Claim invitation posted.');

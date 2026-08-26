@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,7 +27,7 @@ type StreamRegistry = {
   >;
 };
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'aibang:e2e-message-stream-conversation-id';
 const SEEDED_HISTORY_PAIRS = 6;
 /**
  * Long enough to overflow the rail on the short window these tests use, so the

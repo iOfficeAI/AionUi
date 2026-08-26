@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import type { PickerEntry as Entry } from './webFsPickerUtils';
 import { matchesFilters, normalizeEntry, parentOf, sortEntries } from './webFsPickerUtils';
 
-const LAST_DIR_KEY = 'aionui:web-fs-picker:last-dir';
+const LAST_DIR_KEY = 'aibang:web-fs-picker:last-dir';
 
 type PickerProps = {
   options: ShowOpenOptions;

@@ -25,17 +25,17 @@
 ; registry mutation, replacing the old .onVerifyInstDir placement which fired after customInit
 ; had already healed/cleared/repaired an existing install's registry. (Sentry ELECTRON-3BX)
 !macro AIONUI_ASSERT_TARGET_ARCH
-  Var /GLOBAL AionUiActualArch
+  Var /GLOBAL AIbangActualArch
   ${IfNot} ${IsNativeARM64}
-    !insertmacro AIONUI_DETECT_NATIVE_ARCH $AionUiActualArch
+    !insertmacro AIONUI_DETECT_NATIVE_ARCH $AIbangActualArch
     !insertmacro AIONUI_FAIL_UX \
       "${AIONUI_E_ARCH_MISMATCH}" \
-      "target=arm64 actual=$AionUiActualArch" \
+      "target=arm64 actual=$AIbangActualArch" \
       "${AIONUI_MSG_ARCH_MISMATCH_ZH}" \
       "${AIONUI_MSG_ARCH_MISMATCH_EN}" \
       "${AIONUI_MSG_ARCH_MISMATCH_ACTION_ZH}" \
       "${AIONUI_MSG_ARCH_MISMATCH_ACTION_EN}" \
-      "target=arm64 actual=$AionUiActualArch" \
-      "target=arm64 actual=$AionUiActualArch"
+      "target=arm64 actual=$AIbangActualArch" \
+      "target=arm64 actual=$AIbangActualArch"
   ${EndIf}
 !macroend

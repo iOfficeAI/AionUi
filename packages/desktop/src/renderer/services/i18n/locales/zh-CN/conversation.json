@@ -142,7 +142,7 @@
       "send_feedback": "请提交反馈并附带日志，方便团队排查。"
     },
     "ownership": {
-      "aionui": "应用",
+      "aibang": "应用",
       "user_agent": "Agent",
       "user_llm_provider": "模型服务商",
       "unknown_upstream": "上游"

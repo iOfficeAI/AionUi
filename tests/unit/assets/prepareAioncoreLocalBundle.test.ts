@@ -7,7 +7,7 @@ const { prepareAioncore } = require('../../../packages/shared-scripts/src/prepar
 
 describe('prepare-aioncore local bundle input', () => {
   it('hard fails local bundle input that lacks managed-resources manifest', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-local-bundle-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'aibang-local-bundle-'));
     const projectRoot = join(tmp, 'project');
     const localBundle = join(tmp, 'bundle');
     mkdirSync(join(localBundle, 'managed-resources'), { recursive: true });

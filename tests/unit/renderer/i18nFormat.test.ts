@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +28,7 @@ describe('resolveFormatLocale', () => {
   });
 
   it('narrows an unsupported regional tag to the supported base language', () => {
-    // The host OS locale is routinely something AionUi does not ship.
+    // The host OS locale is routinely something AIbang does not ship.
     // Traditional-script regions go to zh-TW, not Simplified.
     expect(resolveFormatLocale('zh-HK')).toBe('zh-TW');
     expect(resolveFormatLocale('de_AT')).toBe('de-DE');

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -40,7 +40,7 @@ export function previewScopeKey(
  * identify these keys without importing the whole preview panel into their path.
  *
  * `preview-ui:` matches the Explorer's `explorer-ui:` so the two panels' persisted UI
- * state reads as one family. Renamed from `aionui_preview:` with no migration: that
+ * state reads as one family. Renamed from `aibang_preview:` with no migration: that
  * earlier prefix appears in release tags, but the product had no real users at the
  * rename, so no stored data existed under the old key to carry over. Were that not the
  * case, this change would have needed a read-time migration — a bare rename would

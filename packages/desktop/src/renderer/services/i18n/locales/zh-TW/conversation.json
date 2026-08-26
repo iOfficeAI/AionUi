@@ -142,7 +142,7 @@
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
     "ownership": {
-      "aionui": "應用",
+      "aibang": "應用",
       "user_agent": "Agent",
       "user_llm_provider": "模型服務商",
       "unknown_upstream": "上游"

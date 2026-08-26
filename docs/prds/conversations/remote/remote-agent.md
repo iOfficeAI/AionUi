@@ -47,7 +47,7 @@
 
 **"查看配置指南"链接**：
 
-- 点击通过 `openExternalUrl` 在系统浏览器中打开 `https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese`
+- 点击通过 `openExternalUrl` 在系统浏览器中打开 `https://github.com/iOfficeAI/AIbang/wiki/Remote-Agent-Guide-Chinese`
 - 说明横幅和弹窗内的警告 banner 中均有此链接
 
 **异常情况**：
@@ -794,10 +794,10 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 > 此功能与 Remote Agent 设置页无直接 UI 交互，降级为关联模块说明。
 
-`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 AionUi Channels 使用相同凭据：
+`openclawConflictDetector.ts` 检测 OpenClaw 的 Lark/Telegram channels 是否与 AIbang Channels 使用相同凭据：
 
-- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 AionUi appId
-- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 AionUi botToken
+- **Lark 冲突**: 比较 `channels.feishu.accounts[*].appId` 与 AIbang appId
+- **Telegram 冲突**: 比较 `channels.telegram.botToken` 与 AIbang botToken
 - 配置读取路径: 环境变量 → `~/.openclaw/openclaw.json` → 遗留路径
 
 **当前限制**：冲突检测结果通过 `console.warn` 输出，无 UI 呈现。导出的 `getConflictResolutionSteps()` 提供解决方案建议文本，但尚未集成到任何 UI 组件中。

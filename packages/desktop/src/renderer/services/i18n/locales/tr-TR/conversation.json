@@ -125,7 +125,7 @@
       "send_feedback": "Ekibin inceleyebilmesi için günlüklerle birlikte geri bildirim gönderin."
     },
     "ownership": {
-      "aionui": "Uygulama",
+      "aibang": "Uygulama",
       "user_agent": "Ajan",
       "user_llm_provider": "Model sağlayıcı",
       "unknown_upstream": "Üst hizmet"

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +28,7 @@
  * state must be shared across all tabs and projects and survive restarts, so a
  * user can log in once on the agent's behalf.
  */
-export const BROWSER_SESSION_PARTITION = 'persist:aionui-browser';
+export const BROWSER_SESSION_PARTITION = 'persist:aibang-browser';
 
 /**
  * 内置浏览器 MCP 的注册名。
@@ -45,7 +45,7 @@ export const BROWSER_SESSION_PARTITION = 'persist:aionui-browser';
  * light up the activity badge. Both sides must agree exactly; separate copies would
  * eventually drift, and the symptom of drift is a badge that silently never lights.
  */
-export const BUILTIN_BROWSER_MCP_NAME = 'aionui-browser';
+export const BUILTIN_BROWSER_MCP_NAME = 'aibang-browser';
 
 // ===== 文件处理相关常量 =====
 
@@ -57,7 +57,7 @@ export const AIONUI_TIMESTAMP_REGEX = /_aionui_\d{13}(\.\w+)?$/;
 export const AIONUI_FILES_MARKER = '[[AION_FILES]]';
 
 // ===== 跨会话消息相关常量 =====
-// 必须与后端 crates/aionui-common/src/constants.rs 中的值逐字一致。
+// 必须与后端 crates/aibang-common/src/constants.rs 中的值逐字一致。
 
 /** 发送侧：用户用 `@@` 引用其他会话后，后端追加到消息末尾的块 */
 export const AIONUI_SESSIONS_MARKER = '[[AION_SESSIONS]]';

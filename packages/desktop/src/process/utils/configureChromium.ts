@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -38,17 +38,9 @@ if (!app.isPackaged && !e2eUserDataDir) {
   // Explicitly override userData to the dev directory.
   const appSupportDir = path.dirname(app.getPath('userData'));
   app.setPath('userData', path.join(appSupportDir, devAppName));
-} else if (app.isPackaged) {
-  // Brand rename AionUi → AIbang: keep the packaged userData directory at the
-  // legacy "AionUi" path so existing installs don't lose login state, configs
-  // and caches when upgrading to the renamed build.
-  // 品牌更名 AionUi → AIbang：打包版 userData 保持旧目录，升级不丢数据。
-  const current = app.getPath('userData');
-  if (!current.endsWith(path.sep + 'AionUi')) {
-    const appSupportDir = path.dirname(current);
-    app.setPath('userData', path.join(appSupportDir, 'AionUi'));
-  }
 }
+// Packaged builds use the default userData directory (Application Support/AIbang).
+// 打包版使用全新的 AIbang 数据目录，与旧版 AionUi 完全隔离。
 
 // app.disableHardwareAcceleration() must run before app is ready.
 applyGpuRecoveryFlags();
@@ -89,7 +81,7 @@ if (isWebUI || isResetPassword) {
 // OS-assigned ephemeral port via listen(0) and backfills it here through setActiveCdpPort,
 // so there is exactly one port concept in the codebase: the one you can actually connect to.
 //
-// The 9230-9250 reservation and the ~/.aionui-cdp-registry.json instance registry were
+// The 9230-9250 reservation and the ~/.aibang-cdp-registry.json instance registry were
 // removed with Chromium's application-wide remote-debugging-port switch. Once that switch
 // was gone nothing listened on that range, so the registry tracked a service that did not
 // exist, multi-instance avoidance was avoiding phantoms, and — worst of all — the settings
@@ -141,11 +133,11 @@ export interface CdpStatus {
 /**
  * 顺手删掉遗留的实例注册表文件。
  *
- * 这个文件（~/.aionui-cdp-registry.json）以前记录「每个实例占了哪个 CDP 端口」。相关逻辑
+ * 这个文件（~/.aibang-cdp-registry.json）以前记录「每个实例占了哪个 CDP 端口」。相关逻辑
  * 已随应用级 remote-debugging-port 一起删除，但升级上来的机器上文件还在，里面是一堆早已
  * 无效的 pid/端口。留着只会让人以为还有这套机制，所以清掉。best-effort，失败无所谓。
  *
- * Remove the leftover instance-registry file. ~/.aionui-cdp-registry.json used to record
+ * Remove the leftover instance-registry file. ~/.aibang-cdp-registry.json used to record
  * which CDP port each instance had taken; that logic went away with the application-wide
  * remote-debugging-port switch, but upgraded machines still have the file sitting there full
  * of long-dead pids and ports. Leaving it implies the mechanism still exists, so clean it up.
@@ -153,7 +145,7 @@ export interface CdpStatus {
  */
 function removeLegacyCdpRegistryFile(): void {
   try {
-    const legacyRegistry = path.join(os.homedir(), '.aionui-cdp-registry.json');
+    const legacyRegistry = path.join(os.homedir(), '.aibang-cdp-registry.json');
     if (fs.existsSync(legacyRegistry)) {
       fs.unlinkSync(legacyRegistry);
     }

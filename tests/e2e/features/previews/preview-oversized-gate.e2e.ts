@@ -104,7 +104,7 @@ test.describe('Preview — oversized gate (Explorer entry point)', () => {
   let conversationId: string | null = null;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-oversized-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-oversized-'));
     // One byte over the ceiling: the gate uses `>`, so this is the smallest file
     // that must be rejected.
     fs.writeFileSync(path.join(workspace, 'over-ceiling.md'), 'x'.repeat(TEXT_CEILING_BYTES + 1));

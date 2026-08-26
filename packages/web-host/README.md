@@ -1,6 +1,6 @@
-# @aionui/web-host
+# @aibang/web-host
 
-WebUI host package for AionUi - zero Electron dependency.
+WebUI host package for AIbang - zero Electron dependency.
 
 ## Responsibilities
 
@@ -11,7 +11,7 @@ WebUI host package for AionUi - zero Electron dependency.
 ## Usage
 
 ```ts
-import { startWebHost } from '@aionui/web-host';
+import { startWebHost } from '@aibang/web-host';
 
 const handle = await startWebHost({
   app: {

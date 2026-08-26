@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -163,7 +163,7 @@ describe('ClientFactory', () => {
       const config = calls[0][1];
       expect(config.defaultHeaders).toEqual({
         'HTTP-Referer': 'https://aionui.com',
-        'X-Title': 'AionUi',
+        'X-Title': 'AIbang',
       });
     });
 

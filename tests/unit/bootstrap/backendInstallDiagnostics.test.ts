@@ -5,10 +5,10 @@ import { appendAutoUpdateDiagnosticEvent } from '@/process/services/autoUpdateDi
 describe('collectBackendInstallDiagnostics', () => {
   it('records packaged runtime manifest and missing backend binary metadata', () => {
     const files = new Map<string, { mtimeMs: number; size: number; content?: string }>([
-      ['C:\\AionUi\\resources', { mtimeMs: 1000, size: 0 }],
-      ['C:\\AionUi\\resources\\bundled-aioncore\\win32-x64', { mtimeMs: 2000, size: 0 }],
+      ['C:\\AIbang\\resources', { mtimeMs: 1000, size: 0 }],
+      ['C:\\AIbang\\resources\\bundled-aioncore\\win32-x64', { mtimeMs: 2000, size: 0 }],
       [
-        'C:\\AionUi\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
+        'C:\\AIbang\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
         {
           mtimeMs: 3000,
           size: 88,
@@ -26,13 +26,13 @@ describe('collectBackendInstallDiagnostics', () => {
       {
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
-        resourcesPath: 'C:\\AionUi\\resources',
-        checkedBundledPath: 'C:\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+        resourcesPath: 'C:\\AIbang\\resources',
+        checkedBundledPath: 'C:\\AIbang\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
       },
       {
         appVersion: '2.1.7',
         arch: 'x64',
-        execPath: 'C:\\AionUi\\AionUi.exe',
+        execPath: 'C:\\AIbang\\AIbang.exe',
         isPackaged: true,
         platform: 'win32',
         readFile: (filePath) => files.get(filePath)?.content,
@@ -45,23 +45,23 @@ describe('collectBackendInstallDiagnostics', () => {
       arch: 'x64',
       binaryExists: false,
       binaryName: 'aioncore.exe',
-      binaryPath: 'C:\\AionUi\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
-      bundledDirPath: 'C:\\AionUi\\resources\\bundled-aioncore',
-      execPath: 'C:\\AionUi\\AionUi.exe',
+      binaryPath: 'C:\\AIbang\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+      bundledDirPath: 'C:\\AIbang\\resources\\bundled-aioncore',
+      execPath: 'C:\\AIbang\\AIbang.exe',
       isPackaged: true,
       manifestExists: true,
       manifestFiles: ['aioncore.exe', 'managed-resources/'],
       manifestGeneratedAt: '2026-05-29T12:00:00.000Z',
-      manifestPath: 'C:\\AionUi\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
+      manifestPath: 'C:\\AIbang\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
       manifestSize: 88,
       manifestMtimeMs: 3000,
       manifestSourceType: 'download',
       manifestVersion: 'v0.9.0',
       platform: 'win32',
       resourcesDirMtimeMs: 1000,
-      resourcesPath: 'C:\\AionUi\\resources',
+      resourcesPath: 'C:\\AIbang\\resources',
       runtimeDirMtimeMs: 2000,
-      runtimeDirPath: 'C:\\AionUi\\resources\\bundled-aioncore\\win32-x64',
+      runtimeDirPath: 'C:\\AIbang\\resources\\bundled-aioncore\\win32-x64',
       runtimeKey: 'win32-x64',
     });
   });

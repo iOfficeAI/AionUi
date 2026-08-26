@@ -11,7 +11,7 @@
     "defaultLocale": "en-US"
   },
   "engine": {
-    "aionui": "^1.0.0"
+    "aibang": "^1.0.0"
   },
   "lifecycle": {
     "onActivate": "scripts/activate.js",

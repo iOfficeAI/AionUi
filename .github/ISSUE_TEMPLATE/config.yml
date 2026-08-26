@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Community Discussions
-    url: https://github.com/iOfficeAI/AionUi/discussions
-    about: Ask questions, share ideas, and discuss AionUi with the community
+    url: https://github.com/iOfficeAI/AIbang/discussions
+    about: Ask questions, share ideas, and discuss AIbang with the community
   - name: 📖 Documentation
-    url: https://github.com/iOfficeAI/AionUi/wiki
+    url: https://github.com/iOfficeAI/AIbang/wiki
     about: Check our documentation for setup guides, configuration, and troubleshooting
   - name: 🔒 Security Issues
-    url: mailto:security@aionui.com
+    url: mailto:securityaionui.com@
     about: Report security vulnerabilities privately (DO NOT create public issues)

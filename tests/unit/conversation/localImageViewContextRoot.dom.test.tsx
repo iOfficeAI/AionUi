@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * LocalImageView resolves relative image paths in markdown against the
@@ -55,10 +55,10 @@ describe('LocalImageView workspace root from ConversationContext', () => {
   });
 
   it('passes an absolute src through untouched while still forwarding the workspace', async () => {
-    renderInConversation('/workspace/demo', '/var/tmp/aionui/pic.png');
+    renderInConversation('/workspace/demo', '/var/tmp/aibang/pic.png');
     await waitFor(() => expect(hoisted.getImageBase64).toHaveBeenCalled());
     expect(hoisted.getImageBase64).toHaveBeenCalledWith({
-      path: '/var/tmp/aionui/pic.png',
+      path: '/var/tmp/aibang/pic.png',
       workspace: '/workspace/demo',
     });
   });

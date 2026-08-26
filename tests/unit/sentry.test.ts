@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for the pure helpers exported from `packages/desktop/src/sentry.ts`:
@@ -89,7 +89,7 @@ describe('selectRecentLogFiles', () => {
 
 describe('listLogFilesSync', () => {
   it('finds log files under dated year/month/day directories', () => {
-    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-sentry-logs-'));
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'aibang-sentry-logs-'));
     try {
       const datedDir = path.join(logsDir, '2026', '07', '02');
       mkdirSync(datedDir, { recursive: true });
@@ -187,7 +187,7 @@ describe('captureBackendStartupFailure', () => {
         isPackaged: true,
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
-        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\AionUi\\resources',
+        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\AIbang\\resources',
         bundledDirExists: false,
         runtimeDirExists: false,
         resourcesDirEntries: [
@@ -204,16 +204,16 @@ describe('captureBackendStartupFailure', () => {
       await captureBackendStartupFailure(error);
 
       expect(scopeSetTag).toHaveBeenCalledWith(
-        'aionui.backend_startup.incomplete_installation_kind',
+        'aibang.backend_startup.incomplete_installation_kind',
         'missing_directory_resources'
       );
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_bundled_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_runtime_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_binary', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.missing_hub_dir', 'true');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.last_update_status', 'quit-and-install');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.seconds_since_quit_and_install', '46');
-      expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.install_path_kind', 'user_local_programs');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.missing_bundled_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.missing_runtime_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.missing_binary', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.missing_hub_dir', 'true');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.last_update_status', 'quit-and-install');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.seconds_since_quit_and_install', '46');
+      expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.install_path_kind', 'user_local_programs');
       expect(scopeSetContext).toHaveBeenCalledWith(
         'aioncore_startup_classification',
         expect.objectContaining({
@@ -249,11 +249,11 @@ describe('captureBackendStartupFailure', () => {
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_polling_delayed', 'true');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempts_bucket', '1');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempt_deficit_bucket', '76-150');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_timeout_overrun_bucket', 'over_60s');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_max_attempt_gap_bucket', '0ms');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.health_polling_delayed', 'true');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.health_attempts_bucket', '1');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.health_attempt_deficit_bucket', '76-150');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.health_timeout_overrun_bucket', 'over_60s');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.health_max_attempt_gap_bucket', '0ms');
   });
 
   it('sets backend data migration reason and boundary tags', async () => {
@@ -266,14 +266,14 @@ describe('captureBackendStartupFailure', () => {
       backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
       backendBoundaryStage: 'database.migration',
       stderrTail:
-        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aibang-backend.db: failed to initialize application data',
     };
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_data_migration_failed');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'database.migration');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.reason', 'backend_data_migration_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.boundary_code', 'BOOTSTRAP_DATA_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.boundary_stage', 'database.migration');
   });
 
   it('sets local data repair reason and issue-kind tags', async () => {
@@ -291,13 +291,13 @@ describe('captureBackendStartupFailure', () => {
 
     await captureBackendStartupFailure(error);
 
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.reason', 'backend_local_data_repair_failed');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.reason', 'backend_local_data_repair_failed');
     expect(scopeSetTag).toHaveBeenCalledWith(
-      'aionui.backend_startup.local_data_issue_kind',
+      'aibang.backend_startup.local_data_issue_kind',
       'agent_metadata_invalid_utf8'
     );
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
-    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.boundary_stage', 'services.init');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.boundary_code', 'BOOTSTRAP_SERVICE_INIT_FAILED');
+    expect(scopeSetTag).toHaveBeenCalledWith('aibang.backend_startup.boundary_stage', 'services.init');
   });
 });
 
@@ -343,7 +343,7 @@ describe('initSentry beforeSend', () => {
         ],
       },
       contexts: {
-        'AionUi.exe': { process_type: 'gpu-process', ptype: 'gpu-process' },
+        'AIbang.exe': { process_type: 'gpu-process', ptype: 'gpu-process' },
       },
     };
 
@@ -367,7 +367,7 @@ describe('initSentry beforeSend', () => {
     const event = {
       exception: { values: [{ value: 'EXCEPTION_ACCESS_VIOLATION_0x0' }] },
       contexts: {
-        'AionUi.exe': { process_type: 'renderer', ptype: 'renderer' },
+        'AIbang.exe': { process_type: 'renderer', ptype: 'renderer' },
       },
       tags: { 'event.process': 'renderer' },
     };
@@ -400,7 +400,7 @@ describe('initSentry beforeSend', () => {
 
     const event = {
       tags: {
-        'aionui.failure': 'backend_startup',
+        'aibang.failure': 'backend_startup',
       },
       exception: {
         values: [
@@ -423,7 +423,7 @@ describe('initSentry beforeSend', () => {
     const event = {
       tags: {
         type: 'user-feedback',
-        'aionui.installation_integrity.user_report': 'true',
+        'aibang.installation_integrity.user_report': 'true',
       },
       extra: {
         installation_integrity: {

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,7 +36,7 @@ const nativeAutoUpdaterMock = vi.hoisted(() => ({
 const appMock = vi.hoisted(() => ({
   isPackaged: false,
   getVersion: vi.fn(() => '2.1.13'),
-  getPath: vi.fn(() => '/tmp/aionui-test'),
+  getPath: vi.fn(() => '/tmp/aibang-test'),
   exit: vi.fn(),
 }));
 
@@ -87,7 +87,7 @@ describe('AutoUpdaterService', () => {
     autoUpdaterMock.allowPrerelease = false;
     autoUpdaterMock.allowDowngrade = false;
     autoUpdaterMock.channel = undefined;
-    appMock.getPath.mockImplementation(() => '/tmp/aionui-test');
+    appMock.getPath.mockImplementation(() => '/tmp/aibang-test');
     delete (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider;
     appMock.isPackaged = false;
     delete process.env.AIONUI_FORCE_DEV_AUTO_UPDATE;
@@ -111,8 +111,8 @@ describe('AutoUpdaterService', () => {
       isUpdateAvailable: true,
       updateInfo: {
         version: '2.1.14',
-        files: [{ url: 'AionUi-2.1.14-mac-arm64.dmg', sha512: 'sha512-value' }],
-        path: 'AionUi-2.1.14-mac-arm64.dmg',
+        files: [{ url: 'AIbang-2.1.14-mac-arm64.dmg', sha512: 'sha512-value' }],
+        path: 'AIbang-2.1.14-mac-arm64.dmg',
         sha512: 'sha512-value',
         releaseDate: '2026-06-08T00:00:00.000Z',
       },
@@ -135,8 +135,8 @@ describe('AutoUpdaterService', () => {
       isUpdateAvailable: true,
       updateInfo: {
         version: '2.1.53',
-        files: [{ url: 'AionUi-2.1.53-mac-arm64.dmg', sha512: 'sha512-value' }],
-        path: 'AionUi-2.1.53-mac-arm64.dmg',
+        files: [{ url: 'AIbang-2.1.53-mac-arm64.dmg', sha512: 'sha512-value' }],
+        path: 'AIbang-2.1.53-mac-arm64.dmg',
         sha512: 'sha512-value',
         releaseDate: '2026-06-08T00:00:00.000Z',
       },
@@ -155,8 +155,8 @@ describe('AutoUpdaterService', () => {
     appMock.getVersion.mockReturnValue('2.1.13');
     const updateInfo = {
       version: '2.1.14',
-      files: [{ url: 'AionUi-2.1.14-mac-arm64.dmg', sha512: 'sha512-value' }],
-      path: 'AionUi-2.1.14-mac-arm64.dmg',
+      files: [{ url: 'AIbang-2.1.14-mac-arm64.dmg', sha512: 'sha512-value' }],
+      path: 'AIbang-2.1.14-mac-arm64.dmg',
       sha512: 'sha512-value',
       releaseDate: '2026-06-08T00:00:00.000Z',
     };
@@ -336,16 +336,16 @@ describe('AutoUpdaterService', () => {
   it('restores a completed cached auto-update when the downloaded package validates', async () => {
     const updateInfo = {
       version: '2.1.14',
-      files: [{ url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' }],
-      path: 'AionUi-2.1.14-mac.zip',
+      files: [{ url: 'AIbang-2.1.14-mac.zip', sha512: 'sha512-value' }],
+      path: 'AIbang-2.1.14-mac.zip',
       sha512: 'sha512-value',
       releaseDate: '2026-06-08T00:00:00.000Z',
     };
     const fileInfo = {
-      url: new URL('https://static.aionui.com/releases/2.1.14/AionUi-2.1.14-mac.zip'),
-      info: { url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' },
+      url: new URL('https://static.aionui.com/releases/2.1.14/AIbang-2.1.14-mac.zip'),
+      info: { url: 'AIbang-2.1.14-mac.zip', sha512: 'sha512-value' },
     };
-    const cachedUpdatePath = path.join('/cache/pending', 'AionUi-2.1.14-mac.zip');
+    const cachedUpdatePath = path.join('/cache/pending', 'AIbang-2.1.14-mac.zip');
     const validateDownloadedPath = vi.fn().mockResolvedValue(cachedUpdatePath);
 
     autoUpdaterMock.checkForUpdates.mockImplementation(async () => {
@@ -380,14 +380,14 @@ describe('AutoUpdaterService', () => {
   it('does not restore a cached auto-update when the downloaded package is missing or invalid', async () => {
     const updateInfo = {
       version: '2.1.14',
-      files: [{ url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' }],
-      path: 'AionUi-2.1.14-mac.zip',
+      files: [{ url: 'AIbang-2.1.14-mac.zip', sha512: 'sha512-value' }],
+      path: 'AIbang-2.1.14-mac.zip',
       sha512: 'sha512-value',
       releaseDate: '2026-06-08T00:00:00.000Z',
     };
     const fileInfo = {
-      url: new URL('https://static.aionui.com/releases/2.1.14/AionUi-2.1.14-mac.zip'),
-      info: { url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' },
+      url: new URL('https://static.aionui.com/releases/2.1.14/AIbang-2.1.14-mac.zip'),
+      info: { url: 'AIbang-2.1.14-mac.zip', sha512: 'sha512-value' },
     };
     const validateDownloadedPath = vi.fn().mockResolvedValue(null);
 
@@ -603,10 +603,10 @@ describe('AutoUpdaterService', () => {
 
   it('moves the process cwd to temp before the Windows updater handoff', async () => {
     setPlatform('win32');
-    const tempRoot = path.join(process.env.TEMP || process.cwd(), `aionui-updater-cwd-test-${process.pid}`);
-    const expectedCwd = path.join(tempRoot, 'aionui-updater-cwd');
+    const tempRoot = path.join(process.env.TEMP || process.cwd(), `aibang-updater-cwd-test-${process.pid}`);
+    const expectedCwd = path.join(tempRoot, 'aibang-updater-cwd');
     const chdir = vi.spyOn(process, 'chdir').mockImplementation(() => undefined);
-    appMock.getPath.mockImplementation((name: string) => (name === 'temp' ? tempRoot : '/tmp/aionui-test'));
+    appMock.getPath.mockImplementation((name: string) => (name === 'temp' ? tempRoot : '/tmp/aibang-test'));
 
     try {
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');

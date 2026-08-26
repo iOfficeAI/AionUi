@@ -16,7 +16,7 @@ export { invokeBridge };
  * All skills-related helpers drive the backend over HTTP (see `./httpBridge.ts`),
  * matching the renderer's post-migration call pattern (`ipcBridge.fs.*.invoke()` →
  * `fetch('/api/skills/*')`). Routes are defined in `src/common/adapter/ipcBridge.ts`
- * (lines ~317-363) and backed by `crates/aionui-extension/src/skill_routes.rs`.
+ * (lines ~317-363) and backed by `crates/aibang-extension/src/skill_routes.rs`.
  */
 
 // ============================================================================
@@ -363,7 +363,7 @@ export function createTempExternalSource(sourceName: string): {
   path: string;
   cleanup: () => void;
 } {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-external-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-external-'));
 
   const cleanup = () => {
     try {

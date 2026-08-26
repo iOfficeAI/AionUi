@@ -25,7 +25,7 @@ and every HTTP call from the renderer (or from e2e helpers that use
 
 ```bash
 # Install the backend binary (builds to ~/.cargo/bin/aioncore)
-cd ../AionCore && cargo install --path crates/aionui-app
+cd ../AionCore && cargo install --path crates/aibang-app
 
 # Make sure it's on PATH when running tests
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -285,7 +285,7 @@ bunx electron-vite build
 
 ```bash
 # Clean via database
-sqlite3 "~/Library/Application Support/AionUi-Dev/aionui/aionui.db" \
+sqlite3 "~/Library/Application Support/AIbang-Dev/aibang/aibang.db" \
   "DELETE FROM teams WHERE name LIKE 'E2E%';"
 ```
 

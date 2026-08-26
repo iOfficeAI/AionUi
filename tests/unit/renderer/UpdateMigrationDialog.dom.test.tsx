@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -33,7 +33,7 @@ const openDialog = () => {
   fireEvent(window, new CustomEvent(OPEN_MIGRATION_DIALOG_EVENT));
 };
 
-const INVITE_SHOWN_KEY = 'aionui.migration-invite-shown';
+const INVITE_SHOWN_KEY = 'aibang.migration-invite-shown';
 
 describe('UpdateMigrationDialog', () => {
   beforeEach(() => {

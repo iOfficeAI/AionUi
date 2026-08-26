@@ -116,7 +116,7 @@ test.describe('Preview — tab identity and persistence', () => {
   let ids: ProjectIds | null = null;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-identity-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-identity-'));
     /**
      * A `.txt` rather than a `.md`: markdown defaults to the rendered preview
      * (`MarkdownViewer.tsx:239`), so reaching its editor needs an extra

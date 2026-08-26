@@ -29,7 +29,7 @@ type StreamRegistry = {
   >;
 };
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'aibang:e2e-message-stream-conversation-id';
 const BACKGROUND_STREAM_PROMISE_KEY = '__messageListStreamRunPromise';
 
 function createFakeClaudeConversation(id: string, assistantId: string) {

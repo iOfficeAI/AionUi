@@ -142,7 +142,7 @@
       "send_feedback": "بازخورد با لاگ‌ها بفرستید تا تیم بررسی کند."
     },
     "ownership": {
-      "aionui": "برنامه",
+      "aibang": "برنامه",
       "user_agent": "ایجنت",
       "user_llm_provider": "ارائه‌دهنده مدل",
       "unknown_upstream": "آپ‌استریم"

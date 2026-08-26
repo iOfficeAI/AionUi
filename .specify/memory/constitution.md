@@ -1,10 +1,10 @@
-# AionUi Constitution
+# AIbang Constitution
 
 ## Core Principles
 
 ### I. Multi-Agent AI Integration
 
-AionUi serves as a unified desktop interface for multiple AI terminal agents (Gemini CLI, Claude Code, Qwen Code, etc.). Each AI agent integration must be:
+AIbang serves as a unified desktop interface for multiple AI terminal agents (Gemini CLI, Claude Code, Qwen Code, etc.). Each AI agent integration must be:
 
 - Protocol-agnostic with standardized adapters
 - Independently manageable and configurable

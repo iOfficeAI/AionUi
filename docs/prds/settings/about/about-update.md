@@ -12,10 +12,10 @@
 **正常流程**（用户视角）：
 
 1. 用户打开「设置 → 关于」页面
-2. 页面顶部居中显示应用名 "AionUi"（h3 标题）
+2. 页面顶部居中显示应用名 "AIbang"（h3 标题）
 3. 下方显示应用描述（通过 i18n 系统，随语言设置变化）
 4. 显示当前版本号 badge（格式 `v{x.y.z}`），版本号来自打包时的 `package.json`
-5. 版本号旁有 GitHub 图标，点击在系统浏览器中打开项目仓库 `https://github.com/iOfficeAI/AionUi`
+5. 版本号旁有 GitHub 图标，点击在系统浏览器中打开项目仓库 `https://github.com/iOfficeAI/AIbang`
 
 **异常情况**：
 
@@ -24,7 +24,7 @@
 
 **验收标准**：
 
-- [ ] 显示应用名 "AionUi"
+- [ ] 显示应用名 "AIbang"
 - [ ] 显示应用描述（通过 i18n 系统，随语言设置变化）
 - [ ] 版本号格式为 `v{x.y.z}`，与 `package.json` 一致
 - [ ] GitHub 图标点击打开项目仓库页面
@@ -383,9 +383,9 @@
 
 | 序号 | 标题     | 行为               | 目标                                           |
 | ---- | -------- | ------------------ | ---------------------------------------------- |
-| 1    | 帮助文档 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/wiki`     |
-| 2    | 更新日志 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/releases` |
-| 3    | 意见反馈 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/issues`   |
+| 1    | 帮助文档 | 打开外部链接       | `https://github.com/iOfficeAI/AIbang/wiki`     |
+| 2    | 更新日志 | 打开外部链接       | `https://github.com/iOfficeAI/AIbang/releases` |
+| 3    | 意见反馈 | 打开外部链接       | `https://github.com/iOfficeAI/AIbang/issues`   |
 | 4    | 问题报告 | **打开应用内弹窗** | FeedbackReportModal（见 F-ABOUT-11）           |
 | 5    | 联系我   | 打开外部链接       | `https://x.com/WailiVery`                      |
 | 6    | 官网     | 打开外部链接       | `https://www.aionui.com`                       |
@@ -518,7 +518,7 @@
 │ 渲染进程 (Renderer)                                      │
 │                                                          │
 │  AboutModalContent                                       │
-│    ├─ CustomEvent('aionui-open-update-modal')            │
+│    ├─ CustomEvent('aibang-open-update-modal')            │
 │    └─ localStorage('update.includePrerelease')           │
 │                                                          │
 │  UpdateModal                                             │
@@ -582,9 +582,9 @@ Scope: PR4 final verification for Windows NSIS updates.
 Implemented behavior:
 
 - Both x64 and arm64 installers run the shared `AIONUI_VERIFY_CORE_APP_FILES` macro before bundled AionCore verification.
-- Missing `AionUi.exe`, core DLLs, or `resources\app.asar` fails through `AIONUI_FAIL_UX` with code `E1031` and logs the missing label and path.
+- Missing `AIbang.exe`, core DLLs, or `resources\app.asar` fails through `AIONUI_FAIL_UX` with code `E1031` and logs the missing label and path.
 - Bundled AionCore verification remains `E1030`.
-- If a silent `--updated` install cannot close AionUi after retries, the installer writes `%APPDATA%\AionUi\installer-last-failure.json`.
+- If a silent `--updated` install cannot close AIbang after retries, the installer writes `%APPDATA%\AIbang\installer-last-failure.json`.
 - On next renderer startup, the update notification consumes that marker once through `update.installer-last-failure.consume`, deletes the valid marker, and shows retry, log, and feedback actions.
 
 Marker schema:
@@ -597,8 +597,8 @@ Marker schema:
   "silent": true,
   "updated": true,
   "retryCount": 3,
-  "instDir": "C:\\Program Files\\AionUi",
-  "logPath": "C:\\Users\\user\\AppData\\Local\\Temp\\aionui-installer-process-check.log",
+  "instDir": "C:\\Program Files\\AIbang",
+  "logPath": "C:\\Users\\user\\AppData\\Local\\Temp\\aibang-installer-process-check.log",
   "at": "2026-07-01T00:00:00.0000000+08:00"
 }
 ```
@@ -608,4 +608,4 @@ Manual verification:
 - Build an x64 installer with `ffmpeg.dll` removed from the unpacked app payload. Expected: installer fails with `E1031`, and logs include `missing label=ffmpeg.dll path=...`.
 - Build an x64 installer with `resources\app.asar` removed. Expected: same `E1031` path.
 - Run normal x64 and arm64 installs. Expected: shared core verification runs before bundled AionCore verification and installation succeeds.
-- Run silent `/S --updated` while AionUi cannot be closed. Expected: marker file appears under `%APPDATA%\AionUi`; next app launch shows the update failure notification; the following launch does not show it again.
+- Run silent `/S --updated` while AIbang cannot be closed. Expected: marker file appears under `%APPDATA%\AIbang`; next app launch shows the update failure notification; the following launch does not show it again.

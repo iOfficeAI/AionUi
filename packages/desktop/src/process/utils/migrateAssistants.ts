@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -192,7 +192,7 @@ async function backendSupportsAssistantDefinitions(): Promise<boolean> {
       detail && typeof detail === 'object' && 'profile' in detail && 'defaults' in detail && 'preferences' in detail
     );
   } catch (error) {
-    console.warn('[AionUi] Failed to probe unified assistant detail support:', error);
+    console.warn('[AIbang] Failed to probe unified assistant detail support:', error);
     return false;
   }
 }
@@ -208,7 +208,7 @@ async function markAssistantsMigrationDone(configFile: ConfigFile): Promise<void
   try {
     await accessor.set(ASSISTANTS_MIGRATION_FLAG, true);
   } catch (err) {
-    console.warn('[AionUi] failed to persist assistants migration flag', err);
+    console.warn('[AIbang] failed to persist assistants migration flag', err);
   }
 }
 
@@ -261,20 +261,20 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
       if (isBackendHttpError(reason) && reason.status === 404) {
         skipped += 1;
         console.warn(
-          `[AionUi] Skipped override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+          `[AIbang] Skipped override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
         );
         return;
       }
       failed += 1;
-      console.error(`[AionUi] Failed to apply builtin override for ${overrides[i].id}:`, reason);
+      console.error(`[AIbang] Failed to apply builtin override for ${overrides[i].id}:`, reason);
     }
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[AionUi] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
+    console.log(`[AIbang] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
   } else {
     console.error(
-      `[AionUi] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+      `[AIbang] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
     );
   }
   return failed;
@@ -337,7 +337,7 @@ function collectBuiltinAgentIdOverrides(
 /**
  * Replay user-picked legacy backend choices onto `assistant_overrides`
  * via `PUT /api/assistants/{id}`. The backend accepts only `agent_id`
- * on built-in rows (see `aionui-assistant/src/service.rs`). 404 is treated as
+ * on built-in rows (see `aibang-assistant/src/service.rs`). 404 is treated as
  * skip for the same reason as {@link applyBuiltinOverrides}: the built-in was
  * retired between versions and the user preference is moot.
  */
@@ -354,20 +354,20 @@ async function applyBuiltinAgentIdOverrides(overrides: BuiltinAgentIdOverride[])
       if (isBackendHttpError(reason) && reason.status === 404) {
         skipped += 1;
         console.warn(
-          `[AionUi] Skipped agent_id override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+          `[AIbang] Skipped agent_id override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
         );
         return;
       }
       failed += 1;
-      console.error(`[AionUi] Failed to apply agent_id override for ${overrides[i].id}:`, reason);
+      console.error(`[AIbang] Failed to apply agent_id override for ${overrides[i].id}:`, reason);
     }
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[AionUi] Applied ${applied} builtin agent_id override(s) (skipped ${skipped} retired id(s))`);
+    console.log(`[AIbang] Applied ${applied} builtin agent_id override(s) (skipped ${skipped} retired id(s))`);
   } else {
     console.error(
-      `[AionUi] Builtin agent_id override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+      `[AIbang] Builtin agent_id override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
     );
   }
   return failed;
@@ -390,7 +390,7 @@ async function fetchCurrentBuiltinAgentIds(): Promise<Map<string, string>> {
     }
     return map;
   } catch (error) {
-    console.error('[AionUi] Failed to fetch current builtin agent_id map:', error);
+    console.error('[AIbang] Failed to fetch current builtin agent_id map:', error);
     return new Map();
   }
 }
@@ -414,7 +414,7 @@ async function fetchAgentIdByRuntimeKey(): Promise<Map<string, string>> {
     }
     return map;
   } catch (error) {
-    console.error('[AionUi] Failed to fetch agent runtime identity map:', error);
+    console.error('[AIbang] Failed to fetch agent runtime identity map:', error);
     return new Map();
   }
 }
@@ -459,7 +459,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
       // No legacy assistants dir at all — nothing to upload.
       return 0;
     }
-    console.error('[AionUi] Failed to read legacy assistant rules dir:', error);
+    console.error('[AIbang] Failed to read legacy assistant rules dir:', error);
     return 1;
   }
 
@@ -501,7 +501,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
     if (r.status === 'rejected') {
       failed += 1;
       console.error(
-        `[AionUi] Failed to upload legacy rule for '${ruleEntries[i].id}' (${ruleEntries[i].locale}):`,
+        `[AIbang] Failed to upload legacy rule for '${ruleEntries[i].id}' (${ruleEntries[i].locale}):`,
         r.reason
       );
       return;
@@ -511,10 +511,10 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
   });
   if (failed === 0) {
     if (uploaded > 0 || skipped > 0) {
-      console.log(`[AionUi] Legacy rule upload: ${uploaded} uploaded, ${skipped} skipped`);
+      console.log(`[AIbang] Legacy rule upload: ${uploaded} uploaded, ${skipped} skipped`);
     }
   } else {
-    console.error(`[AionUi] Legacy rule upload partial: ${failed}/${ruleEntries.length} failed`);
+    console.error(`[AIbang] Legacy rule upload partial: ${failed}/${ruleEntries.length} failed`);
   }
   return failed;
 }
@@ -553,7 +553,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
  */
 export async function migrateAssistantsToBackend(configFile: ConfigFile): Promise<boolean> {
   if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
-    console.log('[AionUi] Assistant migration skipped (env flag set)');
+    console.log('[AIbang] Assistant migration skipped (env flag set)');
     return false;
   }
 
@@ -621,14 +621,14 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
         assistants: userAssistants.map((assistant) => legacyAssistantToCreateRequest(assistant, agentIdByRuntimeKey)),
       });
       if (result.failed !== 0) {
-        console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
+        console.error(`[AIbang] Assistant migration partial: ${result.failed} failed`, result.errors);
         return false;
       }
       if (result.imported > 0 || result.skipped > 0) {
-        console.log(`[AionUi] migrated ${result.imported} assistants (skipped ${result.skipped})`);
+        console.log(`[AIbang] migrated ${result.imported} assistants (skipped ${result.skipped})`);
       }
     } catch (error) {
-      console.error('[AionUi] Assistant migration failed:', error);
+      console.error('[AIbang] Assistant migration failed:', error);
       return false;
     }
   }

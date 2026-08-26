@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,8 +12,8 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
 
-/** Backend manifest id of the built-in AionUi Butler assistant. */
-const BUTLER_ASSISTANT_ID = 'aionui-assistant';
+/** Backend manifest id of the built-in AIbang Butler assistant. */
+const BUTLER_ASSISTANT_ID = 'aibang-assistant';
 
 export type TalkToButlerArgs = {
   /** Prompt pre-filled into the home chat input. */
@@ -35,7 +35,7 @@ const findButler = (assistants: Assistant[]): Assistant | undefined => {
 
 /**
  * Shared entry point behind every "via chat" action: jump to the home page,
- * select the AionUi Butler, and pre-fill the chat input with a ready-made
+ * select the AIbang Butler, and pre-fill the chat input with a ready-made
  * prompt (and optional attachments). Auto-enables the Butler if the user has
  * disabled it, since clicking the action is an explicit intent to use it.
  *

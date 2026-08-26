@@ -1,9 +1,9 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * AionUi N3 mock HTTP/WS bridge helper.
+ * AIbang N3 mock HTTP/WS bridge helper.
  *
  * Public API frozen in docs/backend-migration/plans/2026-05-08-n3-test-rewrite-adapter-common.md §2.1.
  * N4 teammates: do NOT change the exported signatures. If a new capability is

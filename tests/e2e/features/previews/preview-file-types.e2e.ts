@@ -122,7 +122,7 @@ test.describe('Preview — file type routing', () => {
   let conversationId: string | null = null;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-filetypes-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-filetypes-'));
     // Contents are irrelevant: routing is by extension, and these formats are
     // never parsed. Small stubs keep the tree fast to load.
     for (const { file } of UNSUPPORTED_SAMPLES) {

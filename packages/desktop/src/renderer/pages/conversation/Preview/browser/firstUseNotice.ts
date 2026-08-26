@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -29,7 +29,7 @@ import i18next from 'i18next';
  * because "first time" means first time on this machine — restarting the app must
  * not show it again.
  */
-const FIRST_USE_STORAGE_KEY = 'aionui_agent_browser_first_use_notified';
+const FIRST_USE_STORAGE_KEY = 'aibang_agent_browser_first_use_notified';
 
 /**
  * 进程内标记，防止同一次会话里连续的工具调用重复弹提示。

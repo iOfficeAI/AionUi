@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -34,7 +34,7 @@ import {
 } from './cdpTargetProtocol';
 
 const HOST = '127.0.0.1';
-const WS_PATH = '/aionui-cdp';
+const WS_PATH = '/aibang-cdp';
 
 export type CdpBridgeHandle = {
   port: number;

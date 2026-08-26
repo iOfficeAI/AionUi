@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -448,7 +448,7 @@ export function buildCreateFileRequest(peId: string, parentDir: string, rawName:
 export type TransferOp = 'copy' | 'move';
 
 /** Custom drag MIME carrying an internal pe-ref (vs an OS `Files` drop). */
-export const PE_REF_DRAG_MIME = 'application/x-aionui-pe-ref';
+export const PE_REF_DRAG_MIME = 'application/x-aibang-pe-ref';
 
 /** The dragged node's identity + display facts, serialized onto the drag MIME. */
 export type DragPeRef = {

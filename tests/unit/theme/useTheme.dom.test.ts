@@ -63,7 +63,7 @@ describe('useTheme selection', () => {
 
     expect(result.current[0]?.appearance).toBe('dark');
     expect(result.current[2]).toBe('dark');
-    expect(localStorage.getItem('__aionui_theme')).toBe('dark');
+    expect(localStorage.getItem('__aibang_theme')).toBe('dark');
   });
 
   it('keeps the current state when selecting a theme fails', async () => {

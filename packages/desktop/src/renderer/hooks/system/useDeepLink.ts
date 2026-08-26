@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +43,7 @@ export const consumePendingDeepLink = (): DeepLinkAddProviderDetail | null => {
 const ALLOWED_NAVIGATE_PATTERNS = [/^\/team\/[^/]+$/, /^\/conversation\/[^/]+$/];
 
 /**
- * Hook to listen for aionui:// deep link events from main process.
+ * Hook to listen for aibang:// deep link events from main process.
  * Routes 'add-provider' action to the model settings page.
  * Routes 'navigate' action to the specified route (whitelist-validated).
  * The pre-fill data is stored in a module-level variable and consumed

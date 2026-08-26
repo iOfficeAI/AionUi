@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -67,7 +67,7 @@ describe('resolveBridgeToken', () => {
 });
 
 /**
- * 回归测试：issue #3883 —— Windows 上 aionui-browser MCP 完全起不来。
+ * 回归测试：issue #3883 —— Windows 上 aibang-browser MCP 完全起不来。
  *
  * npx 在 Windows 上是 npx.cmd，批处理文件没有终端无法自己执行，直接 spawn 会抛 EINVAL
  * （CVE-2024-27980 之后 Node 收紧了 .cmd 处理）。旧代码只是把可执行名换成 'npx.cmd'，
@@ -76,7 +76,7 @@ describe('resolveBridgeToken', () => {
  * 这条分支此前没有任何测试覆盖（spawn 在模块顶层，单测 import 不了 browserServer.ts），
  * 所以缺陷得以合并进主干。现在命令行的组装被抽成纯函数，能直接钉住。
  *
- * Regression test for issue #3883: the aionui-browser MCP never starts on Windows. npx is
+ * Regression test for issue #3883: the aibang-browser MCP never starts on Windows. npx is
  * npx.cmd there, a batch file that cannot execute without a terminal, so spawning it directly
  * throws EINVAL (Node tightened .cmd handling after CVE-2024-27980). The old code merely
  * renamed the executable to 'npx.cmd' while its own comment said spawning without a shell

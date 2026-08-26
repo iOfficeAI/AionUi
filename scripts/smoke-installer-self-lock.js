@@ -68,59 +68,59 @@ function main() {
   }
 
   const makensis = findMakensis();
-  const root = mkdtempSync(path.join(tmpdir(), 'aionui-self-lock-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'aibang-self-lock-'));
   const installDir = path.join(root, 'install-dir');
   mkdirSync(installDir, { recursive: true });
   writeFileSync(path.join(installDir, 'existing-file.txt'), 'self-lock smoke\n', 'utf8');
 
-  const nsiPath = path.join(root, 'aionui-self-lock-smoke.nsi');
-  const exePath = path.join(root, 'aionui-self-lock-smoke.exe');
+  const nsiPath = path.join(root, 'aibang-self-lock-smoke.nsi');
+  const exePath = path.join(root, 'aibang-self-lock-smoke.exe');
   const logPath = path.join(
     process.env.TEMP || tmpdir(),
-    `aionui-installer-self-lock-${new Date()
+    `aibang-installer-self-lock-${new Date()
       .toISOString()
       .replace(/[-:]/g, '')
       .replace(/\..+$/, '')
       .replace('T', '-')}-log.jsonl`
   );
-  const resultPath = path.join(process.env.TEMP || tmpdir(), `aionui-installer-self-lock-${process.pid}-result.txt`);
+  const resultPath = path.join(process.env.TEMP || tmpdir(), `aibang-installer-self-lock-${process.pid}-result.txt`);
   const processControlPath = path.join(repoRoot, 'resources', 'windows', 'installer-process-control.nsh');
 
   const nsi = `
 Unicode true
-Name "AionUi Installer Self Lock Smoke"
+Name "AIbang Installer Self Lock Smoke"
 OutFile "${nsisQuote(exePath)}"
 RequestExecutionLevel user
 SilentInstall silent
 !define VERSION "self-lock-smoke"
 !define AIONUI_TARGET_ARCH "x64"
-!define AIONUI_FALLBACK_LOG "aionui-installer-self-lock-fallback.log"
-!define AIONUI_APP_EXECUTABLE_FILENAME "AionUi.exe"
-!define UNINSTALL_FILENAME "Uninstall AionUi.exe"
+!define AIONUI_FALLBACK_LOG "aibang-installer-self-lock-fallback.log"
+!define AIONUI_APP_EXECUTABLE_FILENAME "AIbang.exe"
+!define UNINSTALL_FILENAME "Uninstall AIbang.exe"
 !define PROJECT_DIR "${nsisQuote(repoRoot)}"
 !include LogicLib.nsh
 !include "${nsisQuote(processControlPath)}"
 
-Var AionUiSessionId
-Var AionUiIsUpdated
-Var AionUiSessionLogPath
+Var AIbangSessionId
+Var AIbangIsUpdated
+Var AIbangSessionLogPath
 Var ResultFile
 
 Section
   StrCpy $INSTDIR "${nsisQuote(installDir)}"
-  StrCpy $AionUiSessionId "selflock"
-  StrCpy $AionUiIsUpdated "1"
-  StrCpy $AionUiSessionLogPath "${nsisQuote(logPath)}"
+  StrCpy $AIbangSessionId "selflock"
+  StrCpy $AIbangIsUpdated "1"
+  StrCpy $AIbangSessionLogPath "${nsisQuote(logPath)}"
   StrCpy $ResultFile "${nsisQuote(resultPath)}"
   InitPluginsDir
   SetOutPath $INSTDIR
-  StrCpy $AionUiCurrentOutDir "$INSTDIR"
-  !insertmacro AIONUI_QUERY_LOCKERS "$INSTDIR" $AionUiLockerResult
+  StrCpy $AIbangCurrentOutDir "$INSTDIR"
+  !insertmacro AIONUI_QUERY_LOCKERS "$INSTDIR" $AIbangLockerResult
   FileOpen $0 "$ResultFile" w
-  FileWrite $0 "$AionUiLockerResult"
-  FileWrite $0 "|$AionUiCurrentOutDir|$AionUiSessionLogPath"
+  FileWrite $0 "$AIbangLockerResult"
+  FileWrite $0 "|$AIbangCurrentOutDir|$AIbangSessionLogPath"
   FileClose $0
-  \${If} $AionUiLockerResult != 0
+  \${If} $AIbangLockerResult != 0
     SetErrorLevel 10
     Quit
   \${EndIf}
@@ -159,8 +159,8 @@ SectionEnd
       throw new Error(`expected currentOutDir ${installDir}, got ${lockers.currentOutDir}`);
     }
     const blocking = lockers.blockingProcesses || [];
-    if (!blocking.some((process) => process.name === 'AionUi installer' && Number(process.pid) > 0)) {
-      throw new Error(`expected AionUi installer blocker, got ${JSON.stringify(blocking)}`);
+    if (!blocking.some((process) => process.name === 'AIbang installer' && Number(process.pid) > 0)) {
+      throw new Error(`expected AIbang installer blocker, got ${JSON.stringify(blocking)}`);
     }
 
     console.log(`[self-lock] ok: ${logPath}`);

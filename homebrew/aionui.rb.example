@@ -3,23 +3,23 @@
 # =============================================================================
 # This file is a reference template for the Homebrew cask definition.
 # The actual cask is maintained in the official Homebrew repository:
-#   https://github.com/Homebrew/homebrew-cask/blob/master/Casks/a/aionui.rb
+#   https://github.com/Homebrew/homebrew-cask/blob/master/Casks/a/aibang.rb
 #
 # Updates are automated via .github/workflows/bump-homebrew.yml which
 # creates PRs to the official repository when a new release is published.
 # =============================================================================
 
-cask "aionui" do
+cask "aibang" do
   arch arm: "arm64", intel: "x64"
 
   version "1.7.1"
   sha256 arm:   "ec758b0f4727eea1fb13a7ca4176dbf75baab2f3dc135eacbaa8ce091d27d219",
          intel: "bdb9be0d79f6c7c6c7457f2668dd23ccd0c00a9c7b5a4129960c5d7650190a3a"
 
-  url "https://github.com/iOfficeAI/AionUi/releases/download/v#{version}/AionUi-#{version}-mac-#{arch}.dmg"
-  name "AionUi"
+  url "https://github.com/iOfficeAI/AIbang/releases/download/v#{version}/AIbang-#{version}-mac-#{arch}.dmg"
+  name "AIbang"
   desc "Unified GUI for command-line AI agents"
-  homepage "https://github.com/iOfficeAI/AionUi"
+  homepage "https://github.com/iOfficeAI/AIbang"
 
   livecheck do
     url :url
@@ -29,11 +29,11 @@ cask "aionui" do
   auto_updates true
   depends_on macos: ">= :big_sur"
 
-  app "AionUi.app"
+  app "AIbang.app"
 
   zap trash: [
-    "~/Library/Application Support/AionUi",
-    "~/Library/Preferences/com.aionui.app.plist",
-    "~/Library/Saved Application State/com.aionui.app.savedState",
+    "~/Library/Application Support/AIbang",
+    "~/Library/Preferences/com.aibang.app.plist",
+    "~/Library/Saved Application State/com.aibang.app.savedState",
   ]
 end

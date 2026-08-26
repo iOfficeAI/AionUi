@@ -4,7 +4,7 @@ import { test, expect } from '../../../fixtures';
 import { findAssistantIdForBackend, goToGuid } from '../../../helpers';
 import { httpDelete, httpPost } from '../../../helpers/httpBridge';
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'aibang:e2e-message-stream-conversation-id';
 
 type PlanEntry = { content: string; status: 'pending' | 'in_progress' | 'completed' };
 

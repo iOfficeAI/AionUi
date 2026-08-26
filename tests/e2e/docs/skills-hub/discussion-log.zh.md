@@ -107,10 +107,10 @@
 
 ### 3.4 为什么区分 4 种技能来源？
 
-- **Builtin**：随 AionUi 发布，不可删除，用户可导出到外部 CLI
+- **Builtin**：随 AIbang 发布，不可删除，用户可导出到外部 CLI
 - **Custom**：用户自行导入，可删除，可导出
 - **Extension**：插件贡献，不可删除/导出（由插件管理）
-- **Auto**：系统自动注入，无需用户选择（如 aionui-skills）
+- **Auto**：系统自动注入，无需用户选择（如 aibang-skills）
 
 ---
 
@@ -633,7 +633,7 @@
 **文件内容验证替代方案**(响应我的预备笔记):
 
 - ❌ **不可行**:E2E 不直接读取文件系统验证 symlink 目标
-- ✅ **替代**:导入后验证 `skill.location` 路径格式(应包含 `~/.aionui/skills/`)
+- ✅ **替代**:导入后验证 `skill.location` 路径格式(应包含 `~/.aibang/skills/`)
 - ✅ **可选**:调用 `invokeBridge('fs.readSkillInfo', { skillPath })` 验证元信息(如果该 bridge 存在,需确认 `ipcBridge.ts` 是否有此方法)
 
 **建议**:在需求文档**第 2 节每个操作子节**末尾增加**"E2E 验证策略"**段落,明确:
@@ -896,7 +896,7 @@ await page.locator('[data-testid="manual-import-button"]').click();
 **E2E 用途**:
 
 - 4.1 数据结构 → TypeScript 类型断言
-- 4.2.1 目录结构 → 指导测试数据构造(在 `~/.aionui/skills/` 创建测试 skill)
+- 4.2.1 目录结构 → 指导测试数据构造(在 `~/.aibang/skills/` 创建测试 skill)
 - 4.2.3 SKILL.md 格式 → 指导创建合法测试 skill
 
 **补充建议**:在 4.2.1 增加**"E2E 测试隔离"**段落:
@@ -1246,14 +1246,14 @@ test-strategy § 3.2 和我的 test-cases § 3.2 都采用 `fs.mkdtempSync` 创�
 
 ```typescript
 // test-strategy § 3.2
-const tempExternal = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-external-'));
+const tempExternal = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-external-'));
 
 // test-cases § 3.2
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-external-'));
 ```
 
-**细微差异**: 前缀 `aionui-e2e-external-` vs `e2e-external-`
-**建议**: 统一为 `aionui-e2e-external-` (test-strategy 的更明确)
+**细微差异**: 前缀 `aibang-e2e-external-` vs `e2e-external-`
+**建议**: 统一为 `aibang-e2e-external-` (test-strategy 的更明确)
 
 #### 11.5.3 ✅ 清理策略一致
 
@@ -1345,12 +1345,12 @@ test-strategy § 9.1 提出的 4 个测试文件拆分：
 
 **当前状态**:
 
-- test-strategy § 3.2: `aionui-e2e-external-`
+- test-strategy § 3.2: `aibang-e2e-external-`
 - test-cases § 3.2: `e2e-external-`
 
 **影响**: 不影响功能，但统一命名可提升可读性和问题排查效率
 
-**建议**: 在 test-strategy 或 test-cases 任一文档中明确统一为 `aionui-e2e-external-`，并让双方在实现时遵循
+**建议**: 在 test-strategy 或 test-cases 任一文档中明确统一为 `aibang-e2e-external-`，并让双方在实现时遵循
 
 **优先级**: P1 (非阻塞，但应在门 3 编码前达成一致)
 
@@ -2288,7 +2288,7 @@ Engineer review 提出 P0 阻塞项后，经过讨论达成一致：
 
 **依赖**：
 
-- `_builtin/` 目录存在且包含技能（如 `aionui-skills`）
+- `_builtin/` 目录存在且包含技能（如 `aibang-skills`）
 
 **建议补充**：
 
@@ -2517,7 +2517,7 @@ Engineer review 提出 P0 阻塞项后，经过讨论达成一致：
 
 **前置依赖**：
 
-- `_builtin/` 目录存在且包含至少 1 个技能（如 `aionui-skills`）
+- `_builtin/` 目录存在且包含至少 1 个技能（如 `aibang-skills`）
 
 **断言类型**：
 
@@ -2751,7 +2751,7 @@ fs.rmSync(tempSkillDir, { recursive: true, force: true });
 - 只读行为 ✅
 - Bridge 断言（listBuiltinAutoSkills 返回至少 1 个技能）✅
 
-✅ **前置条件明确**：`_builtin/` 目录存在（如 `aionui-skills`）
+✅ **前置条件明确**：`_builtin/` 目录存在（如 `aibang-skills`）
 
 **结论**：✅ 通过，完整覆盖 Auto-injected Skills 板块需求
 
@@ -3031,7 +3031,7 @@ v1.2 包含两轮修订：
 ```markdown
 **前置条件**：
 
-- `_builtin/` 目录存在且包含至少 1 个技能（如 `aionui-skills`）
+- `_builtin/` 目录存在且包含至少 1 个技能（如 `aibang-skills`）
 ```
 
 **潜在问题**：
@@ -3422,11 +3422,11 @@ team-lead 指出 v1.1/v1.2 中 TC-S-27/28 违反硬性规则：
 
 **前置条件**：
 
-- `_builtin/` 目录存在且包含至少 1 个技能（如 `aionui-skills`）
+- `_builtin/` 目录存在且包含至少 1 个技能（如 `aibang-skills`）
 
 **预期结果**：
 
-- ✅ 显示至少 1 个自动技能卡片（如 `aionui-skills`）
+- ✅ 显示至少 1 个自动技能卡片（如 `aibang-skills`）
 ```
 
 **问题**：依赖 `_builtin/` 目录实际内容
@@ -3451,7 +3451,7 @@ team-lead 指出 v1.1/v1.2 中 TC-S-27/28 违反硬性规则：
 
 **说明**：
 
-- Auto-injected skills 位于 `_builtin/` 目录，可选存在（如 `aionui-skills`）
+- Auto-injected skills 位于 `_builtin/` 目录，可选存在（如 `aibang-skills`）
 - 本用例聚焦板块渲染行为，不强制要求数据存在（符合"禁止 test.skip"规则）
 - 如环境恰好有自动技能，额外验证卡片样式；如无，验证空状态处理
 ```
@@ -3746,7 +3746,7 @@ analyst-2 复审发现 v1.2 中仍有两处违反"禁止 test.skip"规则的措�
 ```markdown
 **说明**：
 
-- Auto-injected skills 位于 `_builtin/` 目录，可选存在（如 `aionui-skills`）
+- Auto-injected skills 位于 `_builtin/` 目录，可选存在（如 `aibang-skills`）
 - 本用例聚焦板块渲染行为，不强制要求数据存在（符合"禁止 test.skip"规则）
 - 如环境恰好有自动技能，额外验证卡片样式；如无，验证空状态处理
 ```

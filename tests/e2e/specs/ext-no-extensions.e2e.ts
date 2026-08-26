@@ -4,8 +4,8 @@ import os from 'os';
 import path from 'path';
 import { getChannelPluginStatus, goToSettings, invokeBridge, settingsSiderItemById } from '../helpers';
 
-const emptyExtensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-no-extensions-'));
-const stateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-no-extensions-state-'));
+const emptyExtensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-no-extensions-'));
+const stateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-no-extensions-state-'));
 const extensionStatesFile = path.join(stateSandboxDir, 'extension-states.json');
 
 function isDevToolsWindow(page: Page): boolean {

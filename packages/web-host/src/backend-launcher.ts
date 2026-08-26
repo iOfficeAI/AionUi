@@ -217,9 +217,9 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
 
 /**
  * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs
- * (see AionCore/crates/aionui-system/src/sysinfo.rs). Inject them so the
+ * (see AionCore/crates/aibang-system/src/sysinfo.rs). Inject them so the
  * backend's `/api/system/info` matches what Electron main persists in
- * ProcessEnv('aionui.dir').
+ * ProcessEnv('aibang.dir').
  */
 export function buildSpawnEnv(dirs?: BackendDirConfig): NodeJS.ProcessEnv {
   // PREBUILDS_ONLY protects the packaged Electron process's own node-gyp-build

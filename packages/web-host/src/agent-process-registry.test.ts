@@ -18,7 +18,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(
@@ -74,7 +74,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
   });
 
   it('resolves and quarantines when the registry file is empty', async () => {
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(registryPath, '', 'utf8');
@@ -86,7 +86,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
   });
 
   it('resolves and quarantines when the registry file holds malformed JSON', async () => {
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(registryPath, '{"version":', 'utf8');
@@ -102,7 +102,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(
@@ -140,7 +140,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(registryPath, JSON.stringify({ version: 1, processes: [] }), 'utf8');
@@ -156,7 +156,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     await writeFile(
@@ -185,7 +185,7 @@ describe('cleanupRegisteredAgentProcesses', () => {
       return;
     }
 
-    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-agent-registry-'));
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), 'aibang-agent-registry-'));
     const registryPath = resolveAgentProcessRegistryPath(dataDir);
     await mkdir(path.dirname(registryPath), { recursive: true });
     const entryA = { pid: 65001, conversation_id: 'conv-a', agent_type: 'acp', registered_at_ms: 1 };

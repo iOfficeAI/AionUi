@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +10,7 @@ import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { startWebHost, type WebHostHandle } from '@aionui/web-host';
+import { startWebHost, type WebHostHandle } from '@aibang/web-host';
 import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
@@ -239,7 +239,7 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
       resourcesPath: app.getAppPath(),
       // webui.config.json must live next to the backend SQLite DB so --resetpass
       // CLI and the runtime settings path read/write the same user record.
-      // getDataPath() returns ~/.aionui[-dev] symlink on macOS to sidestep
+      // getDataPath() returns ~/.aibang[-dev] symlink on macOS to sidestep
       // path-with-spaces issues under Application Support.
       userDataPath: getDataPath(),
     },

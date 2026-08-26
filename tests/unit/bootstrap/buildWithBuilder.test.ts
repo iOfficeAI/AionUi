@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,7 +52,7 @@ describe('build-with-builder', () => {
   it('rejects skip-vite when renderer output is only a source html shell', () => {
     const outDir = resolve(repoRoot, 'out');
     const backupOutDir = resolve(repoRoot, `.tmp-out-backup-${process.pid}-${Date.now()}`);
-    const tempDir = mkdtempSync(join(tmpdir(), 'aionui-build-skip-vite-test-'));
+    const tempDir = mkdtempSync(join(tmpdir(), 'aibang-build-skip-vite-test-'));
     const hookPath = join(tempDir, 'hook.cjs');
 
     writeFileSync(
@@ -136,7 +136,7 @@ childProcess.execSync = function mockedExecSync(command) {
     const queryScript = readFileSync(resolve(repoRoot, 'resources/windows/support/query-lockers.ps1'), 'utf8');
     const captureMacro = script.match(/!macro AIONUI_CAPTURE_FAILED_PATH_LOCKERS[\s\S]*?!macroend/)?.[0];
 
-    expect(script).toContain('aionui-query-lockers.ps1');
+    expect(script).toContain('aibang-query-lockers.ps1');
     expect(captureMacro).toContain('AIONUI_QUERY_LOCKERS');
     expect(captureMacro).not.toContain('AIONUI_QUERY_LOCKERS_INLINE_LEGACY');
     expect(queryScript).toContain('$CurrentOutDir');
@@ -144,7 +144,7 @@ childProcess.execSync = function mockedExecSync(command) {
     expect(queryScript).toContain("'installer-self-lock'");
     expect(queryScript).toContain('outerInstallerPid');
     expect(queryScript).toContain('currentOutDir');
-    expect(queryScript).toContain("name = 'AionUi installer'");
+    expect(queryScript).toContain("name = 'AIbang installer'");
   });
 
   it('continues with the bundled uninstaller when installed-uninstaller repair remains locked', () => {
@@ -157,7 +157,7 @@ childProcess.execSync = function mockedExecSync(command) {
 
     expect(retryFailureBranch).toBeTruthy();
     expect(retryFailureBranch).toContain('copy-failed-using-bundled');
-    expect(retryFailureBranch).toContain('$AionUiBundledUninstaller');
+    expect(retryFailureBranch).toContain('$AIbangBundledUninstaller');
     expect(retryFailureBranch).not.toContain('MessageBox');
     expect(retryFailureBranch).not.toContain('AIONUI_MSG_UNINSTALLER_LOCKED');
     expect(messages).not.toContain('existing uninstaller is locked');
@@ -222,7 +222,7 @@ childProcess.execSync = function mockedExecSync(command) {
   it('routes app-cannot-be-closed cancellation through E1003 instead of quitting silently', () => {
     const script = readFileSync(resolve(repoRoot, 'resources/windows/installer-process-control.nsh'), 'utf8');
     const cannotCloseBranch = script.match(
-      /AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH[\s\S]*?IDRETRY aionui_wait_for_close([\s\S]*?)\$\{Else\}/
+      /AIONUI_MSG_CLOSE_OR_REMOVE_PREVIOUS_ZH[\s\S]*?IDRETRY aibang_wait_for_close([\s\S]*?)\$\{Else\}/
     )?.[1];
 
     expect(cannotCloseBranch).toBeTruthy();
@@ -269,7 +269,7 @@ childProcess.execSync = function mockedExecSync(command) {
       expectedArch: 'x64',
     },
   ])('prepares bundled AionCore for $expectedArch with args $args', ({ args, expectedArch }) => {
-    const tempDir = mkdtempSync(join(tmpdir(), 'aionui-build-test-'));
+    const tempDir = mkdtempSync(join(tmpdir(), 'aibang-build-test-'));
     const hookPath = join(tempDir, 'hook.cjs');
     const callsPath = join(tempDir, 'prepare-calls.json');
     const outDir = resolve(repoRoot, 'out');
@@ -362,9 +362,9 @@ childProcess.execSync = function mockedExecSync(command) {
 
       if (args.includes('--win')) {
         const installUtil = readFileSync(resolveAppBuilderInstallUtil(), 'utf8');
-        expect(installUtil).toContain('AionUi-bundled-uninstaller override source');
-        expect(installUtil).toContain('$PLUGINSDIR\\AionUi-fixed-uninstaller.exe');
-        expect(installUtil.match(/AionUi-bundled-uninstaller override source/g)).toHaveLength(1);
+        expect(installUtil).toContain('AIbang-bundled-uninstaller override source');
+        expect(installUtil).toContain('$PLUGINSDIR\\AIbang-fixed-uninstaller.exe');
+        expect(installUtil.match(/AIbang-bundled-uninstaller override source/g)).toHaveLength(1);
       }
 
       const calls = JSON.parse(readFileSync(callsPath, 'utf8')) as Array<{ arch?: string } | null>;

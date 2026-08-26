@@ -458,7 +458,7 @@ export type I18nKey =
   | 'conversation.agentError.errorCode'
   | 'conversation.agentError.fallbackTitle'
   | 'conversation.agentError.notRetryable'
-  | 'conversation.agentError.ownership.aionui'
+  | 'conversation.agentError.ownership.aibang'
   | 'conversation.agentError.ownership.unknown_upstream'
   | 'conversation.agentError.ownership.user_agent'
   | 'conversation.agentError.ownership.user_llm_provider'

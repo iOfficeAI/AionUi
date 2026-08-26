@@ -14,7 +14,7 @@ import { findAssistantIdForBackend, goToGuid } from '../helpers';
 import { httpDelete, httpPost } from '../helpers/httpBridge';
 import { GUID_INPUT } from '../helpers/selectors';
 
-const ENABLED_CONVERSATION_KEY = 'aionui:e2e-message-stream-conversation-id';
+const ENABLED_CONVERSATION_KEY = 'aibang:e2e-message-stream-conversation-id';
 const ERROR_TEXT = 'E2E fabricated failure: provider exploded (code 500)';
 
 type CreatedConversation = { id: string };

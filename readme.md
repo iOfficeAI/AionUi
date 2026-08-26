@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="./resources/aibang-banner-1.png" alt="AIbang - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/AIbang?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AIbang/releases">
     <img src="https://img.shields.io/badge/⬇️%20Download%20Now-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
   </a>
 </p>
@@ -40,21 +40,21 @@
 ---
 
 <p align="center">
-  <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">
-    <img src="./resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi Contributor Bonus" width="600">
+  <a href="https://x.com/AIbang/status/2079493379914961069" target="_blank">
+    <img src="./resources/kimi/contributor-bonus-black-blue.jpg" alt="AIbang × Kimi Contributor Bonus" width="600">
   </a>
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors!
+  🎁 <strong>AIbang × Kimi Partnership</strong>: Free premium <strong>Kimi "Allegretto" plans ($39/mo · ¥199/mo value)</strong> for our contributors!
 </p>
 
 <h3 align="center">
-  <a href="https://x.com/AionUi/status/2079493379914961069" target="_blank">View Campaign Details & How to Claim →</a>
+  <a href="https://x.com/AIbang/status/2079493379914961069" target="_blank">View Campaign Details & How to Claim →</a>
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> is here and works out of the box in AionUi — <a href="https://www.kimi.com/code?aff=aionui" target="_blank">get a Kimi For Coding plan</a> or an API key (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">China</a>) · ready to claim? <a href="https://github.com/iOfficeAI/AionUi/discussions/3640">comment here</a></sub>
+  <sub><strong>Kimi K3</strong> is here and works out of the box in AIbang — <a href="https://www.kimi.com/code?aff=aibang" target="_blank">get a Kimi For Coding plan</a> or an API key (<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aibang" target="_blank">Global</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aibang" target="_blank">China</a>) · ready to claim? <a href="https://github.com/iOfficeAI/AIbang/discussions/3640">comment here</a></sub>
 </p>
 
 ---
@@ -64,7 +64,7 @@
 <p align="center">
 
 [Cowork in Action](#-cowork-in-action) ·
-[Why Choose AionUi?](#-why-choose-aionui-over-claude-cowork) ·
+[Why Choose AIbang?](#-why-choose-aibang-over-claude-cowork) ·
 [Quick Start](#-quick-start) ·
 [Community](#-community--support)
 
@@ -74,9 +74,9 @@
 
 ## Cowork — AI Agents That Work Alongside You
 
-**AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
+**AIbang is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                                      |
+|                                 | Traditional AI Chat Clients | **AIbang (Cowork)**                                                                                                                      |
 | :------------------------------ | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
 | AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                                           |
 | AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                                  |
@@ -86,14 +86,14 @@
 | Price                           | Free / Paid                 | **Free & Open Source**                                                                                                                   |
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AIbang Cowork Platform" width="800">
 </p>
 
 ---
 
 ## Built-in Agent — Install & Go, Zero Configuration
 
-AionUi ships with a complete AI agent engine. Unlike tools that require you to install CLI agents separately, **AionUi works the moment you install it**.
+AIbang ships with a complete AI agent engine. Unlike tools that require you to install CLI agents separately, **AIbang works the moment you install it**.
 
 - **No CLI tools to install** — the agent engine is built in
 - **No complex setup** — paste any API key to get started
@@ -106,7 +106,7 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 
 ### **Office assistants — PPT, Word & Excel**
 
-These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills**. The canonical [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json) and [built-in skills](https://github.com/iOfficeAI/AionCore/tree/main/crates/aionui-app/assets/builtin-skills) are maintained with AionCore. Want document/table output? AionUi’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
+These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills**. The canonical [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aibang-app/assets/builtin-assistants/assistants.json) and [built-in skills](https://github.com/iOfficeAI/AionCore/tree/main/crates/aibang-app/assets/builtin-skills) are maintained with AionCore. Want document/table output? AIbang’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
 The three assistant types map to file workflows, and the final outputs are directly editable and reusable.
 
 #### **PPT assistant**
@@ -161,7 +161,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 ## Multi-Agent Mode — Already Have CLI Agents? Bring Them In
 
-If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
+If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AIbang auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
 **Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • and more
 
@@ -172,7 +172,7 @@ If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-de
 - **Auto Detection** — automatically recognizes installed CLI tools
 - **Unified Interface** — one Cowork platform for all your AI agents
 - **Parallel Sessions** — run multiple agents simultaneously with independent context
-- **MCP Unified Management** — manage MCP (Model Context Protocol) tools in one place; AionUi injects or syncs compatible transports according to each agent's capabilities
+- **MCP Unified Management** — manage MCP (Model Context Protocol) tools in one place; AIbang injects or syncs compatible transports according to each agent's capabilities
 - **YOLO / Full-Auto Mode** — supported agents can expose an unattended mode; available modes and permission behavior depend on the selected agent
 
 ### Team Mode — Coordinated Multi-Agent Collaboration
@@ -180,10 +180,10 @@ If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-de
 Run multiple AI agents as an organized team: a **Leader** agent receives your instructions, breaks them into subtasks, and delegates to **Teammate** agents via a built-in Team MCP Server. Teammates execute in parallel, share results through an async mailbox, and write to a shared task board.
 
 <p align="center">
-  <img src="./resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="./resources/AIbang_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **Parallel multi-agent execution** — Leader breaks tasks into subtasks and delegates to Teammate agents running in parallel; each Teammate uses its own model through the selected backend. External agents connect through ACP (Agent Client Protocol), while AionUi coordinates the team
+- **Parallel multi-agent execution** — Leader breaks tasks into subtasks and delegates to Teammate agents running in parallel; each Teammate uses its own model through the selected backend. External agents connect through ACP (Agent Client Protocol), while AIbang coordinates the team
 - **Leader orchestration** — Leader assigns, tracks, and aggregates results; supported backends include Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, and Aion CLI
 - **Team-isolated workspace** — all agents share the same folder; each has its own permission dialog with sidebar badge for pending approvals
 
@@ -204,7 +204,7 @@ Run multiple AI agents as an organized team: a **Leader** agent receives your in
 
 ## Any API Key, Full Cowork Agent Power
 
-Other AI apps give you a chatbox with your API key. **AionUi gives you a full Cowork agent.**
+Other AI apps give you a chatbox with your API key. **AIbang gives you a full Cowork agent.**
 
 | Your API Key               | What You Get                                |
 | :------------------------- | :------------------------------------------ |
@@ -215,7 +215,7 @@ Other AI apps give you a chatbox with your API key. **AionUi gives you a full Co
 | Ollama / LM Studio (local) | Local model Cowork Agent                    |
 | NewAPI Gateway             | Unified access to 20+ models                |
 
-Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **30+ AI platforms** including cloud services and local deployments.
+Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AIbang supports **30+ AI platforms** including cloud services and local deployments.
 
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -234,7 +234,7 @@ Same agent capabilities — file read/write, web search, image generation, tool 
 - **International Platforms** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Local Models** — Ollama, LM Studio (via Custom platform with local API endpoint)
 
-AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service — a unified AI model hub that aggregates and distributes various LLMs. Flexibly switch between different models in the same interface to meet various task requirements.
+AIbang also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service — a unified AI model hub that aggregates and distributes various LLMs. Flexibly switch between different models in the same interface to meet various task requirements.
 
 </details>
 
@@ -245,21 +245,21 @@ AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway se
 _Extensible assistant system with 21 built-in professional assistants and a three-tier skill system. Create and manage your own assistants and skills._
 
 - **Create Custom Assistants** — Define your own assistants with custom rules and capabilities
-- **Three-tier Skills** — Builtin skills (shipped with AionUi), custom skills (your own), and Extension skills (contributed by third-party extensions); enable/disable per conversation with the skill indicator
+- **Three-tier Skills** — Builtin skills (shipped with AIbang), custom skills (your own), and Extension skills (contributed by third-party extensions); enable/disable per conversation with the skill indicator
 - **Per-conversation Control** — A skill indicator in the chat header shows active skills for the current conversation; search and exclude skills as needed
 
 <p align="center">
   <img src="./resources/assitants.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
-AionUi supports three skill layers: **built-in** skills (shipped with the app), **custom** skills (user-defined), and **extension** skills (loaded from the Extension SDK).
+AIbang supports three skill layers: **built-in** skills (shipped with the app), **custom** skills (user-defined), and **extension** skills (loaded from the Extension SDK).
 
 <details>
 <summary><strong>🔍 View Assistant Details and Custom Skills ▶️</strong></summary>
 
 <br>
 
-AionUi includes **21 professional assistants** with predefined capabilities, extendable through custom skills:
+AIbang includes **21 professional assistants** with predefined capabilities, extendable through custom skills:
 
 - **🤝 Cowork** — Autonomous task execution (file operations, document processing, workflow planning)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Generate and animate PPTX presentations with Morph transitions
@@ -279,11 +279,11 @@ AionUi includes **21 professional assistants** with predefined capabilities, ext
 - **📈 Beautiful Mermaid** — Flowcharts, sequence diagrams, and more
 - **🔧 OpenClaw Setup** — Setup and configuration assistant for OpenClaw integration
 - **📖 Story Roleplay** — Immersive story roleplay with character cards and world info (SillyTavern compatible)
-- **🧭 AionUi Butler** — Product guidance, setup help, and troubleshooting inside AionUi
+- **🧭 AIbang Butler** — Product guidance, setup help, and troubleshooting inside AIbang
 
-**Custom Skills**: Import or create skills from **Settings → Skills**, then attach them to assistants as needed. Skills come from three sources: built-in (shipped with AionUi), custom (your own), and Extension (contributed via the Extension SDK). Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
+**Custom Skills**: Import or create skills from **Settings → Skills**, then attach them to assistants as needed. Skills come from three sources: built-in (shipped with AIbang), custom (your own), and Extension (contributed via the Extension SDK). Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
 
-> 💡 The canonical built-in definitions live in AionCore's [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json); assistant rules remain Markdown and can be customized in AionUi.
+> 💡 The canonical built-in definitions live in AionCore's [assistant catalog](https://github.com/iOfficeAI/AionCore/blob/main/crates/aibang-app/assets/builtin-assistants/assistants.json); assistant rules remain Markdown and can be customized in AIbang.
 
 </details>
 
@@ -291,7 +291,7 @@ AionUi includes **21 professional assistants** with predefined capabilities, ext
 
 ## Cowork from Anywhere
 
-_Your 24/7 AI assistant — access AionUi from any device, anywhere._
+_Your 24/7 AI assistant — access AIbang from any device, anywhere._
 
 - **WebUI Mode** — access via browser from phone, tablet, or any computer. Supports LAN, cross-network, and server deployment. QR code or password login.
 
@@ -302,7 +302,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
   - **WeChat** — Personal WeChat account integration
   - **WeCom (企业微信)**, **Slack**, **Discord** and more platforms coming soon
 
-> **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
+> **Setup:** AIbang Settings → WebUI Settings → Channel, configure the Bot Token.
 
 <p align="center">
   <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -310,7 +310,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 
 <p align="center"><em>Remote control &amp; monitor your agent — Claude, Gemini, Codex. Use from browser or phone, same as Claude Code remote.</em></p>
 
-> [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AIbang/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork in Action
 
@@ -348,7 +348,7 @@ _Set it up once, the AI agent runs automatically on schedule — truly 24/7 unat
 - **Conversation-Bound** — Each scheduled task is bound to a conversation, maintaining context and history
 - **Automatic Execution** — Tasks run automatically at scheduled times, sending messages to the conversation
 - **Easy Management** — Create, modify, enable/disable, delete, and view scheduled tasks anytime
-- **Keep-awake** — AionUi automatically prevents system sleep while tasks are active, and detects missed triggers after wake
+- **Keep-awake** — AIbang automatically prevents system sleep while tasks are active, and detects missed triggers after wake
 - **Advanced config** — each task can have its own model, workspace directory, and reasoning effort settings
 
 **Real-World Examples:**
@@ -396,7 +396,7 @@ _10+ formats: PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff — view
 _Batch renaming, automatic organization, smart classification, file merging — the Cowork agent handles it for you._
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="./resources/aibang sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -468,7 +468,7 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 </details>
 
-> [Image generation model configuration guide](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [Image generation model configuration guide](https://github.com/iOfficeAI/AIbang/wiki/AIbang-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -525,16 +525,16 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 ---
 
-## 🤔 Why Choose AionUi Over Claude Cowork?
+## 🤔 Why Choose AIbang Over Claude Cowork?
 
 <details>
 <summary><strong>Click to see detailed comparison</strong></summary>
 
 <br>
 
-AionUi is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude Cowork which only runs on macOS and is locked to Claude, AionUi is its full-model, cross-platform enhanced version.
+AIbang is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude Cowork which only runs on macOS and is locked to Claude, AIbang is its full-model, cross-platform enhanced version.
 
-| Dimension     | Claude Cowork | AionUi                                                    |
+| Dimension     | Claude Cowork | AIbang                                                    |
 | :------------ | :------------ | :-------------------------------------------------------- |
 | OS            | macOS Only    | macOS / Windows / Linux                                   |
 | Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...             |
@@ -557,22 +557,22 @@ Deep AI Office Scenario Support:
 
 <details>
 <summary><strong>Q: Do I need to install Gemini CLI or Claude Code first?</strong></summary>
-A: <strong>No.</strong> AionUi has a built-in AI agent that works immediately after installation. Just enter any API key to get started. If you also have CLI tools like Claude Code or Gemini CLI installed, AionUi will auto-detect and integrate them for even more capabilities.
+A: <strong>No.</strong> AIbang has a built-in AI agent that works immediately after installation. Just enter any API key to get started. If you also have CLI tools like Claude Code or Gemini CLI installed, AIbang will auto-detect and integrate them for even more capabilities.
 </details>
 
 <details>
-<summary><strong>Q: What can I do with AionUi?</strong></summary>
-A: AionUi is your <strong>private Cowork workspace</strong>. The built-in agent can batch organize folders, process Excel data, generate documents, search the web, and generate images. With Multi-Agent Mode, you can also leverage Claude Code, Codex, and other powerful CLI agents through the same interface.
+<summary><strong>Q: What can I do with AIbang?</strong></summary>
+A: AIbang is your <strong>private Cowork workspace</strong>. The built-in agent can batch organize folders, process Excel data, generate documents, search the web, and generate images. With Multi-Agent Mode, you can also leverage Claude Code, Codex, and other powerful CLI agents through the same interface.
 </details>
 
 <details>
 <summary><strong>Q: Is it free?</strong></summary>
-A: AionUi is completely free and open source. You only pay for the API usage of whichever provider you choose, and you can use API keys from any provider you prefer.
+A: AIbang is completely free and open source. You only pay for the API usage of whichever provider you choose, and you can use API keys from any provider you prefer.
 </details>
 
 <details>
-<summary><strong>Q: Can I run AionUi on a server (headless)?</strong></summary>
-A: Yes — AionUi WebUI mode runs as a standalone HTTP server. See the WebUI section above for setup instructions.
+<summary><strong>Q: Can I run AIbang on a server (headless)?</strong></summary>
+A: Yes — AIbang WebUI mode runs as a standalone HTTP server. See the WebUI section above for setup instructions.
 </details>
 
 <details>
@@ -582,7 +582,7 @@ A: All data is stored locally in a SQLite database. Nothing is uploaded to any s
 
 ---
 
-## See How People Use AionUi
+## See How People Use AIbang
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -616,7 +616,7 @@ A: All data is stored locally in a SQLite database. Nothing is uploaded to any s
 - [Making ordinary people use Claude Code like an APP](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
 - [5500 Stars: How Open Source Breaks Anthropic's AI Tool Moat](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
 
-> **Made a video about AionUi?** [Let us know on X](https://x.com/AionUi) and we'll feature it here!
+> **Made a video about AIbang?** [Let us know on X](https://x.com/AIbang) and we'll feature it here!
 
 ---
 
@@ -633,7 +633,7 @@ A: All data is stored locally in a SQLite database. Nothing is uploaded to any s
 ### Install
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AIbang/releases">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
   </a>
 </p>
@@ -642,12 +642,12 @@ Click the button above to go to the Releases page and download the installer for
 
 ```bash
 # Alternatively, macOS via Homebrew
-brew install aionui
+brew install aibang
 ```
 
 ### Get Started in 3 Steps
 
-1. **Install** AionUi
+1. **Install** AIbang
 2. **Enter** any API key to get started
 3. **Start Coworking** — the built-in AI agent is ready to go
 
@@ -660,23 +660,23 @@ brew install aionui
 
 **🚀 Quick Start**
 
-- [📖 Complete Installation Guide](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — Detailed steps from download to configuration
-- [⚙️ LLM Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Multi-platform AI model configuration
-- [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Integrate terminal AI agents
-- [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol server setup
-- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Complete WebUI setup and configuration tutorial
+- [📖 Complete Installation Guide](https://github.com/iOfficeAI/AIbang/wiki/Getting-Started) — Detailed steps from download to configuration
+- [⚙️ LLM Configuration Guide](https://github.com/iOfficeAI/AIbang/wiki/LLM-Configuration) — Multi-platform AI model configuration
+- [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AIbang/wiki/ACP-Setup) — Integrate terminal AI agents
+- [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AIbang/wiki/MCP-Configuration-Guide) — Model Context Protocol server setup
+- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AIbang/wiki/WebUI-Configuration-Guide) — Complete WebUI setup and configuration tutorial
 
 **🎯 Use Cases**
 
-- [📁 File Management](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Smart file organization
-- [📊 Excel Processing](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI-driven data processing
-- [🎨 Image Generation](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI image creation
-- [📚 More Use Cases](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 File Management](https://github.com/iOfficeAI/AIbang/wiki/file-management) — Smart file organization
+- [📊 Excel Processing](https://github.com/iOfficeAI/AIbang/wiki/excel-processing) — AI-driven data processing
+- [🎨 Image Generation](https://github.com/iOfficeAI/AIbang/wiki/AIbang-Image-Generation-Tool-Model-Configuration-Guide) — AI image creation
+- [📚 More Use Cases](https://github.com/iOfficeAI/AIbang/wiki/Use-Cases-Overview)
 
 **❓ Support & Help**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Questions and troubleshooting
-- [🔧 Configuration & Usage Tutorials](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Complete configuration documentation
+- [❓ FAQ](https://github.com/iOfficeAI/AIbang/wiki/FAQ) — Questions and troubleshooting
+- [🔧 Configuration & Usage Tutorials](https://github.com/iOfficeAI/AIbang/wiki/Configuration-Guides) — Complete configuration documentation
 
 </details>
 
@@ -687,14 +687,14 @@ brew install aionui
 **Your ideas matter!** We value every suggestion and feedback.
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/AIbang" target="_blank">
     <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — share ideas and exchange tips
-- [Report Issues](https://github.com/iOfficeAI/AionUi/issues) — bugs and feature requests
-- [Release Updates](https://github.com/iOfficeAI/AionUi/releases) — get the latest version
+- [GitHub Discussions](https://github.com/iOfficeAI/AIbang/discussions) — share ideas and exchange tips
+- [Report Issues](https://github.com/iOfficeAI/AIbang/issues) — bugs and feature requests
+- [Release Updates](https://github.com/iOfficeAI/AIbang/releases) — get the latest version
 - [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
 - [WeChat Group](./resources/wx-21.png) — Chinese community
 
@@ -710,7 +710,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
 ### Development Setup
 
-AionUi local development uses two repositories: AionUi for the Electron frontend and AionCore for the local backend. See the [Development Guide](docs/contributing/development.md) for the full macOS, Linux, and Windows setup.
+AIbang local development uses two repositories: AIbang for the Electron frontend and AionCore for the local backend. See the [Development Guide](docs/contributing/development.md) for the full macOS, Linux, and Windows setup.
 
 ---
 
@@ -723,16 +723,16 @@ This project is licensed under [Apache-2.0](LICENSE).
 ## Contributors
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/AIbang/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AIbang&max=100" alt="Contributors" />
   </a>
 </p>
 
 ## Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/aibang&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aibang&type=Date" alt="Star History" width="600">
   </a>
 </p>
 
@@ -740,7 +740,7 @@ This project is licensed under [Apache-2.0](LICENSE).
 
 **If you like it, give us a star**
 
-[Report Bug](https://github.com/iOfficeAI/AionUi/issues) · [Request Feature](https://github.com/iOfficeAI/AionUi/issues)
+[Report Bug](https://github.com/iOfficeAI/AIbang/issues) · [Request Feature](https://github.com/iOfficeAI/AIbang/issues)
 
 </div>
 

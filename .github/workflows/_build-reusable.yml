@@ -31,7 +31,7 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
-  # Discontinued-build flag: only AionUi's final `-final` tag (e.g.
+  # Discontinued-build flag: only AIbang's final `-final` tag (e.g.
   # v2.1.40-final) produces a build that guides users to the AionPro website.
   # AionPro's own release tags never contain `-final`, so this stays 'false'
   # there and in-app update behavior is untouched.
@@ -663,7 +663,7 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-mac-*.zip
+            out/AIbang-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7

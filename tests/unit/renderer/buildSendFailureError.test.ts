@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,7 +25,7 @@ describe('buildSendFailureError', () => {
     expect(result).toEqual({
       message: 'Conflict: Conversation is already processing a message',
       code: 'AIONUI_CONVERSATION_BUSY',
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: 'Conflict: Conversation is already processing a message',
       retryable: false,
       feedback_recommended: false,
@@ -40,7 +40,7 @@ describe('buildSendFailureError', () => {
 
     expect(result).toMatchObject({
       code: 'AIONUI_CONVERSATION_BUSY',
-      ownership: 'aionui',
+      ownership: 'aibang',
       retryable: false,
       feedback_recommended: false,
       resolution: { kind: 'wait_for_current_response' },
@@ -110,7 +110,7 @@ describe('buildSendFailureError', () => {
     expect(result).toEqual({
       message: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
       code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
       workspacePath: '/tmp/Archive ',
       retryable: false,
@@ -131,7 +131,7 @@ describe('buildSendFailureError', () => {
     const result = buildSendFailureError(new Error('boom'), 'boom');
 
     expect(result.code).toBe('AIONUI_INTERNAL_ERROR');
-    expect(result.ownership).toBe('aionui');
+    expect(result.ownership).toBe('aibang');
     expect(result.retryable).toBe(true);
   });
 

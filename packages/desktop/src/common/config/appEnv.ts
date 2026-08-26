@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,9 +12,9 @@ import { getPlatformServices } from '@/common/platform';
  * Used to isolate symlink and directory names between environments.
  *
  * @example
- * getEnvAwareName('.aionui')        // release → '.aionui',        dev → '.aionui-dev'
- * getEnvAwareName('.aionui-config') // release → '.aionui-config', dev → '.aionui-config-dev'
- * // with AIONUI_MULTI_INSTANCE=1:  dev → '.aionui-dev-2'
+ * getEnvAwareName('.aibang')        // release → '.aibang',        dev → '.aibang-dev'
+ * getEnvAwareName('.aibang-config') // release → '.aibang-config', dev → '.aibang-config-dev'
+ * // with AIONUI_MULTI_INSTANCE=1:  dev → '.aibang-dev-2'
  */
 export function getEnvAwareName(baseName: string): string {
   if (getPlatformServices().paths.isPackaged() === true) return baseName;

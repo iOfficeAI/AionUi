@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -275,7 +275,7 @@ describe('MessageText attachment paths', () => {
   });
 
   it('wraps a long unbroken url/path in a user message so the bubble never overflows', () => {
-    const longPath = '/var/folders/gd/6bb7q8jd1ll0g17q5gly4flw0000gn/T/aionui/0265f4a8/image-xxxxxxxxxxxxxxxxxx';
+    const longPath = '/var/folders/gd/6bb7q8jd1ll0g17q5gly4flw0000gn/T/aibang/0265f4a8/image-xxxxxxxxxxxxxxxxxx';
 
     renderMessageText(longPath, { position: 'right' });
 

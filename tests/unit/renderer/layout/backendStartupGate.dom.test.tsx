@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -105,7 +105,7 @@ describe('BackendStartupGate — port report timeout is fatal (Sentry 136646113)
   });
 });
 
-// Sentry ELECTRON-31Z — a database from a newer AionUi (downgrade) is a fatal
+// Sentry ELECTRON-31Z — a database from a newer AIbang (downgrade) is a fatal
 // startup reason: the gate must block the App and show the failure dialog, not
 // fall through to the normal UI on top of a dead backend.
 describe('BackendStartupGate — database newer than app is fatal (Sentry ELECTRON-31Z)', () => {

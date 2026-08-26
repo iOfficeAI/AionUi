@@ -34,7 +34,7 @@
    - 权限确认逻辑（`auto_edit` / `yolo` 自动批准部分工具）
 
 4. **后端持久化**
-   - backend 独占 `aionui.db`，Electron 不再直接访问 SQLite
+   - backend 独占 `aibang.db`，Electron 不再直接访问 SQLite
    - 对话记录由 `/api/conversations*` 相关 contract 持久化
    - 消息记录由 backend message persistence 负责
 
@@ -265,7 +265,7 @@ if (!binary) {
 
 **源码追溯**: `src/process/agent/aionrs/binaryResolver.ts`
 
-- 解析顺序: 环境变量 `AION_CLI_PATH` → `~/.aionui/bin/aion-<platform>-<arch>` → 系统 PATH 中的 `aion` 命令
+- 解析顺序: 环境变量 `AION_CLI_PATH` → `~/.aibang/bin/aion-<platform>-<arch>` → 系统 PATH 中的 `aion` 命令
 
 **验证命令**（team-lead 已确认）:
 
@@ -940,4 +940,4 @@ test.beforeAll(async ({ page }) => {
 | `src/process/task/AionrsManager.ts`                                           | 78-781 | 进程管理 + 权限审批 + DB 持久化                                     |
 | `src/process/agent/aionrs/index.ts`                                           | 54-450 | binary 启动 + stdin/stdout 协议                                     |
 | `src/process/agent/aionrs/binaryResolver.ts`                                  | —      | binary 路径解析逻辑                                                 |
-| `aioncore aionui.db`                                                          | —      | conversations + messages 由 backend 独占持久化                      |
+| `aioncore aibang.db`                                                          | —      | conversations + messages 由 backend 独占持久化                      |

@@ -33,7 +33,7 @@ const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
 
-// aionui's AuthUser is { id, username } and carries no email; aionpro's AuthUser
+// aibang's AuthUser is { id, username } and carries no email; aionpro's AuthUser
 // does. Read it structurally (no AuthUser type import, no `any`) so this file
 // stays byte-identical across both repos and simply yields undefined whenever
 // the signed-in user has no email (the open-source desktop build is usually

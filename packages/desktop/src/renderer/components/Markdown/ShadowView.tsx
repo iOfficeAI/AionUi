@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -298,7 +298,7 @@ let katexStyleSheet: CSSStyleSheet | null = null;
  *
  * KaTeX ships as a single `katex.min.css`, but the bundler inlines it as an
  * anonymous `<style>` with no `href`/`data-katex` marker, so it cannot be located
- * by attribute. Other sheets (e.g. the preview `.aionui-markdown` theme) merely
+ * by attribute. Other sheets (e.g. the preview `.aibang-markdown` theme) merely
  * *reference* `.katex` selectors — picking the first sheet that mentions `.katex`
  * can grab such a partial sheet, which lacks KaTeX's `.katex-mathml`
  * accessibility-hide rule and `@font-face` declarations. Adopting that partial

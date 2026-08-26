@@ -83,7 +83,7 @@ test.describe('Preview — the refresh button notices a change on disk', () => {
   let workspace: string;
 
   test.beforeEach(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-watch-signal-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-watch-signal-'));
   });
 
   test.afterEach(() => {

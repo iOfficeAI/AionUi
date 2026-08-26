@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +17,7 @@ const makeApp = (isPackaged: boolean) => ({
 describe('registerWindowsAppUserModelId', () => {
   it('registers the electron-builder appId on packaged win32 builds', () => {
     const app = makeApp(true);
-    registerWindowsAppUserModelId({ app, platform: 'win32', execPath: 'C:\\app\\AionUi.exe' });
+    registerWindowsAppUserModelId({ app, platform: 'win32', execPath: 'C:\\app\\AIbang.exe' });
     expect(app.setAppUserModelId).toHaveBeenCalledTimes(1);
     expect(app.setAppUserModelId).toHaveBeenCalledWith(WINDOWS_APP_USER_MODEL_ID);
   });

@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
  * Layout direction for the app language.
  *
- * fa-IR is the only right-to-left language AionUi ships. Direction is derived
+ * fa-IR is the only right-to-left language AIbang ships. Direction is derived
  * from the app language (`i18n.language`), never from the host OS, for the same
  * reason number and date formatting is: the two must not disagree.
  *

@@ -1,4 +1,4 @@
-appId: com.aionui.app
+appId: com.aibang.app
 productName: AIbang
 executableName: AIbang
 copyright: Copyright © 2026 AIbang
@@ -6,7 +6,7 @@ copyright: Copyright © 2026 AIbang
 protocols:
   - name: AIbang Protocol
     schemes:
-      - aionui
+      - aibang
 
 asar:
   smartUnpack: true
@@ -179,7 +179,7 @@ linux:
       Comment: ${description}
       Icon: AIbang
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/aibang;
 
 npmRebuild: false
 buildDependenciesFromSource: false
@@ -219,6 +219,6 @@ electronDownload:
 publish:
   provider: github
   owner: iOfficeAI
-  repo: AionUi
+  repo: AIbang
   publishAutoUpdate: true
   releaseType: release

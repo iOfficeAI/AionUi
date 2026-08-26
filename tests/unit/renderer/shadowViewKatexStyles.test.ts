@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -20,8 +20,8 @@ const sheet = (...cssTexts: string[]): CSSStyleSheet =>
 const KATEX_MATHML_HIDE =
   '.katex .katex-mathml { position: absolute; clip: rect(1px, 1px, 1px, 1px); height: 1px; overflow: hidden; }';
 const KATEX_FONT_FACE = '@font-face { font-family: KaTeX_Main; src: url(fonts/KaTeX_Main.woff2); }';
-// A sheet that only *references* `.katex` (mirrors the preview `.aionui-markdown` theme).
-const PARTIAL_THEME_RULE = '.aionui-markdown :where(.katex, .katex *) { line-height: normal; }';
+// A sheet that only *references* `.katex` (mirrors the preview `.aibang-markdown` theme).
+const PARTIAL_THEME_RULE = '.aibang-markdown :where(.katex, .katex *) { line-height: normal; }';
 
 describe('collectKatexCssRules', () => {
   it('includes the real KaTeX hide rule even when a partial theme sheet appears first', () => {

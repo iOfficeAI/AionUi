@@ -36,12 +36,12 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 相关代码：
 
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-db/migrations/001_initial_schema.sql`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-db/migrations/001_initial_schema.sql`
   - Lines 153-168 定义 `native_skills_dirs` 字段。
   - Lines 191-327 seed 初始 ACP builtin agent。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/service.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/service.rs`
   - Lines 3210-3233：ACP agent 从 `agent_metadata` 查询 native skill dirs。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-common/src/enums.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-common/src/enums.rs`
   - Lines 68-93：注释明确说明 ACP vendors 的 skill dirs 由 `agent_metadata` 管理；非 ACP 的 `Aionrs` 使用 `.aionrs/skills`。
 
 ### 会话创建时链接
@@ -50,7 +50,7 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 相关代码：
 
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/service.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/service.rs`
   - Lines 884-885：计算 `initial_skills`。
   - Lines 887-919：对支持原生 skill 目录的 agent 创建 workspace skill 链接。
   - Lines 922-927：把 `extra.skills` 写入会话。
@@ -63,13 +63,13 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 相关代码：
 
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/session_context.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/session_context.rs`
   - Lines 68-72：从 `extra.skills` 解析 skill 列表。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/service.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/service.rs`
   - Lines 2530-2556：发送消息前调用 `ensure_workspace_skill_links`。
   - Lines 2919-2971：重新链接 `context.skills`。
   - Lines 3206-3208：`context_skill_names(context)` 只返回 `context.skills`。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/service.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/service.rs`
   - Lines 1740-1752：拒绝会话创建后修改 `extra.skills`。
 
 ### Prompt injection fallback
@@ -78,12 +78,12 @@ ACP 支持通过 `_meta` 字段和自定义扩展方法做 vendor 扩展，也�
 
 相关代码：
 
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-ai-agent/src/capability/first_message_injector.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-ai-agent/src/capability/first_message_injector.rs`
   - Lines 12-21：说明 native support 和 injected skills 的区别。
   - Lines 24-30：native skill discovery 使用 light mode；否则使用 heavy mode 注入 skill index。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/stream_relay.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/stream_relay.rs`
   - Lines 784-801：skill body 加载请求会被过滤到允许的 skill 列表内。
-- `/Users/zhoukai/Documents/github/aioncore/crates/aionui-conversation/src/turn_orchestrator.rs`
+- `/Users/zhoukai/Documents/github/aioncore/crates/aibang-conversation/src/turn_orchestrator.rs`
   - Lines 309-317：`inject_skills` 会进入当前 turn，但 `allowed_skill_names` 仍然来自 context 快照。
 
 ## Builtin ACP Agent 清单
@@ -231,7 +231,7 @@ Mistral Vibe 文档说明：CLI 会从 `skill_paths`、受信任目录中的项�
 
 - AionCore 可以通过 `link_workspace_skills` 在 workspace 中创建 skill 软链。
 - AionCore 会在发送消息和 warmup 前重新确保创建时快照里的 skill links。
-- AionUi 的 send message 参数里已经有 `inject_skills` 字段。
+- AIbang 的 send message 参数里已经有 `inject_skills` 字段。
 
 缺口：
 

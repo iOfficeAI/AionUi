@@ -142,7 +142,7 @@
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
     "ownership": {
-      "aionui": "App",
+      "aibang": "App",
       "user_agent": "Agent",
       "user_llm_provider": "Model provider",
       "unknown_upstream": "Upstream"

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +19,7 @@ const COPY: Record<string, string> = {
     'AionCore could not finish starting and has exited. Please restart the app; if this keeps happening, please send diagnostics.',
   'common.backendStartup.exited.sendDiagnostics': 'Send diagnostics',
   'common.backendStartup.incompleteInstallation.description':
-    'Your installation is missing required local resources. Please download and reinstall the latest AionUi; if it persists after reinstalling, check whether antivirus quarantined AionCore.',
+    'Your installation is missing required local resources. Please download and reinstall the latest AIbang; if it persists after reinstalling, check whether antivirus quarantined AionCore.',
 };
 
 vi.mock('react-i18next', () => ({

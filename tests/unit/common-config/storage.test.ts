@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for common/config/storage.ts runtime exports (T5 in N3 test checklist).
@@ -64,7 +64,7 @@ describe('storage runtime exports', () => {
       expect(EnvStorage.namespace).toBe('agent.env');
     });
 
-    it('set/get roundtrip with aionui.dir object', async () => {
+    it('set/get roundtrip with aibang.dir object', async () => {
       const dirs = {
         workDir: '/a',
         cacheDir: '/b',
@@ -76,8 +76,8 @@ describe('storage runtime exports', () => {
         backupDir: '/h',
       };
 
-      await EnvStorage.set('aionui.dir', dirs);
-      const result = await EnvStorage.get('aionui.dir');
+      await EnvStorage.set('aibang.dir', dirs);
+      const result = await EnvStorage.get('aibang.dir');
 
       expect(result).toEqual(dirs);
     });
@@ -89,7 +89,7 @@ describe('storage runtime exports', () => {
       await ConfigStorage.set('language', 'en');
 
       // Set a different key in EnvStorage
-      await EnvStorage.set('aionui.dir', {
+      await EnvStorage.set('aibang.dir', {
         workDir: '/x',
         cacheDir: '/y',
         dataDir: '/z',
@@ -102,7 +102,7 @@ describe('storage runtime exports', () => {
 
       // Verify values are isolated
       const configLang = await ConfigStorage.get('language');
-      const envDir = await EnvStorage.get('aionui.dir');
+      const envDir = await EnvStorage.get('aibang.dir');
 
       expect(configLang).toBe('en');
       expect(envDir?.workDir).toBe('/x');

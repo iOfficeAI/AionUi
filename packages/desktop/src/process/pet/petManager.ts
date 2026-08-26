@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -300,7 +300,7 @@ export function setPetConfirmEnabled(enabled: boolean): void {
 
 /**
  * Compute the pet's starting bottom-right position on the display that
- * currently hosts the main AionUi window. Falls back to the primary display
+ * currently hosts the main AIbang window. Falls back to the primary display
  * when no main window is found (e.g. tray-only scenarios). This is the only
  * position logic at startup — after creation the user is free to drag the
  * pet anywhere and we never overwrite it for the rest of the session.
@@ -676,7 +676,7 @@ function resetPosition(): void {
 
   // Reset puts the pet back where createPetWindow would have put it for a
   // fresh launch — the bottom-right of the display that currently hosts the
-  // main AionUi window.
+  // main AIbang window.
   const { x, y } = computeInitialPosition(currentSize);
 
   petWindow.setPosition(x, y, false);

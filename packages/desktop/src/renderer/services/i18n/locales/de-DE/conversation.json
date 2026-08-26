@@ -142,7 +142,7 @@
       "send_feedback": "Sende Feedback mit Protokollen, damit das Team das Problem untersuchen kann."
     },
     "ownership": {
-      "aionui": "App",
+      "aibang": "App",
       "user_agent": "Agent",
       "user_llm_provider": "Modellanbieter",
       "unknown_upstream": "Upstream"

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -252,7 +252,7 @@ class PasteServiceClass {
             // Upload rather than pass the raw device path: the chat send contract
             // sends attachments as `upload` refs and the backend rejects any path
             // outside its managed upload directory. Upload the blob to get a
-            // managed path (createTempFile → /api/fs/upload, temp_dir/aionui/...).
+            // managed path (createTempFile → /api/fs/upload, temp_dir/aibang/...).
             try {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);

@@ -27,7 +27,7 @@
 
 - ✅ Electron app 单实例启动(`workers: 1`)
 - ✅ 用户数据目录隔离(`userData: tmpDir`)
-- ✅ SQLite 数据库独立(`aionui.db`)
+- ✅ SQLite 数据库独立(`aibang.db`)
 - ✅ 扩展路径指向示例目录(`AIONUI_EXTENSIONS_PATH=examples/`)
 
 ### 2.2 Skills 模块特定配置
@@ -38,7 +38,7 @@
 const skillPaths = await invokeBridge(page, 'fs.getSkillPaths');
 // Returns:
 // {
-//   userSkillsDir: '~/.aionui/skills/',     // My Skills 存储目录
+//   userSkillsDir: '~/.aibang/skills/',     // My Skills 存储目录
 //   builtinSkillsDir: 'resources/_builtin/' // Builtin Skills 目录
 // }
 ```
@@ -84,7 +84,7 @@ import path from 'path';
 import os from 'os';
 
 // 创建临时外部源
-const tempExternal = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-external-'));
+const tempExternal = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-external-'));
 
 // 创建测试 skill(直接 skill)
 fs.mkdirSync(path.join(tempExternal, 'E2E-Test-External-1'));
@@ -340,7 +340,7 @@ await expect(page.locator('[data-testid="my-skill-card-E2E-Test-Gamma"]')).not.t
 
 ```typescript
 // Setup: 创建临时目录
-const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-custom-'));
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-custom-'));
 
 // Trigger: UI 填写 Modal + 确认
 await page.locator('[data-testid="btn-add-custom-source"]').click();
@@ -444,7 +444,7 @@ await expect(page.locator('[data-testid="my-skill-card-E2E-Test-Skill-1"]')).toB
 | `extension-skills-section`                            | 扩展技能板块容器            | line ~440 `<div className="extension-skills">`  | -                                     |
 | `extension-skill-card-${normalizeTestId(skill.name)}` | 扩展技能卡片                | line ~460 `<div className="skill-card">`        | `extension-skill-card-test-extension` |
 | `auto-skills-section`                                 | 自动注入技能板块容器        | line ~500 `<div className="auto-skills">`       | -                                     |
-| `auto-skill-card-${normalizeTestId(skill.name)}`      | 自动注入技能卡片            | line ~520 `<div className="skill-card">`        | `auto-skill-card-aionui-skills`       |
+| `auto-skill-card-${normalizeTestId(skill.name)}`      | 自动注入技能卡片            | line ~520 `<div className="skill-card">`        | `auto-skill-card-aibang-skills`       |
 | `my-skills-empty-state`                               | 我的技能空状态容器          | line ~585 `<div>No skills found</div>`          | -                                     |
 | `external-skills-no-results`                          | 外部技能搜索无结果提示      | line ~380 `<div>No matching skills found</div>` | -                                     |
 
@@ -745,7 +745,7 @@ export const ROUTES = {
 **原因**:
 
 - 所有测试共享单个 Electron app 实例(`workers: 1` 强制)
-- 共享同一个 SQLite 数据库(`aionui.db`)
+- 共享同一个 SQLite 数据库(`aibang.db`)
 - 并行会导致写锁冲突 + 测试数据污染
 
 ### 8.2 对 Skills E2E 的影响

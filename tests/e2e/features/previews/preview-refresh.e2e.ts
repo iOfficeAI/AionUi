@@ -119,7 +119,7 @@ test.describe('Preview — refresh button', () => {
   let ids: ProjectIds | null = null;
 
   test.beforeAll(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-refresh-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-refresh-'));
     fs.writeFileSync(path.join(workspace, 'editable.txt'), 'disk body v1\n');
     fs.writeFileSync(path.join(workspace, 'plain.txt'), 'nothing special\n');
   });

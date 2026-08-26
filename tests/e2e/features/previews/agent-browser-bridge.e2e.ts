@@ -130,7 +130,7 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
 
     const mainPid = electronApp.process().pid;
 
-    // Match on --parent-pid so a separately installed AionUi (or another dev instance)
+    // Match on --parent-pid so a separately installed AIbang (or another dev instance)
     // cannot be mistaken for the backend this test launched.
     const readOurAioncoreEnv = (): { token: string | null; activePort: string | null } | null => {
       let listing = '';
@@ -179,9 +179,9 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
      *
      * Asks "does *this* app answer on the legacy port?" rather than "is the legacy port
      * free?". The port is a fixed well-known number, so anything else on the machine can be
-     * listening on it — a stray Chrome, or another AionUi dev instance still running the
+     * listening on it — a stray Chrome, or another AIbang dev instance still running the
      * app-wide switch. A bare reachability check would fail for reasons unrelated to this
-     * code, and a name match like /aionui/ cannot tell a *different* AionUi from our own.
+     * code, and a name match like /aibang/ cannot tell a *different* AIbang from our own.
      *
      * The bridge's fixed targetId is the reliable discriminator: it appears only in a
      * response served by this bridge, and Chromium's own endpoint never mints it.
@@ -201,7 +201,7 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
      * And it must not be *our* renderer. Chromium's app-wide endpoint lists targets by URL,
      * so if the switch were back for this instance its own window would appear here. Compare
      * against the URL this app actually loaded rather than the product name, so a second
-     * AionUi checkout on the same machine cannot fail this test.
+     * AIbang checkout on the same machine cannot fail this test.
      */
     const ourRendererUrl = await electronApp.evaluate(async ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
@@ -236,7 +236,7 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
     expect(port).not.toBeNull();
     expect(token).toBeTruthy();
 
-    const base = `ws://127.0.0.1:${port}/aionui-cdp`;
+    const base = `ws://127.0.0.1:${port}/aibang-cdp`;
 
     expect(await tryWebSocket(base)).toBe('refused');
     expect(await tryWebSocket(`${base}?token=not-the-token`)).toBe('refused');

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -105,7 +105,7 @@ describe('configureConsoleLog', () => {
 
   it('routes cross-day frontend log writes into the matching date directory', async () => {
     const log = await loadConfigureConsoleLog(false);
-    const logsRoot = mkdtempSync(path.join(os.tmpdir(), 'aionui-log-test-'));
+    const logsRoot = mkdtempSync(path.join(os.tmpdir(), 'aibang-log-test-'));
 
     try {
       const resolvedPath = log.transports.file.resolvePathFn?.(

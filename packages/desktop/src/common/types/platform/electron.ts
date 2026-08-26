@@ -29,8 +29,8 @@ export type BackendStartupFailureReason =
   | 'backend_incomplete_installation'
   | 'backend_package_architecture_mismatch'
   | 'backend_data_migration_failed'
-  // The local database was created by a newer AionUi version (downgrade).
-  // The data is intact; the fix is updating AionUi, not reinstalling or
+  // The local database was created by a newer AIbang version (downgrade).
+  // The data is intact; the fix is updating AIbang, not reinstalling or
   // inspecting migrations (Sentry ELECTRON-31Z).
   | 'backend_database_newer_than_app'
   | 'backend_local_data_repair_failed'
@@ -76,7 +76,7 @@ export interface BackendStartupFailureInfo {
   deviceArch?: string;
   expectedDownloadArch?: string;
   isRosettaTranslated?: boolean;
-  /** Currently installed AionUi version, stamped by the main process when a
+  /** Currently installed AIbang version, stamped by the main process when a
    * startup failure is recorded. Lets dialogs reference the user's version
    * (e.g. the downgrade dialog: "data needs something newer than vX.Y.Z"). */
   appVersion?: string;

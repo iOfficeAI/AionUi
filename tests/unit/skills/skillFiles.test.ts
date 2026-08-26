@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,7 +15,7 @@ describe('skill file service', () => {
   let customSkill = '';
 
   beforeEach(async () => {
-    sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'aionui-skill-files-'));
+    sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'aibang-skill-files-'));
     customSkill = path.join(sandbox, 'custom', 'demo');
     await fs.mkdir(path.join(customSkill, 'scripts'), { recursive: true });
     await fs.writeFile(path.join(customSkill, 'SKILL.md'), '# Demo', 'utf8');

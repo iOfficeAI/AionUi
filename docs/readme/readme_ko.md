@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aibang-banner-1.png" alt="AIbang - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/AIbang?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AIbang/releases">
     <img src="https://img.shields.io/badge/⬇️%20지금%20다운로드-최신%20버전-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="최신 버전 다운로드" height="50">
   </a>
 </p>
@@ -40,21 +40,21 @@
 ---
 
 <p align="center">
-  <a href="https://x.com/AionUi/status/2079493379914961069">
-    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AionUi × Kimi 기여자 보너스" width="600">
+  <a href="https://x.com/AIbang/status/2079493379914961069">
+    <img src="../../resources/kimi/contributor-bonus-black-blue.jpg" alt="AIbang × Kimi 기여자 보너스" width="600">
   </a>
 </p>
 
 <p align="center">
-  🎁 <strong>AionUi × Kimi 전략적 파트너십</strong>: 기여자에게 <strong>Kimi "Allegretto" 플랜(월 $39 · ¥199 상당)을 무료 증정</strong>합니다!
+  🎁 <strong>AIbang × Kimi 전략적 파트너십</strong>: 기여자에게 <strong>Kimi "Allegretto" 플랜(월 $39 · ¥199 상당)을 무료 증정</strong>합니다!
 </p>
 
 <h3 align="center">
-  <a href="https://x.com/AionUi/status/2079493379914961069">캠페인 안내 및 신청 방법 보기 →</a>
+  <a href="https://x.com/AIbang/status/2079493379914961069">캠페인 안내 및 신청 방법 보기 →</a>
 </h3>
 
 <p align="center">
-  <sub><strong>Kimi K3</strong> 출시 — AionUi에서 바로 사용할 수 있습니다. <a href="https://www.kimi.com/code?aff=aionui" target="_blank">Kimi For Coding 플랜 구독</a> 또는 API 키 발급（<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aionui" target="_blank">글로벌</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aionui" target="_blank">중국</a>）</sub>
+  <sub><strong>Kimi K3</strong> 출시 — AIbang에서 바로 사용할 수 있습니다. <a href="https://www.kimi.com/code?aff=aibang" target="_blank">Kimi For Coding 플랜 구독</a> 또는 API 키 발급（<a href="https://platform.kimi.ai?track_id=track-32e04532b08d460fac729191744fa75c&aff=aibang" target="_blank">글로벌</a> / <a href="https://platform.kimi.com?track_id=track-98f92981df1c4c61b2c68930ba3ab658&aff=aibang" target="_blank">중국</a>）</sub>
 </p>
 
 ---
@@ -64,7 +64,7 @@
 <p align="center">
 
 [✨ Cowork 실연](#-cowork-실연) ·
-[🤔 왜 AionUi를 선택해야 하나요?](#-왜-aionui를-claude-cowork보다-선택해야-하나요) ·
+[🤔 왜 AIbang를 선택해야 하나요?](#-왜-aibang를-claude-cowork보다-선택해야-하나요) ·
 [🚀 빠른 시작](#-빠른-시작) ·
 [💬 커뮤니티](#-커뮤니티-및-지원)
 
@@ -74,9 +74,9 @@
 
 ## Cowork — AI Agents가 함께 작업합니다
 
-**AionUi는 단순한 채팅 클라이언트가 아닙니다.** 컴퓨터에서 AI Agent가 함께 작업하는 Cowork 플랫폼입니다——파일 읽기, 코드 작성, 웹 브라우징, 작업 자동화. Agent의 모든 동작을 볼 수 있으며, 항상 제어권은 여러분에게 있습니다.
+**AIbang는 단순한 채팅 클라이언트가 아닙니다.** 컴퓨터에서 AI Agent가 함께 작업하는 Cowork 플랫폼입니다——파일 읽기, 코드 작성, 웹 브라우징, 작업 자동화. Agent의 모든 동작을 볼 수 있으며, 항상 제어권은 여러분에게 있습니다.
 
-|                                   | 기존 AI 채팅 클라이언트 | **AionUi (Cowork)**                                                                                                                    |
+|                                   | 기존 AI 채팅 클라이언트 | **AIbang (Cowork)**                                                                                                                    |
 | :-------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | AI가 파일을 조작할 수 있음        | 제한적 또는 불가        | **예 — 내장 Agent, 완전한 파일 접근**                                                                                                  |
 | AI가 다단계 작업을 실행할 수 있음 | 제한적                  | **예 — 자율 실행, 승인 필요**                                                                                                          |
@@ -86,14 +86,14 @@
 | 가격                              | 무료 / 유료             | **무료 및 오픈소스**                                                                                                                   |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="AIbang Cowork Platform" width="800">
 </p>
 
 ---
 
 ## 내장 Agent — 설치 즉시 사용, 제로 설정
 
-AionUi는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 별도로 설치해야 하는 도구와 달리, **AionUi는 설치하는 순간 바로 작동합니다**.
+AIbang는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 별도로 설치해야 하는 도구와 달리, **AIbang는 설치하는 순간 바로 작동합니다**.
 
 - **CLI 도구 설치 불필요** — Agent 엔진이 내장되어 있습니다
 - **복잡한 설정 불필요** — API 키를 붙여넣기만 하면 됩니다
@@ -159,7 +159,7 @@ Office 어시스턴트는 요청을 편집하고 재사용할 수 있는 파일�
 
 ## 멀티 Agent 모드 — 이미 CLI Agent가 있으신가요? 함께 가져오세요
 
-이미 Claude Code, Codex, Hermes Agent 또는 OpenClaw를 사용 중이라면, AionUi가 자동으로 감지하여 모두와 Cowork할 수 있게 해줍니다——내장 Agent와 함께.
+이미 Claude Code, Codex, Hermes Agent 또는 OpenClaw를 사용 중이라면, AIbang가 자동으로 감지하여 모두와 Cowork할 수 있게 해줍니다——내장 Agent와 함께.
 
 **지원되는 Agent:** 내장 Agent(내장 [aionrs](https://github.com/iOfficeAI/aionrs) Agent 엔진 기반) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity 등
 
@@ -178,10 +178,10 @@ Office 어시스턴트는 요청을 편집하고 재사용할 수 있는 파일�
 여러 AI Agent를 조직된 팀으로 실행: **Leader** Agent가 지시를 받아 서브태스크로 분리하고 내장 Team MCP Server를 통해 **Teammate** Agent에게 위임. Teammate들은 병렬로 실행하고 비동기 메일박스를 통해 결과를 공유하며 공유 작업 보드에 씁니다.
 
 <p align="center">
-  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="../../resources/AIbang_team.gif" alt="Team Mode overview" width="800">
 </p>
 
-- **병렬 멀티 에이전트 실행** — Leader가 작업을 나누어 Teammate에게 병렬 위임하며, 외부 Agent는 ACP(Agent Client Protocol)로 연결되고 팀 조정은 AionUi가 담당합니다
+- **병렬 멀티 에이전트 실행** — Leader가 작업을 나누어 Teammate에게 병렬 위임하며, 외부 Agent는 ACP(Agent Client Protocol)로 연결되고 팀 조정은 AIbang가 담당합니다
 - **Leader 오케스트레이션** — Leader가 할당, 추적, 집계; 지원 백엔드: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, Aion CLI
 - **팀 격리 워크스페이스** — 모든 Agent가 같은 폴더 공유; 각 Agent에 독립적인 권한 확인 다이얼로그가 있으며 사이드바 배지로 승인 대기 표시
 
@@ -202,7 +202,7 @@ Office 어시스턴트는 요청을 편집하고 재사용할 수 있는 파일�
 
 ## 모든 API 키로 완전한 Cowork Agent 파워
 
-다른 AI 앱은 API 키가 있는 채팅박스를 제공합니다. **AionUi는 완전한 Cowork Agent를 제공합니다.**
+다른 AI 앱은 API 키가 있는 채팅박스를 제공합니다. **AIbang는 완전한 Cowork Agent를 제공합니다.**
 
 | 여러분의 API 키          | 얻을 수 있는 기능         |
 | :----------------------- | :------------------------ |
@@ -212,7 +212,7 @@ Office 어시스턴트는 요청을 편집하고 재사용할 수 있는 파일�
 | Ollama / LM Studio(로컬) | 로컬 모델 Cowork Agent    |
 | NewAPI 게이트웨이        | 20+ 모델에 대한 통합 접근 |
 
-어떤 모델로 구동하든 Agent의 기능은 동일합니다——파일 읽기/쓰기, 웹 검색, 이미지 생성, 도구 사용. AionUi는 클라우드 서비스와 로컬 배포를 포함한 **30+ AI 플랫폼**을 지원합니다.
+어떤 모델로 구동하든 Agent의 기능은 동일합니다——파일 읽기/쓰기, 웹 검색, 이미지 생성, 도구 사용. AIbang는 클라우드 서비스와 로컬 배포를 포함한 **30+ AI 플랫폼**을 지원합니다.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -231,7 +231,7 @@ Office 어시스턴트는 요청을 편집하고 재사용할 수 있는 파일�
 - **국제 플랫폼** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **로컬 모델** — Ollama, LM Studio(로컬 API 엔드포인트가 있는 커스텀 플랫폼을 통해)
 
-AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 게이트웨이 서비스도 지원합니다——다양한 LLM을 집계하고 배포하는 통합 AI 모델 허브입니다. 같은 인터페이스에서 다양한 모델을 유연하게 전환하여 다양한 작업 요구사항을 충족할 수 있습니다.
+AIbang는 [NewAPI](https://github.com/QuantumNous/new-api) 게이트웨이 서비스도 지원합니다——다양한 LLM을 집계하고 배포하는 통합 AI 모델 허브입니다. 같은 인터페이스에서 다양한 모델을 유연하게 전환하여 다양한 작업 요구사항을 충족할 수 있습니다.
 
 </details>
 
@@ -242,7 +242,7 @@ AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 게이트웨이 서�
 _21개의 내장 전문 어시스턴트와 3단계 스킬 시스템을 갖춘 확장 가능한 어시스턴트 시스템. 자신만의 어시스턴트와 스킬을 만들고 관리하세요._
 
 - **커스텀 어시스턴트 만들기** — 커스텀 규칙과 기능을 가진 자신만의 어시스턴트 정의
-- **3단계 스킬** — 내장 스킬(AionUi 기본 제공), 커스텀 스킬(사용자 정의), Extension 스킬(서드파티 Extension 제공); 스킬 인디케이터로 대화별 활성화/비활성화
+- **3단계 스킬** — 내장 스킬(AIbang 기본 제공), 커스텀 스킬(사용자 정의), Extension 스킬(서드파티 Extension 제공); 스킬 인디케이터로 대화별 활성화/비활성화
 - **대화 수준 제어** — 채팅 헤더의 스킬 인디케이터가 현재 대화의 활성 스킬 표시; 스킬 검색 및 제외 가능
 
 <p align="center">
@@ -254,7 +254,7 @@ _21개의 내장 전문 어시스턴트와 3단계 스킬 시스템을 갖춘 �
 
 <br>
 
-AionUi는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**를 포함하며, 커스텀 스킬을 통해 확장 가능합니다:
+AIbang는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**를 포함하며, 커스텀 스킬을 통해 확장 가능합니다:
 
 - **🤝 Cowork** — 자율 작업 실행(파일 작업, 문서 처리, 워크플로우 계획)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph 전환으로 PPTX 프레젠테이션 생성 및 애니메이션
@@ -275,11 +275,11 @@ AionUi는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**�
 - **🔧 OpenClaw 설정** — OpenClaw 통합을 위한 설정 및 구성 어시스턴트
 - **📖 스토리 롤플레이** — 캐릭터 카드와 세계 정보를 갖춘 몰입형 스토리 롤플레이(SillyTavern 호환)
 
-- **🧭 AionUi Butler** — AionUi 안에서 제품 안내, 설정 지원 및 문제 해결 제공
+- **🧭 AIbang Butler** — AIbang 안에서 제품 안내, 설정 지원 및 문제 해결 제공
 
 **커스텀 스킬**: **설정 → Skills**에서 스킬을 가져오거나 만들고 필요한 어시스턴트에 연결합니다. 스킬은 내장, 커스텀, Extension의 세 가지 소스에서 제공됩니다. 내장 스킬에는 `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` 등이 포함됩니다.
 
-> 💡 내장 정의의 기준은 AionCore의 [어시스턴트 카탈로그](https://github.com/iOfficeAI/AionCore/blob/main/crates/aionui-app/assets/builtin-assistants/assistants.json)입니다. 규칙은 계속 Markdown을 사용하며 AionUi에서 사용자 지정할 수 있습니다.
+> 💡 내장 정의의 기준은 AionCore의 [어시스턴트 카탈로그](https://github.com/iOfficeAI/AionCore/blob/main/crates/aibang-app/assets/builtin-assistants/assistants.json)입니다. 규칙은 계속 Markdown을 사용하며 AIbang에서 사용자 지정할 수 있습니다.
 
 </details>
 
@@ -287,7 +287,7 @@ AionUi는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**�
 
 ## 어디서나 Cowork
 
-_여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 접근하세요._
+_여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AIbang에 접근하세요._
 
 - **WebUI 모드** — 스마트폰, 태블릿 또는 어떤 컴퓨터에서든 브라우저를 통해 접근. LAN, 크로스 네트워크 및 서버 배포를 지원. QR 코드 또는 비밀번호 로그인.
 
@@ -298,7 +298,7 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
   - **WeChat** — 위챗 개인 계정 연동
   - **WeCom(企业微信)**, **Slack**, **Discord** 등 더 많은 플랫폼이 곧 출시됩니다
 
-> **설정:** AionUi 설정 → WebUI 설정 → Channel, Bot Token을 구성하세요.
+> **설정:** AIbang 설정 → WebUI 설정 → Channel, Bot Token을 구성하세요.
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -306,7 +306,7 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
 
 <p align="center"><em>에이전트 원격 감시 및 제어 — Claude, Gemini, Codex. 브라우저나 휴대폰에서 Claude Code remote처럼 사용하세요.</em></p>
 
-> [원격 인터넷 접근 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [원격 인터넷 접근 튜토리얼](https://github.com/iOfficeAI/AIbang/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork 실연
 
@@ -344,7 +344,7 @@ _한 번만 설정하면, AI Agent가 스케줄에 따라 자동으로 실행됩
 - **대화 바인딩** — 각 스케줄 작업은 대화에 바인딩되어 컨텍스트와 기록을 유지합니다
 - **자동 실행** — 작업이 스케줄된 시간에 자동으로 실행되어 대화에 메시지를 보냅니다
 - **쉬운 관리** — 언제든지 스케줄 작업을 생성, 수정, 활성화/비활성화, 삭제 및 볼 수 있습니다
-- **절전 방지** — AionUi가 작업 활성화 중 시스템 절전 자동 방지, 절전 해제 후 누락된 트리거 감지
+- **절전 방지** — AIbang가 작업 활성화 중 시스템 절전 자동 방지, 절전 해제 후 누락된 트리거 감지
 - **고급 설정** — 각 작업에 고유한 모델, 워크스페이스 디렉토리, 추론 노력 설정 가능
 
 **실제 예시:**
@@ -393,7 +393,7 @@ _10+ 형식: PDF, Word, Excel, PPT, 코드, Markdown, 이미지, HTML, Diff — 
 _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합——Cowork Agent가 여러분을 위해 처리합니다._
 
 <p align="center">
-  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/aibang sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -465,7 +465,7 @@ _Gemini 구동의 지능형 이미지 생성, 편집 및 인식_
 
 </details>
 
-> [이미지 생성 모델 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [이미지 생성 모델 구성 가이드](https://github.com/iOfficeAI/AIbang/wiki/AIbang-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -522,16 +522,16 @@ _여러 대화를 열고, 작업이 섞이지 않으며, 독립적인 메모리,
 
 ---
 
-## 🤔 왜 AionUi를 Claude Cowork보다 선택해야 하나요?
+## 🤔 왜 AIbang를 Claude Cowork보다 선택해야 하나요?
 
 <details>
 <summary><strong>자세한 비교를 보려면 클릭하세요</strong></summary>
 
 <br>
 
-AionUi는 **무료 오픈소스 Multi-AI Agent 데스크톱**입니다. macOS에서만 실행되고 Claude에 고정된 Claude Cowork과 비교하여, AionUi는 전체 모델, 크로스 플랫폼 강화 버전입니다.
+AIbang는 **무료 오픈소스 Multi-AI Agent 데스크톱**입니다. macOS에서만 실행되고 Claude에 고정된 Claude Cowork과 비교하여, AIbang는 전체 모델, 크로스 플랫폼 강화 버전입니다.
 
-| 차원      | Claude Cowork | AionUi                                            |
+| 차원      | Claude Cowork | AIbang                                            |
 | :-------- | :------------ | :------------------------------------------------ |
 | OS        | macOS 전용    | macOS / Windows / Linux                           |
 | 모델 지원 | Claude 전용   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
@@ -554,17 +554,17 @@ AionUi는 **무료 오픈소스 Multi-AI Agent 데스크톱**입니다. macOS에
 
 <details>
 <summary><strong>Q: 먼저 Gemini CLI나 Claude Code를 설치해야 하나요?</strong></summary>
-A: <strong>아니요.</strong> AionUi는 설치 후 즉시 작동하는 내장 AI Agent가 있습니다. API 키를 입력하기만 하면 됩니다. Claude Code나 Gemini CLI와 같은 CLI 도구도 설치되어 있다면, AionUi가 자동으로 감지하고 통합하여 더 많은 기능을 제공합니다.
+A: <strong>아니요.</strong> AIbang는 설치 후 즉시 작동하는 내장 AI Agent가 있습니다. API 키를 입력하기만 하면 됩니다. Claude Code나 Gemini CLI와 같은 CLI 도구도 설치되어 있다면, AIbang가 자동으로 감지하고 통합하여 더 많은 기능을 제공합니다.
 </details>
 
 <details>
-<summary><strong>Q: AionUi로 무엇을 할 수 있나요?</strong></summary>
-A: AionUi는 여러분의 <strong>프라이빗 Cowork 작업 공간</strong>입니다. 내장 Agent는 폴더를 일괄 정리하고, Excel 데이터를 처리하고, 문서를 생성하고, 웹을 검색하고, 이미지를 생성할 수 있습니다. 멀티 Agent 모드에서는 같은 인터페이스를 통해 Claude Code, Codex 및 기타 강력한 CLI Agent도 활용할 수 있습니다.
+<summary><strong>Q: AIbang로 무엇을 할 수 있나요?</strong></summary>
+A: AIbang는 여러분의 <strong>프라이빗 Cowork 작업 공간</strong>입니다. 내장 Agent는 폴더를 일괄 정리하고, Excel 데이터를 처리하고, 문서를 생성하고, 웹을 검색하고, 이미지를 생성할 수 있습니다. 멀티 Agent 모드에서는 같은 인터페이스를 통해 Claude Code, Codex 및 기타 강력한 CLI Agent도 활용할 수 있습니다.
 </details>
 
 <details>
 <summary><strong>Q: 무료인가요?</strong></summary>
-A: AionUi는 완전히 무료이며 오픈소스입니다. 선택한 제공업체의 API 사용량에 대해서만 비용을 지불하며, 선호하는 제공업체의 API 키를 사용할 수 있습니다.
+A: AIbang는 완전히 무료이며 오픈소스입니다. 선택한 제공업체의 API 사용량에 대해서만 비용을 지불하며, 선호하는 제공업체의 API 키를 사용할 수 있습니다.
 </details>
 
 <details>
@@ -574,7 +574,7 @@ A: 모든 데이터는 로컬 SQLite 데이터베이스에 저장됩니다. 어�
 
 ---
 
-## AionUi 사용 사례 보기
+## AIbang 사용 사례 보기
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -608,7 +608,7 @@ A: 모든 데이터는 로컬 SQLite 데이터베이스에 저장됩니다. 어�
 - [일반인들이 APP처럼 Claude Code를 사용할 수 있게 하기](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — 게으른 고양이는 물고기를 좋아함
 - [5500 Stars: 오픈소스가 Anthropic의 AI 도구 방어막을 어떻게 깨는가](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI 실리콘 모멘트
 
-> **AionUi에 대한 동영상을 만들었나요?** [X에서 알려주세요](https://x.com/AionUi), 여기에 소개하겠습니다!
+> **AIbang에 대한 동영상을 만들었나요?** [X에서 알려주세요](https://x.com/AIbang), 여기에 소개하겠습니다!
 
 ---
 
@@ -625,7 +625,7 @@ A: 모든 데이터는 로컬 SQLite 데이터베이스에 저장됩니다. 어�
 ### 설치
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AIbang/releases">
     <img src="https://img.shields.io/badge/다운로드-최신%20버전-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="최신 버전 다운로드" height="50">
   </a>
 </p>
@@ -634,12 +634,12 @@ A: 모든 데이터는 로컬 SQLite 데이터베이스에 저장됩니다. 어�
 
 ```bash
 # Alternatively, macOS via Homebrew
-brew install aionui
+brew install aibang
 ```
 
 ### 3단계로 시작하기
 
-1. **설치** AionUi
+1. **설치** AIbang
 2. **입력** API 키를 입력하기만 하면 됩니다
 3. **Cowork 시작** — 내장 AI Agent가 준비되었습니다
 
@@ -652,23 +652,23 @@ brew install aionui
 
 **🚀 빠른 시작**
 
-- [📖 완전한 설치 가이드](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — 다운로드부터 구성까지의 상세한 단계
-- [⚙️ LLM 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — 멀티 플랫폼 AI 모델 구성
-- [🤖 멀티 Agent 모드 설정](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — 터미널 AI Agent 통합
-- [🔌 MCP 도구 구성](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol 서버 설정
-- [🌐 WebUI 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — 완전한 WebUI 설정 및 구성 튜토리얼
+- [📖 완전한 설치 가이드](https://github.com/iOfficeAI/AIbang/wiki/Getting-Started) — 다운로드부터 구성까지의 상세한 단계
+- [⚙️ LLM 구성 가이드](https://github.com/iOfficeAI/AIbang/wiki/LLM-Configuration) — 멀티 플랫폼 AI 모델 구성
+- [🤖 멀티 Agent 모드 설정](https://github.com/iOfficeAI/AIbang/wiki/ACP-Setup) — 터미널 AI Agent 통합
+- [🔌 MCP 도구 구성](https://github.com/iOfficeAI/AIbang/wiki/MCP-Configuration-Guide) — Model Context Protocol 서버 설정
+- [🌐 WebUI 구성 가이드](https://github.com/iOfficeAI/AIbang/wiki/WebUI-Configuration-Guide) — 완전한 WebUI 설정 및 구성 튜토리얼
 
 **🎯 사용 사례**
 
-- [📁 파일 관리](https://github.com/iOfficeAI/AionUi/wiki/file-management) — 스마트 파일 정리
-- [📊 Excel 처리](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI 구동 데이터 처리
-- [🎨 이미지 생성](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 이미지 생성
-- [📚 더 많은 사용 사례](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 파일 관리](https://github.com/iOfficeAI/AIbang/wiki/file-management) — 스마트 파일 정리
+- [📊 Excel 처리](https://github.com/iOfficeAI/AIbang/wiki/excel-processing) — AI 구동 데이터 처리
+- [🎨 이미지 생성](https://github.com/iOfficeAI/AIbang/wiki/AIbang-Image-Generation-Tool-Model-Configuration-Guide) — AI 이미지 생성
+- [📚 더 많은 사용 사례](https://github.com/iOfficeAI/AIbang/wiki/Use-Cases-Overview)
 
 **❓ 지원 및 도움말**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — 질문 및 문제 해결
-- [🔧 구성 및 사용 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — 완전한 구성 문서
+- [❓ FAQ](https://github.com/iOfficeAI/AIbang/wiki/FAQ) — 질문 및 문제 해결
+- [🔧 구성 및 사용 튜토리얼](https://github.com/iOfficeAI/AIbang/wiki/Configuration-Guides) — 완전한 구성 문서
 
 </details>
 
@@ -679,14 +679,14 @@ brew install aionui
 **여러분의 아이디어가 중요합니다!** 모든 제안과 피드백을 소중히 여깁니다.
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/AIbang" target="_blank">
     <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — 아이디어를 공유하고 팁을 교환하세요
-- [문제 보고](https://github.com/iOfficeAI/AionUi/issues) — 버그 및 기능 요청
-- [릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) — 최신 버전 받기
+- [GitHub Discussions](https://github.com/iOfficeAI/AIbang/discussions) — 아이디어를 공유하고 팁을 교환하세요
+- [문제 보고](https://github.com/iOfficeAI/AIbang/issues) — 버그 및 기능 요청
+- [릴리스 업데이트](https://github.com/iOfficeAI/AIbang/releases) — 최신 버전 받기
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
 - [WeChat 그룹](../../resources/wx-21.png) — 중국어 커뮤니티
 
@@ -702,7 +702,7 @@ PR을 열기 전에 [CONTRIBUTING.md](../../CONTRIBUTING.md)를 읽어주세요.
 
 ### 개발 환경 설정
 
-AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드용 AionCore 두 저장소를 사용합니다. macOS, Linux, Windows 전체 설정 절차는 [Development Guide](../contributing/development.md)를 참고하세요.
+AIbang 로컬 개발은 Electron 프런트엔드용 AIbang와 로컬 백엔드용 AionCore 두 저장소를 사용합니다. macOS, Linux, Windows 전체 설정 절차는 [Development Guide](../contributing/development.md)를 참고하세요.
 
 ---
 
@@ -715,16 +715,16 @@ AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드�
 ## 기여자
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/AIbang/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AIbang&max=100" alt="Contributors" />
   </a>
 </p>
 
 ## Star 히스토리
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/aibang&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aibang&type=Date" alt="Star History" width="600">
   </a>
 </p>
 
@@ -732,6 +732,6 @@ AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드�
 
 **마음에 드시면 스타를 눌러주세요**
 
-[버그 보고](https://github.com/iOfficeAI/AionUi/issues) · [기능 요청](https://github.com/iOfficeAI/AionUi/issues)
+[버그 보고](https://github.com/iOfficeAI/AIbang/issues) · [기능 요청](https://github.com/iOfficeAI/AIbang/issues)
 
 </div>

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -429,7 +429,7 @@ const EMOJI_CATEGORIES = {
 
 type CategoryKey = keyof typeof EMOJI_CATEGORIES;
 
-const RECENT_EMOJIS_KEY = 'aionui.emoji.recent';
+const RECENT_EMOJIS_KEY = 'aibang.emoji.recent';
 const MAX_RECENT_EMOJIS = 24;
 
 // Arco Design Popover position types

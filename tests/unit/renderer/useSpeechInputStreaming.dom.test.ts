@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Streaming orchestration tests for useSpeechInput: streaming happy path,
@@ -167,7 +167,7 @@ describe('joinTranscriptSegments', () => {
   });
 
   it('joins directly when only one side of the boundary is CJK', () => {
-    expect(joinTranscriptSegments(['我在用', 'AionUi'])).toBe('我在用AionUi');
+    expect(joinTranscriptSegments(['我在用', 'AIbang'])).toBe('我在用AIbang');
     expect(joinTranscriptSegments(['open', '设置页'])).toBe('open设置页');
   });
 

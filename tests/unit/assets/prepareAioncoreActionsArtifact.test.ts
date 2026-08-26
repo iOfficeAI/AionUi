@@ -136,7 +136,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   // These cases execute a temporary POSIX shell-script aioncore binary. Windows
   // coverage for contract rejection lives in the verifier/local-bundle tests.
   posixFakeToolchainIt('hard fails Actions artifact input when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-actions-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'aibang-actions-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath || ''}`;
@@ -159,7 +159,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   });
 
   posixFakeToolchainIt('hard fails GitHub release download input when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-download-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'aibang-download-gate-'));
     const fakeBin = createFakeToolchain(tmp);
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath || ''}`;
@@ -181,7 +181,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
   });
 
   posixFakeToolchainIt('hard fails local binary fallback when prepared managed resources lack contract', () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'aionui-local-binary-gate-'));
+    const tmp = mkdtempSync(join(tmpdir(), 'aibang-local-binary-gate-'));
     const localBinary = join(tmp, 'aioncore');
     writeExecutable(localBinary, '#!/usr/bin/env bash\nexit 0\n');
     const fakeBin = createFakeToolchain(tmp, { curlFails: true });

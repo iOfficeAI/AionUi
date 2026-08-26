@@ -141,7 +141,7 @@ async function openCustomAgentEditor(page: Page, command: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test('[5] Agent fail_cli alert shows without feedback pill', async ({ page }) => {
-  await openCustomAgentEditor(page, 'aionui-e2e-missing-binary-xyz');
+  await openCustomAgentEditor(page, 'aibang-e2e-missing-binary-xyz');
 
   // Expect the fail_cli alert to appear — without the feedback pill, which
   // was deliberately removed from InlineAgentEditor (#3448).

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +16,7 @@ import type { App } from 'electron';
  * Squirrel.Windows installers only, so NSIS builds must do it themselves.
  * Consistency with electron-builder.yml is guarded by a unit test.
  */
-export const WINDOWS_APP_USER_MODEL_ID = 'com.aionui.app';
+export const WINDOWS_APP_USER_MODEL_ID = 'com.aibang.app';
 
 type AppUserModelIdTarget = Pick<App, 'isPackaged' | 'setAppUserModelId'>;
 

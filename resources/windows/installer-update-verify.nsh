@@ -1,14 +1,14 @@
 !ifndef AIONUI_INSTALLER_UPDATE_VERIFY_NSH
 !define AIONUI_INSTALLER_UPDATE_VERIFY_NSH
 
-Var /GLOBAL AionUiUninstallHadErrors
-Var /GLOBAL AionUiUninstallLogResult
-Var /GLOBAL AionUiVerifyResourceResult
-Var /GLOBAL AionUiUpdatedAppExitWaitResult
-Var /GLOBAL AionUiActiveMarkerExecResult
-Var /GLOBAL AionUiActiveMarkerResult
+Var /GLOBAL AIbangUninstallHadErrors
+Var /GLOBAL AIbangUninstallLogResult
+Var /GLOBAL AIbangVerifyResourceResult
+Var /GLOBAL AIbangUpdatedAppExitWaitResult
+Var /GLOBAL AIbangActiveMarkerExecResult
+Var /GLOBAL AIbangActiveMarkerResult
 
-!define AIONUI_ACTIVE_INSTALLER_MARKER "aionui-installer-active.marker"
+!define AIONUI_ACTIVE_INSTALLER_MARKER "aibang-installer-active.marker"
 
 !macro AIONUI_BRING_UPDATED_INSTALLER_TO_FRONT
   ${If} ${isUpdated}
@@ -20,7 +20,7 @@ Var /GLOBAL AionUiActiveMarkerResult
 !macro AIONUI_WAIT_FOR_UPDATED_APP_EXIT
   ${If} ${isUpdated}
     !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=start"
-    StrCpy $AionUiUpdatedAppExitWaitResult "0"
+    StrCpy $AIbangUpdatedAppExitWaitResult "0"
 
     nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
       $$ErrorActionPreference = 'SilentlyContinue'; \
@@ -38,14 +38,14 @@ Var /GLOBAL AionUiActiveMarkerResult
       } while ((Get-Date) -lt $$deadline); \
       exit 1 \
     }"`
-    Pop $AionUiUpdatedAppExitWaitResult
+    Pop $AIbangUpdatedAppExitWaitResult
 
-    ${If} $AionUiUpdatedAppExitWaitResult != 0
+    ${If} $AIbangUpdatedAppExitWaitResult != 0
       !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=timeout action=stop"
       !insertmacro AIONUI_STOP_APP_PROCESSES
     ${EndIf}
 
-    !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=done result=$AionUiUpdatedAppExitWaitResult"
+    !insertmacro AIONUI_SLOG "event=updated-app-exit-wait phase=done result=$AIbangUpdatedAppExitWaitResult"
   ${EndIf}
 !macroend
 
@@ -58,11 +58,11 @@ Var /GLOBAL AionUiActiveMarkerResult
     if ($$item.LastWriteTime -lt (Get-Date).AddHours(-2)) { Write-Output 'stale'; exit 0 }; \
     Write-Output 'active' \
   }"`
-  Pop $AionUiActiveMarkerExecResult
-  Pop $AionUiActiveMarkerResult
-  ${If} $AionUiActiveMarkerResult == "active"
+  Pop $AIbangActiveMarkerExecResult
+  Pop $AIbangActiveMarkerResult
+  ${If} $AIbangActiveMarkerResult == "active"
     !insertmacro AIONUI_SLOG "event=installer-active-marker state=active"
-  ${ElseIf} $AionUiActiveMarkerResult == "stale"
+  ${ElseIf} $AIbangActiveMarkerResult == "stale"
     !insertmacro AIONUI_SLOG "event=installer-active-marker state=stale"
   ${Else}
     !insertmacro AIONUI_SLOG "event=installer-active-marker state=missing"
@@ -73,9 +73,9 @@ Var /GLOBAL AionUiActiveMarkerResult
   nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "& { \
     $$ErrorActionPreference = 'SilentlyContinue'; \
     $$marker = Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}'; \
-    Set-Content -LiteralPath $$marker -Encoding UTF8 -Value ('pid=' + $$PID + ';session=$AionUiSessionId;started=' + (Get-Date -Format o)) \
+    Set-Content -LiteralPath $$marker -Encoding UTF8 -Value ('pid=' + $$PID + ';session=$AIbangSessionId;started=' + (Get-Date -Format o)) \
   }"`
-  Pop $AionUiActiveMarkerResult
+  Pop $AIbangActiveMarkerResult
 !macroend
 
 !macro AIONUI_CLEAR_ACTIVE_INSTALLER_MARKER
@@ -84,7 +84,7 @@ Var /GLOBAL AionUiActiveMarkerResult
       $$ErrorActionPreference = 'SilentlyContinue'; \
       Remove-Item -LiteralPath (Join-Path $$env:TEMP '${AIONUI_ACTIVE_INSTALLER_MARKER}') -Force \
     }"`
-    Pop $AionUiActiveMarkerResult
+    Pop $AIbangActiveMarkerResult
   !endif
 !macroend
 
@@ -106,7 +106,7 @@ Var /GLOBAL AionUiActiveMarkerResult
 !macro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
   InitPluginsDir
   SetOutPath "$PLUGINSDIR"
-  StrCpy $AionUiCurrentOutDir "$PLUGINSDIR"
+  StrCpy $AIbangCurrentOutDir "$PLUGINSDIR"
 !macroend
 
 ; Resolve the machine's real native architecture (arm64 / x64 / x86) for diagnostics.
@@ -124,23 +124,23 @@ Var /GLOBAL AionUiActiveMarkerResult
 
 !macro AIONUI_INSTALLER_PREINIT
   !ifdef BUILD_UNINSTALLER
-    StrCpy $AionUiSessionId ""
-    StrCpy $AionUiIsUpdated "0"
-    StrCpy $AionUiSessionLogResult ""
-    StrCpy $AionUiSessionLogPath "$TEMP\${AIONUI_FALLBACK_LOG}"
-    StrCpy $AionUiUninstallHadErrors "0"
-    StrCpy $AionUiUninstallLogResult ""
-    StrCpy $AionUiVerifyResourceResult ""
-    StrCpy $AionUiUpdatedAppExitWaitResult ""
-    StrCpy $AionUiActiveMarkerExecResult ""
-    StrCpy $AionUiActiveMarkerResult ""
-    StrCpy $AionUiStopResult ""
-    StrCpy $AionUiLockerListZh ""
-    StrCpy $AionUiLockerListEn ""
+    StrCpy $AIbangSessionId ""
+    StrCpy $AIbangIsUpdated "0"
+    StrCpy $AIbangSessionLogResult ""
+    StrCpy $AIbangSessionLogPath "$TEMP\${AIONUI_FALLBACK_LOG}"
+    StrCpy $AIbangUninstallHadErrors "0"
+    StrCpy $AIbangUninstallLogResult ""
+    StrCpy $AIbangVerifyResourceResult ""
+    StrCpy $AIbangUpdatedAppExitWaitResult ""
+    StrCpy $AIbangActiveMarkerExecResult ""
+    StrCpy $AIbangActiveMarkerResult ""
+    StrCpy $AIbangStopResult ""
+    StrCpy $AIbangLockerListZh ""
+    StrCpy $AIbangLockerListEn ""
   !else
     !insertmacro AIONUI_RELEASE_INSTALL_DIR_OUTDIR
     !insertmacro AIONUI_SESSION_BEGIN
-    !insertmacro AIONUI_SLOG "event=installer-outdir-release outDir=$AionUiCurrentOutDir instDir=$INSTDIR"
+    !insertmacro AIONUI_SLOG "event=installer-outdir-release outDir=$AIbangCurrentOutDir instDir=$INSTDIR"
     ; Guard target/machine architecture as early as possible: this runs before customInit's
     ; registry heal/clear/repair, so a wrong-arch installer aborts without mutating an existing
     ; correct-arch install's registry or uninstaller state. (Sentry ELECTRON-3BX / code E1040)
@@ -170,7 +170,7 @@ Var /GLOBAL AionUiActiveMarkerResult
 
 !macro AIONUI_VERIFY_CORE_APP_FILES
   !insertmacro AIONUI_LOG_EVENT "verify-install start instDir=$INSTDIR"
-  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\AionUi.exe" "AionUi.exe"
+  !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\AIbang.exe" "AIbang.exe"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\ffmpeg.dll" "ffmpeg.dll"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libEGL.dll" "libEGL.dll"
   !insertmacro AIONUI_VERIFY_REQUIRED_FILE "$INSTDIR\libGLESv2.dll" "libGLESv2.dll"
@@ -185,19 +185,19 @@ Var /GLOBAL AionUiActiveMarkerResult
 !macro AIONUI_VERIFY_BUNDLED_AIONCORE_RESOURCES _RUNTIME_KEY
   InitPluginsDir
   File "/oname=$PLUGINSDIR\verify-bundled-aioncore-install.ps1" "${PROJECT_DIR}\resources\windows\support\verify-bundled-aioncore-install.ps1"
-  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$AionUiSessionLogPath"`
-  Pop $AionUiVerifyResourceResult
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\verify-bundled-aioncore-install.ps1" -InstallDir "$INSTDIR" -RuntimeKey "${_RUNTIME_KEY}" -LogPath "$AIbangSessionLogPath"`
+  Pop $AIbangVerifyResourceResult
 
-  ${If} $AionUiVerifyResourceResult != 0
+  ${If} $AIbangVerifyResourceResult != 0
     !insertmacro AIONUI_FAIL_UX \
       "${AIONUI_E_BUNDLED_AIONCORE_INCOMPLETE}" \
-      "event=session-end result=fail code=${AIONUI_E_BUNDLED_AIONCORE_INCOMPLETE} detail=bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult" \
+      "event=session-end result=fail code=${AIONUI_E_BUNDLED_AIONCORE_INCOMPLETE} detail=bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AIbangVerifyResourceResult" \
       "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ZH}" \
       "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_EN}" \
       "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_ZH}" \
       "${AIONUI_MSG_BUNDLED_AIONCORE_INCOMPLETE_ACTION_EN}" \
-      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult instDir=$INSTDIR" \
-      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AionUiVerifyResourceResult instDir=$INSTDIR"
+      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AIbangVerifyResourceResult instDir=$INSTDIR" \
+      "bundled-aioncore-incomplete runtime=${_RUNTIME_KEY} result=$AIbangVerifyResourceResult instDir=$INSTDIR"
   ${EndIf}
 !macroend
 

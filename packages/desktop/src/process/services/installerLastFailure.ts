@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,7 +18,7 @@ type ConsumeOptions = {
 const isString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 
 export function getInstallerLastFailureMarkerPath(appDataDir: string): string {
-  return path.join(appDataDir, 'AionUi', INSTALLER_LAST_FAILURE_FILE_NAME);
+  return path.join(appDataDir, 'AIbang', INSTALLER_LAST_FAILURE_FILE_NAME);
 }
 
 export function parseInstallerLastFailureMarker(raw: unknown): InstallerLastFailureMarker | null {

@@ -57,18 +57,18 @@ let mainPage: Page | null = null;
 **Path resolution** (`src/process/utils/utils.ts:getDataPath()` + backend `--data-dir`):
 
 ```typescript
-return path.join(getDataPath(), 'aionui.db');
+return path.join(getDataPath(), 'aibang.db');
 ```
 
 **userData directory** (`src/process/utils/configureChromium.ts:18-26`):
 
-- Dev mode: `~/Library/Application Support/AionUi-Dev/` (macOS)
-- Database: `{userData}/config/aionui.db`
+- Dev mode: `~/Library/Application Support/AIbang-Dev/` (macOS)
+- Database: `{userData}/config/aibang.db`
 - Shared by all E2E tests
 
 **Conflict scenario**: If Assistant tests and Skills tests run in parallel workers:
 
-1. Both access same `aionui.db` file
+1. Both access same `aibang.db` file
 2. SQLite allows multiple readers, but writes lock the entire database
 3. Test data pollution: Assistant test creates custom assistant → Skills test sees it
 
@@ -77,7 +77,7 @@ return path.join(getDataPath(), 'aionui.db');
 **File**: `tests/e2e/fixtures.ts:29-30`
 
 ```typescript
-const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
+const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-state-'));
 const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
 ```
 
@@ -110,7 +110,7 @@ AIONUI_CDP_PORT: '0';
 | Extension state file  | Worker temp dir     | ✅ No conflict             | -                                       |
 | Network ports         | None (CDP disabled) | ✅ No conflict             | -                                       |
 
-**Critical bottleneck**: `workers: 1` enforced + shared `aionui.db` → parallel execution impossible without refactoring.
+**Critical bottleneck**: `workers: 1` enforced + shared `aibang.db` → parallel execution impossible without refactoring.
 
 ---
 
@@ -129,11 +129,11 @@ AIONUI_CDP_PORT: '0';
 2. Modify `getDevAppName()` to return worker-specific name:
    ```typescript
    const workerId = process.env.AIONUI_E2E_TEST_WORKER_ID || '0';
-   return `AionUi-E2E-Worker-${workerId}`;
+   return `AIbang-E2E-Worker-${workerId}`;
    ```
 3. Each worker gets isolated:
-   - `~/Library/Application Support/AionUi-E2E-Worker-0/config/aionui.db`
-   - `~/Library/Application Support/AionUi-E2E-Worker-1/config/aionui.db`
+   - `~/Library/Application Support/AIbang-E2E-Worker-0/config/aibang.db`
+   - `~/Library/Application Support/AIbang-E2E-Worker-1/config/aibang.db`
 4. Update `playwright.config.ts`:
    ```typescript
    workers: 2,  // or process.env.CI ? 1 : 2

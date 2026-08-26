@@ -7,7 +7,7 @@
  * backend HTTP probes (`httpBridge` helper). Scenarios 8-10 exercise
  * the migration contract against a sibling backend process bound to a
  * throw-away data dir — the Electron fixture is a singleton per worker,
- * so seeding a legacy `aionui-config.txt` before launch and observing
+ * so seeding a legacy `aibang-config.txt` before launch and observing
  * a full restart is not possible from within a single spec file.
  * The renderer-side glue for migration is already covered by the
  * Vitest unit suite (`tests/unit/migrateAssistants.test.ts`); scenarios
@@ -49,7 +49,7 @@ const MIGRATION_BACKEND_PORT = 25902;
  * Node version used at install time (Electron vs. Playwright worker mismatch).
  */
 function querySqliteIds(dataDir: string, sql: string): string[] {
-  const dbPath = path.join(dataDir, 'aionui.db');
+  const dbPath = path.join(dataDir, 'aibang.db');
   const out = execFileSync('sqlite3', ['-readonly', dbPath, sql], { encoding: 'utf8' });
   return out
     .split('\n')
@@ -414,7 +414,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     }
 
     test.beforeEach(async () => {
-      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-migrate-'));
+      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-migrate-'));
       await startBackend();
     });
 

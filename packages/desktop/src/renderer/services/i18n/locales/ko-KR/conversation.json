@@ -142,7 +142,7 @@
       "send_feedback": "팀이 조사할 수 있도록 로그와 함께 피드백을 보내세요."
     },
     "ownership": {
-      "aionui": "앱",
+      "aibang": "앱",
       "user_agent": "에이전트",
       "user_llm_provider": "모델 제공자",
       "unknown_upstream": "상위 서비스"

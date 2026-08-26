@@ -27,7 +27,7 @@ test.describe('Team Workspace Migration', () => {
   let team_id: string | undefined;
 
   test.beforeAll(async () => {
-    targetWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-target-'));
+    targetWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-target-'));
   });
 
   test.afterAll(async () => {

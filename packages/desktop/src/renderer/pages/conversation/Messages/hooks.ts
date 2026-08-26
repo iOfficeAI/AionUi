@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -554,7 +554,7 @@ const normalizePersistedWorkspaceRuntimeError = (
   return {
     message,
     code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
-    ownership: 'aionui',
+    ownership: 'aibang',
     detail,
     workspacePath,
     retryable: false,
@@ -590,7 +590,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: effectiveCode,
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -605,7 +605,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: effectiveCode,
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: message,
       retryable: false,
       feedback_recommended: false,
@@ -627,7 +627,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: 'AIONUI_INTERNAL_ERROR',
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: message,
       retryable: true,
       feedback_recommended: true,
@@ -635,7 +635,7 @@ const classifyPersistedSendFailure = (
   }
 
   if (persistedCode?.startsWith('AIONUI_')) {
-    return { message, code: persistedCode, ownership: 'aionui', detail: message, retryable: true };
+    return { message, code: persistedCode, ownership: 'aibang', detail: message, retryable: true };
   }
   if (persistedCode?.startsWith('USER_AGENT_')) {
     return { message, code: persistedCode, ownership: 'user_agent', detail: message, retryable: true };
@@ -665,7 +665,7 @@ const classifyPersistedSendFailure = (
     return {
       message,
       code: 'AIONUI_INTERNAL_ERROR',
-      ownership: 'aionui',
+      ownership: 'aibang',
       detail: message,
       retryable: true,
       feedback_recommended: true,

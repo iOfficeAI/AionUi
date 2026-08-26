@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,9 +14,9 @@ import { useTranslation } from 'react-i18next';
 // Global event that opens the migration invite letter. Manual "check for
 // updates" entry points dispatch it in the discontinued build instead of
 // running any version detection.
-export const OPEN_MIGRATION_DIALOG_EVENT = 'aionui-open-migration-dialog';
+export const OPEN_MIGRATION_DIALOG_EVENT = 'aibang-open-migration-dialog';
 
-// Official website users are guided to for the AionUi Pro download. Kept as a
+// Official website users are guided to for the AIbang Pro download. Kept as a
 // module constant (not i18n) — it is a URL, not translatable copy.
 const AIONUI_WEBSITE_URL = 'https://www.aionui.com/';
 
@@ -24,7 +24,7 @@ const AIONUI_WEBSITE_URL = 'https://www.aionui.com/';
 // once on this machine. First launch of the discontinued build pops the card
 // automatically; after the user closes it, later launches stay silent and the
 // titlebar capsule becomes the re-entry point.
-const MIGRATION_INVITE_SHOWN_KEY = 'aionui.migration-invite-shown';
+const MIGRATION_INVITE_SHOWN_KEY = 'aibang.migration-invite-shown';
 
 const wasInviteAutoShown = (): boolean => {
   try {
@@ -97,7 +97,7 @@ const UpdateMigrationDialog: React.FC = () => {
 
   const gotoWebsite = () => {
     void openExternalUrl(AIONUI_WEBSITE_URL).catch((error) => {
-      console.error('Failed to open AionUi Pro website:', error);
+      console.error('Failed to open AIbang Pro website:', error);
     });
     close();
   };

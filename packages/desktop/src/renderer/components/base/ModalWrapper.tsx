@@ -18,12 +18,12 @@ const ModalWrapper: React.FC<ModalWrapperProps> = ({
   ...props
 }) => {
   return (
-    <Modal {...props} title={null} closable={false} onCancel={onCancel} className={`aionui-modal ${className}`}>
+    <Modal {...props} title={null} closable={false} onCancel={onCancel} className={`aibang-modal ${className}`}>
       <div>
         {showCustomClose && title && (
-          <div className='aionui-modal-header'>
-            <h3 className='aionui-modal-title'>{title}</h3>
-            <button onClick={onCancel} className='aionui-modal-close-btn'>
+          <div className='aibang-modal-header'>
+            <h3 className='aibang-modal-title'>{title}</h3>
+            <button onClick={onCancel} className='aibang-modal-close-btn'>
               <Close size={20} fill='var(--bg-6)' />
             </button>
           </div>

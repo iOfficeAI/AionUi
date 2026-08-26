@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -89,11 +89,11 @@ afterAll(() => {
 
 const CDN_YML = `version: 2.1.45
 files:
-  - url: AionUi-2.1.45-mac-arm64.zip
+  - url: AIbang-2.1.45-mac-arm64.zip
     size: 100
-  - url: AionUi-2.1.45-mac-arm64.dmg
+  - url: AIbang-2.1.45-mac-arm64.dmg
     size: 200
-path: AionUi-2.1.45-mac-arm64.zip
+path: AIbang-2.1.45-mac-arm64.zip
 releaseDate: '2026-07-31T14:45:19.381Z'
 `;
 
@@ -102,7 +102,7 @@ const GITHUB_RELEASES = [
     tag_name: 'v2.1.45',
     name: 'v2.1.45',
     body: 'changelog body',
-    html_url: 'https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.45',
+    html_url: 'https://github.com/iOfficeAI/AIbang/releases/tag/v2.1.45',
     prerelease: false,
     draft: false,
     assets: [],
@@ -162,9 +162,9 @@ describe('update.check CDN-first', () => {
     expect(res.data?.updateAvailable).toBe(true);
     expect(res.data?.latest?.version).toBe('2.1.45');
     expect(res.data?.latest?.body).toBe('changelog body');
-    expect(res.data?.latest?.htmlUrl).toBe('https://github.com/iOfficeAI/AionUi/releases/tag/v2.1.45');
+    expect(res.data?.latest?.htmlUrl).toBe('https://github.com/iOfficeAI/AIbang/releases/tag/v2.1.45');
     expect(res.data?.latest?.recommendedAsset?.url).toBe(
-      'https://static.aionui.com/releases/2.1.45/AionUi-2.1.45-mac-arm64.dmg'
+      'https://static.aionui.com/releases/2.1.45/AIbang-2.1.45-mac-arm64.dmg'
     );
   });
 

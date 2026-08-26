@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +28,7 @@ export async function startBackendOrExit(options: StartBackendOrExitOptions): Pr
     if (isBackendStartupCancelledError(error)) {
       return { ok: false };
     }
-    options.logError?.('[AionUi] Failed to start aioncore:', error);
+    options.logError?.('[AIbang] Failed to start aioncore:', error);
     await options.captureFailure(error);
     if (options.exitOnFailure ?? true) {
       options.exitApp(1);

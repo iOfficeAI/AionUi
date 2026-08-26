@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -306,7 +306,7 @@ class FileServiceClass {
    * Every file is uploaded — even Electron OS drags that expose an absolute
    * `path`. The chat send contract sends attachments as `upload` refs, and the
    * backend rejects any upload path that is not under its managed upload
-   * directory (`temp_dir/aionui/...`). Passing the raw device path (the old
+   * directory (`temp_dir/aibang/...`). Passing the raw device path (the old
    * behaviour) now fails with "uploaded file path is outside the managed upload
    * directory", so we always route through the upload endpoint to obtain a
    * managed path.

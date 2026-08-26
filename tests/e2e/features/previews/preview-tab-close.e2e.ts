@@ -61,7 +61,7 @@ test.describe('Preview — closing a tab with the middle mouse button', () => {
   let workspace: string;
 
   test.beforeEach(() => {
-    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-tab-close-'));
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-tab-close-'));
   });
 
   test.afterEach(() => {

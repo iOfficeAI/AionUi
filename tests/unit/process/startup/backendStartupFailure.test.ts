@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -102,7 +102,7 @@ describe('classifyBackendStartupFailure — genuine data damage still severe', (
         backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
         backendBoundaryStage: 'database.recoverable_corruption',
         stderrTail:
-          'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aionui-backend.db: failed to initialize application data',
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.recoverable_corruption databasePath=/db/aibang-backend.db: failed to initialize application data',
       },
       message: 'aioncore exited before health check passed',
       name: 'BackendStartupError',
@@ -116,7 +116,7 @@ describe('classifyBackendStartupFailure — genuine data damage still severe', (
   });
 });
 
-// Sentry ELECTRON-31Z — a database written by a NEWER AionUi (downgrade) is
+// Sentry ELECTRON-31Z — a database written by a NEWER AIbang (downgrade) is
 // intact and only needs an app update. It must surface the dedicated
 // upgrade-required reason instead of the misleading migration-failure dialog.
 describe('classifyBackendStartupFailure — database newer than app (downgrade)', () => {
@@ -127,7 +127,7 @@ describe('classifyBackendStartupFailure — database newer than app (downgrade)'
         backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
         backendBoundaryStage: 'database.newer_than_app',
         stderrTail:
-          'BOOTSTRAP_DATA_INIT_FAILED stage=database.newer_than_app databasePath=/db/aionui-backend.db dbMigrationVersion=39 appMigrationVersion=37: failed to initialize application data',
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.newer_than_app databasePath=/db/aibang-backend.db dbMigrationVersion=39 appMigrationVersion=37: failed to initialize application data',
       },
       message: 'aioncore exited before health check passed',
       name: 'BackendStartupError',
@@ -147,7 +147,7 @@ describe('classifyBackendStartupFailure — database newer than app (downgrade)'
         backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
         backendBoundaryStage: 'database.migration',
         stderrTail:
-          'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aionui-backend.db: failed to initialize application data',
+          'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/aibang-backend.db: failed to initialize application data',
       },
       message: 'aioncore exited before health check passed',
       name: 'BackendStartupError',

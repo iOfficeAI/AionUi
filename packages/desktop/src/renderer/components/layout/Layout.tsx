@@ -327,7 +327,7 @@ const Layout: React.FC<{
 
     // Handle check update request from tray / 托盘请求检查更新
     const handleCheckUpdate = () => {
-      window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
+      window.dispatchEvent(new CustomEvent('aibang-open-update-modal', { detail: { source: 'tray' } }));
     };
 
     // Listen for tray events / 监听托盘事件

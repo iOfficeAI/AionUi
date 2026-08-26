@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,9 +36,9 @@
  */
 
 /** 伪造的稳定 id：只有一个目标，不需要真的分配。/ Fixed ids — there is only ever one target. */
-export const SINGLE_TARGET_ID = 'aionui-browser-target';
-export const SINGLE_SESSION_ID = 'aionui-browser-session';
-export const SINGLE_BROWSER_CONTEXT_ID = 'aionui-browser-context';
+export const SINGLE_TARGET_ID = 'aibang-browser-target';
+export const SINGLE_SESSION_ID = 'aibang-browser-session';
+export const SINGLE_BROWSER_CONTEXT_ID = 'aibang-browser-context';
 
 export type TargetInfo = {
   targetId: string;

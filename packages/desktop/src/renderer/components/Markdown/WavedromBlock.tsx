@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -49,7 +49,7 @@ let nextDiagramIndex = 0;
 
 // The bundled dark skin is a mechanical "swap black for white" job: its
 // multi-bit value labels (s8-s15) and the gap fill (s6) are near-black, so they
-// disappear on AionUi's dark panel (--bg-1: #1a1a1a). Remap those fills to
+// disappear on AIbang's dark panel (--bg-1: #1a1a1a). Remap those fills to
 // mid-tone colors that stay visible on the dark background while keeping the
 // white label text readable; the bundled light skin needs no adjustment.
 const DARK_SKIN_FILL_REMAP: Record<string, string> = {

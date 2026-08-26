@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +26,7 @@ import { OPEN_MIGRATION_DIALOG_EVENT } from './UpdateMigrationDialog';
 
 type AvailableOutcome = Extract<CheckUpdateOutcome, { kind: 'available' }>;
 
-export const UPDATE_AVAILABLE_EVENT = 'aionui-update-available';
+export const UPDATE_AVAILABLE_EVENT = 'aibang-update-available';
 
 declare const __APP_VERSION__: string;
 
@@ -59,7 +59,7 @@ const reduceNotificationState = (
   event: UpdateNotificationEvent
 ): UpdateNotificationState => updateNotificationReducer(current, event).state;
 
-const RELEASES_PAGE_URL = 'https://github.com/iOfficeAI/AionUi/releases';
+const RELEASES_PAGE_URL = 'https://github.com/iOfficeAI/AIbang/releases';
 
 const getVersionLabelFromState = (state: UpdateNotificationState): string =>
   state.updateInfo?.version || state.autoUpdateInfo?.version || '';
@@ -248,7 +248,7 @@ export const useUpdateNotificationController = () => {
       const source = (evt as CustomEvent<{ source?: UpdateNotificationOpenSource }>).detail?.source ?? 'about';
       openUpdateNotification(source, true);
     };
-    window.addEventListener('aionui-open-update-modal', handleWindowOpen);
+    window.addEventListener('aibang-open-update-modal', handleWindowOpen);
 
     // The About button runs its own check and only reveals the card when an
     // update is actually available, handing over the already-fetched outcome.
@@ -262,7 +262,7 @@ export const useUpdateNotificationController = () => {
 
     return () => {
       removeOpenListener();
-      window.removeEventListener('aionui-open-update-modal', handleWindowOpen);
+      window.removeEventListener('aibang-open-update-modal', handleWindowOpen);
       window.removeEventListener(UPDATE_AVAILABLE_EVENT, handleAvailable);
     };
   }, [openUpdateNotification, presentAvailableOutcome]);

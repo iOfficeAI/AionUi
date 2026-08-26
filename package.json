@@ -1,11 +1,11 @@
 {
-  "name": "AionUi",
+  "name": "AIbang",
   "version": "2.1.61",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
+    "name": "AIbang",
     "email": "service@aionui.com"
   },
   "workspaces": [
@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.18.2",
-    "@aionui/web-host": "workspace:*",
+    "@aibang/web-host": "workspace:*",
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@aws-sdk/client-bedrock": "^3.987.0",

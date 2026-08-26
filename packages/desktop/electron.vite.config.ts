@@ -7,7 +7,7 @@ import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-// Read the real AionUi version from the repo-root package.json.
+// Read the real AIbang version from the repo-root package.json.
 // `packages/desktop/package.json` is a workspace-internal placeholder pinned
 // at "0.0.0" — never use it for user-visible version strings.
 const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8')) as {
@@ -99,10 +99,10 @@ export default defineConfig(({ mode }) => {
       plugins: [
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
-        // '@aionui/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)
-        // are bundled by esbuild rather than left as `require('@aionui/web-host')`, which Node
+        // '@aibang/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)
+        // are bundled by esbuild rather than left as `require('@aibang/web-host')`, which Node
         // cannot resolve because the package ships no compiled .js files (workspace-only).
-        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'] }),
+        externalizeDepsPlugin({ exclude: ['fix-path', '@aibang/web-host'] }),
         ...(isDevelopment
           ? [
               {
@@ -153,7 +153,7 @@ export default defineConfig(({ mode }) => {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
-        // Discontinued-build fork flag (see discontinuedBuild.ts). Only AionUi's
+        // Discontinued-build fork flag (see discontinuedBuild.ts). Only AIbang's
         // final `-final` tag build sets IS_DISCONTINUED_BUILD=true in CI.
         'process.env.IS_DISCONTINUED_BUILD': JSON.stringify(process.env.IS_DISCONTINUED_BUILD === 'true'),
       },
@@ -196,7 +196,7 @@ export default defineConfig(({ mode }) => {
       publicDir: resolve('public'),
       appType: 'mpa',
       server: {
-        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Default to 5173; when occupied (e.g. another AIbang clone is running),
         // Vite auto-increments to the next available port.
         // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
@@ -316,7 +316,7 @@ export default defineConfig(({ mode }) => {
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
-        // Inject the real AionUi version (root package.json) so renderer code
+        // Inject the real AIbang version (root package.json) so renderer code
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),

@@ -311,7 +311,7 @@ const AddPlatformModal = ModalHOC<{
       setOpenAiApiMode('auto');
       setIsFullUrl(false);
 
-      // Pre-fill from deep link data (aionui:// protocol)
+      // Pre-fill from deep link data (aibang:// protocol)
       if (deepLinkData?.base_url || deepLinkData?.api_key) {
         // Default to new-api platform for deep links (typical one-api/new-api usage)
         form.setFieldValue('platform', deepLinkData.platform || 'new-api');

@@ -39,8 +39,8 @@ const SIBLING_BACKEND_PORT = 25903;
  * corpus. These come from the SKILL.md frontmatter, not the directory name
  * (e.g. `auto-inject/office-cli/SKILL.md` emits `name: officecli`).
  */
-const REMOVED_AUTO_INJECT_NAME = 'aionui-skills';
-const REMOVED_AUTO_INJECT_DIR_NAME = 'aionui-skills';
+const REMOVED_AUTO_INJECT_NAME = 'aibang-skills';
+const REMOVED_AUTO_INJECT_DIR_NAME = 'aibang-skills';
 const AUTO_INJECT_EXPECTED_NAMES = ['cron', 'officecli', 'skill-creator'] as const;
 
 /**
@@ -278,7 +278,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     // SkillsHubSettings.tsx uses when the user clicks "Export".
     const probe = builtins[0];
     const skillPath = probe.location.replace(/[\\/]SKILL\.md$/, '');
-    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-s7-export-'));
+    const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-s7-export-'));
     try {
       await httpPost(page, '/api/skills/export-symlink', {
         skill_path: skillPath,
@@ -389,7 +389,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     }
 
     test.beforeEach(() => {
-      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-builtin-skill-'));
+      dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-e2e-builtin-skill-'));
     });
 
     test.afterEach(async () => {
@@ -467,7 +467,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
       //
       // Then, on the host side, we check the most likely cache locations
       // for a leftover `builtin-skills/` directory under the canonical
-      // `~/.aionui-config` tree. Failing that we at least assert the
+      // `~/.aibang-config` tree. Failing that we at least assert the
       // helper is non-destructive when no legacy dir exists — we do so
       // by seeding one under the sibling backend's data-dir and observing
       // that it is ignored (the *backend* does not own this cleanup; it
@@ -499,15 +499,15 @@ test.describe('Built-in Skill Migration (T3)', () => {
       // The authoritative assertion is Vitest on
       // `cleanupLegacyBuiltinSkillsDir` plus T4 packaging smoke.
       const candidates = [
-        path.join(os.homedir(), '.aionui-config', 'builtin-skills'),
-        path.join(os.homedir(), '.aionui-config-dev', 'builtin-skills'),
+        path.join(os.homedir(), '.aibang-config', 'builtin-skills'),
+        path.join(os.homedir(), '.aibang-config-dev', 'builtin-skills'),
       ];
       const survivors = candidates.filter((p) => fs.existsSync(p));
       test.info().annotations.push({
         type: 'note',
         description:
           survivors.length === 0
-            ? 'no legacy builtin-skills cache dirs detected under ~/.aionui-config*'
+            ? 'no legacy builtin-skills cache dirs detected under ~/.aibang-config*'
             : `legacy dirs still present (async cleanup pending): ${survivors.join(', ')}`,
       });
     });

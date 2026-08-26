@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 AionUi (aionui.com)
+ * Copyright 2026 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -54,7 +54,7 @@ vi.mock('@/renderer/components/settings/updateReadyState', () => ({
 }));
 
 vi.mock('@/renderer/components/settings/useUpdateNotificationController', () => ({
-  UPDATE_AVAILABLE_EVENT: 'aionui-update-available',
+  UPDATE_AVAILABLE_EVENT: 'aibang-update-available',
 }));
 
 vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal', () => ({ default: () => null }));

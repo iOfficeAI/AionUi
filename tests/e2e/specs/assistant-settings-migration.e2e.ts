@@ -2,7 +2,7 @@
  * Assistant Settings Migration — phase-1 governance E2E coverage.
  *
  * These tests exercise a real upgrade path:
- * 1. seed a legacy `aionui.db` using the pre-unification assistants schema
+ * 1. seed a legacy `aibang.db` using the pre-unification assistants schema
  * 2. start the current backend against that data dir
  * 3. verify phase-1 assistant fields and overlays are materialized correctly
  */
@@ -85,16 +85,16 @@ function resolveBackendBinary(): string {
 }
 
 function schemaPath(): string {
-  return path.join(process.cwd(), '../aionCore/crates/aionui-db/migrations/001_initial_schema.sql');
+  return path.join(process.cwd(), '../aionCore/crates/aibang-db/migrations/001_initial_schema.sql');
 }
 
 function querySqliteValue(dataDir: string, sql: string): string {
-  const dbPath = path.join(dataDir, 'aionui-backend.db');
+  const dbPath = path.join(dataDir, 'aibang-backend.db');
   return execFileSync('sqlite3', ['-readonly', dbPath, sql], { encoding: 'utf8' }).trim();
 }
 
 function seedLegacyDatabase(dataDir: string): void {
-  const legacyDbPath = path.join(dataDir, 'aionui.db');
+  const legacyDbPath = path.join(dataDir, 'aibang.db');
   const schemaSql = fs.readFileSync(schemaPath(), 'utf8');
   execFileSync('sqlite3', [legacyDbPath], { input: schemaSql, encoding: 'utf8' });
 
@@ -210,7 +210,7 @@ test.describe('Assistant Settings Migration', () => {
   }
 
   test.beforeEach(async () => {
-    dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-assistant-migration-'));
+    dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-assistant-migration-'));
     seedLegacyDatabase(dataDir);
     await startBackend();
   });
