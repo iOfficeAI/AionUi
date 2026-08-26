@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: AIbang
+executableName: AIbang
+copyright: Copyright © 2026 AIbang
 
 protocols:
-  - name: AionUi Protocol
+  - name: AIbang Protocol
     schemes:
       - aionui
 
@@ -169,15 +169,15 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: AIbang
+  vendor: AIbang
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: AIbang
       Comment: ${description}
-      Icon: AionUi
+      Icon: AIbang
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
 

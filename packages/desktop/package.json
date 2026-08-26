@@ -2,7 +2,7 @@
   "name": "@aionui/desktop",
   "version": "0.0.0",
   "private": true,
-  "description": "AionUi desktop Electron application",
+  "description": "AIbang desktop Electron application",
   "main": "../../out/main/index.js",
   "dependencies": {
     "@aionui/web-host": "workspace:*"

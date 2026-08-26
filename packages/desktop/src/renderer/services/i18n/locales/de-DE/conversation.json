@@ -12,10 +12,10 @@
     "clearWorkspace": "Ordner entfernen",
     "openFolder": "Ordner öffnen",
     "none": "Keiner",
-    "quickActionsTitle": "Was kann AionUi?",
+    "quickActionsTitle": "Was kann AIbang?",
     "quickActionFeedback": "Feedback oder Vorschläge?",
-    "quickActionStar": "Gefällt dir AionUi? Gib uns einen Stern!",
-    "skillsMarket": "AionUi Skills-Markt",
+    "quickActionStar": "Gefällt dir AIbang? Gib uns einen Stern!",
+    "skillsMarket": "AIbang Skills-Markt",
     "skillsMarketDesc": "Community-Skills auf Abruf suchen und aktivieren. Einmal konfigurieren, für alle Agenten verfügbar.",
     "skillsMarketDetails": "Mehr anzeigen >>"
   },
@@ -319,7 +319,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "AIbang could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -327,11 +327,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "AIbang received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "AIbang could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -620,13 +620,13 @@
         "body": "{{count}} Schritt(e) sind fehlgeschlagen und wurden NICHT ausgeführt. agy schließt solche Durchläufe trotzdem als erfolgreich ab – prüfe daher das tatsächliche Ergebnis statt der Antwort."
       },
       "CLI_VERSION_OLDER": {
-        "body": "Das installierte {{cli}} ist älter als die von AionUi verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade von {{cli}} wird empfohlen. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+        "body": "Das installierte {{cli}} ist älter als die von AIbang verifizierte Version; einige Funktionen fehlen möglicherweise. Ein Upgrade von {{cli}} wird empfohlen. (installiert: {{reported}} / von AIbang verifiziert: {{verified}})"
       },
       "CLI_VERSION_NEWER": {
-        "body": "Das installierte {{cli}} ist neuer als die von AionUi verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AionUi verifiziert: {{verified}})"
+        "body": "Das installierte {{cli}} ist neuer als die von AIbang verifizierte Version. Es sollte weiterhin funktionieren; melden Sie ungewöhnliches Verhalten. (installiert: {{reported}} / von AIbang verifiziert: {{verified}})"
       },
       "CODEX_RETRYING": {
-        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AionUi wartet ab.)"
+        "body": "{{detail}} (Versuch {{attempts}}, bisher {{elapsed}} – der Anbieter des Agents bricht die Verbindung wiederholt ab; AIbang wartet ab.)"
       }
     }
   },
@@ -705,7 +705,7 @@
         "conflicted": "!",
         "unknown": "?"
       },
-      "conflictedHint": "Lösen Sie diesen Konflikt zuerst außerhalb von AionUi",
+      "conflictedHint": "Lösen Sie diesen Konflikt zuerst außerhalb von AIbang",
       "opaqueHint": "Dieser Status kommt von einem neueren Backend — nur lesend angezeigt",
       "degraded": "Die Aktualisierung läuft langsamer, weil der git-Index nicht geschrieben werden kann",
       "truncated": "Zu viele Änderungen — nur der erste Teil wird angezeigt",
@@ -724,7 +724,7 @@
         "discard": "Änderungen verwerfen",
         "stageAll": "Alle vormerken",
         "unstageAll": "Alle Vormerkungen aufheben",
-        "blockedHint": "Lösen Sie den Konflikt außerhalb von AionUi, bevor Sie vormerken oder verwerfen",
+        "blockedHint": "Lösen Sie den Konflikt außerhalb von AIbang, bevor Sie vormerken oder verwerfen",
         "confirmDiscardTitle": "Änderungen verwerfen?",
         "confirmDiscardTracked": "Die Änderungen an {{count}} Dateien gehen verloren. Das kann nicht rückgängig gemacht werden.",
         "confirmDiscardUntracked": "{{count}} neue Dateien werden in den Papierkorb verschoben.",

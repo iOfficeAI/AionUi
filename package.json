@@ -209,7 +209,7 @@
     "builder-util": "26.15.0",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
-    "electron": "^37.10.3",
+    "electron": "37.10.3",
     "electron-builder": "26.15.2",
     "electron-builder-squirrel-windows": "26.15.2",
     "electron-devtools-installer": "^4.0.0",
@@ -268,5 +268,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "AIbang"
 }

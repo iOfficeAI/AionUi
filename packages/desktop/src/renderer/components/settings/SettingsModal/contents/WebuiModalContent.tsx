@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -668,7 +668,7 @@ const WebuiModalContent: React.FC = () => {
                     void talkToButler({
                       prompt: t('settings.talkToButler.prompt.setupRemote', {
                         defaultValue:
-                          'Help me set up remote access so I can open AionUi from my phone or over the internet.',
+                          'Help me set up remote access so I can open AIbang from my phone or over the internet.',
                       }),
                     })
                   }

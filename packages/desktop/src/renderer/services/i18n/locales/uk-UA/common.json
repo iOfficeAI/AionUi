@@ -67,10 +67,10 @@
   "more": "Більше",
   "refresh": "Оновити",
   "readOnly": "Лише читання",
-  "tray.showWindow": "Показати AionUi",
+  "tray.showWindow": "Показати AIbang",
   "tray.newChat": "Новий чат",
   "tray.closeToTray": "Згорнути в трей",
-  "tray.about": "Про AionUi",
+  "tray.about": "Про AIbang",
   "tray.restart": "Перезапустити програму",
   "tray.quit": "Вийти",
   "tray.runningTasks": "Запущені завдання",
@@ -81,39 +81,39 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Ця система не підтримується вбудованим backend",
-      "description": "AionUi відкрився, але локальний backend AionCore не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть AionUi.",
+      "description": "AIbang відкрився, але локальний backend AionCore не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть AIbang.",
       "requiredVersions": "Потрібні символи середовища виконання: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "Встановлення AionUi неповне",
-      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому AionCore не може запуститися. Завантажте та перевстановіть останню версію AionUi. Якщо проблема повториться після перевстановлення, перевірте, чи захисне або антивірусне ПЗ не помістило AionCore у карантин.",
+      "title": "Встановлення AIbang неповне",
+      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому AionCore не може запуститися. Завантажте та перевстановіть останню версію AIbang. Якщо проблема повториться після перевстановлення, перевірте, чи захисне або антивірусне ПЗ не помістило AionCore у карантин.",
       "downloadLatest": "Завантажити останню версію",
       "sendDiagnostics": "Надіслати діагностику",
       "diagnosticsSent": "Діагностику надіслано",
       "diagnosticsReportSuccess": "Діагностичний звіт надіслано",
       "diagnosticsReportFailed": "Не вдалося надіслати діагностичний звіт",
-      "runtimeComponentDescription": "У цій інсталяції бракує потрібних вбудованих компонентів середовища виконання, тому {{resource}} не може запуститися. Перевстановіть найновіший пакет AionUi. Якщо проблема повториться після перевстановлення, перевірте, чи не помістило програмне забезпечення безпеки або антивірус компоненти AionUi у карантин."
+      "runtimeComponentDescription": "У цій інсталяції бракує потрібних вбудованих компонентів середовища виконання, тому {{resource}} не може запуститися. Перевстановіть найновіший пакет AIbang. Якщо проблема повториться після перевстановлення, перевірте, чи не помістило програмне забезпечення безпеки або антивірус компоненти AIbang у карантин."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "AIbang package architecture mismatch",
+      "description": "This AIbang package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     },
     "dataMigration": {
       "title": "Local data migration failed",
-      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
+      "description": "AIbang opened, but AionCore stopped while initializing local data. Reinstalling AIbang may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
     "databaseNewerThanApp": {
-      "title": "Потрібна новіша версія AionUi",
-      "description": "Ваші локальні дані створено новішою версією AionUi, і ця версія не може їх відкрити. Оновіть AionUi до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні.",
-      "descriptionWithVersion": "Ваші локальні дані створено версією AionUi, новішою за встановлену зараз (v{{currentVersion}}), тому ця версія не може їх відкрити. Оновіть AionUi до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні."
+      "title": "Потрібна новіша версія AIbang",
+      "description": "Ваші локальні дані створено новішою версією AIbang, і ця версія не може їх відкрити. Оновіть AIbang до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні.",
+      "descriptionWithVersion": "Ваші локальні дані створено версією AIbang, новішою за встановлену зараз (v{{currentVersion}}), тому ця версія не може їх відкрити. Оновіть AIbang до останньої версії, щоб продовжити — дані цілі, перевстановлення чи скидання не потрібні."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
-      "description": "AionUi відкрився, але AionCore зупинився під час підготовки локальних даних запуску, як-от записи assistants або агентів. Повторне встановлення AionUi може не вирішити проблему. Надішліть діагностичний звіт або зверніться до підтримки, щоб можна було перевірити локальну базу даних.",
+      "description": "AIbang відкрився, але AionCore зупинився під час підготовки локальних даних запуску, як-от записи assistants або агентів. Повторне встановлення AIbang може не вирішити проблему. Надішліть діагностичний звіт або зверніться до підтримки, щоб можна було перевірити локальну базу даних.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -121,7 +121,7 @@
     },
     "startupDirectory": {
       "title": "Startup directory is unavailable",
-      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
+      "description": "AIbang opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AIbang.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -129,7 +129,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Локальні дані пошкоджено",
-      "description": "AionUi виявив пошкодження локальної бази даних і не може продовжити запуск. Після підтвердження стару базу даних буде збережено як резервну копію, а для продовження запуску буде створено нову локальну базу даних. Попередні розмови більше не відображатимуться, стара база даних збережеться як файл резервної копії.",
+      "description": "AIbang виявив пошкодження локальної бази даних і не може продовжити запуск. Після підтвердження стару базу даних буде збережено як резервну копію, а для продовження запуску буде створено нову локальну базу даних. Попередні розмови більше не відображатимуться, стара база даних збережеться як файл резервної копії.",
       "confirmRebuild": "Зберегти стару БД і створити нову",
       "sendDiagnostics": "Надіслати діагностику",
       "diagnosticsHint": "Надсилання діагностики не змінить локальну базу даних.",
@@ -145,8 +145,8 @@
       }
     },
     "transientConcurrentStartup": {
-      "title": "AionUi запускається",
-      "description": "Коли це вікно відкрилося, інший процес запуску AionUi усе ще використовував локальні дані. Це тимчасово, і ваші дані в безпеці — перевстановлення не потрібне. Зачекайте трохи та повторіть спробу або перезапустіть AionUi.",
+      "title": "AIbang запускається",
+      "description": "Коли це вікно відкрилося, інший процес запуску AIbang усе ще використовував локальні дані. Це тимчасово, і ваші дані в безпеці — перевстановлення не потрібне. Зачекайте трохи та повторіть спробу або перезапустіть AIbang.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",

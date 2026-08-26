@@ -38,6 +38,16 @@ if (!app.isPackaged && !e2eUserDataDir) {
   // Explicitly override userData to the dev directory.
   const appSupportDir = path.dirname(app.getPath('userData'));
   app.setPath('userData', path.join(appSupportDir, devAppName));
+} else if (app.isPackaged) {
+  // Brand rename AionUi → AIbang: keep the packaged userData directory at the
+  // legacy "AionUi" path so existing installs don't lose login state, configs
+  // and caches when upgrading to the renamed build.
+  // 品牌更名 AionUi → AIbang：打包版 userData 保持旧目录，升级不丢数据。
+  const current = app.getPath('userData');
+  if (!current.endsWith(path.sep + 'AionUi')) {
+    const appSupportDir = path.dirname(current);
+    app.setPath('userData', path.join(appSupportDir, 'AionUi'));
+  }
 }
 
 // app.disableHardwareAcceleration() must run before app is ready.

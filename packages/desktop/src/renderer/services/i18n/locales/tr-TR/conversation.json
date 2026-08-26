@@ -12,10 +12,10 @@
     "clearWorkspace": "Projeyi kaldır",
     "openFolder": "Klasör Aç",
     "none": "Hiçbiri",
-    "quickActionsTitle": "AionUi neler yapabilir?",
+    "quickActionsTitle": "AIbang neler yapabilir?",
     "quickActionFeedback": "Sorun Bildir",
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "AIbang Skills Market",
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
     "skillsMarketDetails": "Ayrıntılar >>"
   },
@@ -302,7 +302,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "AIbang could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -310,11 +310,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "AIbang received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "AIbang could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -621,13 +621,13 @@
         "body": "{{count}} adım başarısız oldu ve etkili OLMADI. agy bu turları yine de başarılı olarak bitirir; bu yüzden yanıta değil gerçek sonuca bakın."
       },
       "CLI_VERSION_OLDER": {
-        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. {{cli}} sürümünü yükseltmeyi düşünün. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
+        "body": "Kurulu {{cli}} sürümü AIbang tarafından doğrulanan sürümden eski; bazı özellikler eksik olabilir. {{cli}} sürümünü yükseltmeyi düşünün. (kurulu: {{reported}} / AIbang tarafından doğrulanan: {{verified}})"
       },
       "CLI_VERSION_NEWER": {
-        "body": "Kurulu {{cli}} sürümü AionUi tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / AionUi tarafından doğrulanan: {{verified}})"
+        "body": "Kurulu {{cli}} sürümü AIbang tarafından doğrulanan sürümden yeni. Genelde çalışır; tuhaf bir davranış görürseniz bildirin. (kurulu: {{reported}} / AIbang tarafından doğrulanan: {{verified}})"
       },
       "CODEX_RETRYING": {
-        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; AionUi bekliyor.)"
+        "body": "{{detail}} ({{attempts}}. deneme, {{elapsed}} geçti — aracının sağlayıcısı bağlantıyı sürekli kesiyor; AIbang bekliyor.)"
       }
     }
   },
@@ -706,7 +706,7 @@
         "conflicted": "!",
         "unknown": "?"
       },
-      "conflictedHint": "Bu çakışmayı önce AionUi dışında çözün",
+      "conflictedHint": "Bu çakışmayı önce AIbang dışında çözün",
       "opaqueHint": "Bu durum daha yeni bir arka uçtan geliyor — salt okunur gösteriliyor",
       "degraded": "git dizini güncellenemediği için yenileme daha yavaş bir modda çalışıyor",
       "truncated": "Listelenecek çok fazla değişiklik var — yalnızca ilk kısım gösteriliyor",
@@ -725,7 +725,7 @@
         "discard": "Değişiklikleri sil",
         "stageAll": "Tümünü hazırla",
         "unstageAll": "Tümünün hazırlamasını geri al",
-        "blockedHint": "Hazırlamadan veya silmeden önce çakışmayı AionUi dışında çözün",
+        "blockedHint": "Hazırlamadan veya silmeden önce çakışmayı AIbang dışında çözün",
         "confirmDiscardTitle": "Değişiklikler silinsin mi?",
         "confirmDiscardTracked": "{{count}} dosyadaki düzenlemeler kaybolacak. Bu geri alınamaz.",
         "confirmDiscardUntracked": "{{count}} yeni dosya çöp kutusuna taşınacak.",

@@ -65,10 +65,10 @@
   "more": "Daha Fazla",
   "refresh": "Yenile",
   "readOnly": "Salt okunur",
-  "tray.showWindow": "AionUi'yi Göster",
+  "tray.showWindow": "AIbang'yi Göster",
   "tray.newChat": "Yeni Sohbet",
   "tray.closeToTray": "Tepsiye Gizle",
-  "tray.about": "AionUi Hakkında",
+  "tray.about": "AIbang Hakkında",
   "tray.restart": "Uygulamayı Yeniden Başlat",
   "tray.quit": "Çıkış",
   "tray.runningTasks": "Çalışan Görevler",
@@ -79,39 +79,39 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Bu sistem paketlenmiş backend tarafından desteklenmiyor",
-      "description": "AionUi açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip AionUi'yi yeniden başlatın.",
+      "description": "AIbang açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip AIbang'yi yeniden başlatın.",
       "requiredVersions": "Gerekli çalışma zamanı sembolleri: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi kurulumu eksik",
-      "description": "Bu kurulumda gerekli yerel kaynaklar eksik, bu yüzden AionCore başlatılamıyor. Lütfen en son AionUi sürümünü indirip yeniden kurun. Yeniden kurulumdan sonra sorun tekrarlarsa güvenlik veya antivirüs yazılımının AionCore'u karantinaya alıp almadığını kontrol edin.",
+      "title": "AIbang kurulumu eksik",
+      "description": "Bu kurulumda gerekli yerel kaynaklar eksik, bu yüzden AionCore başlatılamıyor. Lütfen en son AIbang sürümünü indirip yeniden kurun. Yeniden kurulumdan sonra sorun tekrarlarsa güvenlik veya antivirüs yazılımının AionCore'u karantinaya alıp almadığını kontrol edin.",
       "downloadLatest": "Son sürümü indir",
       "sendDiagnostics": "Tanı raporu gönder",
       "diagnosticsSent": "Tanı raporu gönderildi",
       "diagnosticsReportSuccess": "Tanı raporu gönderildi",
       "diagnosticsReportFailed": "Tanı raporu gönderilemedi",
-      "runtimeComponentDescription": "Bu kurulumda gerekli yerleşik çalışma zamanı bileşenleri eksik olduğu için {{resource}} başlatılamıyor. En son AionUi paketini yeniden yükleyin. Yeniden yükledikten sonra da devam ederse güvenlik veya antivirüs yazılımının AionUi bileşenlerini karantinaya alıp almadığını kontrol edin."
+      "runtimeComponentDescription": "Bu kurulumda gerekli yerleşik çalışma zamanı bileşenleri eksik olduğu için {{resource}} başlatılamıyor. En son AIbang paketini yeniden yükleyin. Yeniden yükledikten sonra da devam ederse güvenlik veya antivirüs yazılımının AIbang bileşenlerini karantinaya alıp almadığını kontrol edin."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "AIbang package architecture mismatch",
+      "description": "This AIbang package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     },
     "dataMigration": {
       "title": "Local data migration failed",
-      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
+      "description": "AIbang opened, but AionCore stopped while initializing local data. Reinstalling AIbang may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
     "databaseNewerThanApp": {
-      "title": "Daha yeni bir AionUi sürümü gerekli",
-      "description": "Yerel verileriniz AionUi'nin daha yeni bir sürümü tarafından oluşturuldu ve bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez.",
-      "descriptionWithVersion": "Yerel verileriniz şu an yüklü olandan (v{{currentVersion}}) daha yeni bir AionUi sürümü tarafından oluşturuldu; bu sürüm bunları açamıyor. Devam etmek için AionUi'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez."
+      "title": "Daha yeni bir AIbang sürümü gerekli",
+      "description": "Yerel verileriniz AIbang'nin daha yeni bir sürümü tarafından oluşturuldu ve bu sürüm bunları açamıyor. Devam etmek için AIbang'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez.",
+      "descriptionWithVersion": "Yerel verileriniz şu an yüklü olandan (v{{currentVersion}}) daha yeni bir AIbang sürümü tarafından oluşturuldu; bu sürüm bunları açamıyor. Devam etmek için AIbang'yi en son sürüme güncelleyin; verileriniz sağlam, yeniden yükleme veya sıfırlama gerekmez."
     },
     "localDataRepair": {
       "title": "Local data repair failed",
-      "description": "AionUi açıldı, ancak AionCore assistant veya agent kayıtları gibi yerel başlangıç verilerini hazırlarken durdu. AionUi'yi yeniden yüklemek bu sorunu çözmeyebilir. Yerel veritabanının incelenebilmesi için tanılama raporu gönderin veya destek ekibiyle iletişime geçin.",
+      "description": "AIbang açıldı, ancak AionCore assistant veya agent kayıtları gibi yerel başlangıç verilerini hazırlarken durdu. AIbang'yi yeniden yüklemek bu sorunu çözmeyebilir. Yerel veritabanının incelenebilmesi için tanılama raporu gönderin veya destek ekibiyle iletişime geçin.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -119,7 +119,7 @@
     },
     "startupDirectory": {
       "title": "Startup directory is unavailable",
-      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
+      "description": "AIbang opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AIbang.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -127,7 +127,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Yerel veriler bozulmuş",
-      "description": "AionUi yerel veritabanının bozulduğunu algıladı ve başlatmaya devam edemiyor. Onaydan sonra eski veritabanı yedeklenecek ve başlatmaya devam etmek için yeni bir yerel veritabanı oluşturulacak. Geçmiş sohbetler artık gösterilmeyecek ve eski veritabanı yedek dosyası olarak saklanacak.",
+      "description": "AIbang yerel veritabanının bozulduğunu algıladı ve başlatmaya devam edemiyor. Onaydan sonra eski veritabanı yedeklenecek ve başlatmaya devam etmek için yeni bir yerel veritabanı oluşturulacak. Geçmiş sohbetler artık gösterilmeyecek ve eski veritabanı yedek dosyası olarak saklanacak.",
       "confirmRebuild": "Eski DB'yi yedekle ve yeni DB oluştur",
       "sendDiagnostics": "Tanılama gönder",
       "diagnosticsHint": "Tanılama göndermek yerel veritabanını değiştirmez.",
@@ -143,8 +143,8 @@
       }
     },
     "transientConcurrentStartup": {
-      "title": "AionUi başlatılıyor",
-      "description": "Bu pencere açıldığında başka bir AionUi başlatma işlemi yerel verileri hâlâ kullanıyordu. Bu geçicidir ve verileriniz güvende — yeniden yükleme gerekmez. Lütfen biraz bekleyip tekrar deneyin veya AionUi'yi yeniden başlatın.",
+      "title": "AIbang başlatılıyor",
+      "description": "Bu pencere açıldığında başka bir AIbang başlatma işlemi yerel verileri hâlâ kullanıyordu. Bu geçicidir ve verileriniz güvende — yeniden yükleme gerekmez. Lütfen biraz bekleyip tekrar deneyin veya AIbang'yi yeniden başlatın.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",

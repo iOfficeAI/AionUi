@@ -65,10 +65,10 @@
   "more": "Plus",
   "refresh": "Actualiser",
   "readOnly": "Lecture seule",
-  "tray.showWindow": "Afficher AionUi",
+  "tray.showWindow": "Afficher AIbang",
   "tray.newChat": "Nouveau chat",
   "tray.closeToTray": "Réduire dans la barre système",
-  "tray.about": "À propos d'AionUi",
+  "tray.about": "À propos d'AIbang",
   "tray.restart": "Redémarrer l'application",
   "tray.quit": "Quitter",
   "tray.runningTasks": "Tâches en cours",
@@ -79,39 +79,39 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Ce système n'est pas pris en charge par le backend fourni",
-      "description": "AionUi s'est ouvert, mais le backend local AionCore ne peut pas fonctionner sur cette version de Linux. Veuillez effectuer une mise à niveau vers une distribution Linux prise en charge et redémarrer AionUi.",
+      "description": "AIbang s'est ouvert, mais le backend local AionCore ne peut pas fonctionner sur cette version de Linux. Veuillez effectuer une mise à niveau vers une distribution Linux prise en charge et redémarrer AIbang.",
       "requiredVersions": "Symboles d'exécution requis : {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "L'installation d'AionUi est incomplète",
-      "description": "Cette installation ne dispose pas des ressources locales requises, AionCore ne peut donc pas démarrer. Veuillez télécharger et réinstaller la dernière version d'AionUi. Si le problème réapparaît après la réinstallation, vérifiez si un logiciel de sécurité ou antivirus a mis AionCore en quarantaine.",
+      "title": "L'installation d'AIbang est incomplète",
+      "description": "Cette installation ne dispose pas des ressources locales requises, AionCore ne peut donc pas démarrer. Veuillez télécharger et réinstaller la dernière version d'AIbang. Si le problème réapparaît après la réinstallation, vérifiez si un logiciel de sécurité ou antivirus a mis AionCore en quarantaine.",
       "downloadLatest": "Télécharger le dernier",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic",
-      "runtimeComponentDescription": "Il manque les composants d'exécution groupés requis dans cette installation, donc {{resource}} ne peut pas démarrer. Réinstallez le dernier package AionUi. Si cela se produit toujours après la réinstallation, vérifiez si un logiciel de sécurité ou un antivirus a mis en quarantaine les composants AionUi."
+      "runtimeComponentDescription": "Il manque les composants d'exécution groupés requis dans cette installation, donc {{resource}} ne peut pas démarrer. Réinstallez le dernier package AIbang. Si cela se produit toujours après la réinstallation, vérifiez si un logiciel de sécurité ou un antivirus a mis en quarantaine les composants AIbang."
     },
     "packageArchitectureMismatch": {
-      "title": "Inadéquation de l'architecture du package AionUi",
-      "description": "Ce package AionUi est pour {{packageArch}}, mais ce Mac est {{deviceArch}}. Vous avez peut-être téléchargé le mauvais package. Veuillez télécharger et installer le package {{expectedArch}}."
+      "title": "Inadéquation de l'architecture du package AIbang",
+      "description": "Ce package AIbang est pour {{packageArch}}, mais ce Mac est {{deviceArch}}. Vous avez peut-être téléchargé le mauvais package. Veuillez télécharger et installer le package {{expectedArch}}."
     },
     "dataMigration": {
       "title": "Échec de la migration des données locales",
-      "description": "AionUi s'est ouvert, mais AionCore s'est arrêté lors de l'initialisation des données locales. La réinstallation d'AionUi ne résoudra peut-être pas ce problème. Envoyez un rapport de diagnostic ou contactez le support afin que la migration de la base de données locale puisse être inspectée.",
+      "description": "AIbang s'est ouvert, mais AionCore s'est arrêté lors de l'initialisation des données locales. La réinstallation d'AIbang ne résoudra peut-être pas ce problème. Envoyez un rapport de diagnostic ou contactez le support afin que la migration de la base de données locale puisse être inspectée.",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
       "diagnosticsReportFailed": "Échec de l'envoi du rapport de diagnostic"
     },
     "databaseNewerThanApp": {
-      "title": "Une version plus récente d'AionUi est requise",
-      "description": "Vos données locales ont été créées par une version plus récente d'AionUi et cette version ne peut pas les ouvrir. Mettez à jour AionUi vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire.",
-      "descriptionWithVersion": "Vos données locales ont été créées par une version d'AionUi plus récente que celle installée actuellement (v{{currentVersion}}), cette version ne peut donc pas les ouvrir. Mettez à jour AionUi vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire."
+      "title": "Une version plus récente d'AIbang est requise",
+      "description": "Vos données locales ont été créées par une version plus récente d'AIbang et cette version ne peut pas les ouvrir. Mettez à jour AIbang vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire.",
+      "descriptionWithVersion": "Vos données locales ont été créées par une version d'AIbang plus récente que celle installée actuellement (v{{currentVersion}}), cette version ne peut donc pas les ouvrir. Mettez à jour AIbang vers la dernière version pour continuer : vos données sont intactes, aucune réinstallation ni réinitialisation n'est nécessaire."
     },
     "localDataRepair": {
       "title": "La réparation des données locales a échoué",
-      "description": "AionUi s'est ouvert, mais AionCore s'est arrêté lors de la préparation des données locales de démarrage, comme les enregistrements d'assistants ou d'agents. La réinstallation d'AionUi ne résoudra peut-être pas ce problème. Envoyez un rapport de diagnostic ou contactez l'assistance afin que la base de données locale puisse être inspectée.",
+      "description": "AIbang s'est ouvert, mais AionCore s'est arrêté lors de la préparation des données locales de démarrage, comme les enregistrements d'assistants ou d'agents. La réinstallation d'AIbang ne résoudra peut-être pas ce problème. Envoyez un rapport de diagnostic ou contactez l'assistance afin que la base de données locale puisse être inspectée.",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
@@ -119,7 +119,7 @@
     },
     "startupDirectory": {
       "title": "Le répertoire de démarrage n'est pas disponible",
-      "description": "AionUi s'est ouvert, mais AionCore n'a pas pu démarrer car le répertoire de travail ou de journal configuré est manquant, indisponible ou bloqué par les autorisations. Vérifiez que les répertoires configurés existent et sont accessibles en écriture, puis redémarrez AionUi.",
+      "description": "AIbang s'est ouvert, mais AionCore n'a pas pu démarrer car le répertoire de travail ou de journal configuré est manquant, indisponible ou bloqué par les autorisations. Vérifiez que les répertoires configurés existent et sont accessibles en écriture, puis redémarrez AIbang.",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",
@@ -127,7 +127,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "Les données locales sont corrompues",
-      "description": "AionUi a détecté que la base de données locale est corrompue et ne peut pas continuer le démarrage. Après confirmation, AionUi sauvegardera l'ancienne base de données et créera une nouvelle base de données locale pour continuer le démarrage. Les conversations passées ne seront plus affichées et l'ancienne base de données sera conservée comme fichier de sauvegarde.",
+      "description": "AIbang a détecté que la base de données locale est corrompue et ne peut pas continuer le démarrage. Après confirmation, AIbang sauvegardera l'ancienne base de données et créera une nouvelle base de données locale pour continuer le démarrage. Les conversations passées ne seront plus affichées et l'ancienne base de données sera conservée comme fichier de sauvegarde.",
       "confirmRebuild": "Sauvegarder l'ancienne base de données et reconstruire la nouvelle base de données",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsHint": "L'envoi de diagnostics ne modifiera pas la base de données locale.",
@@ -143,8 +143,8 @@
       }
     },
     "transientConcurrentStartup": {
-      "title": "AionUi démarre",
-      "description": "À l'ouverture de cette fenêtre, un autre démarrage d'AionUi utilisait encore les données locales. C'est temporaire et vos données sont en sécurité — aucune réinstallation n'est nécessaire. Veuillez patienter un instant et réessayer, ou redémarrer AionUi.",
+      "title": "AIbang démarre",
+      "description": "À l'ouverture de cette fenêtre, un autre démarrage d'AIbang utilisait encore les données locales. C'est temporaire et vos données sont en sécurité — aucune réinstallation n'est nécessaire. Veuillez patienter un instant et réessayer, ou redémarrer AIbang.",
       "sendDiagnostics": "Envoyer des diagnostics",
       "diagnosticsSent": "Diagnostics envoyés",
       "diagnosticsReportSuccess": "Rapport de diagnostic envoyé",

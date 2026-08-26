@@ -65,10 +65,10 @@
   "more": "その他",
   "refresh": "更新",
   "readOnly": "読み取り専用",
-  "tray.showWindow": "AionUi を表示",
+  "tray.showWindow": "AIbang を表示",
   "tray.newChat": "新しいチャット",
   "tray.closeToTray": "トレイに隠す",
-  "tray.about": "AionUi について",
+  "tray.about": "AIbang について",
   "tray.restart": "アプリを再起動",
   "tray.quit": "終了",
   "tray.runningTasks": "実行中のタスク",
@@ -79,39 +79,39 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "このシステムは同梱バックエンドに対応していません",
-      "description": "AionUi は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AionUi を再起動してください。",
+      "description": "AIbang は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AIbang を再起動してください。",
       "requiredVersions": "必要なランタイムシンボル: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi のインストールが不完全です",
-      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AionUi をダウンロードして再インストールしてください。再インストール後も問題が再発する場合は、セキュリティソフトまたはウイルス対策ソフトが AionCore を隔離していないか確認してください。",
+      "title": "AIbang のインストールが不完全です",
+      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AIbang をダウンロードして再インストールしてください。再インストール後も問題が再発する場合は、セキュリティソフトまたはウイルス対策ソフトが AionCore を隔離していないか確認してください。",
       "downloadLatest": "最新版をダウンロード",
       "sendDiagnostics": "診断レポートを送信",
       "diagnosticsSent": "診断レポートを送信済み",
       "diagnosticsReportSuccess": "診断レポートを送信しました",
       "diagnosticsReportFailed": "診断レポートの送信に失敗しました",
-      "runtimeComponentDescription": "このインストールには必要な組み込み実行コンポーネントが不足しているため、{{resource}} を起動できません。最新版の AionUi パッケージを再インストールしてください。再インストール後も続く場合は、セキュリティソフトまたはウイルス対策ソフトが AionUi コンポーネントを隔離していないか確認してください。"
+      "runtimeComponentDescription": "このインストールには必要な組み込み実行コンポーネントが不足しているため、{{resource}} を起動できません。最新版の AIbang パッケージを再インストールしてください。再インストール後も続く場合は、セキュリティソフトまたはウイルス対策ソフトが AIbang コンポーネントを隔離していないか確認してください。"
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "AIbang package architecture mismatch",
+      "description": "This AIbang package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     },
     "dataMigration": {
       "title": "Local data migration failed",
-      "description": "AionUi opened, but AionCore stopped while initializing local data. Reinstalling AionUi may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
+      "description": "AIbang opened, but AionCore stopped while initializing local data. Reinstalling AIbang may not fix this. Send a diagnostics report or contact support so the local database migration can be inspected.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
       "diagnosticsReportFailed": "Failed to send diagnostics report"
     },
     "databaseNewerThanApp": {
-      "title": "新しいバージョンの AionUi が必要です",
-      "description": "ローカルデータはより新しいバージョンの AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。",
-      "descriptionWithVersion": "ローカルデータは現在のバージョン v{{currentVersion}} より新しい AionUi で作成されたため、このバージョンでは開けません。AionUi を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。"
+      "title": "新しいバージョンの AIbang が必要です",
+      "description": "ローカルデータはより新しいバージョンの AIbang で作成されたため、このバージョンでは開けません。AIbang を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。",
+      "descriptionWithVersion": "ローカルデータは現在のバージョン v{{currentVersion}} より新しい AIbang で作成されたため、このバージョンでは開けません。AIbang を最新バージョンに更新すれば続行できます。データは保持され、再インストールやリセットは不要です。"
     },
     "localDataRepair": {
       "title": "Local data repair failed",
-      "description": "AionUi は開きましたが、AionCore は assistant またはエージェントのレコードなどのローカル起動データを準備中に停止しました。AionUi を再インストールしても解決しない可能性があります。ローカルデータベースを確認できるよう、診断レポートを送信するかサポートに連絡してください。",
+      "description": "AIbang は開きましたが、AionCore は assistant またはエージェントのレコードなどのローカル起動データを準備中に停止しました。AIbang を再インストールしても解決しない可能性があります。ローカルデータベースを確認できるよう、診断レポートを送信するかサポートに連絡してください。",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -119,7 +119,7 @@
     },
     "startupDirectory": {
       "title": "Startup directory is unavailable",
-      "description": "AionUi opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AionUi.",
+      "description": "AIbang opened, but AionCore could not start because the configured work or log directory is missing, unavailable, or blocked by permissions. Check that the configured directories exist and are writable, then restart AIbang.",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",
@@ -127,7 +127,7 @@
     },
     "recoverableDatabaseCorruption": {
       "title": "ローカルデータが破損しています",
-      "description": "ローカルデータベースの破損を検出したため、AionUi は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去の会話は表示されなくなり、古いデータベースはバックアップファイルとして保持されます。",
+      "description": "ローカルデータベースの破損を検出したため、AIbang は起動を続行できません。確認後、古いデータベースをバックアップし、新しいローカルデータベースを作成して起動を続行します。過去の会話は表示されなくなり、古いデータベースはバックアップファイルとして保持されます。",
       "confirmRebuild": "古いDBをバックアップして新しいDBを再作成",
       "sendDiagnostics": "診断レポートを送信",
       "diagnosticsHint": "診断レポートの送信ではローカルデータベースは変更されません。",
@@ -143,8 +143,8 @@
       }
     },
     "transientConcurrentStartup": {
-      "title": "AionUi を起動しています",
-      "description": "このウィンドウを開いたとき、別の AionUi の起動処理がまだローカルデータを使用していました。これは一時的なもので、データは安全です。再インストールの必要はありません。少し待ってから再試行するか、AionUi を再起動してください。",
+      "title": "AIbang を起動しています",
+      "description": "このウィンドウを開いたとき、別の AIbang の起動処理がまだローカルデータを使用していました。これは一時的なもので、データは安全です。再インストールの必要はありません。少し待ってから再試行するか、AIbang を再起動してください。",
       "sendDiagnostics": "Send diagnostics",
       "diagnosticsSent": "Diagnostics sent",
       "diagnosticsReportSuccess": "Diagnostics report sent",

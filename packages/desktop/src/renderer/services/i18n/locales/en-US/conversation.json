@@ -12,10 +12,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can AionUi do?",
+    "quickActionsTitle": "What can AIbang do?",
     "quickActionFeedback": "Report Issue",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "AIbang Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
@@ -319,7 +319,7 @@
       },
       "MCP_HTTP_RESPONSE_READ_FAILED": {
         "title": "Failed to read the team helper response",
-        "body": "AionUi could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
+        "body": "AIbang could not read the local team helper response. Retry once, and if it keeps happening, restart the app."
       },
       "MCP_TOOL_REMOTE_ERROR": {
         "title": "The local team helper rejected the request",
@@ -327,11 +327,11 @@
       },
       "MCP_TOOL_RESPONSE_UNEXPECTED": {
         "title": "The team helper returned an unexpected response",
-        "body": "AionUi received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
+        "body": "AIbang received an unexpected response from the local team helper. Retry once, and report it if the problem persists."
       },
       "MCP_TCP_READ_FAILED": {
         "title": "Failed to read from the local team helper",
-        "body": "AionUi could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
+        "body": "AIbang could not read the local team helper TCP response. Retry once, and restart the app if it keeps failing."
       },
       "TEAM_SERVICE_UNAVAILABLE": {
         "title": "Team service is not ready yet",
@@ -619,13 +619,13 @@
         "body": "{{count}} step(s) failed and did NOT take effect. agy ends such turns as successful, so check the result rather than the reply."
       },
       "CLI_VERSION_OLDER": {
-        "body": "The installed {{cli}} is older than the version AionUi verified; some features may be missing. Consider upgrading {{cli}}. (installed {{reported}} / verified by AionUi: {{verified}})"
+        "body": "The installed {{cli}} is older than the version AIbang verified; some features may be missing. Consider upgrading {{cli}}. (installed {{reported}} / verified by AIbang: {{verified}})"
       },
       "CLI_VERSION_NEWER": {
-        "body": "The installed {{cli}} is newer than the version AionUi verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by AionUi: {{verified}})"
+        "body": "The installed {{cli}} is newer than the version AIbang verified. It should still work; report anything that behaves oddly. (installed {{reported}} / verified by AIbang: {{verified}})"
       },
       "CODEX_RETRYING": {
-        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; AionUi is waiting it out.)"
+        "body": "{{detail}} (attempt {{attempts}}, {{elapsed}} so far — the agent's provider keeps dropping the connection; AIbang is waiting it out.)"
       }
     }
   },
@@ -704,7 +704,7 @@
         "conflicted": "!",
         "unknown": "?"
       },
-      "conflictedHint": "Resolve this conflict outside AionUi first",
+      "conflictedHint": "Resolve this conflict outside AIbang first",
       "opaqueHint": "This state comes from a newer backend — shown read-only",
       "degraded": "Refresh is running in a slower mode because git's index can't be updated",
       "truncated": "Too many changes to list — showing the first part only",
@@ -723,7 +723,7 @@
         "discard": "Discard changes",
         "stageAll": "Stage all",
         "unstageAll": "Unstage all",
-        "blockedHint": "Resolve the conflict outside AionUi before staging or discarding",
+        "blockedHint": "Resolve the conflict outside AIbang before staging or discarding",
         "confirmDiscardTitle": "Discard changes?",
         "confirmDiscardTracked": "Edits to {{count}} files will be lost. This can’t be undone.",
         "confirmDiscardUntracked": "{{count}} new files will be moved to the trash.",

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AIbang (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -54,7 +54,7 @@ export const useBrowserNotification = (): void => {
           : t('settings.browserNotification.bodyTurnCompleted'),
       show: ({ body, conversationId }) => {
         try {
-          const notification = new Notification('AionUi', { body });
+          const notification = new Notification('AIbang', { body });
           notification.onclick = () => {
             window.focus();
             if (conversationId) void navigate(`/conversation/${conversationId}`);
