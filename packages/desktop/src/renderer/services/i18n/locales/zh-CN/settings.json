@@ -1413,5 +1413,7 @@
   "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
   "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
   "crossSessionMessageResume": "重新开启",
-  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败",
+  "openLastConversation": "启动时打开上次对话",
+  "openLastConversationDesc": "开启后，冷启动会打开最近一次对话，而不是欢迎页。若对话已删除则回退到欢迎页。"
 }

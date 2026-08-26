@@ -1414,5 +1414,7 @@
   "crossSessionMessageDesc": "에이전트가 다른 대화로 메시지를 보낼 수 있게 합니다. 끄면 입력창의 @@ 대화 멘션도 비활성화됩니다.",
   "crossSessionMessageDisabledBanner": "대화 간 메시지가 꺼져 있어 입력창의 @@ 대화 멘션을 사용할 수 없습니다.",
   "crossSessionMessageResume": "다시 켜기",
-  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다"
+  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다",
+  "openLastConversation": "시작 시 마지막 대화 열기",
+  "openLastConversationDesc": "켜면 콜드 스타트 시 환영 화면 대신 가장 최근 대화를 엽니다. 삭제된 경우 환영 화면으로 돌아갑니다."
 }

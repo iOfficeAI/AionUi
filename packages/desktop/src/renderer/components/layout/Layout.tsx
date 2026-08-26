@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import { configService } from '@/common/config/configService';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
@@ -14,6 +15,15 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
+import {
+  clearLastConversationId,
+  extractConversationIdFromPath,
+  isLaunchRestoreDone,
+  markLaunchRestoreDone,
+  readLastConversationId,
+  resolveLaunchConversationRoute,
+  writeLastConversationId,
+} from '@/renderer/utils/openLastConversation';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview';
 import { ProjectPanelHost } from '@renderer/components/layout/ProjectPanelHost';
 import { ProjectPanelMobileOverlay } from '@renderer/components/layout/ProjectPanelMobileOverlay';
@@ -344,6 +354,81 @@ const Layout: React.FC<{
       window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
     };
   }, [navigate]);
+
+  // Persist the last opened conversation so cold start can restore it.
+  useEffect(() => {
+    const conversationId = extractConversationIdFromPath(location.pathname);
+    if (conversationId) {
+      writeLastConversationId(conversationId);
+    }
+  }, [location.pathname]);
+
+  // Optional: on first landing at /guid after auth, open the last conversation.
+  useEffect(() => {
+    if (isLaunchRestoreDone()) {
+      return;
+    }
+    // Only act on the default home route so deep links / settings / teams are untouched.
+    if (location.pathname !== '/guid' && location.pathname !== '/') {
+      markLaunchRestoreDone();
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        await configService.whenReady();
+      } catch {
+        // If client settings fail to load, keep default GUID home.
+        markLaunchRestoreDone();
+        return;
+      }
+      if (cancelled) {
+        return;
+      }
+
+      const openLast = configService.get('system.openLastConversation') ?? false;
+      const lastId = readLastConversationId();
+      if (!openLast || !lastId) {
+        markLaunchRestoreDone();
+        return;
+      }
+
+      let conversationExists = false;
+      try {
+        const conversation = await ipcBridge.conversation.get.invoke({ id: lastId });
+        conversationExists = Boolean(conversation?.id);
+      } catch {
+        conversationExists = false;
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      if (!conversationExists) {
+        clearLastConversationId();
+        markLaunchRestoreDone();
+        return;
+      }
+
+      const target = resolveLaunchConversationRoute({
+        openLastConversation: openLast,
+        lastConversationId: lastId,
+        conversationExists: true,
+      });
+      markLaunchRestoreDone();
+      if (target !== '/guid') {
+        void navigate(target, { replace: true });
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, navigate]);
 
   const siderWidth = isMobile
     ? Math.max(

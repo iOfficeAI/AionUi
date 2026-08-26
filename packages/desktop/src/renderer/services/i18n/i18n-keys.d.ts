@@ -2266,6 +2266,8 @@ export type I18nKey =
   | 'settings.openAiApiModeResponses'
   | 'settings.openAiApiModeTip'
   | 'settings.openDevTools'
+  | 'settings.openLastConversation'
+  | 'settings.openLastConversationDesc'
   | 'settings.openai'
   | 'settings.packyapiAnthropicDetected'
   | 'settings.packyapiOpenAIDetected'

@@ -1412,5 +1412,7 @@
   "crossSessionMessageDesc": "Permet aux agents d'envoyer des messages à vos autres conversations. La désactivation coupe aussi la mention @@ dans la zone de saisie.",
   "crossSessionMessageDisabledBanner": "Les messages entre conversations sont désactivés, la mention @@ est indisponible.",
   "crossSessionMessageResume": "Réactiver",
-  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations"
+  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations",
+  "openLastConversation": "Ouvrir la dernière conversation au démarrage",
+  "openLastConversationDesc": "Si activé, AionUi ouvre la conversation la plus récente au démarrage au lieu de l'écran d'accueil. Si elle a été supprimée, retour à l'accueil."
 }

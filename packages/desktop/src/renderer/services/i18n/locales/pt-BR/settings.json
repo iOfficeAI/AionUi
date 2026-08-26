@@ -1415,5 +1415,7 @@
   "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",
   "crossSessionMessageDisabledBanner": "As mensagens entre conversas estão desativadas, a menção @@ não está disponível.",
   "crossSessionMessageResume": "Ativar novamente",
-  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas"
+  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas",
+  "openLastConversation": "Abrir última conversa ao iniciar",
+  "openLastConversationDesc": "Quando ativado, o AionUi abre a conversa mais recente no início em vez da tela de boas-vindas. Se foi excluída, volta para boas-vindas."
 }

@@ -1412,5 +1412,7 @@
   "crossSessionMessageDesc": "به عامل‌ها اجازه می‌دهد به گفتگوهای دیگر شما پیام بفرستند. با خاموش کردن، منشن @@ در کادر ورودی نیز غیرفعال می‌شود.",
   "crossSessionMessageDisabledBanner": "پیام‌های بین گفتگوها خاموش است، منشن @@ در دسترس نیست.",
   "crossSessionMessageResume": "روشن کردن دوباره",
-  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود"
+  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود",
+  "openLastConversation": "باز کردن آخرین گفتگو هنگام راه‌اندازی",
+  "openLastConversationDesc": "در صورت فعال بودن، AionUi هنگام شروع سرد آخرین گفتگوی شما را به جای صفحه خوش‌آمدگویی باز می‌کند. در صورت حذف شدن، به صفحه خوش‌آمدگویی برمی‌گردد."
 }

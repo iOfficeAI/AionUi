@@ -79,6 +79,7 @@ const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'system.notificationEnabled',
   'system.cronNotificationEnabled',
   'system.keepAwake',
+  'system.openLastConversation',
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {

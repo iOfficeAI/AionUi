@@ -1414,5 +1414,7 @@
   "crossSessionMessageDesc": "允許 Agent 向你的其他對話傳送訊息。關閉後，輸入框的 @@ 對話提及與投遞功能會同時停用。",
   "crossSessionMessageDisabledBanner": "跨對話訊息已關閉，輸入框的 @@ 對話提及不可用。",
   "crossSessionMessageResume": "重新開啟",
-  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗"
+  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗",
+  "openLastConversation": "啟動時開啟上次對話",
+  "openLastConversationDesc": "開啟後，冷啟動會開啟最近一次對話，而不是歡迎頁。若對話已刪除則回到歡迎頁。"
 }

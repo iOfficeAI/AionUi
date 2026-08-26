@@ -1412,5 +1412,7 @@
   "crossSessionMessageDesc": "Let agents send messages to your other conversations. Turning this off also disables the @@ conversation mention in the input box.",
   "crossSessionMessageDisabledBanner": "Cross-conversation messages are off, so the @@ conversation mention is unavailable.",
   "crossSessionMessageResume": "Turn back on",
-  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting"
+  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting",
+  "openLastConversation": "Open last conversation on launch",
+  "openLastConversationDesc": "When enabled, AionUi opens your most recent conversation on cold start instead of the welcome screen. Falls back to welcome if it was deleted."
 }

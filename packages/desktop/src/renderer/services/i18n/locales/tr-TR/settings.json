@@ -1412,5 +1412,7 @@
   "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
   "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
   "crossSessionMessageResume": "Yeniden aç",
-  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi",
+  "openLastConversation": "Başlangıçta son sohbeti aç",
+  "openLastConversationDesc": "Etkinleştirildiğinde AionUi soğuk başlangıçta karşılama ekranı yerine en son sohbeti açar. Silinmişse karşılama ekranına döner."
 }
