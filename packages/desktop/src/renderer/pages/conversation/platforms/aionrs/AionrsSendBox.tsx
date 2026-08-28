@@ -44,11 +44,12 @@ import type { SessionRef } from '@/common/adapter/ipcBridge';
 import CrossSessionDisabledBanner from '@/renderer/components/chat/CrossSessionDisabledBanner';
 import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { type ChatFileRef, chatFileRefPath, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { applyAutoModelForTurn, persistAutoModelConversationState } from '@/renderer/utils/autoModel';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -64,6 +65,9 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
 };
+
+const chatFileRefsRequireVision = (files: ChatFileRef[]): boolean =>
+  files.some((file) => getFileTypeInfo(chatFileRefPath(file)).contentType === 'image');
 
 const toModeLabel = (value: string): string =>
   value
@@ -275,6 +279,7 @@ const AionrsSendBox: React.FC<{
               conversationId: conversation_id,
               userInput: input,
               hasPriorUserTurns: autoUserTurnsRef.current > 0,
+              requireVision: chatFileRefsRequireVision(files),
               currentModel: current_model,
               providers,
               getAvailableModels,

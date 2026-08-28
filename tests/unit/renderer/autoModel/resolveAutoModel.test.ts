@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { IProvider } from '@/common/config/storage';
 import { defaultAutoModelSettings } from '@/renderer/utils/autoModel/constants';
 import { resolveAutoModel } from '@/renderer/utils/autoModel/resolveAutoModel';
-import { scoreModelForSlots } from '@/renderer/utils/autoModel/tierHeuristics';
+import { preferenceWeight, scoreModelForSlots } from '@/renderer/utils/autoModel/tierHeuristics';
 
 const provider = (id: string, models: string[]): IProvider =>
   ({
@@ -27,6 +27,30 @@ describe('scoreModelForSlots', () => {
     const haiku = scoreModelForSlots('claude-haiku-4');
     expect(opus.planner).toBeGreaterThan(haiku.planner);
     expect(haiku.utility).toBeGreaterThan(opus.utility);
+  });
+
+  it('does not double-boost gemini pro preview for planner', () => {
+    const preview = scoreModelForSlots('gemini-3-pro-preview');
+    const sonnet = scoreModelForSlots('claude-sonnet-4');
+    expect(preview.planner).toBeLessThanOrEqual(6);
+    expect(preview.planner).toBeGreaterThan(sonnet.planner);
+  });
+
+  it('prefers sonnet over qwen3-coder-plus for worker seat', () => {
+    const sonnet = scoreModelForSlots('claude-sonnet-4');
+    const coder = scoreModelForSlots('qwen3-coder-plus');
+    expect(sonnet.worker).toBeGreaterThan(coder.worker);
+  });
+
+  it('applies preference weights for cost vs quality', () => {
+    const haiku = scoreModelForSlots('claude-haiku-4');
+    const opus = scoreModelForSlots('claude-opus-4');
+    const costHaiku = preferenceWeight('cost', 'worker', haiku);
+    const costOpus = preferenceWeight('cost', 'worker', opus);
+    const qualityHaiku = preferenceWeight('quality', 'planner', haiku);
+    const qualityOpus = preferenceWeight('quality', 'planner', opus);
+    expect(costHaiku).toBeGreaterThan(costOpus);
+    expect(qualityOpus).toBeGreaterThan(qualityHaiku);
   });
 });
 

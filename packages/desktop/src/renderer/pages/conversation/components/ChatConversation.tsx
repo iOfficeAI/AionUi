@@ -154,10 +154,9 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string, meta?: { autoEnabled: boolean }) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
-      const sameProvider = conversation.model?.id === selected.id;
-      // Same-provider switches are hot-swapped by Core; only stop/rebuild when
-      // the provider itself changes (or Core lacks hot-swap and rebuilds later).
-      if (runtimeView.activeTurnId && !sameProvider) {
+      // Always stop an active turn when the user changes model manually. Same-provider
+      // hot-swap (Core #923) is only used on the Auto per-turn routing path.
+      if (runtimeView.activeTurnId) {
         const result = await ipcBridge.conversation.stop.invoke({
           conversation_id: conversation.id,
           turn_id: runtimeView.activeTurnId,

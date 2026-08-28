@@ -18,6 +18,8 @@ export type ApplyAutoModelForTurnInput = {
   userInput: string;
   hasPriorUserTurns: boolean;
   consecutiveWorkerFailures?: number;
+  /** When true, only vision-capable models are considered. */
+  requireVision?: boolean;
   currentModel: TProviderWithModel | undefined;
   providers: IProvider[];
   getAvailableModels: (provider: IProvider) => string[];
@@ -51,6 +53,7 @@ export const applyAutoModelForTurn = async (
     settings: readAutoModelSettings(),
     providers: input.providers,
     getAvailableModels: input.getAvailableModels,
+    requireVision: input.requireVision,
   });
   const model = resolved.model;
   const sameProvider = Boolean(input.currentModel?.id && input.currentModel.id === model.id);
