@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.2.0](https://github.com/iOfficeAI/AionUi/compare/v2.1.61...v2.2.0) (2026-08-28)
+
+### Desktop
+
+#### Features
+
+- **auth:** silently refresh WebUI session on 401 (#4175)
+
+#### Bug Fixes
+
+- **webui:** stop bridge websocket reconnect storm on repeated failures (#4156)
+
+### Core ([v0.2.0](https://github.com/iOfficeAI/AionCore/releases/tag/v0.2.0))
+
+#### ⚠ BREAKING CHANGES
+
+- **skills:** deliver skills through an AionUi-owned view instead of the workspace (#938)
+
+#### Features
+
+- **auth:** dual-token refresh with singleflight (#926)
+- **skills:** deliver skills through an AionUi-owned view instead of the workspace (#938)
+
+---
+
 ## [2.1.61](https://github.com/iOfficeAI/AionUi/compare/v2.1.60...v2.1.61) (2026-08-25)
 
 ### Desktop
