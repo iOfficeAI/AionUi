@@ -106,4 +106,30 @@ describe('resolveAutoModel', () => {
       })
     ).toThrow(/No agent-capable models/);
   });
+
+  it('picks sonnet over haiku for worker under balance preference', () => {
+    const result = resolveAutoModel({
+      phase: 'worker',
+      settings: defaultAutoModelSettings(),
+      providers: [provider('p1', ['claude-haiku-4', 'claude-sonnet-4', 'claude-opus-4'])],
+      getAvailableModels: (p) => p.models,
+    });
+    expect(result.model.use_model).toBe('claude-sonnet-4');
+  });
+
+  it('filters non-vision models when requireVision is set', () => {
+    const visionProvider = provider('p1', ['text-only', 'gpt-4o']);
+    visionProvider.model_capabilities = {
+      'gpt-4o': { vision: true },
+      'text-only': { vision: false },
+    };
+    const result = resolveAutoModel({
+      phase: 'worker',
+      settings: defaultAutoModelSettings(),
+      providers: [visionProvider],
+      getAvailableModels: (p) => p.models,
+      requireVision: true,
+    });
+    expect(result.model.use_model).toBe('gpt-4o');
+  });
 });

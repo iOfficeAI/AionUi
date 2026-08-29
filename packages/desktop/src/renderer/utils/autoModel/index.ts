@@ -29,3 +29,5 @@ export type { ApplyAutoModelForTurnInput, ApplyAutoModelForTurnResult } from './
 export type { DecideAutoModelPhaseInput } from './decideAutoModelPhase';
 export { normalizeAutoModelSettings, readAutoModelSettings, writeAutoModelSettings } from './settings';
 export { preferenceWeight, scoreModelForSlots } from './tierHeuristics';
+export { chatFileRefsRequireVision } from './vision';
+export { conversationHasUserTurns } from './conversationTurns';

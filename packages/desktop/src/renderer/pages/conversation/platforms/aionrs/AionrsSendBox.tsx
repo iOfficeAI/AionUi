@@ -44,15 +44,20 @@ import type { SessionRef } from '@/common/adapter/ipcBridge';
 import CrossSessionDisabledBanner from '@/renderer/components/chat/CrossSessionDisabledBanner';
 import { useCrossSessionMessageEnabled } from '@/renderer/hooks/chat/useCrossSessionMessageEnabled';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { type ChatFileRef, chatFileRefPath, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
+import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/chatFile';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { applyAutoModelForTurn, persistAutoModelConversationState } from '@/renderer/utils/autoModel';
-import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
+import {
+  applyAutoModelForTurn,
+  chatFileRefsRequireVision,
+  conversationHasUserTurns,
+  persistAutoModelConversationState,
+} from '@/renderer/utils/autoModel';
+import { useMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { useAionrsMessage } from './useAionrsMessage';
@@ -65,9 +70,6 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
 };
-
-const chatFileRefsRequireVision = (files: ChatFileRef[]): boolean =>
-  files.some((file) => getFileTypeInfo(chatFileRefPath(file)).contentType === 'image');
 
 const toModeLabel = (value: string): string =>
   value
@@ -146,7 +148,8 @@ const AionrsSendBox: React.FC<{
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { current_model, autoEnabled, syncAutoResolved, providers, getAvailableModels } = modelSelection;
-  const autoUserTurnsRef = useRef(0);
+  const messageList = useMessageList();
+  const messageListRef = useLatestRef(messageList);
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
@@ -193,10 +196,6 @@ const AionrsSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
-
-  useEffect(() => {
-    autoUserTurnsRef.current = 0;
-  }, [conversation_id]);
 
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
@@ -278,7 +277,7 @@ const AionrsSendBox: React.FC<{
             const applied = await applyAutoModelForTurn({
               conversationId: conversation_id,
               userInput: input,
-              hasPriorUserTurns: autoUserTurnsRef.current > 0,
+              hasPriorUserTurns: conversationHasUserTurns(messageListRef.current),
               requireVision: chatFileRefsRequireVision(files),
               currentModel: current_model,
               providers,
@@ -314,9 +313,6 @@ const AionrsSendBox: React.FC<{
           // no-op for this platform.
           sessions,
         });
-        if (autoEnabled) {
-          autoUserTurnsRef.current += 1;
-        }
         setActiveMsgId(res.msg_id);
         markSendAccepted(res.turn_id, res.runtime, res.msg_id);
         emitter.emit('chat.history.refresh');
