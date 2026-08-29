@@ -32,16 +32,25 @@ const block = (extra: Partial<UnifiedToolBlock>): UnifiedToolBlock => ({
 });
 
 describe('BashToolBlock', () => {
-  it('shows the command in the body (not the header) and error output in red', () => {
+  it('falls back to the command in the header when no description exists, error output in red', () => {
     render(
       <BashToolBlock
         block={block({ category: 'bash', command: 'cargo build', output: 'error: failed', status: 'error' })}
       />
     );
-    // no description -> the command line lives only in the body (expand to reveal it)
+    // no description -> the header falls back to the command (agents whose tool
+    // schema has no description param, e.g. codex/aionrs); expand to also reveal
+    // the body's command line
     fireEvent.click(screen.getByRole('button'));
-    expect(screen.getAllByText('cargo build')).toHaveLength(1);
+    expect(screen.getAllByText('cargo build')).toHaveLength(2);
     expect(screen.getByText(/error: failed/).className).toContain('tool-block__output--error');
+  });
+
+  it('truncates the fallback header command to 60 chars', () => {
+    const longCommand = `echo ${'x'.repeat(100)}`;
+    render(<BashToolBlock block={block({ category: 'bash', command: longCommand })} />);
+    expect(screen.getByText(`${longCommand.slice(0, 60)}...`)).toBeInTheDocument();
+    expect(screen.queryByText(longCommand)).not.toBeInTheDocument();
   });
 
   it('prefers the human description in the header and shows the command only once', () => {

@@ -303,9 +303,11 @@ function normalizeAcpToolCall(message: IMessageAcpToolCall): UnifiedToolBlock | 
     filePath,
     diff: undefined,
     command: category === 'bash' ? pickString(rawInput, ['command', 'cmd']) : undefined,
+    // Mirror the tool_call path: a model-authored description is the human-facing
+    // summary; fall back to the primary operand for agents that never send one.
     summary:
-      pickString(rawInput, ['command', 'file_path', 'path', 'pattern', 'query', 'url']) ||
-      (category === 'task' ? pickString(rawInput, ['description']) : undefined),
+      pickString(rawInput, ['description']) ||
+      pickString(rawInput, ['command', 'file_path', 'path', 'pattern', 'query', 'url']),
     subagentType: pickString(rawInput, ['subagent_type', 'subagentType', 'agent_type']),
     prompt: pickString(rawInput, ['prompt', 'description']),
     todoItems: category === 'todo' ? extractTodoItems(rawInput) : undefined,

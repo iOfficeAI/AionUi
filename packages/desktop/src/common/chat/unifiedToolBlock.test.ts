@@ -170,6 +170,27 @@ describe('normalizeUnifiedToolBlocks: acp_tool_call', () => {
     expect(block.title).toBe('cargo test');
   });
 
+  it('prefers rawInput description over command for the summary (tool_call-path parity)', () => {
+    const [block] = normalizeUnifiedToolBlocks([
+      acp({
+        kind: 'execute',
+        status: 'completed',
+        title: 'cargo test',
+        rawInput: { command: 'cargo test -p aionui-session', description: 'Re-run format tests' },
+      }),
+    ]);
+    expect(block.category).toBe('bash');
+    expect(block.command).toBe('cargo test -p aionui-session');
+    expect(block.summary).toBe('Re-run format tests');
+  });
+
+  it('falls back to the primary operand when rawInput has no description', () => {
+    const [block] = normalizeUnifiedToolBlocks([
+      acp({ kind: 'execute', status: 'completed', title: 'cargo test', rawInput: { command: 'cargo test' } }),
+    ]);
+    expect(block.summary).toBe('cargo test');
+  });
+
   it('prefers task/todo name matching over kind for task tools', () => {
     const [block] = normalizeUnifiedToolBlocks([
       acp({
