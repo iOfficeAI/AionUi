@@ -15,6 +15,31 @@
  * @param content - The content to filter
  * @returns Filtered content without think tags
  */
+/**
+ * Complete think/thinking block, matched innermost-first so nested blocks are
+ * fully removed (a single non-greedy pass would stop at the inner close and
+ * leave the outer content behind).
+ */
+const COMPLETE_THINK_BLOCK_RE = /<\s*think\s*>((?:(?!<\s*think\s*>|<\s*thinking\s*>)[\s\S])*?)<\s*\/\s*think\s*>/gi;
+const COMPLETE_THINKING_BLOCK_RE =
+  /<\s*thinking\s*>((?:(?!<\s*think\s*>|<\s*thinking\s*>)[\s\S])*?)<\s*\/\s*thinking\s*>/gi;
+
+/** Strip every complete think/thinking block, innermost first, until none remain. */
+function stripCompleteThinkBlocks(content: string): string {
+  let result = content;
+  let previous: string;
+  do {
+    previous = result;
+    result = result.replace(COMPLETE_THINK_BLOCK_RE, '').replace(COMPLETE_THINKING_BLOCK_RE, '');
+  } while (result !== previous);
+  return result;
+}
+
+/** Whether the content contains at least one complete, balanced think/thinking block. */
+function hasCompleteThinkBlock(content: string): boolean {
+  return Boolean(content.match(COMPLETE_THINK_BLOCK_RE)?.length || content.match(COMPLETE_THINKING_BLOCK_RE)?.length);
+}
+
 export function stripThinkTags(content: string): string {
   if (!content || typeof content !== 'string') {
     return content;
@@ -24,17 +49,28 @@ export function stripThinkTags(content: string): string {
     return content;
   }
 
+  // Step 1 & 2: Remove complete think/thinking blocks (with optional spaces in
+  // tags), innermost first so nested blocks are fully consumed and cannot leak
+  // content into the MiniMax strip below.
+  const hadCompleteBlock = hasCompleteThinkBlock(content);
+  let result = stripCompleteThinkBlocks(content);
+
+  // The MiniMax strip below deletes everything up to the FIRST orphaned closing
+  // tag. That is only safe when the message carries no complete block: a stray
+  // close after a balanced think block is just a leftover tag, and the content
+  // before it is legitimate text that must survive (Step 4 already removes the
+  // orphaned tag itself while preserving surrounding content).
+  if (!hadCompleteBlock) {
+    // Step 3: Handle MiniMax-style format: content before the FIRST orphaned
+    // closing tag. Models like MiniMax M2.5 omit the opening tag and output
+    // "thinking content...\n close\nreply".
+    result = result.replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '');
+  }
+
   return (
-    content
-      // Step 1: Remove complete <think>...</think> blocks (with optional spaces in tags)
-      .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
-      // Step 2: Remove complete <thinking>...</thinking> blocks (with optional spaces in tags)
-      .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
-      // Step 3: Handle MiniMax-style format: content before the FIRST orphaned </think>
-      // Models like MiniMax M2.5 omit the opening tag: "thinking content...\n</think>\nresponse"
-      .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
+    result
       // Step 4: Remove any remaining orphaned closing tags (just the tags, preserve surrounding content)
-      // When text gets concatenated across tool calls, there may be additional </think> tags
+      // When text gets concatenated across tool calls, there may be additional closing tags
       .replace(/<\s*\/\s*think(?:ing)?\s*>/gi, '')
       // Step 5: Remove any remaining orphaned opening tags
       .replace(/<\s*think(?:ing)?\s*>/gi, '')
