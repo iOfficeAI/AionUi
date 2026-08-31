@@ -88,24 +88,44 @@ function extractBg2Color(theme: Theme): string {
 }
 
 /**
+ * Resolve the color the PWA caption buttons should blend with. Priority:
+ * 1. The computed background of the mounted `.app-titlebar` element — captures
+ *    custom theme CSS that overrides the titlebar background with !important.
+ * 2. The computed --bg-2 token after the stylesheet chain is applied.
+ * 3. The theme-derived value (e.g. jsdom tests where no stylesheet is loaded).
+ */
+function resolveMetaThemeColor(root: Document, theme: Theme): string {
+  const bar = root.querySelector<HTMLElement>('.app-titlebar');
+  if (bar) {
+    try {
+      const bg = root.defaultView?.getComputedStyle(bar).backgroundColor ?? '';
+      if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+        return bg;
+      }
+    } catch {
+      // ignore — fall through to the token below
+    }
+  }
+
+  let tokenColor = '';
+  try {
+    tokenColor = root.defaultView?.getComputedStyle(root.documentElement).getPropertyValue('--bg-2').trim() ?? '';
+  } catch {
+    // ignore — fall through to the theme-derived fallback below
+  }
+  if (!tokenColor || tokenColor.startsWith('var(')) {
+    return extractBg2Color(theme);
+  }
+  return tokenColor;
+}
+
+/**
  * Synchronize the meta theme-color tag with the titlebar/header background color.
  * This ensures PWA Window Controls Overlay buttons and mobile browser status bars
  * seamlessly blend with the application chrome in both light and dark themes.
  */
 function applyMetaThemeColor(root: Document, theme: Theme): void {
-  // Prefer the live --bg-2 token after the stylesheet chain is applied, so the
-  // value matches the rendered titlebar pixel-for-pixel (including custom themes
-  // with tokens). Fall back to the theme-derived value when no token resolves
-  // (e.g. jsdom tests where the color-scheme stylesheet is not loaded).
-  let bg2Color = '';
-  try {
-    bg2Color = root.defaultView?.getComputedStyle(root.documentElement).getPropertyValue('--bg-2').trim() ?? '';
-  } catch {
-    // ignore — fall through to the theme-derived fallback below
-  }
-  if (!bg2Color || bg2Color.startsWith('var(')) {
-    bg2Color = extractBg2Color(theme);
-  }
+  const bg2Color = resolveMetaThemeColor(root, theme);
 
   // If there is an existing theme-color meta tag, update it
   let meta = root.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
@@ -121,13 +141,36 @@ function applyMetaThemeColor(root: Document, theme: Theme): void {
   meta.content = bg2Color;
 }
 
+// One-shot observer for boot-time theme application: applyTheme often runs
+// before React mounts the titlebar, so the meta theme-color initially falls back
+// to the --bg-2 token. When a custom theme CSS overrides the titlebar background
+// with !important, re-sync the meta color once the titlebar element appears so
+// the PWA caption buttons match the actually-rendered bar.
+let titlebarMountObserver: MutationObserver | null = null;
+let latestThemeForMetaSync: Theme | null = null;
+
+function syncMetaThemeColorWhenTitlebarMounts(root: Document, theme: Theme): void {
+  latestThemeForMetaSync = theme;
+  if (titlebarMountObserver || root.querySelector('.app-titlebar')) return;
+  if (typeof MutationObserver === 'undefined') return;
+
+  titlebarMountObserver = new MutationObserver(() => {
+    if (!root.querySelector('.app-titlebar') || !latestThemeForMetaSync) return;
+    applyMetaThemeColor(root, latestThemeForMetaSync);
+    titlebarMountObserver?.disconnect();
+    titlebarMountObserver = null;
+  });
+  titlebarMountObserver.observe(root.body ?? root.documentElement, { childList: true, subtree: true });
+}
+
 /** Apply a resolved theme to a document. Used by every app-chrome surface. */
 export function applyTheme(theme: Theme, root: Document = document): void {
   applyAppearanceAttributes(root, theme.appearance);
   // Tokens first so applyMetaThemeColor can read the computed --bg-2 they define.
   upsertStyle(TOKENS_STYLE_ID, tokensToCss(theme.tokens), root);
-  applyMetaThemeColor(root, theme);
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
+  applyMetaThemeColor(root, theme);
+  syncMetaThemeColorWhenTitlebarMounts(root, theme);
 }
 
 /** Resolve `activeId` locally, apply, persist, and publish to Electron for cross-window broadcast. */

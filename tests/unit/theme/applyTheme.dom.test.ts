@@ -9,6 +9,7 @@ beforeEach(() => {
   document.body.removeAttribute('arco-theme');
   document.getElementById('theme-tokens')?.remove();
   document.getElementById('theme-decoration')?.remove();
+  document.querySelectorAll('.app-titlebar').forEach((el) => el.remove());
 });
 
 describe('applyTheme', () => {
@@ -107,5 +108,51 @@ describe('applyTheme', () => {
     } finally {
       style.remove();
     }
+  });
+
+  it('prefers the mounted titlebar background over the token (custom css !important overrides)', () => {
+    const bar = document.createElement('div');
+    bar.className = 'app-titlebar';
+    bar.style.backgroundColor = '#0b0d14';
+    document.body.appendChild(bar);
+    try {
+      applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      expect(meta?.content).toBe('rgb(11, 13, 20)');
+    } finally {
+      bar.remove();
+    }
+  });
+
+  it('ignores a transparent titlebar background and falls back to the token', () => {
+    const bar = document.createElement('div');
+    bar.className = 'app-titlebar';
+    bar.style.backgroundColor = 'transparent';
+    document.body.appendChild(bar);
+    try {
+      applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      expect(meta?.content).toBe('#262626');
+    } finally {
+      bar.remove();
+    }
+  });
+
+  it('re-syncs meta theme-color when the titlebar mounts after applyTheme (boot-time custom css)', async () => {
+    applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    expect(meta?.content).toBe('#262626');
+
+    const bar = document.createElement('div');
+    bar.className = 'app-titlebar';
+    bar.style.backgroundColor = '#0b0d14';
+    document.body.appendChild(bar);
+    // MutationObserver fires asynchronously; give it a couple of macrotasks.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    expect(meta?.content).toBe('rgb(11, 13, 20)');
+    bar.remove();
   });
 });
