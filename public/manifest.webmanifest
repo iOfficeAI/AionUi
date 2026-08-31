@@ -8,7 +8,7 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#f7f8fa",
+  "theme_color": "#f2f3f5",
   "icons": [
     {
       "src": "./pwa/icon-192.png",

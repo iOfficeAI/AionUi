@@ -65,7 +65,9 @@ function applyAppearanceAttributes(root: Document, appearance: Theme['appearance
 }
 
 function extractBg2Color(theme: Theme): string {
-  const defaultBg2 = theme.appearance === 'dark' ? '#232324' : '#f7f8fa';
+  // Must mirror the actual --bg-2 tokens in styles/themes/default-color-scheme.css,
+  // otherwise the PWA caption buttons (colored from theme-color) desync from the titlebar.
+  const defaultBg2 = theme.appearance === 'dark' ? '#262626' : '#f2f3f5';
   if (!theme.tokens) return defaultBg2;
 
   if (typeof theme.tokens === 'object' && theme.tokens !== null) {
@@ -91,7 +93,19 @@ function extractBg2Color(theme: Theme): string {
  * seamlessly blend with the application chrome in both light and dark themes.
  */
 function applyMetaThemeColor(root: Document, theme: Theme): void {
-  const bg2Color = extractBg2Color(theme);
+  // Prefer the live --bg-2 token after the stylesheet chain is applied, so the
+  // value matches the rendered titlebar pixel-for-pixel (including custom themes
+  // with tokens). Fall back to the theme-derived value when no token resolves
+  // (e.g. jsdom tests where the color-scheme stylesheet is not loaded).
+  let bg2Color = '';
+  try {
+    bg2Color = root.defaultView?.getComputedStyle(root.documentElement).getPropertyValue('--bg-2').trim() ?? '';
+  } catch {
+    // ignore — fall through to the theme-derived fallback below
+  }
+  if (!bg2Color || bg2Color.startsWith('var(')) {
+    bg2Color = extractBg2Color(theme);
+  }
 
   // If there is an existing theme-color meta tag, update it
   let meta = root.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
@@ -110,8 +124,9 @@ function applyMetaThemeColor(root: Document, theme: Theme): void {
 /** Apply a resolved theme to a document. Used by every app-chrome surface. */
 export function applyTheme(theme: Theme, root: Document = document): void {
   applyAppearanceAttributes(root, theme.appearance);
-  applyMetaThemeColor(root, theme);
+  // Tokens first so applyMetaThemeColor can read the computed --bg-2 they define.
   upsertStyle(TOKENS_STYLE_ID, tokensToCss(theme.tokens), root);
+  applyMetaThemeColor(root, theme);
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
 }
 

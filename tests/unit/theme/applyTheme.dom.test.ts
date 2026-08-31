@@ -80,12 +80,32 @@ describe('applyTheme', () => {
     expect(document.getElementById('theme-tokens')).toBeNull();
   });
   it('updates meta theme-color to match theme bg-2 token or appearance default', () => {
-    applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+    // Defaults must mirror the --bg-2 tokens in default-color-scheme.css
+    // (#f2f3f5 light / #262626 dark) so PWA caption buttons blend with the titlebar.
+    applyTheme({ ...base, id: 'light', name: 'Light', appearance: 'light' } as Theme);
     let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    expect(meta?.content).toBe('#232324');
+    expect(meta?.content).toBe('#f2f3f5');
+
+    applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+    meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    expect(meta?.content).toBe('#262626');
 
     applyTheme({ ...base, id: 'custom', name: 'Custom', appearance: 'light', tokens: { 'bg-2': '#eef0f4' } } as Theme);
     meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     expect(meta?.content).toBe('#eef0f4');
+  });
+
+  it('prefers the computed --bg-2 token over the theme-derived fallback when a stylesheet defines it', () => {
+    const style = document.createElement('style');
+    style.textContent = ':root { --bg-2: #123456; }';
+    document.head.appendChild(style);
+    try {
+      applyTheme({ ...base, id: 'dark', name: 'Dark', appearance: 'dark' } as Theme);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      // jsdom computes custom properties from :root styles, so the live token wins.
+      expect(meta?.content).toBe('#123456');
+    } finally {
+      style.remove();
+    }
   });
 });
