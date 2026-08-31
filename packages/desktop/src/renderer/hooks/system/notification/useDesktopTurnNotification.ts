@@ -9,7 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { createBrowserNotificationController } from './browserNotificationCore';
+import { getSnapshotConversationName } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import { createBrowserNotificationController, truncateConversationName } from './browserNotificationCore';
 
 /**
  * Desktop-only: fire a native system notification when an agent turn finishes.
@@ -37,10 +38,13 @@ export const useDesktopTurnNotification = (): void => {
       // Cheap renderer-side gate; the main process still re-checks the setting
       // and the window-focus condition before showing anything.
       shouldShow: () => configService.get('system.notificationEnabled') !== false,
-      bodyFor: (kind) =>
-        kind === 'confirmation'
-          ? t('settings.browserNotification.bodyConfirmation')
-          : t('settings.browserNotification.bodyTurnCompleted'),
+      bodyFor: (kind, conversationId) => {
+        if (kind === 'confirmation') return t('settings.browserNotification.bodyConfirmation');
+        const name = conversationId ? getSnapshotConversationName(conversationId) : undefined;
+        return name
+          ? t('settings.browserNotification.bodyTurnCompletedNamed', { name: truncateConversationName(name) })
+          : t('settings.browserNotification.bodyTurnCompleted');
+      },
       show: ({ body, conversationId, kind }) => {
         // This issue scopes desktop notifications to turn completion only.
         if (kind !== 'turnCompleted') return;

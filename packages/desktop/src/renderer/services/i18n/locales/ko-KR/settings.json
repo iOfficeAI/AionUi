@@ -342,7 +342,8 @@
     "denied": "알림이 차단되었습니다 — 브라우저 사이트 설정에서 허용해 주세요",
     "insecureContext": "브라우저 알림은 HTTPS 또는 localhost 접속이 필요합니다",
     "bodyConfirmation": "에이전트가 확인을 기다리고 있습니다",
-    "bodyTurnCompleted": "에이전트가 응답을 완료했습니다"
+    "bodyTurnCompleted": "에이전트가 응답을 완료했습니다",
+    "bodyTurnCompletedNamed": "\"{{name}}\"의 응답이 완료되었습니다"
   },
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",

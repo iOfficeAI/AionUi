@@ -350,7 +350,8 @@
     "denied": "Уведомления заблокированы — разрешите их в настройках сайта браузера",
     "insecureContext": "Браузерные уведомления требуют доступа через HTTPS или localhost",
     "bodyConfirmation": "Агент ожидает вашего подтверждения",
-    "bodyTurnCompleted": "Агент завершил ответ"
+    "bodyTurnCompleted": "Агент завершил ответ",
+    "bodyTurnCompletedNamed": "«{{name}}» завершил ответ"
   },
   "notification": "Уведомления",
   "cronNotificationEnabled": "Уведомление о завершении запланированных задач",

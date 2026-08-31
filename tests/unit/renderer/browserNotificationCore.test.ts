@@ -7,6 +7,8 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   shouldShowNotification,
   createBrowserNotificationController,
+  truncateConversationName,
+  CONVERSATION_NAME_MAX_LENGTH,
   type NotificationGate,
 } from '@/renderer/hooks/system/notification/browserNotificationCore';
 
@@ -36,21 +38,48 @@ describe('shouldShowNotification', () => {
   });
 });
 
+describe('truncateConversationName', () => {
+  it('returns a short name unchanged (trimmed)', () => {
+    expect(truncateConversationName('  My chat  ')).toBe('My chat');
+  });
+
+  it('keeps a name exactly at the limit', () => {
+    const exact = 'a'.repeat(CONVERSATION_NAME_MAX_LENGTH);
+    expect(truncateConversationName(exact)).toBe(exact);
+  });
+
+  it('truncates from the end and appends an ellipsis when over the limit', () => {
+    const long = 'a'.repeat(CONVERSATION_NAME_MAX_LENGTH + 5);
+    expect(truncateConversationName(long)).toBe(`${'a'.repeat(CONVERSATION_NAME_MAX_LENGTH)}…`);
+  });
+
+  it('honors a custom max length', () => {
+    expect(truncateConversationName('abcdef', 3)).toBe('abc…');
+  });
+});
+
 describe('createBrowserNotificationController.onStreamMessage', () => {
   const makeDeps = (gate: NotificationGate = openGate) => {
     const show = vi.fn();
+    const bodyFor = vi.fn((kind: string) => kind);
     const controller = createBrowserNotificationController({
       shouldShow: () => shouldShowNotification(gate),
       show,
-      bodyFor: (kind) => kind,
+      bodyFor,
     });
-    return { show, controller };
+    return { show, bodyFor, controller };
   };
 
   it('shows a turn-completed notification on a finish stream message', () => {
     const { show, controller } = makeDeps();
     controller.onStreamMessage({ type: 'finish', conversation_id: 'c1', turn_id: 't1' });
     expect(show).toHaveBeenCalledWith({ body: 'turnCompleted', conversationId: 'c1', kind: 'turnCompleted' });
+  });
+
+  it('passes the conversation id to bodyFor so the body can name the conversation', () => {
+    const { bodyFor, controller } = makeDeps();
+    controller.onStreamMessage({ type: 'finish', conversation_id: 'c1', turn_id: 't1' });
+    expect(bodyFor).toHaveBeenCalledWith('turnCompleted', 'c1');
   });
 
   it('shows a confirmation notification on an acp_permission stream message', () => {

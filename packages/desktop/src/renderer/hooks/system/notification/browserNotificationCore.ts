@@ -29,6 +29,24 @@ export const shouldShowNotification = (gate: NotificationGate): boolean =>
   gate.settingEnabled &&
   gate.documentHidden;
 
+/**
+ * Max length of a conversation name embedded in a turn-completed notification.
+ * The name sits at the front of the body, so anything longer is truncated with
+ * a trailing ellipsis (keep the beginning, where the title's meaning is). Kept
+ * as a constant so it is easy to tune in one place.
+ */
+export const CONVERSATION_NAME_MAX_LENGTH = 20;
+
+/**
+ * Trim a conversation name and cap it at `maxLength`, appending an ellipsis when
+ * it overflows. Keeps the leading characters (front-loaded titles read best).
+ */
+export const truncateConversationName = (name: string, maxLength: number = CONVERSATION_NAME_MAX_LENGTH): string => {
+  const trimmed = name.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength)}…`;
+};
+
 export type NotificationKind = 'confirmation' | 'turnCompleted';
 
 export type NotificationPayload = {
@@ -47,7 +65,12 @@ export type BrowserNotificationDeps = {
    */
   shouldShow: () => boolean;
   show: (payload: NotificationPayload) => void;
-  bodyFor: (kind: NotificationKind) => string;
+  /**
+   * Build the notification body for a given kind. `conversationId` is provided
+   * so the turn-completed body can name the originating conversation; the
+   * confirmation body ignores it.
+   */
+  bodyFor: (kind: NotificationKind, conversationId?: string) => string;
 };
 
 /**
@@ -77,7 +100,11 @@ export const createBrowserNotificationController = (deps: BrowserNotificationDep
 
     if (PERMISSION_TYPES.has(message.type)) {
       if (!deps.shouldShow()) return;
-      deps.show({ body: deps.bodyFor('confirmation'), conversationId: message.conversation_id, kind: 'confirmation' });
+      deps.show({
+        body: deps.bodyFor('confirmation', message.conversation_id),
+        conversationId: message.conversation_id,
+        kind: 'confirmation',
+      });
       return;
     }
 
@@ -86,7 +113,7 @@ export const createBrowserNotificationController = (deps: BrowserNotificationDep
       if (!deps.shouldShow()) return;
       lastNotifiedTurnId = message.turn_id ?? null;
       deps.show({
-        body: deps.bodyFor('turnCompleted'),
+        body: deps.bodyFor('turnCompleted', message.conversation_id),
         conversationId: message.conversation_id,
         kind: 'turnCompleted',
       });

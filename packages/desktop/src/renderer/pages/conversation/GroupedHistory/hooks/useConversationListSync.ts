@@ -221,6 +221,19 @@ export const setConversationProjectMapForTest = (entries: Array<[string, string 
   projectIdByIdState = new Map(entries);
 };
 
+/**
+ * Synchronous lookup of a conversation's display name from the in-memory list
+ * snapshot. Used by the turn-completed notification to name the originating
+ * conversation. Returns the trimmed name, or `undefined` when the conversation
+ * is not loaded yet or has no (non-empty) name — callers fall back to a generic
+ * message.
+ */
+export const getSnapshotConversationName = (conversation_id: string): string | undefined => {
+  const conversation = conversationsState.find((item) => item.id === conversation_id);
+  const name = conversation?.name?.trim();
+  return name ? name : undefined;
+};
+
 const refreshConversations = () => {
   void ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
