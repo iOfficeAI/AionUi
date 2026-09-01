@@ -30,6 +30,7 @@ vi.mock('@/common', () => ({
 
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
 import { resetExplorerStoreForTest } from '@/renderer/pages/conversation/explorer/explorerStore';
+import { resetScmStoreForTest } from '@/renderer/pages/conversation/SourceControl/scmStore';
 
 const entry = (over: Partial<ProjectEntryDto>): ProjectEntryDto => ({
   pe_id: 'peA',
@@ -60,6 +61,9 @@ const renderContainer = (projectId: string) =>
 
 beforeEach(() => {
   resetExplorerStoreForTest();
+  // The Changes tab triggers openScmProject; clear the module store (incl. any
+  // pending transport-retry timer) so no state or timer leaks across tests.
+  resetScmStoreForTest();
   initExplorerRuntime.mockClear();
   projectGet.mockReset();
   try {
@@ -142,16 +146,18 @@ describe('ExplorerContainer data integration', () => {
 
     // Component-switcher tabs present (t returns the raw key here).
     fireEvent.click(screen.getByText('conversation.explorer.tabs.changes'));
-    // Changes tab shows the Source Control panel. With no SCM port configured (the
-    // WS runtime is stubbed here) the store lands in its error state, which is
-    // enough to prove the real panel — not the old placeholder — is mounted.
-    expect(await screen.findByText('conversation.explorer.scm.loadFailed')).toBeInTheDocument();
+    // Changes tab shows the Source Control panel. The WS runtime is stubbed here,
+    // so the store cannot reach the backend; openScmProject now retries a
+    // disconnected transport (rather than erroring immediately), so the panel sits
+    // on its loading notice — which still proves the real panel, not the old
+    // placeholder, is mounted.
+    expect(await screen.findByText('conversation.explorer.scm.loading')).toBeInTheDocument();
     // …and the explorer stays mounted (root still in the DOM, just hidden) — no rebuild.
     expect(screen.getByText('Root Alpha')).toBeInTheDocument();
 
     // Switching back unmounts the SCM panel and keeps the tree.
     fireEvent.click(screen.getByText('conversation.explorer.tabs.files'));
-    expect(screen.queryByText('conversation.explorer.scm.loadFailed')).not.toBeInTheDocument();
+    expect(screen.queryByText('conversation.explorer.scm.loading')).not.toBeInTheDocument();
     expect(screen.getByText('Root Alpha')).toBeInTheDocument();
   });
 

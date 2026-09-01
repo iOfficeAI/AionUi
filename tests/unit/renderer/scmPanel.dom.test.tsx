@@ -138,6 +138,35 @@ describe('ScmPanel empty / failure states', () => {
 
     expect(await screen.findByText('conversation.explorer.scm.noChanges')).toBeInTheDocument();
   });
+
+  it('shows the current branch in the Changes section header for a single repo', async () => {
+    installPort({
+      repositories: [repo({ head: { name: 'feat/branch-pill' } })],
+      firstFrames: { 'scm:pe1': status('scm:pe1', 1, []) },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    expect(await screen.findByTestId('scm-branch-pill')).toHaveTextContent('feat/branch-pill');
+  });
+
+  it('shows the branch even when the working tree is clean (no changes)', async () => {
+    installPort({ repositories: [repo()], firstFrames: { 'scm:pe1': status('scm:pe1', 1, []) } });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('conversation.explorer.scm.noChanges');
+    expect(screen.getByTestId('scm-branch-pill')).toHaveTextContent('main');
+  });
+
+  it('hides the branch pill when the repo head is unknown (detached)', async () => {
+    installPort({
+      repositories: [repo({ head: undefined })],
+      firstFrames: { 'scm:pe1': status('scm:pe1', 1, []) },
+    });
+    render(<ScmPanel projectId='p1' />);
+
+    await screen.findByText('conversation.explorer.scm.sections.changes');
+    expect(screen.queryByTestId('scm-branch-pill')).not.toBeInTheDocument();
+  });
 });
 
 describe('ScmPanel grouping derived from capabilities', () => {
