@@ -83,23 +83,35 @@ export type StreamMessage = {
   type?: string;
   conversation_id?: string;
   turn_id?: string;
+  /** Stable per-message id, used to dedup repeated confirmation frames
+   *  (e.g. a reconnect replay re-delivering the same permission request). */
+  msg_id?: string;
 };
 
-// Stream `type` values that represent an agent asking the user to confirm a
-// permission. ACP emits `acp_permission`; aionrs emits both `acp_permission`
-// and `permission`.
-const PERMISSION_TYPES = new Set(['acp_permission', 'permission']);
+// Stream `type` values that represent the agent blocking on the user: a tool
+// permission request (`acp_permission` from ACP; `permission` too from aionrs)
+// or a structured question (`ask`, AskUserQuestion). All surface the same
+// "needs your input" notification.
+const CONFIRMATION_TYPES = new Set(['acp_permission', 'permission', 'ask']);
 
 export const createBrowserNotificationController = (deps: BrowserNotificationDeps) => {
   // Track the last turn we actually notified for, so repeated finish events
   // for the same turn don't fire duplicate notifications.
   let lastNotifiedTurnId: string | null = null;
+  // Confirmation frames we have already notified for (keyed by
+  // conversation_id + msg_id), so a reconnect replay of the same request does
+  // not fire a duplicate. Best-effort per controller lifetime, mirroring the
+  // turn dedup above.
+  const notifiedConfirmationKeys = new Set<string>();
 
   const onStreamMessage = (message: StreamMessage): void => {
     if (!message?.type) return;
 
-    if (PERMISSION_TYPES.has(message.type)) {
+    if (CONFIRMATION_TYPES.has(message.type)) {
+      const dedupKey = message.msg_id ? `${message.conversation_id ?? ''}:${message.msg_id}` : null;
+      if (dedupKey && notifiedConfirmationKeys.has(dedupKey)) return;
       if (!deps.shouldShow()) return;
+      if (dedupKey) notifiedConfirmationKeys.add(dedupKey);
       deps.show({
         body: deps.bodyFor('confirmation', message.conversation_id),
         conversationId: message.conversation_id,

@@ -124,9 +124,99 @@ export const getSidebarStreamGuardDecision = ({
   };
 };
 
+/**
+ * Stream `type` values that represent the agent blocking on the user: a tool
+ * permission request (`permission` / `acp_permission`) or a structured question
+ * (`ask`). These pause the turn until the user answers, so the sidebar shows a
+ * distinct "needs you" icon instead of the generic generating spinner.
+ */
+export const isWaitingConfirmationStreamMessage = (type: string): boolean => {
+  return type === 'permission' || type === 'acp_permission' || type === 'ask';
+};
+
+/**
+ * Extract the confirmation id from a waiting-confirmation stream frame, aligned
+ * with the `id` the backend later carries on the `confirmation.remove` event so
+ * the waiting state clears against the right pending request:
+ *  - `ask`            → `request_id`
+ *  - `permission`     → `call_id` (falls back to `id`)
+ *  - `acp_permission` → `tool_call.tool_call_id`
+ * Returns `undefined` when the frame carries no usable id.
+ */
+export const extractConfirmationId = (message: { type?: string; data?: unknown }): string | undefined => {
+  const data = message?.data;
+  if (!data || typeof data !== 'object') {
+    return undefined;
+  }
+  const record = data as Record<string, unknown>;
+
+  if (message.type === 'ask') {
+    return typeof record.request_id === 'string' && record.request_id ? record.request_id : undefined;
+  }
+  if (message.type === 'permission') {
+    if (typeof record.call_id === 'string' && record.call_id) {
+      return record.call_id;
+    }
+    return typeof record.id === 'string' && record.id ? record.id : undefined;
+  }
+  if (message.type === 'acp_permission') {
+    const toolCall = record.tool_call;
+    if (toolCall && typeof toolCall === 'object') {
+      const id = (toolCall as Record<string, unknown>).tool_call_id;
+      return typeof id === 'string' && id ? id : undefined;
+    }
+    return undefined;
+  }
+  return undefined;
+};
+
+/**
+ * Sentinel id standing in for a runtime-reconciled pending confirmation whose
+ * concrete id is unknown (the runtime summary only reports a count). Any
+ * concrete `confirmation.remove` invalidates this coarse guess (see
+ * `applyWaitingConfirmationTransition`).
+ */
+export const RUNTIME_PENDING_CONFIRMATION_ID = '__runtime_pending__';
+
+export type WaitingConfirmationTransition =
+  | { kind: 'mark'; confirmationId: string }
+  | { kind: 'unmark'; confirmationId: string }
+  | { kind: 'clear' };
+
+/**
+ * Pure reducer over one conversation's pending-confirmation-id set. A non-empty
+ * set means the conversation is waiting on the user. `unmark` drops the given id
+ * AND the runtime sentinel — a concrete resolution invalidates the coarse
+ * runtime-derived guess. Never mutates the input.
+ */
+export const applyWaitingConfirmationTransition = (
+  current: ReadonlySet<string>,
+  transition: WaitingConfirmationTransition
+): Set<string> => {
+  if (transition.kind === 'clear') {
+    return new Set();
+  }
+  const next = new Set(current);
+  if (transition.kind === 'mark') {
+    next.add(transition.confirmationId);
+    return next;
+  }
+  next.delete(transition.confirmationId);
+  next.delete(RUNTIME_PENDING_CONFIRMATION_ID);
+  return next;
+};
+
+/**
+ * Pure decision helper mirroring `shouldReconcileMarkGenerating`: a runtime
+ * summary lights the sidebar "waiting" icon only when it reports pending
+ * confirmations. Clearing is never done via reconcile.
+ */
+export const shouldReconcileMarkWaiting = (pendingConfirmations: number): boolean => pendingConfirmations > 0;
+
 type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
+  waitingConfirmationConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
   manualUnreadConversationIds: Set<string>;
 };
@@ -164,6 +254,12 @@ const listeners = new Set<() => void>();
 let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
 let generatingConversationIdsState = new Set<string>();
+// Per-conversation set of pending confirmation ids (permission / acp_permission
+// / ask). A conversation with a non-empty set is "waiting on the user" and gets
+// the distinct sidebar icon. Kept separate from the derived id set below so
+// multiple concurrent confirmations clear correctly one at a time.
+let waitingConfirmationIdsByConversationState = new Map<string, Set<string>>();
+let waitingConfirmationConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
 let manualUnreadConversationIdsState = readStoredManualUnread();
 let completedConversationIdsState = new Set<string>();
@@ -180,6 +276,7 @@ let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
+  waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
   manualUnreadConversationIds: manualUnreadConversationIdsState,
 };
@@ -188,6 +285,7 @@ const emitStoreChange = () => {
   snapshotState = {
     conversations: conversationsState,
     generatingConversationIds: generatingConversationIdsState,
+    waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
     manualUnreadConversationIds: manualUnreadConversationIdsState,
   };
@@ -336,6 +434,72 @@ export const reconcileGeneratingFromRuntime = (conversation_id: string, isProces
   }
 };
 
+/**
+ * Apply a waiting-confirmation transition to a single conversation and, when the
+ * waiting boolean flips, refresh the derived id set and notify subscribers. The
+ * icon only depends on the boolean, so intra-set churn (a second pending id
+ * arriving, one of several clearing) does not emit.
+ */
+const applyWaitingConfirmation = (conversation_id: string, transition: WaitingConfirmationTransition) => {
+  const current = waitingConfirmationIdsByConversationState.get(conversation_id) ?? new Set<string>();
+  const next = applyWaitingConfirmationTransition(current, transition);
+  const wasWaiting = current.size > 0;
+  const isWaiting = next.size > 0;
+
+  const nextMap = new Map(waitingConfirmationIdsByConversationState);
+  if (next.size === 0) {
+    nextMap.delete(conversation_id);
+  } else {
+    nextMap.set(conversation_id, next);
+  }
+  waitingConfirmationIdsByConversationState = nextMap;
+
+  if (wasWaiting === isWaiting) {
+    return;
+  }
+
+  const derived = new Set(waitingConfirmationConversationIdsState);
+  if (isWaiting) {
+    derived.add(conversation_id);
+  } else {
+    derived.delete(conversation_id);
+  }
+  waitingConfirmationConversationIdsState = derived;
+  emitStoreChange();
+};
+
+const markWaitingConfirmation = (conversation_id: string, confirmationId: string) => {
+  applyWaitingConfirmation(conversation_id, { kind: 'mark', confirmationId });
+};
+
+const clearWaitingConfirmationById = (conversation_id: string, confirmationId: string) => {
+  applyWaitingConfirmation(conversation_id, { kind: 'unmark', confirmationId });
+};
+
+const clearAllWaitingConfirmation = (conversation_id: string) => {
+  applyWaitingConfirmation(conversation_id, { kind: 'clear' });
+};
+
+/**
+ * Reconciles the sidebar "waiting" icon with authoritative runtime state on a
+ * per-conversation hydrate/send-accepted response. Mirrors
+ * `reconcileGeneratingFromRuntime`: it only ever marks (using a sentinel id, as
+ * the runtime summary reports a count, not ids) so a stale idle summary can't
+ * fight a live stream; clearing stays with `confirmation.remove` / terminal
+ * frames. Covers the window-reload case where the mark stream frame was missed.
+ */
+export const reconcileWaitingConfirmationFromRuntime = (
+  conversation_id: string,
+  pendingConfirmations: number
+): void => {
+  if (!conversation_id) {
+    return;
+  }
+  if (shouldReconcileMarkWaiting(pendingConfirmations)) {
+    markWaitingConfirmation(conversation_id, RUNTIME_PENDING_CONFIRMATION_ID);
+  }
+};
+
 const markCompletionUnread = (conversation_id: string) => {
   if (completionUnreadConversationIdsState.has(conversation_id)) {
     return;
@@ -428,11 +592,18 @@ const initializeConversationListSyncStore = () => {
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id, 'deleted');
+      clearAllWaitingConfirmation(event.conversation_id);
       clearCompletionUnreadState(event.conversation_id);
       clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
     }
     refreshConversations();
+  });
+  ipcBridge.conversation.confirmation.remove.on((event) => {
+    if (!event?.conversation_id || !event.id) {
+      return;
+    }
+    clearWaitingConfirmationById(event.conversation_id, event.id);
   });
   ipcBridge.conversation.responseStream.on((message) => {
     const conversation_id = message.conversation_id;
@@ -450,7 +621,19 @@ const initializeConversationListSyncStore = () => {
         markCompletionUnread(conversation_id);
       }
       clearGenerating(conversation_id, 'terminal');
+      clearAllWaitingConfirmation(conversation_id);
       return;
+    }
+
+    // A permission/acp_permission/ask frame pauses the turn on the user — light
+    // the distinct "waiting" icon. This is independent of the generating guard
+    // (an `ask` frame is not in the generating whitelist, and waiting takes
+    // display precedence over the spinner regardless).
+    if (isWaitingConfirmationStreamMessage(message.type)) {
+      const confirmationId = extractConfirmationId(message);
+      if (confirmationId) {
+        markWaitingConfirmation(conversation_id, confirmationId);
+      }
     }
 
     const decision = getSidebarStreamGuardDecision({
@@ -485,12 +668,17 @@ export const useConversationListSync = () => {
     initializeConversationListSyncStore();
   }, []);
 
-  const { conversations, generatingConversationIds, completionUnreadConversationIds, manualUnreadConversationIds } =
-    useSyncExternalStore(
-      subscribeConversationListSync,
-      getConversationListSyncSnapshot,
-      getConversationListSyncSnapshot
-    );
+  const {
+    conversations,
+    generatingConversationIds,
+    waitingConfirmationConversationIds,
+    completionUnreadConversationIds,
+    manualUnreadConversationIds,
+  } = useSyncExternalStore(
+    subscribeConversationListSync,
+    getConversationListSyncSnapshot,
+    getConversationListSyncSnapshot
+  );
 
   const clearCompletionUnread = useCallback((conversation_id: string) => {
     clearCompletionUnreadState(conversation_id);
@@ -515,6 +703,13 @@ export const useConversationListSync = () => {
     [generatingConversationIds]
   );
 
+  const isConversationWaitingConfirmation = useCallback(
+    (conversation_id: string) => {
+      return waitingConfirmationConversationIds.has(conversation_id);
+    },
+    [waitingConfirmationConversationIds]
+  );
+
   const hasCompletionUnread = useCallback(
     (conversation_id: string) => {
       return completionUnreadConversationIds.has(conversation_id);
@@ -532,6 +727,7 @@ export const useConversationListSync = () => {
   return {
     conversations,
     isConversationGenerating,
+    isConversationWaitingConfirmation,
     hasCompletionUnread,
     clearCompletionUnread,
     isManualUnread,

@@ -350,6 +350,7 @@
     "denied": "Сповіщення заблоковано — увімкніть їх у налаштуваннях сайту браузера",
     "insecureContext": "Сповіщення браузера вимагають доступу через HTTPS або localhost",
     "bodyConfirmation": "Агент чекає вашого підтвердження",
+    "bodyConfirmationNamed": "«{{name}}» чекає вашого підтвердження",
     "bodyTurnCompleted": "Агент завершив відповідь",
     "bodyTurnCompletedNamed": "«{{name}}» завершив відповідь"
   },

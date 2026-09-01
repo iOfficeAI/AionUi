@@ -342,6 +342,7 @@
     "denied": "Notificações bloqueadas — ative-as nas configurações de site do seu navegador",
     "insecureContext": "As notificações do navegador exigem acesso via HTTPS ou localhost",
     "bodyConfirmation": "Um agente está aguardando sua confirmação",
+    "bodyConfirmationNamed": "\"{{name}}\" está aguardando sua confirmação",
     "bodyTurnCompleted": "O agente terminou de responder",
     "bodyTurnCompletedNamed": "\"{{name}}\" terminou de responder"
   },

@@ -342,6 +342,7 @@
     "denied": "اعلان‌ها مسدود شده‌اند — آن‌ها را در تنظیمات سایت مرورگر فعال کنید",
     "insecureContext": "اعلان‌های مرورگر به HTTPS یا دسترسی localhost نیاز دارند",
     "bodyConfirmation": "یک ایجنت منتظر تأیید شماست",
+    "bodyConfirmationNamed": "«{{name}}» منتظر تأیید شماست",
     "bodyTurnCompleted": "ایجنت پاسخ را کامل کرده است",
     "bodyTurnCompletedNamed": "«{{name}}» پاسخ را کامل کرد"
   },

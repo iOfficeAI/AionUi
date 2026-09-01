@@ -342,6 +342,7 @@
     "denied": "通知がブロックされています — ブラウザのサイト設定から有効にしてください",
     "insecureContext": "ブラウザ通知には HTTPS または localhost からのアクセスが必要です",
     "bodyConfirmation": "エージェントが確認を待っています",
+    "bodyConfirmationNamed": "「{{name}}」が確認を待っています",
     "bodyTurnCompleted": "エージェントが応答を完了しました",
     "bodyTurnCompletedNamed": "「{{name}}」の応答が完了しました"
   },

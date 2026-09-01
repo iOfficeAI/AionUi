@@ -6,7 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
-import { reconcileGeneratingFromRuntime } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import {
+  reconcileGeneratingFromRuntime,
+  reconcileWaitingConfirmationFromRuntime,
+} from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import {
@@ -99,6 +102,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
         // leave the row dark even though the runtime is still processing.
         if (runtime) {
           reconcileGeneratingFromRuntime(conversation_id, runtime.is_processing === true);
+          reconcileWaitingConfirmationFromRuntime(conversation_id, runtime.pending_confirmations ?? 0);
         }
       })
       .catch((error: unknown) => {

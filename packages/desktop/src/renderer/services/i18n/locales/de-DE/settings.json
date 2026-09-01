@@ -1329,6 +1329,7 @@
     "denied": "Notifications blocked — enable them in your browser's site settings",
     "insecureContext": "Browser notifications require HTTPS or localhost access",
     "bodyConfirmation": "An agent is waiting for your confirmation",
+    "bodyConfirmationNamed": "\"{{name}}\" is waiting for your confirmation",
     "bodyTurnCompleted": "The agent has finished responding",
     "bodyTurnCompletedNamed": "\"{{name}}\" has finished responding"
   },
