@@ -342,7 +342,9 @@
     "denied": "Bildirimler engellendi — tarayıcınızın site ayarlarından etkinleştirin",
     "insecureContext": "Tarayıcı bildirimleri için HTTPS veya localhost erişimi gereklidir",
     "bodyConfirmation": "Bir agent onayınızı bekliyor",
-    "bodyTurnCompleted": "Agent yanıtlamayı tamamladı"
+    "bodyConfirmationNamed": "\"{{name}}\" onayınızı bekliyor",
+    "bodyTurnCompleted": "Agent yanıtlamayı tamamladı",
+    "bodyTurnCompletedNamed": "\"{{name}}\" yanıtlamayı tamamladı"
   },
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",

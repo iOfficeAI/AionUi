@@ -9,7 +9,6 @@ vi.mock('@/common', () => ({
     conversation: {
       confirmation: {
         list: { invoke: vi.fn() },
-        add: { on: vi.fn() },
         remove: { on: vi.fn() },
       },
     },
@@ -53,7 +52,6 @@ const team = {
 describe('useSiderTeamBadges', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(ipcBridge.conversation.confirmation.add.on).mockReturnValue(() => {});
     vi.mocked(ipcBridge.conversation.confirmation.remove.on).mockReturnValue(() => {});
     vi.mocked(ipcBridge.conversation.confirmation.list.invoke).mockResolvedValue([]);
   });
@@ -63,7 +61,8 @@ describe('useSiderTeamBadges', () => {
 
     expect(result.current.get('team-1')).toBe(3);
     await waitFor(() => {
-      expect(ipcBridge.conversation.confirmation.add.on).toHaveBeenCalled();
+      // Only `confirmation.remove` is subscribed now — the backend never emits a
+      // dedicated `confirmation.add` (removed with that dead emitter).
       expect(ipcBridge.conversation.confirmation.remove.on).toHaveBeenCalled();
     });
     expect(ipcBridge.conversation.confirmation.list.invoke).not.toHaveBeenCalled();

@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.2.1](https://github.com/iOfficeAI/AionUi/compare/v2.1.61...v2.2.1) (2026-09-01)
+
+### Desktop
+
+#### Features
+
+- **conversation:** distinguish waiting-for-user state in sidebar and notify (#4198)
+- **notification:** name the conversation in turn-completed notifications (#4195)
+- **auth:** silently refresh WebUI session on 401 (#4175)
+
+#### Bug Fixes
+
+- **webui:** stop bridge websocket reconnect storm on repeated failures (#4156)
+
+### Core ([v0.2.1](https://github.com/iOfficeAI/AionCore/releases/tag/v0.2.1))
+
+#### ⚠ BREAKING CHANGES
+
+- **skills:** deliver skills through an AionUi-owned view instead of the workspace (#938)
+
+#### Features
+
+- **auth:** dual-token refresh with singleflight (#926)
+- **skills:** deliver skills through an AionUi-owned view instead of the workspace (#938)
+- **conversation:** route @@ mentions to the session-message skill (#949)
+- **scm:** enumerate a repository's linked worktrees during discovery (#959)
+- **session-message:** add session capabilities fallback to @@ blocks (#952)
+
+#### Bug Fixes
+
+- **session-message:** align recipient block capabilities wording with sender (#955)
+
+---
+
 ## [2.1.61](https://github.com/iOfficeAI/AionUi/compare/v2.1.60...v2.1.61) (2026-08-25)
 
 ### Desktop
