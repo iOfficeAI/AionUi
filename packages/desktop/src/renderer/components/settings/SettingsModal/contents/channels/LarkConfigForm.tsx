@@ -13,7 +13,7 @@ import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
-import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Input, Menu, Message, Select, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,13 @@ import {
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
 } from './assistantBinding';
+import {
+  DEFAULT_LARK_REGION,
+  LARK_REGION_META,
+  buildLarkEnableConfig,
+  buildLarkTestExtraConfig,
+  type LarkRegion,
+} from './larkRegion';
 
 /**
  * Preference row component
@@ -64,11 +71,15 @@ interface LarkConfigFormProps {
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
-const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
-
 const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
+
+  // Feishu (China) vs Lark (international) region — selects the API domain.
+  const [region, setRegion] = useState<LarkRegion>(DEFAULT_LARK_REGION);
+  const larkDevDocsUrl = LARK_REGION_META[region].docsUrl;
+  // Region changed vs the saved one → allow reconnecting even while connected.
+  const regionChanged = region !== ((pluginStatus?.domain as LarkRegion) ?? DEFAULT_LARK_REGION);
 
   // Lark credentials
   const [appId, setAppId] = useState('');
@@ -126,6 +137,13 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     void loadPendingPairings();
     void loadAuthorizedUsers();
   }, [loadPendingPairings, loadAuthorizedUsers]);
+
+  // Restore the saved region from backend status so the selector survives reload.
+  useEffect(() => {
+    if (pluginStatus?.domain) {
+      setRegion(pluginStatus.domain === 'lark' ? 'lark' : 'feishu');
+    }
+  }, [pluginStatus?.domain]);
 
   // Load available assistants + saved selection
   useEffect(() => {
@@ -211,10 +229,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       const result = await channel.testPlugin.invoke({
         plugin_id: 'lark',
         token: '',
-        extra_config: {
-          app_id: appId.trim(),
-          app_secret: appSecret.trim(),
-        },
+        extra_config: buildLarkTestExtraConfig(region, { appId, appSecret }),
       });
 
       if (result.success) {
@@ -240,14 +255,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       await channel.enablePlugin.invoke({
         plugin_id: 'lark',
-        config: {
-          credentials: {
-            app_id: appId.trim(),
-            app_secret: appSecret.trim(),
-            encrypt_key: encryptKey.trim() || undefined,
-            verification_token: verificationToken.trim() || undefined,
-          },
-        },
+        config: buildLarkEnableConfig(region, { appId, appSecret, encryptKey, verificationToken }),
       });
 
       Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
@@ -329,6 +337,22 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   return (
     <div className='flex flex-col gap-24px'>
+      {/* Region (Feishu / Lark) */}
+      <PreferenceRow label={t('settings.lark.region', 'Region')} required>
+        <Select
+          value={region}
+          onChange={(value) => {
+            setRegion(value as LarkRegion);
+            handleCredentialsChange();
+          }}
+          style={{ width: 240 }}
+          disabled={hasExistingUsers}
+        >
+          <Select.Option value='feishu'>{LARK_REGION_META.feishu.label}</Select.Option>
+          <Select.Option value='lark'>{LARK_REGION_META.lark.label}</Select.Option>
+        </Select>
+      </PreferenceRow>
+
       {/* App ID */}
       <PreferenceRow
         label={t('settings.lark.appId', 'App ID')}
@@ -336,13 +360,15 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={larkDevDocsUrl}
               onClick={(e) => {
                 e.preventDefault();
-                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(larkDevDocsUrl).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.lark.devConsoleLink', '{{region}} Developer Console', {
+                region: LARK_REGION_META[region].label,
+              })}
             </a>{' '}
             {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
           </span>
@@ -394,13 +420,15 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={larkDevDocsUrl}
               onClick={(e) => {
                 e.preventDefault();
-                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(larkDevDocsUrl).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.lark.devConsoleLink', '{{region}} Developer Console', {
+                region: LARK_REGION_META[region].label,
+              })}
             </a>{' '}
             {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
           </span>
@@ -556,8 +584,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         </>
       )}
 
-      {/* Test Connection Button - only show when not connected or no existing users */}
-      {!hasExistingUsers && !pluginStatus?.connected && (
+      {/* Test Connection Button - show when not connected, or when switching region */}
+      {!hasExistingUsers && (!pluginStatus?.connected || regionChanged) && (
         <div className='flex justify-end'>
           {pluginStatus?.hasToken && !appId.trim() && !appSecret.trim() ? (
             // Credentials already saved but not entered in UI - show info message

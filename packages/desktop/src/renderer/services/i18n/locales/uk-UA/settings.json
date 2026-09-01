@@ -995,7 +995,7 @@
   },
   "lark": {
     "appId": "App ID",
-    "devConsoleLink": "Консоль розробника Feishu",
+    "devConsoleLink": "Консоль розробника {{region}}",
     "appIdDescSuffix": "для отримання App ID",
     "appSecret": "App Secret",
     "appSecretDescSuffix": "для отримання App Secret",
@@ -1026,7 +1026,8 @@
     "hideOptionalFields": "Приховати опціональні налаштування",
     "agent": "Агент",
     "agentDesc": "Для діалогів через Channel",
-    "autoFollowCliModel": "Автоматично слідувати моделі при роботі CLI"
+    "autoFollowCliModel": "Автоматично слідувати моделі при роботі CLI",
+    "region": "Регіон"
   },
   "dingtalk": {
     "clientId": "Client ID",

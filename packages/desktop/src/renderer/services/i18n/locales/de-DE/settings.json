@@ -1034,7 +1034,7 @@
   },
   "lark": {
     "appId": "App-ID",
-    "devConsoleLink": "Feishu Developer Console",
+    "devConsoleLink": "{{region}} Developer Console",
     "appIdDescSuffix": "um deine App-ID zu erhalten",
     "appSecret": "App-Geheimnis",
     "appSecretDescSuffix": "um App-Geheimnis zu erhalten",
@@ -1065,7 +1065,8 @@
     "hideOptionalFields": "Optionale Einstellungen ausblenden",
     "agent": "Agent",
     "agentDesc": "Für Lark-Gespräche",
-    "autoFollowCliModel": "Modell automatisch folgen, wenn CLI läuft"
+    "autoFollowCliModel": "Modell automatisch folgen, wenn CLI läuft",
+    "region": "Region"
   },
   "dingtalk": {
     "clientId": "Client-ID",
