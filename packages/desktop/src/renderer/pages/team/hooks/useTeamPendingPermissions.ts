@@ -71,15 +71,11 @@ export function useTeamPendingPermissions(team_id: string, conversation_ids: str
 
     void fetchInitial();
 
-    // Subscribe to real-time events
+    // Subscribe to real-time events. Only `confirmation.remove` is emitted by
+    // the backend; a new confirmation arrives on `message.stream`, not a
+    // dedicated add event. The live +1 path was removed with the dead
+    // `confirmation.add` emitter; counts are seeded from `confirmation.list`.
     const unsub = removeStack(
-      ipcBridge.conversation.confirmation.add.on((data) => {
-        if (!idSet.has(data.conversation_id)) return;
-        setPendingCounts((prev) => ({
-          ...prev,
-          [data.conversation_id]: (prev[data.conversation_id] ?? 0) + 1,
-        }));
-      }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
         if (!idSet.has(data.conversation_id)) return;
         setPendingCounts((prev) => ({

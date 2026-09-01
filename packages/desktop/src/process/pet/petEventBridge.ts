@@ -24,13 +24,6 @@ export class PetEventBridge {
   handleBridgeMessage(channelName: string, data: unknown): void {
     if (this.disposed) return;
 
-    // Permission request → notification state
-    if (channelName === 'confirmation.add') {
-      this.ticker.resetIdle();
-      this.sm.requestState('notification');
-      return;
-    }
-
     if (!STREAM_CHANNELS.has(channelName)) return;
 
     const msg = data as StreamMessage | undefined;

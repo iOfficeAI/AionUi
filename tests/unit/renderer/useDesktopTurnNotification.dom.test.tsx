@@ -53,10 +53,24 @@ describe('useDesktopTurnNotification', () => {
     });
   });
 
-  it('does not notify on a confirmation (permission) message — scoped to turn completion', () => {
+  it('notifies on a confirmation (acp_permission) message when unfocused', () => {
     renderHook(() => useDesktopTurnNotification());
-    emitStream({ type: 'acp_permission', conversation_id: 's1' });
-    expect(showInvoke).not.toHaveBeenCalled();
+    emitStream({ type: 'acp_permission', conversation_id: 's1', msg_id: 'm1' });
+    expect(showInvoke).toHaveBeenCalledWith({
+      title: 'AionUi',
+      body: 'settings.browserNotification.bodyConfirmation',
+      conversation_id: 's1',
+    });
+  });
+
+  it('notifies on an ask (agent question) message when unfocused', () => {
+    renderHook(() => useDesktopTurnNotification());
+    emitStream({ type: 'ask', conversation_id: 's1', msg_id: 'm2' });
+    expect(showInvoke).toHaveBeenCalledWith({
+      title: 'AionUi',
+      body: 'settings.browserNotification.bodyConfirmation',
+      conversation_id: 's1',
+    });
   });
 
   it('does not notify when the notification setting is disabled', () => {

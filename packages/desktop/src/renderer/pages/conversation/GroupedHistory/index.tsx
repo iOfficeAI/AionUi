@@ -45,6 +45,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const {
     conversations,
     isConversationGenerating,
+    isConversationWaitingConfirmation,
     hasCompletionUnread,
     isManualUnread,
     markManualUnread,
@@ -163,6 +164,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
       isGenerating: isConversationGenerating(conversation.id),
+      isWaitingConfirmation: isConversationWaitingConfirmation(conversation.id),
       hasUnread: hasCompletionUnread(conversation.id) || isManualUnread(conversation.id),
       isManualUnread: isManualUnread(conversation.id),
       collapsed,
@@ -188,6 +190,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       tooltipEnabled,
       batchMode,
       isConversationGenerating,
+      isConversationWaitingConfirmation,
       hasCompletionUnread,
       isManualUnread,
       selectedConversationIds,

@@ -94,6 +94,26 @@ describe('createBrowserNotificationController.onStreamMessage', () => {
     expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c3', kind: 'confirmation' });
   });
 
+  it('shows a confirmation notification on an ask stream message', () => {
+    const { show, controller } = makeDeps();
+    controller.onStreamMessage({ type: 'ask', conversation_id: 'c4', msg_id: 'm4' });
+    expect(show).toHaveBeenCalledWith({ body: 'confirmation', conversationId: 'c4', kind: 'confirmation' });
+  });
+
+  it('dedups repeated confirmation frames carrying the same message id', () => {
+    const { show, controller } = makeDeps();
+    controller.onStreamMessage({ type: 'acp_permission', conversation_id: 'c1', msg_id: 'm1' });
+    controller.onStreamMessage({ type: 'acp_permission', conversation_id: 'c1', msg_id: 'm1' });
+    expect(show).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies again for a different confirmation message id', () => {
+    const { show, controller } = makeDeps();
+    controller.onStreamMessage({ type: 'permission', conversation_id: 'c1', msg_id: 'm1' });
+    controller.onStreamMessage({ type: 'permission', conversation_id: 'c1', msg_id: 'm2' });
+    expect(show).toHaveBeenCalledTimes(2);
+  });
+
   it('ignores non-terminal stream message types', () => {
     const { show, controller } = makeDeps();
     controller.onStreamMessage({ type: 'thinking', conversation_id: 'c1', turn_id: 't1' });

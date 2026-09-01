@@ -45,9 +45,10 @@ export const useDesktopTurnNotification = (): void => {
           ? t('settings.browserNotification.bodyTurnCompletedNamed', { name: truncateConversationName(name) })
           : t('settings.browserNotification.bodyTurnCompleted');
       },
-      show: ({ body, conversationId, kind }) => {
-        // This issue scopes desktop notifications to turn completion only.
-        if (kind !== 'turnCompleted') return;
+      show: ({ body, conversationId }) => {
+        // Both turn-completed and confirmation (permission / question) kinds
+        // fire a native notification. The main process still gates on the
+        // setting and skips when the window is focused.
         void ipcBridge.notification.show.invoke({ title: 'AionUi', body, conversation_id: conversationId });
       },
     });
