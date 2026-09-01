@@ -100,6 +100,7 @@ jobs:
             --pattern "*.exe" \
             --pattern "*.msi" \
             --pattern "*.deb" \
+            --pattern "*.rpm" \
             --pattern "*.zip" \
             --pattern "latest*.yml"
           echo "Downloaded files:"
