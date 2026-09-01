@@ -342,6 +342,7 @@
     "denied": "通知已被封鎖 —— 請在瀏覽器的網站設定中開啟",
     "insecureContext": "瀏覽器通知需要透過 HTTPS 或 localhost 存取",
     "bodyConfirmation": "有一個 agent 正在等待你的確認",
+    "bodyConfirmationNamed": "「{{name}}」正在等待你確認",
     "bodyTurnCompleted": "已完成本輪回覆",
     "bodyTurnCompletedNamed": "「{{name}}」已完成本輪回覆"
   },

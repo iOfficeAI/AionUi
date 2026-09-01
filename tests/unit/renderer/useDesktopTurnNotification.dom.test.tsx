@@ -10,6 +10,7 @@ const streamHandlers: Array<(e: unknown) => void> = [];
 const showInvoke = vi.fn();
 let isDesktop = true;
 let settingEnabled = true;
+let snapshotName: string | undefined;
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -28,7 +29,13 @@ vi.mock('@/common', () => ({
 }));
 vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => isDesktop }));
 vi.mock('@/common/config/configService', () => ({ configService: { get: () => settingEnabled } }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+  getSnapshotConversationName: () => snapshotName,
+}));
+// Interpolate the name so tests can assert both the key chosen and the value passed.
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (k: string, params?: { name?: string }) => (params?.name ? `${k}::${params.name}` : k) }),
+}));
 
 import { useDesktopTurnNotification } from '@/renderer/hooks/system/notification/useDesktopTurnNotification';
 
@@ -39,6 +46,7 @@ beforeEach(() => {
   showInvoke.mockClear();
   isDesktop = true;
   settingEnabled = true;
+  snapshotName = undefined;
 });
 
 describe('useDesktopTurnNotification', () => {
@@ -69,6 +77,17 @@ describe('useDesktopTurnNotification', () => {
     expect(showInvoke).toHaveBeenCalledWith({
       title: 'AionUi',
       body: 'settings.browserNotification.bodyConfirmation',
+      conversation_id: 's1',
+    });
+  });
+
+  it('names the conversation in a confirmation notification when the name is known', () => {
+    snapshotName = 'My Chat';
+    renderHook(() => useDesktopTurnNotification());
+    emitStream({ type: 'acp_permission', conversation_id: 's1', msg_id: 'm3' });
+    expect(showInvoke).toHaveBeenCalledWith({
+      title: 'AionUi',
+      body: 'settings.browserNotification.bodyConfirmationNamed::My Chat',
       conversation_id: 's1',
     });
   });
