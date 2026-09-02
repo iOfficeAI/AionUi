@@ -368,4 +368,4 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   );
 };
 
-export default ConversationRow;
+export default React.memo(ConversationRow);
