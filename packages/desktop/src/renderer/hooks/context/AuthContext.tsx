@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
-import { refreshSession } from '@/common/adapter/sessionRefresh';
+import { resumeRealtime } from '@/common/adapter/httpBridge';
+import { refreshSession, resetSessionRefresh } from '@/common/adapter/sessionRefresh';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -238,10 +239,16 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setStatus('authenticated');
       setReady(true);
 
-      // Re-enable WebSocket reconnection after successful login (WebUI mode only)
+      // Re-enable WebSocket reconnection after successful login (WebUI mode only).
+      // The previous session may have latched the refresh primitive as expired and
+      // parked the realtime stream; clear the latch first, then resume both sockets
+      // so they dial with the fresh cookie instead of waiting for the next
+      // subscription to do it.
+      resetSessionRefresh();
       if (typeof window !== 'undefined' && (window as any).__websocketReconnect) {
         (window as any).__websocketReconnect();
       }
+      resumeRealtime();
 
       return { success: true };
     } catch (error) {
