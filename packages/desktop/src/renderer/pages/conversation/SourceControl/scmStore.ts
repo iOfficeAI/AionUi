@@ -386,6 +386,44 @@ export const openScmProject = async (id: string): Promise<void> => {
   }
 };
 
+/**
+ * Manual re-discovery fallback: re-run `scm/listRepositories` for the OPEN
+ * project and reconcile the full result into the live store — WITHOUT the
+ * teardown `openScmProject` does (it early-returns for the same project, and
+ * would drop warm status besides).
+ *
+ * This is the only front-end path that surfaces a worktree created mid-session:
+ * the backend pushes `repositoriesChanged` only when the project's attached-root
+ * set changes — never for a new worktree inside an already-attached repo — and
+ * status/focus refresh (`refreshAllRepos`) pull only already-subscribed repos.
+ *
+ * The full list is diffed into an added/removed/changed delta and fed through the
+ * same `applyRepositoriesChanged` reconciliation the push path uses, so the
+ * subscribe / unsubscribe / selection bookkeeping is identical across both paths
+ * (an unchanged list is therefore a no-op — no re-subscribe, warm status kept).
+ */
+export const rediscoverRepos = async (): Promise<void> => {
+  const pid = projectId;
+  if (!port || pid === null) return;
+  try {
+    const result = await port.listRepositories(pid);
+    // Switched project (or closed) while the re-list was in flight: the reply now
+    // describes a project this store no longer holds, so drop it.
+    if (projectId !== pid) return;
+    const next = result.repositories ?? [];
+    const currentIds = new Set(repositories.map((r) => r.repo_id));
+    const nextIds = new Set(next.map((r) => r.repo_id));
+    applyRepositoriesChanged({
+      project_id: pid,
+      added: next.filter((r) => !currentIds.has(r.repo_id)),
+      changed: next.filter((r) => currentIds.has(r.repo_id)),
+      removed: [...currentIds].filter((id) => !nextIds.has(id)),
+    });
+  } catch {
+    // A failed re-list leaves the current repository list intact.
+  }
+};
+
 /** Tell the backend to release every declared repo and forget the declarations. */
 const releaseSubscriptions = (): void => {
   const ids = [...subscribed];

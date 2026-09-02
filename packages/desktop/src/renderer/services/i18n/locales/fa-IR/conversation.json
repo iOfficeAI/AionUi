@@ -632,6 +632,9 @@
   "notFound": "مکالمه یافت نشد یا حذف شده است",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "به‌روزرسانی پرونده‌ها",
+    "refreshChanges": "به‌روزرسانی تغییرات",
+    "collapseAll": "جمع کردن همه",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -642,7 +645,6 @@
       "addToChat": "افزودن به گفتگو",
       "copyRelativePath": "کپی کردن مسیر نسبی",
       "copyAbsolutePath": "کپی کردن مسیر مطلق",
-      "refresh": "تازه‌سازی",
       "newFile": "فایل جدید",
       "newDir": "پوشه جدید"
     },
@@ -672,7 +674,6 @@
       "noChanges": "تغییری وجود ندارد",
       "loading": "در حال بارگیری تغییرات…",
       "loadFailed": "بارگیری تغییرات ممکن نشد",
-      "refresh": "به‌روزرسانی",
       "groups": {
         "staged": "تغییرات آماده‌شده",
         "unstaged": "تغییرات",

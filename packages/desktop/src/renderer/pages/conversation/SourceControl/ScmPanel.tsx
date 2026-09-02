@@ -28,17 +28,7 @@
  */
 
 import { Button, Tooltip } from '@arco-design/web-react';
-import {
-  BranchTwo,
-  FolderCode,
-  FolderCodeOne,
-  Plus,
-  Refresh,
-  RightBranchOne,
-  TreeList,
-  Undo,
-  ViewList,
-} from '@icon-park/react';
+import { BranchTwo, FolderCode, FolderCodeOne, Plus, RightBranchOne, TreeList, Undo, ViewList } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -149,9 +139,11 @@ export const ScmPanel: React.FC<ScmPanelProps> = ({ projectId }) => {
 
   return (
     <div data-scm-panel className='h-full flex flex-col min-h-0'>
-      {/* Action-report banner. Refresh and the bulk/view controls now live on the
-          Changes section header (VS Code parity — actions sit on the section they
-          act on), so this row exists only to surface an action report and collapses
+      {/* Action-report banner. The bulk/view controls live on the Changes section
+          header (VS Code parity — actions sit on the section they act on) and the
+          refresh moved to the shared explorer top bar (scoped to the visible tab;
+          on Changes it re-discovers repos AND re-pulls status), so this row exists
+          only to surface an action report and collapses
           away entirely when there is none, leaving no empty toolbar strip on top.
           The report's secondary parts (a failed-file detail line, a retry button)
           are rare and wide, so they drop to their own full-width row underneath via
@@ -384,7 +376,7 @@ const ChangesHeaderActions: React.FC<{
   return (
     <>
       {discardTargets.length > 0 && (
-        <Tooltip content={t('conversation.explorer.scm.actions.discard')} mini>
+        <Tooltip content={t('conversation.explorer.scm.actions.discard')} mini position='br'>
           <Button
             type='text'
             size='mini'
@@ -398,7 +390,7 @@ const ChangesHeaderActions: React.FC<{
         </Tooltip>
       )}
       {stageTargets.length > 0 && (
-        <Tooltip content={t('conversation.explorer.scm.actions.stageAll')} mini>
+        <Tooltip content={t('conversation.explorer.scm.actions.stageAll')} mini position='br'>
           <Button
             type='text'
             size='mini'
@@ -411,17 +403,6 @@ const ChangesHeaderActions: React.FC<{
           />
         </Tooltip>
       )}
-      <Tooltip content={t('conversation.explorer.scm.refresh')} mini>
-        <Button
-          type='text'
-          size='mini'
-          data-scm-header-refresh
-          className='flex-shrink-0'
-          icon={<Refresh theme='outline' size='14' />}
-          aria-label={t('conversation.explorer.scm.refresh')}
-          onClick={() => void refreshAllRepos()}
-        />
-      </Tooltip>
       <ViewModeToggle mode={mode} onChange={onChangeMode} />
     </>
   );
@@ -437,7 +418,7 @@ const ViewModeToggle: React.FC<{ mode: ScmViewMode; onChange: (mode: ScmViewMode
   const next: ScmViewMode = mode === 'tree' ? 'list' : 'tree';
   const label = t(next === 'tree' ? 'conversation.explorer.scm.viewAsTree' : 'conversation.explorer.scm.viewAsList');
   return (
-    <Tooltip content={label} mini>
+    <Tooltip content={label} mini position='br'>
       <Button
         type='text'
         size='mini'
