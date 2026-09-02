@@ -376,7 +376,7 @@ const ChangesHeaderActions: React.FC<{
   return (
     <>
       {discardTargets.length > 0 && (
-        <Tooltip content={t('conversation.explorer.scm.actions.discard')} mini>
+        <Tooltip content={t('conversation.explorer.scm.actions.discard')} mini position='br'>
           <Button
             type='text'
             size='mini'
@@ -390,7 +390,7 @@ const ChangesHeaderActions: React.FC<{
         </Tooltip>
       )}
       {stageTargets.length > 0 && (
-        <Tooltip content={t('conversation.explorer.scm.actions.stageAll')} mini>
+        <Tooltip content={t('conversation.explorer.scm.actions.stageAll')} mini position='br'>
           <Button
             type='text'
             size='mini'
@@ -418,7 +418,7 @@ const ViewModeToggle: React.FC<{ mode: ScmViewMode; onChange: (mode: ScmViewMode
   const next: ScmViewMode = mode === 'tree' ? 'list' : 'tree';
   const label = t(next === 'tree' ? 'conversation.explorer.scm.viewAsTree' : 'conversation.explorer.scm.viewAsList');
   return (
-    <Tooltip content={label} mini>
+    <Tooltip content={label} mini position='br'>
       <Button
         type='text'
         size='mini'
