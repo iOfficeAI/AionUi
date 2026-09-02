@@ -1,126 +1,129 @@
-"""RAG MCP Server - 通过 MCP 协议暴露 RAG 能力给 AionUi Agent"""
+"""RAG MCP Server - 通过 MCP 协议向 Agent 暴露知识库检索能力
+
+本 server 是检索型 (retrieval-only) 工具: 只负责返回相关文档块
+(text + 来源 + 页码 + 相似度分数)，答案由调用方 Agent 自己的 LLM 生成。
+
+注意: stdio 模式下 stdout 是 JSON-RPC 协议通道，任何 print 都会污染协议流，
+因此这里统一使用 logging 输出到 stderr。
+"""
 
 import asyncio
-import os
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+import json
+import logging
+import sys
 
-from rag_engine import RAGEngine
-from llm_client import LLMClient
+from mcp.server.fastmcp import FastMCP
 
-# 初始化组件
-rag_engine = RAGEngine()
-llm_client = LLMClient()
+from config import Config
+from rag_engine import RAGEngine, results_to_text
 
-# 创建 MCP Server
-server = Server("rag-mcp-server")
+# 日志必须先于任何组件初始化配置，且只写 stderr
+logging.basicConfig(
+    stream=sys.stderr,
+    level=getattr(logging, Config.LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
+logger = logging.getLogger("rag_server")
 
-
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """列出所有可用的 MCP 工具"""
-    return [
-        Tool(
-            name="load_pdf",
-            description="加载本地 PDF 文件到知识库。提取文本、分块、向量化后存入向量数据库。",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "pdf_path": {
-                        "type": "string",
-                        "description": "PDF 文件的绝对路径"
-                    }
-                },
-                "required": ["pdf_path"]
-            }
-        ),
-        Tool(
-            name="query",
-            description="基于知识库回答问题。先从知识库中检索相关文档片段，然后结合上下文生成回答。",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": "用户的问题"
-                    },
-                    "top_k": {
-                        "type": "integer",
-                        "description": "检索最相关的文档块数量，默认 3",
-                        "default": 3
-                    }
-                },
-                "required": ["question"]
-            }
-        ),
-        Tool(
-            name="clear_knowledge_base",
-            description="清空知识库中的所有文档",
-            inputSchema={
-                "type": "object",
-                "properties": {}
-            }
-        )
-    ]
+engine = RAGEngine()
+mcp = FastMCP("rag-mcp-server")
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    """处理工具调用"""
-
-    if name == "load_pdf":
-        pdf_path = arguments.get("pdf_path", "")
-        result = rag_engine.load_pdf(pdf_path)
-        return [TextContent(type="text", text=result)]
-
-    elif name == "query":
-        question = arguments.get("question", "")
-        top_k = arguments.get("top_k", 3)
-
-        # 1. 检索相关文档
-        retrieval_result = rag_engine.query(question, top_k=top_k)
-
-        if retrieval_result.get("error"):
-            return [TextContent(type="text", text=f"检索失败: {retrieval_result['error']}")]
-
-        context = retrieval_result["context"]
-        sources = retrieval_result["sources"]
-
-        if not context:
-            return [TextContent(type="text", text="知识库中未找到相关信息。")]
-
-        # 2. 基于上下文生成回答
-        llm_result = llm_client.generate(question, context)
-
-        if not llm_result["success"]:
-            return [TextContent(type="text", text=llm_result["answer"])]
-
-        # 3. 组装最终回答
-        answer = llm_result["answer"]
-        if sources:
-            answer += f"\n\n---\n📚 参考来源: {', '.join(os.path.basename(s) for s in sources)}"
-
-        return [TextContent(type="text", text=answer)]
-
-    elif name == "clear_knowledge_base":
-        result = rag_engine.clear()
-        return [TextContent(type="text", text=result)]
-
-    else:
-        return [TextContent(type="text", text=f"未知工具: {name}")]
+def _err_text(payload_or_message: object) -> str:
+    """统一错误输出格式"""
+    if isinstance(payload_or_message, dict):
+        return json.dumps(payload_or_message, ensure_ascii=False, indent=2)
+    return f"错误: {payload_or_message}"
 
 
-async def main():
-    """启动 MCP Server"""
-    print("[RAG MCP Server] 启动中...")
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options()
-        )
+@mcp.tool()
+async def load_pdf(pdf_path: str) -> str:
+    """加载本地 PDF 文件到知识库：解析为 Markdown、按句子智能分块、向量化入库。
+
+    幂等: 同一文件重复加载会自动跳过；文件内容更新后重新加载会替换旧版本。
+    仅支持 PDF；其他格式请使用 load_document。
+    """
+    try:
+        if not pdf_path.lower().endswith(".pdf"):
+            return "错误: load_pdf 仅支持 PDF 文件，其他格式请使用 load_document 工具"
+        return await asyncio.to_thread(engine.load_document, pdf_path)
+    except Exception as e:
+        logger.exception("load_pdf 失败")
+        return _err_text(f"加载失败 - {e}")
+
+
+@mcp.tool()
+async def load_document(file_path: str) -> str:
+    """加载本地文档到知识库，支持 PDF / TXT / MD / DOCX，按扩展名自动识别。
+
+    PDF 解析为 Markdown 并记录页码；TXT/MD 按原编码读取（utf-8/gbk 自动尝试）；
+    DOCX 提取正文段落与表格文本。以上格式统一分块后向量化入库。
+
+    幂等: 同一文件重复加载会自动跳过；文件内容更新后重新加载会替换旧版本。
+    """
+    try:
+        return await asyncio.to_thread(engine.load_document, file_path)
+    except Exception as e:
+        logger.exception("load_document 失败")
+        return _err_text(f"加载失败 - {e}")
+
+
+@mcp.tool()
+async def search(question: str, top_k: int | None = None) -> str:
+    """在知识库中检索与问题最相关的文档块（向量语义检索）。
+
+    返回 JSON: results 数组，每项含 text(文档块原文)、source(来源文件路径)、
+    page(页码, 1-based，仅 PDF 有，其他格式为 null)、similarity(相似度 0~1)、chunk_index。
+
+    相似度低于阈值的结果已被过滤。若 results 为空且响应含 best_similarity 与 hint 字段，
+    说明知识库非空但没有与问题相关的内容（hint 中给出了最高候选相似度），
+    此时请直接告知用户未找到相关内容，不要凭空编造，也不要盲目重试相同问题。
+    请基于返回的文档块原文回答用户问题，并注明来源文件与页码。
+    """
+    try:
+        payload = await asyncio.to_thread(engine.search, question, top_k)
+        if payload.get("error"):
+            return _err_text(payload)
+        return results_to_text(payload)
+    except Exception as e:
+        logger.exception("search 失败")
+        return _err_text(f"检索失败 - {e}")
+
+
+@mcp.tool()
+async def list_documents() -> str:
+    """列出知识库中的所有文档（来源路径、文档块数量、页码范围）。"""
+    try:
+        return await asyncio.to_thread(lambda: results_to_text(engine.list_documents()))
+    except Exception as e:
+        logger.exception("list_documents 失败")
+        return _err_text(f"列举失败 - {e}")
+
+
+@mcp.tool()
+async def delete_document(source: str) -> str:
+    """从知识库中删除单个文档的全部内容。source 必须是 list_documents 返回的完整路径。"""
+    try:
+        return await asyncio.to_thread(engine.delete_document, source)
+    except Exception as e:
+        logger.exception("delete_document 失败")
+        return _err_text(f"删除失败 - {e}")
+
+
+@mcp.tool()
+async def clear_knowledge_base() -> str:
+    """清空知识库中的所有文档（危险操作，不可恢复）。"""
+    try:
+        return await asyncio.to_thread(engine.clear)
+    except Exception as e:
+        logger.exception("clear_knowledge_base 失败")
+        return _err_text(f"清空失败 - {e}")
+
+
+def main() -> None:
+    logger.info("RAG MCP Server 启动 (stdio)")
+    mcp.run()  # 默认 stdio transport
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
