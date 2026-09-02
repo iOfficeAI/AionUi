@@ -1,12 +1,12 @@
 import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
+import { Form, Input, Message, Select, Switch, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { ipcBridge } from '@/common';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
-import { getProviderLogo } from '@/renderer/utils/model/modelPlatforms';
+import { getProviderLogo, isNewApiPlatform } from '@/renderer/utils/model/modelPlatforms';
 import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 
 const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(
@@ -19,6 +19,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     // Watch bedrockAuthMethod only for UI conditional rendering (not for auto-refresh)
     const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
     const isBedrock = data?.platform === 'bedrock';
+    const isNewApi = isNewApiPlatform(data?.platform ?? '');
+    // Show Full URL whenever base_url is editable. Presets like Zhipu
+    // (open.bigmodel.cn/api/paas/v4) need this so users can stop path
+    // auto-append after create — see #3514 / #3408.
+    const showFullUrlToggle = !isBedrock;
 
     // Watch the live form values so editing the Base URL (or API key) re-keys the
     // model-list SWR cache. Without this the list would keep fetching from the
@@ -34,7 +39,9 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       return getProviderLogo({ name: data?.name, base_url: data?.base_url, platform: data?.platform });
     }, [data?.name, data?.base_url, data?.platform]);
 
-    const isFullUrl = data?.is_full_url ?? false;
+    // Editable — Add Platform has this switch; Edit Mode previously only *read*
+    // data.is_full_url, so users could not fix non-standard API paths after create.
+    const [isFullUrl, setIsFullUrl] = useState(data?.is_full_url ?? false);
 
     // A non-destructive hint shown when a refresh after a Base URL change
     // succeeds but a currently selected model is absent from the new list. It
@@ -112,6 +119,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     useEffect(() => {
       if (data) {
+        setIsFullUrl(data.is_full_url ?? false);
         form.setFieldsValue({
           ...data,
           model:
@@ -144,6 +152,8 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               ...values,
               // Ensure models is always an array
               models: Array.isArray(values.model) ? values.model : [values.model],
+              // Persist Full URL toggle (state, not a form field — matches Add Platform)
+              is_full_url: isFullUrl,
             };
 
             // Add Bedrock configuration if platform is Bedrock
@@ -206,8 +216,33 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'base_url'}
             >
-              <Input onBlur={handleBaseUrlBlur} />
+              <Input
+                placeholder={
+                  isFullUrl
+                    ? 'https://your-api-endpoint.com/v1/chat/completions'
+                    : isNewApi
+                      ? 'https://your-newapi-instance.com'
+                      : undefined
+                }
+                onBlur={handleBaseUrlBlur}
+              />
             </Form.Item>
+            {/*
+              Full URL toggle — Add Platform already exposes this; Edit Mode only
+              read is_full_url before, so non-standard paths (e.g. 智谱 /v4) could
+              not be fixed from the UI after create. See #3514.
+            */}
+            {showFullUrlToggle && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 12 }}>
+                <Switch size='small' checked={isFullUrl} onChange={setIsFullUrl} />
+                <span className='text-12px text-t-secondary'>{t('settings.fullUrlMode', '完整 URL')}</span>
+                <span className='text-11px text-t-tertiary'>
+                  {isFullUrl
+                    ? t('settings.fullUrlHint', '直接使用此地址，不拼接路径')
+                    : t('settings.baseUrlHint', '系统会自动拼接请求路径')}
+                </span>
+              </div>
+            )}
             {modelsMissingAfterRefresh.length > 0 && (
               <div className='text-11px text-t-secondary -mt-8px mb-12px'>
                 {t('settings.modelNotFoundAfterUrlChange', { model: modelsMissingAfterRefresh.join(', ') })}
