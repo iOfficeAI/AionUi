@@ -554,7 +554,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
               不能包裹 Dropdown（会取到非 DOM 节点而崩），这里包的是普通 Button，安全。
               Note: an Arco Tooltip must not wrap a Dropdown (it would resolve a
               non-DOM node and crash); wrapping a plain Button like this is safe. */}
-          <Tooltip content={t('conversation.explorer.addFolder')} mini>
+          <Tooltip content={t('conversation.explorer.addFolder')} mini position='br'>
             <Button
               type='text'
               size='small'
@@ -572,6 +572,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
                 : t('conversation.explorer.refreshFiles')
             }
             mini
+            position='br'
           >
             <Button
               type='text'
@@ -588,7 +589,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             />
           </Tooltip>
           {activeTab === 'files' && (
-            <Tooltip content={t('conversation.explorer.collapseAll')} mini>
+            <Tooltip content={t('conversation.explorer.collapseAll')} mini position='br'>
               <Button
                 type='text'
                 size='small'
