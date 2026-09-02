@@ -279,6 +279,43 @@ describe('WebUI browser bridge socket', () => {
     expect(FakeWebSocket.instances).toHaveLength(afterAuthFailure + 1);
   });
 
+  it('retries auth recovery after a transient refresh outage without opening a socket', async () => {
+    const fetchMock = stubRefresh(503);
+    await loadBrowserAdapter();
+
+    latestSocket().acceptUpgrade();
+    latestSocket().deliver({ name: 'realtime.error', data: { code: 'REALTIME_AUTH_EXPIRED' } });
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+  });
+
+  it('cancels a pending auth-recovery retry when the login flow reconnects', async () => {
+    const fetchMock = stubRefresh(503);
+    await loadBrowserAdapter();
+
+    latestSocket().acceptUpgrade();
+    latestSocket().deliver({ name: 'realtime.error', data: { code: 'REALTIME_AUTH_EXPIRED' } });
+    await vi.advanceTimersByTimeAsync(0);
+
+    // The inconclusive refresh schedules its own retry, separate from the
+    // socket backoff. A successful login must cancel that retry as it wakes the
+    // socket immediately.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const beforeLogin = FakeWebSocket.instances.length;
+    (window as unknown as { __websocketReconnect?: () => void }).__websocketReconnect?.();
+
+    expect(FakeWebSocket.instances).toHaveLength(beforeLogin + 1);
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(FakeWebSocket.instances).toHaveLength(beforeLogin + 1);
+  });
+
   it('cancels a pending backoff retry when the login flow reconnects', async () => {
     await loadBrowserAdapter();
 
