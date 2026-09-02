@@ -1,4 +1,4 @@
-"""RAG MCP Server - 通过 MCP 协议向 Agent 暴露知识库检索能力
+"""RAG MCP Server 通过 MCP 协议向 Agent 暴露知识库检索能力
 
 本 server 是检索型 (retrieval-only) 工具: 只负责返回相关文档块
 (text + 来源 + 页码 + 相似度分数)，答案由调用方 Agent 自己的 LLM 生成。
