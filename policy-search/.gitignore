@@ -1,0 +1,6 @@
+.env
+knowledge_base/
+__pycache__/
+*.pyc
+*.pyo
+chroma_data/
