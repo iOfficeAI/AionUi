@@ -263,6 +263,7 @@ const GuidPage: React.FC = () => {
     selectedAcpModel: agentSelection.selectedAcpModel,
     selectedThoughtLevelValue: agentSelection.selectedThoughtLevelValue,
     current_model: modelSelection.current_model,
+    autoEnabled: modelSelection.autoEnabled,
 
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
@@ -595,6 +596,8 @@ const GuidPage: React.FC = () => {
       modelList={modelSelection.modelList}
       current_model={modelSelection.current_model}
       setCurrentModel={setGuidCurrentModel}
+      autoEnabled={modelSelection.autoEnabled}
+      onSelectAuto={modelSelection.selectAutoModel}
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={setGuidSelectedAcpModel}
@@ -622,6 +625,8 @@ const GuidPage: React.FC = () => {
       modelList={modelSelection.modelList}
       current_model={modelSelection.current_model}
       setCurrentModel={setGuidCurrentModel}
+      autoEnabled={modelSelection.autoEnabled}
+      onSelectAuto={modelSelection.selectAutoModel}
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={setGuidSelectedAcpModel}

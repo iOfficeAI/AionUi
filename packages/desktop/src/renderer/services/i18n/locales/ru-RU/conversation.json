@@ -798,5 +798,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Развернуть план",
     "collapse": "Свернуть план"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (маршрутизация planner/worker)",
+    "pill": "Auto · {{phase}}/{{model}}",
+    "noCandidates": "Нет доступных моделей для Auto"
   }
 }

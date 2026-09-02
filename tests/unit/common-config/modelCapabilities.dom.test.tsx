@@ -116,6 +116,28 @@ vi.mock('@renderer/hooks/agent/useModeModeList', () => ({
 
 vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
   useProvidersQuery: () => ({ data: mocks.providers, mutate: mocks.providerMutate }),
+  useModelProviderList: () => ({
+    providers: mocks.providers,
+    getAvailableModels: (provider: { models?: string[] }) => provider.models ?? [],
+    formatModelLabel: (_provider: unknown, modelName?: string) => modelName || '',
+  }),
+}));
+
+vi.mock('@/renderer/hooks/agent/useAutoModelSettings', () => ({
+  useAutoModelSettings: () => ({
+    settings: {
+      preference: 'balance',
+      slots: {
+        planner: { mode: 'automatic' },
+        worker: { mode: 'automatic' },
+        utility: { mode: 'automatic' },
+      },
+    },
+    setPreference: vi.fn(),
+    setSlot: vi.fn(),
+    setSettings: vi.fn(),
+  }),
+  listSlotModelOptions: () => [],
 }));
 
 vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () => ({

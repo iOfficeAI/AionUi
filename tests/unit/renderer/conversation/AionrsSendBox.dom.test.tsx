@@ -185,6 +185,9 @@ vi.mock('@/renderer/hooks/file/useOpenFileSelector', () => ({
     onSlashBuiltinCommand: vi.fn(),
   }),
 }));
+vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
+  useMessageList: () => [],
+}));
 vi.mock('@/renderer/hooks/ui/useLatestRef', () => ({
   useLatestRef: <T,>(value: T) => ({ current: value }),
 }));

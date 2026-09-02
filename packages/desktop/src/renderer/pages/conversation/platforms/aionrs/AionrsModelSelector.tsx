@@ -69,11 +69,17 @@ const AionrsModelSelector: React.FC<{
     );
   }
 
-  const { providers, getAvailableModels, handleSelectModel } = selection;
+  const { providers, getAvailableModels, handleSelectModel, handleSelectAuto, autoEnabled, autoPhase } = selection;
 
   const label = getModelDisplayLabel({
     selected_value: current_model?.use_model,
-    selectedLabel: current_model?.use_model || '',
+    selectedLabel: autoEnabled
+      ? t('conversation.autoModel.pill', {
+          phase: autoPhase || 'worker',
+          model: current_model?.use_model || '',
+          defaultValue: `Auto · ${autoPhase || 'worker'}/${current_model?.use_model || ''}`,
+        })
+      : current_model?.use_model || '',
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
@@ -85,7 +91,20 @@ const AionrsModelSelector: React.FC<{
 
   // aionrs models are grouped by provider. Use a composite id (see compositeId)
   // so the shared model list can track selection, and map it back on select.
-  const modelGroups: RuntimeSelectorModelGroup[] = [];
+  const modelGroups: RuntimeSelectorModelGroup[] = [
+    {
+      key: 'aionui-auto',
+      title: t('conversation.autoModel.groupTitle', { defaultValue: 'Auto' }),
+      models: [
+        {
+          id: '__aionui_auto__::auto',
+          label: t('conversation.autoModel.optionLabel', {
+            defaultValue: 'Auto (planner/worker routing)',
+          }),
+        },
+      ],
+    },
+  ];
   const modelLookup = new Map<string, { provider: (typeof providers)[number]; modelName: string }>();
   for (const provider of providers) {
     const models = getAvailableModels(provider);
@@ -100,8 +119,16 @@ const AionrsModelSelector: React.FC<{
       }),
     });
   }
-  const currentCompositeId = current_model ? compositeId(current_model.id, current_model.use_model || '') : null;
+  const currentCompositeId = autoEnabled
+    ? '__aionui_auto__::auto'
+    : current_model
+      ? compositeId(current_model.id, current_model.use_model || '')
+      : null;
   const handleModelSelect = (id: string) => {
+    if (id === '__aionui_auto__::auto') {
+      void handleSelectAuto();
+      return;
+    }
     const entry = modelLookup.get(id);
     if (entry) void handleSelectModel(entry.provider, entry.modelName);
   };

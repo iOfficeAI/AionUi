@@ -1414,5 +1414,20 @@
   "crossSessionMessageDesc": "به عامل‌ها اجازه می‌دهد به گفتگوهای دیگر شما پیام بفرستند. با خاموش کردن، منشن @@ در کادر ورودی نیز غیرفعال می‌شود.",
   "crossSessionMessageDisabledBanner": "پیام‌های بین گفتگوها خاموش است، منشن @@ در دسترس نیست.",
   "crossSessionMessageResume": "روشن کردن دوباره",
-  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود"
+  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود",
+  "autoModel": {
+    "title": "Auto model routing",
+    "description": "Bind planner, worker, and utility slots for long-running aionrs agents. Phase 1 resolves a concrete model when you pick Auto; Phase 2 will switch slots without rebuilding the agent.",
+    "preference": "When slots are Automatic",
+    "preferenceCost": "Prefer lower cost",
+    "preferenceBalance": "Balance cost and quality",
+    "preferenceQuality": "Prefer higher quality",
+    "automatic": "Automatic",
+    "slot": {
+      "planner": "Planner model",
+      "worker": "Worker model",
+      "utility": "Utility model"
+    },
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
+  }
 }

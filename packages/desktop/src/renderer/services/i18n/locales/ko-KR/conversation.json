@@ -782,5 +782,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "계획 펼치기",
     "collapse": "계획 접기"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto(플래너/워커 라우팅)",
+    "pill": "Auto · {{phase}}/{{model}}",
+    "noCandidates": "Auto에 사용할 수 있는 모델이 없습니다"
   }
 }
