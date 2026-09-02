@@ -51,8 +51,12 @@ export const useBrowserNotification = (): void => {
           documentHidden: document.hidden,
         }),
       bodyFor: (kind, conversationId) => {
-        if (kind === 'confirmation') return t('settings.browserNotification.bodyConfirmation');
         const name = conversationId ? getSnapshotConversationName(conversationId) : undefined;
+        if (kind === 'confirmation') {
+          return name
+            ? t('settings.browserNotification.bodyConfirmationNamed', { name: truncateConversationName(name) })
+            : t('settings.browserNotification.bodyConfirmation');
+        }
         return name
           ? t('settings.browserNotification.bodyTurnCompletedNamed', { name: truncateConversationName(name) })
           : t('settings.browserNotification.bodyTurnCompleted');

@@ -632,6 +632,9 @@
   "notFound": "Conversation not found or has been deleted",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Refresh files",
+    "refreshChanges": "Refresh changes",
+    "collapseAll": "Collapse all",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -643,8 +646,7 @@
       "newDir": "New folder",
       "addToChat": "Add to chat",
       "copyRelativePath": "Copy relative path",
-      "copyAbsolutePath": "Copy absolute path",
-      "refresh": "Refresh"
+      "copyAbsolutePath": "Copy absolute path"
     },
     "namePlaceholder": "Name",
     "deleteConfirm": "Delete “{{name}}”? This can’t be undone.",
@@ -672,7 +674,6 @@
       "noChanges": "No changes",
       "loading": "Loading changes…",
       "loadFailed": "Couldn't load changes",
-      "refresh": "Refresh",
       "groups": {
         "staged": "Staged changes",
         "unstaged": "Changes",

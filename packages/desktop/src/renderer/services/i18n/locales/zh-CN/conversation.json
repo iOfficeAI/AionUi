@@ -632,6 +632,9 @@
   "notFound": "会话不存在或已被删除",
   "explorer": {
     "addFolder": "添加文件夹到项目",
+    "refreshFiles": "刷新文件",
+    "refreshChanges": "刷新变更",
+    "collapseAll": "全部折叠",
     "removeFolder": "从项目移除",
     "attachDuplicate": "该文件夹已在项目中",
     "attachOverlap": "该文件夹与项目中已有文件夹重叠",
@@ -642,7 +645,6 @@
       "addToChat": "添加到聊天",
       "copyRelativePath": "复制相对路径",
       "copyAbsolutePath": "复制绝对路径",
-      "refresh": "刷新",
       "newFile": "新建文件",
       "newDir": "新建目录"
     },
@@ -672,7 +674,6 @@
       "noChanges": "没有变更",
       "loading": "正在加载变更…",
       "loadFailed": "无法加载变更",
-      "refresh": "刷新",
       "groups": {
         "staged": "已暂存的变更",
         "unstaged": "变更",

@@ -17,7 +17,7 @@
  */
 
 import { Button, Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
-import { FolderPlus } from '@icon-park/react';
+import { FoldUpOne, FolderPlus, Refresh } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -57,11 +57,12 @@ import {
 } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
-import { refreshRoot, reveal, select } from './explorerStore';
+import { collapseAll, refreshRoot, reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
 import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
 import { ScmPanel } from '../SourceControl/ScmPanel';
+import { rediscoverRepos, refreshAllRepos } from '../SourceControl/scmStore';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -242,20 +243,6 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
-  // Manually refresh one pe root (context-menu action on a root node). Two
-  // independent staleness sources are refreshed: `mutate()` re-fetches the
-  // project detail so a root's `runtime_status` (the greyed/caution indicator,
-  // HTTP-sourced) reflects a folder that has become reachable again; `refreshRoot`
-  // asks the backend to remount the root's watched subtree over WS (re-arm the
-  // watch, re-read the baseline) so the freshest directory listings replace the
-  // cache — recovering a stale mount a plain re-subscribe could not. No toast — the
-  // tree/indicator updating in place is the feedback, and reporting success before
-  // the async snapshot lands would lie.
-  const handleRefreshRoot = (peId: string): void => {
-    void mutate();
-    refreshRoot(peId);
-  };
-
   // ── File operations (A): rename + delete + create-file / create-dir ───────
   // All operate on the tree's `{pe_id, relative_path}` identity over WS fs/*
   // commands; the change is pushed back as a delta on the parent dir's
@@ -266,6 +253,9 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // subscription is owned by its store per project, not by the component's mount
   // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
   const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
+  // Busy flag for the top-bar refresh: spins the icon and disables re-click while a
+  // refresh is in flight (so rapid clicks don't fan out redundant backend round-trips).
+  const [refreshing, setRefreshing] = useState(false);
   // One dialog for rename / new-file / new-folder (see NameDialogState); the
   // `mode` discriminant drives the title, ok label, request builder, and the
   // post-create reveal below.
@@ -485,6 +475,40 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // open-externally button.
   const workspacePath = detail?.explorer.entries.find((e) => e.pe_id === workspacePeId)?.display_path;
 
+  // The single top-bar refresh, scoped to the visible tab (replaces the file
+  // tree's per-root context-menu refresh and the changes section's own button):
+  //
+  // • Files — refresh every pe root. Two independent staleness sources are
+  //   covered: `mutate()` re-fetches project detail so a root's `runtime_status`
+  //   (the greyed/caution indicator, HTTP-sourced) reflects a folder that became
+  //   reachable again; `refreshRoot` asks the backend to remount each root's
+  //   watched subtree over WS (re-arm the watch, re-read the baseline) so the
+  //   freshest listings replace the cache — recovering a stale mount a plain
+  //   re-subscribe could not.
+  // • Changes — `rediscoverRepos()` re-lists the project so a worktree created
+  //   mid-session is surfaced (the backend does not push it), and
+  //   `refreshAllRepos()` re-pulls status for repos already subscribed (catching
+  //   an external editor's working-tree write the `.git` watch cannot see).
+  //
+  // No toast either way — the tree / indicator / change list updating in place is
+  // the feedback, and reporting success before the async snapshots land would lie.
+  // The button stays busy (spinning, disabled) until every branch promise settles;
+  // all of them swallow their own errors, so the await never rejects and `finally`
+  // always clears the flag.
+  const handleRefreshActiveTab = async (): Promise<void> => {
+    if (refreshing) return; // in flight — ignore re-clicks rather than pile on round-trips
+    setRefreshing(true);
+    try {
+      if (activeTab === 'changes') {
+        await Promise.all([rediscoverRepos(), refreshAllRepos()]);
+      } else {
+        await Promise.all([mutate(), ...roots.map((root) => refreshRoot(root.pe_id))]);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const tabButton = (key: 'files' | 'changes', label: string) => (
     <Button
       type='text'
@@ -521,14 +545,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}
         </div>
         <div className='flex items-center gap-2px flex-shrink-0'>
-          {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
-              悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
-              非 DOM 节点而崩），这里包的是普通 Button，安全。
-              Same `mini` Tooltip as the neighboring workspace-open button so
-              adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
-              a Dropdown (it would resolve a non-DOM node and crash); wrapping a
-              plain Button like this is safe. */}
-          <Tooltip content={t('conversation.explorer.addFolder')} mini>
+          {/* Right cluster order (VS Code parity): project-scope actions first (add
+              folder, open workspace), then view actions grouped at the far right
+              (refresh, collapse-all). Refresh shows on both tabs (tab-scoped
+              behavior); collapse-all only on Files, since Changes has no tree.
+
+              Tooltip 与相邻按钮保持同一形态（mini），观感一致。注意：Arco 的 Tooltip
+              不能包裹 Dropdown（会取到非 DOM 节点而崩），这里包的是普通 Button，安全。
+              Note: an Arco Tooltip must not wrap a Dropdown (it would resolve a
+              non-DOM node and crash); wrapping a plain Button like this is safe. */}
+          <Tooltip content={t('conversation.explorer.addFolder')} mini position='br'>
             <Button
               type='text'
               size='small'
@@ -539,6 +565,41 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             />
           </Tooltip>
           {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
+          <Tooltip
+            content={
+              activeTab === 'changes'
+                ? t('conversation.explorer.refreshChanges')
+                : t('conversation.explorer.refreshFiles')
+            }
+            mini
+            position='br'
+          >
+            <Button
+              type='text'
+              size='small'
+              className='flex items-center justify-center'
+              loading={refreshing}
+              icon={<Refresh theme='outline' size='16' />}
+              aria-label={
+                activeTab === 'changes'
+                  ? t('conversation.explorer.refreshChanges')
+                  : t('conversation.explorer.refreshFiles')
+              }
+              onClick={() => void handleRefreshActiveTab()}
+            />
+          </Tooltip>
+          {activeTab === 'files' && (
+            <Tooltip content={t('conversation.explorer.collapseAll')} mini position='br'>
+              <Button
+                type='text'
+                size='small'
+                className='flex items-center justify-center'
+                icon={<FoldUpOne theme='outline' size='16' />}
+                aria-label={t('conversation.explorer.collapseAll')}
+                onClick={() => collapseAll()}
+              />
+            </Tooltip>
+          )}
         </div>
       </div>
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
@@ -567,7 +628,6 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
             roots={roots}
             workspacePeId={workspacePeId}
             onRemoveRoot={handleRemoveFolder}
-            onRefreshRoot={handleRefreshRoot}
             onOpenFile={handleOpenFile}
             onRename={handleRename}
             onDelete={handleDelete}

@@ -632,6 +632,9 @@
   "notFound": "Conversation introuvable ou supprimée",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Actualiser les fichiers",
+    "refreshChanges": "Actualiser les modifications",
+    "collapseAll": "Tout réduire",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -643,8 +646,7 @@
       "rename": "Renommer",
       "addToChat": "Ajouter au chat",
       "copyRelativePath": "Copier le chemin relatif",
-      "copyAbsolutePath": "Copier le chemin absolu",
-      "refresh": "Actualiser"
+      "copyAbsolutePath": "Copier le chemin absolu"
     },
     "namePlaceholder": "Nom",
     "deleteConfirm": "Supprimer « {{name}} » ? Cette action est irréversible.",
@@ -672,7 +674,6 @@
       "noChanges": "Aucune modification",
       "loading": "Chargement des modifications…",
       "loadFailed": "Impossible de charger les modifications",
-      "refresh": "Actualiser",
       "groups": {
         "staged": "Modifications indexées",
         "unstaged": "Modifications",
