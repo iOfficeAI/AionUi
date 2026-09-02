@@ -640,6 +640,9 @@
   "notFound": "Розмову не знайдено або її видалено",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Оновити файли",
+    "refreshChanges": "Оновити зміни",
+    "collapseAll": "Згорнути все",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -650,7 +653,6 @@
       "addToChat": "Додати в чат",
       "copyRelativePath": "Копіювати відносний шлях",
       "copyAbsolutePath": "Копіювати абсолютний шлях",
-      "refresh": "Оновити",
       "newFile": "Новий файл",
       "newDir": "Нова папка"
     },
@@ -680,7 +682,6 @@
       "noChanges": "Немає змін",
       "loading": "Завантаження змін…",
       "loadFailed": "Не вдалося завантажити зміни",
-      "refresh": "Оновити",
       "groups": {
         "staged": "Проіндексовані зміни",
         "unstaged": "Зміни",

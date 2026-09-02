@@ -634,6 +634,9 @@
   "notFound": "Konuşma bulunamadı veya silinmiş",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Dosyaları yenile",
+    "refreshChanges": "Değişiklikleri yenile",
+    "collapseAll": "Tümünü daralt",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -644,7 +647,6 @@
       "addToChat": "Sohbete ekle",
       "copyRelativePath": "Göreli yolu kopyala",
       "copyAbsolutePath": "Mutlak yolu kopyala",
-      "refresh": "Yenile",
       "newFile": "Yeni dosya",
       "newDir": "Yeni klasör"
     },
@@ -674,7 +676,6 @@
       "noChanges": "Değişiklik yok",
       "loading": "Değişiklikler yükleniyor…",
       "loadFailed": "Değişiklikler yüklenemedi",
-      "refresh": "Yenile",
       "groups": {
         "staged": "Hazırlanan değişiklikler",
         "unstaged": "Değişiklikler",
