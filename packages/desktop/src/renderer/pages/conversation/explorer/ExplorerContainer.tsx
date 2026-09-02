@@ -17,7 +17,7 @@
  */
 
 import { Button, Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
-import { FolderPlus, Refresh } from '@icon-park/react';
+import { FoldUpOne, FolderPlus, Refresh } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -57,7 +57,7 @@ import {
 } from './explorerModel';
 import { initExplorerRuntime } from './monitorTransport';
 import { toRootRefs } from './projectRoots';
-import { refreshRoot, reveal, select } from './explorerStore';
+import { collapseAll, refreshRoot, reveal, select } from './explorerStore';
 import { useCurrentConversation } from './currentConversationStore';
 import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
@@ -545,13 +545,26 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}
         </div>
         <div className='flex items-center gap-2px flex-shrink-0'>
-          {/* Tooltip 与右侧「打开工作区」按钮保持同一形态（mini），让相邻按钮的
-              悬浮提示观感一致。注意：Arco 的 Tooltip 不能包裹 Dropdown（会取到
-              非 DOM 节点而崩），这里包的是普通 Button，安全。
-              Same `mini` Tooltip as the neighboring workspace-open button so
-              adjacent buttons feel consistent. Note: an Arco Tooltip must not wrap
-              a Dropdown (it would resolve a non-DOM node and crash); wrapping a
-              plain Button like this is safe. */}
+          {/* Right cluster order (VS Code parity): project-scope actions first (add
+              folder, open workspace), then view actions grouped at the far right
+              (refresh, collapse-all). Refresh shows on both tabs (tab-scoped
+              behavior); collapse-all only on Files, since Changes has no tree.
+
+              Tooltip 与相邻按钮保持同一形态（mini），观感一致。注意：Arco 的 Tooltip
+              不能包裹 Dropdown（会取到非 DOM 节点而崩），这里包的是普通 Button，安全。
+              Note: an Arco Tooltip must not wrap a Dropdown (it would resolve a
+              non-DOM node and crash); wrapping a plain Button like this is safe. */}
+          <Tooltip content={t('conversation.explorer.addFolder')} mini>
+            <Button
+              type='text'
+              size='small'
+              className='flex items-center justify-center'
+              icon={<FolderPlus theme='outline' size='16' />}
+              aria-label={t('conversation.explorer.addFolder')}
+              onClick={handleAddFolder}
+            />
+          </Tooltip>
+          {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
           <Tooltip
             content={
               activeTab === 'changes'
@@ -574,17 +587,18 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
               onClick={() => void handleRefreshActiveTab()}
             />
           </Tooltip>
-          <Tooltip content={t('conversation.explorer.addFolder')} mini>
-            <Button
-              type='text'
-              size='small'
-              className='flex items-center justify-center'
-              icon={<FolderPlus theme='outline' size='16' />}
-              aria-label={t('conversation.explorer.addFolder')}
-              onClick={handleAddFolder}
-            />
-          </Tooltip>
-          {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
+          {activeTab === 'files' && (
+            <Tooltip content={t('conversation.explorer.collapseAll')} mini>
+              <Button
+                type='text'
+                size='small'
+                className='flex items-center justify-center'
+                icon={<FoldUpOne theme='outline' size='16' />}
+                aria-label={t('conversation.explorer.collapseAll')}
+                onClick={() => collapseAll()}
+              />
+            </Tooltip>
+          )}
         </div>
       </div>
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS

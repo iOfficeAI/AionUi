@@ -397,6 +397,15 @@ export const setExpandedKeys = (keys: PeKey[]): void => {
   scheduleReconcile();
 };
 
+/**
+ * Collapse every directory (VS Code "Collapse All"): empties the expanded set so
+ * the tree shows only its root nodes. Routed through `setExpandedKeys`, so it
+ * persists the collapsed state normally (a genuine, user-driven collapse — not the
+ * transient empty that `persistUi`'s guard protects against) and reconciles
+ * subscriptions down to what is still visible.
+ */
+export const collapseAll = (): void => setExpandedKeys([]);
+
 /** Expand or collapse a directory. Collapse keeps descendant expanded marks. */
 export const setExpanded = (key: PeKey, isExpanded: boolean): void => {
   if (isExpanded) expanded.add(key);

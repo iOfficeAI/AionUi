@@ -634,6 +634,7 @@
     "addFolder": "Add folder to project",
     "refreshFiles": "파일 새로 고침",
     "refreshChanges": "변경 새로 고침",
+    "collapseAll": "모두 접기",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",

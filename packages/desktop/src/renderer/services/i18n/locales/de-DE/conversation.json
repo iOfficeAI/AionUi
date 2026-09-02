@@ -635,6 +635,7 @@
     "addFolder": "Add folder to project",
     "refreshFiles": "Dateien aktualisieren",
     "refreshChanges": "Änderungen aktualisieren",
+    "collapseAll": "Alle einklappen",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",

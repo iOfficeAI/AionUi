@@ -634,6 +634,7 @@
     "addFolder": "新增資料夾到專案",
     "refreshFiles": "重新整理檔案",
     "refreshChanges": "重新整理變更",
+    "collapseAll": "全部摺疊",
     "removeFolder": "從專案移除",
     "attachDuplicate": "該資料夾已在專案中",
     "attachOverlap": "該資料夾與專案中既有資料夾重疊",

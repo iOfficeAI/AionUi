@@ -634,6 +634,7 @@
     "addFolder": "Add folder to project",
     "refreshFiles": "به‌روزرسانی پرونده‌ها",
     "refreshChanges": "به‌روزرسانی تغییرات",
+    "collapseAll": "جمع کردن همه",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",

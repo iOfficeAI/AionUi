@@ -101,6 +101,12 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   ),
 }));
 
+// Stub the Changes-tab panel: this suite only exercises the container's toolbar and
+// Files tab, and mounting the real ScmPanel would drag in the WS transport chain.
+vi.mock('@/renderer/pages/conversation/SourceControl/ScmPanel', () => ({
+  ScmPanel: () => <div data-testid='scm-panel-stub' />,
+}));
+
 const projectGet = vi.fn<(p: { project_id: string }) => Promise<ProjectDetailDto>>();
 const attachFolder = vi.fn();
 const removeFolder = vi.fn();
@@ -308,6 +314,24 @@ describe('ExplorerContainer attach/remove', () => {
 
     release();
     await waitFor(() => expect(btn.className).not.toContain('arco-btn-loading'));
+  });
+
+  it('shows Collapse all on the Files tab and clicking it collapses the tree', async () => {
+    const collapseSpy = vi.spyOn(explorerStore, 'collapseAll').mockImplementation(() => {});
+    renderIt();
+    await screen.findByTestId('roots');
+    fireEvent.click(screen.getByLabelText('conversation.explorer.collapseAll'));
+    expect(collapseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides Collapse all on the Changes tab — there is no tree to collapse there', async () => {
+    renderIt();
+    await screen.findByTestId('roots');
+    // Switch to the Changes tab (react-i18next `t` is mocked to echo the key).
+    fireEvent.click(screen.getByText('conversation.explorer.tabs.changes'));
+    expect(screen.queryByLabelText('conversation.explorer.collapseAll')).toBeNull();
+    // Refresh stays (now Changes-scoped), confirming only collapse-all is tab-gated.
+    expect(screen.getByLabelText('conversation.explorer.refreshChanges')).toBeInTheDocument();
   });
 });
 

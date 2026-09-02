@@ -642,6 +642,7 @@
     "addFolder": "Add folder to project",
     "refreshFiles": "Оновити файли",
     "refreshChanges": "Оновити зміни",
+    "collapseAll": "Згорнути все",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",

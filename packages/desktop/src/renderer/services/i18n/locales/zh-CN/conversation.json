@@ -634,6 +634,7 @@
     "addFolder": "添加文件夹到项目",
     "refreshFiles": "刷新文件",
     "refreshChanges": "刷新变更",
+    "collapseAll": "全部折叠",
     "removeFolder": "从项目移除",
     "attachDuplicate": "该文件夹已在项目中",
     "attachOverlap": "该文件夹与项目中已有文件夹重叠",
