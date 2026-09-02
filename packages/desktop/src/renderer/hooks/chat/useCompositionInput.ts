@@ -21,7 +21,9 @@ export const useCompositionInput = () => {
 
   const createKeyDownHandler = (onEnterPress: () => void, onKeyDownIntercept?: (e: React.KeyboardEvent) => boolean) => {
     return (e: React.KeyboardEvent) => {
-      if (isComposing.current) return;
+      // Safari can dispatch compositionend before the keydown that confirms
+      // the IME candidate, so the ref may already be false at this point.
+      if (isComposing.current || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
       if (onKeyDownIntercept?.(e)) return;
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
