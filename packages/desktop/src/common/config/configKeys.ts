@@ -30,6 +30,14 @@ export type ConfigKeyMap = {
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
+  'assistant.mattermost.config':
+    | {
+        serverUrl?: string;
+        allowedChannelIds?: string;
+        replyInThread?: boolean;
+        ignoreSelfMessages?: boolean;
+      }
+    | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;
@@ -50,3 +58,4 @@ export type ConfigKeyMap = {
 };
 
 export type ConfigKey = keyof ConfigKeyMap;
+export type ConfigValue<K extends ConfigKey = ConfigKey> = ConfigKeyMap[K];

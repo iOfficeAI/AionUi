@@ -219,6 +219,13 @@ const backendManager = new BackendLifecycleManager(
   },
   resolveBinaryPath
 );
+
+if (app.isPackaged) {
+  const bundledExtensionsPath = path.join(process.resourcesPath, 'extensions');
+  if (!process.env.AIONUI_BUNDLED_EXTENSIONS_PATH && fs.existsSync(bundledExtensionsPath)) {
+    process.env.AIONUI_BUNDLED_EXTENSIONS_PATH = bundledExtensionsPath;
+  }
+}
 let disposeCronResumeListener: (() => void) | null = null;
 
 // Flag tracking whether the backend subprocess started successfully. Read by

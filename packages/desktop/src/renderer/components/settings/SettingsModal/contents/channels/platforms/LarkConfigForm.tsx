@@ -5,7 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { assistants, channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { assistants, channel } from '@/common/adapter/ipcBridge';
 import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -21,7 +21,7 @@ import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
-} from './assistantBinding';
+} from '../assistantBinding';
 
 /**
  * Preference row component
@@ -58,29 +58,28 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-interface WecomConfigFormProps {
+interface LarkConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GoogleModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
-  webuiStatus: IWebUIStatus | null;
 }
 
-const WECOM_DEV_DOCS_URL = 'https://developer.work.weixin.qq.com/document/path/101463';
+const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
 
-const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
-  pluginStatus,
-  modelSelection,
-  onStatusChange,
-  webuiStatus,
-}) => {
+const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
-  const [botId, setBotId] = useState('');
-  const [secret, setSecret] = useState('');
+  // Lark credentials
+  const [appId, setAppId] = useState('');
+  const [appSecret, setAppSecret] = useState('');
+  const [encryptKey, setEncryptKey] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
 
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [touched, setTouched] = useState({ botId: false, secret: false });
+  const [showOptional, setShowOptional] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [credentialsTested, setCredentialsTested] = useState(false);
+  const [touched, setTouched] = useState({ appId: false, appSecret: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
@@ -96,10 +95,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     try {
       const pairings = await channel.getPendingPairings.invoke();
       if (pairings) {
-        setPendingPairings(pairings.filter((p) => p.platformType === 'wecom'));
+        // Filter for Lark platform only
+        setPendingPairings(pairings.filter((p) => p.platformType === 'lark'));
       }
     } catch (error) {
-      console.error('[WecomConfig] Failed to load pending pairings:', error);
+      console.error('[LarkConfig] Failed to load pending pairings:', error);
     } finally {
       setPairingLoading(false);
     }
@@ -111,10 +111,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     try {
       const users = await channel.getAuthorizedUsers.invoke();
       if (users) {
-        setAuthorizedUsers(users.filter((u) => u.platformType === 'wecom'));
+        // Filter for Lark platform only
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'lark'));
       }
     } catch (error) {
-      console.error('[WecomConfig] Failed to load authorized users:', error);
+      console.error('[LarkConfig] Failed to load authorized users:', error);
     } finally {
       setUsersLoading(false);
     }
@@ -132,7 +133,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          channel.getPlatformSettings.invoke({ platform: 'wecom' }),
+          channel.getPlatformSettings.invoke({ platform: 'lark' }),
         ]);
 
         setAvailableAssistants(assistantList);
@@ -146,7 +147,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[WecomConfig] Failed to load assistants:', error);
+        console.error('[LarkConfig] Failed to load assistants:', error);
       }
     };
 
@@ -156,12 +157,12 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
       await channel.setAssistantSetting.invoke({
-        platform: 'wecom',
+        platform: 'lark',
         assistant: buildChannelAssistantBinding(assistant),
       });
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[WecomConfig] Failed to save assistant:', error);
+      console.error('[LarkConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -169,7 +170,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
-      if (request.platformType !== 'wecom') return;
+      if (request.platformType !== 'lark') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -182,7 +183,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   // Listen for user authorization
   useEffect(() => {
     const unsubscribe = channel.userAuthorized.on((user) => {
-      if (user.platformType !== 'wecom') return;
+      if (user.platformType !== 'lark') return;
       setAuthorizedUsers((prev) => {
         const exists = prev.some((u) => u.id === user.id);
         if (exists) return prev;
@@ -193,44 +194,80 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     return () => unsubscribe();
   }, []);
 
-  const handleSaveAndEnable = async () => {
-    setTouched({ botId: true, secret: true });
-    const id = botId.trim();
-    const sec = secret.trim();
-    if (!id || !sec) {
-      Message.warning(t('settings.wecom.credentialsRequired', 'Please enter Bot ID and Secret'));
+  // Test Lark connection
+  const handleTestConnection = async () => {
+    // Mark fields as touched to show validation errors
+    setTouched({ appId: true, appSecret: true });
+
+    if (!appId.trim() || !appSecret.trim()) {
+      Message.warning(t('settings.lark.credentialsRequired', 'Please enter App ID and App Secret'));
       return;
     }
 
-    setSaveLoading(true);
+    setTestLoading(true);
+    setCredentialsTested(false);
+    try {
+      // testPlugin returns { success, botUsername?, error? } directly
+      const result = await channel.testPlugin.invoke({
+        plugin_id: 'lark',
+        token: '',
+        extra_config: {
+          app_id: appId.trim(),
+          app_secret: appSecret.trim(),
+        },
+      });
+
+      if (result.success) {
+        setCredentialsTested(true);
+        Message.success(t('settings.lark.connectionSuccess', 'Connected to Lark API!'));
+
+        // Auto-enable bot after successful test
+        await handleAutoEnable();
+      } else {
+        setCredentialsTested(false);
+        Message.error(result.error || t('settings.lark.connectionFailed', 'Connection failed'));
+      }
+    } catch (error: any) {
+      setCredentialsTested(false);
+      Message.error(error.message || t('settings.lark.connectionFailed', 'Connection failed'));
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  // Auto-enable plugin after successful test
+  const handleAutoEnable = async () => {
     try {
       await channel.enablePlugin.invoke({
-        plugin_id: 'wecom',
+        plugin_id: 'lark',
         config: {
           credentials: {
-            bot_id: id,
-            secret: sec,
+            app_id: appId.trim(),
+            app_secret: appSecret.trim(),
+            encrypt_key: encryptKey.trim() || undefined,
+            verification_token: verificationToken.trim() || undefined,
           },
         },
       });
 
-      Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
+      Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
       const plugins = await channel.getPluginStatus.invoke();
       if (plugins) {
-        const wecomPlugin = plugins.find((p) => p.type === 'wecom');
-        onStatusChange(wecomPlugin || null);
+        const larkPlugin = plugins.find((p) => p.type === 'lark');
+        onStatusChange(larkPlugin || null);
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('[WecomConfig] Save failed:', error);
-      Message.error(message || t('settings.wecom.enableFailed', 'Failed to enable WeCom channel'));
-    } finally {
-      setSaveLoading(false);
+      console.error('[LarkConfig] Auto-enable failed:', error);
+      Message.error(
+        (error instanceof Error ? error.message : String(error)) ||
+          t('settings.lark.enableFailed', 'Failed to enable Lark plugin')
+      );
     }
   };
 
+  // Reset credentials tested state when credentials change
   const handleCredentialsChange = () => {
-    /* reserved for future “dirty” indicators */
+    setCredentialsTested(false);
   };
 
   // Approve pairing
@@ -292,96 +329,102 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
   return (
     <div className='flex flex-col gap-24px'>
-      <div className='text-12px leading-relaxed p-10px rd-8px bg-[rgba(var(--orange-6),0.08)] border border-[rgba(var(--orange-6),0.3)] text-t-secondary'>
-        <div className='font-500 text-t-primary mb-6px'>
-          {t('settings.wecom.wsTitle', 'WeCom WebSocket connection')}
-        </div>
-        <div className='mt-6px'>
-          {t(
-            'settings.wecom.wsHint',
-            'Use the WeCom Intelligent Bot “Long Connection (WebSocket)” mode. No callback URL / domain / public IP required.'
-          )}
-        </div>
-        <div className='mt-4px'>
-          <a
-            className='text-primary hover:underline cursor-pointer text-12px'
-            href={WECOM_DEV_DOCS_URL}
-            onClick={(e) => {
-              e.preventDefault();
-              openExternalUrl(WECOM_DEV_DOCS_URL).catch(console.error);
-            }}
-          >
-            {t('settings.wecom.devDocLink', 'WeCom developer documentation')}
-          </a>
-        </div>
-      </div>
-
+      {/* App ID */}
       <PreferenceRow
-        label={t('settings.wecom.botId', 'Bot ID')}
-        description={t('settings.wecom.botIdDesc', 'Bot ID from WeCom Intelligent Bot (Long Connection mode)')}
+        label={t('settings.lark.appId', 'App ID')}
+        description={
+          <span>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={LARK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
+              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+            </a>{' '}
+            {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
+          </span>
+        }
         required
       >
         {hasExistingUsers ? (
           <Tooltip
             content={t(
               'settings.assistant.tokenLocked',
-              'Please close the Channel and delete all authorized users before modifying'
+              'Please close the Channel and delete all authorized users before modifying the configuration'
             )}
           >
             <span>
               <Input
-                value={botId}
+                value={appId}
                 onChange={(value) => {
-                  setBotId(value);
+                  setAppId(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, botId: true }))}
-                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
-                style={{ width: 260 }}
-                status={touched.botId && !botId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+                style={{ width: 240 }}
+                status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 disabled={hasExistingUsers}
               />
             </span>
           </Tooltip>
         ) : (
           <Input
-            value={botId}
+            value={appId}
             onChange={(value) => {
-              setBotId(value);
+              setAppId(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, botId: true }))}
-            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
-            style={{ width: 260 }}
-            status={touched.botId && !botId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+            style={{ width: 240 }}
+            status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
+      {/* App Secret */}
       <PreferenceRow
-        label={t('settings.wecom.secret', 'Secret')}
-        description={t('settings.wecom.secretDesc', 'Secret from WeCom Intelligent Bot (Long Connection mode)')}
+        label={t('settings.lark.appSecret', 'App Secret')}
+        description={
+          <span>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={LARK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
+              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+            </a>{' '}
+            {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
+          </span>
+        }
         required
       >
         {hasExistingUsers ? (
           <Tooltip
             content={t(
               'settings.assistant.tokenLocked',
-              'Please close the Channel and delete all authorized users before modifying'
+              'Please close the Channel and delete all authorized users before modifying the configuration'
             )}
           >
             <span>
               <Input.Password
-                value={secret}
+                value={appSecret}
                 onChange={(value) => {
-                  setSecret(value);
+                  setAppSecret(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, secret: true }))}
-                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
-                style={{ width: 260 }}
-                status={touched.secret && !secret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+                style={{ width: 240 }}
+                status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 visibilityToggle
                 disabled={hasExistingUsers}
               />
@@ -389,35 +432,146 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           </Tooltip>
         ) : (
           <Input.Password
-            value={secret}
+            value={appSecret}
             onChange={(value) => {
-              setSecret(value);
+              setAppSecret(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, secret: true }))}
-            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : ''}
-            style={{ width: 260 }}
-            status={touched.secret && !secret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+            style={{ width: 240 }}
+            status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             visibilityToggle
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
-      {!hasExistingUsers && (
+      {/* Optional fields toggle */}
+      <div
+        className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none'
+        onClick={() => setShowOptional((prev) => !prev)}
+      >
+        <Down
+          theme='outline'
+          size={12}
+          style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+        />
+        <span>
+          {showOptional
+            ? t('settings.lark.hideOptionalFields', 'Hide optional settings')
+            : t('settings.lark.showOptionalFields', 'Show optional settings')}
+        </span>
+      </div>
+
+      {showOptional && (
+        <>
+          {/* Encrypt Key (Optional) */}
+          <PreferenceRow
+            label={t('settings.lark.encryptKey', 'Encrypt Key')}
+            description={t(
+              'settings.lark.encryptKeyDesc',
+              'Optional: For event encryption (from Event Subscription settings)'
+            )}
+          >
+            {hasExistingUsers ? (
+              <Tooltip
+                content={t(
+                  'settings.assistant.tokenLocked',
+                  'Please close the Channel and delete all authorized users before modifying the configuration'
+                )}
+              >
+                <span>
+                  <Input.Password
+                    value={encryptKey}
+                    onChange={(value) => {
+                      setEncryptKey(value);
+                      handleCredentialsChange();
+                    }}
+                    placeholder={t('settings.lark.optional', 'Optional')}
+                    style={{ width: 240 }}
+                    visibilityToggle
+                    disabled={hasExistingUsers}
+                  />
+                </span>
+              </Tooltip>
+            ) : (
+              <Input.Password
+                value={encryptKey}
+                onChange={(value) => {
+                  setEncryptKey(value);
+                  handleCredentialsChange();
+                }}
+                placeholder={t('settings.lark.optional', 'Optional')}
+                style={{ width: 240 }}
+                visibilityToggle
+                disabled={hasExistingUsers}
+              />
+            )}
+          </PreferenceRow>
+
+          {/* Verification Token (Optional) */}
+          <PreferenceRow
+            label={t('settings.lark.verificationToken', 'Verification Token')}
+            description={t(
+              'settings.lark.verificationTokenDesc',
+              'Optional: For event verification (from Event Subscription settings)'
+            )}
+          >
+            {hasExistingUsers ? (
+              <Tooltip
+                content={t(
+                  'settings.assistant.tokenLocked',
+                  'Please close the Channel and delete all authorized users before modifying the configuration'
+                )}
+              >
+                <span>
+                  <Input.Password
+                    value={verificationToken}
+                    onChange={(value) => {
+                      setVerificationToken(value);
+                      handleCredentialsChange();
+                    }}
+                    placeholder={t('settings.lark.optional', 'Optional')}
+                    style={{ width: 240 }}
+                    visibilityToggle
+                    disabled={hasExistingUsers}
+                  />
+                </span>
+              </Tooltip>
+            ) : (
+              <Input.Password
+                value={verificationToken}
+                onChange={(value) => {
+                  setVerificationToken(value);
+                  handleCredentialsChange();
+                }}
+                placeholder={t('settings.lark.optional', 'Optional')}
+                style={{ width: 240 }}
+                visibilityToggle
+                disabled={hasExistingUsers}
+              />
+            )}
+          </PreferenceRow>
+        </>
+      )}
+
+      {/* Test Connection Button - only show when not connected or no existing users */}
+      {!hasExistingUsers && !pluginStatus?.connected && (
         <div className='flex justify-end'>
-          {pluginStatus?.hasToken && !botId.trim() && !secret.trim() ? (
+          {pluginStatus?.hasToken && !appId.trim() && !appSecret.trim() ? (
+            // Credentials already saved but not entered in UI - show info message
             <span className='text-12px text-t-tertiary me-12px self-center'>
-              {t('settings.wecom.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
+              {t('settings.lark.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
             </span>
           ) : null}
           <Button
             type='primary'
-            loading={saveLoading}
-            onClick={() => void handleSaveAndEnable()}
-            disabled={pluginStatus?.hasToken && !botId.trim() && !secret.trim()}
+            loading={testLoading}
+            onClick={handleTestConnection}
+            disabled={pluginStatus?.hasToken && !appId.trim() && !appSecret.trim()}
           >
-            {t('settings.wecom.saveAndEnable', 'Save & Enable')}
+            {t('settings.lark.testAndConnect', 'Test & Connect')}
           </Button>
         </div>
       )}
@@ -428,7 +582,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           label={t('settings.assistant.name', 'Assistant')}
           description={
             <div className='flex flex-col gap-4px'>
-              <span>{t('settings.wecom.agentDesc', 'Used for WeCom conversations')}</span>
+              <span>{t('settings.lark.agentDesc', 'Used for Lark conversations')}</span>
               {hasBrokenSavedAssistant && (
                 <span className='text-orange-6'>
                   {t(
@@ -489,35 +643,37 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
       {/* Default Model Selection */}
       <PreferenceRow
-        label={t('settings.assistant.defaultModel', 'Model')}
-        description={t('settings.wecom.defaultModelDesc', 'Model used for conversations handled by this assistant')}
+        label={t('settings.assistant.defaultModel', 'Default Model')}
+        description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}
           disabled={!showModelSelector}
           label={
-            !showModelSelector ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined
+            !showModelSelector
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
           }
           variant='settings'
         />
       </PreferenceRow>
 
-      {/* Connection Status */}
+      {/* Connection Status - show when bot is enabled */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
         <div
           className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}
         >
           <SectionHeader
-            title={t('settings.wecom.connectionStatus', 'Connection Status')}
+            title={t('settings.lark.connectionStatus', 'Connection Status')}
             action={
               <span
                 className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}
               >
                 {pluginStatus?.connected
-                  ? t('settings.wecom.statusConnected', 'Connected')
+                  ? t('settings.lark.statusConnected', 'Connected')
                   : pluginStatus?.error
-                    ? t('settings.wecom.statusError', 'Error')
-                    : t('settings.wecom.statusConnecting', 'Connecting...')}
+                    ? t('settings.lark.statusError', 'Error')
+                    : t('settings.lark.statusConnecting', 'Connecting...')}
               </span>
             }
           />
@@ -528,30 +684,27 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
             <div className='text-14px text-t-secondary space-y-8px'>
               <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
               <p className='m-0'>
-                <strong>1.</strong> {t('settings.wecom.step1', 'Open WeCom and find your bot application')}
+                <strong>1.</strong> {t('settings.lark.step1', 'Open Feishu/Lark and find your bot application')}
               </p>
               <p className='m-0'>
-                <strong>2.</strong> {t('settings.wecom.step2', 'Send any message to initiate pairing')}
+                <strong>2.</strong> {t('settings.lark.step2', 'Send any message to initiate pairing')}
               </p>
               <p className='m-0'>
                 <strong>3.</strong>{' '}
                 {t(
-                  'settings.wecom.step3',
+                  'settings.lark.step3',
                   'A pairing request will appear below. Click "Approve" to authorize the user.'
                 )}
               </p>
               <p className='m-0'>
                 <strong>4.</strong>{' '}
-                {t(
-                  'settings.wecom.step4',
-                  'Once approved, you can start chatting with the AI assistant through WeCom!'
-                )}
+                {t('settings.lark.step4', 'Once approved, you can start chatting with the AI assistant through Lark!')}
               </p>
             </div>
           )}
           {!pluginStatus?.connected && !pluginStatus?.error && (
             <div className='text-14px text-t-secondary'>
-              {t('settings.wecom.waitingConnection', 'Connection is being established. Please wait...')}
+              {t('settings.lark.waitingConnection', 'WebSocket connection is being established. Please wait...')}
             </div>
           )}
         </div>
@@ -687,4 +840,4 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   );
 };
 
-export default WecomConfigForm;
+export default LarkConfigForm;
