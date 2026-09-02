@@ -453,11 +453,15 @@ export const onReconnect = (): void => {
  * indicator (an HTTP-sourced stat, decoupled from the watcher) is recovered
  * separately by the container's `mutate()`.
  */
-export const refreshRoot = (peId: string): void => {
-  if (!port) return;
+// Returns a promise that settles when the remount round-trip completes (or is a
+// no-op), so a caller driving a busy/spinner state can await the real work rather
+// than guess a duration. It never rejects — a failed remount is swallowed (see the
+// catch below), so the promise always resolves.
+export const refreshRoot = (peId: string): Promise<void> => {
+  if (!port) return Promise.resolve();
   const refs = [...current].filter((key) => keyToRef(key).pe_id === peId).map(keyToRef);
-  if (refs.length === 0) return; // collapsed / nothing watched → no backend mount to refresh
-  port
+  if (refs.length === 0) return Promise.resolve(); // collapsed / nothing watched → no backend mount to refresh
+  return port
     .remount(refs)
     .then((result) => {
       // Apply each fresh snapshot, guarding against keys no longer wanted (the
