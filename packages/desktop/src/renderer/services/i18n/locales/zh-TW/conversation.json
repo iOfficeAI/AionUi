@@ -632,6 +632,9 @@
   "notFound": "會話不存在或已被刪除",
   "explorer": {
     "addFolder": "新增資料夾到專案",
+    "refreshFiles": "重新整理檔案",
+    "refreshChanges": "重新整理變更",
+    "collapseAll": "全部摺疊",
     "removeFolder": "從專案移除",
     "attachDuplicate": "該資料夾已在專案中",
     "attachOverlap": "該資料夾與專案中既有資料夾重疊",
@@ -642,7 +645,6 @@
       "addToChat": "加入對話",
       "copyRelativePath": "複製相對路徑",
       "copyAbsolutePath": "複製絕對路徑",
-      "refresh": "重新整理",
       "newFile": "新增檔案",
       "newDir": "新增資料夾"
     },
@@ -672,7 +674,6 @@
       "noChanges": "沒有變更",
       "loading": "正在載入變更…",
       "loadFailed": "無法載入變更",
-      "refresh": "重新整理",
       "groups": {
         "staged": "已暫存的變更",
         "unstaged": "變更",

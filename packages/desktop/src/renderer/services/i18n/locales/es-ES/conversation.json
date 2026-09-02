@@ -633,6 +633,9 @@
   "notFound": "Conversación no encontrada o ha sido eliminada",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Actualizar archivos",
+    "refreshChanges": "Actualizar cambios",
+    "collapseAll": "Contraer todo",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -643,7 +646,6 @@
       "addToChat": "Añadir al chat",
       "copyRelativePath": "Copiar ruta relativa",
       "copyAbsolutePath": "Copiar ruta absoluta",
-      "refresh": "Actualizar",
       "newFile": "Nuevo archivo",
       "newDir": "Nueva carpeta"
     },
@@ -673,7 +675,6 @@
       "noChanges": "Sin cambios",
       "loading": "Cargando cambios…",
       "loadFailed": "No se pudieron cargar los cambios",
-      "refresh": "Actualizar",
       "groups": {
         "staged": "Cambios preparados",
         "unstaged": "Cambios",

@@ -638,6 +638,9 @@
   "notFound": "Conversa não encontrada ou foi deletada",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Atualizar arquivos",
+    "refreshChanges": "Atualizar alterações",
+    "collapseAll": "Recolher tudo",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -649,8 +652,7 @@
       "newDir": "Nova pasta",
       "addToChat": "Adicionar ao chat",
       "copyRelativePath": "Copiar caminho relativo",
-      "copyAbsolutePath": "Copiar caminho absoluto",
-      "refresh": "Atualizar"
+      "copyAbsolutePath": "Copiar caminho absoluto"
     },
     "namePlaceholder": "Nome",
     "deleteConfirm": "Excluir “{{name}}”? Isso não pode ser desfeito.",
@@ -678,7 +680,6 @@
       "noChanges": "Nenhuma alteração",
       "loading": "Carregando alterações…",
       "loadFailed": "Não foi possível carregar as alterações",
-      "refresh": "Atualizar",
       "groups": {
         "staged": "Alterações preparadas",
         "unstaged": "Alterações",
