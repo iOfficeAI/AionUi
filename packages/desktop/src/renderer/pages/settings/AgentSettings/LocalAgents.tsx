@@ -18,9 +18,11 @@ import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { AgentPermissionPolicy } from '@/renderer/utils/model/agentPermissionPolicy';
 import AgentCard from './AgentCard';
+import { AgentPermissionControl } from './AgentPermissionControl';
 import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 import { getBoundAssistants, useAssistantsForAgents } from './BoundAssistants';
@@ -43,6 +45,26 @@ const LocalAgents: React.FC = () => {
   const [agentFilter, setAgentFilter] = useState<AgentAvailabilityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { assistants } = useAssistantsForAgents();
+
+  // Agent-side permission policy (OpenCode pilot): fetch the read-models and
+  // let the controls re-poll after a write-through so the echoed level stays
+  // in sync with the agent's own config file.
+  const [permissionPolicies, setPermissionPolicies] = useState<AgentPermissionPolicy[]>([]);
+  const refreshPermissionPolicies = useCallback(async () => {
+    try {
+      const list = await ipcBridge.permissionPolicy.list.invoke();
+      setPermissionPolicies(Array.isArray(list) ? list : []);
+    } catch {
+      // Backend does not expose policy management — leave the list empty.
+    }
+  }, []);
+  useEffect(() => {
+    void refreshPermissionPolicies();
+  }, [refreshPermissionPolicies]);
+  const permissionPolicyFor = useCallback(
+    (agent: ManagedAgent) => permissionPolicies.find((p) => p.agent === agent.backend),
+    [permissionPolicies]
+  );
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `refreshCatalog`
@@ -272,15 +294,20 @@ const LocalAgents: React.FC = () => {
       <div data-testid='agent-management-official-section'>
         <div className='flex flex-col gap-8px rounded-12px border border-border-2 bg-2 p-8px md:rounded-16px md:p-10px'>
           {visibleOfficialAgents.map((agent) => (
-            <AgentCard
-              key={agent.id}
-              type='official'
-              agent={agent}
-              boundAssistants={getBoundAssistants(agent, assistants)}
-              onTestConnection={() => void handleTestConnection(agent.id)}
-              onConfigure={() => openAgentConfig(agent.id)}
-              isTesting={testingAgentId === agent.id}
-            />
+            <div key={agent.id} className='flex flex-col gap-6px'>
+              <AgentCard
+                type='official'
+                agent={agent}
+                boundAssistants={getBoundAssistants(agent, assistants)}
+                onTestConnection={() => void handleTestConnection(agent.id)}
+                onConfigure={() => openAgentConfig(agent.id)}
+                isTesting={testingAgentId === agent.id}
+              />
+              <AgentPermissionControl
+                policy={permissionPolicyFor(agent)}
+                onChanged={() => void refreshPermissionPolicies()}
+              />
+            </div>
           ))}
           {visibleOfficialAgents.length === 0 && (
             <Typography.Text type='secondary' className='block py-16px text-center text-12px'>
