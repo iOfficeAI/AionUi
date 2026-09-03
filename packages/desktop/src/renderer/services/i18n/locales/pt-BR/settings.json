@@ -329,6 +329,8 @@
   "startOnBootUnsupported": "Disponível apenas em aplicativos empacotados para macOS e Windows.",
   "startOnBootUpdateFailed": "Falha ao atualizar a configuração de inicialização com o sistema",
   "closeToTray": "Minimizar para a Bandeja",
+  "startMinimizedToTray": "Iniciar minimizado na bandeja",
+  "startMinimizedToTrayDesc": "Na abertura, manter o AionUi na bandeja do sistema sem mostrar a janela principal. Requer Fechar para a bandeja.",
   "hardwareAcceleration": "Aceleração de Hardware",
   "hardwareAccelerationDesc": "Usa a GPU para renderizar a UI. Desative se o app travar ao iniciar ou se a tela piscar.",
   "hardwareAccelerationAutoDisabled": "Desativado automaticamente após repetidas falhas na GPU.",

@@ -329,6 +329,8 @@
   "startOnBootUnsupported": "فقط در نسخه‌های بسته‌بندی‌شده macOS و Windows در دسترس است.",
   "startOnBootUpdateFailed": "به‌روزرسانی تنظیم اجرای هنگام راه‌اندازی ناموفق بود",
   "closeToTray": "بستن به سینی سیستم",
+  "startMinimizedToTray": "شروع به‌صورت کوچک‌شده در سینی",
+  "startMinimizedToTrayDesc": "در راه‌اندازی، AionUi را بدون نمایش پنجره اصلی در سینی سیستم نگه دارید. نیاز به «بستن به سینی» دارد.",
   "hardwareAcceleration": "شتاب‌دهی سخت‌افزاری",
   "hardwareAccelerationDesc": "از GPU برای رندر رابط کاربری استفاده کنید. اگر برنامه هنگام اجرا کرش می‌کند یا تصویر چشمک می‌زند، غیرفعال کنید.",
   "hardwareAccelerationAutoDisabled": "پس از کرش‌های مکرر GPU به‌صورت خودکار غیرفعال شد.",

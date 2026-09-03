@@ -76,6 +76,8 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
+import { readStartMinimizedToTraySetting } from './process/utils/startMinimizedToTraySetting';
+import { shouldShowMainWindowOnReady } from './process/utils/shouldShowMainWindowOnReady';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -992,6 +994,7 @@ const handleAppReady = async (): Promise<void> => {
     });
   } else {
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    let startMinimizedToTray = false;
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
       destroyTray();
@@ -1002,12 +1005,17 @@ const handleAppReady = async (): Promise<void> => {
         if (getCloseToTrayEnabled()) {
           createOrUpdateTray();
         }
+        startMinimizedToTray = await readStartMinimizedToTraySetting();
       } catch {
         // Ignore storage read errors, default to false
       }
     }
 
-    const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
+    const showMainWindowOnReady = shouldShowMainWindowOnReady({
+      closeToTray: getCloseToTrayEnabled(),
+      startMinimized: startMinimizedToTray,
+      launchedAtLogin: wasLaunchedAtLogin(),
+    });
 
     createWindow({ showOnReady: showMainWindowOnReady });
     appReadyDone = true;
