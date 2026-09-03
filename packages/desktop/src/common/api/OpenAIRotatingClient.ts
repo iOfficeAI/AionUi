@@ -62,6 +62,15 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
     });
   }
 
+  async createImageEdit(
+    params: OpenAI.Images.ImageEditParams,
+    options?: OpenAI.RequestOptions
+  ): Promise<OpenAI.Images.ImagesResponse> {
+    return await this.executeWithRetry((client) => {
+      return client.images.edit(params, options) as Promise<OpenAI.Images.ImagesResponse>;
+    });
+  }
+
   async createEmbedding(
     params: OpenAI.Embeddings.EmbeddingCreateParams,
     options?: OpenAI.RequestOptions
