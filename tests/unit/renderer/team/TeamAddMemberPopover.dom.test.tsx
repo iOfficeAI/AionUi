@@ -12,6 +12,8 @@ const addAssistantMock = vi.fn();
 const switchTabMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
 const messageErrorMock = vi.fn();
+const recordUseMock = vi.fn();
+const recencyMock: Record<string, number> = {};
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -81,6 +83,10 @@ vi.mock('@/renderer/pages/team/hooks/TeamTabsContext', () => ({
   }),
 }));
 
+vi.mock('@/renderer/pages/team/hooks/useTeamMemberRecency', () => ({
+  useTeamMemberRecency: () => ({ recency: recencyMock, recordUse: recordUseMock }),
+}));
+
 vi.mock('@/renderer/pages/team/components/teamCreateModelResolver', () => ({
   resolveDefaultTeamAgentModel: (...args: unknown[]) => resolveDefaultTeamAgentModelMock(...args),
 }));
@@ -95,6 +101,9 @@ describe('TeamAddMemberPopover', () => {
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue('claude-sonnet-4');
     addAssistantMock.mockResolvedValue({ slot_id: 'slot-new' });
+    recordUseMock.mockReset();
+    recordUseMock.mockResolvedValue(undefined);
+    for (const key of Object.keys(recencyMock)) delete recencyMock[key];
   });
 
   it('does not mark duplicate assistants already in team or disable selectable unchecked rows', () => {
@@ -262,5 +271,61 @@ describe('TeamAddMemberPopover', () => {
     expect(switchTabMock).toHaveBeenCalledWith('leader-slot');
     // It must not add a member.
     expect(addAssistantMock).not.toHaveBeenCalled();
+  });
+
+  it('records recency after a successful add', async () => {
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    fireEvent.click(screen.getAllByTestId('team-add-member-option-writer')[0]);
+
+    await waitFor(() => expect(recordUseMock).toHaveBeenCalledWith('writer'));
+    expect(addAssistantMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not record recency when the add fails', async () => {
+    addAssistantMock.mockRejectedValueOnce(new Error('failed'));
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    fireEvent.click(screen.getAllByTestId('team-add-member-option-writer')[0]);
+
+    await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
+    expect(recordUseMock).not.toHaveBeenCalled();
+  });
+
+  it('does not record recency for the "tell the Leader" action', () => {
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    fireEvent.click(screen.getByTestId('team-add-member-tell-leader'));
+    expect(recordUseMock).not.toHaveBeenCalled();
+  });
+
+  it('floats the most recently added candidate to the top of the picker', () => {
+    recencyMock.unchecked = 2000;
+    render(
+      <TeamAddMemberPopover>
+        <button type='button'>add</button>
+      </TeamAddMemberPopover>
+    );
+
+    const optionIds = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid^="team-add-member-option-"]')
+    ).map((el) => el.dataset.testid);
+
+    expect(optionIds[0]).toBe('team-add-member-option-unchecked');
+    // The never-used candidates keep the original relative order behind it.
+    expect(optionIds.slice(1)).toContain('team-add-member-option-writer');
+    expect(optionIds.slice(1)).toContain('team-add-member-option-blocked');
   });
 });

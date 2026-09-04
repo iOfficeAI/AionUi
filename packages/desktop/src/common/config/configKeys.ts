@@ -25,6 +25,8 @@ export type ConfigKeyMap = {
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */
   'assistants.enabledOrder': string[] | undefined;
+  /** Last-used timestamps (ms epoch) per assistant id for the team add-member candidate MRU order. */
+  'team.addMemberRecency': Record<string, number> | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
