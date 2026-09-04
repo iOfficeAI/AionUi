@@ -7,7 +7,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Left, Right, Refresh, Loading } from '@icon-park/react';
-import { ipcBridge } from '@/common';
 import { InternalNavTracker, shouldResetHistoryForUrlProp } from './webviewHistory';
 
 export interface WebviewHostProps {
@@ -36,6 +35,8 @@ export interface WebviewHostProps {
   onTitleChange?: (title: string) => void;
   /** Called when the page reports favicons; receives the first (preferred) one */
   onFaviconChange?: (favicon: string) => void;
+  /** Electron 为此 webview 分配可控制的 webContents id 后调用 / Called once Electron assigns this webview a controllable webContents id. */
+  onWebContentsReady?: (webContentsId: number) => void;
   /**
    * Overrides how raw address bar input becomes a URL.
    * Return null to ignore the input. Defaults to bare `https://` prefixing,
@@ -69,6 +70,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   onUrlChange,
   onTitleChange,
   onFaviconChange,
+  onWebContentsReady,
   resolveUrlInput,
 }) => {
   const { t } = useTranslation();
@@ -85,6 +87,8 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   onTitleChangeRef.current = onTitleChange;
   const onFaviconChangeRef = useRef(onFaviconChange);
   onFaviconChangeRef.current = onFaviconChange;
+  const onWebContentsReadyRef = useRef(onWebContentsReady);
+  onWebContentsReadyRef.current = onWebContentsReady;
 
   // Navigation state
   const [currentUrl, setCurrentUrl] = useState(url);
@@ -301,29 +305,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       syncNavState();
       injectClickInterceptor();
 
-      /**
-       * 把这个 webview 的 webContents id 报给主进程，让单目标 CDP 通道附加到它。
-       *
-       * 放在 dom-ready 里：此时 getWebContentsId() 才可用，而且每次导航/切 tab 后都会
-       * 再触发一次，正好让通道跟着用户当前看的页面走。失败只记日志不打扰用户 ——
-       * Agent 操作浏览器本就是可选能力，不该因为它挡住正常浏览。
-       *
-       * Report this webview's webContents id so the single-target CDP bridge can attach.
-       * Done on dom-ready because getWebContentsId() is only valid by then, and because it
-       * fires again after navigation or a tab switch, which keeps the bridge pointed at the
-       * page the user is actually viewing. Failures are logged only: agent browser control
-       * is optional and must not block ordinary browsing.
-       */
-      try {
-        const webContentsId = webviewEl.getWebContentsId?.();
-        if (typeof webContentsId === 'number') {
-          void ipcBridge.application.reportBrowserWebContentsId.invoke({ webContentsId }).then((res) => {
-            if (!res.success && res.msg) console.warn('[browser] agent control unavailable:', res.msg);
-          });
-        }
-      } catch (error) {
-        console.warn('[browser] could not report webContents id:', error);
-      }
+      reportWebContentsReady();
 
       // Inject viewport meta for responsive pages
       webviewEl
@@ -422,6 +404,16 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       onDidFinishLoad?.();
     };
 
+    const reportWebContentsReady = () => {
+      try {
+        const webContentsId = webviewEl.getWebContentsId?.();
+        if (typeof webContentsId === 'number') onWebContentsReadyRef.current?.(webContentsId);
+      } catch {
+        // Electron 尚未分配 id；在 dom-ready 时会重试此路径。
+        // Electron has not assigned an id yet; dom-ready will retry this path.
+      }
+    };
+
     const handleDidFailLoad = (event: any) => {
       setIsLoading(false);
       onDidFailLoad?.(event.errorCode, event.errorDescription);
@@ -446,6 +438,11 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     webviewEl.addEventListener('did-fail-load', handleDidFailLoad as EventListener);
     webviewEl.addEventListener('page-title-updated', handlePageTitleUpdated as EventListener);
     webviewEl.addEventListener('page-favicon-updated', handlePageFaviconUpdated as EventListener);
+    // about:blank 可能在 React 调度此 effect 前就完成加载；订阅后再次检查 id，
+    // 这样浏览器拥有者仍能注册目标。
+    // about:blank can finish before React schedules this effect. Re-check the id
+    // after subscribing so a browser owner can still register the target.
+    reportWebContentsReady();
 
     return () => {
       webviewEl.removeEventListener('did-start-loading', handleStartLoading);
@@ -459,7 +456,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       webviewEl.removeEventListener('page-title-updated', handlePageTitleUpdated as EventListener);
       webviewEl.removeEventListener('page-favicon-updated', handlePageFaviconUpdated as EventListener);
     };
-  }, [navigateToWithHistory, currentUrl, onDidFinishLoad, onDidFailLoad, isStarOfficeUrl]);
+  }, [navigateToWithHistory, currentUrl, onDidFinishLoad, onDidFailLoad, isStarOfficeUrl, onWebContentsReady]);
 
   // Resize observer for content area
   useEffect(() => {

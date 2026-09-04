@@ -23,7 +23,16 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     fileStream: { contentUpdate: { on: () => () => {} } },
     preview: { open: { on: () => () => {} } },
-    conversation: { responseStream: { on: () => () => {} } },
+    conversation: {
+      responseStream: {
+        on: (handler: (message: { type: string; data: unknown }) => void) => {
+          responseStreamHandler = handler;
+          return () => {
+            responseStreamHandler = undefined;
+          };
+        },
+      },
+    },
     fs: { getFileContent: { invoke: vi.fn() }, writeFile: { invoke: vi.fn() } },
   },
 }));
@@ -38,8 +47,10 @@ import {
   type PreviewContextValue,
 } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { MAX_BROWSER_TABS } from '@/renderer/pages/conversation/Preview/browser/constants';
+import { BUILTIN_BROWSER_MCP_NAME } from '@/common/config/constants';
 
 let ctx: PreviewContextValue;
+let responseStreamHandler: ((message: { type: string; data: unknown }) => void) | undefined;
 
 const Probe: React.FC = () => {
   ctx = usePreviewContext();
@@ -57,6 +68,7 @@ const browserTabs = () => ctx.tabs.filter((tab) => tab.content_type === 'browser
 
 beforeEach(() => {
   localStorage.clear();
+  responseStreamHandler = undefined;
 });
 
 describe('PreviewContext browser tabs', () => {
@@ -75,6 +87,40 @@ describe('PreviewContext browser tabs', () => {
     act(() => ctx.openBrowserTab('https://example.com'));
 
     expect(browserTabs()[0].content).toBe('https://example.com');
+  });
+
+  it('creates a blank browser tab when the agent starts browser control without one', () => {
+    renderProvider();
+
+    act(() => {
+      responseStreamHandler?.({
+        type: 'tool_group',
+        data: [{ name: `${BUILTIN_BROWSER_MCP_NAME}__navigate_page`, status: 'Executing' }],
+      });
+    });
+
+    expect(browserTabs()).toHaveLength(1);
+    expect(browserTabs()[0].content).toBe('about:blank');
+    expect(ctx.isOpen).toBe(true);
+    expect(ctx.activeTabId).toBe(browserTabs()[0].id);
+  });
+
+  it('focuses an existing browser tab when the agent resumes browser control', () => {
+    renderProvider();
+    act(() => ctx.openBrowserTab('https://example.com'));
+    const browserTabId = browserTabs()[0].id;
+    act(() => ctx.openPreview('const value = 1;', 'code', { file_name: 'example.ts' }));
+    expect(ctx.activeTabId).not.toBe(browserTabId);
+
+    act(() => {
+      responseStreamHandler?.({
+        type: 'tool_group',
+        data: [{ name: `${BUILTIN_BROWSER_MCP_NAME}__navigate_page`, status: 'Executing' }],
+      });
+    });
+
+    expect(ctx.isOpen).toBe(true);
+    expect(ctx.activeTabId).toBe(browserTabId);
   });
 
   it('stacks multiple blank browser tabs instead of merging them', () => {
