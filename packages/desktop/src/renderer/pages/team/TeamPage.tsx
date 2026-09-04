@@ -37,6 +37,7 @@ import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissio
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isAntigravityPlaceholderModelId } from './components/teamCreateModelResolver';
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -399,7 +400,10 @@ const AssistantChatSlot: React.FC<{
   );
 
   const isAionrs = conversation?.type === 'aionrs';
-  const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
+  const persistedModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
+  const initialModelId = isAntigravityPlaceholderModelId(assistant.assistant_backend, persistedModelId)
+    ? undefined
+    : persistedModelId;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
   // No model-change handler here on purpose: the team config-option request that
@@ -456,6 +460,7 @@ const AssistantChatSlot: React.FC<{
                 conversation_id={assistant.conversation_id}
                 backend={assistant.assistant_backend}
                 initialModelId={initialModelId}
+                prepareRuntime={teamPermission?.warmupSession}
                 prepareSetRuntime={teamPermission?.warmupSession}
                 configOptionsPort={teamPermission?.configOptionsPort}
                 warmup={warmup}

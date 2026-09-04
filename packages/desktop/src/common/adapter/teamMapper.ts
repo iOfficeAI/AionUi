@@ -163,7 +163,11 @@ export function toBackendAssistant(a: TeamAssistantInput): Record<string, unknow
   return {
     name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
-    model: a.model || 'default',
+    // Preserve empty string: antigravity teammates resolve to '' so aioncore
+    // omits --model and agy uses its own default. `||` coerced that to the
+    // literal 'default', which agy rejects as UserLlmProviderModelNotFound.
+    // Undefined still falls back to 'default' for aionrs / claude / other ACP.
+    model: a.model ?? 'default',
     assistant_id: a.assistant_id,
   };
 }

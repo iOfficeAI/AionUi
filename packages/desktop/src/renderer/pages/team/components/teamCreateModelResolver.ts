@@ -53,12 +53,29 @@ async function resolveAssistantDetail(assistant_id?: string): Promise<AssistantD
   }
 }
 
+const ANTIGRAVITY_PLACEHOLDER_MODEL_IDS = new Set(['default', 'auto']);
+
+/**
+ * True when a stored model id is a placeholder, not a real agy model.
+ * Team slots must not persist these as `current_model_id` — solo omits them
+ * so agy resolves auto; a literal "default" fails every team turn.
+ */
+export function isAntigravityPlaceholderModelId(backend: string | undefined, modelId: string | undefined): boolean {
+  if (backend !== 'antigravity' || modelId == null) return false;
+  const trimmed = modelId.trim();
+  return trimmed === '' || ANTIGRAVITY_PLACEHOLDER_MODEL_IDS.has(trimmed);
+}
+
 function resolveAssistantModel(detail: AssistantDetail): string | undefined {
+  const backend = assistantRuntimeKey({ agent: detail.engine?.agent });
+
   if (detail.defaults.model.mode === 'fixed' && detail.defaults.model.value) {
+    if (isAntigravityPlaceholderModelId(backend, detail.defaults.model.value)) return undefined;
     return detail.defaults.model.value;
   }
 
   if (detail.defaults.model.mode === 'auto' && detail.preferences.last_model_id) {
+    if (isAntigravityPlaceholderModelId(backend, detail.preferences.last_model_id)) return undefined;
     return detail.preferences.last_model_id;
   }
 

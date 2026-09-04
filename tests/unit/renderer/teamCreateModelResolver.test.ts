@@ -18,7 +18,10 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { resolveDefaultTeamAgentModel } from '@/renderer/pages/team/components/teamCreateModelResolver';
+import {
+  isAntigravityPlaceholderModelId,
+  resolveDefaultTeamAgentModel,
+} from '@/renderer/pages/team/components/teamCreateModelResolver';
 
 describe('resolveDefaultTeamAgentModel', () => {
   beforeEach(() => {
@@ -147,5 +150,68 @@ describe('resolveDefaultTeamAgentModel', () => {
         assistant_backend: 'claude',
       })
     ).resolves.toBe('default');
+  });
+
+  it('treats a remembered antigravity default/auto last_model_id as unset', async () => {
+    getAssistantMock.mockResolvedValue({
+      defaults: {
+        model: { mode: 'auto' },
+      },
+      preferences: {
+        last_model_id: 'default',
+      },
+      engine: {
+        agent_id: 'agy-agent',
+        agent: {
+          id: 'agy-agent',
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'antigravity',
+        },
+      },
+    });
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-antigravity',
+      })
+    ).resolves.toBe('');
+  });
+
+  it('keeps a real remembered antigravity model id', async () => {
+    getAssistantMock.mockResolvedValue({
+      defaults: {
+        model: { mode: 'auto' },
+      },
+      preferences: {
+        last_model_id: 'gemini-3-pro',
+      },
+      engine: {
+        agent_id: 'agy-agent',
+        agent: {
+          id: 'agy-agent',
+          type: 'acp',
+          source: 'builtin',
+          acp_backend: 'antigravity',
+        },
+      },
+    });
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-antigravity',
+      })
+    ).resolves.toBe('gemini-3-pro');
+  });
+});
+
+describe('isAntigravityPlaceholderModelId', () => {
+  it('detects placeholder ids only for antigravity', () => {
+    expect(isAntigravityPlaceholderModelId('antigravity', 'default')).toBe(true);
+    expect(isAntigravityPlaceholderModelId('antigravity', 'auto')).toBe(true);
+    expect(isAntigravityPlaceholderModelId('antigravity', '')).toBe(true);
+    expect(isAntigravityPlaceholderModelId('antigravity', 'gemini-3-pro')).toBe(false);
+    expect(isAntigravityPlaceholderModelId('claude', 'default')).toBe(false);
+    expect(isAntigravityPlaceholderModelId(undefined, 'default')).toBe(false);
   });
 });

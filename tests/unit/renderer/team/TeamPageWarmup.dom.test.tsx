@@ -31,7 +31,16 @@ const {
   });
   return {
     getConversationOrNullMock: vi.fn(),
-    acpSelectorPropsBySlot: new Map<string, { status: string; trigger?: () => Promise<void> }>(),
+    acpSelectorPropsBySlot: new Map<
+      string,
+      {
+        status?: string;
+        trigger?: () => Promise<void>;
+        prepareRuntime?: () => Promise<void>;
+        prepareSetRuntime?: () => Promise<void>;
+        initialModelId?: string;
+      }
+    >(),
     restartPropsBySlot: new Map<string, { availability: string; disabled?: boolean; disabledReason?: string }>(),
     ensureSessionMock: vi.fn(async () => undefined),
     teamEventHandlers: handlers,
@@ -138,8 +147,20 @@ vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
 // Probe: capture the warmup prop each slot's AcpModelSelector receives, keyed by conversation_id.
 vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
   __esModule: true,
-  default: (props: { conversation_id: string; warmup?: { status: string; trigger?: () => Promise<void> } }) => {
-    if (props.warmup) acpSelectorPropsBySlot.set(props.conversation_id, props.warmup);
+  default: (props: {
+    conversation_id: string;
+    warmup?: { status: string; trigger?: () => Promise<void> };
+    prepareRuntime?: () => Promise<void>;
+    prepareSetRuntime?: () => Promise<void>;
+    initialModelId?: string;
+  }) => {
+    acpSelectorPropsBySlot.set(props.conversation_id, {
+      status: props.warmup?.status,
+      trigger: props.warmup?.trigger,
+      prepareRuntime: props.prepareRuntime,
+      prepareSetRuntime: props.prepareSetRuntime,
+      initialModelId: props.initialModelId,
+    });
     return <div data-testid={`acp-model-selector-${props.conversation_id}`} />;
   },
 }));
@@ -459,6 +480,49 @@ describe('TeamPage teammate warmup wiring', () => {
     expect(screen.getAllByText('team.agentActions.disabled.unsupported').length).toBeGreaterThan(0);
     expect(getComputedStyle(contextResetTitle).pointerEvents).toBe('none');
     expect(modalConfirmMock).not.toHaveBeenCalled();
+  });
+
+  it('warms the team session before fetching teammate model options', async () => {
+    ensureSessionMock.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={team()} />
+      </MemoryRouter>
+    );
+
+    await screen.findByTestId('acp-model-selector-member-conv');
+    await waitFor(() => expect(acpSelectorPropsBySlot.get('member-conv')?.prepareRuntime).toBeInstanceOf(Function));
+    expect(acpSelectorPropsBySlot.get('member-conv')?.prepareSetRuntime).toBeInstanceOf(Function);
+
+    ensureSessionMock.mockClear();
+    await act(async () => {
+      await acpSelectorPropsBySlot.get('member-conv')!.prepareRuntime!();
+    });
+    expect(ensureSessionMock).toHaveBeenCalledWith({ team_id: 'team-1' });
+  });
+
+  it('does not seed the teammate picker with a literal antigravity default model id', async () => {
+    ensureSessionMock.mockResolvedValue(undefined);
+    const antigravityTeam = team();
+    antigravityTeam.assistants[1].assistant_backend = 'antigravity';
+    getConversationOrNullMock.mockImplementation(async (id: string) =>
+      conversation({
+        id,
+        name: id,
+        extra: id === 'member-conv' ? { current_model_id: 'default' } : {},
+      })
+    );
+
+    render(
+      <MemoryRouter>
+        <TeamPage team={antigravityTeam} />
+      </MemoryRouter>
+    );
+
+    await screen.findByTestId('acp-model-selector-member-conv');
+    await waitFor(() => expect(acpSelectorPropsBySlot.has('member-conv')).toBe(true));
+    expect(acpSelectorPropsBySlot.get('member-conv')?.initialModelId).toBeUndefined();
   });
 
   it('uses the same teammate action menu on mobile', async () => {

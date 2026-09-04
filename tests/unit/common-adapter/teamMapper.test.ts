@@ -197,4 +197,42 @@ describe('teamMapper', () => {
       })
     ).toThrow('assistant_id is required');
   });
+
+  it('preserves an empty model so antigravity teammates do not persist literal default', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_backend: 'antigravity',
+        assistant_name: 'Agy',
+        status: 'pending',
+        assistant_id: 'assistant-agy',
+        model: '',
+      })
+    ).toMatchObject({ model: '' });
+  });
+
+  it('falls back to default when the team payload omits model', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_backend: 'claude',
+        assistant_name: 'Claude',
+        status: 'pending',
+        assistant_id: 'assistant-claude',
+      })
+    ).toMatchObject({ model: 'default' });
+  });
+
+  it('keeps an explicit model id', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_backend: 'codex',
+        assistant_name: 'Writer',
+        status: 'pending',
+        assistant_id: 'assistant-writer',
+        model: 'gpt-5',
+      })
+    ).toMatchObject({ model: 'gpt-5' });
+  });
 });
