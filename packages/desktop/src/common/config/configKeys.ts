@@ -30,6 +30,8 @@ export type ConfigKeyMap = {
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
+  /** Send key behavior: 'enter' = Enter sends (default), 'modifier' = Cmd/Ctrl+Enter sends. */
+  'input.sendKey': 'enter' | 'modifier' | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;
