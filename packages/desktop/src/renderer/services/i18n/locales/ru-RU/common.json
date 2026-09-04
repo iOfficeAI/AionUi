@@ -28,6 +28,8 @@
   "openInSystemBrowser": "Открыть в системном браузере",
   "copySuccess": "Скопировано",
   "copyFailed": "Не удалось скопировать",
+  "favoriteAssistant": "Добавить в избранное",
+  "unfavoriteAssistant": "Убрать из избранного",
   "download": "Скачать",
   "close": "Закрыть",
   "retry": "Повторить",

@@ -25,6 +25,8 @@ export type ConfigKeyMap = {
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */
   'assistants.enabledOrder': string[] | undefined;
+  /** User-pinned "favorite" assistants (in order) shown on the new-conversation page. */
+  'guid.favoriteAssistantIds': string[] | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;

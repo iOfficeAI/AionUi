@@ -28,6 +28,8 @@
   "openInSystemBrowser": "システムブラウザで開く",
   "copySuccess": "コピーしました",
   "copyFailed": "コピーに失敗しました",
+  "favoriteAssistant": "お気に入りに追加",
+  "unfavoriteAssistant": "お気に入りから削除",
   "download": "ダウンロード",
   "close": "閉じる",
   "retry": "再試行",
