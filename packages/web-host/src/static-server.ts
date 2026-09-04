@@ -111,6 +111,10 @@ const PEEK_LIMIT_BYTES = 4096;
  * so the endpoint sees the full HTTP request as-sent.
  */
 function spliceToTcpEndpoint(client: Socket, targetPort: number, initialBytes: Buffer): void {
+  // Removing the peek listener does not pause a flowing socket, and the pipe below is only
+  // wired up once upstream connects. Pause here so bytes arriving in that window are buffered
+  // instead of silently dropped (a dropped chunk truncates the body and hangs the request).
+  client.pause();
   client.setNoDelay(true);
   client.setKeepAlive(true);
   client.setTimeout(0);
