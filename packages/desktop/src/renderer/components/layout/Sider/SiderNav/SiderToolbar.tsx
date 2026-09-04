@@ -11,6 +11,7 @@ import { ListCheckbox, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import styles from '../Sider.module.css';
+import AttentionCenter from './AttentionCenter';
 
 interface SiderToolbarProps {
   isMobile: boolean;
@@ -19,6 +20,7 @@ interface SiderToolbarProps {
   siderTooltipProps: SiderTooltipProps;
   onNewChat: () => void;
   onToggleBatchMode: () => void;
+  onSessionClick?: () => void;
 }
 
 const SiderToolbar: React.FC<SiderToolbarProps> = ({
@@ -28,6 +30,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
   siderTooltipProps,
   onNewChat,
   onToggleBatchMode,
+  onSessionClick,
 }) => {
   const { t } = useTranslation();
 
@@ -51,6 +54,12 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
             />
           </div>
         </Tooltip>
+        <AttentionCenter
+          isMobile={isMobile}
+          collapsed={collapsed}
+          siderTooltipProps={siderTooltipProps}
+          onSessionClick={onSessionClick}
+        />
       </div>
     );
   }
@@ -80,6 +89,12 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
           </span>
         </div>
       </Tooltip>
+      <AttentionCenter
+        isMobile={isMobile}
+        collapsed={collapsed}
+        siderTooltipProps={siderTooltipProps}
+        onSessionClick={onSessionClick}
+      />
       <Tooltip
         {...siderTooltipProps}
         content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
