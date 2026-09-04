@@ -309,7 +309,10 @@
     "applied": "Tema uygulandı: {{name}}",
     "applyFailed": "Tema uygulanamadı",
     "cleared": "Varsayılan stile dönüldü",
-    "deleteConfirm": "Bu temayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+    "deleteConfirm": "Bu temayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "systemThemePreferences": "Sistem Teması Tercihleri",
+    "preferredLightTheme": "Tercih Edilen Açık Tema",
+    "preferredDarkTheme": "Tercih Edilen Koyu Tema"
   },
   "geminiBaseUrl": "Gemini API Temel URL",
   "cacheDir": "Önbellek Dizini",
