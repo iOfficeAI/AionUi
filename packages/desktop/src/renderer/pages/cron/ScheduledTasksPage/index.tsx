@@ -263,12 +263,9 @@ const ScheduledTasksPage: React.FC = () => {
                       {!isManualOnly && <CronStatusTag job={job} />}
                       {hasError && (
                         <Tooltip content={errorHint}>
-                          <Attention
-                            theme='outline'
-                            size={16}
-                            className='shrink-0 text-danger-6'
-                            aria-label={errorHint}
-                          />
+                          <span className='inline-flex shrink-0'>
+                            <Attention theme='outline' size={16} className='text-danger-6' aria-label={errorHint} />
+                          </span>
                         </Tooltip>
                       )}
                       {!isManualOnly && (
