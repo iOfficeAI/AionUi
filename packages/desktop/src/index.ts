@@ -40,6 +40,7 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { hydrateUnixProcessPath } from './process/startup/unixPath';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
 import {
@@ -122,6 +123,9 @@ if (!gotTheLock) {
 // Align GUI-launched PATH with what local CLIs expect on each desktop OS.
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
+  if (process.platform === 'linux') {
+    hydrateUnixProcessPath();
+  }
 
   // Supplement nvm paths that fix-path might miss (nvm is often only in .zshrc, not .zshenv)
   const nvmDir = process.env.NVM_DIR || path.join(process.env.HOME || '', '.nvm');
