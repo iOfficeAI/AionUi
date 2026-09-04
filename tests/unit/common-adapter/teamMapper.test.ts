@@ -197,4 +197,34 @@ describe('teamMapper', () => {
       })
     ).toThrow('assistant_id is required');
   });
+
+  it('preserves an empty model string so antigravity can omit the --model flag', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_backend: 'antigravity',
+        assistant_name: 'Antigravity',
+        status: 'pending',
+        assistant_id: 'assistant-antigravity',
+        model: '',
+      })
+    ).toMatchObject({
+      model: '',
+    });
+  });
+
+  it('falls back to the default placeholder only when model is missing', () => {
+    expect(
+      toBackendAssistant({
+        role: 'teammate',
+        assistant_backend: 'claude',
+        assistant_name: 'Writer',
+        status: 'pending',
+        assistant_id: 'assistant-writer',
+        model: undefined as unknown as string,
+      })
+    ).toMatchObject({
+      model: 'default',
+    });
+  });
 });

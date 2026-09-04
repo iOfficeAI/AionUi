@@ -163,7 +163,7 @@ export function toBackendAssistant(a: TeamAssistantInput): Record<string, unknow
   return {
     name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
-    model: a.model || 'default',
+    model: a.model ?? 'default',
     assistant_id: a.assistant_id,
   };
 }
