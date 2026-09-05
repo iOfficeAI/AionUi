@@ -14,10 +14,7 @@ import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from 
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
-import {
-  getFocusedConversation,
-  getMountedConversationIds,
-} from '@/renderer/pages/conversation/hooks/focusedConversationStore';
+import { getFocusedConversation } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { reflessTabKey } from './reflessTabKey';
 import { onPreviewWatchChange, reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
@@ -217,13 +214,22 @@ export interface PreviewContextValue {
 /** Map key for composers that belong to no conversation (the guide page). */
 const UNSCOPED_SEND_BOX_KEY = '';
 
+/**
+ * One send box's registration. The wrapper object is the identity: the same
+ * callback can be registered more than once (a send box re-registering as its
+ * draft changes, two columns sharing a handler), so a release has to remove the
+ * entry it created, not the first or last one that happens to hold an equal
+ * function.
+ */
+type SendBoxRegistration = { readonly handler: (text: string) => void };
+
 /** The send box that should receive "add to chat" for a key, or undefined. */
 const latestSendBoxHandler = (
-  handlers: Map<string, Array<(text: string) => void>>,
+  handlers: Map<string, SendBoxRegistration[]>,
   key: string
 ): ((text: string) => void) | undefined => {
   const registered = handlers.get(key);
-  return registered?.[registered.length - 1];
+  return registered?.[registered.length - 1]?.handler;
 };
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -647,7 +653,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // conversation id → the send boxes registered for it, oldest first. The empty
   // key holds composers that belong to no conversation; a real conversation id
   // is never empty, so the two cannot collide.
-  const sendBoxHandlers = useRef<Map<string, Array<(text: string) => void>>>(new Map());
+  const sendBoxHandlers = useRef<Map<string, SendBoxRegistration[]>>(new Map());
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
@@ -1193,11 +1199,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const focused = getFocusedConversation();
     const handler = latestSendBoxHandler(sendBoxHandlers.current, focused ?? UNSCOPED_SEND_BOX_KEY);
     if (!handler) {
-      if (focused) {
-        console.warn(
-          `[Preview] No send box is registered for the focused conversation ${focused}; add to chat did nothing.`
-        );
-      }
+      console.warn(
+        focused
+          ? `[Preview] No send box is registered for the focused conversation ${focused}; add to chat did nothing.`
+          : '[Preview] No conversation is focused and no composer is registered; add to chat did nothing.'
+      );
       return;
     }
     handler(text);
@@ -1205,20 +1211,21 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const setSendBoxHandler = useCallback((handler: (text: string) => void, conversation_id?: string) => {
     const key = conversation_id || UNSCOPED_SEND_BOX_KEY;
+    const registration: SendBoxRegistration = { handler };
     const registered = sendBoxHandlers.current.get(key) ?? [];
-    registered.push(handler);
+    registered.push(registration);
     sendBoxHandlers.current.set(key, registered);
 
-    let released = false;
     return () => {
-      if (released) return;
-      released = true;
       const current = sendBoxHandlers.current.get(key);
       if (!current) return;
-      // Remove this registration only. A sibling send box on the same
-      // conversation stays reachable.
-      const index = current.lastIndexOf(handler);
-      if (index >= 0) current.splice(index, 1);
+      // Remove this registration and no other: identity is the registration
+      // object, so re-registering the same callback cannot make a release
+      // take out somebody else's entry. Running twice is a no-op — the entry
+      // is already gone.
+      const index = current.indexOf(registration);
+      if (index < 0) return;
+      current.splice(index, 1);
       if (current.length === 0) sendBoxHandlers.current.delete(key);
     };
   }, []);
@@ -1322,30 +1329,27 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     /**
      * One preview panel serves every mounted conversation, and it follows the
-     * focused one (a panel per column is deliberately out of scope). An open
-     * addressed to a conversation the user is not working in must not take the
-     * panel over — and it must not vanish quietly either, so a refusal is
-     * logged.
+     * focused one (a panel per column is deliberately out of scope). The panel
+     * therefore belongs to whichever conversation is focused, and that is the
+     * whole rule:
+     *
+     * - An open addressed to the focused conversation is its own. Accept.
+     * - An open addressed to a different conversation would take the panel from
+     *   the one the user is working in. Refuse, and say so.
+     * - An open that names no conversation cannot be attributed to anyone. The
+     *   panel belongs to the focused conversation, so show it there — which is
+     *   what happens today, and what a single conversation has always done.
      *
      * aioncore does not name the conversation on its own preview opens yet, so
-     * an unaddressed open cannot be attributed. With at most one conversation
-     * on screen there is nothing to get wrong and it is accepted, which is
-     * every open today. With several, accepting it would let an agent working
-     * in one column take the panel from the column the user is in, so it is
-     * refused until the backend says who it belongs to.
+     * in practice every backend frame takes the third branch. An earlier
+     * revision refused those once more than one conversation was mounted; that
+     * traded a possible wrong-panel for a certain lost preview, could not see
+     * other windows anyway, and is not what "one panel follows the focused
+     * column" asks for.
      */
     const acceptsPreviewOpen = (targetConversationId: string | undefined): boolean => {
+      if (targetConversationId === undefined) return true;
       const focused = getFocusedConversation();
-      if (targetConversationId === undefined) {
-        const mounted = getMountedConversationIds();
-        if (mounted.length > 1) {
-          console.warn(
-            `[Preview] Ignored an open that names no conversation while ${mounted.length} are on screen; it cannot be attributed to one of them.`
-          );
-          return false;
-        }
-        return true;
-      }
       if (targetConversationId === focused) return true;
       console.warn(
         `[Preview] Ignored an open for conversation ${targetConversationId}; the focused conversation is ${focused ?? 'none'}.`

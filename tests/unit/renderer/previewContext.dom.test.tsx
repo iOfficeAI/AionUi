@@ -235,6 +235,40 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     }
   });
 
+  it('releases the registration it created, not an equal callback registered later', () => {
+    // The same function can be registered more than once; a release must remove
+    // its own entry, not whichever equal one it finds first or last.
+    mount();
+    const shared = vi.fn();
+    const other = vi.fn();
+    let releaseFirst: (() => void) | undefined;
+    act(() => {
+      releaseFirst = ctx.setSendBoxHandler(shared, 'conv-a');
+      ctx.setSendBoxHandler(other, 'conv-a');
+      ctx.setSendBoxHandler(shared, 'conv-a');
+    });
+    registerMountedConversation('conv-a');
+
+    act(() => releaseFirst?.());
+    act(() => ctx.addToSendBox('newest still wins'));
+    expect(shared).toHaveBeenCalledWith('newest still wins');
+    expect(other).not.toHaveBeenCalled();
+  });
+
+  it('says so when nothing at all can receive the text', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      // No conversation focused and no composer registered: the text has
+      // nowhere to go, and dropping it quietly is the failure mode this
+      // contract exists to avoid.
+      act(() => ctx.addToSendBox('nowhere to go'));
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('keeps unscoped composers independent of each other', () => {
     mount();
     const first = vi.fn();
@@ -279,21 +313,15 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
     expect(ctx.isOpen).toBe(true);
   });
 
-  it('refuses an unaddressed backend preview once several conversations are on screen', () => {
-    // aioncore does not name the conversation yet. With one conversation there
-    // is nothing to get wrong; with two, an unattributable open would take the
-    // shared panel from whichever column the user is working in.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      mount();
-      registerMountedConversation('conv-a');
-      registerMountedConversation('conv-b');
-      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
-      expect(ctx.isOpen).toBe(false);
-      expect(warn).toHaveBeenCalled();
-    } finally {
-      warn.mockRestore();
-    }
+  it('shows an unaddressed backend preview in the shared panel, however many are on screen', () => {
+    // The panel belongs to the focused conversation. aioncore does not name the
+    // conversation yet, so an unattributable open goes where the user is
+    // looking rather than being thrown away.
+    mount();
+    registerMountedConversation('conv-a');
+    registerMountedConversation('conv-b');
+    emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+    expect(ctx.isOpen).toBe(true);
   });
 
   it('refuses a backend preview addressed elsewhere, and says so', () => {
