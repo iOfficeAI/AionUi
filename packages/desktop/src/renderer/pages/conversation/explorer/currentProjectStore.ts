@@ -5,42 +5,19 @@
  */
 
 /**
- * Module-level "current project" store (stage3 FULL). The conversation route
- * publishes the active conversation's `project_id` here; the Layout-level
- * Project Explorer column subscribes. Because it lives above the
- * conversation-keyed route subtree, switching conversations within the same
- * project leaves the value unchanged — the explorer column does not remount.
+ * Back-compatible façade over the focused-conversation store.
  *
- * `null` when there is no project (no-project conversation, or a non-chat route).
+ * The current project id used to live here as a module singleton, a sibling of
+ * the active conversation id. Both now live in
+ * {@link ../hooks/focusedConversationStore} so a single subscription covers
+ * "what the user is working in". The names below are kept because the Layout
+ * Explorer host, the preview launcher and the search roots all read them.
  */
 
-import { useSyncExternalStore } from 'react';
-
-let currentProjectId: string | null = null;
-const listeners = new Set<() => void>();
-
-/** Set the active project id (no-ops + skips notify when unchanged). */
-export const setCurrentProject = (id: string | null): void => {
-  if (id === currentProjectId) return;
-  currentProjectId = id;
-  for (const listener of listeners) listener();
-};
-
-export const getCurrentProject = (): string | null => currentProjectId;
-
-export const subscribeCurrentProject = (listener: () => void): (() => void) => {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-};
-
-/** Subscribe a React component to the current project id. */
-export const useCurrentProject = (): string | null =>
-  useSyncExternalStore(subscribeCurrentProject, getCurrentProject, getCurrentProject);
-
-/** Test hook: reset module state. */
-export const resetCurrentProjectForTest = (): void => {
-  currentProjectId = null;
-  listeners.clear();
-};
+export {
+  getFocusedProject as getCurrentProject,
+  resetFocusedConversationStoreForTest as resetCurrentProjectForTest,
+  setFocusedProject as setCurrentProject,
+  subscribeFocusedProject as subscribeCurrentProject,
+  useFocusedProjectId as useCurrentProject,
+} from '@/renderer/pages/conversation/hooks/focusedConversationStore';
