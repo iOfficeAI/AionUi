@@ -14,6 +14,7 @@ import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import { buildSkillImportNotice, getSkillImportErrorMessage } from './skillImportMessages';
+import { getSkillDescriptionEnglish, getSkillDescriptionForLocale } from './officialSkillDescriptions';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -679,8 +680,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
           <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
           {skill.description && (
-            <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0' title={skill.description}>
-              {skill.description}
+            <p
+              className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'
+              title={getSkillDescriptionEnglish(skill.name) ?? skill.description}
+            >
+              {getSkillDescriptionForLocale(skill.name, i18n.language) ?? skill.description}
             </p>
           )}
         </div>
