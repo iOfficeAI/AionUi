@@ -11,6 +11,7 @@ import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHist
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
+import { buildSplitGroups } from './splitGroupHelpers';
 
 export const isConversationPinned = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { pinned?: boolean } | undefined;
@@ -117,5 +118,6 @@ export const buildGroupedHistory = (
   return {
     pinnedConversations,
     timelineSections: groupConversationsByWorkspace(normalConversations, t),
+    splitGroups: buildSplitGroups(visibleConversations),
   };
 };
