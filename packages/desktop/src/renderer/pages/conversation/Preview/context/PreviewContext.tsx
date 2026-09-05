@@ -189,7 +189,14 @@ export interface PreviewContextValue {
 
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
-  setSendBoxHandler: (handler: ((text: string) => void) | null) => void;
+  /**
+   * Register the send box that "add to chat" writes into. Several send boxes
+   * can be mounted at once, so each registers under its own conversation and
+   * the panel writes to the focused one. `conversation_id` is optional for a
+   * send box that belongs to no conversation (the guide-page composer); those
+   * share one slot, used only when the focused conversation has no send box.
+   */
+  setSendBoxHandler: (handler: ((text: string) => void) | null, conversation_id?: string) => void;
 
   // DOM 片段管理 / DOM snippet management
   domSnippets: DomSnippet[];
@@ -616,7 +623,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
-  const sendBoxHandler = useRef<((text: string) => void) | null>(null);
+  const sendBoxHandlers = useRef<Map<string, (text: string) => void>>(new Map());
+  const unscopedSendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
@@ -1154,13 +1162,24 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const addToSendBox = useCallback((text: string) => {
-    if (sendBoxHandler.current) {
-      sendBoxHandler.current(text);
-    }
+    // One preview panel serves every mounted conversation and follows the
+    // focused one, so its text goes to that conversation's send box. Falling
+    // back to the unscoped slot keeps the single-composer surfaces working.
+    const focused = getFocusedConversation();
+    const handler = (focused ? sendBoxHandlers.current.get(focused) : undefined) ?? unscopedSendBoxHandler.current;
+    handler?.(text);
   }, []);
 
-  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null) => {
-    sendBoxHandler.current = handler;
+  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null, conversation_id?: string) => {
+    if (!conversation_id) {
+      unscopedSendBoxHandler.current = handler;
+      return;
+    }
+    if (handler) {
+      sendBoxHandlers.current.set(conversation_id, handler);
+    } else {
+      sendBoxHandlers.current.delete(conversation_id);
+    }
   }, []);
 
   // DOM 片段管理函数 / DOM snippet management functions

@@ -29,6 +29,11 @@ import {
   usePreviewContext,
   type PreviewContextValue,
 } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import {
+  registerMountedConversation,
+  resetFocusedConversationStoreForTest,
+  setFocusedConversation,
+} from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 
 /**
  * Capture the live context value on every render so assertions read the latest
@@ -62,6 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  resetFocusedConversationStoreForTest();
 });
 
 describe('PreviewContext scope isolation (closePreviewIfScopeChanged)', () => {
@@ -107,5 +113,62 @@ describe('PreviewContext scope isolation (closePreviewIfScopeChanged)', () => {
     expect(ctx.isOpen).toBe(true);
     expect(ctx.tabs).toHaveLength(1);
     expect(ctx.tabs[0].title).toBe('A.md');
+  });
+});
+
+/**
+ * One preview panel serves every mounted conversation and follows the focused
+ * one (approved: a shared panel, not one per column). Its "add to chat" used to
+ * write into a single global handler ref, so whichever send box mounted last
+ * received the text regardless of which column the user was working in.
+ */
+describe('PreviewContext add-to-chat targets the focused conversation', () => {
+  it('writes into the focused conversation send box', () => {
+    mount();
+    const toA = vi.fn();
+    const toB = vi.fn();
+    act(() => {
+      ctx.setSendBoxHandler(toA, 'conv-a');
+      ctx.setSendBoxHandler(toB, 'conv-b');
+    });
+
+    registerMountedConversation('conv-a');
+    registerMountedConversation('conv-b');
+    setFocusedConversation('conv-b');
+    act(() => ctx.addToSendBox('from preview'));
+    expect(toB).toHaveBeenCalledWith('from preview');
+    expect(toA).not.toHaveBeenCalled();
+
+    setFocusedConversation('conv-a');
+    act(() => ctx.addToSendBox('second'));
+    expect(toA).toHaveBeenCalledWith('second');
+    expect(toB).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a send box registration when its view unmounts', () => {
+    mount();
+    const toA = vi.fn();
+    act(() => ctx.setSendBoxHandler(toA, 'conv-a'));
+    registerMountedConversation('conv-a');
+
+    act(() => ctx.setSendBoxHandler(null, 'conv-a'));
+    act(() => ctx.addToSendBox('after unmount'));
+    expect(toA).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the unscoped composer when the focused conversation has none', () => {
+    mount();
+    const unscoped = vi.fn();
+    act(() => ctx.setSendBoxHandler(unscoped, undefined));
+
+    // No conversation focused at all — the guide-page composer still works.
+    act(() => ctx.addToSendBox('no conversation'));
+    expect(unscoped).toHaveBeenCalledWith('no conversation');
+
+    // A focused conversation with no registered send box also falls back
+    // rather than silently dropping the text.
+    registerMountedConversation('conv-a');
+    act(() => ctx.addToSendBox('focused but unregistered'));
+    expect(unscoped).toHaveBeenCalledWith('focused but unregistered');
   });
 });

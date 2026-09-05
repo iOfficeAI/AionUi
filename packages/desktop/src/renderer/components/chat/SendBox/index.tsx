@@ -424,11 +424,11 @@ const SendBox: React.FC<{
       const newValue = base ? `${base}\n\n${text}` : text;
       setInputRef.current(newValue);
     };
-    setSendBoxHandler(handler);
+    setSendBoxHandler(handler, conversationContext?.conversation_id);
     return () => {
-      setSendBoxHandler(null);
+      setSendBoxHandler(null, conversationContext?.conversation_id);
     };
-  }, [setSendBoxHandler]);
+  }, [setSendBoxHandler, conversationContext?.conversation_id]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input
