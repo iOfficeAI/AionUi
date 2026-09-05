@@ -6,11 +6,9 @@
 
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
 import { ipcBridge } from '@/common';
-import { isDetachedWindowSearch } from '@/common/platform/detachedWindow';
 import { configService } from '@/common/config/configService';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { getWindowId, isElectronDesktop } from '@/renderer/utils/platform';
 import { getSnapshotConversationName } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { createBrowserNotificationController, truncateConversationName } from './browserNotificationCore';
 
@@ -29,10 +27,9 @@ import { createBrowserNotificationController, truncateConversationName } from '.
  */
 export const useDesktopTurnNotification = (): void => {
   const { t } = useTranslation();
-  const location = useLocation();
 
   useEffect(() => {
-    if (!isElectronDesktop() || isDetachedWindowSearch(location.search)) return;
+    if (!isElectronDesktop()) return;
 
     const streamEmitter = ipcBridge.conversation?.responseStream;
     if (!streamEmitter) return;
@@ -56,7 +53,12 @@ export const useDesktopTurnNotification = (): void => {
         // Both turn-completed and confirmation (permission / question) kinds
         // fire a native notification. The main process still gates on the
         // setting and skips when the window is focused.
-        void ipcBridge.notification.show.invoke({ title: 'AionUi', body, conversation_id: conversationId });
+        void ipcBridge.notification.show.invoke({
+          title: 'AionUi',
+          body,
+          conversation_id: conversationId,
+          source_web_contents_id: getWindowId(),
+        });
       },
     });
 
@@ -64,5 +66,5 @@ export const useDesktopTurnNotification = (): void => {
     return () => {
       disposeStream();
     };
-  }, [location.search, t]);
+  }, [t]);
 };

@@ -61,16 +61,22 @@ import {
   showNotification,
 } from '@/process/bridge/notificationBridge';
 
-const makeWindow = (focused: boolean) => ({
-  isDestroyed: () => false,
-  isFocused: () => focused,
-  // Registered as an app window, which subscribes to its 'closed' event.
-  once: vi.fn(),
-  isMinimized: () => false,
-  restore: vi.fn(),
-  show: vi.fn(),
-  focus: vi.fn(),
-});
+const makeWindow = (focused: boolean, id = 1) => {
+  let closedHandler: (() => void) | undefined;
+  return {
+    webContents: { id },
+    isDestroyed: () => false,
+    isFocused: () => focused,
+    once: vi.fn((_event: string, handler: () => void) => {
+      closedHandler = handler;
+    }),
+    emitClosed: () => closedHandler?.(),
+    isMinimized: () => false,
+    restore: vi.fn(),
+    show: vi.fn(),
+    focus: vi.fn(),
+  };
+};
 
 let logSpy: ReturnType<typeof vi.spyOn>;
 
@@ -127,6 +133,28 @@ describe('showNotification', () => {
     registerNotificationAppWindow(win as never);
 
     expect(win.once).toHaveBeenCalledOnce();
+  });
+
+  it('uses one producer while allowing a detached window to take over after the main closes', async () => {
+    const main = makeWindow(false, 1);
+    const detached = makeWindow(false, 2);
+    setNotificationMainWindow(main as never);
+    registerNotificationAppWindow(detached as never);
+
+    await showNotification({
+      title: 'AionUi',
+      body: 'duplicate',
+      source_web_contents_id: 2,
+    });
+    expect(FakeElectronNotification.instances).toHaveLength(0);
+
+    main.emitClosed();
+    await showNotification({
+      title: 'AionUi',
+      body: 'only detached remains',
+      source_web_contents_id: 2,
+    });
+    expect(FakeElectronNotification.instances).toHaveLength(1);
   });
 
   it('ignores a destroyed app window when deciding whether the app is focused', async () => {

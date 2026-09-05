@@ -98,16 +98,26 @@ export async function showNotification({
   title,
   body,
   conversation_id,
+  source_web_contents_id,
 }: {
   title: string;
   body: string;
   conversation_id?: string;
+  source_web_contents_id?: number | null;
 }): Promise<void> {
   // Check if notification is enabled
   const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
   if (notificationEnabled === false) {
     console.log('[Notification] Skipped: notifications are disabled in settings');
     return;
+  }
+
+  if (source_web_contents_id !== undefined) {
+    const producer = [...appWindows].find((win) => !win.isDestroyed());
+    if (source_web_contents_id === null || producer?.webContents.id !== source_web_contents_id) {
+      console.log('[Notification] Skipped: another app window owns notification production');
+      return;
+    }
   }
 
   // Do not notify while the user is already looking at the app.
