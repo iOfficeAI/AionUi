@@ -17,6 +17,12 @@ type ChatTitleEditorProps = {
   conversation_id?: string;
   /** Optional leading icon (e.g. agent logo) rendered inside the hover region, just before the title */
   leading?: React.ReactNode;
+  /**
+   * Size to the title's own text instead of the whole area. A split column's
+   * header uses it so the title only asks for the room it needs and the
+   * actions beside it give way only when that room is short.
+   */
+  fitContent?: boolean;
 };
 
 // Inline title display with click-to-edit rename support
@@ -32,6 +38,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   title,
   conversation_id,
   leading,
+  fitContent = false,
 }) => {
   const { t } = useTranslation();
 
@@ -56,7 +63,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
           ? 'bg-fill-2 border-[var(--color-fill-3)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
           : 'hover:bg-fill-2 hover:border-[var(--color-fill-3)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus-within:bg-fill-2 focus-within:border-[var(--color-fill-3)] focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
       )}
-      style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
+      style={{ width: fitContent ? undefined : '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
       {leading && <div className='shrink-0 flex items-center ps-8px'>{leading}</div>}
       {editingTitle && canRenameTitle ? (

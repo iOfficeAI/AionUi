@@ -2,6 +2,7 @@ import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
@@ -69,6 +70,9 @@ const ChatLayout: React.FC<{
   const layout = useLayoutContext();
   const isDesktop = !layout?.isMobile;
   const isMobile = Boolean(layout?.isMobile);
+  // A split column: the header is a band of its own, the title keeps its room
+  // and the actions (model picker first) give way as the column narrows.
+  const { compactHeader } = useChatColumn();
 
   // Preview panel state
   const { isOpen: isPreviewOpenRaw, isMaximized } = usePreviewContext();
@@ -196,39 +200,65 @@ const ChatLayout: React.FC<{
     return () => observer.disconnect();
   }, [layout?.isMobile]);
 
+  const titleEditor = (
+    <ChatTitleEditor
+      editingTitle={editingTitle}
+      titleDraft={titleDraft}
+      setTitleDraft={setTitleDraft}
+      setEditingTitle={setEditingTitle}
+      renameLoading={renameLoading}
+      canRenameTitle={canRenameTitle}
+      submitTitleRename={submitTitleRename}
+      // The single layout reserves room beside the title for its own chrome;
+      // a column has none of that, so the title may use the whole header.
+      titleAreaMaxWidth={compactHeader ? containerWidth : titleAreaMaxWidth}
+      title={props.title}
+      conversation_id={conversation_id}
+      fitContent={compactHeader}
+      leading={
+        props.headerLeading ??
+        ((backend || presetAssistant) && (
+          <AgentLogoIcon
+            backend={backend}
+            agent_name={display_name}
+            agentLogo={presetAssistant?.logo}
+            agentLogoIsEmoji={presetAssistant?.isEmoji}
+            agentLogoIsFallback={presetAssistant?.isFallback}
+          />
+        ))
+      }
+    />
+  );
+
   const desktopHeader = (
     <ArcoLayout.Header
       className={classNames(
-        'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
+        'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px chat-layout-header chat-layout-header--glass overflow-hidden',
+        compactHeader ? '!bg-2 border-b border-solid border-b-[var(--bg-3)]' : '!bg-1'
       )}
+      data-column-header={compactHeader ? 'true' : undefined}
     >
-      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
-        <ChatTitleEditor
-          editingTitle={editingTitle}
-          titleDraft={titleDraft}
-          setTitleDraft={setTitleDraft}
-          setEditingTitle={setEditingTitle}
-          renameLoading={renameLoading}
-          canRenameTitle={canRenameTitle}
-          submitTitleRename={submitTitleRename}
-          titleAreaMaxWidth={titleAreaMaxWidth}
-          title={props.title}
-          conversation_id={conversation_id}
-          leading={
-            props.headerLeading ??
-            ((backend || presetAssistant) && (
-              <AgentLogoIcon
-                backend={backend}
-                agent_name={display_name}
-                agentLogo={presetAssistant?.logo}
-                agentLogoIsEmoji={presetAssistant?.isEmoji}
-                agentLogoIsFallback={presetAssistant?.isFallback}
-              />
-            ))
-          }
-        />
-      </FlexFullContainer>
-      <div className='flex items-center gap-12px shrink-0'>{props.headerExtra}</div>
+      {compactHeader ? (
+        // The title takes exactly its own width and shrinks a hundred times
+        // more reluctantly than the actions; the actions take all the spare
+        // room (the picker fills up to its full label, the buttons hug the
+        // right edge). Short of room, the picker gives way first, down to its
+        // icon, and only then does the title truncate.
+        <div className='h-full min-w-0 flex items-center' style={{ flex: '0 1 auto' }} data-testid='chat-header-title'>
+          {titleEditor}
+        </div>
+      ) : (
+        <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
+          {titleEditor}
+        </FlexFullContainer>
+      )}
+      <div
+        className={classNames('flex items-center gap-12px', compactHeader ? 'justify-end' : 'shrink-0')}
+        style={compactHeader ? { flex: '1 100 auto' } : undefined}
+        data-testid='chat-header-actions'
+      >
+        {props.headerExtra}
+      </div>
     </ArcoLayout.Header>
   );
 

@@ -17,9 +17,16 @@ export type ChatColumnContextValue = {
    * last. Same contract as the Team view's active slot, without its runtime.
    */
   composerActive: boolean;
+  /**
+   * The view is one column among several, so its header must fit a narrow
+   * width: the title keeps its room and the model picker gives way first, and
+   * the header reads as this column's own band. A conversation on its own is
+   * never compact.
+   */
+  compactHeader: boolean;
 };
 
-const ChatColumnContext = createContext<ChatColumnContextValue>({ composerActive: true });
+const ChatColumnContext = createContext<ChatColumnContextValue>({ composerActive: true, compactHeader: false });
 
 export const ChatColumnProvider = ChatColumnContext.Provider;
 

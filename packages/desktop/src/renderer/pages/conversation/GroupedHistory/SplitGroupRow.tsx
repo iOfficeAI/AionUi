@@ -185,6 +185,14 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         }}
       >
         {group.members.map(memberChip)}
+        {!collapsed && (
+          <span
+            className='chat-history__item-name min-w-0 flex-1 ps-4px truncate text-14px font-[500] lh-24px text-t-primary'
+            data-testid={`split-group-label-${group.id}`}
+          >
+            {names[0]}
+          </span>
+        )}
       </div>
     </Tooltip>
   );

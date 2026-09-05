@@ -12,10 +12,12 @@ import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
+import classNames from 'classnames';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -153,6 +155,7 @@ const AionrsConversationPanel: React.FC<{
   headerActions?: React.ReactNode;
   previewHosted?: boolean;
 }> = ({ conversation, sliderTitle, headerActions, previewHosted }) => {
+  const { compactHeader } = useChatColumn();
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -210,15 +213,20 @@ const AionrsConversationPanel: React.FC<{
     siderTitle: sliderTitle,
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
-      <div className='flex items-center gap-8px'>
+      <div className={classNames('flex items-center gap-8px', { 'flex-1 justify-end': compactHeader })}>
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         {!isMobile && (
-          <AionrsModelSelector
-            selection={modelSelection}
-            thoughtLevel={runtimeConfig.thoughtLevel}
-            setStatus={runtimeConfig.setStatus}
-            onSetThoughtLevel={handleThoughtLevelSetOption}
-          />
+          <div
+            className={compactHeader ? COMPACT_PICKER_CLASS : 'shrink-0'}
+            style={compactHeader ? COMPACT_PICKER_STYLE : undefined}
+          >
+            <AionrsModelSelector
+              selection={modelSelection}
+              thoughtLevel={runtimeConfig.thoughtLevel}
+              setStatus={runtimeConfig.setStatus}
+              onSetThoughtLevel={handleThoughtLevelSetOption}
+            />
+          </div>
         )}
         {headerActions && <div className='shrink-0'>{headerActions}</div>}
       </div>
@@ -269,6 +277,21 @@ const AionrsConversationPanel: React.FC<{
   );
 };
 
+/**
+ * The model picker inside a split column. Size containment keeps the picker's
+ * nowrap label from propping the header's action row open: the picker counts
+ * for its icon only, grows into whatever room the row has left (up to its
+ * full label), and is the first thing to give way when the title needs the
+ * space; the label truncates and marquees on hover as it does elsewhere.
+ */
+const COMPACT_PICKER_CLASS = 'min-w-0 [&_button]:max-w-full [&_button]:min-w-0 [&_button_span]:truncate';
+const COMPACT_PICKER_STYLE: React.CSSProperties = {
+  flex: '1 1 56px',
+  minWidth: 56,
+  maxWidth: 220,
+  contain: 'inline-size',
+};
+
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
   hideSendBox?: boolean;
@@ -300,6 +323,7 @@ const ChatConversation: React.FC<{
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
+  const { compactHeader } = useChatColumn();
 
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
@@ -432,13 +456,24 @@ const ChatConversation: React.FC<{
         };
 
   const headerExtraNode = (
-    <div className='flex items-center gap-8px'>
+    // In a column the row grows into the header's spare room so the picker
+    // can fill up to its label; the buttons keep hugging the right edge.
+    <div className={classNames('flex items-center gap-8px', { 'flex-1 justify-end': compactHeader })}>
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
-      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {modelSelector && (
+        // In a split column the picker's label truncates (down to its icon)
+        // before the conversation title loses any room.
+        <div
+          className={compactHeader ? COMPACT_PICKER_CLASS : 'shrink-0'}
+          style={compactHeader ? COMPACT_PICKER_STYLE : undefined}
+        >
+          {modelSelector}
+        </div>
+      )}
       {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
         <div className='shrink-0'>
           <AcpRuntimeRestartButton
