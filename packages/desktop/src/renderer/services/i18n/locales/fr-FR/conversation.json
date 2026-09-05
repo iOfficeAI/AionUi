@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "Vue partagée : {{names}}",
+    "blockLabel": "Division · {{count}}",
     "open": "Ouvrir la vue partagée",
     "focusMember": "Afficher « {{name}} » dans la vue partagée",
     "removeMember": "Retirer « {{name}} » de la vue partagée",

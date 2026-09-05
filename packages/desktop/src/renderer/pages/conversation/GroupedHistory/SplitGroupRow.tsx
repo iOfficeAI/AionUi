@@ -92,7 +92,9 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
           className={classNames(
             'group/member relative flex items-center h-28px rd-6px min-w-0 transition-colors',
             collapsed ? 'justify-center px-0' : 'gap-8px ps-4px pe-6px',
-            batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-fill-4'
+            // A primary wash, not a grey fill: over the block's own tint a
+            // heavier grey would read as a second container.
+            batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-[rgba(var(--primary-6),0.06)]'
           )}
           onClick={(event) => {
             event.stopPropagation();
@@ -169,10 +171,12 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         aria-label={label}
         data-testid={`split-group-row-${group.id}`}
         className={classNames(
-          'chat-history__item rd-8px flex flex-col gap-1px py-3px group relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors border border-solid',
-          collapsed ? 'px-2px items-center' : dimIcon ? 'ps-28px pe-4px' : 'ps-4px pe-4px',
-          // A visible container at all times, so the members read as one block.
-          selected ? 'border-b-base bg-fill-2' : 'border-b-base bg-fill-1',
+          'chat-history__item rd-8px flex flex-col gap-1px py-3px group relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors border border-solid border-[var(--border-base)]',
+          collapsed ? 'px-2px items-center' : dimIcon ? 'ps-30px pe-4px' : 'ps-6px pe-4px',
+          // The container is always tinted, so the members read as one block
+          // rather than as loose rows; being the open group only deepens the
+          // same wash instead of boxing it in.
+          selected ? 'bg-[rgba(var(--primary-6),0.10)]' : 'bg-fill-2',
           {
             'shadow-[inset_0_0_0_2px_rgb(var(--primary-6))] bg-[rgba(var(--primary-6),0.08)]': dropTargeted,
             'cursor-pointer': !batchMode,
@@ -191,7 +195,21 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
           }
         }}
       >
-        {group.members.map(memberRow)}
+        {/* The accent bar: the one mark that says "these belong together",
+            read before any of the text is. */}
+        <span aria-hidden='true' className='absolute inset-y-0 start-0 w-2px bg-[rgba(var(--primary-6),1)]' />
+        {!collapsed && (
+          <div
+            data-testid={`split-group-label-${group.id}`}
+            className='flex items-center h-16px ps-4px text-11px font-[600] lh-16px text-t-tertiary tracking-[0.04em] select-none shrink-0'
+          >
+            {t('conversation.splitGroup.blockLabel', { count: group.members.length })}
+          </div>
+        )}
+        {/* Indented under the header, so the block has an inside. */}
+        <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-4px')}>
+          {group.members.map(memberRow)}
+        </div>
       </div>
     </Tooltip>
   );

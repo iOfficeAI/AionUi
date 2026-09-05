@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "Split view: {{names}}",
+    "blockLabel": "Split · {{count}}",
     "open": "Open split view",
     "focusMember": "Show “{{name}}” in the split view",
     "removeMember": "Remove “{{name}}” from the split view",

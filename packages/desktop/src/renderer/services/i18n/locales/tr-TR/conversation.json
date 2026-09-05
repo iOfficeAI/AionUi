@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "Bölünmüş görünüm: {{names}}",
+    "blockLabel": "Bölme · {{count}}",
     "open": "Bölünmüş görünümü aç",
     "focusMember": "“{{name}}” sohbetini bölünmüş görünümde göster",
     "removeMember": "“{{name}}” sohbetini bölünmüş görünümden çıkar",

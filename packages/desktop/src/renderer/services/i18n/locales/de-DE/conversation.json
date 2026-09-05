@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "Geteilte Ansicht: {{names}}",
+    "blockLabel": "Split · {{count}}",
     "open": "Geteilte Ansicht öffnen",
     "focusMember": "„{{name}}“ in der geteilten Ansicht anzeigen",
     "removeMember": "„{{name}}“ aus der geteilten Ansicht entfernen",

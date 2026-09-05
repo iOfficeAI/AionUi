@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "分割檢視：{{names}}",
+    "blockLabel": "分割 · {{count}}",
     "open": "開啟分割檢視",
     "focusMember": "在分割檢視中顯示「{{name}}」",
     "removeMember": "將「{{name}}」移出分割檢視",

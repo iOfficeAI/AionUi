@@ -93,6 +93,7 @@
   },
   "splitGroup": {
     "tooltip": "分屏视图：{{names}}",
+    "blockLabel": "分屏 · {{count}}",
     "open": "打开分屏视图",
     "focusMember": "在分屏视图中显示“{{name}}”",
     "removeMember": "将“{{name}}”移出分屏视图",

@@ -5,9 +5,11 @@
  */
 
 /**
- * The split-group pill in the sidebar: one leading icon per member, one × per
- * member, and three distinct clicks — the pill opens the group, an icon opens
- * it with that member focused, a × removes only that member.
+ * The split-group block in the sidebar: a labelled container with one leading
+ * icon per member, one × per member, and three distinct clicks — the block
+ * opens the group, a member row opens it with that member focused, a × removes
+ * only that member. The container has to read as one group at a glance, so its
+ * header line, its accent bar and its tint are part of the contract.
  */
 
 import React from 'react';
@@ -19,8 +21,11 @@ import type { TChatConversation } from '@/common/config/storage';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: Record<string, unknown>) =>
-      options && typeof options.name === 'string' ? `${key}:${options.name}` : key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (options && typeof options.name === 'string') return `${key}:${options.name}`;
+      if (options && typeof options.count === 'number') return `${key}:${options.count}`;
+      return key;
+    },
   }),
 }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
@@ -105,6 +110,38 @@ describe('SplitGroupRow', () => {
     renderPill({ collapsed: true });
     expect(screen.getAllByTestId(/^leading-icon-/)).toHaveLength(3);
     expect(screen.queryAllByTestId(/^split-group-title-/)).toHaveLength(0);
+  });
+
+  it('heads the block with the split label and the member count', () => {
+    renderPill();
+    const label = screen.getByTestId('split-group-label-g1');
+    expect(label.textContent).toBe('conversation.splitGroup.blockLabel:3');
+  });
+
+  it('counts only the members it actually shows', () => {
+    cleanup();
+    renderPill({ group: { id: 'g1', members: [member('a', 0), member('b', 1)] } });
+    expect(screen.getByTestId('split-group-label-g1').textContent).toBe('conversation.splitGroup.blockLabel:2');
+  });
+
+  it('drops the header line in the collapsed rail, where there is no room for it', () => {
+    cleanup();
+    renderPill({ collapsed: true });
+    expect(screen.queryByTestId('split-group-label-g1')).toBeNull();
+    expect(screen.getByTestId('leading-icon-a')).toBeInTheDocument();
+  });
+
+  it('draws the accent bar and a tinted container, and deepens the tint when the group is open', () => {
+    renderPill();
+    const block = screen.getByTestId('split-group-row-g1');
+    expect(block.querySelector('span[aria-hidden="true"].w-2px')).not.toBeNull();
+    expect(block.className).toContain('bg-fill-2');
+    cleanup();
+    renderPill({ selected: true });
+    const open = screen.getByTestId('split-group-row-g1');
+    expect(open.className).toContain('bg-[rgba(var(--primary-6),0.10)]');
+    // The old look boxed the open group in with a heavy grey fill.
+    expect(open.className).not.toContain('bg-fill-3');
   });
 
   it('renders one × per member, each naming its member', () => {

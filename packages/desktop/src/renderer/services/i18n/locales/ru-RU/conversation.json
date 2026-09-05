@@ -97,6 +97,7 @@
   },
   "splitGroup": {
     "tooltip": "Раздельный вид: {{names}}",
+    "blockLabel": "Разделение · {{count}}",
     "open": "Открыть раздельный вид",
     "focusMember": "Показать «{{name}}» в раздельном виде",
     "removeMember": "Убрать «{{name}}» из раздельного вида",
