@@ -881,6 +881,8 @@
   "includePrereleaseUpdates": "Inclure les versions préliminaires/dev",
   "saveModelConfigFailed": "Échec de l'enregistrement de la configuration du modèle",
   "healthCheck": "Vérification de santé",
+  "checkAllHealth": "Tout vérifier",
+  "healthCheckAllSummary": "Vérification de santé terminée : {{available}} disponible(s), {{unavailable}} indisponible(s)",
   "clearStatus": "Effacer le statut",
   "healthStatusCleared": "Statut de santé effacé",
   "latency": "Latence",

@@ -881,6 +881,8 @@
   "includePrereleaseUpdates": "Include prerelease/dev builds",
   "saveModelConfigFailed": "Failed to save model configuration",
   "healthCheck": "Health Check",
+  "checkAllHealth": "Check all health",
+  "healthCheckAllSummary": "Health check complete: {{available}} available, {{unavailable}} unavailable",
   "clearStatus": "Clear status",
   "healthStatusCleared": "Health status cleared",
   "latency": "Latency",

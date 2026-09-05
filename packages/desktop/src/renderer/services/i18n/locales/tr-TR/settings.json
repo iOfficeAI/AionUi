@@ -869,6 +869,8 @@
   "includePrereleaseUpdates": "Ön sürüm/geliştirici sürümlerini dahil et",
   "saveModelConfigFailed": "Model yapılandırması kaydedilemedi",
   "healthCheck": "Sağlık Kontrolü",
+  "checkAllHealth": "Tümünü kontrol et",
+  "healthCheckAllSummary": "Sağlık kontrolü tamamlandı: {{available}} kullanılabilir, {{unavailable}} kullanılamaz",
   "clearStatus": "Durumu Temizle",
   "healthStatusCleared": "Sağlık durumu temizlendi",
   "latency": "Gecikme",
