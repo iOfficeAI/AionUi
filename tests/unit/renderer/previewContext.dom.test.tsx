@@ -11,8 +11,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // PreviewContext pulls ipcBridge (WS-backed emitters + fs IO). Stub the surface
 // it wires on mount so the provider mounts cleanly in jsdom and this test
 // exercises only the scope-reset behavior.
-const { ipcPreviewOpenListeners } = vi.hoisted(() => ({
+const { ipcPreviewOpenListeners, generatingIds } = vi.hoisted(() => ({
   ipcPreviewOpenListeners: [] as Array<(payload: unknown) => void>,
+  generatingIds: new Set<string>(),
+}));
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+// Arco's Message renders through ReactDOM.render, which jsdom + React 19 do
+// not provide; the notices are asserted through spies on this stub.
+vi.mock('@arco-design/web-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@arco-design/web-react')>()),
+  Message: { warning: () => '', error: () => '', info: () => '', success: () => '' },
+}));
+// The list store is WS-backed; the attribution rule only needs its two
+// synchronous getters.
+vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+  getGeneratingConversationIds: () => generatingIds,
+  getSnapshotConversationName: (id: string) => `name of ${id}`,
 }));
 
 vi.mock('@/common', () => ({
@@ -38,6 +53,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
+import { Message } from '@arco-design/web-react';
 import {
   PreviewProvider,
   usePreviewContext,
@@ -82,6 +98,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   resetFocusedConversationStoreForTest();
+  generatingIds.clear();
 });
 
 describe('PreviewContext scope isolation (closePreviewIfScopeChanged)', () => {
@@ -277,6 +294,24 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     expect(first).not.toHaveBeenCalled();
   });
 
+  it('warns the user, not only the console, when the focused conversation cannot receive the text', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const notice = vi.spyOn(Message, 'warning').mockImplementation(() => '');
+    try {
+      mount();
+      registerMountedConversation('conv-a');
+      setFocusedConversation('conv-a');
+      act(() => {
+        ctx.addToSendBox('hello');
+      });
+      expect(notice).toHaveBeenCalledTimes(1);
+      expect(notice.mock.calls[0][0]).toEqual(expect.objectContaining({ content: 'preview.addToChatUnavailable' }));
+    } finally {
+      notice.mockRestore();
+      warn.mockRestore();
+    }
+  });
+
   it('says so when nothing at all can receive the text', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -343,18 +378,63 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
     expect(ctx.isOpen).toBe(true);
   });
 
-  it('shows an unaddressed backend preview in the shared panel, however many are on screen', () => {
-    // The panel follows the focused conversation, so content that names nobody
-    // goes where the user is looking. A frame the renderer cannot attribute is
-    // not the same as a frame it can attribute elsewhere: refusing on a mount
-    // count would throw away every agent preview in split view, since aioncore
-    // names no conversation yet.
-    mount();
-    registerMountedConversation('conv-a');
-    registerMountedConversation('conv-b');
-    setFocusedConversation('conv-a');
-    emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
-    expect(ctx.isOpen).toBe(true);
+  describe('an unaddressed backend preview with several columns on screen', () => {
+    // aioncore names no conversation on its preview frames. With one view up
+    // that is harmless (the panel follows it). With several, the renderer
+    // attributes the frame to the one column with a turn in flight: shown when
+    // that column is the focused one, otherwise dropped with a visible notice
+    // — never shown under a column that did not produce it.
+    let notice: ReturnType<typeof vi.spyOn>;
+    let warn: ReturnType<typeof vi.spyOn>;
+    beforeEach(() => {
+      warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      notice = vi.spyOn(Message, 'warning').mockImplementation(() => '');
+      mount();
+      registerMountedConversation('conv-a');
+      registerMountedConversation('conv-b');
+      setFocusedConversation('conv-a');
+    });
+    afterEach(() => {
+      notice.mockRestore();
+      warn.mockRestore();
+    });
+
+    it('is shown when the only streaming column is the focused one', () => {
+      generatingIds.add('conv-a');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(true);
+      expect(notice).not.toHaveBeenCalled();
+    });
+
+    it('is dropped with a notice naming the sender when the streaming column is not focused', () => {
+      generatingIds.add('conv-b');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(false);
+      expect(notice).toHaveBeenCalledTimes(1);
+      expect(notice.mock.calls[0][0]).toEqual(expect.objectContaining({ content: 'preview.openFromOtherColumn' }));
+      expect(warn).toHaveBeenCalled();
+    });
+
+    it('is dropped with a notice when no column is streaming', () => {
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(false);
+      expect(notice.mock.calls[0][0]).toEqual(expect.objectContaining({ content: 'preview.openUnattributed' }));
+    });
+
+    it('is dropped with a notice when more than one column is streaming', () => {
+      generatingIds.add('conv-a');
+      generatingIds.add('conv-b');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(false);
+      expect(notice.mock.calls[0][0]).toEqual(expect.objectContaining({ content: 'preview.openUnattributed' }));
+    });
+
+    it('ignores columns that are streaming but not on screen', () => {
+      generatingIds.add('conv-a');
+      generatingIds.add('conv-z');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(true);
+    });
   });
 
   it('refuses an addressed backend preview while the named conversation has no view on screen, and says so', () => {

@@ -9,13 +9,20 @@ import type { PreviewContentType } from '@/common/types/office/preview';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import { chatFileRefKey, isChatFileRef } from '@/common/types/chatFile';
 import { emitter } from '@/renderer/utils/emitter';
+import {
+  getGeneratingConversationIds,
+  getSnapshotConversationName,
+} from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import { Message } from '@arco-design/web-react';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from '../browser/constants';
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
 import {
   getFocusedConversation,
+  getMountedConversationIds,
   isConversationMounted,
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
@@ -657,6 +664,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // key holds composers that belong to no conversation; a real conversation id
   // is never empty, so the two cannot collide.
   const sendBoxHandlers = useRef<Map<string, SendBoxRegistration[]>>(new Map());
+  const { t } = useTranslation();
+  // Read through a ref from the long-lived listeners below so a language change
+  // does not re-subscribe them.
+  const tRef = useRef(t);
+  tRef.current = t;
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
@@ -1207,6 +1219,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           ? `[Preview] No send box is registered for the focused conversation ${focused}; add to chat did nothing.`
           : '[Preview] No conversation is focused and no composer is registered; add to chat did nothing.'
       );
+      // The user clicked something and nothing happened: say so where they
+      // can see it, not only in the console.
+      Message.warning({ id: 'preview-add-to-chat', content: tRef.current('preview.addToChatUnavailable') });
       return;
     }
     handler(text);
@@ -1357,10 +1372,43 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
      * recorded for PR 2 / PR 3, which need the backend field.
      */
     const acceptsPreviewOpen = (targetConversationId: string | undefined): boolean => {
-      if (targetConversationId === undefined) return true;
-
       const focused = getFocusedConversation();
       const focusedIsOnScreen = focused !== null && isConversationMounted(focused);
+
+      if (targetConversationId === undefined) {
+        // One view (or none) on screen: the app as it always was — the panel
+        // follows the focused conversation and the frame goes there.
+        const mounted = getMountedConversationIds();
+        if (mounted.length <= 1) return true;
+
+        // Several columns: the renderer cannot read the sender off the frame,
+        // but it does know which column has a turn in flight. Exactly one
+        // streaming column is the sender; its frame is shown only if that
+        // column is the focused one, since the panel follows the focus and
+        // must never show content under a column that did not produce it.
+        // Anything less certain is dropped with a visible notice rather than
+        // shown under a guess.
+        const generating = getGeneratingConversationIds();
+        const streaming = mounted.filter((conversation_id) => generating.has(conversation_id));
+        if (streaming.length === 1) {
+          if (streaming[0] === focused) return true;
+          const name = getSnapshotConversationName(streaming[0]) ?? streaming[0];
+          console.warn(
+            `[Preview] Dropped an unaddressed open attributed to ${streaming[0]}; the panel follows ${focused ?? 'no conversation'}.`
+          );
+          Message.warning({
+            id: 'preview-open-attribution',
+            content: tRef.current('preview.openFromOtherColumn', { name }),
+          });
+          return false;
+        }
+        console.warn(
+          `[Preview] Dropped an unaddressed open: ${streaming.length} of ${mounted.length} mounted conversations are streaming, so it cannot be attributed.`
+        );
+        Message.warning({ id: 'preview-open-attribution', content: tRef.current('preview.openUnattributed') });
+        return false;
+      }
+
       if (focusedIsOnScreen && targetConversationId === focused) return true;
 
       console.warn(
