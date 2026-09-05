@@ -15,6 +15,11 @@
  * the snapshot containing the write has landed. A conversation counts as
  * deleted only when the backend answers its own read with 404; absence from a
  * list snapshot (archived, filtered, not loaded) never is.
+ *
+ * Membership comes from the backend too (`readSplitGroupCensus`), never from
+ * the published list: the list drops archived rows and lags another window's
+ * writes, and a group counted short clears the tags of the members it can see
+ * while orphaning the ones it cannot.
  */
 
 import { ipcBridge } from '@/common';
@@ -25,9 +30,11 @@ import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import type { SplitGroupCensus } from '../utils/splitGroupCensus';
+import { readSplitGroupCensus } from '../utils/splitGroupCensus';
 import type { SplitGroupPatch, SplitGroupTag } from '../utils/splitGroupHelpers';
 import { planCreateSplitGroup, readSplitGroupTag } from '../utils/splitGroupHelpers';
-import { getSnapshotConversations, refreshConversationList } from './useConversationListSync';
+import { refreshConversationList } from './useConversationListSync';
 
 export const splitGroupRoute = (group_id: string): string => `/split/${group_id}`;
 
@@ -38,8 +45,8 @@ export type SplitGroupMutationDeps = {
   update: (conversation_id: string, split_group: SplitGroupTag | null) => Promise<boolean>;
   /** Reload the list; resolves once the snapshot containing the write is published. */
   refresh: () => Promise<void>;
-  /** Conversations the published list shows for a group — a starting point for the fresh reads, never the truth. */
-  candidates: (group_id: string) => string[];
+  /** Everyone the backend shows carrying a group's tag, archived rows included, and whether it could be read whole. */
+  census: (group_id: string) => Promise<SplitGroupCensus>;
 };
 
 export type SplitGroupMutation =
@@ -47,7 +54,9 @@ export type SplitGroupMutation =
   | { type: 'add'; group_id: string; conversation_id: string }
   | { type: 'remove'; group_id: string; conversation_id: string }
   /** A backend "deleted" event: remove the member only if its own read confirms it is gone. */
-  | { type: 'remove-if-deleted'; group_id: string; conversation_id: string };
+  | { type: 'remove-if-deleted'; group_id: string; conversation_id: string }
+  /** Clear a tag left behind by a group that no longer has anyone else — proven, not assumed. */
+  | { type: 'dissolve-if-alone'; group_id: string };
 
 export type SplitGroupMutationResult = {
   group_id: string | null;
@@ -113,17 +122,40 @@ export const applySplitGroupPatches = async (
   await deps.refresh();
 };
 
-const unique = (ids: string[]): string[] => Array.from(new Set(ids));
-
-/** The group's members as the backend has them now: every candidate re-read, kept only if it still carries the tag. */
-const readGroupFresh = async (
+/**
+ * The group's members as the backend has them now. `alsoRows` are rows this
+ * mutation already read on their own: they are the authority on their own tag,
+ * so they join the census rather than being read a second time.
+ */
+const readGroup = async (
   group_id: string,
   deps: SplitGroupMutationDeps,
-  alsoIds: string[] = []
-): Promise<TChatConversation[]> => {
-  const ids = unique([...deps.candidates(group_id), ...alsoIds]);
-  const rows = await Promise.all(ids.map((id) => deps.read(id)));
-  return rows.filter((row): row is TChatConversation => row !== null && readSplitGroupTag(row)?.id === group_id);
+  alsoRows: TChatConversation[] = []
+): Promise<SplitGroupCensus> => {
+  const census = await deps.census(group_id);
+  const members = [...census.members];
+  for (const row of alsoRows) {
+    if (members.some((member) => member.id === row.id)) continue;
+    if (readSplitGroupTag(row)?.id === group_id) members.push(row);
+  }
+  return { members, complete: census.complete };
+};
+
+/**
+ * A tag whose group has nobody else left anywhere on the backend. The group
+ * was dissolved while this window could not watch it — its last peer was
+ * deleted with no listener attached, or in an earlier run of the app — so the
+ * tag is a leftover: the row shows as a plain conversation yet refuses to join
+ * any group. Proving it takes a complete count; a peer merely missed is still
+ * a peer, so an incomplete read answers "no".
+ */
+const isLeftoverTag = async (
+  tag: SplitGroupTag,
+  row: TChatConversation,
+  deps: SplitGroupMutationDeps
+): Promise<boolean> => {
+  const { members, complete } = await readGroup(tag.id, deps, [row]);
+  return complete && members.every((member) => member.id === row.id);
 };
 
 const nextOrder = (members: TChatConversation[]): number =>
@@ -146,11 +178,15 @@ export const runSplitGroupMutation = async (
     if (!target || !dragged) throw new Error('a conversation in the drop no longer exists');
     remember(target);
     remember(dragged);
-    if (readSplitGroupTag(dragged)) throw new Error(`${dragged.id} already belongs to a group`);
+    const draggedTag = readSplitGroupTag(dragged);
+    // A leftover tag is overwritten by the new one, so the row joins instead of
+    // being turned away by a group that no longer exists.
+    if (draggedTag && !(await isLeftoverTag(draggedTag, dragged, deps)))
+      throw new Error(`${dragged.id} already belongs to a group`);
     const targetTag = readSplitGroupTag(target);
     if (targetTag) {
       // The target joined a group since the drag started: add to that group.
-      const members = await readGroupFresh(targetTag.id, deps, [target.id]);
+      const { members } = await readGroup(targetTag.id, deps, [target]);
       members.forEach(remember);
       const patches: SplitGroupPatch[] = [
         { conversation_id: dragged.id, split_group: { id: targetTag.id, order: nextOrder(members) } },
@@ -164,16 +200,17 @@ export const runSplitGroupMutation = async (
   }
 
   if (mutation.type === 'add') {
-    const [row, members] = await Promise.all([
+    const [row, { members }] = await Promise.all([
       deps.read(mutation.conversation_id),
-      readGroupFresh(mutation.group_id, deps),
+      readGroup(mutation.group_id, deps),
     ]);
     if (!row) throw new Error(`${mutation.conversation_id} no longer exists`);
     if (members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
     if (members.some((member) => member.id === row.id)) {
       return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'already a member' };
     }
-    if (readSplitGroupTag(row)) throw new Error(`${row.id} already belongs to a group`);
+    const rowTag = readSplitGroupTag(row);
+    if (rowTag && !(await isLeftoverTag(rowTag, row, deps))) throw new Error(`${row.id} already belongs to a group`);
     remember(row);
     const patches: SplitGroupPatch[] = [
       { conversation_id: row.id, split_group: { id: mutation.group_id, order: nextOrder(members) } },
@@ -182,19 +219,49 @@ export const runSplitGroupMutation = async (
     return { group_id: mutation.group_id, dissolved: false, survivor: null };
   }
 
+  if (mutation.type === 'dissolve-if-alone') {
+    const { members, complete } = await readGroup(mutation.group_id, deps);
+    if (members.length >= 2) {
+      return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'the group still has members' };
+    }
+    if (members.length === 0) {
+      return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'nobody carries the tag' };
+    }
+    if (!complete) {
+      return {
+        group_id: mutation.group_id,
+        dissolved: false,
+        survivor: null,
+        noop: 'the backend could not be read whole',
+      };
+    }
+    members.forEach(remember);
+    await applySplitGroupPatches([{ conversation_id: members[0].id, split_group: null }], previous, deps);
+    return { group_id: mutation.group_id, dissolved: true, survivor: members[0].id };
+  }
+
   // remove / remove-if-deleted
   const row = await deps.read(mutation.conversation_id);
   if (mutation.type === 'remove-if-deleted' && row !== null) {
     return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'not deleted' };
   }
-  const members = await readGroupFresh(mutation.group_id, deps, [mutation.conversation_id]);
+  const { members, complete } = await readGroup(mutation.group_id, deps, row ? [row] : []);
   members.forEach(remember);
   const leaving = members.find((member) => member.id === mutation.conversation_id);
   const remaining = members.filter((member) => member.id !== mutation.conversation_id);
   if (!leaving && remaining.length >= 2) {
     return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'not a member' };
   }
-  const dissolved = remaining.length < 2;
+  // The member the user asked to remove always leaves. A survivor's tag is
+  // cleared only because the count says the group is too small to exist, and
+  // an incomplete count cannot say that — it keeps its tag and the next
+  // complete read (a regroup, or reopening the route) clears it.
+  const dissolved = remaining.length < 2 && complete;
+  if (remaining.length < 2 && !complete) {
+    console.error(
+      `[SplitGroup] Could not read every conversation, so group ${mutation.group_id} was not dissolved; ${remaining.map((member) => member.id).join(', ')} keeps its tag.`
+    );
+  }
   const cleared = [...(leaving ? [leaving] : []), ...(dissolved ? remaining : [])];
   const patches = cleared.map((member): SplitGroupPatch => ({ conversation_id: member.id, split_group: null }));
   await applySplitGroupPatches(patches, previous, deps);
@@ -214,14 +281,20 @@ const ipcDeps: SplitGroupMutationDeps = {
       merge_extra: true,
     }),
   refresh: refreshConversationList,
-  candidates: (group_id) =>
-    getSnapshotConversations()
-      .filter((conversation) => readSplitGroupTag(conversation)?.id === group_id)
-      .map((conversation) => conversation.id),
+  census: (group_id) => readSplitGroupCensus(group_id),
 };
 
 /** Mutations run one after another; each reads the backend when its turn comes. */
 let mutationQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Focus requests are told apart by a counter, not by the clock: two requests
+ * for the same member inside one millisecond (a held Enter on a member row)
+ * are two requests, and the second must not be swallowed as a repeat of the
+ * first.
+ */
+let focusNonce = 0;
+export const nextFocusNonce = (): number => (focusNonce += 1);
 
 type OpenOption = {
   /** Navigate to the group's columns once the change has landed. */
@@ -275,7 +348,7 @@ export const useSplitGroupMutations = () => {
     async (target_id: string, dragged_id: string, { open = false }: OpenOption = {}): Promise<void> => {
       const result = await enqueue('create', { type: 'create', target_id, dragged_id });
       if (open && result?.group_id)
-        void navigate(splitGroupRoute(result.group_id), { state: { focus: dragged_id, nonce: Date.now() } });
+        void navigate(splitGroupRoute(result.group_id), { state: { focus: dragged_id, nonce: nextFocusNonce() } });
     },
     [enqueue, navigate]
   );
@@ -284,7 +357,9 @@ export const useSplitGroupMutations = () => {
     async (group_id: string, conversation_id: string, { open = false }: OpenOption = {}): Promise<void> => {
       const result = await enqueue('add member', { type: 'add', group_id, conversation_id });
       if (open && result?.group_id)
-        void navigate(splitGroupRoute(result.group_id), { state: { focus: conversation_id, nonce: Date.now() } });
+        void navigate(splitGroupRoute(result.group_id), {
+          state: { focus: conversation_id, nonce: nextFocusNonce() },
+        });
     },
     [enqueue, navigate]
   );
@@ -307,5 +382,20 @@ export const useSplitGroupMutations = () => {
     [enqueue, leaveDissolvedGroup]
   );
 
-  return { createGroup, addMember, removeMember, reconcileDeleted };
+  /**
+   * Clear a tag whose group has provably nobody else left. The route reaches
+   * here when a group it was asked to open has collapsed to a single member:
+   * that member is either a survivor of a dissolve this window never saw (its
+   * peer was deleted while no listener was attached, or in an earlier run) or
+   * the only member the list can show while a peer sits in the archive. The
+   * census tells the two apart; only the first clears a tag.
+   */
+  const dissolveIfAlone = useCallback(
+    async (group_id: string): Promise<void> => {
+      await enqueue('dissolve if alone', { type: 'dissolve-if-alone', group_id });
+    },
+    [enqueue]
+  );
+
+  return { createGroup, addMember, removeMember, reconcileDeleted, dissolveIfAlone };
 };

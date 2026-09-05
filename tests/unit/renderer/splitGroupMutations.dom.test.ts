@@ -19,12 +19,20 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListS
   getSnapshotConversations: () => [],
   refreshConversationList: vi.fn(),
 }));
+vi.mock('@/renderer/pages/conversation/GroupedHistory/utils/splitGroupCensus', () => ({
+  readSplitGroupCensus: vi.fn(),
+}));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { SplitGroupMutationDeps } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
-import { runSplitGroupMutation } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
+import {
+  applySplitGroupPatches,
+  nextFocusNonce,
+  runSplitGroupMutation,
+} from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import type { SplitGroupTag } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
+import { readSplitGroupTag } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 
 const tag = (id: string, order: number): SplitGroupTag => ({ id, order });
 const row = (id: string, split_group: SplitGroupTag | null = null): TChatConversation =>
@@ -32,12 +40,25 @@ const row = (id: string, split_group: SplitGroupTag | null = null): TChatConvers
 
 type Backend = Record<string, TChatConversation | null>;
 
-/** An in-memory backend: reads answer from `backend` (null = 404), writes land unless refused. */
+/**
+ * An in-memory backend: reads answer from `backend` (null = 404), writes land
+ * unless refused, and the census enumerates the same rows — including the ones
+ * the sidebar would never show (archived), because the census reads the
+ * backend rather than the published list.
+ */
 const makeDeps = (
   backend: Backend,
-  options: { refuse?: string[]; candidates?: Record<string, string[]>; unreachable?: string[] } = {}
+  options: {
+    refuse?: string[];
+    /** Ids whose first write lands and whose every later write (a rollback) is refused. */
+    refuseRollback?: string[];
+    unreachable?: string[];
+    /** The census could not be read whole, so a short count proves nothing. */
+    incomplete?: boolean;
+  } = {}
 ) => {
   const writes: Array<[string, SplitGroupTag | null]> = [];
+  const attempts = new Map<string, number>();
   const refresh = vi.fn(async () => {});
   const deps: SplitGroupMutationDeps = {
     read: async (id) => {
@@ -46,13 +67,21 @@ const makeDeps = (
     },
     update: async (id, split_group) => {
       writes.push([id, split_group]);
+      const seen = attempts.get(id) ?? 0;
+      attempts.set(id, seen + 1);
       if (options.refuse?.includes(id)) return false;
+      if (seen > 0 && options.refuseRollback?.includes(id)) return false;
       const current = backend[id];
       if (current) backend[id] = row(id, split_group);
       return true;
     },
     refresh,
-    candidates: (group_id) => options.candidates?.[group_id] ?? Object.keys(backend),
+    census: async (group_id) => ({
+      members: Object.values(backend).filter(
+        (item): item is TChatConversation => item !== null && readSplitGroupTag(item)?.id === group_id
+      ),
+      complete: options.incomplete !== true,
+    }),
   };
   return { deps, writes, refresh, backend };
 };
@@ -106,8 +135,31 @@ describe('runSplitGroupMutation: create', () => {
     expect(writes).toEqual([]);
   });
 
-  it('refuses to drag a conversation that already belongs to a group', async () => {
-    const { deps, writes } = makeDeps({ a: row('a'), b: row('b', tag('other', 0)) });
+  it('refuses to drag a conversation whose group still has another member', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a'),
+      b: row('b', tag('other', 0)),
+      c: row('c', tag('other', 1)),
+    });
+    await expect(runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps)).rejects.toThrow(
+      /already belongs/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('lets a conversation wearing a leftover tag join: nobody else carries it', async () => {
+    // b's group was dissolved while this window was not watching (its peer was
+    // deleted with no listener attached). Without this, b shows as a plain row
+    // that refuses every group forever.
+    const { deps, writes, backend } = makeDeps({ a: row('a'), b: row('b', tag('gone', 0)) });
+    const result = await runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps);
+    expect(result.group_id).not.toBe('gone');
+    expect(writes.map(([id]) => id)).toEqual(['a', 'b']);
+    expect(readSplitGroupTag(backend.b as TChatConversation)?.id).toBe(result.group_id);
+  });
+
+  it('still refuses a leftover-looking tag when the backend could not be read whole', async () => {
+    const { deps, writes } = makeDeps({ a: row('a'), b: row('b', tag('other', 0)) }, { incomplete: true });
     await expect(runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps)).rejects.toThrow(
       /already belongs/
     );
@@ -143,6 +195,16 @@ describe('runSplitGroupMutation: add', () => {
       /no longer exists/
     );
     expect(writes).toEqual([]);
+  });
+
+  it('lets a conversation wearing a leftover tag be added to a live group', async () => {
+    const { deps, backend } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 1)),
+      c: row('c', tag('gone', 0)),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'c' }, deps);
+    expect(readSplitGroupTag(backend.c as TChatConversation)).toEqual({ id: 'g', order: 2 });
   });
 
   it('is a no-op for a conversation already in the group', async () => {
@@ -204,6 +266,39 @@ describe('runSplitGroupMutation: remove', () => {
       ]);
     }));
 
+  it('counts a member the sidebar cannot show, so a three-member group does not dissolve', async () => {
+    // b is archived: it is absent from the published list yet still carries the
+    // tag. Counting only what the sidebar shows would dissolve the group and
+    // leave b wearing a tag for a group nobody renders.
+    const { deps, writes, backend } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 1)),
+      c: row('c', tag('g', 2)),
+    });
+    const result = await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+    expect(result.dissolved).toBe(false);
+    expect(writes).toEqual([['a', null]]);
+    expect(readSplitGroupTag(backend.b as TChatConversation)).toEqual({ id: 'g', order: 1 });
+  });
+
+  it('appends after the highest order any member holds, archived ones included', async () => {
+    const { deps, backend } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 5)),
+      c: row('c'),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'c' }, deps);
+    expect(readSplitGroupTag(backend.c as TChatConversation)).toEqual({ id: 'g', order: 6 });
+  });
+
+  it('removes the member but keeps the survivor tagged when the count could not be read whole', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, { incomplete: true });
+      const result = await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+      expect(result.dissolved).toBe(false);
+      expect(writes).toEqual([['a', null]]);
+    }));
+
   it('propagates a read failure without writing anything', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, { unreachable: ['b'] });
     await expect(runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'b' }, deps)).rejects.toThrow(
@@ -218,5 +313,82 @@ describe('runSplitGroupMutation: remove', () => {
     await expect(runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'b' }, deps)).rejects.toThrow(
       'list offline'
     );
+  });
+});
+
+describe('runSplitGroupMutation: dissolve-if-alone', () => {
+  it('clears a tag nobody else carries', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b') });
+    const result = await runSplitGroupMutation({ type: 'dissolve-if-alone', group_id: 'g' }, deps);
+    expect(result).toMatchObject({ dissolved: true, survivor: 'a' });
+    expect(writes).toEqual([['a', null]]);
+  });
+
+  it('leaves the tags alone while an archived peer still carries one', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) });
+    const result = await runSplitGroupMutation({ type: 'dissolve-if-alone', group_id: 'g' }, deps);
+    expect(result.noop).toBe('the group still has members');
+    expect(writes).toEqual([]);
+  });
+
+  it('writes nothing when nobody carries the tag', async () => {
+    const { deps, writes } = makeDeps({ a: row('a') });
+    expect((await runSplitGroupMutation({ type: 'dissolve-if-alone', group_id: 'g' }, deps)).noop).toBe(
+      'nobody carries the tag'
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('writes nothing when the backend could not be read whole', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)) }, { incomplete: true });
+    expect((await runSplitGroupMutation({ type: 'dissolve-if-alone', group_id: 'g' }, deps)).noop).toBe(
+      'the backend could not be read whole'
+    );
+    expect(writes).toEqual([]);
+  });
+});
+
+describe('applySplitGroupPatches', () => {
+  it('reports the ids left inconsistent when the rollback itself is refused', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { deps, writes } = makeDeps({ a: row('a'), b: row('b') }, { refuse: ['b'], refuseRollback: ['a'] });
+      const previous = new Map<string, SplitGroupTag | null>([['a', null]]);
+      await expect(
+        applySplitGroupPatches(
+          [
+            { conversation_id: 'a', split_group: tag('g', 0) },
+            { conversation_id: 'b', split_group: tag('g', 1) },
+          ],
+          previous,
+          deps
+        )
+      ).rejects.toThrow(/rejected for b/);
+      // a's tag was written, its rollback refused, and it stays on the group
+      // tag nothing else points at — which is exactly what must be shouted.
+      expect(writes).toEqual([
+        ['a', tag('g', 0)],
+        ['b', tag('g', 1)],
+        ['a', null],
+      ]);
+      expect(error.mock.calls.map((call) => String(call[0]))).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/Rollback failed for a; their split_group tags are inconsistent/),
+        ])
+      );
+      expect(deps.refresh).not.toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+});
+
+describe('nextFocusNonce', () => {
+  it('never repeats, however fast two requests follow each other', () => {
+    // Two focus requests for the same member inside one millisecond (a held
+    // Enter on a member row) must read as two requests, not one repeated.
+    const nonces = Array.from({ length: 5 }, () => nextFocusNonce());
+    expect(new Set(nonces).size).toBe(nonces.length);
+    expect(nonces.toSorted((a, b) => a - b)).toEqual(nonces);
   });
 });
