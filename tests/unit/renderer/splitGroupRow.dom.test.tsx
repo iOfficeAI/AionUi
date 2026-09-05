@@ -86,6 +86,27 @@ describe('SplitGroupRow', () => {
     ]);
   });
 
+  it("renders every member's full title, one row per member", () => {
+    renderPill();
+    expect(screen.getByTestId('split-group-title-a').textContent).toBe('Conversation a');
+    expect(screen.getByTestId('split-group-title-b').textContent).toBe('Conversation b');
+    expect(screen.getByTestId('split-group-title-c').textContent).toBe('Conversation c');
+    expect(screen.getAllByTestId(/^split-group-member-[abc]$/)).toHaveLength(3);
+  });
+
+  it('renders both titles for a two-member group', () => {
+    const pair: SplitGroup = { id: 'g1', members: [member('a', 0), member('b', 1)] };
+    renderPill({ group: pair });
+    expect(screen.getByText('Conversation a')).toBeInTheDocument();
+    expect(screen.getByText('Conversation b')).toBeInTheDocument();
+  });
+
+  it('keeps the icons but drops the titles in the collapsed rail', () => {
+    renderPill({ collapsed: true });
+    expect(screen.getAllByTestId(/^leading-icon-/)).toHaveLength(3);
+    expect(screen.queryAllByTestId(/^split-group-title-/)).toHaveLength(0);
+  });
+
   it('renders one × per member, each naming its member', () => {
     renderPill();
     expect(screen.getByTestId('split-group-remove-a')).toHaveAttribute(
@@ -109,9 +130,9 @@ describe('SplitGroupRow', () => {
     expect(onOpen).toHaveBeenCalledWith(group);
   });
 
-  it('opens the group with that member focused when an icon is clicked, without opening twice', () => {
+  it('opens the group with that member focused when its row is clicked, without opening twice', () => {
     const { onOpen } = renderPill();
-    fireEvent.click(screen.getByTestId('leading-icon-b'));
+    fireEvent.click(screen.getByTestId('split-group-title-b'));
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(group, 'b');
   });
@@ -133,9 +154,8 @@ describe('SplitGroupRow', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('hides the × buttons in the collapsed rail but keeps the icons', () => {
+  it('hides the × buttons in the collapsed rail', () => {
     renderPill({ collapsed: true });
     expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
-    expect(screen.getAllByTestId(/^leading-icon-/)).toHaveLength(3);
   });
 });

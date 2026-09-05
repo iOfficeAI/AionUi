@@ -39,9 +39,11 @@ const conversationWorkspace = (conversation: TChatConversation): string | null =
  */
 export const SplitGroupView: React.FC<{
   group: SplitGroup;
-  /** A member the sidebar asked to focus (a click on its icon in the pill). */
+  /** A member the sidebar asked to focus (a click on its row in the pill). */
   requestedFocus?: string;
-}> = ({ group, requestedFocus }) => {
+  /** Changes with every request, so asking for the same member twice acts twice. */
+  requestKey?: string;
+}> = ({ group, requestedFocus, requestKey }) => {
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const focusedId = useFocusedConversationId();
@@ -63,7 +65,7 @@ export const SplitGroupView: React.FC<{
   }, [memberKey]);
   useEffect(() => {
     if (requested) setActiveTab(requested);
-  }, [requested]);
+  }, [requested, requestKey]);
 
   // Name the focused column only when the user asks: on opening the group
   // (the first member, or the one a pill icon named) and on a later pill
@@ -78,7 +80,7 @@ export const SplitGroupView: React.FC<{
   }, [group.id, isMobile]);
   useLayoutEffect(() => {
     if (!isMobile && requested) setFocusedConversation(requested);
-  }, [requested, isMobile]);
+  }, [requested, requestKey, isMobile]);
   useLayoutEffect(() => {
     if (isMobile) setFocusedConversation(activeTab);
   }, [activeTab, isMobile]);

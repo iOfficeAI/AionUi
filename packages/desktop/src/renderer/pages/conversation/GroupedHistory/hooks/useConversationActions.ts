@@ -94,12 +94,15 @@ export const useConversationActions = ({
       blockMobileInputFocus();
       blurActiveElement();
 
+      // Only a member can be asked for; anything else opens the first column.
+      const focus = member_id && group.members.some((member) => member.id === member_id) ? member_id : undefined;
       // Desktop shows every column, so every member is seen; a narrow
       // viewport shows one tab, and the others are marked read as they open.
-      const shown = isMobile ? [member_id ?? group.members[0].id] : group.members.map((member) => member.id);
+      const shown = isMobile ? [focus ?? group.members[0].id] : group.members.map((member) => member.id);
       for (const shown_id of shown) markAsRead(shown_id);
 
-      void navigate(splitGroupRoute(group.id), { state: member_id ? { focus: member_id } : null });
+      // The nonce makes a repeated request for the same member a new one.
+      void navigate(splitGroupRoute(group.id), { state: focus ? { focus, nonce: Date.now() } : null });
       if (onSessionClick) {
         onSessionClick();
       }

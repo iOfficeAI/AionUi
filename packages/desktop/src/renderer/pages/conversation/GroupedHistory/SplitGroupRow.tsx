@@ -38,10 +38,11 @@ export type SplitGroupRowProps = {
 };
 
 /**
- * The sidebar pill for a split group: one leading icon per member, each with
- * its own ×, sitting where the group's first member used to sit. Clicking the
- * pill opens the columns; clicking a member's icon opens them with that
- * column focused; × takes that member out of the group and nothing else.
+ * The sidebar block for a split group: one row per member — its leading
+ * icon and its full title — with a × on each row, sitting where the group's
+ * first member used to sit. The block is one unit: clicking any row opens
+ * the columns with that member focused, the whole block is the drop target,
+ * and × takes that member out of the group and nothing else.
  */
 const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   group,
@@ -71,104 +72,110 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   const names = group.members.map((member) => member.name || t('conversation.welcome.newConversation'));
   const label = t('conversation.splitGroup.tooltip', { names: names.join(' · ') });
 
-  const memberChip = (member: TChatConversation) => {
+  const openMember = (member_id: string) => {
+    cleanupSiderTooltips();
+    if (batchMode) return;
+    onOpen(group, member_id);
+  };
+
+  const memberRow = (member: TChatConversation) => {
     const name = member.name || t('conversation.welcome.newConversation');
     const unread = hasUnread(member.id) && !isGenerating(member.id) && !isWaitingConfirmation(member.id);
     return (
-      <span
-        key={member.id}
-        className={classNames(
-          'group/member relative flex items-center rd-6px shrink-0 transition-colors',
-          collapsed ? 'size-22px justify-center' : 'h-24px ps-3px pe-2px gap-1px hover:bg-fill-4',
-          { 'opacity-60 group-hover:opacity-100': dimIcon }
-        )}
-        data-testid={`split-group-member-${member.id}`}
-      >
-        <Tooltip content={name} position='top' disabled={collapsed || isMobile}>
-          <span
-            role='button'
-            tabIndex={batchMode ? -1 : 0}
-            aria-disabled={batchMode || undefined}
-            aria-label={t('conversation.splitGroup.focusMember', { name })}
-            className={classNames(
-              'size-22px flex items-center justify-center',
-              batchMode ? 'cursor-default' : 'cursor-pointer'
-            )}
-            onClick={(event) => {
+      <Tooltip key={member.id} content={name} position='right' disabled={!collapsed || isMobile}>
+        <div
+          role='button'
+          tabIndex={batchMode ? -1 : 0}
+          aria-disabled={batchMode || undefined}
+          aria-label={t('conversation.splitGroup.focusMember', { name })}
+          data-testid={`split-group-member-${member.id}`}
+          className={classNames(
+            'group/member relative flex items-center h-28px rd-6px min-w-0 transition-colors',
+            collapsed ? 'justify-center px-0' : 'gap-8px ps-4px pe-6px',
+            batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-fill-4'
+          )}
+          onClick={(event) => {
+            event.stopPropagation();
+            openMember(member.id);
+          }}
+          onKeyDown={(event) => {
+            if (batchMode) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
               event.stopPropagation();
-              if (batchMode) return;
-              cleanupSiderTooltips();
-              onOpen(group, member.id);
-            }}
-            onKeyDown={(event) => {
-              if (batchMode) return;
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                event.stopPropagation();
-                onOpen(group, member.id);
-              }
-            }}
-          >
+              openMember(member.id);
+            }
+          }}
+        >
+          <span className='size-22px flex items-center justify-center shrink-0 relative'>
             <ConversationLeadingIcon
               conversation={member}
               cronStatus={getJobStatus(member.id)}
               isGenerating={isGenerating(member.id) && !batchMode}
               isWaitingConfirmation={isWaitingConfirmation(member.id) && !batchMode}
+              className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
             />
-          </span>
-        </Tooltip>
-        {unread && (
-          <span
-            className='absolute top-2px start-2px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
-            data-testid={`split-group-member-unread-${member.id}`}
-          />
-        )}
-        {!collapsed && !batchMode && (
-          <span
-            role='button'
-            tabIndex={0}
-            aria-label={t('conversation.splitGroup.removeMember', { name })}
-            data-testid={`split-group-remove-${member.id}`}
-            className={classNames(
-              'flex items-center justify-center size-16px rd-4px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3 transition-opacity',
-              isMobile ? 'opacity-100' : 'opacity-0 group-hover/member:opacity-100 focus-visible:opacity-100'
+            {unread && (
+              <span
+                className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
+                data-testid={`split-group-member-unread-${member.id}`}
+              />
             )}
-            onClick={(event) => {
-              event.stopPropagation();
-              cleanupSiderTooltips();
-              onRemoveMember(group, member.id);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                event.stopPropagation();
-                onRemoveMember(group, member.id);
-              }
-            }}
-          >
-            <CloseSmall theme='outline' size='12' fill='currentColor' />
           </span>
-        )}
-      </span>
+          {!collapsed && (
+            <span
+              className='chat-history__item-name flex-1 min-w-0 truncate text-14px font-[500] lh-24px text-t-primary'
+              data-testid={`split-group-title-${member.id}`}
+            >
+              {name}
+            </span>
+          )}
+          {!collapsed && !batchMode && (
+            <span
+              role='button'
+              tabIndex={0}
+              aria-label={t('conversation.splitGroup.removeMember', { name })}
+              data-testid={`split-group-remove-${member.id}`}
+              className={classNames(
+                'flex items-center justify-center size-18px rd-4px shrink-0 cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3 transition-opacity',
+                isMobile ? 'opacity-100' : 'opacity-0 group-hover/member:opacity-100 focus-visible:opacity-100'
+              )}
+              onClick={(event) => {
+                event.stopPropagation();
+                cleanupSiderTooltips();
+                onRemoveMember(group, member.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onRemoveMember(group, member.id);
+                }
+              }}
+            >
+              <CloseSmall theme='outline' size='12' fill='currentColor' />
+            </span>
+          )}
+        </div>
+      </Tooltip>
     );
   };
 
   return (
-    <Tooltip {...getSiderTooltipProps(tooltipEnabled)} content={label} position='right'>
+    <Tooltip {...getSiderTooltipProps(tooltipEnabled)} content={label} position='right' disabled={!collapsed}>
       <div
         ref={setNodeRef}
-        role='button'
-        tabIndex={0}
-        aria-label={t('conversation.splitGroup.open')}
+        role='group'
+        aria-label={label}
         data-testid={`split-group-row-${group.id}`}
         className={classNames(
-          'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
-          collapsed ? 'justify-center px-0 flex-wrap gap-1px' : 'justify-start gap-2px pe-8px',
-          !collapsed && (dimIcon ? 'ps-30px' : 'ps-6px'),
+          'chat-history__item rd-8px flex flex-col gap-1px py-3px group relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors border border-solid',
+          collapsed ? 'px-2px items-center' : dimIcon ? 'ps-28px pe-4px' : 'ps-4px pe-4px',
+          // A visible container at all times, so the members read as one block.
+          selected ? 'border-b-base bg-fill-2' : 'border-b-base bg-fill-1',
           {
-            'hover:bg-fill-3': !batchMode && !selected && !dropTargeted,
-            '!bg-fill-3': selected,
             'shadow-[inset_0_0_0_2px_rgb(var(--primary-6))] bg-[rgba(var(--primary-6),0.08)]': dropTargeted,
+            'cursor-pointer': !batchMode,
           }
         )}
         onClick={() => {
@@ -178,21 +185,13 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         }}
         onKeyDown={(event) => {
           if (batchMode) return;
-          if (event.key === 'Enter' || event.key === ' ') {
+          if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
             event.preventDefault();
             onOpen(group);
           }
         }}
       >
-        {group.members.map(memberChip)}
-        {!collapsed && (
-          <span
-            className='chat-history__item-name min-w-0 flex-1 ps-4px truncate text-14px font-[500] lh-24px text-t-primary'
-            data-testid={`split-group-label-${group.id}`}
-          >
-            {names[0]}
-          </span>
-        )}
+        {group.members.map(memberRow)}
       </div>
     </Tooltip>
   );

@@ -155,6 +155,14 @@ describe('SplitGroupView focus wiring (desktop columns)', () => {
     expect(getFocusedConversation()).toBe('c');
   });
 
+  it('acts on a repeated request for the same member after the user moved on', () => {
+    const { rerender } = render(<SplitGroupView group={trio} requestedFocus='b' requestKey='b:1' />);
+    fireEvent.pointerDown(screen.getByTestId('split-column-c'));
+    expect(getFocusedConversation()).toBe('c');
+    rerender(<SplitGroupView group={trio} requestedFocus='b' requestKey='b:2' />);
+    expect(getFocusedConversation()).toBe('b');
+  });
+
   it('keeps the column the user clicked when a member before it is removed', () => {
     const { rerender } = render(<SplitGroupView group={trio} />);
     fireEvent.pointerDown(screen.getByTestId('split-column-c'));
@@ -252,6 +260,16 @@ describe('SplitGroupView on a narrow viewport (tabs)', () => {
     });
     expect(markAsRead).toHaveBeenCalledTimes(1);
     expect(markAsRead).toHaveBeenCalledWith('b');
+  });
+
+  it('shows a member again when its pill row is clicked a second time', () => {
+    const { rerender } = render(<SplitGroupView group={trio} requestedFocus='b' requestKey='b:1' />);
+    act(() => {
+      fireEvent.click(screen.getByText('c'));
+    });
+    expect(getMountedConversationIds()).toEqual(['c']);
+    rerender(<SplitGroupView group={trio} requestedFocus='b' requestKey='b:2' />);
+    expect(getMountedConversationIds()).toEqual(['b']);
   });
 
   it('does not let a stale focus name pick a member that is not shown', () => {
