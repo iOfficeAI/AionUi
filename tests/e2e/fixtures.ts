@@ -130,21 +130,36 @@ async function readMainWindowId(electronApp: ElectronApplication): Promise<numbe
     .catch(() => null);
 }
 
+/** How long a window gets to expose its own id before it is judged. */
+const WINDOW_ID_TIMEOUT_MS = 5_000;
+
+/**
+ * Read `window.__windowId`, waiting for the preload to publish it. A window
+ * that never publishes one resolves to `null`.
+ */
+async function readPageWindowId(page: Page): Promise<number | null> {
+  return page
+    .waitForFunction(() => (window as Window & { __windowId?: number }).__windowId ?? null, undefined, {
+      timeout: WINDOW_ID_TIMEOUT_MS,
+    })
+    .then((handle) => handle.jsonValue() as Promise<number | null>)
+    .catch(() => null);
+}
+
 /**
  * True when this page is the main window. Matching on the published id rather
  * than "the first non-DevTools window" keeps the suite correct once the app can
  * open a second window: a detached conversation window is a perfectly ordinary
  * non-DevTools window and would otherwise be picked at random.
+ *
+ * When the marker exists, a window must prove its id — a slow preload used to
+ * read as "no id yet", which any window can claim, so a detached window could be
+ * accepted as the main one.
  */
 async function isMainWindow(page: Page, mainWindowId: number | null): Promise<boolean> {
   if (isDevToolsWindow(page)) return false;
   if (mainWindowId === null) return true; // no marker available — legacy behaviour
-  const pageWindowId = await page
-    .evaluate(() => (window as Window & { __windowId?: number }).__windowId ?? null)
-    .catch(() => null);
-  // A window that has not exposed its id yet (preload still running) is not
-  // rejected outright — only a positive mismatch is.
-  return pageWindowId === null || pageWindowId === mainWindowId;
+  return (await readPageWindowId(page)) === mainWindowId;
 }
 
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
