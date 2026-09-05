@@ -120,6 +120,15 @@ describe('showNotification', () => {
     expect(FakeElectronNotification.instances).toHaveLength(1);
   });
 
+  it('registers the same app window idempotently', () => {
+    const win = makeWindow(false);
+
+    registerNotificationAppWindow(win as never);
+    registerNotificationAppWindow(win as never);
+
+    expect(win.once).toHaveBeenCalledOnce();
+  });
+
   it('ignores a destroyed app window when deciding whether the app is focused', async () => {
     setNotificationMainWindow(makeWindow(false) as never);
     registerNotificationAppWindow({ ...makeWindow(true), isDestroyed: () => true } as never);

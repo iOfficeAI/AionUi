@@ -7,8 +7,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createDetachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
+import { isOwnWindowMaximizeEvent } from '@/renderer/components/layout/WindowControls';
 
 describe('detached window actions', () => {
+  it('ignores maximize broadcasts when a browser host has no Electron window id', () => {
+    expect(isOwnWindowMaximizeEvent(null, 1)).toBe(false);
+    expect(isOwnWindowMaximizeEvent(2, 1)).toBe(false);
+    expect(isOwnWindowMaximizeEvent(1, 1)).toBe(true);
+  });
+
   it('opens a sized browser popup in WebUI mode and focuses it on a repeated request', async () => {
     const popup = { closed: false, focus: vi.fn() };
     const openBrowserWindow = vi.fn(() => popup);

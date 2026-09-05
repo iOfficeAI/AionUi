@@ -19,6 +19,9 @@ const WindowRestoreIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </svg>
 );
 
+export const isOwnWindowMaximizeEvent = (ownWindowId: number | null, eventWindowId: number): boolean =>
+  ownWindowId !== null && ownWindowId === eventWindowId;
+
 const WindowControls: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [available, setAvailable] = useState(true);
@@ -48,7 +51,7 @@ const WindowControls: React.FC = () => {
     // flip this window's control into the restore state.
     const ownWindowId = getWindowId();
     const unsubscribe = ipcBridge.windowControls.maximizedChanged.on(({ is_maximized, web_contents_id }) => {
-      if (ownWindowId !== null && web_contents_id !== ownWindowId) return;
+      if (!isOwnWindowMaximizeEvent(ownWindowId, web_contents_id)) return;
       if (isMounted) {
         setIsMaximized(is_maximized);
       }

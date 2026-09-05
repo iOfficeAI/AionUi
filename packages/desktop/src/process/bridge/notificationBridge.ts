@@ -34,6 +34,7 @@ const appWindows = new Set<BrowserWindow>();
  * suppresses notifications, the same way the main window's always has.
  */
 export const registerNotificationAppWindow = (win: BrowserWindow): void => {
+  if (appWindows.has(win)) return;
   appWindows.add(win);
   win.once('closed', () => appWindows.delete(win));
 };
