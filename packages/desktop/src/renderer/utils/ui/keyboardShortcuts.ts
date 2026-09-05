@@ -70,3 +70,10 @@ export const isPrimaryApplicationShortcut = (
 
   return event.key.toLowerCase() === key.toLowerCase() && !isShortcutBlockedByTarget(event, targetGuard);
 };
+
+/** Primary key of the settings/back toggle shortcut (⌘, on macOS / Ctrl+, elsewhere). */
+export const SETTINGS_SHORTCUT_KEY = ',';
+
+/** Platform-aware display form of the settings/back shortcut, e.g. "⌘," on macOS or "Ctrl+," elsewhere. */
+export const getSettingsShortcutHint = (): string =>
+  isMacOS() ? `⌘${SETTINGS_SHORTCUT_KEY}` : `Ctrl+${SETTINGS_SHORTCUT_KEY}`;
