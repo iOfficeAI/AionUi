@@ -37,7 +37,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
-import { getDetachedConversationId } from '@/common/platform/detachedWindow';
+import { buildDetachedConversationHash, getDetachedConversationId } from '@/common/platform/detachedWindow';
 import { detachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
@@ -138,8 +138,16 @@ const Layout: React.FC<{
   useDesktopTurnNotification();
   useEffect(() => {
     if (!isDetached || getDetachedConversationId(location.pathname, location.search) === detachedConversationId) return;
-    void detachedWindowActions.closeCurrentWindow();
-  }, [detachedConversationId, isDetached, location.pathname, location.search]);
+    const restorePinnedRoute = (): void => {
+      void navigate(buildDetachedConversationHash(detachedConversationId).slice(1), { replace: true });
+    };
+    void detachedWindowActions
+      .closeCurrentWindow()
+      .then((closed) => {
+        if (!closed) restorePinnedRoute();
+      })
+      .catch(restorePinnedRoute);
+  }, [detachedConversationId, isDetached, location.pathname, location.search, navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {

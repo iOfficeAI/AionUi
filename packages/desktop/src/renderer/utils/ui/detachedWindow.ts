@@ -22,6 +22,7 @@ export type DetachedWindowActionDependencies = {
   ) => Promise<{ success: true } | { success: false; reason: 'window_open_failed' }>;
   focusElectronWindow: (conversationId: string) => Promise<boolean>;
   closeBrowserWindow: () => void;
+  isBrowserWindowClosed: () => boolean;
   closeElectronWindow: () => Promise<void>;
 };
 
@@ -37,7 +38,7 @@ export class DetachedWindowOpenError extends Error {
 export type DetachedWindowActions = {
   openConversation: (conversationId: string) => Promise<void>;
   focusConversation: (conversationId: string) => Promise<boolean>;
-  closeCurrentWindow: () => Promise<void>;
+  closeCurrentWindow: () => Promise<boolean>;
 };
 
 const popupTarget = (conversationId: string): string => `aionui-conversation-${encodeURIComponent(conversationId)}`;
@@ -80,12 +81,13 @@ export const createDetachedWindowActions = (dependencies: DetachedWindowActionDe
     return dependencies.focusElectronWindow(conversationId);
   };
 
-  const closeCurrentWindow = async (): Promise<void> => {
+  const closeCurrentWindow = async (): Promise<boolean> => {
     if (dependencies.isWebUiBrowserMode()) {
       dependencies.closeBrowserWindow();
-      return;
+      return dependencies.isBrowserWindowClosed();
     }
     await dependencies.closeElectronWindow();
+    return true;
   };
 
   return { openConversation, focusConversation, closeCurrentWindow };
@@ -98,5 +100,6 @@ export const detachedWindowActions = createDetachedWindowActions({
   openElectronWindow: (conversationId) => ipcBridge.detachedWindow.open.invoke({ conversation_id: conversationId }),
   focusElectronWindow: (conversationId) => ipcBridge.detachedWindow.focus.invoke({ conversation_id: conversationId }),
   closeBrowserWindow: () => window.close(),
+  isBrowserWindowClosed: () => window.closed,
   closeElectronWindow: () => ipcBridge.windowControls.close.invoke({ web_contents_id: null }),
 });

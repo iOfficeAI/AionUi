@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mirror the project convention: t() echoes the key so labels/tooltips are assertable.
@@ -26,7 +26,7 @@ const shortcutMocks = vi.hoisted(() => ({
 const featureMocks = vi.hoisted(() => ({
   teamModeEnabled: false,
 }));
-const detachedWindowMocks = vi.hoisted(() => ({ closeCurrentWindow: vi.fn(() => Promise.resolve()) }));
+const detachedWindowMocks = vi.hoisted(() => ({ closeCurrentWindow: vi.fn(() => Promise.resolve(true)) }));
 vi.mock('react-router-dom', () => ({
   NavigationType: { Pop: 'POP', Push: 'PUSH', Replace: 'REPLACE' },
   useNavigate: () => navigate,
@@ -108,7 +108,8 @@ describe('Layout sider brand Home button', () => {
     sessionStorage.clear();
     currentPathname = '/guid';
     currentSearch = '';
-    detachedWindowMocks.closeCurrentWindow.mockClear();
+    detachedWindowMocks.closeCurrentWindow.mockReset();
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -231,6 +232,21 @@ describe('Layout sider brand Home button', () => {
     expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
     expect(screen.getByTestId('detached-titlebar')).toHaveTextContent('detached-1');
     expect(screen.queryByText('sider')).toBeNull();
+  });
+
+  it('restores a manually opened browser tab when the browser refuses to close it', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValueOnce(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/conversation/detached-1?window=detached', { replace: true })
+    );
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {

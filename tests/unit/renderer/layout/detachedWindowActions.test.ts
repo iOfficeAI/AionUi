@@ -27,6 +27,7 @@ describe('detached window actions', () => {
       openElectronWindow,
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow: vi.fn(() => Promise.resolve()),
     });
 
@@ -52,6 +53,7 @@ describe('detached window actions', () => {
       openElectronWindow: vi.fn(() => Promise.resolve({ success: true as const })),
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow: vi.fn(() => Promise.resolve()),
     });
 
@@ -72,6 +74,7 @@ describe('detached window actions', () => {
       openElectronWindow,
       focusElectronWindow,
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow: vi.fn(() => Promise.resolve()),
     });
 
@@ -91,6 +94,7 @@ describe('detached window actions', () => {
       openElectronWindow: vi.fn(() => Promise.resolve({ success: true as const })),
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow: vi.fn(() => Promise.resolve()),
     });
 
@@ -105,6 +109,7 @@ describe('detached window actions', () => {
       openElectronWindow: vi.fn(() => Promise.resolve({ success: false, reason: 'window_open_failed' })),
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow: vi.fn(() => Promise.resolve()),
     });
 
@@ -121,13 +126,31 @@ describe('detached window actions', () => {
       openElectronWindow: vi.fn(() => Promise.resolve({ success: true as const })),
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow,
+      isBrowserWindowClosed: () => true,
       closeElectronWindow,
     });
 
-    await actions.closeCurrentWindow();
+    await expect(actions.closeCurrentWindow()).resolves.toBe(true);
 
     expect(closeBrowserWindow).toHaveBeenCalledOnce();
     expect(closeElectronWindow).not.toHaveBeenCalled();
+  });
+
+  it('reports when a manually opened browser tab cannot close itself', async () => {
+    const closeBrowserWindow = vi.fn();
+    const actions = createDetachedWindowActions({
+      isWebUiBrowserMode: () => true,
+      getCurrentUrl: () => 'https://mini.example/#/conversation/one?window=detached',
+      openBrowserWindow: vi.fn(),
+      openElectronWindow: vi.fn(() => Promise.resolve({ success: true as const })),
+      focusElectronWindow: vi.fn(() => Promise.resolve(false)),
+      closeBrowserWindow,
+      isBrowserWindowClosed: () => false,
+      closeElectronWindow: vi.fn(() => Promise.resolve()),
+    });
+
+    await expect(actions.closeCurrentWindow()).resolves.toBe(false);
+    expect(closeBrowserWindow).toHaveBeenCalledOnce();
   });
 
   it('closes the current native pop-out through the trusted window-control bridge', async () => {
@@ -139,10 +162,11 @@ describe('detached window actions', () => {
       openElectronWindow: vi.fn(() => Promise.resolve({ success: true as const })),
       focusElectronWindow: vi.fn(() => Promise.resolve(false)),
       closeBrowserWindow: vi.fn(),
+      isBrowserWindowClosed: () => false,
       closeElectronWindow,
     });
 
-    await actions.closeCurrentWindow();
+    await expect(actions.closeCurrentWindow()).resolves.toBe(true);
 
     expect(closeElectronWindow).toHaveBeenCalledOnce();
   });
