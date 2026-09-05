@@ -190,13 +190,19 @@ export interface PreviewContextValue {
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
   /**
-   * Register the send box that "add to chat" writes into. Several send boxes
-   * can be mounted at once, so each registers under its own conversation and
-   * the panel writes to the focused one. `conversation_id` is optional for a
-   * send box that belongs to no conversation (the guide-page composer); those
-   * share one slot, used only when the focused conversation has no send box.
+   * Register the send box that "add to chat" writes into, and get back the
+   * matching unregister — usable straight as an effect cleanup.
+   *
+   * Several send boxes can be mounted at once, and more than one of them can
+   * belong to the same conversation (two columns showing it). Registrations are
+   * therefore stacked per conversation: the most recent one receives the text,
+   * and unregistering removes only that registration, never a sibling's.
+   *
+   * `conversation_id` is omitted by a composer that belongs to no conversation
+   * (the guide page); those stack together and are used only while no
+   * conversation is focused.
    */
-  setSendBoxHandler: (handler: ((text: string) => void) | null, conversation_id?: string) => void;
+  setSendBoxHandler: (handler: (text: string) => void, conversation_id?: string) => () => void;
 
   // DOM 片段管理 / DOM snippet management
   domSnippets: DomSnippet[];
@@ -204,6 +210,18 @@ export interface PreviewContextValue {
   removeDomSnippet: (id: string) => void;
   clearDomSnippets: () => void;
 }
+
+/** Map key for composers that belong to no conversation (the guide page). */
+const UNSCOPED_SEND_BOX_KEY = '';
+
+/** The send box that should receive "add to chat" for a key, or undefined. */
+const latestSendBoxHandler = (
+  handlers: Map<string, Array<(text: string) => void>>,
+  key: string
+): ((text: string) => void) | undefined => {
+  const registered = handlers.get(key);
+  return registered?.[registered.length - 1];
+};
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
@@ -623,8 +641,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
-  const sendBoxHandlers = useRef<Map<string, (text: string) => void>>(new Map());
-  const unscopedSendBoxHandler = useRef<((text: string) => void) | null>(null);
+  // conversation id → the send boxes registered for it, oldest first. The empty
+  // key holds composers that belong to no conversation; a real conversation id
+  // is never empty, so the two cannot collide.
+  const sendBoxHandlers = useRef<Map<string, Array<(text: string) => void>>>(new Map());
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)
@@ -1163,23 +1183,41 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addToSendBox = useCallback((text: string) => {
     // One preview panel serves every mounted conversation and follows the
-    // focused one, so its text goes to that conversation's send box. Falling
-    // back to the unscoped slot keeps the single-composer surfaces working.
+    // focused one, so its text goes to that conversation's send box — never to
+    // a different conversation's composer. A focused conversation with no send
+    // box (a read-only conversation, a view still mounting) says so out loud
+    // rather than delivering the text somewhere the user was not looking.
     const focused = getFocusedConversation();
-    const handler = (focused ? sendBoxHandlers.current.get(focused) : undefined) ?? unscopedSendBoxHandler.current;
-    handler?.(text);
-  }, []);
-
-  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null, conversation_id?: string) => {
-    if (!conversation_id) {
-      unscopedSendBoxHandler.current = handler;
+    const handler = latestSendBoxHandler(sendBoxHandlers.current, focused ?? UNSCOPED_SEND_BOX_KEY);
+    if (!handler) {
+      if (focused) {
+        console.warn(
+          `[Preview] No send box is registered for the focused conversation ${focused}; add to chat did nothing.`
+        );
+      }
       return;
     }
-    if (handler) {
-      sendBoxHandlers.current.set(conversation_id, handler);
-    } else {
-      sendBoxHandlers.current.delete(conversation_id);
-    }
+    handler(text);
+  }, []);
+
+  const setSendBoxHandler = useCallback((handler: (text: string) => void, conversation_id?: string) => {
+    const key = conversation_id || UNSCOPED_SEND_BOX_KEY;
+    const registered = sendBoxHandlers.current.get(key) ?? [];
+    registered.push(handler);
+    sendBoxHandlers.current.set(key, registered);
+
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const current = sendBoxHandlers.current.get(key);
+      if (!current) return;
+      // Remove this registration only. A sibling send box on the same
+      // conversation stays reachable.
+      const index = current.lastIndexOf(handler);
+      if (index >= 0) current.splice(index, 1);
+      if (current.length === 0) sendBoxHandlers.current.delete(key);
+    };
   }, []);
 
   // DOM 片段管理函数 / DOM snippet management functions

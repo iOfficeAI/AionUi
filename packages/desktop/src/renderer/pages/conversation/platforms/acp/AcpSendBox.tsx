@@ -255,10 +255,7 @@ const AcpSendBox: React.FC<{
       const new_content = content ? `${content}\n${text}` : text;
       setContentRef.current(new_content);
     };
-    setSendBoxHandler(handler, conversation_id);
-    return () => {
-      setSendBoxHandler(null, conversation_id);
-    };
+    return setSendBoxHandler(handler, conversation_id);
   }, [setSendBoxHandler, content, conversation_id]);
 
   // Listen for sendbox.fill event to append text to sendbox

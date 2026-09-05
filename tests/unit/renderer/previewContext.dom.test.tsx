@@ -162,15 +162,52 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
   it('drops a send box registration when its view unmounts', () => {
     mount();
     const toA = vi.fn();
-    act(() => ctx.setSendBoxHandler(toA, 'conv-a'));
+    let release = () => {};
+    act(() => {
+      release = ctx.setSendBoxHandler(toA, 'conv-a');
+    });
     registerMountedConversation('conv-a');
 
-    act(() => ctx.setSendBoxHandler(null, 'conv-a'));
+    act(() => release());
     act(() => ctx.addToSendBox('after unmount'));
     expect(toA).not.toHaveBeenCalled();
   });
 
-  it('falls back to the unscoped composer when the focused conversation has none', () => {
+  it('keeps a sibling send box on the same conversation reachable', () => {
+    // Two columns can show the same conversation; the focus store refcounts
+    // exactly that. One of them unmounting must not silence the other.
+    mount();
+    const first = vi.fn();
+    const second = vi.fn();
+    let releaseFirst = () => {};
+    act(() => {
+      releaseFirst = ctx.setSendBoxHandler(first, 'conv-a');
+      ctx.setSendBoxHandler(second, 'conv-a');
+    });
+    registerMountedConversation('conv-a');
+
+    act(() => releaseFirst());
+    act(() => ctx.addToSendBox('still delivered'));
+    expect(second).toHaveBeenCalledWith('still delivered');
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it('uses the most recently registered send box for a conversation', () => {
+    mount();
+    const first = vi.fn();
+    const second = vi.fn();
+    act(() => {
+      ctx.setSendBoxHandler(first, 'conv-a');
+      ctx.setSendBoxHandler(second, 'conv-a');
+    });
+    registerMountedConversation('conv-a');
+
+    act(() => ctx.addToSendBox('newest wins'));
+    expect(second).toHaveBeenCalledWith('newest wins');
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it('uses the unscoped composer only while no conversation is focused', () => {
     mount();
     const unscoped = vi.fn();
     act(() => ctx.setSendBoxHandler(unscoped, undefined));
@@ -178,12 +215,40 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     // No conversation focused at all — the guide-page composer still works.
     act(() => ctx.addToSendBox('no conversation'));
     expect(unscoped).toHaveBeenCalledWith('no conversation');
+  });
 
-    // A focused conversation with no registered send box also falls back
-    // rather than silently dropping the text.
-    registerMountedConversation('conv-a');
-    act(() => ctx.addToSendBox('focused but unregistered'));
-    expect(unscoped).toHaveBeenCalledWith('focused but unregistered');
+  it('refuses to deliver elsewhere when the focused conversation has no send box', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      const unscoped = vi.fn();
+      act(() => ctx.setSendBoxHandler(unscoped, undefined));
+
+      // A focused conversation whose send box is absent must not have its
+      // preview text delivered into an unrelated composer.
+      registerMountedConversation('conv-a');
+      act(() => ctx.addToSendBox('focused but unregistered'));
+      expect(unscoped).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('keeps unscoped composers independent of each other', () => {
+    mount();
+    const first = vi.fn();
+    const second = vi.fn();
+    let releaseFirst = () => {};
+    act(() => {
+      releaseFirst = ctx.setSendBoxHandler(first, undefined);
+      ctx.setSendBoxHandler(second, undefined);
+    });
+
+    act(() => releaseFirst());
+    act(() => ctx.addToSendBox('unscoped'));
+    expect(second).toHaveBeenCalledWith('unscoped');
+    expect(first).not.toHaveBeenCalled();
   });
 });
 
