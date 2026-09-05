@@ -121,9 +121,8 @@ async function ensureRendererAppMounted(page: Page): Promise<void> {
 /**
  * The main window's webContents id, published by the main process in
  * `createWindow`. `null` when the app has not created it yet (or is an older
- * build without the marker), in which case window resolution accepts the first
- * non-DevTools window — the pre-marker rule, which is correct while the app can
- * only open one window.
+ * build without the marker), in which case window resolution falls back to the
+ * pre-marker rule — the one and only non-DevTools window, see `isMainWindow`.
  */
 async function readMainWindowId(electronApp: ElectronApplication): Promise<number | null> {
   return electronApp
@@ -156,11 +155,23 @@ async function readPageWindowId(page: Page): Promise<number | null> {
  * When the marker exists, a window must prove its id — a slow preload used to
  * read as "no id yet", which any window can claim, so a detached window could be
  * accepted as the main one.
+ *
+ * Without the marker the answer is a guess, and it is only sound when there is
+ * nothing to confuse it with: a build that publishes no marker can open one
+ * window, so the sole non-DevTools window is the main one. More than one
+ * candidate means either the marker has not been published yet or the build is
+ * not what we think it is — in both cases keep waiting rather than guess, which
+ * is what stops a detached window from being accepted on the event path.
  */
-async function isMainWindow(page: Page, mainWindowId: number | null): Promise<boolean> {
+async function isMainWindow(
+  electronApp: ElectronApplication,
+  page: Page,
+  mainWindowId: number | null
+): Promise<boolean> {
   if (isDevToolsWindow(page)) return false;
-  if (mainWindowId === null) return true; // no marker available — legacy behaviour
-  return (await readPageWindowId(page)) === mainWindowId;
+  if (mainWindowId !== null) return (await readPageWindowId(page)) === mainWindowId;
+  const candidates = electronApp.windows().filter((win) => !isDevToolsWindow(win));
+  return candidates.length === 1 && candidates[0] === page;
 }
 
 /**
@@ -191,7 +202,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
   let mainWindowId = await readMainWindowId(electronApp);
 
   const openWindows = electronApp.windows();
-  const openWindowIsMain = await Promise.all(openWindows.map((win) => isMainWindow(win, mainWindowId)));
+  const openWindowIsMain = await Promise.all(openWindows.map((win) => isMainWindow(electronApp, win, mainWindowId)));
   const existingMainWindow = openWindows.find((_win, index) => openWindowIsMain[index]);
   if (existingMainWindow) {
     await ensureRendererAppMounted(existingMainWindow);
@@ -209,7 +220,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
     if (win) {
       mainWindowId ??= await readMainWindowId(electronApp);
-      if (await isMainWindow(win, mainWindowId)) {
+      if (await isMainWindow(electronApp, win, mainWindowId)) {
         await ensureRendererAppMounted(win);
         return win;
       }
