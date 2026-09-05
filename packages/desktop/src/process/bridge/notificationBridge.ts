@@ -72,12 +72,33 @@ const getLiveMainWindow = (): BrowserWindow | null =>
 const getNotificationProducer = (): BrowserWindow | null =>
   getLiveMainWindow() ?? [...appWindows].find((win) => !win.isDestroyed()) ?? null;
 
+const revealNotificationWindow = (win: BrowserWindow): void => {
+  if (win.isDestroyed()) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+};
+
 const focusDetachedConversation = (conversationId: string | undefined): boolean => {
   if (!conversationId) return false;
   try {
     return getDetachedWindowRegistry().focusConversation(conversationId);
   } catch {
     return false;
+  }
+};
+
+const openDetachedConversation = (conversationId: string, fallbackWindow: BrowserWindow | null): void => {
+  try {
+    void getDetachedWindowRegistry()
+      .openConversation(conversationId)
+      .catch((error) => {
+        console.error('[Notification] Failed to open notification conversation:', error);
+        if (fallbackWindow) revealNotificationWindow(fallbackWindow);
+      });
+  } catch (error) {
+    console.error('[Notification] Failed to open notification conversation:', error);
+    if (fallbackWindow) revealNotificationWindow(fallbackWindow);
   }
 };
 
@@ -105,8 +126,9 @@ const getNotificationIcon = (): string | undefined => {
  *
  * Skips when `system.notificationEnabled` is off, or when the main window is
  * already focused (no nagging). When a real Electron notification is available,
- * clicking it first focuses an existing detached owner; otherwise it focuses
- * the main window and emits `notification.clicked` so that renderer can navigate.
+ * clicking it first focuses an existing detached owner. Otherwise it asks the
+ * main window to navigate, or opens the exact detached conversation when no
+ * main window exists.
  *
  * In non-Electron mode this falls back to the platform service, which is a no-op.
  */
@@ -152,11 +174,16 @@ export async function showNotification({
         if (focusDetachedConversation(conversation_id)) return;
         const win = getLiveMainWindow();
         if (win) {
-          if (win.isMinimized()) win.restore();
-          win.show();
-          win.focus();
+          revealNotificationWindow(win);
+          ipcBridge.notification.clicked.emit({ conversation_id });
+          return;
         }
-        ipcBridge.notification.clicked.emit({ conversation_id });
+        const producer = getNotificationProducer();
+        if (conversation_id) {
+          openDetachedConversation(conversation_id, producer);
+          return;
+        }
+        if (producer) revealNotificationWindow(producer);
       });
       notification.show();
       console.log(`[Notification] show() called (isSupported=${electronNotification.isSupported()})`);

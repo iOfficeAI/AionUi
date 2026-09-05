@@ -11,7 +11,7 @@ const platformSend = vi.fn();
 
 // Defined via vi.hoisted so the hoisted vi.mock factory can reference the class
 // at evaluation time without a temporal-dead-zone error.
-const { FakeElectronNotification, focusDetachedConversation } = vi.hoisted(() => {
+const { FakeElectronNotification, focusDetachedConversation, openDetachedConversation } = vi.hoisted(() => {
   class FakeElectronNotification {
     static instances: FakeElectronNotification[] = [];
     static isSupported = vi.fn(() => true);
@@ -25,7 +25,11 @@ const { FakeElectronNotification, focusDetachedConversation } = vi.hoisted(() =>
       return this;
     }
   }
-  return { FakeElectronNotification, focusDetachedConversation: vi.fn(() => false) };
+  return {
+    FakeElectronNotification,
+    focusDetachedConversation: vi.fn(() => false),
+    openDetachedConversation: vi.fn(() => Promise.resolve()),
+  };
 });
 
 vi.mock('@/common', () => ({
@@ -53,7 +57,10 @@ vi.mock('@/common/electronSafe', () => ({
 }));
 
 vi.mock('@process/services/detachedWindowRegistry', () => ({
-  getDetachedWindowRegistry: () => ({ focusConversation: focusDetachedConversation }),
+  getDetachedWindowRegistry: () => ({
+    focusConversation: focusDetachedConversation,
+    openConversation: openDetachedConversation,
+  }),
 }));
 
 vi.mock('fs', () => ({ default: { existsSync: () => false }, existsSync: () => false }));
@@ -94,6 +101,8 @@ beforeEach(() => {
   clickedEmit.mockClear();
   focusDetachedConversation.mockReset();
   focusDetachedConversation.mockReturnValue(false);
+  openDetachedConversation.mockReset();
+  openDetachedConversation.mockResolvedValue(undefined);
   platformSend.mockClear();
   FakeElectronNotification.instances.length = 0;
   logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -241,6 +250,26 @@ describe('showNotification', () => {
 
     expect(focusDetachedConversation).toHaveBeenCalledWith('c1');
     expect(main.show).not.toHaveBeenCalled();
+    expect(clickedEmit).not.toHaveBeenCalled();
+  });
+
+  it('opens the target conversation when no main or owning detached window remains', async () => {
+    const main = makeWindow(false, 1);
+    const producer = makeWindow(false, 2);
+    setNotificationMainWindow(main as never);
+    registerNotificationAppWindow(producer as never);
+    main.emitClosed();
+    await showNotification({
+      title: 'AionUi',
+      body: 'done',
+      conversation_id: 'c2',
+      source_web_contents_id: 2,
+    });
+
+    FakeElectronNotification.instances[0].handlers.click?.();
+
+    expect(openDetachedConversation).toHaveBeenCalledWith('c2');
+    expect(producer.show).not.toHaveBeenCalled();
     expect(clickedEmit).not.toHaveBeenCalled();
   });
 
