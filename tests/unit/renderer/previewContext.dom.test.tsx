@@ -310,9 +310,9 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
 
 /**
  * The backend can open a preview on its own (an agent showing a page). That
- * frame reaches every window and every column, so once it names a conversation
- * only the focused one may take the shared panel — and a refused open is
- * logged, never dropped in silence.
+ * frame reaches every window and every column, so the panel takes only what it
+ * can attribute to the focused conversation while its view is on screen — and
+ * a refused open is logged, never dropped in silence.
  */
 describe('PreviewContext backend-driven opens follow the focused conversation', () => {
   const emitIpcPreviewOpen = (payload: Record<string, unknown>): void => {
@@ -335,15 +335,49 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
     expect(ctx.isOpen).toBe(true);
   });
 
-  it('shows an unaddressed backend preview in the shared panel, however many are on screen', () => {
-    // The panel belongs to the focused conversation. aioncore does not name the
-    // conversation yet, so an unattributable open goes where the user is
-    // looking rather than being thrown away.
+  it('shows an unaddressed backend preview while one conversation is on screen', () => {
+    // Today's app: there is no other conversation the frame could have come
+    // from, so the panel takes it exactly as it always has.
     mount();
     registerMountedConversation('conv-a');
-    registerMountedConversation('conv-b');
+    setFocusedConversation('conv-a');
     emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
     expect(ctx.isOpen).toBe(true);
+  });
+
+  it('refuses an unaddressed backend preview once it could have come from either column, and says so', () => {
+    // With two views up an unnamed frame cannot be attributed to the focused
+    // one, and the panel follows the focused column. Guessing would show the
+    // user another column's page in the panel they are working in.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      registerMountedConversation('conv-a');
+      registerMountedConversation('conv-b');
+      setFocusedConversation('conv-a');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(false);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('refuses an addressed backend preview while the named conversation has no view on screen, and says so', () => {
+    // Mid route transition the name is all the store has (rule 3), so the
+    // focused id can name a conversation with nothing on screen. Comparing
+    // against that name alone would open the panel for something the user
+    // cannot see.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      setFocusedConversation('conv-a');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html', conversation_id: 'conv-a' });
+      expect(ctx.isOpen).toBe(false);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('refuses a backend preview addressed elsewhere, and says so', () => {
