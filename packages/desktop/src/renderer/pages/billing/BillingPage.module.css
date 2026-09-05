@@ -1,0 +1,1069 @@
+.page {
+  --aibang-primary: #00236f;
+  --aibang-primary-text: #00236f;
+  --aibang-primary-soft: rgb(0 35 111 / 40%);
+  --aibang-secondary: #006a61;
+  --aibang-page-bg: #f8fafc;
+  --aibang-surface-lowest: #fff;
+  --aibang-surface-sunken: rgb(248 250 252 / 50%);
+  --aibang-surface-container: #edeeef;
+  --aibang-outline-variant: #c5c5d3;
+  --aibang-text: #0f172a;
+  --aibang-text-strong: #1e293b;
+  --aibang-text-muted: #475569;
+  --aibang-text-soft: #64748b;
+  --aibang-text-faint: #94a3b8;
+  --aibang-border: #e2e8f0;
+  --aibang-border-light: #f1f5f9;
+
+  display: flex;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto;
+  container-type: inline-size;
+  container-name: page;
+  background: var(--aibang-page-bg);
+  color: var(--aibang-text);
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+  box-sizing: border-box;
+}
+
+.main {
+  display: flex;
+  width: min(1280px, 100%);
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.balanceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: var(--aibang-surface-lowest);
+  border: 1px solid var(--aibang-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.balanceIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+}
+
+.balanceIcon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(55deg, var(--aibang-primary), rgb(0 35 111 / 80%));
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+  color: #fff;
+}
+
+.balanceIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.balanceLabel {
+  color: var(--aibang-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.balanceValueRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 2px;
+}
+
+.balanceValue {
+  color: var(--aibang-primary-text);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 32px;
+}
+
+.balanceUnit {
+  color: var(--aibang-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.balanceStats {
+  display: grid;
+  min-width: 340px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding-left: 20px;
+  border-left: 1px solid var(--aibang-border);
+}
+
+.statLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--aibang-text-soft);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.statLabel svg {
+  width: 14px;
+  height: 14px;
+  color: var(--aibang-secondary);
+}
+
+.statLabelRecharged svg {
+  color: #4f46e5;
+}
+
+.statValue {
+  margin-top: 2px;
+  color: var(--aibang-text-strong);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.statValueRecharged {
+  color: #4f46e5;
+}
+
+.statNote {
+  color: var(--aibang-text-faint);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.plansColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  container-type: inline-size;
+  container-name: plansColumn;
+}
+
+.plansHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.plansTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plansTitle svg {
+  width: 20px;
+  height: 20px;
+  color: var(--aibang-primary-text);
+}
+
+.plansTitle h2 {
+  margin: 0;
+  color: var(--aibang-text);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.plansHeading > span {
+  color: var(--aibang-text-soft);
+  font-size: 12px;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.planCard,
+.copyButton,
+.purchaseButton,
+.redeemButton {
+  position: relative;
+  display: flex;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.planCard {
+  position: relative;
+  height: auto !important;
+  min-height: 128px;
+  min-width: 0;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  white-space: normal !important;
+  padding: 10px !important;
+  background: var(--aibang-surface-lowest) !important;
+  border: 1px solid var(--aibang-border) !important;
+  border-radius: 12px;
+  text-align: left !important;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+  color: var(--aibang-text);
+}
+
+.planCard:hover {
+  border-color: var(--aibang-primary-soft);
+}
+
+.planCardSelected {
+  border-color: var(--aibang-primary-text);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 5%),
+    0 0 0 1px rgb(0 35 111 / 20%);
+  transform: scale(1.01);
+}
+
+.planTag {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  padding: 0.5px 6px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  color: #92400e;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.planTagPopular {
+  background: var(--aibang-primary);
+  border-color: var(--aibang-primary);
+  color: #fff;
+}
+
+.planTop,
+.planPriceRow,
+.planFooter,
+.selectedSummaryLabelRow,
+.selectedPriceRow,
+.selectedBonus,
+.actionHeader,
+.purchaseActions,
+.brand {
+  display: flex;
+}
+
+.planTop {
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.planName {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--aibang-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.planRadio {
+  display: flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--aibang-outline-variant);
+  border-radius: 999px;
+  color: #fff;
+}
+
+.planCardSelected .planRadio {
+  background: var(--aibang-primary);
+  border-color: var(--aibang-primary);
+}
+
+.planRadioIcon {
+  width: 8px;
+  height: 8px;
+  stroke-width: 3;
+}
+
+.planPriceRow {
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  margin: 4px 0;
+}
+
+.planPrice {
+  color: var(--aibang-primary-text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.planPoints {
+  min-width: 0;
+  color: var(--aibang-text-strong);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.planBonus,
+.planStandard {
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 0.5px 4px;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 14px;
+}
+
+.planBonus {
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  color: #047857;
+  font-weight: 600;
+}
+
+.planStandard {
+  background: #f1f5f9;
+  color: var(--aibang-text-soft);
+  font-weight: 500;
+}
+
+.planDescription {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--aibang-text-soft);
+  font-size: 10px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.planFooter {
+  min-width: 0;
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--aibang-border-light);
+  color: var(--aibang-text-soft);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.planFooter span:first-child {
+  min-width: 0;
+  color: var(--aibang-primary-text);
+  font-weight: 500;
+}
+
+.planFooter span:last-child {
+  min-width: 0;
+  margin-left: auto;
+  color: var(--aibang-text-faint);
+  font-size: 9px;
+}
+
+.checkoutColumn {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@container page (min-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .plansColumn {
+    grid-column: span 8 / span 8;
+  }
+
+  .checkoutColumn {
+    grid-column: span 4 / span 4;
+  }
+}
+
+.actionCard {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  background: var(--aibang-surface-lowest);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 25px -5px rgb(15 23 42 / 10%),
+    0 8px 10px -6px rgb(15 23 42 / 10%);
+}
+
+/* 两列布局下结账卡较窄，顶部留出角标高度，避免与 STEP 标题重叠 */
+@container page (min-width: 1024px) {
+  .actionCard {
+    padding-top: 34px;
+  }
+}
+
+/* 单列窄容器下同理 */
+@container page (max-width: 479px) {
+  .actionCard {
+    padding-top: 34px;
+  }
+}
+
+.purchaseCard {
+  border: 2px solid #fbbf24;
+  box-shadow:
+    0 20px 25px -5px rgb(245 158 11 / 10%),
+    0 8px 10px -6px rgb(245 158 11 / 10%);
+}
+
+.redeemCard {
+  border: 2px solid rgb(16 185 129 / 80%);
+  box-shadow:
+    0 20px 25px -5px rgb(16 185 129 / 10%),
+    0 8px 10px -6px rgb(16 185 129 / 10%);
+}
+
+.cornerTag {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 3px 10px;
+  border-bottom-left-radius: 12px;
+  font-size: 10px;
+}
+
+.purchaseCornerTag {
+  background: linear-gradient(to left, #fbbf24, #fcd34d);
+  color: #020617;
+  font-weight: 900;
+}
+
+.redeemCornerTag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(to left, #059669, #0d9488);
+  color: #fff;
+  font-weight: 800;
+}
+
+.redeemCornerTag svg {
+  width: 12px;
+  height: 12px;
+  color: #fde047;
+}
+
+.actionHeader {
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  color: var(--aibang-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.purchaseHeader {
+  border-bottom: 1px solid #fef3c7;
+}
+
+.redeemHeader {
+  border-bottom: 1px solid #d1fae5;
+}
+
+.stepBadge {
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+}
+
+.purchaseBadge {
+  background: #fbbf24;
+  color: #020617;
+}
+
+.redeemBadge {
+  background: #059669;
+  color: #fff;
+}
+
+.selectedSummary {
+  margin-top: 10px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgb(255 251 235 / 90%), rgb(255 251 235 / 40%), #fff);
+  border: 1px solid rgb(253 230 138 / 90%);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.selectedSummaryLabelRow {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+  color: var(--aibang-text-soft);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.selectedSummaryLabelRow span:first-child {
+  font-weight: 500;
+}
+
+.selectedPlanName {
+  padding: 2px 10px;
+  background: rgb(255 255 255 / 90%);
+  border: 1px solid rgb(253 230 138 / 70%);
+  border-radius: 6px;
+  color: var(--aibang-text-strong);
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.selectedPriceRow {
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 4px 0;
+}
+
+.selectedPrice {
+  color: #d97706;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 30px;
+}
+
+.selectedPoints {
+  color: var(--aibang-text-strong);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.selectedBonus {
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.selectedBonus svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: #f59e0b;
+}
+
+.purchaseActions {
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.purchaseButton {
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px !important;
+  background: linear-gradient(90deg, #fbbf24, #fbbf24, #fcd34d) !important;
+  border: 1px solid rgb(245 158 11 / 30%) !important;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgb(245 158 11 / 25%),
+    0 2px 4px -2px rgb(245 158 11 / 25%);
+  color: #020617 !important;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 20px;
+}
+
+.purchaseButton:hover {
+  background: linear-gradient(90deg, #fcd34d, #fde68a) !important;
+  color: #020617 !important;
+}
+
+.purchaseButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.purchaseButton svg:last-child {
+  width: 16px;
+  height: 16px;
+  color: #1e293b;
+  transition: transform 150ms ease;
+}
+
+.purchaseButton:hover svg:last-child {
+  transform: translateX(2px);
+}
+
+.copyButton {
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--aibang-surface-sunken);
+  border: 1px solid var(--aibang-border);
+  border-radius: 12px;
+  color: var(--aibang-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.copyButton:hover {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.copyButton svg {
+  width: 16px;
+  height: 16px;
+  color: var(--aibang-text-soft);
+}
+
+.purchaseNote {
+  margin: 8px 0 0;
+  color: var(--aibang-text-faint);
+  font-size: 11px;
+  line-height: 1.625;
+  text-align: center;
+}
+
+.status {
+  display: flex;
+  margin-top: 10px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.625;
+}
+
+.statusSuccess {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.statusError {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+}
+
+.statusIconSuccess,
+.statusIconError {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.statusIconSuccess {
+  color: #059669;
+}
+
+.statusIconError {
+  color: #e11d48;
+}
+
+.redeemForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.codeInput {
+  height: 40px;
+  background: var(--aibang-surface-sunken);
+  border: 2px solid var(--aibang-outline-variant);
+  border-radius: 12px;
+  color: var(--aibang-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.codeInput:global(.arco-input-group-wrapper):hover {
+  background: var(--aibang-surface-sunken);
+  border-color: #10b981;
+}
+
+.codeInput:global(.arco-input-group-wrapper):focus-within {
+  background: var(--aibang-surface-lowest);
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgb(16 185 129 / 15%);
+}
+
+.codeInput input {
+  text-transform: uppercase;
+}
+
+.codeInput input::placeholder {
+  color: var(--aibang-text-faint);
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.codeInput :global(.arco-input-inner-wrapper) {
+  padding-right: 7px !important;
+}
+
+.codeAction,
+.clearAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: auto;
+  padding: 4px 8px !important;
+  border-radius: 6px;
+  background: #ecfdf5 !important;
+  border: none !important;
+  color: #047857 !important;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.codeAction {
+  gap: 4px;
+}
+
+.codeAction > span {
+  margin-left: 0 !important;
+}
+
+.codeAction:hover {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+}
+
+.codeAction svg {
+  width: 12px;
+  height: 12px;
+}
+
+.clearAction {
+  padding-right: 6px !important;
+  padding-left: 6px !important;
+  background: none !important;
+  color: var(--aibang-text-faint) !important;
+}
+
+.clearAction:hover {
+  color: var(--aibang-text-muted);
+}
+
+.redeemButton {
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 !important;
+  background: linear-gradient(90deg, #059669, #059669, #0d9488) !important;
+  border: none !important;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px -1px rgb(5 150 105 / 30%),
+    0 2px 4px -2px rgb(5 150 105 / 30%);
+  color: #fff !important;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 20px;
+}
+
+.redeemButton:hover {
+  background: linear-gradient(90deg, #10b981, #14b8a6) !important;
+  color: #fff !important;
+}
+
+.redeemButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.redeemButton svg:first-child {
+  color: #fde047;
+}
+
+.footer {
+  margin-top: 16px;
+  padding: 10px 0;
+  background: var(--aibang-surface-lowest);
+  border-top: 1px solid var(--aibang-border);
+  color: var(--aibang-text-faint);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.historyCard {
+  padding: 16px;
+  background: var(--aibang-surface-lowest);
+  border: 1px solid var(--aibang-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%);
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.historyTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historyTitle svg {
+  width: 16px;
+  height: 16px;
+  color: var(--aibang-text-muted);
+}
+
+.historyTitle h4 {
+  margin: 0;
+  color: var(--aibang-text-strong);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.historyNote {
+  color: var(--aibang-text-faint);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.historyList {
+  overflow: hidden;
+  background: var(--aibang-surface-sunken);
+  border: 1px solid var(--aibang-border-light);
+  border-radius: 12px;
+}
+
+.historyEmpty {
+  padding: 10px 12px;
+  color: var(--aibang-text-faint);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+@container page (max-width: 1023px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .plansColumn,
+  .checkoutColumn {
+    grid-column: auto;
+  }
+
+  .checkoutColumn {
+    position: static;
+  }
+}
+
+@container plansColumn (min-width: 800px) {
+  .planGrid {
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+  }
+}
+
+/* 余额卡片横向排列需约 880px，容器不足时改为纵向，避免溢出被裁剪 */
+@container page (max-width: 899px) {
+  .balanceStats {
+    width: 100%;
+    min-width: 0;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .balanceCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .plansHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@container plansColumn (max-width: 379px) {
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 暗黑模式适配 =====
+ * 变量在 .page 上统一翻转；品牌深蓝 --aibang-primary 保持不变，
+ * 文字/边框等强调场景使用 --aibang-primary-text / --aibang-primary-soft。 */
+:global(body[arco-theme='dark']) .page {
+  --aibang-primary-text: #a5b4fc;
+  --aibang-primary-soft: rgb(165 180 252 / 55%);
+  --aibang-secondary: #2dd4bf;
+  --aibang-page-bg: #0b1220;
+  --aibang-surface-lowest: #1e293b;
+  --aibang-surface-sunken: rgb(8 15 30 / 60%);
+  --aibang-outline-variant: #475569;
+  --aibang-text: #f1f5f9;
+  --aibang-text-strong: #e2e8f0;
+  --aibang-text-muted: #cbd5e1;
+  --aibang-text-soft: #94a3b8;
+  --aibang-text-faint: #64748b;
+  --aibang-border: #334155;
+  --aibang-border-light: #293548;
+}
+
+:global(body[arco-theme='dark']) .planCardSelected {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 40%),
+    0 0 0 1px var(--aibang-primary-soft);
+}
+
+:global(body[arco-theme='dark']) .planCardSelected .planRadio {
+  background: var(--aibang-primary-text);
+  border-color: var(--aibang-primary-text);
+  color: #0f172a;
+}
+
+:global(body[arco-theme='dark']) .planTagPopular {
+  background: var(--aibang-primary-soft);
+  border-color: transparent;
+  color: #0f172a;
+}
+
+:global(body[arco-theme='dark']) .planBonus {
+  background: rgb(4 120 87 / 30%);
+  border-color: rgb(52 211 153 / 40%);
+  color: #6ee7b7;
+}
+
+:global(body[arco-theme='dark']) .planStandard {
+  background: #334155;
+}
+
+:global(body[arco-theme='dark']) .purchaseHeader {
+  border-bottom-color: rgb(251 191 36 / 25%);
+}
+
+:global(body[arco-theme='dark']) .redeemHeader {
+  border-bottom-color: rgb(16 185 129 / 30%);
+}
+
+:global(body[arco-theme='dark']) .selectedSummary {
+  background: linear-gradient(135deg, rgb(120 53 15 / 30%), rgb(120 53 15 / 12%), var(--aibang-surface-lowest));
+  border-color: rgb(253 230 138 / 25%);
+}
+
+:global(body[arco-theme='dark']) .selectedPlanName {
+  background: rgb(8 15 30 / 70%);
+  border-color: rgb(253 230 138 / 30%);
+}
+
+:global(body[arco-theme='dark']) .copyButton:hover {
+  background: rgb(120 53 15 / 35%);
+  border-color: rgb(252 211 77 / 50%);
+  color: #fcd34d;
+}
+
+:global(body[arco-theme='dark']) .codeAction {
+  background: rgb(4 120 87 / 30%) !important;
+  color: #6ee7b7 !important;
+}
+
+:global(body[arco-theme='dark']) .codeAction:hover {
+  background: rgb(4 120 87 / 50%) !important;
+  color: #a7f3d0 !important;
+}
+
+:global(body[arco-theme='dark']) .statusSuccess {
+  background: rgb(4 120 87 / 25%);
+  border-color: rgb(110 231 183 / 40%);
+  color: #6ee7b7;
+}
+
+:global(body[arco-theme='dark']) .statusError {
+  background: rgb(159 18 57 / 25%);
+  border-color: rgb(253 164 175 / 40%);
+  color: #fda4af;
+}
+
+:global(body[arco-theme='dark']) .statValueRecharged,
+:global(body[arco-theme='dark']) .statLabelRecharged svg {
+  color: #818cf8;
+}

@@ -2,9 +2,9 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
+import { AIBANG_FORCED_CODEX_MODEL } from '@/common/config/constants';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -47,8 +47,8 @@ import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/f
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import { Button, Message, Tag } from '@arco-design/web-react';
-import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Lightning, MagicHat, Shield } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
@@ -114,16 +114,8 @@ const AcpSendBox: React.FC<{
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
 }> = ({ conversation_id, backend, session_mode, agent_name, messageState, teamSendMessage, teamRuntime }) => {
-  const {
-    aiProcessing,
-    setAiProcessing,
-    turnStartedAtMs,
-    resetState,
-    hasThinkingMessage,
-    slashCommands,
-    tokenUsage,
-    context_limit,
-  } = messageState;
+  const { aiProcessing, setAiProcessing, turnStartedAtMs, resetState, hasThinkingMessage, slashCommands } =
+    messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -173,13 +165,9 @@ const AcpSendBox: React.FC<{
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
-  const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
-  const handleThoughtLevelSetOption = useCallback(
-    async (optionId: string, value: string) => runtimeConfig.setConfigOption(optionId, value),
-    [runtimeConfig]
-  );
 
-  // Drive the mobile sheet's model entry off the same source AcpModelSelector uses
+  // Keep mobile Codex runtimes synchronized with the middleware's fixed model.
+  const forcedModelSwitchRef = useRef(false);
   const {
     model_info,
     canSwitch: canSwitchModel,
@@ -191,9 +179,21 @@ const AcpSendBox: React.FC<{
     prepareSetRuntime: teamPermission?.warmupSession,
     configOptionsPort: teamPermission?.configOptionsPort,
     enabled: isMobile,
-    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+    onSelectModelSuccess: () => {
+      if (forcedModelSwitchRef.current) {
+        forcedModelSwitchRef.current = false;
+        return;
+      }
+      Message.success(t('agent.model.switchSuccess'));
+    },
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
+  useEffect(() => {
+    if (backend !== 'codex' || !canSwitchModel || model_info?.current_model_id === AIBANG_FORCED_CODEX_MODEL) return;
+    if (!model_info?.available_models.some((model) => model.id === AIBANG_FORCED_CODEX_MODEL)) return;
+    forcedModelSwitchRef.current = true;
+    selectModel(AIBANG_FORCED_CODEX_MODEL);
+  }, [backend, canSwitchModel, model_info, selectModel]);
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
@@ -551,63 +551,10 @@ Please check your local CLI tool authentication status`,
       active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
     }));
 
-    const modelOptions: MobileActionSheetOption[] = canSwitchModel
-      ? (model_info?.available_models ?? []).map((model) => ({
-          key: model.id,
-          label: model.label || model.id,
-          description: model.description,
-          active: model_info?.current_model_id === model.id,
-        }))
-      : [];
-
-    const currentModelLabel =
-      model_info?.current_model_label || model_info?.current_model_id || t('conversation.welcome.useCliModel');
     const currentModeLabel =
       modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
 
     const entries: MobileActionSheetEntry[] = [];
-
-    // Model entry: only when the agent exposes a switchable list. Otherwise
-    // (Codex with no list, no info) skip — exposing a no-op row would be noise.
-    if (modelOptions.length > 0) {
-      entries.push({
-        key: 'model',
-        icon: <Brain theme='outline' size='16' />,
-        label: t('common.model', { defaultValue: 'Model' }),
-        meta: currentModelLabel,
-        submenu: {
-          title: t('common.model', { defaultValue: 'Model' }),
-          options: modelOptions,
-          onSelect: (id) => selectModel(id),
-        },
-      });
-    }
-
-    if (runtimeThoughtLevel) {
-      entries.push({
-        key: 'thought-level',
-        icon: <Brain theme='outline' size='16' />,
-        label: t('agent.thoughtLevel.label'),
-        meta:
-          runtimeThoughtLevel.options.find((item) => item.value === runtimeThoughtLevel.currentValue)?.label ||
-          runtimeThoughtLevel.currentValue ||
-          '',
-        submenu: {
-          title: t('agent.thoughtLevel.label'),
-          options: runtimeThoughtLevel.options.map((item) => ({
-            key: item.value,
-            label: item.label,
-            description: item.description ?? undefined,
-            active: runtimeThoughtLevel.currentValue === item.value,
-          })),
-          onSelect: (value) => {
-            void handleThoughtLevelSetOption(runtimeThoughtLevel.id, value)
-              .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
-              .catch((error) => Message.error(t(configErrorMessageKey(error))));
-          },
-        },
-      });
-    }
 
     if (modeOptions.length > 0) {
       entries.push({
@@ -682,13 +629,11 @@ Please check your local CLI tool authentication status`,
     canSwitchModel,
     currentMode,
     handleSheetModeChange,
-    handleThoughtLevelSetOption,
     isMobile,
     loadedMcpStatuses,
     loadedSkills,
     model_info,
     runtimeMode,
-    runtimeThoughtLevel,
     selectModel,
     setContent,
     t,
@@ -914,10 +859,6 @@ Please check your local CLI tool authentication status`,
         allowSendWhileLoading
         compactActions={false}
         sendButtonPrefix={
-          // Agents reporting a window size (UsageUpdate.size) get a progress
-          // ring; agents reporting only a token count get a hollow ring whose
-          // popover shows the raw count — never a percentage against a
-          // guessed denominator. No usage report at all → nothing.
           <>
             {teamRuntime?.onInterruptSend && content.trim() && (
               <Button
@@ -930,7 +871,6 @@ Please check your local CLI tool authentication status`,
                 {t('team.interruptAndSend')}
               </Button>
             )}
-            {tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined}
           </>
         }
         onAddToDraft={handleAddToQueue}

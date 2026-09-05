@@ -12,12 +12,21 @@ type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 export interface AuthUser {
   id: string;
   username: string;
+  quota?: number;
 }
 
 interface LoginParams {
   username: string;
   password: string;
   remember?: boolean;
+  totpCode?: string;
+}
+
+interface RegisterParams {
+  username: string;
+  password: string;
+  email?: string;
+  verificationCode?: string;
 }
 
 type LoginErrorCode =
@@ -33,6 +42,8 @@ interface LoginResult {
   message?: string;
   code?: LoginErrorCode;
   shouldClearCache?: boolean;
+  twoFactorRequired?: boolean;
+  expiresAt?: number;
 }
 
 interface AuthContextValue {
@@ -40,6 +51,9 @@ interface AuthContextValue {
   user: AuthUser | null;
   status: AuthStatus;
   login: (params: LoginParams) => Promise<LoginResult>;
+  register: (params: RegisterParams) => Promise<LoginResult>;
+  sendEmailVerification: (email: string) => Promise<LoginResult>;
+  redeemCredits: (code: string) => Promise<{ success: boolean; quota?: number; message?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearAuthCache: () => void;
@@ -50,6 +64,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
+
+type DesktopAuthUser = { id: number; username: string; quota: number };
+
+const toAuthUser = (user: DesktopAuthUser): AuthUser => ({
+  id: String(user.id),
+  username: user.username,
+  quota: user.quota,
+});
 
 // Clear expired auth cache including cookies and localStorage
 // 清除过期的认证缓存，包括 Cookie 和 localStorage
@@ -136,8 +158,23 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
-      setUser(null);
+      const desktopAuth = window.electronAPI?.aibangAuth;
+      if (!desktopAuth) {
+        setUser(null);
+        setStatus('unauthenticated');
+        setReady(true);
+        return;
+      }
+
+      try {
+        const sessionStatus = await desktopAuth.refreshSession();
+        setUser(sessionStatus.authenticated && sessionStatus.user ? toAuthUser(sessionStatus.user) : null);
+        setStatus(sessionStatus.authenticated ? 'authenticated' : 'unauthenticated');
+      } catch (error) {
+        console.error('Failed to read AIbang auth status:', error);
+        setUser(null);
+        setStatus('unauthenticated');
+      }
       setReady(true);
       return;
     }
@@ -165,11 +202,20 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
   }, [refresh]);
 
-  const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
+  const login = useCallback(async ({ username, password, remember, totpCode }: LoginParams): Promise<LoginResult> => {
     try {
       if (isDesktopRuntime) {
-        setReady(true);
-        return { success: true };
+        const desktopAuth = window.electronAPI?.aibangAuth;
+        if (!desktopAuth) return { success: false, code: 'serverError', message: 'AIbang auth is unavailable' };
+
+        const result = await desktopAuth.login({ username, password, totpCode });
+        if (result.success && result.twoFactorRequired === false) {
+          setUser(toAuthUser(result.user));
+          setStatus('authenticated');
+          setReady(true);
+          return { success: true };
+        }
+        return result;
       }
 
       // Check CSRF token availability before login
@@ -268,11 +314,55 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
+  const register = useCallback(async (params: RegisterParams): Promise<LoginResult> => {
+    if (!isDesktopRuntime || !window.electronAPI?.aibangAuth) {
+      return { success: false, code: 'serverError', message: 'AIbang registration is unavailable' };
+    }
+    const result = await window.electronAPI.aibangAuth.register(params);
+    if (result.success === false) {
+      return { success: false, code: 'unknown', message: result.message };
+    }
+    return { success: true };
+  }, []);
+
+  const sendEmailVerification = useCallback(async (email: string): Promise<LoginResult> => {
+    if (!isDesktopRuntime || !window.electronAPI?.aibangAuth) {
+      return { success: false, code: 'serverError', message: 'AIbang registration is unavailable' };
+    }
+    const result = await window.electronAPI.aibangAuth.sendEmailVerification({ email });
+    if (result.success === false) {
+      return { success: false, code: 'unknown', message: result.message };
+    }
+    return { success: true };
+  }, []);
+
+  const redeemCredits = useCallback(
+    async (code: string): Promise<{ success: boolean; quota?: number; message?: string }> => {
+      if (!isDesktopRuntime || !window.electronAPI?.aibangAuth) {
+        return { success: false, message: 'AIbang billing is unavailable' };
+      }
+      const result = await window.electronAPI.aibangAuth.redeem({ key: code });
+      if (result.success === false) {
+        return { success: false, message: result.message };
+      }
+      if (result.user) setUser(toAuthUser(result.user));
+      return { success: true, quota: result.user?.quota };
+    },
+    []
+  );
+
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
-      setUser(null);
-      setStatus('authenticated');
-      setReady(true);
+      try {
+        await window.electronAPI?.aibangAuth?.clearSession();
+      } catch (error) {
+        console.error('AIbang logout failed:', error);
+      } finally {
+        setUser(null);
+        setStatus('unauthenticated');
+        setReady(true);
+        clearAuthCache();
+      }
       return;
     }
 
@@ -302,11 +392,14 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       user,
       status,
       login,
+      register,
+      sendEmailVerification,
+      redeemCredits,
       logout,
       refresh,
       clearAuthCache,
     }),
-    [login, logout, ready, refresh, status, user]
+    [login, logout, ready, redeemCredits, refresh, register, sendEmailVerification, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

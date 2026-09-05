@@ -6,6 +6,7 @@
 
 import { assistantRuntimeKey, isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { configService } from '@/common/config/configService';
+import { AIBANG_FORCED_CODEX_MODEL } from '@/common/config/constants';
 import type { AcpModelInfo } from '../types';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import {
@@ -18,6 +19,7 @@ import {
 } from '@/renderer/utils/model/agentRuntimeCatalog';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { useManagedAgentRuntimeCatalog } from '@/renderer/hooks/agent/useManagedAgents';
+import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
@@ -50,6 +52,21 @@ export type GuidAssistantSelectionResult = {
     options?: { persistPreference?: boolean }
   ) => void;
 };
+
+function findBuiltinCodexAssistantId(
+  assistants: readonly Assistant[],
+  managedAgents: readonly ManagedAgent[]
+): string | null {
+  const builtinCodexAgentIds = new Set(
+    managedAgents
+      .filter((agent) => agent.backend === 'codex' && agent.agent_type === 'acp' && agent.agent_source === 'builtin')
+      .map((agent) => agent.id)
+  );
+  return (
+    assistants.find((assistant) => assistant.enabled !== false && builtinCodexAgentIds.has(assistant.agent_id))?.id ??
+    null
+  );
+}
 
 export function resolveInitialAssistantModel(models: string[]): string | null {
   if (models.length > 0) {
@@ -101,9 +118,16 @@ function persistGuidAssistantSelectionKey(assistantId: string): void {
   });
 }
 
-export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
+export function pickDefaultAssistantSelectionKey(
+  assistants: Assistant[],
+  managedAgents: readonly ManagedAgent[] = []
+): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  const builtinCodexAssistantId = findBuiltinCodexAssistantId(assistants, managedAgents);
   const preferred =
+    (builtinCodexAssistantId
+      ? enabledAssistants.find((assistant) => assistant.id === builtinCodexAssistantId)
+      : undefined) ??
     enabledAssistants.find((assistant) => assistant.source === 'generated' && isAionrsAssistant(assistant)) ??
     enabledAssistants.find((assistant) => isAionrsAssistant(assistant)) ??
     enabledAssistants[0];
@@ -127,6 +151,15 @@ export const useGuidAssistantSelection = ({
   const [selectedThoughtLevelValue, _setSelectedThoughtLevelValue] = useState<string>('');
   const { assistants } = useCustomAgentsLoader();
   const managedAgentRuntimeCatalog = useManagedAgentRuntimeCatalog();
+  const builtinCodexAssistantId = useMemo(() => {
+    const forcedId = pickDefaultAssistantSelectionKey(assistants, managedAgentRuntimeCatalog);
+    const forcedAssistant = assistants.find((assistant) => assistant.id === forcedId);
+    return managedAgentRuntimeCatalog.some(
+      (agent) => agent.backend === 'codex' && agent.agent_type === 'acp' && agent.agent_source === 'builtin'
+    ) && forcedAssistant
+      ? forcedId
+      : null;
+  }, [assistants, managedAgentRuntimeCatalog]);
 
   const setSelectedMode = useCallback(
     (mode: React.SetStateAction<string>, _options?: { persistPreference?: boolean }) => {
@@ -160,11 +193,15 @@ export const useGuidAssistantSelection = ({
 
   const setSelectedAssistantId = useCallback(
     (assistantId: string) => {
+      if (builtinCodexAssistantId) {
+        persistGuidAssistantSelectionKey(builtinCodexAssistantId);
+        return;
+      }
       const normalizedId = resolveAssistantSelectionKey(assistantId, assistants) ?? assistantId;
       _setSelectedAssistantId(normalizedId);
       persistGuidAssistantSelectionKey(normalizedId);
     },
-    [assistants]
+    [assistants, builtinCodexAssistantId]
   );
 
   const resetHandledRef = useRef(false);
@@ -177,6 +214,12 @@ export const useGuidAssistantSelection = ({
   useLayoutEffect(() => {
     if (assistants.length === 0) return;
     if (resetHandledRef.current) return;
+
+    if (builtinCodexAssistantId) {
+      resetHandledRef.current = true;
+      _setSelectedAssistantId(builtinCodexAssistantId);
+      return;
+    }
 
     if (preselectAssistantId) {
       const resolvedPreselect = resolveAssistantSelectionKey(preselectAssistantId, assistants);
@@ -193,10 +236,16 @@ export const useGuidAssistantSelection = ({
         readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
     }
-  }, [assistants, preselectAssistantId, resetAssistant]);
+  }, [assistants, builtinCodexAssistantId, preselectAssistantId, resetAssistant]);
 
   useEffect(() => {
     if (assistants.length === 0) return;
+    if (builtinCodexAssistantId) {
+      if (selectedAssistantIdState !== builtinCodexAssistantId) {
+        _setSelectedAssistantId(builtinCodexAssistantId);
+      }
+      return;
+    }
     if (resetAssistant) return;
     if (preselectAssistantId && resolveAssistantSelectionKey(preselectAssistantId, assistants)) return;
     if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
@@ -204,7 +253,7 @@ export const useGuidAssistantSelection = ({
         readPersistedGuidAssistantSelectionKey(assistants) ?? pickDefaultAssistantSelectionKey(assistants)
       );
     }
-  }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
+  }, [assistants, builtinCodexAssistantId, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 
   const selectedAssistant = useMemo(
     () =>
@@ -280,6 +329,10 @@ export const useGuidAssistantSelection = ({
       const scopeChanged = modelSelectionScopeRef.current !== selectionScope;
       modelSelectionScopeRef.current = selectionScope;
 
+      if (builtinCodexAssistantId) {
+        return AIBANG_FORCED_CODEX_MODEL;
+      }
+
       if (
         !scopeChanged &&
         previousModelId &&
@@ -290,7 +343,7 @@ export const useGuidAssistantSelection = ({
 
       return fallbackModelId;
     });
-  }, [selectedAssistantId, selectedAssistantModels, selectedAgentRuntimeModelInfo]);
+  }, [builtinCodexAssistantId, selectedAssistantId, selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
   useEffect(() => {
     const fallbackMode =
@@ -308,6 +361,10 @@ export const useGuidAssistantSelection = ({
     const selectionScope = selectedAssistantId ?? '';
 
     _setSelectedThoughtLevelValue((previousValue) => {
+      if (builtinCodexAssistantId) {
+        return '';
+      }
+
       const scopeChanged = thoughtLevelSelectionScopeRef.current !== selectionScope;
       thoughtLevelSelectionScopeRef.current = selectionScope;
 
@@ -321,17 +378,24 @@ export const useGuidAssistantSelection = ({
 
       return fallbackThoughtLevel;
     });
-  }, [selectedAgentRuntimeThoughtLevelOption, selectedAssistantId]);
+  }, [builtinCodexAssistantId, selectedAgentRuntimeThoughtLevelOption, selectedAssistantId]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
+    if (builtinCodexAssistantId) {
+      return buildAssistantModelInfo([AIBANG_FORCED_CODEX_MODEL]);
+    }
+
     if (selectedAgentRuntimeModelInfo) {
       return selectedAgentRuntimeModelInfo;
     }
 
     return buildAssistantModelInfo(selectedAssistantModels);
-  }, [selectedAssistantModels, selectedAgentRuntimeModelInfo]);
+  }, [builtinCodexAssistantId, selectedAssistantModels, selectedAgentRuntimeModelInfo]);
 
-  const defaultAssistantId = useMemo(() => pickDefaultAssistantSelectionKey(assistants), [assistants]);
+  const defaultAssistantId = useMemo(
+    () => builtinCodexAssistantId ?? pickDefaultAssistantSelectionKey(assistants),
+    [assistants, builtinCodexAssistantId]
+  );
 
   return {
     selectedAssistantId,

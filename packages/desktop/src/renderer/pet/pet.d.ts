@@ -1,7 +1,6 @@
 interface PetAPI {
-  onStateChange: (cb: (state: string) => void) => void;
-  onEyeMove: (cb: (data: { eyeDx: number; eyeDy: number; bodyDx: number; bodyRotate: number }) => void) => void;
-  onResize: (cb: (size: number) => void) => void;
+  onTalking: (cb: (talking: boolean) => void) => void;
+  onSlap: (cb: () => void) => void;
 }
 
 interface PetHitAPI {
@@ -10,6 +9,7 @@ interface PetHitAPI {
   click: (data: { side: string; count: number }) => void;
   contextMenu: () => void;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
+  slap: () => void;
   onHitReset: (cb: () => void) => void;
 }
 

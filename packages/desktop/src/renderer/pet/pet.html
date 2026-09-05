@@ -1,32 +1,633 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
+
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      position: relative;
+    }
+
+    /* =========================================================
+       Professor persona — pure HTML/CSS character (no SVG).
+       1cqw = 1% of the square pet window, so the character scales
+       with the 200/280/360 size setting. Coordinates map from the
+       old 58-unit SVG viewBox: 1 unit = 100/58 cqw.
+       ========================================================= */
+    #professor {
+      position: absolute;
+      inset: 0;
+      container-type: size;
+    }
+
+    #professor .layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    #professor .prof-part {
+      position: absolute;
+    }
+
+    .prof-shadow {
+      left: 41.7cqw;
+      top: 71.8cqw;
+      width: 16.6cqw;
+      height: 2.6cqw;
+      background: radial-gradient(ellipse at center, rgb(154 163 178 / 42%), transparent 72%);
+      animation: prof-shadow-pulse 3.4s ease-in-out infinite;
+    }
+
+    .prof-track,
+    .prof-body {
+      transform-origin: 50% 65.5%;
+    }
+
+    .prof-body {
+      animation:
+        prof-breathe 3.4s ease-in-out infinite,
+        prof-sway 6.5s ease-in-out infinite;
+    }
+
+    /* torso */
+    .prof-torso {
+      left: 42.8cqw;
+      top: 59cqw;
+      width: 14.5cqw;
+      height: 13.1cqw;
+      border-radius: 5.9cqw;
+      background: linear-gradient(180deg, #4a5c85, #33405e);
+    }
+
+    .prof-btn {
+      width: 1.5cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffd166;
+    }
+
+    .prof-btn.b1 {
+      left: 49.3cqw;
+      top: 64.4cqw;
+    }
+
+    .prof-btn.b2 {
+      left: 49.3cqw;
+      top: 67.2cqw;
+    }
+
+    .prof-collar {
+      left: 46.4cqw;
+      top: 59.3cqw;
+      width: 7.2cqw;
+      height: 4.3cqw;
+      clip-path: polygon(0 0, 50% 100%, 100% 0);
+      background: #fdf6ec;
+    }
+
+    .prof-bow {
+      width: 3.4cqw;
+      height: 3.1cqw;
+      background: #e05252;
+    }
+
+    .prof-bow.l {
+      left: 46.6cqw;
+      top: 60cqw;
+      clip-path: polygon(0 0, 100% 50%, 0 100%);
+    }
+
+    .prof-bow.r {
+      left: 50cqw;
+      top: 60cqw;
+      clip-path: polygon(0 50%, 100% 0, 100% 100%);
+    }
+
+    .prof-knot {
+      left: 49.2cqw;
+      top: 60.6cqw;
+      width: 1.6cqw;
+      height: 2.1cqw;
+      border-radius: 0.5cqw;
+      background: #b03535;
+    }
+
+    /* head */
+    .prof-head {
+      left: 38.1cqw;
+      top: 36.6cqw;
+      width: 23.4cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 32%, #ffe9d2, #f5cba0);
+      border: 0.6cqw solid #e0ae7e;
+    }
+
+    .prof-sideburn {
+      width: 3.8cqw;
+      height: 11cqw;
+      border: 2.2cqw solid transparent;
+      border-radius: 50%;
+    }
+
+    .prof-sideburn.l {
+      left: 37.9cqw;
+      top: 46.6cqw;
+      border-left-color: #e7e2d8;
+    }
+
+    .prof-sideburn.r {
+      left: 58.3cqw;
+      top: 46.6cqw;
+      border-right-color: #e7e2d8;
+    }
+
+    .prof-cheek {
+      width: 3.6cqw;
+      height: 2.2cqw;
+      border-radius: 50%;
+      background: #ffb3a0;
+      opacity: 0.55;
+    }
+
+    .prof-cheek.l {
+      left: 41.2cqw;
+      top: 52.1cqw;
+    }
+
+    .prof-cheek.r {
+      left: 55.2cqw;
+      top: 52.1cqw;
+    }
+
+    /* glasses + eyes (blink wrapper) */
+    .prof-glasses {
+      transform-origin: 50% 49.3%;
+      animation: prof-blink 4.6s ease-in-out infinite;
+    }
+
+    .prof-lens {
+      width: 6.7cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1cqw solid #3f3a34;
+    }
+
+    .prof-lens.l {
+      left: 42.1cqw;
+      top: 45.9cqw;
+    }
+
+    .prof-lens.r {
+      left: 51.1cqw;
+      top: 45.9cqw;
+    }
+
+    .prof-pupil {
+      width: 2.8cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #33261f;
+    }
+
+    .prof-pupil.l {
+      left: 44.1cqw;
+      top: 48.1cqw;
+    }
+
+    .prof-pupil.r {
+      left: 53cqw;
+      top: 48.1cqw;
+    }
+
+    .prof-spark {
+      width: 1cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    .prof-spark.l {
+      left: 45.6cqw;
+      top: 48.3cqw;
+    }
+
+    .prof-spark.r {
+      left: 53.9cqw;
+      top: 48.3cqw;
+    }
+
+    .prof-bridge {
+      left: 48.8cqw;
+      top: 48.8cqw;
+      width: 2.4cqw;
+      height: 1cqw;
+      border-radius: 0.5cqw;
+      background: #3f3a34;
+    }
+
+    .prof-temple {
+      width: 2.7cqw;
+      height: 1cqw;
+      border-radius: 0.5cqw;
+      background: #3f3a34;
+    }
+
+    .prof-temple.l {
+      left: 39.5cqw;
+      top: 48.5cqw;
+      transform: rotate(-8deg);
+    }
+
+    .prof-temple.r {
+      left: 57.8cqw;
+      top: 48.5cqw;
+      transform: rotate(8deg);
+    }
+
+    .prof-brow {
+      width: 5.2cqw;
+      height: 1.6cqw;
+      border: 0.8cqw solid transparent;
+      border-top-color: #6b5645;
+      border-radius: 50%;
+    }
+
+    .prof-brow.l {
+      left: 42.9cqw;
+      top: 43.1cqw;
+    }
+
+    .prof-brow.r {
+      left: 51.9cqw;
+      top: 43.1cqw;
+    }
+
+    .prof-mouth {
+      left: 47.8cqw;
+      top: 55.3cqw;
+      width: 4.5cqw;
+      height: 1.6cqw;
+      border: 1.1cqw solid transparent;
+      border-bottom-color: #7c4a35;
+      border-radius: 50%;
+    }
+
+    /* mortarboard (hat-pop wrapper) */
+    .prof-hat {
+      transform-origin: 50% 38.8%;
+    }
+
+    .prof-cap-band {
+      left: 42.9cqw;
+      top: 37.1cqw;
+      width: 14.1cqw;
+      height: 2.9cqw;
+      border-radius: 1.2cqw;
+      background: #222c47;
+    }
+
+    .prof-cap-board {
+      left: 38.6cqw;
+      top: 29.7cqw;
+      width: 22.8cqw;
+      height: 13.1cqw;
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+      background: linear-gradient(135deg, #41507a, #293352);
+    }
+
+    .prof-cap-inner {
+      left: 42.8cqw;
+      top: 32.2cqw;
+      width: 14.5cqw;
+      height: 7.9cqw;
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+      background: #4a5a85;
+    }
+
+    .prof-cap-btn {
+      left: 49.1cqw;
+      top: 35.3cqw;
+      width: 1.7cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffd166;
+    }
+
+    .prof-tassel {
+      left: 50cqw;
+      top: 36.2cqw;
+      width: 12cqw;
+      height: 13cqw;
+      transform-origin: 0 0;
+      animation: prof-swing 3s ease-in-out infinite;
+    }
+
+    .prof-cord {
+      left: 0;
+      top: 0;
+      width: 9.3cqw;
+      height: 9.7cqw;
+      border: 0.9cqw solid transparent;
+      border-top-color: #ffd166;
+      border-right-color: #ffd166;
+      border-top-right-radius: 100%;
+    }
+
+    .prof-ball {
+      left: 7.6cqw;
+      top: 9.1cqw;
+      width: 2.5cqw;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ffd166;
+    }
+
+    /* comic smack: handprint + star burst */
+    .prof-smack {
+      opacity: 0;
+      transform-origin: 62.8% 61.4%;
+    }
+
+    .prof-hand {
+      left: 55.1cqw;
+      top: 63.7cqw;
+      width: 4.7cqw;
+      height: 6cqw;
+      border-radius: 50%;
+      background: #f87171;
+      opacity: 0.9;
+      transform: rotate(-20deg);
+      box-shadow:
+        -1.81cqw -2.85cqw 0 -1.64cqw #f87171,
+        -0.6cqw -3.45cqw 0 -1.64cqw #f87171,
+        0.72cqw -3.36cqw 0 -1.64cqw #f87171,
+        1.9cqw -2.67cqw 0 -1.64cqw #f87171;
+    }
+
+    .prof-burst {
+      left: 57.2cqw;
+      top: 55.9cqw;
+      width: 11cqw;
+      height: 11cqw;
+      clip-path: polygon(
+        100% 50%,
+        77.5% 61.4%,
+        85.3% 85.3%,
+        61.4% 77.5%,
+        50% 100%,
+        38.6% 77.5%,
+        14.7% 85.3%,
+        22.5% 61.4%,
+        0 50%,
+        22.5% 38.6%,
+        14.7% 14.7%,
+        38.6% 22.5%,
+        50% 0,
+        61.4% 22.5%,
+        85.3% 14.7%,
+        77.5% 38.6%
+      );
+      background: #ffd166;
+    }
+
+    .prof-smack-text {
+      left: 57.2cqw;
+      top: 55.9cqw;
+      width: 11cqw;
+      height: 11cqw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4.6cqw;
+      font-weight: 700;
+      color: #92400e;
+      line-height: 1;
+    }
+
+    /* talking mouth (subtle) */
+    #professor.talking .prof-mouth {
+      animation: prof-talk 0.5s ease-in-out infinite;
+    }
+
+    /* slap reactions */
+    #professor.slap .prof-track {
+      animation: prof-slap 0.65s ease-out;
+    }
+
+    #professor.slap .prof-hat {
+      animation: prof-hat-pop 0.62s ease-out;
+    }
+
+    #professor.slap .prof-glasses {
+      animation: none;
+      transform: scaleY(0.15);
+    }
+
+    #professor.slap .prof-smack {
+      animation: prof-smack-pop 0.65s ease-out forwards;
+    }
+
+    @keyframes prof-breathe {
+      0%,
+      100% {
+        transform: scaleY(1) translateY(0);
       }
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: transparent;
+
+      50% {
+        transform: scaleY(0.975) translateY(0.5cqw);
       }
-      body {
-        position: relative;
+    }
+
+    @keyframes prof-sway {
+      0%,
+      100% {
+        transform: rotate(0deg);
       }
-      #pet {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+
+      25% {
+        transform: rotate(1deg);
       }
-    </style>
-  </head>
-  <body>
-    <object id="pet" type="image/svg+xml" data="../pet-states/idle.svg"></object>
-    <script type="module" src="./petRenderer.ts"></script>
-  </body>
+
+      75% {
+        transform: rotate(-1deg);
+      }
+    }
+
+    @keyframes prof-blink {
+      0%,
+      92%,
+      100% {
+        transform: scaleY(1);
+      }
+
+      96% {
+        transform: scaleY(0.08);
+      }
+    }
+
+    @keyframes prof-shadow-pulse {
+      0%,
+      100% {
+        transform: scaleX(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scaleX(0.95);
+        opacity: 0.75;
+      }
+    }
+
+    @keyframes prof-swing {
+      0%,
+      100% {
+        transform: rotate(-4deg);
+      }
+
+      50% {
+        transform: rotate(5deg);
+      }
+    }
+
+    @keyframes prof-talk {
+      0%,
+      100% {
+        transform: scaleY(0.72);
+      }
+
+      50% {
+        transform: scaleY(1.06);
+      }
+    }
+
+    @keyframes prof-slap {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+
+      18% {
+        transform: translate(4.8cqw, -2.8cqw) rotate(9deg);
+      }
+
+      42% {
+        transform: translate(3.1cqw, 0.9cqw) rotate(-5deg);
+      }
+
+      68% {
+        transform: translate(1.4cqw, -0.5cqw) rotate(3deg);
+      }
+
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+    }
+
+    @keyframes prof-hat-pop {
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      30% {
+        transform: translateY(-3.6cqw) rotate(-7deg);
+      }
+
+      65% {
+        transform: translateY(0.5cqw) rotate(2deg);
+      }
+    }
+
+    @keyframes prof-smack-pop {
+      0% {
+        opacity: 0;
+        transform: scale(0.3) rotate(-18deg);
+      }
+
+      22% {
+        opacity: 1;
+        transform: scale(1.3) rotate(5deg);
+      }
+
+      55% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(1.05) rotate(0deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Professor: pure HTML/CSS character, the only pet persona -->
+  <div id="professor">
+    <div class="prof-part prof-shadow"></div>
+    <div class="layer prof-track">
+      <div class="layer prof-body">
+        <div class="prof-part prof-torso"></div>
+        <div class="prof-part prof-btn b1"></div>
+        <div class="prof-part prof-btn b2"></div>
+        <div class="prof-part prof-collar"></div>
+        <div class="prof-part prof-bow l"></div>
+        <div class="prof-part prof-bow r"></div>
+        <div class="prof-part prof-knot"></div>
+        <div class="prof-part prof-head"></div>
+        <div class="prof-part prof-sideburn l"></div>
+        <div class="prof-part prof-sideburn r"></div>
+        <div class="prof-part prof-cheek l"></div>
+        <div class="prof-part prof-cheek r"></div>
+        <div class="layer prof-glasses">
+          <div class="prof-part prof-lens l"></div>
+          <div class="prof-part prof-lens r"></div>
+          <div class="prof-part prof-pupil l"></div>
+          <div class="prof-part prof-pupil r"></div>
+          <div class="prof-part prof-spark l"></div>
+          <div class="prof-part prof-spark r"></div>
+          <div class="prof-part prof-bridge"></div>
+          <div class="prof-part prof-temple l"></div>
+          <div class="prof-part prof-temple r"></div>
+        </div>
+        <div class="prof-part prof-brow l"></div>
+        <div class="prof-part prof-brow r"></div>
+        <div class="prof-part prof-mouth"></div>
+        <div class="layer prof-hat">
+          <div class="prof-part prof-cap-band"></div>
+          <div class="prof-part prof-cap-board"></div>
+          <div class="prof-part prof-cap-inner"></div>
+          <div class="prof-part prof-cap-btn"></div>
+          <div class="prof-part prof-tassel">
+            <div class="prof-part prof-cord"></div>
+            <div class="prof-part prof-ball"></div>
+          </div>
+        </div>
+        <div class="layer prof-smack">
+          <div class="prof-part prof-hand"></div>
+          <div class="prof-part prof-burst"></div>
+          <div class="prof-part prof-smack-text">啪!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./petRenderer.ts"></script>
+</body>
+
 </html>

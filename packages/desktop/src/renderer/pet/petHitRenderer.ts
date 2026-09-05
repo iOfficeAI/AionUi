@@ -118,7 +118,22 @@ function setIgnoring(next: boolean): void {
     window.petHitAPI.setIgnoreMouseEvents(true, { forward: true });
   } else {
     window.petHitAPI.setIgnoreMouseEvents(false);
+    // Cursor just entered the pet's body → hover butt-slap interaction.
+    if (!isDragging) maybeSlap();
   }
+}
+
+// Hover butt-slap: entering the body circle counts as slapping the professor's
+// butt. Cooldown lives in the main process too — this local one just avoids
+// spamming IPC on rapid enter/exit jitter.
+const SLAP_IPC_COOLDOWN_MS = 800;
+let lastSlapSentAt = 0;
+
+function maybeSlap(): void {
+  const now = Date.now();
+  if (now - lastSlapSentAt < SLAP_IPC_COOLDOWN_MS) return;
+  lastSlapSentAt = now;
+  window.petHitAPI.slap();
 }
 
 function isInsideCircle(clientX: number, clientY: number): boolean {

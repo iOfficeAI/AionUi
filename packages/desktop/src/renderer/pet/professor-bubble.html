@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        body {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-family:
+                system-ui,
+                -apple-system,
+                'Segoe UI',
+                'PingFang SC',
+                'Microsoft YaHei',
+                sans-serif;
+        }
+
+        .bubble {
+            position: relative;
+            box-sizing: border-box;
+            max-width: 92%;
+            margin-bottom: 3px;
+            padding: 9px 13px;
+            border-radius: 14px;
+            background: rgb(255 255 255 / 96%);
+            border: 1px solid rgb(0 0 0 / 8%);
+            box-shadow: 0 6px 20px -4px rgb(0 0 0 / 22%);
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.5;
+            text-align: center;
+            animation: bubble-in 220ms ease-out;
+        }
+
+        /* tail pointing down at the pet */
+        .bubble::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: -7px;
+            width: 12px;
+            height: 12px;
+            background: inherit;
+            border-right: 1px solid rgb(0 0 0 / 8%);
+            border-bottom: 1px solid rgb(0 0 0 / 8%);
+            transform: translateX(-50%) rotate(45deg);
+            border-bottom-right-radius: 3px;
+        }
+
+        @keyframes bubble-in {
+            from {
+                opacity: 0;
+                transform: translateY(6px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .bubble {
+                background: rgb(42 42 46 / 96%);
+                border-color: rgb(255 255 255 / 12%);
+                color: #e4e4e7;
+                box-shadow: 0 6px 20px -4px rgb(0 0 0 / 60%);
+            }
+
+            .bubble::after {
+                border-color: rgb(255 255 255 / 12%);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bubble" id="text"></div>
+    <script>
+        const params = new URLSearchParams(location.search);
+        document.getElementById('text').textContent = params.get('text') || '';
+    </script>
+</body>
+
+</html>

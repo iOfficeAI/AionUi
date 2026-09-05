@@ -17,7 +17,21 @@ import {
   destroyPetConfirmManager,
   unhookPetConfirm,
 } from './petConfirmManager';
+import { startProfessorTicker, stopProfessorTicker, professorSlap } from './petProfessor';
 import type { PetSize, PetState } from './petTypes';
+
+// 教授固定说中文（用户要求，不跟随应用语言）。
+const PROFESSOR_LINES: readonly string[] = ['论文写完了吗？', '实验进度如何？'];
+const PROFESSOR_SLAP_LINES: readonly string[] = [
+  '哎哟！谁打我屁股！',
+  '哎哟！别闹，快去写论文！',
+  '嘿！认真一点！',
+  '岂有此理！',
+];
+
+function pickLine(lines: readonly string[]): string {
+  return lines[Math.floor(Math.random() * lines.length)] ?? '';
+}
 
 /**
  * Check whether the current environment can support desktop pet windows.
@@ -194,6 +208,7 @@ export function createPetWindow(): void {
   registerIpcHandlers();
   startHitIgnoreWatchdog();
   loadContent();
+  startProfessorMode();
 
   // Initialize confirm manager only if the user opted in.
   // When disabled, AI tool-call confirmations remain in the main chat window
@@ -218,6 +233,9 @@ export function destroyPetWindow(): void {
 
   // Destroy confirm manager
   destroyPetConfirmManager();
+
+  // Stop the professor nag ticker and its bubble window
+  stopProfessorTicker();
 
   if (eventBridge) {
     eventBridge.dispose();
@@ -270,6 +288,32 @@ export function resizePetWindow(size: PetSize): void {
 
 export function setPetDndMode(dnd: boolean): void {
   stateMachine?.setDnd(dnd);
+}
+
+/**
+ * Start the professor's nagging speech-bubble ticker. The professor is the
+ * only pet character, so this runs for the whole lifetime of the pet windows
+ * (createPetWindow → destroyPetWindow).
+ */
+function startProfessorMode(): void {
+  startProfessorTicker({
+    getPetBounds: () => {
+      if (!petWindow || petWindow.isDestroyed()) return null;
+      const [x, y] = petWindow.getPosition();
+      const [width, height] = petWindow.getSize();
+      return { x, y, width, height };
+    },
+    isPetVisible: () => Boolean(petWindow && !petWindow.isDestroyed() && petWindow.isVisible()),
+    getCurrentState: () => stateMachine?.getCurrentState() ?? 'idle',
+    getDnd: () => stateMachine?.getDnd() ?? false,
+    getLine: () => pickLine(PROFESSOR_LINES),
+    getSlapLine: () => pickLine(PROFESSOR_SLAP_LINES),
+    setTalking: (talking: boolean) => {
+      if (petWindow && !petWindow.isDestroyed()) {
+        petWindow.webContents.send('pet:talking', talking);
+      }
+    },
+  });
 }
 
 /**
@@ -491,6 +535,15 @@ function registerIpcHandlers(): void {
     petHitWindow.setIgnoreMouseEvents(ignore, options);
     lastHitIgnoreState = ignore;
   });
+
+  // Hover butt-slap: hit window reports the cursor entered the pet's body.
+  // Protest bubble + jolt animation.
+  ipcMain.on('pet:slap', () => {
+    professorSlap();
+    if (petWindow && !petWindow.isDestroyed()) {
+      petWindow.webContents.send('pet:slap-anim');
+    }
+  });
 }
 
 function unregisterIpcHandlers(): void {
@@ -499,6 +552,7 @@ function unregisterIpcHandlers(): void {
   ipcMain.removeAllListeners('pet:click');
   ipcMain.removeAllListeners('pet:context-menu');
   ipcMain.removeAllListeners('pet:set-ignore-mouse-events');
+  ipcMain.removeAllListeners('pet:slap');
 }
 
 // ---------------------------------------------------------------------------

@@ -255,6 +255,7 @@ export default defineConfig(({ mode }) => {
             pet: resolve(rendererRoot, 'pet/pet.html'),
             'pet-hit': resolve(rendererRoot, 'pet/pet-hit.html'),
             'pet-confirm': resolve(rendererRoot, 'pet/pet-confirm.html'),
+            'professor-bubble': resolve(rendererRoot, 'pet/professor-bubble.html'),
           },
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {

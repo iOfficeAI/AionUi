@@ -91,11 +91,13 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
   const savingRef = useRef(false);
   const initialHasOverridesRef = useRef(false);
   const isInternalAionCli = agent.agent_type === 'aionrs' && agent.agent_source === 'internal';
+  const isManagedBuiltinCodex =
+    agent.backend === 'codex' && agent.agent_type === 'acp' && agent.agent_source === 'builtin';
 
   // Load current overrides on mount. The repair page is itself the explicit
   // entry point, so there's no separate unlock step.
   useEffect(() => {
-    if (isInternalAionCli) return;
+    if (isInternalAionCli || isManagedBuiltinCodex) return;
 
     let cancelled = false;
     void (async () => {
@@ -117,7 +119,7 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
     return () => {
       cancelled = true;
     };
-  }, [agent.id, isInternalAionCli]);
+  }, [agent.id, isInternalAionCli, isManagedBuiltinCodex]);
 
   const handleReset = useCallback(() => {
     setCommandOverride('');
@@ -248,15 +250,15 @@ const AgentRepairPanel: React.FC<AgentRepairPanelProps> = ({ agent, onSaved }) =
           which field below to use. */}
       <Alert type={banner.type} title={banner.title} content={banner.content} className='!rounded-8px' />
 
-      {!isInternalAionCli && isActionable && showPath ? pathBlock : null}
-      {!isInternalAionCli && isActionable ? envBlock : null}
+      {!isInternalAionCli && !isManagedBuiltinCodex && isActionable && showPath ? pathBlock : null}
+      {!isInternalAionCli && !isManagedBuiltinCodex && isActionable ? envBlock : null}
 
       {/* Error Alert */}
       {error && <Alert type='error' content={error} closable onClose={() => setError('')} className='!rounded-8px' />}
 
       {/* Save Button — only once the agent is actionable (checked). While
           unchecked we show just the banner and steer the user to Test Connection. */}
-      {!isInternalAionCli && isActionable ? (
+      {!isInternalAionCli && !isManagedBuiltinCodex && isActionable ? (
         <Button
           type='primary'
           size='large'

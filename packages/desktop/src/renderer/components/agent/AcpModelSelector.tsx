@@ -7,6 +7,7 @@
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { classifyConfigSetError, type AcpConfigOptionsPort } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { AIBANG_FORCED_CODEX_MODEL } from '@/common/config/constants';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
@@ -58,6 +59,7 @@ const AcpModelSelector: React.FC<{
   prepareSetRuntime?: () => Promise<void>;
   configOptionsPort?: AcpConfigOptionsPort;
   onRuntimeReadyChange?: (ready: boolean) => void;
+  hidden?: boolean;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
   /**
@@ -77,11 +79,15 @@ const AcpModelSelector: React.FC<{
   prepareSetRuntime,
   configOptionsPort,
   onRuntimeReadyChange,
+  hidden = false,
   warmup,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
+  const handleSelectModelSuccess = useCallback(() => {
+    if (!hidden) Message.success(t('agent.model.switchSuccess'));
+  }, [hidden, t]);
   const {
     model_info,
     isRuntimeReady,
@@ -104,13 +110,20 @@ const AcpModelSelector: React.FC<{
     // runtime also records the selection (team members get their roster entry
     // updated too). No follow-up call to chain here, so success means switched
     // AND persisted.
-    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+    onSelectModelSuccess: handleSelectModelSuccess,
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
 
   useEffect(() => {
     onRuntimeReadyChange?.(isRuntimeReady);
   }, [isRuntimeReady, onRuntimeReadyChange]);
+
+  useEffect(() => {
+    if (!hidden || backend !== 'codex' || !canSwitch || isSetting) return;
+    if (model_info?.current_model_id === AIBANG_FORCED_CODEX_MODEL) return;
+    if (!model_info?.available_models.some((model) => model.id === AIBANG_FORCED_CODEX_MODEL)) return;
+    selectModel(AIBANG_FORCED_CODEX_MODEL);
+  }, [backend, canSwitch, hidden, isSetting, model_info, selectModel]);
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =
@@ -197,6 +210,8 @@ const AcpModelSelector: React.FC<{
       </Tooltip>
     );
   };
+
+  if (hidden) return null;
 
   if (!model_info && isLoading) {
     return (

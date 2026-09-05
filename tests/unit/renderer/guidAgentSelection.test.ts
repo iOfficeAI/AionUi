@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import {
   pickDefaultAssistantSelectionKey,
   resolveAssistantSelectionKey,
@@ -24,6 +25,27 @@ describe('guid assistant selection helpers', () => {
 
   it('defaults to the generated aionrs assistant when available', () => {
     expect(pickDefaultAssistantSelectionKey(assistants)).toBe('bare-aionrs');
+  });
+
+  it('prefers the assistant bound to the built-in Codex agent', () => {
+    const managedAgents = [
+      {
+        id: 'agent-codex',
+        name: 'Codex',
+        backend: 'codex',
+        agent_type: 'acp',
+        agent_source: 'builtin',
+        enabled: true,
+      },
+    ] satisfies ManagedAgent[];
+    const codexAssistant = assistant({
+      id: 'builtin-codex',
+      source: 'builtin',
+      runtimeKey: 'codex',
+      sort_order: 40,
+    });
+
+    expect(pickDefaultAssistantSelectionKey([codexAssistant, ...assistants], managedAgents)).toBe('builtin-codex');
   });
 
   it('returns null when no assistants are available', () => {

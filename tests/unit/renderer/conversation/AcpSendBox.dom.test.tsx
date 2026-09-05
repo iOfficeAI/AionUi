@@ -396,7 +396,7 @@ describe('AcpSendBox', () => {
     });
   });
 
-  it('shows a progress ring with a window size, a hollow ring without one, and nothing without usage', () => {
+  it('hides token usage even when the agent reports it', () => {
     const { container, rerender } = render(
       <AcpSendBox
         conversation_id='conv-1'
@@ -405,12 +405,8 @@ describe('AcpSendBox', () => {
         messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 1_000_000 }}
       />
     );
-    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
-    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(2);
+    expect(container.querySelector('.context-usage-indicator')).toBeNull();
 
-    // Usage without an agent-reported denominator renders a hollow ring
-    // (track circle only) — the count is real, but a percentage against a
-    // made-up window size would lie.
     rerender(
       <AcpSendBox
         conversation_id='conv-1'
@@ -419,8 +415,7 @@ describe('AcpSendBox', () => {
         messageState={{ ...makeMessageState(), tokenUsage: { total_tokens: 500_000 }, context_limit: 0 }}
       />
     );
-    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
-    expect(container.querySelectorAll('.context-usage-indicator circle')).toHaveLength(1);
+    expect(container.querySelector('.context-usage-indicator')).toBeNull();
 
     rerender(
       <AcpSendBox
@@ -626,7 +621,7 @@ describe('AcpSendBox', () => {
     expect(screen.queryByTestId('mock-thought-selector')).not.toBeInTheDocument();
   });
 
-  it('applies runtime thought level from the mobile action sheet without persisting a global preference', async () => {
+  it('hides the runtime thought level selector on mobile', () => {
     isMobileMock.current = true;
     const setConfigOption = vi.fn().mockResolvedValue([]);
     useAcpConfigOptionsMock.mockReturnValue({
@@ -657,52 +652,8 @@ describe('AcpSendBox', () => {
       />
     );
 
-    await act(async () => {
-      mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
-    });
-
-    // This branch dropped global-preference persistence: only the runtime
-    // config option is set; nothing is saved to a global agent preference.
-    await waitFor(() => {
-      expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
-    });
-  });
-
-  it('does not apply runtime thought level when observed confirmation fails', async () => {
-    isMobileMock.current = true;
-    const setConfigOption = vi.fn().mockRejectedValue(new Error('command_ack'));
-    useAcpConfigOptionsMock.mockReturnValue({
-      mode: null,
-      model: null,
-      thoughtLevel: {
-        id: 'reasoning_effort',
-        category: 'thought_level',
-        currentValue: 'medium',
-        options: [{ value: 'high', label: 'High' }],
-      },
-      setStatus: { state: 'idle' },
-      setConfigOption,
-      reload: vi.fn(),
-      isLoading: false,
-      configOptions: [],
-    });
-
-    render(
-      <AcpSendBox
-        conversation_id='conv-1'
-        backend='codex'
-        workspacePath='/tmp/workspace'
-        messageState={makeMessageState()}
-      />
-    );
-
-    await act(async () => {
-      mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')?.submenu?.onSelect?.('high');
-    });
-
-    await waitFor(() => {
-      expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
-    });
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'thought-level')).toBeUndefined();
+    expect(setConfigOption).not.toHaveBeenCalled();
   });
 
   it('passes teamRuntime.isActive and onFocus down to SendBox as active/onFocused', () => {

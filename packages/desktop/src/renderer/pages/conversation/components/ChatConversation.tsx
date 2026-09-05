@@ -28,7 +28,6 @@ import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
-import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
@@ -362,13 +361,10 @@ const ChatConversation: React.FC<{
     );
   }, [t]);
 
-  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
-  // For other conversations, show disabled model selector.
-  // Mobile: model selection moves into the sendbox `+` action sheet, so the
-  // header selector is suppressed to free up vertical space.
+  // Keep the runtime selector mounted for warmup/readiness accounting, but AIbang
+  // exposes a single middleware-backed Codex model, so the control stays hidden.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
-    if (isMobile) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;
     // Antigravity included: the backend discovers agy's model list and writes it
     // into the same catalog the ACP picker reads, so it must not fall through to
@@ -381,12 +377,13 @@ const ChatConversation: React.FC<{
           backend={resolvedConversationBackend}
           initialModelId={extra.current_model_id}
           onRuntimeReadyChange={handleRuntimeReadyChange}
+          hidden
           waitForWarmup
         />
       );
     }
-    return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation, resolvedConversationBackend]);
+    return undefined;
+  }, [conversation, isAionrsConversation, isLegacyReadOnlyConversation, resolvedConversationBackend]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;

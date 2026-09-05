@@ -287,7 +287,6 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       ['aibang.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
       ['aibang.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
       ['aibang.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],
-      ['aibang.backend_startup.missing_pet_states_dir', getBooleanTagValue(failureInfo.missingPetStatesDir)],
       ['aibang.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
       ['aibang.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
       ['aibang.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],

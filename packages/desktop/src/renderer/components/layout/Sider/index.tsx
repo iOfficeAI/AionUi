@@ -28,13 +28,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 
   const navigate = useNavigate();
   const { closePreview, clearPreviewForScope } = usePreviewContext();
-  const { logout, status } = useAuth();
+  const { logout, status, user } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
-  const showLogout =
-    typeof window !== 'undefined' && !(window as { electronAPI?: unknown }).electronAPI && status === 'authenticated';
+  const showLogout = status === 'authenticated';
 
   useEffect(() => {
     if (!pathname.startsWith('/settings')) {
@@ -64,7 +63,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         console.error('Navigation failed:', error);
       });
     } else {
-      Promise.resolve(navigate('/settings/agent')).catch((error) => {
+      Promise.resolve(navigate('/settings/skills')).catch((error) => {
         console.error('Navigation failed:', error);
       });
     }
@@ -112,6 +111,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleQuickThemeToggle = () => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
+
+  const handleCreditsClick = useCallback(() => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    Promise.resolve(navigate('/billing')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  }, [navigate, onSessionClick]);
 
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
@@ -255,6 +265,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         onThemeToggle={handleQuickThemeToggle}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
+        onCreditsClick={handleCreditsClick}
+        accountUsername={user?.username}
+        accountQuota={user?.quota}
       />
     </div>
   );

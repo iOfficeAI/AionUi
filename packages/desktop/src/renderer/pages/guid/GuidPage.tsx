@@ -16,10 +16,8 @@ import { appendPromptToDraft } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
-import AssistantSelectionArea from './components/AssistantSelectionArea';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
-import GuidModelSelector from './components/GuidModelSelector';
 import QuickActionButtons from './components/QuickActionButtons';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
 import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
@@ -311,13 +309,6 @@ const GuidPage: React.FC = () => {
     [send.isButtonDisabled, send.sendMessageHandler, slashController]
   );
 
-  const handleSelectAssistant = useCallback(
-    (assistantId: string) => {
-      agentSelection.setSelectedAssistantId(assistantId);
-    },
-    [agentSelection.setSelectedAssistantId]
-  );
-
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
   const selectedAssistantRecord = useMemo(() => {
@@ -360,12 +351,10 @@ const GuidPage: React.FC = () => {
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
   const manualModelSelectionAssistantRef = useRef<string | null>(null);
-  const manualThoughtLevelSelectionAssistantRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedAssistantId || !selectedAssistantDetail) {
       appliedAssistantDefaultsKeyRef.current = null;
       manualModelSelectionAssistantRef.current = null;
-      manualThoughtLevelSelectionAssistantRef.current = null;
       return;
     }
 
@@ -397,8 +386,10 @@ const GuidPage: React.FC = () => {
     const applyAssistantDefaults = async () => {
       const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
       const effectiveBackend = agentSelection.selectedAssistantBackend;
-      const shouldApplyDefaultModel = manualModelSelectionAssistantRef.current !== selectedAssistantId;
-      const shouldApplyDefaultThoughtLevel = manualThoughtLevelSelectionAssistantRef.current !== selectedAssistantId;
+      const isCodexBackend = effectiveBackend === 'codex';
+      const shouldApplyDefaultModel =
+        !isCodexBackend && manualModelSelectionAssistantRef.current !== selectedAssistantId;
+      const shouldApplyDefaultThoughtLevel = !isCodexBackend;
 
       if (shouldApplyDefaultModel && effectiveBackend === 'aionrs') {
         if (resolvedDefaults.modelId) {
@@ -485,13 +476,6 @@ const GuidPage: React.FC = () => {
     (model: React.SetStateAction<string | null>) => {
       manualModelSelectionAssistantRef.current = selectedAssistantId;
       agentSelection.setSelectedAcpModel(model, { persistPreference: !hasSelectedAssistant });
-    },
-    [agentSelection, hasSelectedAssistant, selectedAssistantId]
-  );
-  const setGuidSelectedThoughtLevel = useCallback(
-    (value: string) => {
-      manualThoughtLevelSelectionAssistantRef.current = selectedAssistantId;
-      agentSelection.setSelectedThoughtLevelValue(value, { persistPreference: !hasSelectedAssistant });
     },
     [agentSelection, hasSelectedAssistant, selectedAssistantId]
   );
@@ -589,19 +573,7 @@ const GuidPage: React.FC = () => {
 
   // Build the mention dropdown node
   // Build the model selector node
-  const modelSelectorNode = (
-    <GuidModelSelector
-      isGeminiMode={isGeminiMode}
-      modelList={modelSelection.modelList}
-      current_model={modelSelection.current_model}
-      setCurrentModel={setGuidCurrentModel}
-      currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
-      selectedAcpModel={agentSelection.selectedAcpModel}
-      setSelectedAcpModel={setGuidSelectedAcpModel}
-      thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
-      onThoughtLevelSelect={setGuidSelectedThoughtLevel}
-    />
-  );
+  const modelSelectorNode: React.ReactNode = null;
 
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
@@ -622,11 +594,10 @@ const GuidPage: React.FC = () => {
       modelList={modelSelection.modelList}
       current_model={modelSelection.current_model}
       setCurrentModel={setGuidCurrentModel}
-      currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
-      selectedAcpModel={agentSelection.selectedAcpModel}
+      currentAcpCachedModelInfo={null}
+      selectedAcpModel={null}
       setSelectedAcpModel={setGuidSelectedAcpModel}
-      thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
-      onThoughtLevelSelect={setGuidSelectedThoughtLevel}
+      thoughtLevelOption={null}
       modeBackend={agentSelection.selectedAssistantBackend}
       selectedMode={agentSelection.selectedMode}
       dynamicModes={agentSelection.currentAgentModeOptions}
@@ -671,13 +642,6 @@ const GuidPage: React.FC = () => {
           <div className={styles.heroHeader}>
             <p className='text-2xl font-semibold mb-0 text-t-primary text-center'>{t('conversation.welcome.title')}</p>
           </div>
-
-          <AssistantSelectionArea
-            selectedAssistantId={agentSelection.selectedAssistantId}
-            assistants={agentSelection.assistants}
-            localeKey={localeKey}
-            onSelectAssistant={handleSelectAssistant}
-          />
 
           <GuidInputCard
             focusRequestKey={navState?.focusPrefill && navState.prefillPrompt ? location.key : undefined}

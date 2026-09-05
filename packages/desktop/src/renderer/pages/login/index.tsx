@@ -1,22 +1,19 @@
-import loginLogo from '@renderer/assets/logos/brand/app.png';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Checkbox, Input, Modal } from '@arco-design/web-react';
+import { BookOpen, Eye, EyeOff, HelpCircle, Lock, Mail } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '../../hooks/context/AuthContext';
 import './LoginPage.css';
 
-type MessageState = {
-  type: 'error' | 'success';
-  text: string;
-};
+type MessageState = { type: 'error' | 'success'; text: string };
+type AuthMode = 'login' | 'register';
 
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
 const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 
-// Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
 const obfuscate = (text: string): string => {
   const encoded = btoa(encodeURIComponent(text));
   return encoded.split('').toReversed().join('');
@@ -34,28 +31,28 @@ const deobfuscate = (text: string): string => {
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { status, login } = useAuth();
+  const { status, login, register } = useAuth();
 
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe] = useState(true);
+  const [agreedTerms, setAgreedTerms] = useState(true);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const [awaitingTwoFactor, setAwaitingTwoFactor] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const usernameRef = useRef<HTMLInputElement | null>(null);
-  const passwordRef = useRef<HTMLInputElement | null>(null);
-  const messageTimer = useRef<number | undefined>(undefined);
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [messageTimer, setMessageTimer] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     document.body.classList.add('login-page-active');
     return () => {
       document.body.classList.remove('login-page-active');
-      if (messageTimer.current) {
-        window.clearTimeout(messageTimer.current);
-      }
+      window.clearTimeout(messageTimer);
     };
-  }, []);
+  }, [messageTimer]);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
@@ -68,99 +65,101 @@ const LoginPage: React.FC = () => {
       const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
       if (storedUsername) setUsername(deobfuscate(storedUsername));
       if (storedPassword) setPassword(deobfuscate(storedPassword));
-      setRememberMe(true);
     }
-    window.setTimeout(() => {
-      usernameRef.current?.focus();
-    }, 0);
-
-    return () => {
-      if (messageTimer.current) {
-        window.clearTimeout(messageTimer.current);
-      }
-    };
   }, []);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      void navigate('/guid', { replace: true });
-    }
+    if (status === 'authenticated') void navigate('/guid', { replace: true });
   }, [navigate, status]);
-
-  const clearMessageLater = useCallback(() => {
-    if (messageTimer.current) {
-      window.clearTimeout(messageTimer.current);
-    }
-    messageTimer.current = window.setTimeout(() => {
-      setMessage((prev) => (prev?.type === 'success' ? prev : null));
-    }, 5000);
-  }, []);
 
   const showMessage = useCallback(
     (next: MessageState) => {
       setMessage(next);
-      if (next.type === 'error') {
-        clearMessageLater();
+      window.clearTimeout(messageTimer);
+      const timer = window.setTimeout(() => setMessage(null), 5000);
+      setMessageTimer(timer);
+    },
+    [messageTimer]
+  );
+
+  const saveRememberedCredentials = useCallback(
+    (trimmedUsername: string) => {
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, 'true');
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
+        localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+        localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
       }
     },
-    [clearMessageLater]
+    [password, rememberMe]
   );
-
-  const supportedLanguages = useMemo<{ code: string; label: string }[]>(
-    () => [
-      { code: 'zh-CN', label: '简体中文' },
-      { code: 'zh-TW', label: '繁體中文' },
-      { code: 'ja-JP', label: '日本語' },
-      { code: 'ko-KR', label: '한국어' },
-      { code: 'tr-TR', label: 'Türkçe' },
-      { code: 'uk-UA', label: 'Українська' },
-      { code: 'pt-BR', label: 'Português (BR)' },
-      { code: 'de-DE', label: 'Deutsch' },
-      { code: 'es-ES', label: 'Español' },
-      { code: 'fa-IR', label: 'فارسی' },
-      { code: 'en-US', label: 'English' },
-    ],
-    []
-  );
-
-  const handleLanguageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLanguage = event.target.value;
-    changeLanguage(nextLanguage).catch((error: Error) => {
-      console.error('Failed to change language:', error);
-    });
-  }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
       const trimmedUsername = username.trim();
 
-      if (!trimmedUsername || !password) {
+      if (!agreedTerms) {
+        showMessage({ type: 'error', text: t('login.errors.termsRequired') });
+        return;
+      }
+      if (!awaitingTwoFactor && (!trimmedUsername || !password)) {
         showMessage({ type: 'error', text: t('login.errors.empty') });
+        return;
+      }
+      if (authMode === 'register' && password.length < 6) {
+        showMessage({ type: 'error', text: t('login.errors.passwordTooShort') });
+        return;
+      }
+      if (awaitingTwoFactor && !totpCode) {
+        showMessage({ type: 'error', text: t('login.errors.emptyTotpCode') });
         return;
       }
 
       setLoading(true);
       setMessage(null);
 
-      const result = await login({ username: trimmedUsername, password, remember: rememberMe });
+      if (authMode === 'register') {
+        const registration = await register({
+          username: trimmedUsername,
+          password,
+        });
+        if (!registration.success) {
+          setLoading(false);
+          showMessage({
+            type: 'error',
+            text: registration.message ?? t('login.errors.registrationFailed'),
+          });
+          return;
+        }
+      }
+
+      const result = await login({
+        username: trimmedUsername,
+        password,
+        remember: rememberMe,
+        ...(awaitingTwoFactor ? { totpCode } : {}),
+      });
+
+      if (result.twoFactorRequired) {
+        setAwaitingTwoFactor(true);
+        setTotpCode('');
+        showMessage({ type: 'success', text: t('login.twoFactorPrompt') });
+        setLoading(false);
+        return;
+      }
 
       if (result.success) {
-        if (rememberMe) {
-          localStorage.setItem(REMEMBER_ME_KEY, 'true');
-          localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
-          localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
-        } else {
-          localStorage.removeItem(REMEMBER_ME_KEY);
-          localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-          localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
-        }
-
-        const successText = t('login.success');
-        showMessage({ type: 'success', text: successText });
-
-        window.setTimeout(() => {
-          void navigate('/guid', { replace: true });
+        saveRememberedCredentials(trimmedUsername);
+        showMessage({
+          type: 'success',
+          text: authMode === 'register' ? t('login.registerSuccess') : t('login.success'),
+        });
+        window.setTimeout(async (): Promise<void> => {
+          await navigate('/guid', { replace: true });
         }, 600);
       } else {
         const errorText = (() => {
@@ -173,185 +172,219 @@ const LoginPage: React.FC = () => {
               return t('login.errors.networkError');
             case 'serverError':
               return t('login.errors.serverError');
-            case 'unknown':
             default:
               return result.message ?? t('login.errors.unknown');
           }
         })();
-
         showMessage({ type: 'error', text: errorText });
       }
 
       setLoading(false);
     },
-    [login, navigate, password, rememberMe, showMessage, t, username]
+    [
+      agreedTerms,
+      authMode,
+      awaitingTwoFactor,
+      login,
+      navigate,
+      password,
+      register,
+      rememberMe,
+      saveRememberedCredentials,
+      showMessage,
+      t,
+      totpCode,
+      username,
+    ]
   );
 
-  if (status === 'checking') {
-    return <AppLoader />;
-  }
+  if (status === 'checking') return <AppLoader />;
 
   return (
     <div className='login-page'>
-      {/* <div className='login-page__background' aria-hidden='true'>
-        <div className='login-page__background-circle login-page__background-circle--lg' />
-        <div className='login-page__background-circle login-page__background-circle--md' />
-        <div className='login-page__background-circle login-page__background-circle--sm' />
-      </div> */}
-
-      <div className='login-page__card'>
-        <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
-          <select
-            id='lang-select'
-            className='login-page__lang-select'
-            value={i18n.language}
-            onChange={handleLanguageChange}
-          >
-            {supportedLanguages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className='login-page__header'>
-          <div className='login-page__logo'>
-            <img src={loginLogo} alt={t('login.brand')} />
-          </div>
-          <h1 className='login-page__title'>{t('login.brand')}</h1>
-          <p className='login-page__subtitle'>{t('login.subtitle')}</p>
+      {message?.type === 'success' && (
+        <div className='login-page__toast' role='status'>
+          <span className='login-page__toast-dot' />
+          {message.text}
         </div>
+      )}
 
-        <form className='login-page__form' onSubmit={handleSubmit}>
-          <div className='login-page__form-item'>
+      <header className='login-page__header-bar'>
+        <Button
+          type='text'
+          className='login-page__help-button'
+          onClick={() =>
+            Modal.info({
+              title: t('login.supportTitle'),
+              content: t('login.supportContent'),
+            })
+          }
+        >
+          <HelpCircle size={16} />
+          <span>{t('login.helpSupport')}</span>
+        </Button>
+      </header>
+
+      <main className='login-page__main'>
+        <div className='login-page__card'>
+          <div className='login-page__header'>
+            <div>
+              <h2 className='login-page__title'>
+                {authMode === 'login' ? t('login.welcomeTitle') : t('login.registerTitle')}
+              </h2>
+              <p className='login-page__subtitle'>
+                {authMode === 'login' ? t('login.subtitle') : t('login.registerSubtitle')}
+              </p>
+            </div>
+            <Button
+              type='text'
+              className='login-page__mode-switch'
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'register' : 'login');
+                setAwaitingTwoFactor(false);
+                setMessage(null);
+              }}
+            >
+              {authMode === 'login' ? t('login.registerMode') : t('login.loginMode')}
+            </Button>
+          </div>
+
+          {message?.type === 'error' && (
+            <Alert
+              className='login-page__error'
+              type='error'
+              content={
+                <span className='login-page__error-content'>
+                  <span className='login-page__error-dot' />
+                  {message.text}
+                </span>
+              }
+            />
+          )}
+
+          <form className='login-page__form' onSubmit={handleSubmit}>
             <label className='login-page__label' htmlFor='username'>
               {t('login.username')}
             </label>
-            <div className='login-page__input-wrapper'>
-              <svg
-                className='login-page__input-icon'
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                aria-hidden='true'
-              >
-                <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
-                <circle cx='12' cy='7' r='4' />
-              </svg>
-              <input
-                ref={usernameRef}
-                id='username'
-                name='username'
-                className='login-page__input'
-                placeholder={t('login.usernamePlaceholder')}
-                autoComplete='username'
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                aria-required='true'
-              />
-            </div>
-          </div>
-
-          <div className='login-page__form-item'>
-            <label className='login-page__label' htmlFor='password'>
-              {t('login.password')}
-            </label>
-            <div className='login-page__input-wrapper'>
-              <svg
-                className='login-page__input-icon'
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                aria-hidden='true'
-              >
-                <rect x='3' y='11' width='18' height='11' rx='2' ry='2' />
-                <path d='M7 11V7a5 5 0 0 1 10 0v4' />
-              </svg>
-              <input
-                ref={passwordRef}
-                id='password'
-                name='password'
-                type={passwordVisible ? 'text' : 'password'}
-                className='login-page__input'
-                placeholder={t('login.passwordPlaceholder')}
-                autoComplete='current-password'
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                aria-required='true'
-              />
-              <button
-                type='button'
-                className='login-page__toggle-password'
-                onClick={() => setPasswordVisible((prev) => !prev)}
-                aria-label={passwordVisible ? t('login.hidePassword') : t('login.showPassword')}
-              >
-                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                  {passwordVisible ? (
-                    <>
-                      <path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24' />
-                      <line x1='1' y1='1' x2='23' y2='23' />
-                    </>
-                  ) : (
-                    <>
-                      <path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' />
-                      <circle cx='12' cy='12' r='3' />
-                    </>
-                  )}
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div className='login-page__checkbox'>
-            <input
-              type='checkbox'
-              id='remember-me'
-              checked={rememberMe}
-              onChange={(event) => setRememberMe(event.target.checked)}
+            <Input
+              id='username'
+              className='login-page__input'
+              placeholder={t('login.usernamePlaceholder')}
+              autoComplete='username'
+              value={username}
+              onChange={setUsername}
+              prefix={<Mail size={16} />}
             />
-            <label htmlFor='remember-me'>{t('login.rememberMe')}</label>
-          </div>
 
-          <button type='submit' className='login-page__submit' disabled={loading}>
-            {loading && (
-              <svg className='login-page__spinner' viewBox='0 0 24 24' width='18' height='18'>
-                <circle
-                  cx='12'
-                  cy='12'
-                  r='10'
-                  stroke='currentColor'
-                  strokeWidth='3'
-                  fill='none'
-                  strokeDasharray='50'
-                  strokeDashoffset='25'
-                  strokeLinecap='round'
+            <div className='login-page__password-label-row'>
+              <label className='login-page__label' htmlFor='password'>
+                {t('login.password')}
+              </label>
+              <Button
+                type='text'
+                className='login-page__forgot-button'
+                onClick={() =>
+                  Modal.info({
+                    title: t('login.resetPasswordTitle'),
+                    content: t('login.resetPasswordContent'),
+                  })
+                }
+              >
+                {t('login.forgotPassword')}
+              </Button>
+            </div>
+            <Input
+              id='password'
+              className='login-page__input'
+              placeholder={t('login.passwordPlaceholder')}
+              type={passwordVisible ? 'text' : 'password'}
+              autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={setPassword}
+              prefix={<Lock size={16} />}
+              suffix={
+                <Button
+                  type='text'
+                  className='login-page__icon-button'
+                  aria-label={passwordVisible ? t('login.hidePassword') : t('login.showPassword')}
+                  onClick={() => setPasswordVisible((previous) => !previous)}
+                >
+                  {passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                </Button>
+              }
+            />
+
+            {awaitingTwoFactor && (
+              <>
+                <label className='login-page__label login-page__label--extra' htmlFor='totp-code'>
+                  {t('login.totpCode')}
+                </label>
+                <Input
+                  id='totp-code'
+                  className='login-page__input'
+                  placeholder={t('login.totpCodePlaceholder')}
+                  autoComplete='one-time-code'
+                  value={totpCode}
+                  onChange={setTotpCode}
                 />
-              </svg>
+              </>
             )}
-            <span>{loading ? t('login.submitting') : t('login.submit')}</span>
-          </button>
 
-          <div
-            role='alert'
-            aria-live='polite'
-            className={`login-page__message ${message ? 'login-page__message--visible' : ''} ${message ? (message.type === 'success' ? 'login-page__message--success' : 'login-page__message--error') : ''}`}
-            hidden={!message}
-          >
-            {message?.text}
-          </div>
-        </form>
+            <div className='login-page__terms'>
+              <Checkbox className='login-page__terms-checkbox' checked={agreedTerms} onChange={setAgreedTerms} />
+              <span>
+                {t('login.termsPrefix')}{' '}
+                <Button type='text' className='login-page__terms-link' onClick={() => setTermsVisible(true)}>
+                  {t('login.serviceAgreement')}
+                </Button>{' '}
+                {t('login.termsAnd')}{' '}
+                <Button type='text' className='login-page__terms-link' onClick={() => setTermsVisible(true)}>
+                  {t('login.privacyStatement')}
+                </Button>
+              </span>
+            </div>
 
-        <div className='login-page__footer'>
-          <div className='login-page__footer-content'>
-            <span>{t('login.footerPrimary')}</span>
-            <span className='login-page__footer-divider'>•</span>
-            <span>{t('login.footerSecondary')}</span>
-          </div>
+            <Button type='primary' htmlType='submit' className='login-page__submit' loading={loading}>
+              {authMode === 'login' ? t('login.submit') : t('login.register')}
+            </Button>
+          </form>
         </div>
-      </div>
+      </main>
+
+      <Modal
+        className='login-page__terms-modal'
+        visible={termsVisible}
+        title={
+          <span className='login-page__terms-modal-title'>
+            <BookOpen size={20} />
+            {t('login.termsModalTitle')}
+          </span>
+        }
+        footer={
+          <Button
+            type='primary'
+            className='login-page__terms-confirm'
+            onClick={() => {
+              setAgreedTerms(true);
+              setTermsVisible(false);
+            }}
+          >
+            {t('login.termsConfirm')}
+          </Button>
+        }
+        onCancel={() => setTermsVisible(false)}
+      >
+        <section className='login-page__terms-content'>
+          <h3>{t('login.termsSection1Title')}</h3>
+          <p>{t('login.termsSection1Body')}</p>
+          <h3>{t('login.termsSection2Title')}</h3>
+          <p>{t('login.termsSection2Body')}</p>
+          <h3>{t('login.termsSection3Title')}</h3>
+          <p>{t('login.termsSection3Body')}</p>
+        </section>
+      </Modal>
+
+      <footer className='login-page__footer'>{t('login.footer')}</footer>
     </div>
   );
 };

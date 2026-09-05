@@ -76,6 +76,7 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
+import { getCodexHome } from '@process/services/aibangAuthSerialization';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -737,6 +738,10 @@ const handleAppReady = async (): Promise<void> => {
     app.exit(1);
     return;
   }
+
+  const codexHome = getCodexHome(app.getPath('userData'));
+  await fs.promises.mkdir(codexHome, { recursive: true, mode: 0o700 });
+  process.env.CODEX_HOME = codexHome;
 
   /**
    * 启动单目标 CDP 通道，并把端口/口令写进自己的 env。

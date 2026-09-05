@@ -49,6 +49,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   logFeedbackEvent: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) =>
     ipcRenderer.send('feedback:renderer-log', payload),
   recoverCorruptedDatabase: () => ipcRenderer.invoke('backend:recover-corrupted-database'),
+  aibangAuth: {
+    getStatus: () => ipcRenderer.invoke('aibang-auth:get-status'),
+    login: (input: unknown) => ipcRenderer.invoke('aibang-auth:login', input),
+    clearSession: () => ipcRenderer.invoke('aibang-auth:clear-session'),
+    refreshSession: () => ipcRenderer.invoke('aibang-auth:refresh-session'),
+    register: (input: unknown) => ipcRenderer.invoke('aibang-auth:register', input),
+    sendEmailVerification: (input: unknown) => ipcRenderer.invoke('aibang-auth:send-email-verification', input),
+    redeem: (input: unknown) => ipcRenderer.invoke('aibang-auth:redeem', input),
+  },
 });
 
 // Synchronously fetch the aioncore port and expose it to the renderer

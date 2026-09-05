@@ -51,3 +51,427 @@
 :global(.group):hover .pinnedTextSlot {
   padding-inline-end: 18px;
 }
+
+/* Account footer and popover intentionally use fixed neutral values to match
+   the approved visual reference pixel-for-pixel. */
+.accountFooter {
+  padding: 10px !important;
+  border-top: 1px solid #ececed !important;
+}
+
+.accountPopover :global(.arco-popover-inner) {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.accountPopover :global(.arco-popover-content) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.accountPopover :global(.arco-popover-arrow-container) {
+  display: none;
+}
+
+.accountPopoverContent {
+  box-sizing: border-box;
+  width: 248px;
+  padding: 6px;
+  color: #404040;
+  background: #fff;
+  border: 1px solid rgb(229 229 229 / 80%);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 8%),
+    0 2px 8px -2px rgb(0 0 0 / 4%);
+  backdrop-filter: blur(24px);
+}
+
+.profileHeader {
+  padding: 0;
+  margin-bottom: 4px;
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+}
+
+.profileIdentity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 8px 6px;
+  margin-bottom: 6px;
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  gap: 10px;
+}
+
+.profileAvatar,
+.triggerAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.profileAvatar {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(to bottom right, #262626, #404040);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+}
+
+.profileName {
+  min-width: 0;
+  overflow: hidden;
+  color: #383838;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creditsButton,
+.accountMenuItem,
+.logoutButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 28px;
+  padding: 6px 8px;
+  color: #404040;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.creditsButton {
+  height: 38px;
+  padding: 0 12px;
+  color: #4c4c53 !important;
+  background: #fffdf5 !important;
+  border: 1px solid #fef5ce;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 4%);
+}
+
+.creditsButton:global(.arco-btn),
+.creditsButton:global(.arco-btn):hover,
+.creditsButton:global(.arco-btn):active {
+  color: #4c4c53 !important;
+  background: #fffdf5 !important;
+  border: 1px solid #fef5ce !important;
+}
+
+.creditsButton:hover,
+.accountMenuItem:hover {
+  color: #404040;
+}
+
+.creditsButton:hover {
+  color: #4c4c53;
+  background: #fffdf5;
+}
+
+.accountMenuItem:hover {
+  background: #f5f5f5;
+}
+
+.creditsLabel,
+.creditsValue,
+.menuLabel {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.creditsValue {
+  justify-content: flex-end;
+  flex-shrink: 0;
+  color: #f59e0b;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.lightningIcon {
+  width: 12px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #f59e0b;
+}
+
+.creditsButton .lightningIcon {
+  color: #fbbf24;
+}
+
+.chevronIcon,
+.menuIcon,
+.logoutIcon,
+.triggerChevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.chevronIcon {
+  color: #a3a3a3;
+}
+
+.creditsButton .chevronIcon {
+  color: #fbbf24;
+}
+
+.menuIcon {
+  color: #a3a3a3;
+}
+
+.accountMenuList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 2px;
+}
+
+.menuMeta,
+.versionMeta {
+  color: #a3a3a3;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 12px;
+}
+
+.versionMeta {
+  color: #059669;
+}
+
+.menuDivider {
+  height: 1px;
+  margin: 2px 0;
+  background: #ebebeb;
+}
+
+.logoutButton {
+  justify-content: flex-start;
+  color: #e11d48;
+  gap: 8px;
+}
+
+.logoutButton:hover {
+  color: #e11d48;
+  background: #fff1f2;
+}
+
+.logoutIcon {
+  color: #f43f5e;
+}
+
+.accountTrigger:global(.arco-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 50px;
+  padding: 8px 10px;
+  color: #383838;
+  font-size: 12px;
+  line-height: 16px;
+  background: rgb(255 255 255 / 60%);
+  border: 1px solid rgb(229 229 229 / 70%);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.accountTrigger:global(.arco-btn):hover {
+  color: #383838;
+  background: rgb(255 255 255 / 90%);
+  border-color: rgb(229 229 229 / 70%);
+}
+
+.accountTrigger:global(.arco-btn):active {
+  transform: scale(0.98);
+}
+
+.triggerAvatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.triggerAvatar {
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
+  font-weight: 600;
+  background: linear-gradient(to top right, #1b1c2b, #2f1b4d, #4c2975);
+  border: 1px solid #3e3455;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+}
+
+.statusDot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  background: #28c840;
+  border: 1px solid #fff;
+  border-radius: 9999px;
+}
+
+.triggerName {
+  display: block;
+  overflow: hidden;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerWorkspace {
+  display: block;
+  overflow: hidden;
+  color: #a3a3a3;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerChevronFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #a3a3a3;
+  border-radius: 6px;
+  transition: color 150ms ease;
+}
+
+.accountTrigger:hover .triggerChevronFrame {
+  color: #525252;
+}
+
+.triggerChevron {
+  transition: transform 150ms ease;
+}
+
+.triggerChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ===== 暗黑模式适配（账户气泡 / 触发按钮）===== */
+:global(body[arco-theme='dark']) .accountPopoverContent {
+  color: #d4d4d8;
+  background: #232326;
+  border-color: rgb(255 255 255 / 10%);
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 60%),
+    0 2px 8px -2px rgb(0 0 0 / 40%);
+}
+
+:global(body[arco-theme='dark']) .profileHeader,
+:global(body[arco-theme='dark']) .profileIdentity {
+  background: transparent;
+}
+
+:global(body[arco-theme='dark']) .profileName {
+  color: #e4e4e7;
+}
+
+:global(body[arco-theme='dark']) .creditsButton,
+:global(body[arco-theme='dark']) .creditsButton:global(.arco-btn),
+:global(body[arco-theme='dark']) .creditsButton:global(.arco-btn):hover,
+:global(body[arco-theme='dark']) .creditsButton:global(.arco-btn):active {
+  color: #fcd34d !important;
+  background: rgb(251 191 36 / 12%) !important;
+  border: 1px solid rgb(251 191 36 / 30%) !important;
+}
+
+:global(body[arco-theme='dark']) .creditsButton:hover {
+  color: #fde68a;
+  background: rgb(251 191 36 / 20%);
+}
+
+:global(body[arco-theme='dark']) .accountMenuItem,
+:global(body[arco-theme='dark']) .logoutButton {
+  color: #d4d4d8;
+}
+
+:global(body[arco-theme='dark']) .accountMenuItem:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+:global(body[arco-theme='dark']) .chevronIcon,
+:global(body[arco-theme='dark']) .menuIcon,
+:global(body[arco-theme='dark']) .menuMeta,
+:global(body[arco-theme='dark']) .triggerWorkspace,
+:global(body[arco-theme='dark']) .triggerChevronFrame {
+  color: #71717a;
+}
+
+:global(body[arco-theme='dark']) .menuDivider {
+  background: rgb(255 255 255 / 10%);
+}
+
+:global(body[arco-theme='dark']) .logoutButton {
+  color: #fb7185;
+}
+
+:global(body[arco-theme='dark']) .logoutButton:hover {
+  color: #fb7185;
+  background: rgb(225 29 72 / 15%);
+}
+
+:global(body[arco-theme='dark']) .logoutIcon {
+  color: #fb7185;
+}
+
+:global(body[arco-theme='dark']) .accountTrigger:global(.arco-btn) {
+  color: #e4e4e7;
+  background: rgb(255 255 255 / 6%);
+  border-color: rgb(255 255 255 / 12%);
+}
+
+:global(body[arco-theme='dark']) .accountTrigger:global(.arco-btn):hover {
+  color: #e4e4e7;
+  background: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 12%);
+}
+
+:global(body[arco-theme='dark']) .triggerName {
+  color: #e4e4e7;
+}
+
+:global(body[arco-theme='dark']) .accountTrigger:hover .triggerChevronFrame {
+  color: #a1a1aa;
+}

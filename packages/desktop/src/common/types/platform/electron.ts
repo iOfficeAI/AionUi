@@ -22,6 +22,39 @@ export interface ElectronBridgeAPI {
   // Forward feedback diagnostics logs to the main process console / 转发反馈诊断日志到主进程控制台
   logFeedbackEvent?: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) => void;
   recoverCorruptedDatabase?: () => Promise<void>;
+  aibangAuth?: {
+    login: (input: { username?: string; password?: string; totpCode?: string }) => Promise<
+      | { success: true; twoFactorRequired: true }
+      | {
+          success: true;
+          twoFactorRequired: false;
+          expiresAt: number;
+          user: { id: number; username: string; quota: number };
+        }
+      | {
+          success: false;
+          code: 'invalidCredentials' | 'tooManyAttempts' | 'serverError' | 'networkError' | 'unknown';
+          message?: string;
+        }
+    >;
+    getStatus: () => Promise<{ authenticated: boolean; user?: { id: number; username: string; quota: number } }>;
+    clearSession: () => Promise<void>;
+    refreshSession: () => Promise<{ authenticated: boolean; user?: { id: number; username: string; quota: number } }>;
+    register: (input: {
+      username: string;
+      password: string;
+      email?: string;
+      verificationCode?: string;
+    }) => Promise<{ success: true } | { success: false; message?: string }>;
+    sendEmailVerification: (input: {
+      email: string;
+    }) => Promise<{ success: true } | { success: false; message?: string }>;
+    redeem: (input: {
+      key: string;
+    }) => Promise<
+      { success: true; user?: { id: number; username: string; quota: number } } | { success: false; message?: string }
+    >;
+  };
 }
 
 export type BackendStartupFailureReason =
@@ -63,7 +96,6 @@ export interface BackendStartupFailureInfo {
   missingBackendBinary?: boolean;
   missingBundledAioncoreDir?: boolean;
   missingHubDir?: boolean;
-  missingPetStatesDir?: boolean;
   missingPwaDir?: boolean;
   reason: BackendStartupFailureReason;
   backendBoundaryCode?: string;

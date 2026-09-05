@@ -30,6 +30,9 @@
  */
 export const BROWSER_SESSION_PARTITION = 'persist:aibang-browser';
 
+/** The only user-facing Codex model exposed by the AIbang middleware. */
+export const AIBANG_FORCED_CODEX_MODEL = 'gpt-5.6-sol';
+
 /**
  * 内置浏览器 MCP 的注册名。
  *

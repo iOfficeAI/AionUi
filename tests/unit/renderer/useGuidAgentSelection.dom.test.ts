@@ -136,6 +136,40 @@ describe('useGuidAssistantSelection', () => {
     });
   });
 
+  it('forces the built-in Codex assistant and middleware model', async () => {
+    mockAssistants = [
+      assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
+      assistantFixture({ id: 'assistant-codex', runtimeKey: 'codex', source: 'builtin', sortOrder: 2 }),
+    ];
+    configGetMock.mockImplementation((key: string) =>
+      key === 'guid.lastAssistantId' ? 'assistant-claude' : undefined
+    );
+    mockManagedAgents = [
+      {
+        id: 'agent-codex',
+        name: 'Codex',
+        backend: 'codex',
+        agent_type: 'acp',
+        agent_source: 'builtin',
+        enabled: true,
+      } satisfies ManagedAgent,
+    ];
+
+    const { result } = renderHook(() =>
+      useGuidAssistantSelection({
+        resetAssistant: true,
+        locationKey: 'forced-codex',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBe('assistant-codex');
+    });
+    expect(result.current.selectedAcpModel).toBe('gpt-5.6-sol');
+    expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('gpt-5.6-sol');
+    expect(result.current.selectedThoughtLevelValue).toBe('');
+  });
+
   it('persists manual guid assistant selections for the next visit', async () => {
     mockAssistants = [
       assistantFixture({ id: 'bare-aionrs', runtimeKey: 'aionrs', source: 'generated', sortOrder: 1 }),
