@@ -31,6 +31,7 @@
     "cancelEdit": "Скасувати",
     "rename": "Перейменувати",
     "createCronTask": "Створити заплановане завдання",
+    "openInNewWindow": "Відкрити в новому вікні",
     "renameTitle": "Перейменувати чат",
     "renamePlaceholder": "Будь ласка, введіть нову назву",
     "renameSuccess": "Перейменовано успішно",

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testState = vi.hoisted(() => ({
   pathname: '/conversation/conversation-1',
+  search: '',
   desktop: true,
   mac: true,
   visibleConversationIds: [] as string[],
@@ -16,7 +17,7 @@ const serviceMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('react-router-dom', () => ({
-  useLocation: () => ({ pathname: testState.pathname, search: '', hash: '' }),
+  useLocation: () => ({ pathname: testState.pathname, search: testState.search, hash: '' }),
   useNavigate: () => vi.fn(),
 }));
 
@@ -97,6 +98,7 @@ const renderConversationShortcuts = ({
 describe('common desktop UI shortcuts', () => {
   beforeEach(() => {
     testState.pathname = '/conversation/conversation-1';
+    testState.search = '';
     testState.desktop = true;
     testState.mac = true;
     testState.visibleConversationIds = [];
@@ -377,6 +379,24 @@ describe('common desktop UI shortcuts', () => {
 
     expect(toggleSider).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('leaves app-level navigation shortcuts untouched in a detached window', () => {
+    testState.search = '?window=detached';
+    testState.visibleConversationIds = ['conversation-1', 'conversation-2'];
+    setFocusedConversation('conversation-1');
+    const { navigate, toggleSider } = renderConversationShortcuts();
+
+    const events = [
+      dispatchShortcut(window, { key: 'Tab', ctrlKey: true }),
+      dispatchShortcut(window, { key: 't', metaKey: true }),
+      dispatchShortcut(window, { key: 'b', metaKey: true }),
+      dispatchShortcut(window, { key: 'l', metaKey: true }),
+    ];
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(toggleSider).not.toHaveBeenCalled();
+    expect(events.every((event) => !event.defaultPrevented)).toBe(true);
   });
 
   it('removes its listener on unmount', () => {

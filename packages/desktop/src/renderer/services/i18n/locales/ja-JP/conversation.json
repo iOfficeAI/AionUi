@@ -35,6 +35,7 @@
     "cancelEdit": "キャンセル",
     "rename": "名前を変更",
     "createCronTask": "スケジュールタスクを作成",
+    "openInNewWindow": "新しいウィンドウで開く",
     "renameTitle": "チャット名を変更",
     "renamePlaceholder": "新しい名前を入力してください",
     "renameSuccess": "名前を変更しました",

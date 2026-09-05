@@ -20,6 +20,8 @@ import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import MigrationInviteCapsule from './MigrationInviteCapsule';
 import './titlebar.css';
 
+export { default as DetachedTitlebar } from './DetachedTitlebar';
+
 interface TitlebarProps {
   workspaceAvailable: boolean;
 }

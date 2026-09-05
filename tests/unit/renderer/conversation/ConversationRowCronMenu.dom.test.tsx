@@ -67,6 +67,7 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   onMenuVisibleChange: vi.fn(),
   onEditStart: vi.fn(),
   onCreateCronTask: vi.fn(),
+  onOpenDetached: vi.fn(),
   onArchive: vi.fn(),
   onTogglePin: vi.fn(),
   getJobStatus: () => 'none',
@@ -93,6 +94,15 @@ describe('conversation scheduled-task menu item', () => {
     await waitFor(() => expect(onArchive).toHaveBeenCalledWith(conversation));
     fireEvent.click(createCronTask);
     await waitFor(() => expect(onCreateCronTask).toHaveBeenCalledWith(conversation));
+  });
+
+  it('offers the detached-window action and invokes it for the selected row', async () => {
+    const onOpenDetached = vi.fn();
+    render(<ConversationRow {...makeProps({ onOpenDetached })} />);
+
+    fireEvent.click(await screen.findByText('conversation.history.openInNewWindow'));
+
+    await waitFor(() => expect(onOpenDetached).toHaveBeenCalledWith(conversation));
   });
 
   it('keeps row actions hidden while batch selection is active', () => {

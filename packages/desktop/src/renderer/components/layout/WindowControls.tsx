@@ -22,6 +22,7 @@ const WindowRestoreIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
 const WindowControls: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [available, setAvailable] = useState(true);
+  const controlTarget = { web_contents_id: getWindowId() };
 
   // 初始化时同步窗口状态并订阅最大化事件 / Sync current window state and subscribe to maximize events
   useEffect(() => {
@@ -29,7 +30,7 @@ const WindowControls: React.FC = () => {
 
     // 获取初始窗口状态 / Get initial window state
     ipcBridge.windowControls.isMaximized
-      .invoke()
+      .invoke(controlTarget)
       .then((state) => {
         if (isMounted) {
           setIsMaximized(state);
@@ -66,18 +67,18 @@ const WindowControls: React.FC = () => {
 
   // 以下处理三种窗口按钮点击事件 / Handle minimize, maximize/restore, and close button events
   const handleMinimize = () => {
-    void ipcBridge.windowControls.minimize.invoke();
+    void ipcBridge.windowControls.minimize.invoke(controlTarget);
   };
 
   const handleClose = () => {
-    void ipcBridge.windowControls.close.invoke();
+    void ipcBridge.windowControls.close.invoke(controlTarget);
   };
 
   const handleToggleMaximize = () => {
     if (isMaximized) {
-      void ipcBridge.windowControls.unmaximize.invoke();
+      void ipcBridge.windowControls.unmaximize.invoke(controlTarget);
     } else {
-      void ipcBridge.windowControls.maximize.invoke();
+      void ipcBridge.windowControls.maximize.invoke(controlTarget);
     }
   };
 

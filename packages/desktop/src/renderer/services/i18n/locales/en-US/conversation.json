@@ -31,6 +31,7 @@
     "cancelEdit": "Cancel",
     "rename": "Rename",
     "createCronTask": "Create scheduled task",
+    "openInNewWindow": "Open in new window",
     "renameTitle": "Rename Chat",
     "renamePlaceholder": "Please enter a new name",
     "renameSuccess": "Renamed successfully",

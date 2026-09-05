@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
-import Titlebar from '@/renderer/components/layout/Titlebar';
+import Titlebar, { DetachedTitlebar } from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -37,6 +37,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
+import { getDetachedConversationId } from '@/common/platform/detachedWindow';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
 
@@ -131,6 +132,8 @@ const Layout: React.FC<{
   useDesktopTurnNotification();
   const navigate = useNavigate();
   const location = useLocation();
+  const detachedConversationId = getDetachedConversationId(location.pathname, location.search);
+  const isDetached = detachedConversationId !== null;
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
@@ -181,7 +184,7 @@ const Layout: React.FC<{
   // their reserve. Active only when a project is bound and on desktop.
   const currentProject = useCurrentProject();
   const { containerRef: mainRowRef, containerWidth: mainRowWidth } = useContainerWidth();
-  const explorerActive = Boolean(currentProject) && !isMobile;
+  const explorerActive = Boolean(currentProject) && !isMobile && !isDetached;
   const { widthPx: explorerWidthPx, createDragHandle: createExplorerDragHandle } = useProjectExplorerColumnWidth(
     mainRowWidth,
     isPreviewOpen,
@@ -209,7 +212,7 @@ const Layout: React.FC<{
   const previewMaximized = previewRegionActive && isPreviewMaximized;
   const { widthPx: previewWidthPx, createDragHandle: createPreviewRegionDragHandle } = useProjectPreviewRegionWidth(
     mainRowWidth,
-    explorerCollapsed ? 0 : explorerWidthPx,
+    isDetached || explorerCollapsed ? 0 : explorerWidthPx,
     previewRegionActive
   );
   const routeLayoutMountedRef = useRef(false);
@@ -373,112 +376,118 @@ const Layout: React.FC<{
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
         <div className='app-shell flex flex-col size-full min-h-0'>
-          <Titlebar workspaceAvailable={workspaceAvailable} />
+          {isDetached && detachedConversationId ? (
+            <DetachedTitlebar conversationId={detachedConversationId} />
+          ) : (
+            <Titlebar workspaceAvailable={workspaceAvailable} />
+          )}
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-          {isMobile && !collapsed && (
+          {!isDetached && isMobile && !collapsed && (
             <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
           )}
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
-            <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 0}
-              collapsed={collapsed}
-              width={siderWidth}
-              className={classNames('!bg-2 layout-sider', {
-                collapsed: collapsed,
-              })}
-              style={siderStyle}
-            >
-              <ArcoLayout.Header
-                className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
-                  isMobile && 'layout-sider-header--mobile',
-                  {
-                    'cursor-pointer group ': collapsed,
-                  }
-                )}
-              >
-                <div
-                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
-                    '!size-24px': collapsed,
-                  })}
-                  onClick={onClick}
-                >
-                  <svg
-                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      'scale-140': !collapsed,
-                    })}
-                    viewBox='0 0 80 80'
-                    fill='none'
-                  >
-                    <path
-                      key='logo-path-1'
-                      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-                      fill='white'
-                    ></path>
-                    <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                    <path
-                      key='logo-path-2'
-                      d='M18 50 Q40 70 62 50'
-                      stroke='white'
-                      strokeWidth='3.5'
-                      fill='none'
-                      strokeLinecap='round'
-                    ></path>
-                  </svg>
-                </div>
-                {isSettingsRoute ? (
-                  <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
-                    <div
-                      className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
-                      role='button'
-                      tabIndex={0}
-                      aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
-                      onClick={handleBrandHome}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleBrandHome();
-                        }
-                      }}
-                    >
-                      AionUi
-                    </div>
-                  </Tooltip>
-                ) : (
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
-                )}
-                {isMobile && !collapsed && (
-                  <button
-                    type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
-                    onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
-                    aria-label='Collapse sidebar'
-                  >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
-                  </button>
-                )}
-                {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-              </ArcoLayout.Header>
-              <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
-                {React.isValidElement(sider)
-                  ? React.cloneElement(sider, {
-                      onSessionClick: () => {
-                        cleanupSiderTooltips();
-                        if (isMobile) setCollapsed(true);
-                      },
-                      collapsed,
-                    } as any)
-                  : sider}
-              </ArcoLayout.Content>
-              {!isMobile &&
-                createSiderDragHandle({
-                  className: 'z-20',
-                  style: { right: '-4px', width: '8px' },
-                  linePlacement: 'start',
+            {!isDetached && (
+              <ArcoLayout.Sider
+                collapsedWidth={isMobile ? 0 : 0}
+                collapsed={collapsed}
+                width={siderWidth}
+                className={classNames('!bg-2 layout-sider', {
+                  collapsed: collapsed,
                 })}
-            </ArcoLayout.Sider>
+                style={siderStyle}
+              >
+                <ArcoLayout.Header
+                  className={classNames(
+                    'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
+                    isMobile && 'layout-sider-header--mobile',
+                    {
+                      'cursor-pointer group ': collapsed,
+                    }
+                  )}
+                >
+                  <div
+                    className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
+                      '!size-24px': collapsed,
+                    })}
+                    onClick={onClick}
+                  >
+                    <svg
+                      className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
+                        'scale-140': !collapsed,
+                      })}
+                      viewBox='0 0 80 80'
+                      fill='none'
+                    >
+                      <path
+                        key='logo-path-1'
+                        d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
+                        fill='white'
+                      ></path>
+                      <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
+                      <path
+                        key='logo-path-2'
+                        d='M18 50 Q40 70 62 50'
+                        stroke='white'
+                        strokeWidth='3.5'
+                        fill='none'
+                        strokeLinecap='round'
+                      ></path>
+                    </svg>
+                  </div>
+                  {isSettingsRoute ? (
+                    <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
+                      <div
+                        className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
+                        role='button'
+                        tabIndex={0}
+                        aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
+                        onClick={handleBrandHome}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleBrandHome();
+                          }
+                        }}
+                      >
+                        AionUi
+                      </div>
+                    </Tooltip>
+                  ) : (
+                    <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                  )}
+                  {isMobile && !collapsed && (
+                    <button
+                      type='button'
+                      className='app-titlebar__button app-titlebar__button--mobile'
+                      onClick={() => setCollapsed(true)}
+                      title='Collapse sidebar'
+                      aria-label='Collapse sidebar'
+                    >
+                      <SidebarIcon size={18} strokeWidth={2.5} />
+                    </button>
+                  )}
+                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                </ArcoLayout.Header>
+                <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
+                  {React.isValidElement(sider)
+                    ? React.cloneElement(sider, {
+                        onSessionClick: () => {
+                          cleanupSiderTooltips();
+                          if (isMobile) setCollapsed(true);
+                        },
+                        collapsed,
+                      } as any)
+                    : sider}
+                </ArcoLayout.Content>
+                {!isMobile &&
+                  createSiderDragHandle({
+                    className: 'z-20',
+                    style: { right: '-4px', width: '8px' },
+                    linePlacement: 'start',
+                  })}
+              </ArcoLayout.Sider>
+            )}
 
             {/* Content + project Explorer share one measured flex row (stage3
                 FULL / P2). `mainRowRef` gives the [content|explorer] width for the
@@ -553,7 +562,7 @@ const Layout: React.FC<{
                   </div>
                 </div>
               )}
-              {!isMobile && (
+              {!isDetached && !isMobile && (
                 <ProjectPanelHost
                   widthPx={explorerWidthPx}
                   collapsed={explorerCollapsed}
@@ -566,7 +575,7 @@ const Layout: React.FC<{
             </div>
 
             {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
-            {isMobile && Boolean(currentProject) && (
+            {!isDetached && isMobile && Boolean(currentProject) && (
               <ProjectPanelMobileOverlay
                 projectId={currentProject as string}
                 collapsed={explorerCollapsed}

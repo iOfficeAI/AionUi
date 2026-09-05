@@ -16,6 +16,7 @@ vi.mock('react-i18next', () => ({
 // react-router-dom: control location, capture navigate.
 const navigate = vi.fn();
 let currentPathname = '/guid';
+let currentSearch = '';
 const platformMocks = vi.hoisted(() => ({
   isElectronDesktopMock: vi.fn(() => false),
 }));
@@ -27,7 +28,7 @@ const featureMocks = vi.hoisted(() => ({
 }));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
-  useLocation: () => ({ pathname: currentPathname, search: '', hash: '' }),
+  useLocation: () => ({ pathname: currentPathname, search: currentSearch, hash: '' }),
   useNavigationType: () => 'POP',
   Outlet: () => null,
 }));
@@ -51,7 +52,12 @@ vi.mock('@/common/config/constants', () => ({
   },
 }));
 vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () => null }));
-vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
+vi.mock('@/renderer/components/layout/Titlebar', () => ({
+  default: () => null,
+  DetachedTitlebar: ({ conversationId }: { conversationId: string }) => (
+    <div data-testid='detached-titlebar'>{conversationId}</div>
+  ),
+}));
 vi.mock('@/renderer/components/settings/UpdateModal', () => ({ default: () => null }));
 vi.mock('@renderer/hooks/system/useDeepLink', () => ({ useDeepLink: () => {} }));
 vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({ useNotificationClick: () => {} }));
@@ -98,6 +104,7 @@ describe('Layout sider brand Home button', () => {
     featureMocks.teamModeEnabled = false;
     sessionStorage.clear();
     currentPathname = '/guid';
+    currentSearch = '';
   });
 
   afterEach(() => {
@@ -193,6 +200,18 @@ describe('Layout sider brand Home button', () => {
 
     renderLayout();
 
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
+  });
+
+  it('renders the chrome-less shell for a detached conversation route', () => {
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+
+    const { container } = renderLayout();
+
+    expect(screen.getByTestId('detached-titlebar')).toHaveTextContent('detached-1');
+    expect(container.querySelector('.layout-sider')).toBeNull();
+    expect(screen.queryByText('sider')).toBeNull();
     expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
   });
 

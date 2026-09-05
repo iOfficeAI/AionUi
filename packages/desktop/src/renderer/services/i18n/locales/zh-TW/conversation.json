@@ -35,6 +35,7 @@
     "cancelEdit": "取消",
     "rename": "重新命名",
     "createCronTask": "建立排程任務",
+    "openInNewWindow": "在新視窗中開啟",
     "renameTitle": "重新命名對話",
     "renamePlaceholder": "請輸入新名稱",
     "renameSuccess": "重新命名成功",

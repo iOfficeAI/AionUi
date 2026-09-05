@@ -31,6 +31,7 @@
     "cancelEdit": "Cancelar",
     "rename": "Renombrar",
     "createCronTask": "Crear tarea programada",
+    "openInNewWindow": "Abrir en una ventana nueva",
     "renameTitle": "Renombrar chat",
     "renamePlaceholder": "Ingresa un nuevo nombre",
     "renameSuccess": "Renombrado correctamente",

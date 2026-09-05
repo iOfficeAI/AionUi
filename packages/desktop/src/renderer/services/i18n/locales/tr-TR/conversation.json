@@ -35,6 +35,7 @@
     "cancelEdit": "İptal",
     "rename": "Yeniden Adlandır",
     "createCronTask": "Zamanlanmış Görev Oluştur",
+    "openInNewWindow": "Yeni pencerede aç",
     "renameTitle": "Sohbeti Yeniden Adlandır",
     "renamePlaceholder": "Lütfen yeni bir isim girin",
     "renameSuccess": "Başarıyla yeniden adlandırıldı",

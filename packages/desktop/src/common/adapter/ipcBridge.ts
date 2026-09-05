@@ -1483,16 +1483,21 @@ export const deepLink = {
 // ---------------------------------------------------------------------------
 
 export const windowControls = {
-  minimize: bridge.buildProvider<void, void>('window-controls:minimize'),
-  maximize: bridge.buildProvider<void, void>('window-controls:maximize'),
-  unmaximize: bridge.buildProvider<void, void>('window-controls:unmaximize'),
-  close: bridge.buildProvider<void, void>('window-controls:close'),
-  isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
+  minimize: bridge.buildProvider<void, { web_contents_id: number | null }>('window-controls:minimize'),
+  maximize: bridge.buildProvider<void, { web_contents_id: number | null }>('window-controls:maximize'),
+  unmaximize: bridge.buildProvider<void, { web_contents_id: number | null }>('window-controls:unmaximize'),
+  close: bridge.buildProvider<void, { web_contents_id: number | null }>('window-controls:close'),
+  isMaximized: bridge.buildProvider<boolean, { web_contents_id: number | null }>('window-controls:is-maximized'),
   // `web_contents_id` identifies the window whose state changed. The emit
   // reaches every renderer, so each one keeps only its own window's events.
   maximizedChanged: bridge.buildEmitter<{ is_maximized: boolean; web_contents_id: number }>(
     'window-controls:maximized-changed'
   ),
+};
+
+export const detachedWindow = {
+  open: bridge.buildProvider<void, { conversation_id: string }>('detached-window:open'),
+  focus: bridge.buildProvider<boolean, { conversation_id: string }>('detached-window:focus'),
 };
 
 // ---------------------------------------------------------------------------

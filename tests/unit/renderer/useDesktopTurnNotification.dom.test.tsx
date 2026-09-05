@@ -11,6 +11,9 @@ const showInvoke = vi.fn();
 let isDesktop = true;
 let settingEnabled = true;
 let snapshotName: string | undefined;
+let locationSearch = '';
+
+vi.mock('react-router-dom', () => ({ useLocation: () => ({ search: locationSearch }) }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -47,6 +50,7 @@ beforeEach(() => {
   isDesktop = true;
   settingEnabled = true;
   snapshotName = undefined;
+  locationSearch = '';
 });
 
 describe('useDesktopTurnNotification', () => {
@@ -105,5 +109,11 @@ describe('useDesktopTurnNotification', () => {
     expect(streamHandlers).toHaveLength(0);
     emitStream({ type: 'finish', conversation_id: 's1', turn_id: 't1' });
     expect(showInvoke).not.toHaveBeenCalled();
+  });
+
+  it('does not register a duplicate notification producer in a detached window', () => {
+    locationSearch = '?window=detached';
+    renderHook(() => useDesktopTurnNotification());
+    expect(streamHandlers).toHaveLength(0);
   });
 });

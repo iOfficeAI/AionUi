@@ -31,6 +31,7 @@
     "cancelEdit": "Annuler",
     "rename": "Renommer",
     "createCronTask": "Créer une tâche planifiée",
+    "openInNewWindow": "Ouvrir dans une nouvelle fenêtre",
     "renameTitle": "Renommer le chat",
     "renamePlaceholder": "Veuillez entrer un nouveau nom",
     "renameSuccess": "Renommé avec succès",

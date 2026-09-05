@@ -19,6 +19,7 @@ const isDestroyed = vi.fn(() => false);
 const on = vi.fn();
 
 const mockWindow = {
+  webContents: { id: 1 },
   hide,
   close,
   minimize,
@@ -48,8 +49,17 @@ vi.mock('@process/utils/tray', () => ({
   getIsQuitting: () => getIsQuitting(),
 }));
 
-type ProviderFn = () => Promise<void> | void;
-const providers: Record<string, ProviderFn> = {};
+type ProviderFn = (params: { web_contents_id: number | null }) => Promise<void> | void;
+type DetachedProviderFn = (params: { conversation_id: string }) => Promise<boolean | void> | boolean | void;
+const providers: Record<string, ProviderFn | DetachedProviderFn> = {};
+
+const openConversation = vi.fn();
+const focusConversation = vi.fn(() => true);
+const isDetachedWindow = vi.fn(() => false);
+
+vi.mock('@/process/services/detachedWindowRegistry', () => ({
+  getDetachedWindowRegistry: () => ({ openConversation, focusConversation, isDetachedWindow }),
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -60,6 +70,10 @@ vi.mock('@/common', () => ({
       close: { provider: (fn: ProviderFn) => (providers.close = fn) },
       isMaximized: { provider: (fn: ProviderFn) => (providers.isMaximized = fn) },
       maximizedChanged: { emit: vi.fn() },
+    },
+    detachedWindow: {
+      open: { provider: (fn: DetachedProviderFn) => (providers.detachedOpen = fn) },
+      focus: { provider: (fn: DetachedProviderFn) => (providers.detachedFocus = fn) },
     },
   },
 }));
@@ -78,6 +92,11 @@ describe('windowControlsBridge close-to-tray', () => {
     getCloseToTrayEnabled.mockReturnValue(false);
     getIsQuitting.mockReturnValue(false);
     isDestroyed.mockReturnValue(false);
+    openConversation.mockClear();
+    focusConversation.mockClear();
+    focusConversation.mockReturnValue(true);
+    isDetachedWindow.mockReset();
+    isDetachedWindow.mockReturnValue(false);
 
     const { initWindowControlsBridge } = await import('@/process/bridge/windowControlsBridge');
     initWindowControlsBridge();
@@ -87,7 +106,7 @@ describe('windowControlsBridge close-to-tray', () => {
     getCloseToTrayEnabled.mockReturnValue(true);
     getIsQuitting.mockReturnValue(false);
 
-    await providers.close();
+    await providers.close({ web_contents_id: 1 });
 
     expect(hide).toHaveBeenCalledTimes(1);
     expect(close).not.toHaveBeenCalled();
@@ -96,7 +115,7 @@ describe('windowControlsBridge close-to-tray', () => {
   it('closes the window when close-to-tray is disabled', async () => {
     getCloseToTrayEnabled.mockReturnValue(false);
 
-    await providers.close();
+    await providers.close({ web_contents_id: 1 });
 
     expect(close).toHaveBeenCalledTimes(1);
     expect(hide).not.toHaveBeenCalled();
@@ -106,7 +125,17 @@ describe('windowControlsBridge close-to-tray', () => {
     getCloseToTrayEnabled.mockReturnValue(true);
     getIsQuitting.mockReturnValue(true);
 
-    await providers.close();
+    await providers.close({ web_contents_id: 1 });
+
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(hide).not.toHaveBeenCalled();
+  });
+
+  it('closes a detached window even when close-to-tray is enabled', async () => {
+    getCloseToTrayEnabled.mockReturnValue(true);
+    isDetachedWindow.mockReturnValue(true);
+
+    await (providers.close as ProviderFn)({ web_contents_id: 1 });
 
     expect(close).toHaveBeenCalledTimes(1);
     expect(hide).not.toHaveBeenCalled();
@@ -117,9 +146,32 @@ describe('windowControlsBridge close-to-tray', () => {
     getAllWindows.mockReturnValue([mockWindow]);
     getCloseToTrayEnabled.mockReturnValue(true);
 
-    await providers.close();
+    await providers.close({ web_contents_id: null });
 
     expect(hide).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it('routes detached-window bridge calls through the registry', async () => {
+    await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });
+    const focused = await (providers.detachedFocus as DetachedProviderFn)({ conversation_id: 'conversation-1' });
+
+    expect(openConversation).toHaveBeenCalledWith('conversation-1');
+    expect(focusConversation).toHaveBeenCalledWith('conversation-1');
+    expect(focused).toBe(true);
+  });
+
+  it('targets the renderer window id even when another window is focused', async () => {
+    const senderWindow = {
+      ...mockWindow,
+      webContents: { id: 2 },
+      close: vi.fn(),
+    };
+    getAllWindows.mockReturnValue([mockWindow, senderWindow]);
+
+    await (providers.close as ProviderFn)({ web_contents_id: 2 });
+
+    expect(senderWindow.close).toHaveBeenCalledOnce();
     expect(close).not.toHaveBeenCalled();
   });
 });

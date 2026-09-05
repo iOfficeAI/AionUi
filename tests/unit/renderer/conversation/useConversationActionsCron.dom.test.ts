@@ -8,10 +8,14 @@ import type { TChatConversation } from '@/common/config/storage';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { navigateMock, requestPrefillMock, routeState } = vi.hoisted(() => ({
+const { navigateMock, requestPrefillMock, routeState, detachedWindowMocks } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   requestPrefillMock: vi.fn(),
   routeState: { id: 'current-conversation' as string | undefined },
+  detachedWindowMocks: {
+    focusConversation: vi.fn(() => Promise.resolve(false)),
+    openConversation: vi.fn(() => Promise.resolve()),
+  },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -55,6 +59,10 @@ vi.mock('@/renderer/utils/ui/focus', () => ({
   blurActiveElement: vi.fn(),
 }));
 
+vi.mock('@/renderer/utils/ui/detachedWindow', () => ({
+  detachedWindowActions: detachedWindowMocks,
+}));
+
 import { useConversationActions } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions';
 
 const makeConversation = (id: string, type: TChatConversation['type']): TChatConversation =>
@@ -84,6 +92,7 @@ describe('create scheduled task conversation action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     routeState.id = 'current-conversation';
+    detachedWindowMocks.focusConversation.mockResolvedValue(false);
   });
 
   it('prefills the current editable conversation without navigating', () => {
@@ -124,4 +133,47 @@ describe('create scheduled task conversation action', () => {
       });
     }
   );
+
+  it('focuses an existing pop-out instead of navigating the main window', async () => {
+    detachedWindowMocks.focusConversation.mockResolvedValue(true);
+    const onSessionClick = vi.fn();
+    const { result } = renderActions(onSessionClick);
+    const conversation = makeConversation('popped-out', 'acp');
+
+    await act(() => result.current.handleConversationClick(conversation));
+
+    expect(detachedWindowMocks.focusConversation).toHaveBeenCalledWith('popped-out');
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(onSessionClick).toHaveBeenCalledOnce();
+  });
+
+  it('navigates normally after a pop-out has closed', async () => {
+    const { result } = renderActions();
+    const conversation = makeConversation('closed-popout', 'acp');
+
+    await act(() => result.current.handleConversationClick(conversation));
+
+    expect(detachedWindowMocks.focusConversation).toHaveBeenCalledWith('closed-popout');
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/closed-popout');
+  });
+
+  it('navigates normally when checking the pop-out fails', async () => {
+    detachedWindowMocks.focusConversation.mockRejectedValue(new Error('bridge unavailable'));
+    const { result } = renderActions();
+    const conversation = makeConversation('bridge-error', 'acp');
+
+    await act(() => result.current.handleConversationClick(conversation));
+
+    expect(detachedWindowMocks.focusConversation).toHaveBeenCalledWith('bridge-error');
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/bridge-error');
+  });
+
+  it('opens the selected conversation in a detached window', async () => {
+    const { result } = renderActions();
+    const conversation = makeConversation('pop-me-out', 'acp');
+
+    await act(() => result.current.handleOpenDetached(conversation));
+
+    expect(detachedWindowMocks.openConversation).toHaveBeenCalledWith('pop-me-out');
+  });
 });

@@ -35,6 +35,7 @@
     "cancelEdit": "취소",
     "rename": "이름 변경",
     "createCronTask": "예약 작업 만들기",
+    "openInNewWindow": "새 창에서 열기",
     "renameTitle": "채팅 이름 변경",
     "renamePlaceholder": "새 이름을 입력하세요",
     "renameSuccess": "이름이 변경되었습니다",

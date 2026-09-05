@@ -3,6 +3,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useVisibleConversationIds } from '@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
 import { useFocusedConversationId } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
+import { isDetachedWindowSearch } from '@/common/platform/detachedWindow';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { isPlatformPrimaryModifier, isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
@@ -56,6 +57,12 @@ export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversat
         return;
       }
 
+      // A pop-out owns one conversation for its lifetime. App-level navigation
+      // shortcuts would invalidate the main-process conversation/window mapping.
+      if (isDetachedWindowSearch(location.search)) {
+        return;
+      }
+
       if (isConversationTabShortcut(event)) {
         event.preventDefault();
         const currentConversationId =
@@ -97,5 +104,5 @@ export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversat
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [focusedConversationId, location.pathname, navigate, toggleSider, visibleConversationIds]);
+  }, [focusedConversationId, location.pathname, location.search, navigate, toggleSider, visibleConversationIds]);
 };

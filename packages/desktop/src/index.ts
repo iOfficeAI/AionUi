@@ -31,6 +31,7 @@ import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGa
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
+import { registerNotificationAppWindow } from '@process/bridge/notificationBridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
@@ -49,6 +50,7 @@ import {
   loadSavedWindowBounds,
   resolveInitialBounds,
 } from './process/utils/windowBounds';
+import { createDetachedWindowRegistry, setDetachedWindowRegistry } from './process/services/detachedWindowRegistry';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -229,6 +231,8 @@ let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
 let rendererInitialLanguage: string | null = null;
 let backendMigrationsScheduled = false;
 let ensureAdminUserPromise: Promise<void> | null = null;
+
+const DETACHED_WINDOW_BOUNDS_KIND = 'detached';
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
@@ -690,6 +694,60 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   });
 };
 
+const configureDetachedWindowRegistry = (): void => {
+  const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
+  const fallbackFile = path.join(__dirname, '../renderer/index.html');
+
+  setDetachedWindowRegistry(
+    createDetachedWindowRegistry({
+      resolveBounds: () => resolveInitialBounds(DETACHED_WINDOW_BOUNDS_KIND),
+      createWindow: ({ x, y, width, height }) =>
+        new BrowserWindow({
+          width,
+          height,
+          ...(x !== undefined && y !== undefined ? { x, y } : {}),
+          minWidth: MIN_WINDOW_WIDTH,
+          minHeight: MIN_WINDOW_HEIGHT,
+          show: false,
+          backgroundColor: '#ffffff',
+          autoHideMenuBar: true,
+          ...(process.platform === 'darwin'
+            ? {
+                titleBarStyle: 'hidden',
+                trafficLightPosition: { x: 10, y: 13 },
+              }
+            : { frame: false }),
+          webPreferences: {
+            preload: path.join(__dirname, '../preload/index.js'),
+            webviewTag: true,
+          },
+        }),
+      prepareWindow: (window) => {
+        window.webContents.once('render-process-gone', () => {
+          if (!window.isDestroyed()) window.destroy();
+        });
+        initMainAdapterWithWindow(window);
+        registerNotificationAppWindow(window);
+        setupZoomForWindow(window);
+        registerWindowMaximizeListeners(window);
+        attachWindowBoundsPersistence(
+          window,
+          (bounds) => ProcessConfig.set('window.detachedBounds', bounds),
+          DETACHED_WINDOW_BOUNDS_KIND
+        );
+      },
+      loadWindow: (window, hash) => {
+        if (!app.isPackaged && rendererUrl) {
+          const url = new URL(rendererUrl);
+          url.hash = hash.slice(1);
+          return window.loadURL(url.toString());
+        }
+        return window.loadFile(fallbackFile, { hash: hash.slice(1) });
+      },
+    })
+  );
+};
+
 const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
@@ -920,6 +978,14 @@ const handleAppReady = async (): Promise<void> => {
     console.error('[AionUi] Failed to restore window bounds:', error);
     loadSavedWindowBounds(undefined);
   }
+
+  try {
+    loadSavedWindowBounds(await ProcessConfig.get('window.detachedBounds'), DETACHED_WINDOW_BOUNDS_KIND);
+  } catch (error) {
+    console.error('[AionUi] Failed to restore detached window bounds:', error);
+    loadSavedWindowBounds(undefined, DETACHED_WINDOW_BOUNDS_KIND);
+  }
+  configureDetachedWindowRegistry();
 
   if (isResetPasswordMode) {
     // Handle password reset without creating window
