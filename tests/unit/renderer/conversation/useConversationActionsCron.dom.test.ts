@@ -5,6 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
+import { Message } from '@arco-design/web-react';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,11 +60,13 @@ vi.mock('@/renderer/utils/ui/focus', () => ({
   blurActiveElement: vi.fn(),
 }));
 
-vi.mock('@/renderer/utils/ui/detachedWindow', () => ({
+vi.mock('@/renderer/utils/ui/detachedWindow', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/utils/ui/detachedWindow')>()),
   detachedWindowActions: detachedWindowMocks,
 }));
 
 import { useConversationActions } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions';
+import { DetachedWindowOpenError } from '@/renderer/utils/ui/detachedWindow';
 
 const makeConversation = (id: string, type: TChatConversation['type']): TChatConversation =>
   ({
@@ -93,6 +96,7 @@ describe('create scheduled task conversation action', () => {
     vi.clearAllMocks();
     routeState.id = 'current-conversation';
     detachedWindowMocks.focusConversation.mockResolvedValue(false);
+    detachedWindowMocks.openConversation.mockResolvedValue(undefined);
   });
 
   it('prefills the current editable conversation without navigating', () => {
@@ -175,5 +179,25 @@ describe('create scheduled task conversation action', () => {
     await act(() => result.current.handleOpenDetached(conversation));
 
     expect(detachedWindowMocks.openConversation).toHaveBeenCalledWith('pop-me-out');
+  });
+
+  it('shows a localized error when opening a detached window fails', async () => {
+    detachedWindowMocks.openConversation.mockRejectedValue(new Error('native failure'));
+    const errorSpy = vi.spyOn(Message, 'error').mockImplementation(() => ({}) as never);
+    const { result } = renderActions();
+
+    await act(() => result.current.handleOpenDetached(makeConversation('failed-popout', 'acp')));
+
+    expect(errorSpy).toHaveBeenCalledWith('conversation.history.openInNewWindowFailed');
+  });
+
+  it('explains how to recover when the browser blocks a pop-out', async () => {
+    detachedWindowMocks.openConversation.mockRejectedValue(new DetachedWindowOpenError('popupBlocked'));
+    const errorSpy = vi.spyOn(Message, 'error').mockImplementation(() => ({}) as never);
+    const { result } = renderActions();
+
+    await act(() => result.current.handleOpenDetached(makeConversation('blocked-popout', 'acp')));
+
+    expect(errorSpy).toHaveBeenCalledWith('conversation.history.popupBlocked');
   });
 });

@@ -32,6 +32,8 @@
     "rename": "Renomear",
     "createCronTask": "Criar tarefa agendada",
     "openInNewWindow": "Abrir em nova janela",
+    "openInNewWindowFailed": "Não foi possível abrir a conversa em uma nova janela",
+    "popupBlocked": "O navegador bloqueou a nova janela. Permita pop-ups e tente novamente.",
     "renameTitle": "Renomear Chat",
     "renamePlaceholder": "Por favor, digite um novo nome",
     "renameSuccess": "Renomeado com sucesso",

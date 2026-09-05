@@ -32,6 +32,8 @@
     "rename": "Rename",
     "createCronTask": "Create scheduled task",
     "openInNewWindow": "Open in new window",
+    "openInNewWindowFailed": "Failed to open the conversation in a new window",
+    "popupBlocked": "The browser blocked the new window. Allow pop-ups and try again.",
     "renameTitle": "Rename Chat",
     "renamePlaceholder": "Please enter a new name",
     "renameSuccess": "Renamed successfully",

@@ -32,6 +32,8 @@
     "rename": "Renombrar",
     "createCronTask": "Crear tarea programada",
     "openInNewWindow": "Abrir en una ventana nueva",
+    "openInNewWindowFailed": "No se pudo abrir la conversación en una ventana nueva",
+    "popupBlocked": "El navegador bloqueó la ventana nueva. Permite las ventanas emergentes e inténtalo de nuevo.",
     "renameTitle": "Renombrar chat",
     "renamePlaceholder": "Ingresa un nuevo nombre",
     "renameSuccess": "Renombrado correctamente",

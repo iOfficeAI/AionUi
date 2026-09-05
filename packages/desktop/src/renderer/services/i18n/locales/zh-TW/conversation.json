@@ -36,6 +36,8 @@
     "rename": "重新命名",
     "createCronTask": "建立排程任務",
     "openInNewWindow": "在新視窗中開啟",
+    "openInNewWindowFailed": "無法在新視窗中開啟對話",
+    "popupBlocked": "瀏覽器已封鎖新視窗。請允許彈出式視窗後再試一次。",
     "renameTitle": "重新命名對話",
     "renamePlaceholder": "請輸入新名稱",
     "renameSuccess": "重新命名成功",

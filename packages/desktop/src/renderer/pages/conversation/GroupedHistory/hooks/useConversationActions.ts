@@ -11,7 +11,7 @@ import { refreshConversationCache } from '@/renderer/pages/conversation/utils/co
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
-import { detachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
+import { DetachedWindowOpenError, detachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
 import { Message, Modal } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -89,12 +89,20 @@ export const useConversationActions = ({
     [batchMode, toggleSelectedConversation, markAsRead, navigate, onSessionClick]
   );
 
-  const handleOpenDetached = useCallback(async (conversation: TChatConversation) => {
-    setDropdownVisibleId(null);
-    await detachedWindowActions.openConversation(conversation.id).catch((error: unknown) => {
-      console.error('[AionUi] Failed to open detached conversation window:', error);
-    });
-  }, []);
+  const handleOpenDetached = useCallback(
+    async (conversation: TChatConversation) => {
+      setDropdownVisibleId(null);
+      await detachedWindowActions.openConversation(conversation.id).catch((error: unknown) => {
+        console.error('[AionUi] Failed to open detached conversation window:', error);
+        const key =
+          error instanceof DetachedWindowOpenError && error.reason === 'popupBlocked'
+            ? 'conversation.history.popupBlocked'
+            : 'conversation.history.openInNewWindowFailed';
+        Message.error(t(key));
+      });
+    },
+    [t]
+  );
 
   const removeConversation = useCallback(
     async (conversation_id: string) => {

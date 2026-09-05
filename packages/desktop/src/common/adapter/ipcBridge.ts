@@ -1496,7 +1496,10 @@ export const windowControls = {
 };
 
 export const detachedWindow = {
-  open: bridge.buildProvider<void, { conversation_id: string }>('detached-window:open'),
+  open: bridge.buildProvider<
+    { success: true } | { success: false; reason: 'window_open_failed' },
+    { conversation_id: string }
+  >('detached-window:open'),
   focus: bridge.buildProvider<boolean, { conversation_id: string }>('detached-window:focus'),
 };
 
@@ -1567,6 +1570,7 @@ export type INotificationOptions = {
   body: string;
   icon?: string;
   conversation_id?: string;
+  source_web_contents_id?: number | null;
 };
 
 export const notification = {

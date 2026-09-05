@@ -39,6 +39,7 @@ vi.mock('electron', () => ({
     getFocusedWindow: () => getFocusedWindow(),
     getAllWindows: () => getAllWindows(),
   },
+  ipcMain: { handle: vi.fn() },
 }));
 
 const getCloseToTrayEnabled = vi.fn(() => false);
@@ -50,7 +51,10 @@ vi.mock('@process/utils/tray', () => ({
 }));
 
 type ProviderFn = (params: { web_contents_id: number | null }) => Promise<void> | void;
-type DetachedProviderFn = (params: { conversation_id: string }) => Promise<boolean | void> | boolean | void;
+type DetachedProviderResult = boolean | void | { success: boolean; reason?: 'window_open_failed' };
+type DetachedProviderFn = (params: {
+  conversation_id: string;
+}) => Promise<DetachedProviderResult> | DetachedProviderResult;
 const providers: Record<string, ProviderFn | DetachedProviderFn> = {};
 
 const openConversation = vi.fn();
@@ -88,7 +92,7 @@ describe('windowControlsBridge close-to-tray', () => {
     getFocusedWindow.mockReset();
     getFocusedWindow.mockReturnValue(mockWindow);
     getAllWindows.mockReset();
-    getAllWindows.mockReturnValue([]);
+    getAllWindows.mockReturnValue([mockWindow]);
     getCloseToTrayEnabled.mockReturnValue(false);
     getIsQuitting.mockReturnValue(false);
     isDestroyed.mockReturnValue(false);
@@ -152,13 +156,35 @@ describe('windowControlsBridge close-to-tray', () => {
     expect(close).not.toHaveBeenCalled();
   });
 
+  it('does not fall back when an explicit sender window no longer exists', async () => {
+    getAllWindows.mockReturnValue([mockWindow]);
+
+    await providers.close({ web_contents_id: 99 });
+
+    expect(close).not.toHaveBeenCalled();
+    expect(hide).not.toHaveBeenCalled();
+  });
+
   it('routes detached-window bridge calls through the registry', async () => {
-    await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });
+    const opened = await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });
     const focused = await (providers.detachedFocus as DetachedProviderFn)({ conversation_id: 'conversation-1' });
 
     expect(openConversation).toHaveBeenCalledWith('conversation-1');
+    expect(opened).toEqual({ success: true });
     expect(focusConversation).toHaveBeenCalledWith('conversation-1');
     expect(focused).toBe(true);
+  });
+
+  it('returns an explicit failure when native window creation throws', async () => {
+    openConversation.mockImplementationOnce(() => {
+      throw new Error('constructor failed');
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const opened = await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });
+
+    expect(opened).toEqual({ success: false, reason: 'window_open_failed' });
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 
   it('targets the renderer window id even when another window is focused', async () => {
@@ -173,5 +199,28 @@ describe('windowControlsBridge close-to-tray', () => {
 
     expect(senderWindow.close).toHaveBeenCalledOnce();
     expect(close).not.toHaveBeenCalled();
+  });
+
+  it('replaces a forged window-control target with the authenticated IPC sender', async () => {
+    const { bindTrustedIpcSender } = await import('@/common/adapter/main');
+
+    expect(
+      bindTrustedIpcSender('subscribe-window-controls:close', { id: 'request-1', data: { web_contents_id: 99 } }, 2)
+    ).toEqual({ id: 'request-1', data: { web_contents_id: 2 } });
+  });
+
+  it('tags native notification requests with the authenticated IPC sender', async () => {
+    const { bindTrustedIpcSender } = await import('@/common/adapter/main');
+
+    expect(
+      bindTrustedIpcSender(
+        'subscribe-notification.show',
+        { id: 'request-1', data: { title: 'AionUi', body: 'done', source_web_contents_id: 99 } },
+        2
+      )
+    ).toEqual({
+      id: 'request-1',
+      data: { title: 'AionUi', body: 'done', source_web_contents_id: 2 },
+    });
   });
 });

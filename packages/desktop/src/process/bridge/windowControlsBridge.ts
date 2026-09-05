@@ -28,6 +28,7 @@ function resolveControlWindow(webContentsId: number | null): BrowserWindow | nul
       (window) => !window.isDestroyed() && window.webContents.id === webContentsId
     );
     if (senderWindow) return senderWindow;
+    return null;
   }
   const focused = BrowserWindow.getFocusedWindow();
   if (focused && !focused.isDestroyed()) {
@@ -68,8 +69,13 @@ export function registerWindowMaximizeListeners(window: BrowserWindow): void {
  */
 export function initWindowControlsBridge(): void {
   ipcBridge.detachedWindow.open.provider(({ conversation_id }) => {
-    getDetachedWindowRegistry().openConversation(conversation_id);
-    return Promise.resolve();
+    try {
+      getDetachedWindowRegistry().openConversation(conversation_id);
+      return Promise.resolve({ success: true as const });
+    } catch (error) {
+      console.error('[AionUi] Failed to create detached conversation window:', error);
+      return Promise.resolve({ success: false as const, reason: 'window_open_failed' as const });
+    }
   });
 
   ipcBridge.detachedWindow.focus.provider(({ conversation_id }) =>

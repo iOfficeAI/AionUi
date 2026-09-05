@@ -36,6 +36,8 @@
     "rename": "이름 변경",
     "createCronTask": "예약 작업 만들기",
     "openInNewWindow": "새 창에서 열기",
+    "openInNewWindowFailed": "대화를 새 창에서 열지 못했습니다",
+    "popupBlocked": "브라우저가 새 창을 차단했습니다. 팝업을 허용한 후 다시 시도하세요.",
     "renameTitle": "채팅 이름 변경",
     "renamePlaceholder": "새 이름을 입력하세요",
     "renameSuccess": "이름이 변경되었습니다",

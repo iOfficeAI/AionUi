@@ -38,6 +38,7 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import { getDetachedConversationId } from '@/common/platform/detachedWindow';
+import { detachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
 import UpdateMigrationDialog from '@/renderer/components/settings/UpdateMigrationDialog';
 import '@renderer/styles/layout.css';
 
@@ -126,14 +127,19 @@ const Layout: React.FC<{
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
   const { onClick } = useDebug();
-  useDeepLink();
-  useNotificationClick();
-  useBrowserNotification();
-  useDesktopTurnNotification();
   const navigate = useNavigate();
   const location = useLocation();
-  const detachedConversationId = getDetachedConversationId(location.pathname, location.search);
+  const initialDetachedConversationId = useRef(getDetachedConversationId(location.pathname, location.search));
+  const detachedConversationId = initialDetachedConversationId.current;
   const isDetached = detachedConversationId !== null;
+  useDeepLink(isDetached);
+  useNotificationClick(isDetached);
+  useBrowserNotification(isDetached);
+  useDesktopTurnNotification();
+  useEffect(() => {
+    if (!isDetached || getDetachedConversationId(location.pathname, location.search) === detachedConversationId) return;
+    void detachedWindowActions.closeCurrentWindow();
+  }, [detachedConversationId, isDetached, location.pathname, location.search]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {

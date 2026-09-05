@@ -17,13 +17,27 @@ export type DetachedWindowActionDependencies = {
   isWebUiBrowserMode: () => boolean;
   getCurrentUrl: () => string;
   openBrowserWindow: (url: string, target: string, features: string) => BrowserPopup | null;
-  openElectronWindow: (conversationId: string) => Promise<void>;
+  openElectronWindow: (
+    conversationId: string
+  ) => Promise<{ success: true } | { success: false; reason: 'window_open_failed' }>;
   focusElectronWindow: (conversationId: string) => Promise<boolean>;
+  closeBrowserWindow: () => void;
+  closeElectronWindow: () => Promise<void>;
 };
+
+export type DetachedWindowOpenFailure = 'popupBlocked' | 'windowOpenFailed';
+
+export class DetachedWindowOpenError extends Error {
+  constructor(public readonly reason: DetachedWindowOpenFailure) {
+    super(reason);
+    this.name = 'DetachedWindowOpenError';
+  }
+}
 
 export type DetachedWindowActions = {
   openConversation: (conversationId: string) => Promise<void>;
   focusConversation: (conversationId: string) => Promise<boolean>;
+  closeCurrentWindow: () => Promise<void>;
 };
 
 const popupTarget = (conversationId: string): string => `aionui-conversation-${encodeURIComponent(conversationId)}`;
@@ -45,7 +59,8 @@ export const createDetachedWindowActions = (dependencies: DetachedWindowActionDe
 
   const openConversation = async (conversationId: string): Promise<void> => {
     if (!dependencies.isWebUiBrowserMode()) {
-      await dependencies.openElectronWindow(conversationId);
+      const result = await dependencies.openElectronWindow(conversationId);
+      if (!result.success) throw new DetachedWindowOpenError('windowOpenFailed');
       return;
     }
     if (focusBrowserConversation(conversationId)) return;
@@ -56,7 +71,7 @@ export const createDetachedWindowActions = (dependencies: DetachedWindowActionDe
       popupTarget(conversationId),
       `popup=yes,width=${DETACHED_WINDOW_WIDTH},height=${DETACHED_WINDOW_HEIGHT}`
     );
-    if (!popup) throw new Error('The browser blocked the conversation pop-out');
+    if (!popup) throw new DetachedWindowOpenError('popupBlocked');
     browserWindows.set(conversationId, popup);
   };
 
@@ -65,7 +80,15 @@ export const createDetachedWindowActions = (dependencies: DetachedWindowActionDe
     return dependencies.focusElectronWindow(conversationId);
   };
 
-  return { openConversation, focusConversation };
+  const closeCurrentWindow = async (): Promise<void> => {
+    if (dependencies.isWebUiBrowserMode()) {
+      dependencies.closeBrowserWindow();
+      return;
+    }
+    await dependencies.closeElectronWindow();
+  };
+
+  return { openConversation, focusConversation, closeCurrentWindow };
 };
 
 export const detachedWindowActions = createDetachedWindowActions({
@@ -74,4 +97,6 @@ export const detachedWindowActions = createDetachedWindowActions({
   openBrowserWindow: (url, target, features) => window.open(url, target, features),
   openElectronWindow: (conversationId) => ipcBridge.detachedWindow.open.invoke({ conversation_id: conversationId }),
   focusElectronWindow: (conversationId) => ipcBridge.detachedWindow.focus.invoke({ conversation_id: conversationId }),
+  closeBrowserWindow: () => window.close(),
+  closeElectronWindow: () => ipcBridge.windowControls.close.invoke({ web_contents_id: null }),
 });

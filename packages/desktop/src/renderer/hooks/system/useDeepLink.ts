@@ -50,10 +50,10 @@ const ALLOWED_NAVIGATE_PATTERNS = [/^\/team\/[^/]+$/, /^\/conversation\/[^/]+$/]
  * The pre-fill data is stored in a module-level variable and consumed
  * by ModelModalContent on mount via consumePendingDeepLink().
  */
-export const useDeepLink = () => {
+export const useDeepLink = (detachedWindow = false) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isDetached = isDetachedWindowSearch(location.search);
+  const isDetached = detachedWindow || isDetachedWindowSearch(location.search);
 
   const handler = useCallback(
     (payload: DeepLinkPayload) => {
