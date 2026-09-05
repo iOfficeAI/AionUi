@@ -336,8 +336,6 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
   });
 
   it('shows an unaddressed backend preview while one conversation is on screen', () => {
-    // Today's app: there is no other conversation the frame could have come
-    // from, so the panel takes it exactly as it always has.
     mount();
     registerMountedConversation('conv-a');
     setFocusedConversation('conv-a');
@@ -345,22 +343,18 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
     expect(ctx.isOpen).toBe(true);
   });
 
-  it('refuses an unaddressed backend preview once it could have come from either column, and says so', () => {
-    // With two views up an unnamed frame cannot be attributed to the focused
-    // one, and the panel follows the focused column. Guessing would show the
-    // user another column's page in the panel they are working in.
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      mount();
-      registerMountedConversation('conv-a');
-      registerMountedConversation('conv-b');
-      setFocusedConversation('conv-a');
-      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
-      expect(ctx.isOpen).toBe(false);
-      expect(warn).toHaveBeenCalled();
-    } finally {
-      warn.mockRestore();
-    }
+  it('shows an unaddressed backend preview in the shared panel, however many are on screen', () => {
+    // The panel follows the focused conversation, so content that names nobody
+    // goes where the user is looking. A frame the renderer cannot attribute is
+    // not the same as a frame it can attribute elsewhere: refusing on a mount
+    // count would throw away every agent preview in split view, since aioncore
+    // names no conversation yet.
+    mount();
+    registerMountedConversation('conv-a');
+    registerMountedConversation('conv-b');
+    setFocusedConversation('conv-a');
+    emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+    expect(ctx.isOpen).toBe(true);
   });
 
   it('refuses an addressed backend preview while the named conversation has no view on screen, and says so', () => {

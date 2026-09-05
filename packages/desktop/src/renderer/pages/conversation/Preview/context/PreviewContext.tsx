@@ -16,7 +16,6 @@ import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
 import {
   getFocusedConversation,
-  getMountedConversationIds,
   isConversationMounted,
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
@@ -1334,43 +1333,38 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     /**
      * One preview panel serves every mounted conversation and it follows the
      * focused one (a panel per column is deliberately out of scope, per the
-     * plan's cut list). Following it means the panel shows that conversation's
-     * content, so the rule is one sentence: accept only an open that can be
-     * attributed to the focused conversation while its view is on screen.
+     * plan's cut list). Two kinds of frame arrive, and only one of them can be
+     * checked:
      *
-     * - Addressed to the focused conversation, whose view is on screen. Accept.
-     * - Addressed to anyone else — including the focused *name* while nothing
-     *   of it is on screen, mid route transition — would put content in the
-     *   panel that the user cannot see the source of. Refuse, and say so.
-     * - Addressed to nobody: attributable only when there is no other
-     *   conversation it could have come from, i.e. at most one view is on
-     *   screen. That is today's app exactly, so nothing changes for a single
-     *   conversation. With two columns up it is a guess, and the branch already
-     *   settled the same trade for the send box the same way — unaddressed text
-     *   goes to a place that cannot be wrong, and is warned about rather than
-     *   delivered to the wrong one.
+     * - **It names a conversation.** Then it is checkable: accept it only for
+     *   the focused conversation while that conversation's view is on screen.
+     *   Anything else — another column, or the focused *name* mid route
+     *   transition with nothing of it on screen — would put content in the
+     *   panel whose source the user cannot see. Refuse, and say so.
+     * - **It names nobody.** Then it is not checkable, and the panel belongs to
+     *   the focused conversation, so it goes there. That is what upstream does
+     *   for every frame (base 991429962 opened them all unconditionally) and
+     *   what the approved plan asks for — one panel following the focused
+     *   column. Refusing here on a mounted-view count would silently swallow
+     *   agent previews in split view and would change what a single
+     *   conversation sees during a route transition, which PR 1 must not do.
      *
-     * aioncore does not name the conversation on its own preview opens yet, so
-     * every backend frame takes the third branch; the addressed branches engage
-     * the day it does. This is renderer-local either way — a second window sees
-     * only its own mounted set — so multi-window attribution still needs that
-     * backend field.
+     * aioncore names no conversation on its preview opens today, so every
+     * backend frame takes the second branch and the first engages the day it
+     * does. Until then attribution is not something the renderer can recover:
+     * it is renderer-local, so it cannot see a sibling window either, and
+     * guessing the sender from mount counts is not attribution. That gap is
+     * recorded for PR 2 / PR 3, which need the backend field.
      */
     const acceptsPreviewOpen = (targetConversationId: string | undefined): boolean => {
+      if (targetConversationId === undefined) return true;
+
       const focused = getFocusedConversation();
       const focusedIsOnScreen = focused !== null && isConversationMounted(focused);
+      if (focusedIsOnScreen && targetConversationId === focused) return true;
 
-      if (targetConversationId !== undefined) {
-        if (focusedIsOnScreen && targetConversationId === focused) return true;
-        console.warn(
-          `[Preview] Ignored an open for conversation ${targetConversationId}; the panel follows ${focused ?? 'no conversation'}${focused !== null && !focusedIsOnScreen ? ', whose view is not on screen' : ''}.`
-        );
-        return false;
-      }
-
-      if (getMountedConversationIds().length <= 1) return true;
       console.warn(
-        `[Preview] Ignored an open that names no conversation while ${getMountedConversationIds().length} are on screen; it cannot be attributed to the focused one (${focused ?? 'none'}).`
+        `[Preview] Ignored an open for conversation ${targetConversationId}; the panel follows ${focused ?? 'no conversation'}${focused !== null && !focusedIsOnScreen ? ', whose view is not on screen' : ''}.`
       );
       return false;
     };
