@@ -539,6 +539,13 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     void app.dock.hide();
   }
 
+  // Publish which webContents is the main window. Renderers learn their own id
+  // through the preload (`__windowId`); this is the other half of the pair, so
+  // out-of-process tooling (the e2e fixtures) can tell the main window from any
+  // other app window instead of guessing "the first non-DevTools one".
+  (globalThis as typeof globalThis & { __aionuiMainWindowId?: number }).__aionuiMainWindowId =
+    mainWindow.webContents.id;
+
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
 

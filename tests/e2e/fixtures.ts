@@ -118,11 +118,43 @@ async function ensureRendererAppMounted(page: Page): Promise<void> {
   }
 }
 
+/**
+ * The main window's webContents id, published by the main process in
+ * `createWindow`. `null` when the app has not created it yet (or is an older
+ * build without the marker), in which case window resolution falls back to
+ * "the first non-DevTools window".
+ */
+async function readMainWindowId(electronApp: ElectronApplication): Promise<number | null> {
+  return electronApp
+    .evaluate(() => (globalThis as typeof globalThis & { __aionuiMainWindowId?: number }).__aionuiMainWindowId ?? null)
+    .catch(() => null);
+}
+
+/**
+ * True when this page is the main window. Matching on the published id rather
+ * than "the first non-DevTools window" keeps the suite correct once the app can
+ * open a second window: a detached conversation window is a perfectly ordinary
+ * non-DevTools window and would otherwise be picked at random.
+ */
+async function isMainWindow(page: Page, mainWindowId: number | null): Promise<boolean> {
+  if (isDevToolsWindow(page)) return false;
+  if (mainWindowId === null) return true; // no marker available — legacy behaviour
+  const pageWindowId = await page
+    .evaluate(() => (window as Window & { __windowId?: number }).__windowId ?? null)
+    .catch(() => null);
+  // A window that has not exposed its id yet (preload still running) is not
+  // rejected outright — only a positive mismatch is.
+  return pageWindowId === null || pageWindowId === mainWindowId;
+}
+
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
-  const existingMainWindow = electronApp.windows().find((win) => !isDevToolsWindow(win));
-  if (existingMainWindow) {
-    await ensureRendererAppMounted(existingMainWindow);
-    return existingMainWindow;
+  const mainWindowId = await readMainWindowId(electronApp);
+
+  for (const win of electronApp.windows()) {
+    if (await isMainWindow(win, mainWindowId)) {
+      await ensureRendererAppMounted(win);
+      return win;
+    }
   }
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
@@ -131,7 +163,7 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     }
 
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
-    if (win && !isDevToolsWindow(win)) {
+    if (win && (await isMainWindow(win, mainWindowId ?? (await readMainWindowId(electronApp))))) {
       await ensureRendererAppMounted(win);
       return win;
     }
