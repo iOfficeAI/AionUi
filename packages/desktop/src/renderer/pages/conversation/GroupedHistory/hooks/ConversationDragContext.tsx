@@ -23,22 +23,15 @@
 import type { TChatConversation } from '@/common/config/storage';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import type { CollisionDetection, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  closestCenter,
-  pointerWithin,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
 import { getEventCoordinates } from '@dnd-kit/utilities';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import ConversationLeadingIcon from '../ConversationLeadingIcon';
 import type { ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
-import { resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
+import { pickRowInGap, resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
+import type { RowRect } from '../utils/conversationDropTargets';
 import { usePinnedReorder } from './useDragAndDrop';
 import { useSplitGroupMutations } from './useSplitGroupMutations';
 
@@ -61,10 +54,27 @@ const ConversationDragContext = createContext<ConversationDragValue>(idleValue);
 /** Live drag state for highlights. Safe to call with no provider above (nothing is ever dragged). */
 export const useConversationDrag = (): ConversationDragValue => useContext(ConversationDragContext);
 
-/** Prefer the droppable under the pointer; fall back to the nearest one for the gaps between rows. */
+/**
+ * The droppable under the pointer; failing that, the row the pointer is in the
+ * gap next to (so a release between two rows still reads as "between"). Blank
+ * space is not a target: releasing there does nothing.
+ */
 const collisionDetection: CollisionDetection = (args) => {
   const within = pointerWithin(args);
-  return within.length > 0 ? within : closestCenter(args);
+  if (within.length > 0) return within;
+  const pointer = args.pointerCoordinates;
+  if (!pointer) return [];
+  const rows: RowRect[] = [];
+  for (const container of args.droppableContainers) {
+    const target = container.data.current as ConversationDropTarget | undefined;
+    const rect = args.droppableRects.get(container.id);
+    if (!rect || target?.kind !== 'conversation' || target.surface !== 'row') continue;
+    rows.push({ id: String(container.id), top: rect.top, height: rect.height, left: rect.left, width: rect.width });
+  }
+  const id = pickRowInGap(pointer, rows);
+  if (id === null) return [];
+  const container = args.droppableContainers.find((candidate) => String(candidate.id) === id);
+  return container ? [{ id: container.id, data: { droppableContainer: container, value: 0 } }] : [];
 };
 
 const ConversationDragGhost: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => (

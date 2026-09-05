@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import {
   chatAreaDropId,
+  pickRowInGap,
   resolveConversationDropAction,
   resolveDropIntent,
   splitGroupDropId,
@@ -48,18 +49,18 @@ describe('resolveDropIntent', () => {
   });
 });
 
-describe('resolveConversationDropAction', () => {
-  const row = (conversation_id: string) => ({
-    kind: 'conversation' as const,
-    conversation_id,
-    surface: 'row' as const,
-  });
-  const chat = (conversation_id: string) => ({
-    kind: 'conversation' as const,
-    conversation_id,
-    surface: 'chat' as const,
-  });
+const row = (conversation_id: string) => ({
+  kind: 'conversation' as const,
+  conversation_id,
+  surface: 'row' as const,
+});
+const chat = (conversation_id: string) => ({
+  kind: 'conversation' as const,
+  conversation_id,
+  surface: 'chat' as const,
+});
 
+describe('resolveConversationDropAction', () => {
   it('fuses two plain rows when dropped onto', () => {
     expect(
       resolveConversationDropAction({ dragged_id: 'a', target: row('b'), intent: 'onto', groups, pinnedIds: [] })
@@ -162,5 +163,29 @@ describe('droppable ids', () => {
     expect(splitGroupDropId('g1')).not.toBe('g1');
     expect(chatAreaDropId('c1')).not.toBe('c1');
     expect(chatAreaDropId('c1')).not.toBe(splitGroupDropId('c1'));
+  });
+});
+
+describe('pickRowInGap', () => {
+  const rows = [
+    { id: 'a', top: 100, height: 34, left: 10, width: 200 },
+    { id: 'b', top: 136, height: 34, left: 10, width: 200 },
+  ];
+
+  it('picks the row whose edge is within the gap, nearest first', () => {
+    expect(pickRowInGap({ x: 50, y: 135 }, rows)).toBe('a');
+    expect(pickRowInGap({ x: 50, y: 135.5 }, rows)).toBe('b');
+  });
+
+  it('returns nothing below the last row beyond the gap (blank space)', () => {
+    expect(pickRowInGap({ x: 50, y: 200 }, rows)).toBeNull();
+  });
+
+  it('returns nothing beside the list, however close vertically', () => {
+    expect(pickRowInGap({ x: 400, y: 135 }, rows)).toBeNull();
+  });
+
+  it('returns nothing with no rows', () => {
+    expect(pickRowInGap({ x: 50, y: 135 }, [])).toBeNull();
   });
 });

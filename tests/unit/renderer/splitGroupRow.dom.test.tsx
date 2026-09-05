@@ -128,6 +128,8 @@ describe('SplitGroupRow', () => {
     const { onOpen } = renderPill({ batchMode: true });
     expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
     fireEvent.click(screen.getByTestId('split-group-row-g1'));
+    fireEvent.click(screen.getByTestId('leading-icon-b'));
+    fireEvent.keyDown(screen.getByTestId('leading-icon-b').parentElement as HTMLElement, { key: 'Enter' });
     expect(onOpen).not.toHaveBeenCalled();
   });
 

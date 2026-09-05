@@ -87,15 +87,21 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         <Tooltip content={name} position='top' disabled={collapsed || isMobile}>
           <span
             role='button'
-            tabIndex={0}
+            tabIndex={batchMode ? -1 : 0}
+            aria-disabled={batchMode || undefined}
             aria-label={t('conversation.splitGroup.focusMember', { name })}
-            className='size-22px flex items-center justify-center cursor-pointer'
+            className={classNames(
+              'size-22px flex items-center justify-center',
+              batchMode ? 'cursor-default' : 'cursor-pointer'
+            )}
             onClick={(event) => {
               event.stopPropagation();
+              if (batchMode) return;
               cleanupSiderTooltips();
               onOpen(group, member.id);
             }}
             onKeyDown={(event) => {
+              if (batchMode) return;
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 event.stopPropagation();
@@ -171,6 +177,7 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
           onOpen(group);
         }}
         onKeyDown={(event) => {
+          if (batchMode) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             onOpen(group);

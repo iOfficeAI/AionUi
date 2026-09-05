@@ -255,8 +255,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
   // Split groups: the rows of a group collapse into one pill, rendered in the
   // slot of whichever member comes first in the list's own order (pinned →
-  // projects → conversations); the other members' rows are hidden.
+  // projects → conversations); the other members' rows are hidden. Batch
+  // selection needs every row and its checkbox, so it shows plain rows.
   const splitGroupPlacement = useMemo(() => {
+    if (batchMode) return placeSplitGroupPills([], []);
     const orderedIds = [
       ...pinnedIds,
       ...projectGroups.flatMap((group) => group.conversations.map((conversation) => conversation.id)),
@@ -265,7 +267,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       ),
     ];
     return placeSplitGroupPills(orderedIds, splitGroups);
-  }, [pinnedIds, projectGroups, conversationOnlySections, splitGroups]);
+  }, [batchMode, pinnedIds, projectGroups, conversationOnlySections, splitGroups]);
 
   // Sortable pinned rows exclude the pill slots: a pill is a drop target, not
   // a row that takes part in the reorder.

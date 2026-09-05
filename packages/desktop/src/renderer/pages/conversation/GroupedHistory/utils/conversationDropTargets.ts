@@ -99,3 +99,25 @@ export const resolveConversationDropAction = ({
 /** Droppable ids, unique across the one DndContext that spans sidebar and chat area. */
 export const splitGroupDropId = (group_id: string): string => `split-group:${group_id}`;
 export const chatAreaDropId = (conversation_id: string): string => `chat-area:${conversation_id}`;
+
+/** How far outside a row, vertically, a release still counts as "between" that row and its neighbour. */
+export const ROW_GAP_PX = 8;
+
+export type RowRect = { id: string; top: number; height: number; left: number; width: number };
+
+/**
+ * The row a pointer is next to when it is over none: only a row whose
+ * horizontal span contains the pointer and whose edge is within the list's
+ * row gap. A release over blank space — below the last row, beside the list,
+ * in the chat area — returns nothing, so nothing gets fused by accident.
+ */
+export const pickRowInGap = (pointer: { x: number; y: number }, rows: readonly RowRect[]): string | null => {
+  let best: { id: string; distance: number } | null = null;
+  for (const row of rows) {
+    if (pointer.x < row.left || pointer.x > row.left + row.width) continue;
+    const distance = pointer.y < row.top ? row.top - pointer.y : pointer.y - (row.top + row.height);
+    if (distance > ROW_GAP_PX) continue;
+    if (!best || distance < best.distance) best = { id: row.id, distance };
+  }
+  return best?.id ?? null;
+};
