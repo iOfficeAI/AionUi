@@ -5,7 +5,7 @@
  */
 
 import type { BrowserWindow, Rectangle } from 'electron';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDetachedWindowRegistry } from '@/process/services/detachedWindowRegistry';
 
@@ -47,6 +47,10 @@ const makeWindow = (bounds: Rectangle) => {
 };
 
 describe('detached window registry', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('focuses an existing conversation window and removes it after close', async () => {
     const first = makeWindow({ x: 100, y: 120, width: 900, height: 700 });
     const second = makeWindow({ x: 124, y: 144, width: 900, height: 700 });
@@ -60,10 +64,10 @@ describe('detached window registry', () => {
       resolveBounds: () => ({ x: 100, y: 120, width: 900, height: 700 }),
     });
 
-    expect(registry.openConversation('conversation-1')).toBe(first.win);
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(first.win);
     first.emit('ready-to-show');
     first.setMinimized(true);
-    expect(registry.openConversation('conversation-1')).toBe(first.win);
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(first.win);
 
     expect(createWindow).toHaveBeenCalledTimes(1);
     expect(first.win.restore).toHaveBeenCalledOnce();
@@ -73,11 +77,11 @@ describe('detached window registry', () => {
 
     first.emit('closed');
     expect(registry.focusConversation('conversation-1')).toBe(false);
-    expect(registry.openConversation('conversation-1')).toBe(second.win);
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(second.win);
     expect(createWindow).toHaveBeenCalledTimes(2);
   });
 
-  it('cascades each new conversation from the last created window', () => {
+  it('cascades each new conversation from the last created window', async () => {
     const first = makeWindow({ x: 240, y: 180, width: 800, height: 720 });
     const second = makeWindow({ x: 264, y: 204, width: 800, height: 720 });
     const createWindow = vi.fn().mockReturnValueOnce(first.win).mockReturnValueOnce(second.win);
@@ -88,14 +92,14 @@ describe('detached window registry', () => {
       resolveBounds: () => ({ x: 240, y: 180, width: 800, height: 720 }),
     });
 
-    registry.openConversation('conversation-1');
-    registry.openConversation('conversation-2');
+    await registry.openConversation('conversation-1');
+    await registry.openConversation('conversation-2');
 
     expect(createWindow).toHaveBeenNthCalledWith(1, { x: 240, y: 180, width: 800, height: 720 });
     expect(createWindow).toHaveBeenNthCalledWith(2, { x: 264, y: 204, width: 800, height: 720 });
   });
 
-  it('cascades from the newest live window and resets after all windows close', () => {
+  it('cascades from the newest live window and resets after all windows close', async () => {
     const first = makeWindow({ x: 240, y: 180, width: 800, height: 720 });
     const second = makeWindow({ x: 264, y: 204, width: 800, height: 720 });
     const third = makeWindow({ x: 264, y: 204, width: 800, height: 720 });
@@ -113,13 +117,13 @@ describe('detached window registry', () => {
       resolveBounds: () => ({ x: 240, y: 180, width: 800, height: 720 }),
     });
 
-    registry.openConversation('conversation-1');
-    registry.openConversation('conversation-2');
+    await registry.openConversation('conversation-1');
+    await registry.openConversation('conversation-2');
     second.emit('closed');
-    registry.openConversation('conversation-3');
+    await registry.openConversation('conversation-3');
     first.emit('closed');
     third.emit('closed');
-    registry.openConversation('conversation-4');
+    await registry.openConversation('conversation-4');
 
     expect(createWindow).toHaveBeenNthCalledWith(3, { x: 264, y: 204, width: 800, height: 720 });
     expect(createWindow).toHaveBeenNthCalledWith(4, { x: 240, y: 180, width: 800, height: 720 });
@@ -130,24 +134,23 @@ describe('detached window registry', () => {
     const replacementWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
     const error = new Error('renderer unavailable');
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const loadWindow = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce(undefined);
     const registry = createDetachedWindowRegistry({
       createWindow: vi.fn().mockReturnValueOnce(failedWindow.win).mockReturnValueOnce(replacementWindow.win),
-      loadWindow: () => Promise.reject(error),
+      loadWindow,
       prepareWindow: () => {},
       resolveBounds: () => ({ width: 800, height: 720 }),
     });
 
-    registry.openConversation('conversation-1');
-    await Promise.resolve();
-    await Promise.resolve();
+    await expect(registry.openConversation('conversation-1')).rejects.toBe(error);
 
     expect(errorSpy).toHaveBeenCalledWith('[AionUi] Failed to load detached conversation window:', error);
     expect(failedWindow.win.destroy).toHaveBeenCalledOnce();
     expect(registry.focusConversation('conversation-1')).toBe(false);
-    expect(registry.openConversation('conversation-1')).toBe(replacementWindow.win);
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(replacementWindow.win);
   });
 
-  it('destroys and unregisters a window when synchronous preparation fails', () => {
+  it('destroys and unregisters a window when synchronous preparation fails', async () => {
     const failedWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('adapter setup failed');
@@ -160,10 +163,38 @@ describe('detached window registry', () => {
       resolveBounds: () => ({ width: 800, height: 720 }),
     });
 
-    registry.openConversation('conversation-1');
+    await expect(registry.openConversation('conversation-1')).rejects.toBe(error);
 
     expect(errorSpy).toHaveBeenCalledWith('[AionUi] Failed to load detached conversation window:', error);
     expect(failedWindow.win.destroy).toHaveBeenCalledOnce();
     expect(registry.focusConversation('conversation-1')).toBe(false);
+  });
+
+  it('shares a pending load failure with repeated open requests', async () => {
+    const pendingWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const error = new Error('renderer unavailable');
+    let rejectLoad: ((reason: Error) => void) | undefined;
+    const loadWindow = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectLoad = reject;
+        })
+    );
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => pendingWindow.win,
+      loadWindow,
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const firstOpen = registry.openConversation('conversation-1');
+    const repeatedOpen = registry.openConversation('conversation-1');
+    rejectLoad?.(error);
+
+    await expect(firstOpen).rejects.toBe(error);
+    await expect(repeatedOpen).rejects.toBe(error);
+    expect(loadWindow).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalledOnce();
   });
 });

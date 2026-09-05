@@ -68,13 +68,13 @@ export function registerWindowMaximizeListeners(window: BrowserWindow): void {
  * Register IPC handlers to respond to window control requests from renderer process
  */
 export function initWindowControlsBridge(): void {
-  ipcBridge.detachedWindow.open.provider(({ conversation_id }) => {
+  ipcBridge.detachedWindow.open.provider(async ({ conversation_id }) => {
     try {
-      getDetachedWindowRegistry().openConversation(conversation_id);
-      return Promise.resolve({ success: true as const });
+      await getDetachedWindowRegistry().openConversation(conversation_id);
+      return { success: true as const };
     } catch (error) {
       console.error('[AionUi] Failed to create detached conversation window:', error);
-      return Promise.resolve({ success: false as const, reason: 'window_open_failed' as const });
+      return { success: false as const, reason: 'window_open_failed' as const };
     }
   });
 

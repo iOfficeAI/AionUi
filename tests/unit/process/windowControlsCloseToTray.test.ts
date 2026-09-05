@@ -7,7 +7,7 @@
  * (Linux frameless path), instead of always calling window.close().
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hide = vi.fn();
 const close = vi.fn();
@@ -106,6 +106,10 @@ describe('windowControlsBridge close-to-tray', () => {
     initWindowControlsBridge();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('hides the window when close-to-tray is enabled and app is not quitting', async () => {
     getCloseToTrayEnabled.mockReturnValue(true);
     getIsQuitting.mockReturnValue(false);
@@ -179,6 +183,16 @@ describe('windowControlsBridge close-to-tray', () => {
     openConversation.mockImplementationOnce(() => {
       throw new Error('constructor failed');
     });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const opened = await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });
+
+    expect(opened).toEqual({ success: false, reason: 'window_open_failed' });
+    expect(errorSpy).toHaveBeenCalledOnce();
+  });
+
+  it('returns an explicit failure when the native renderer fails to load', async () => {
+    openConversation.mockRejectedValueOnce(new Error('renderer failed to load'));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const opened = await (providers.detachedOpen as DetachedProviderFn)({ conversation_id: 'conversation-1' });

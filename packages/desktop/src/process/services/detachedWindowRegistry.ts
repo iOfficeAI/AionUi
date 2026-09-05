@@ -19,7 +19,7 @@ export type DetachedWindowRegistryDependencies = {
 };
 
 export type DetachedWindowRegistry = {
-  openConversation: (conversationId: string) => BrowserWindow;
+  openConversation: (conversationId: string) => Promise<BrowserWindow>;
   focusConversation: (conversationId: string) => boolean;
   isDetachedWindow: (window: BrowserWindow) => boolean;
 };
@@ -50,6 +50,13 @@ export const createDetachedWindowRegistry = (
   const windows = new Map<string, BrowserWindow>();
   const detachedWindows = new WeakSet<BrowserWindow>();
   const creationOrder: BrowserWindow[] = [];
+  const readiness = new WeakMap<BrowserWindow, Promise<void>>();
+
+  const forgetWindow = (conversationId: string, window: BrowserWindow): void => {
+    if (windows.get(conversationId) === window) windows.delete(conversationId);
+    const index = creationOrder.indexOf(window);
+    if (index !== -1) creationOrder.splice(index, 1);
+  };
 
   const focusConversation = (conversationId: string): boolean => {
     const existing = windows.get(conversationId);
@@ -62,9 +69,10 @@ export const createDetachedWindowRegistry = (
     return true;
   };
 
-  const openConversation = (conversationId: string): BrowserWindow => {
+  const openConversation = async (conversationId: string): Promise<BrowserWindow> => {
     const existing = windows.get(conversationId);
     if (existing && !existing.isDestroyed()) {
+      await readiness.get(existing);
       revealWindow(existing);
       return existing;
     }
@@ -79,21 +87,23 @@ export const createDetachedWindowRegistry = (
 
     window.once('ready-to-show', () => revealWindow(window));
     window.once('closed', () => {
-      if (windows.get(conversationId) === window) windows.delete(conversationId);
-      const index = creationOrder.indexOf(window);
-      if (index !== -1) creationOrder.splice(index, 1);
+      forgetWindow(conversationId, window);
     });
 
     const handleSetupFailure = (error: unknown): void => {
       console.error('[AionUi] Failed to load detached conversation window:', error);
+      forgetWindow(conversationId, window);
       if (!window.isDestroyed()) window.destroy();
     };
 
     try {
       dependencies.prepareWindow(window);
-      void dependencies.loadWindow(window, buildDetachedConversationHash(conversationId)).catch(handleSetupFailure);
+      const ready = dependencies.loadWindow(window, buildDetachedConversationHash(conversationId)).then(() => {});
+      readiness.set(window, ready);
+      await ready;
     } catch (error) {
       handleSetupFailure(error);
+      throw error;
     }
     return window;
   };
