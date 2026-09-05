@@ -26,14 +26,14 @@ import { useConversationHistoryContext } from '@/renderer/hooks/context/Conversa
 import type { CollisionDetection, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
 import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
 import { getEventCoordinates } from '@dnd-kit/utilities';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import ConversationLeadingIcon from '../ConversationLeadingIcon';
 import type { ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
 import { pickRowInGap, resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
 import type { RowRect } from '../utils/conversationDropTargets';
-import { findSplitGroupOf } from '../utils/splitGroupHelpers';
+import { readSplitGroupTag } from '../utils/splitGroupHelpers';
 import { usePinnedReorder } from './useDragAndDrop';
 import { useSplitGroupMutations } from './useSplitGroupMutations';
 
@@ -102,13 +102,32 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
   // device) reaches every window as a backend "deleted" event. Reconcile its
   // group from that event — never from the member merely missing from a list
   // snapshot — and only once the member's own read confirms it is gone.
+  //
+  // The group is resolved from every tag this window has ever seen, not from
+  // the groups it can render right now: by the time the event arrives the row
+  // is usually already out of the list (the refresh won the race, or the
+  // delete came from another device), and a group derived only from loaded
+  // members would no longer name it. Entries are never dropped, so a deletion
+  // is still reconcilable after the row itself is gone.
+  const groupIdByMemberRef = useRef(new Map<string, string>());
   useEffect(() => {
+    for (const conversation of conversations) {
+      const tag = readSplitGroupTag(conversation);
+      if (tag) groupIdByMemberRef.current.set(conversation.id, tag.id);
+    }
+  }, [conversations]);
+
+  const reconcileDeletedRef = useRef(reconcileDeleted);
+  reconcileDeletedRef.current = reconcileDeleted;
+  useEffect(() => {
+    // Subscribed once for the window's lifetime: resubscribing on every list
+    // change opens a gap that would swallow the very event this exists for.
     return ipcBridge.conversation.listChanged.on((event) => {
       if (event.action !== 'deleted') return;
-      const group = findSplitGroupOf(splitGroups, event.conversation_id);
-      if (group) void reconcileDeleted(group.id, event.conversation_id);
+      const group_id = groupIdByMemberRef.current.get(event.conversation_id);
+      if (group_id) void reconcileDeletedRef.current(group_id, event.conversation_id);
     });
-  }, [reconcileDeleted, splitGroups]);
+  }, []);
   const [activeConversation, setActiveConversation] = useState<TChatConversation | null>(null);
   const [dropTarget, setDropTarget] = useState<ConversationDropTargetState>(null);
 

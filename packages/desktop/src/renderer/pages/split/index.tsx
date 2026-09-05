@@ -5,9 +5,10 @@
  */
 
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
+import { useSplitGroupMutations } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import { readSplitGroupTag } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 import { Button, Empty, Spin } from '@arco-design/web-react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -29,6 +30,7 @@ const SplitGroupIndex: React.FC = () => {
     listLoaded,
     groupedHistory: { splitGroups },
   } = useConversationHistoryContext();
+  const { dissolveIfAlone } = useSplitGroupMutations();
 
   const group = splitGroups.find((candidate) => candidate.id === groupId);
   const state = location.state as { focus?: string; nonce?: number } | null;
@@ -39,19 +41,28 @@ const SplitGroupIndex: React.FC = () => {
 
   // The list shows only one member of this group right now: the other was
   // archived, deleted, or is not in this snapshot. Absence from a list is not
-  // deletion, so nothing is written — the tags stay and the group comes back
-  // whenever its members do (a deleted member is reconciled from the backend's
-  // own event, elsewhere). The user lands on the survivor, as a plain
-  // conversation, which is where a dissolve would have taken them.
+  // deletion, so this route writes nothing on its own; it asks the write path
+  // to count the group against the backend (archived rows included) and clear
+  // the tag only if nobody else carries it — which is also how a survivor of a
+  // delete this window never saw stops refusing to join another group. Either
+  // way the user lands on the survivor, as a plain conversation, which is
+  // where a dissolve would have taken them.
   const survivorId =
     !group && listLoaded && groupId
       ? conversations.find((conversation) => readSplitGroupTag(conversation)?.id === groupId)?.id
       : undefined;
+  const reconciledRef = useRef<string | null>(null);
   useEffect(() => {
     if (!survivorId || !groupId) return;
     console.warn(`[SplitGroup] Group ${groupId} shows a single member (${survivorId}); opening it on its own.`);
+    if (reconciledRef.current !== groupId) {
+      reconciledRef.current = groupId;
+      void dissolveIfAlone(groupId);
+    }
+    // Navigated straight away, with no await in front of it: a navigation that
+    // waited on the write would yank the user out of wherever they moved on to.
     void navigate(`/conversation/${survivorId}`, { replace: true });
-  }, [groupId, navigate, survivorId]);
+  }, [dissolveIfAlone, groupId, navigate, survivorId]);
 
   if (!group) {
     if (!listLoaded || survivorId) return <Spin loading />;
