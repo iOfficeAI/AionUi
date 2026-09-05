@@ -339,57 +339,81 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
 };
 
 /**
- * Sequence number of the latest list request. A response that lands after a
- * newer request was issued is stale — publishing it would show the list as it
- * was between two writes (a half-tagged group, say) — so it is dropped and
- * the newer response is the one that gets published.
+ * Sequence tokens for list requests. `latestSequence` is the newest request
+ * issued; `publishedSequence` is the newest one whose snapshot was published.
+ * A response that lands after a newer request was issued is stale — the list
+ * as it was between two writes — so it is dropped, and whoever awaited it is
+ * settled by the newer request instead: resolved once a snapshot at or after
+ * their own request has landed, rejected if the newest request fails first.
  */
-let refreshSequence = 0;
+let latestSequence = 0;
+let publishedSequence = 0;
+const waiters: Array<{ sequence: number; resolve: () => void; reject: (error: unknown) => void }> = [];
+
+const settleWaiters = (): void => {
+  for (let index = waiters.length - 1; index >= 0; index -= 1) {
+    if (waiters[index].sequence <= publishedSequence) waiters.splice(index, 1)[0].resolve();
+  }
+};
+
+const failWaiters = (error: unknown): void => {
+  waiters.splice(0).forEach((waiter) => waiter.reject(error));
+};
+
+const publishItems = (items: TChatConversation[] | undefined): void => {
+  listLoadedState = true;
+  if (items && Array.isArray(items)) {
+    const filteredData = items.filter((conv) => {
+      // Legacy rows from the pre-provider-probe health check flow are hidden
+      // from normal history. New health checks must not create conversations.
+      const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
+      return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+    });
+    conversationsState = filteredData;
+    // Use ALL conversation IDs (including team/legacy health-check rows) so the
+    // responseStream listener recognises them as known and doesn't
+    // trigger an infinite refreshConversations loop.
+    conversation_idsState = new Set(items.map((conversation) => conversation.id));
+    // Map ALL rows (unfiltered) so a team member conversation's project_id is
+    // resolvable too — the team route looks up its leader conversation here.
+    projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
+    emitStoreChange();
+    return;
+  }
+  conversationsState = [];
+  conversation_idsState = new Set();
+  projectIdByIdState = new Map();
+  emitStoreChange();
+};
 
 /**
- * Fetch the list and publish it. Rejects when the backend call fails, in which
- * case the previously published snapshot stays as it is: an empty list would
- * tell every reader the conversations are gone when only one request was.
+ * Fetch the list and publish it. The returned promise settles by sequence
+ * (see above): it resolves only when a snapshot that includes this request's
+ * point in time has been published, and rejects when no such snapshot can
+ * come. A failed request keeps the previously published snapshot: an empty
+ * list would tell every reader the conversations are gone when only one
+ * request was.
  */
 const loadConversations = (): Promise<void> => {
-  const sequence = ++refreshSequence;
-  return ipcBridge.database.getUserConversations
+  const sequence = ++latestSequence;
+  const settled = new Promise<void>((resolve, reject) => {
+    waiters.push({ sequence, resolve, reject });
+  });
+  void ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
     .then((result) => {
-      if (sequence !== refreshSequence) return;
-      listLoadedState = true;
-      const items = result?.items;
-      if (items && Array.isArray(items)) {
-        const filteredData = items.filter((conv) => {
-          // Legacy rows from the pre-provider-probe health check flow are hidden
-          // from normal history. New health checks must not create conversations.
-          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
-        });
-        conversationsState = filteredData;
-        // Use ALL conversation IDs (including team/legacy health-check rows) so the
-        // responseStream listener recognises them as known and doesn't
-        // trigger an infinite refreshConversations loop.
-        conversation_idsState = new Set(items.map((conversation) => conversation.id));
-        // Map ALL rows (unfiltered) so a team member conversation's project_id is
-        // resolvable too — the team route looks up its leader conversation here.
-        projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
-        emitStoreChange();
-        return;
-      }
-
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
-      emitStoreChange();
+      if (sequence < latestSequence) return;
+      publishItems(result?.items);
+      publishedSequence = sequence;
+      settleWaiters();
     })
     .catch((error: unknown) => {
-      if (sequence === refreshSequence) {
-        listLoadedState = true;
-        emitStoreChange();
-      }
-      throw error;
+      if (sequence < latestSequence) return;
+      listLoadedState = true;
+      emitStoreChange();
+      failWaiters(error);
     });
+  return settled;
 };
 
 /** The background refresh: a failure is logged and the last snapshot stands. */

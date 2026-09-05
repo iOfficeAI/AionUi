@@ -298,7 +298,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           hasUnread={(conversation_id) => hasCompletionUnread(conversation_id) || isManualUnread(conversation_id)}
           getJobStatus={getJobStatus}
           onOpen={handleSplitGroupOpen}
-          onRemoveMember={(target, member_id) => void removeSplitGroupMember(target, member_id)}
+          onRemoveMember={(target, member_id) => void removeSplitGroupMember(target.id, member_id)}
         />
       );
     }

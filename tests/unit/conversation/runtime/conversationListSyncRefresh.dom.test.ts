@@ -64,16 +64,36 @@ describe('refreshConversationList', () => {
     expect(ids()).toEqual(['a']);
   });
 
-  it('drops a response that arrives after a newer request was issued', async () => {
+  it('settles a superseded request only when the newer snapshot has landed', async () => {
     const first = refreshConversationList();
     const second = refreshConversationList();
     const [firstRequest, secondRequest] = [pending.shift(), pending.shift()];
+    // The older request lands first, with a list from between two writes: it
+    // must neither publish nor let its caller proceed.
+    firstRequest?.resolve({ items: [row('a')] });
+    let firstSettled = false;
+    void first.then(() => {
+      firstSettled = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(firstSettled).toBe(false);
+    expect(ids()).toEqual(['a']);
+
     secondRequest?.resolve({ items: [row('a'), row('b')] });
     await second;
-    expect(ids()).toEqual(['a', 'b']);
-    // The older request lands late with a list from between two writes.
-    firstRequest?.resolve({ items: [row('a')] });
     await first;
+    expect(ids()).toEqual(['a', 'b']);
+  });
+
+  it('rejects a superseded request when the newer one fails, instead of resolving on the old list', async () => {
+    const first = refreshConversationList();
+    const second = refreshConversationList();
+    const [firstRequest, secondRequest] = [pending.shift(), pending.shift()];
+    firstRequest?.resolve({ items: [row('x')] });
+    secondRequest?.reject(new Error('backend down'));
+    await expect(second).rejects.toThrow('backend down');
+    await expect(first).rejects.toThrow('backend down');
     expect(ids()).toEqual(['a', 'b']);
   });
 });

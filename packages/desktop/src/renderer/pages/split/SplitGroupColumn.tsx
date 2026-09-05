@@ -51,27 +51,36 @@ export const SplitGroupColumn: React.FC<{
     });
   }, [member.id, mutate]);
 
-  // The list said this conversation exists but the backend has no such row:
-  // the tag points at a deleted conversation. Ask once more before acting on
-  // it — a single read is not proof — then drop it from the group and say so,
-  // rather than showing an empty column forever.
-  const missing = !isLoading && !isValidating && !error && conversation === null;
-  const missingConfirmationsRef = useRef(0);
+  // The backend answering this conversation's own read with 404 is the one
+  // thing that means "deleted". One 404 is asked again before it counts; a
+  // read that fails outright (network, 5xx) is retried a bounded number of
+  // times and otherwise leaves the column in its error state — an error is
+  // not a deletion. Counters live in refs so a re-read in flight does not
+  // reset them; the column is keyed by member, so a new member starts clean.
+  const nullReadsRef = useRef(0);
+  const failedReadsRef = useRef(0);
   useEffect(() => {
-    if (!missing) {
-      missingConfirmationsRef.current = 0;
+    if (isLoading || isValidating) return;
+    if (conversation) {
+      nullReadsRef.current = 0;
+      failedReadsRef.current = 0;
       return;
     }
-    if (missingConfirmationsRef.current === 0) {
-      missingConfirmationsRef.current = 1;
+    if (error) {
+      failedReadsRef.current += 1;
+      if (nullReadsRef.current > 0 && failedReadsRef.current <= 2) void mutate();
+      return;
+    }
+    nullReadsRef.current += 1;
+    if (nullReadsRef.current < 2) {
       void mutate();
       return;
     }
     console.error(
-      `[SplitGroup] Member ${member.id} of group ${group.id} no longer exists; removing it from the group.`
+      `[SplitGroup] Member ${member.id} of group ${group.id} no longer exists (404 twice); removing it from the group.`
     );
-    void removeMember(group, member.id);
-  }, [group, member.id, missing, mutate, removeMember]);
+    void removeMember(group.id, member.id);
+  }, [conversation, error, group.id, isLoading, isValidating, member.id, mutate, removeMember]);
 
   useEffect(() => {
     if (error) console.error(`[SplitGroup] Member ${member.id} of group ${group.id} could not be loaded:`, error);
@@ -90,7 +99,7 @@ export const SplitGroupColumn: React.FC<{
         icon={<CloseSmall theme='outline' size='16' fill='currentColor' />}
         aria-label={t('conversation.splitGroup.removeMember', { name })}
         data-testid={`split-column-remove-${member.id}`}
-        onClick={() => void removeMember(group, member.id)}
+        onClick={() => void removeMember(group.id, member.id)}
       />
     </Tooltip>
   );

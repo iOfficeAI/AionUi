@@ -20,18 +20,20 @@
  * sidebar's scroll container cannot clip it on the way to the chat area.
  */
 
+import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import type { CollisionDetection, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
 import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
 import { getEventCoordinates } from '@dnd-kit/utilities';
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import ConversationLeadingIcon from '../ConversationLeadingIcon';
 import type { ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
 import { pickRowInGap, resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
 import type { RowRect } from '../utils/conversationDropTargets';
+import { findSplitGroupOf } from '../utils/splitGroupHelpers';
 import { usePinnedReorder } from './useDragAndDrop';
 import { useSplitGroupMutations } from './useSplitGroupMutations';
 
@@ -55,9 +57,10 @@ const ConversationDragContext = createContext<ConversationDragValue>(idleValue);
 export const useConversationDrag = (): ConversationDragValue => useContext(ConversationDragContext);
 
 /**
- * The droppable under the pointer; failing that, the row the pointer is in the
- * gap next to (so a release between two rows still reads as "between"). Blank
- * space is not a target: releasing there does nothing.
+ * The droppable under the pointer; failing that, the row-like target (a row
+ * or a pill) the pointer is in the gap between, so a release between two
+ * sidebar entries still reads as "between". Blank space is not a target:
+ * releasing there does nothing.
  */
 const collisionDetection: CollisionDetection = (args) => {
   const within = pointerWithin(args);
@@ -68,7 +71,8 @@ const collisionDetection: CollisionDetection = (args) => {
   for (const container of args.droppableContainers) {
     const target = container.data.current as ConversationDropTarget | undefined;
     const rect = args.droppableRects.get(container.id);
-    if (!rect || target?.kind !== 'conversation' || target.surface !== 'row') continue;
+    const rowLike = target?.kind === 'split_group' || (target?.kind === 'conversation' && target.surface === 'row');
+    if (!rect || !rowLike) continue;
     rows.push({ id: String(container.id), top: rect.top, height: rect.height, left: rect.left, width: rect.width });
   }
   const id = pickRowInGap(pointer, rows);
@@ -92,7 +96,19 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
     groupedHistory: { pinnedConversations, splitGroups },
   } = useConversationHistoryContext();
   const { reorderPinned } = usePinnedReorder();
-  const { createGroup, addMember } = useSplitGroupMutations();
+  const { createGroup, addMember, reconcileDeleted } = useSplitGroupMutations();
+
+  // A member deleted anywhere (its own row menu, the archive page, another
+  // device) reaches every window as a backend "deleted" event. Reconcile its
+  // group from that event — never from the member merely missing from a list
+  // snapshot — and only once the member's own read confirms it is gone.
+  useEffect(() => {
+    return ipcBridge.conversation.listChanged.on((event) => {
+      if (event.action !== 'deleted') return;
+      const group = findSplitGroupOf(splitGroups, event.conversation_id);
+      if (group) void reconcileDeleted(group.id, event.conversation_id);
+    });
+  }, [reconcileDeleted, splitGroups]);
   const [activeConversation, setActiveConversation] = useState<TChatConversation | null>(null);
   const [dropTarget, setDropTarget] = useState<ConversationDropTargetState>(null);
 
@@ -174,11 +190,9 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
         case 'create-group':
           void createGroup(action.target_id, action.dragged_id, { open });
           return;
-        case 'add-member': {
-          const group = splitGroups.find((candidate) => candidate.id === action.group_id);
-          if (group) void addMember(group, action.dragged_id, { open });
+        case 'add-member':
+          void addMember(action.group_id, action.dragged_id, { open });
           return;
-        }
         case 'none':
           if (action.reason !== 'self' && action.reason !== 'between') {
             console.warn(`[SplitGroup] Ignored a drop of ${dragged_id}: ${action.reason}.`);
