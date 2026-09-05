@@ -16,11 +16,16 @@
  * This store keeps the same `useSyncExternalStore` shape and adds the missing
  * piece: the set of conversation views currently mounted. Focus rules, in order:
  *
- * 1. Exactly one conversation mounted → it is the focused one, always. This is
- *    the single-conversation app as it behaves today, unchanged.
- * 2. Several mounted → focus moves on user interaction inside a conversation's
- *    subtree (see `useFocusedConversationRegistration`), never implicitly.
- * 3. The focused conversation unmounts → focus falls to the most recently
+ * 1. An explicit focus wins. A caller that names a conversation — the route, the
+ *    team route, or a pointer event inside a view — keeps it, including while
+ *    that view is still mounting. Without this, focusing a column and then
+ *    letting the columns mount would hand focus to whichever mounted first.
+ * 2. Otherwise, exactly one conversation mounted → it is the focused one. This
+ *    is the single-conversation app as it behaves today, unchanged.
+ * 3. Several mounted and no explicit focus pending → focus moves on user
+ *    interaction inside a conversation's subtree (see
+ *    `useFocusedConversationRegistration`), never implicitly.
+ * 4. The focused conversation unmounts → focus falls to the most recently
  *    mounted survivor, or to `null` when none is left, so a stale target can
  *    never leak to a conversation the user is no longer looking at.
  *
@@ -34,6 +39,14 @@ import { useEffect, useSyncExternalStore } from 'react';
 
 let focusedConversationId: string | null = null;
 let focusedProjectId: string | null = null;
+
+/**
+ * True while `focusedConversationId` was named explicitly and that view has not
+ * mounted yet. Mount bookkeeping leaves a pending focus alone, so
+ * `setFocusedConversation('b')` followed by `a` and `b` mounting still ends on
+ * `b`. Cleared the moment the named view mounts, or the focus is replaced.
+ */
+let focusPending = false;
 
 /**
  * Mount refcount per conversation id, in mount order. A conversation can be
@@ -64,22 +77,25 @@ const refreshMountedIds = (): void => {
 };
 
 /**
- * Apply rules 1 and 3 after the mounted set changed. Never runs on a plain
- * `setFocusedConversation` — an explicit focus from the user or a route always
- * wins over the mounted set.
+ * Re-apply the focus rules after the mounted set changed. Never runs on a plain
+ * `setFocusedConversation` — that is the explicit path, and it wins.
  */
 const reconcileFocus = (): void => {
-  if (mountedIds.length === 1) {
-    focusedConversationId = mountedIds[0];
+  // The focused view is on screen: it is the answer, and no longer pending.
+  if (focusedConversationId !== null && mountCounts.has(focusedConversationId)) {
+    focusPending = false;
     return;
   }
+  // Someone named a conversation whose view has not mounted yet. Hold it: the
+  // columns of a split group mount one at a time, and the first one through
+  // must not steal a focus the caller already decided.
+  if (focusPending) return;
+
   if (mountedIds.length === 0) {
     focusedConversationId = null;
     return;
   }
-  if (focusedConversationId === null || !mountCounts.has(focusedConversationId)) {
-    focusedConversationId = mountedIds[mountedIds.length - 1];
-  }
+  focusedConversationId = mountedIds[mountedIds.length - 1];
 };
 
 // ---------------------------------------------------------------------------
@@ -148,6 +164,9 @@ export const setFocusedConversation = (conversation_id: string | null): void => 
   const next = conversation_id || null;
   if (next === focusedConversationId) return;
   focusedConversationId = next;
+  // A named conversation whose view has not mounted yet is pending; clearing
+  // the focus, or naming one already on screen, is not.
+  focusPending = next !== null && !mountCounts.has(next);
   notify();
 };
 
@@ -223,6 +242,7 @@ export const useFocusedConversationRegistration = (
 export const resetFocusedConversationStoreForTest = (): void => {
   focusedConversationId = null;
   focusedProjectId = null;
+  focusPending = false;
   mountCounts.clear();
   mountedIds = [];
   listeners.clear();

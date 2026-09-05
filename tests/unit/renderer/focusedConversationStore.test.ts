@@ -119,6 +119,38 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBeNull();
   });
 
+  it('keeps an explicit focus while its view is still mounting', () => {
+    // Regression: reconcileFocus used to hand focus to whichever view mounted
+    // first, so naming a column and then mounting the columns lost the name.
+    setFocusedConversation('b');
+    registerMountedConversation('a');
+    expect(getFocusedConversation()).toBe('b');
+
+    registerMountedConversation('b');
+    expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('stops holding an explicit focus once its view has mounted and gone', () => {
+    setFocusedConversation('b');
+    registerMountedConversation('a');
+    registerMountedConversation('b');
+
+    unregisterMountedConversation('b');
+    expect(getFocusedConversation()).toBe('a');
+  });
+
+  it('still auto-focuses the only mounted view when nothing was named', () => {
+    registerMountedConversation('a');
+    expect(getFocusedConversation()).toBe('a');
+  });
+
+  it('lets a later explicit focus replace a pending one', () => {
+    setFocusedConversation('b');
+    setFocusedConversation(null);
+    registerMountedConversation('a');
+    expect(getFocusedConversation()).toBe('a');
+  });
+
   it('notifies subscribers when focus changes and skips no-op writes', () => {
     const listener = vi.fn();
     subscribeFocusedProject(listener);
