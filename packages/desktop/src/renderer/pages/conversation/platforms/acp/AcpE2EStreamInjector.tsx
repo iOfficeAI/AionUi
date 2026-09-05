@@ -102,7 +102,7 @@ const createStreamChunks = (lines: number): string[] => {
 };
 
 const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversationId }) => {
-  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const addOrUpdateMessage = useAddOrUpdateMessage(conversationId);
 
   useEffect(() => {
     const enabledConversationId =

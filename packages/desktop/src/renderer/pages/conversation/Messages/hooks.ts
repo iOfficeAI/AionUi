@@ -424,11 +424,12 @@ export function composeMessageWithIndex(
 }
 
 /**
- * @param conversation_id - the conversation this merger belongs to. Interceptors
- * registered through {@link beforeUpdateMessageList} run only for their own
- * conversation.
+ * @param conversation_id - the conversation this merger belongs to. Required:
+ * interceptors registered through {@link beforeUpdateMessageList} are keyed by
+ * conversation, so a merger without an id would silently never drain them and
+ * the entries would pile up in the map.
  */
-export const useMergeLiveMessage = (conversation_id?: string) => {
+export const useMergeLiveMessage = (conversation_id: string) => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
   const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -480,11 +481,11 @@ export const useMergeLiveMessage = (conversation_id?: string) => {
           newList = composeMessageWithIndex(item.message, newList, index);
         }
 
-        const interceptors = conversation_id ? beforeUpdateMessageListStacks.get(conversation_id) : undefined;
+        const interceptors = beforeUpdateMessageListStacks.get(conversation_id);
         while (interceptors?.length) {
           newList = interceptors.shift()!(newList);
         }
-        if (conversation_id && interceptors && interceptors.length === 0) {
+        if (interceptors && interceptors.length === 0) {
           beforeUpdateMessageListStacks.delete(conversation_id);
         }
       }

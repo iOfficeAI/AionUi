@@ -228,7 +228,7 @@ const AcpSendBox: React.FC<{
   const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
 
-  const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
+  const addOrUpdateMessage = useAddOrUpdateMessage(conversation_id); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
   const runtimeView = useConversationRuntimeView(conversation_id);
   const { markSendStarted, markSendAccepted, markSendFailed, supportsMidturnDelivery } = runtimeView;
