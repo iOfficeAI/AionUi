@@ -403,7 +403,16 @@ const SendBox: React.FC<{
     },
     [conversationContext?.conversation_id]
   );
-  useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
+  useAddEventListener(
+    'sendbox.reply.clear',
+    (targetConversationId) => {
+      // Same guard as the reply itself: a send in one column must not wipe an
+      // unsent reply quote sitting in another.
+      if (!acceptsTarget(targetConversationId)) return;
+      setReplyQuote(null);
+    },
+    [conversationContext?.conversation_id]
+  );
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();

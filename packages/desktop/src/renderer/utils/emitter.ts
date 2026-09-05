@@ -53,7 +53,7 @@ interface EventTypes {
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [text: string, conversationId?: string]; // prompt text to fill
   'sendbox.reply': [quote: ReplyQuote, conversationId?: string]; // reply/quote a message
-  'sendbox.reply.clear': void; // clear reply quote
+  'sendbox.reply.clear': [conversationId?: string]; // clear reply quote
   /**
    * Mention a conversation in the send box, target already resolved.
    *
