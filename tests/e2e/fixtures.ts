@@ -197,19 +197,31 @@ async function describeUnresolvedMainWindow(
 }
 
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
-  // Read once up front; if the main window does not exist yet the marker is
-  // null, and the wait loop below re-reads it as windows appear.
-  let mainWindowId = await readMainWindowId(electronApp);
+  let mainWindowId: number | null = null;
 
-  const openWindows = electronApp.windows();
-  const openWindowIsMain = await Promise.all(openWindows.map((win) => isMainWindow(electronApp, win, mainWindowId)));
-  const existingMainWindow = openWindows.find((_win, index) => openWindowIsMain[index]);
-  if (existingMainWindow) {
-    await ensureRendererAppMounted(existingMainWindow);
-    return existingMainWindow;
-  }
+  /**
+   * Ask the question of everything open right now, not only of the window that
+   * just fired an event. Two facts move independently — the marker appears when
+   * the main process publishes it, and windows appear when they open — so a
+   * candidate rejected on one pass can be the main window on the next without
+   * any new window arriving. Re-testing only newly-evented windows would wait
+   * for an event that has already happened and time out with the answer on
+   * screen.
+   */
+  const findMainWindowNow = async (): Promise<Page | null> => {
+    mainWindowId ??= await readMainWindowId(electronApp);
+    const candidates = electronApp.windows();
+    const candidateIsMain = await Promise.all(candidates.map((win) => isMainWindow(electronApp, win, mainWindowId)));
+    return candidates.find((_win, index) => candidateIsMain[index]) ?? null;
+  };
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
+    const found = await findMainWindowNow();
+    if (found) {
+      await ensureRendererAppMounted(found);
+      return found;
+    }
+
     if (Date.now() >= deadline) {
       // No window proved it is the main one. Guessing here is how a detached
       // window ends up masquerading as main and a broken preload goes unnoticed
@@ -217,15 +229,9 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
       throw new Error(await describeUnresolvedMainWindow(electronApp, mainWindowId));
     }
 
-    const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
-    if (win) {
-      mainWindowId ??= await readMainWindowId(electronApp);
-      if (await isMainWindow(electronApp, win, mainWindowId)) {
-        await ensureRendererAppMounted(win);
-        return win;
-      }
-    }
-
+    // A new window is the usual reason the answer changes; the timeout doubles
+    // as the pacing for re-reading the marker when no window event is coming.
+    await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
     return resolveWindowBefore(deadline);
   };
 
