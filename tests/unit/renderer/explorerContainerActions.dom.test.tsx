@@ -43,7 +43,6 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   ExplorerPanel: ({
     roots,
     onRemoveRoot,
-    onRefreshRoot,
     onOpenFile,
     onAddToChat,
     onCopyRelativePath,
@@ -54,7 +53,6 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
   }: {
     roots: Array<{ title: string }>;
     onRemoveRoot?: (id: string) => void;
-    onRefreshRoot?: (id: string) => void;
     onOpenFile?: (pe: string, rel: string) => void;
     onAddToChat?: (pe: string, rel: string, name: string, isFile: boolean) => void;
     onCopyRelativePath?: (pe: string, rel: string, name: string) => void;
@@ -81,9 +79,6 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
       <button data-testid='do-remove' onClick={() => onRemoveRoot?.('peA')}>
         rm
       </button>
-      <button data-testid='do-refresh' onClick={() => onRefreshRoot?.('peA')}>
-        refresh
-      </button>
       <button data-testid='do-open' onClick={() => onOpenFile?.('peA', 'docs/readme.md')}>
         open
       </button>
@@ -104,6 +99,12 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerPanel', () => ({
       </button>
     </div>
   ),
+}));
+
+// Stub the Changes-tab panel: this suite only exercises the container's toolbar and
+// Files tab, and mounting the real ScmPanel would drag in the WS transport chain.
+vi.mock('@/renderer/pages/conversation/SourceControl/ScmPanel', () => ({
+  ScmPanel: () => <div data-testid='scm-panel-stub' />,
 }));
 
 const projectGet = vi.fn<(p: { project_id: string }) => Promise<ProjectDetailDto>>();
@@ -274,17 +275,63 @@ describe('ExplorerContainer attach/remove', () => {
     await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2));
   });
 
-  it('refreshes one root: remounts its WS listings AND revalidates HTTP detail (runtime_status/caution icon)', async () => {
-    // refreshRoot asks the backend to remount the pe's watched dirs (re-arm watch,
-    // re-read baseline) without touching its subscriptions; mutate() re-fetches
-    // project.get so a recovered/degraded root's runtime_status (the caution icon,
-    // HTTP-sourced not WS-sourced) updates.
+  it('top-bar refresh on the Files tab remounts every root AND revalidates HTTP detail (runtime_status/caution icon)', async () => {
+    // The single top-bar refresh is scoped to the visible tab; on Files it remounts
+    // each pe root's watched dirs via refreshRoot (re-arm watch, re-read baseline)
+    // without touching subscriptions, and mutate() re-fetches project.get so a
+    // recovered/degraded root's runtime_status (the caution icon, HTTP-sourced not
+    // WS-sourced) updates.
     const refreshSpy = vi.spyOn(explorerStore, 'refreshRoot');
     renderIt();
     await screen.findByTestId('roots');
-    fireEvent.click(screen.getByTestId('do-refresh'));
+    // Files is the default tab, so the button refreshes roots (aria-label is the
+    // Files-scoped copy; react-i18next `t` is mocked to echo the key).
+    fireEvent.click(screen.getByLabelText('conversation.explorer.refreshFiles'));
     await waitFor(() => expect(refreshSpy).toHaveBeenCalledWith('peA'));
     await waitFor(() => expect(projectGet).toHaveBeenCalledTimes(2)); // initial + revalidate
+  });
+
+  it('top-bar refresh stays busy (disabled) until the in-flight refresh settles', async () => {
+    // Hold the revalidation open so the busy window is observable: the initial load
+    // resolves, but the project.get the refresh triggers hangs until released.
+    let release: () => void = () => {};
+    const held = new Promise<ProjectDetailDto>((resolve) => {
+      release = () => resolve(detail([entry({ pe_id: 'peA', display_name: 'Root' })]));
+    });
+    projectGet
+      .mockReset()
+      .mockResolvedValueOnce(detail([entry({ pe_id: 'peA', display_name: 'Root' })]))
+      .mockReturnValueOnce(held);
+    renderIt();
+    await screen.findByTestId('roots');
+
+    // Arco marks a busy Button with the `arco-btn-loading` class (spinner + it
+    // swallows further clicks); the handler's own re-entry guard blocks pile-up too.
+    const btn = screen.getByLabelText('conversation.explorer.refreshFiles');
+    expect(btn.className).not.toContain('arco-btn-loading');
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn.className).toContain('arco-btn-loading'));
+
+    release();
+    await waitFor(() => expect(btn.className).not.toContain('arco-btn-loading'));
+  });
+
+  it('shows Collapse all on the Files tab and clicking it collapses the tree', async () => {
+    const collapseSpy = vi.spyOn(explorerStore, 'collapseAll').mockImplementation(() => {});
+    renderIt();
+    await screen.findByTestId('roots');
+    fireEvent.click(screen.getByLabelText('conversation.explorer.collapseAll'));
+    expect(collapseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides Collapse all on the Changes tab — there is no tree to collapse there', async () => {
+    renderIt();
+    await screen.findByTestId('roots');
+    // Switch to the Changes tab (react-i18next `t` is mocked to echo the key).
+    fireEvent.click(screen.getByText('conversation.explorer.tabs.changes'));
+    expect(screen.queryByLabelText('conversation.explorer.collapseAll')).toBeNull();
+    // Refresh stays (now Changes-scoped), confirming only collapse-all is tab-gated.
+    expect(screen.getByLabelText('conversation.explorer.refreshChanges')).toBeInTheDocument();
   });
 });
 
