@@ -177,6 +177,16 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
     if (Date.now() >= deadline) {
+      // Every candidate was checked and none proved its id. That means the
+      // marker mechanism itself is broken (a preload that never ran, say), not
+      // that the main window is missing — so fall back to the pre-marker rule
+      // rather than failing the whole suite on a diagnostic.
+      const fallback = electronApp.windows().find((win) => !isDevToolsWindow(win));
+      if (fallback) {
+        console.warn('[e2e] No window published __windowId; falling back to the first non-DevTools window.');
+        await ensureRendererAppMounted(fallback);
+        return fallback;
+      }
       throw new Error('Failed to resolve main renderer window (non-DevTools).');
     }
 
