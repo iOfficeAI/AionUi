@@ -10,10 +10,12 @@ import { buildDetachedConversationHash } from '@/common/platform/detachedWindow'
 import type { WindowBounds } from '@process/utils/windowBounds';
 
 const DETACHED_WINDOW_CASCADE_OFFSET = 24;
+const DETACHED_WINDOW_LOAD_TIMEOUT_MS = 30_000;
 
 export type DetachedWindowRegistryDependencies = {
   createWindow: (bounds: WindowBounds) => BrowserWindow;
   loadWindow: (window: BrowserWindow, hash: string) => Promise<unknown>;
+  loadTimeoutMs?: number;
   prepareWindow: (window: BrowserWindow) => void;
   resolveBounds: () => WindowBounds;
 };
@@ -72,8 +74,8 @@ export const createDetachedWindowRegistry = (
   const openConversation = async (conversationId: string): Promise<BrowserWindow> => {
     const existing = windows.get(conversationId);
     if (existing && !existing.isDestroyed()) {
-      await readiness.get(existing);
       revealWindow(existing);
+      await readiness.get(existing);
       return existing;
     }
     if (existing) windows.delete(conversationId);
@@ -85,9 +87,25 @@ export const createDetachedWindowRegistry = (
     detachedWindows.add(window);
     creationOrder.push(window);
 
+    let userCloseRequested = false;
+    let resolveClosed: (() => void) | undefined;
+    let rejectClosed: ((error: Error) => void) | undefined;
+    const closed = new Promise<void>((resolve, reject) => {
+      resolveClosed = resolve;
+      rejectClosed = reject;
+    });
+    void closed.catch(() => {});
     window.once('ready-to-show', () => revealWindow(window));
+    window.once('close', () => {
+      userCloseRequested = true;
+    });
     window.once('closed', () => {
       forgetWindow(conversationId, window);
+      if (userCloseRequested) {
+        resolveClosed?.();
+      } else {
+        rejectClosed?.(new Error('Detached conversation window closed before loading'));
+      }
     });
 
     const handleSetupFailure = (error: unknown): void => {
@@ -98,10 +116,27 @@ export const createDetachedWindowRegistry = (
 
     try {
       dependencies.prepareWindow(window);
-      const ready = dependencies.loadWindow(window, buildDetachedConversationHash(conversationId)).then(() => {});
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const timedOut = new Promise<void>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Detached conversation window timed out while loading')),
+          dependencies.loadTimeoutMs ?? DETACHED_WINDOW_LOAD_TIMEOUT_MS
+        );
+      });
+      let load: Promise<unknown>;
+      try {
+        load = dependencies.loadWindow(window, buildDetachedConversationHash(conversationId));
+      } catch (error) {
+        if (timeout !== undefined) clearTimeout(timeout);
+        throw error;
+      }
+      const ready = Promise.race([load.then(() => {}), closed, timedOut]).finally(() => {
+        if (timeout !== undefined) clearTimeout(timeout);
+      });
       readiness.set(window, ready);
       await ready;
     } catch (error) {
+      if (userCloseRequested && isAbortedWindowLoad(error)) return window;
       handleSetupFailure(error);
       throw error;
     }
@@ -113,6 +148,12 @@ export const createDetachedWindowRegistry = (
     focusConversation,
     isDetachedWindow: (window) => detachedWindows.has(window),
   };
+};
+
+const isAbortedWindowLoad = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { code?: unknown; errno?: unknown };
+  return candidate.code === -3 || candidate.code === 'ERR_ABORTED' || candidate.errno === -3;
 };
 
 let configuredRegistry: DetachedWindowRegistry | null = null;

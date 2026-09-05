@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDetachedWindowRegistry } from '@/process/services/detachedWindowRegistry';
 
-type WindowEvent = 'closed' | 'ready-to-show';
+type WindowEvent = 'close' | 'closed' | 'ready-to-show';
 
 const makeWindow = (bounds: Rectangle) => {
   const listeners = new Map<WindowEvent, Array<() => void>>();
@@ -48,6 +48,7 @@ const makeWindow = (bounds: Rectangle) => {
 
 describe('detached window registry', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -196,5 +197,109 @@ describe('detached window registry', () => {
     await expect(repeatedOpen).rejects.toBe(error);
     expect(loadWindow).toHaveBeenCalledOnce();
     expect(errorSpy).toHaveBeenCalledOnce();
+  });
+
+  it('reveals an existing window while its initial renderer load is still pending', async () => {
+    const pendingWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    let resolveLoad: (() => void) | undefined;
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => pendingWindow.win,
+      loadWindow: () =>
+        new Promise<void>((resolve) => {
+          resolveLoad = resolve;
+        }),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const initialOpen = registry.openConversation('conversation-1');
+    const repeatedOpen = registry.openConversation('conversation-1');
+
+    expect(pendingWindow.win.show).toHaveBeenCalledOnce();
+    expect(pendingWindow.win.focus).toHaveBeenCalledOnce();
+    resolveLoad?.();
+    await expect(Promise.all([initialOpen, repeatedOpen])).resolves.toEqual([pendingWindow.win, pendingWindow.win]);
+  });
+
+  it('fails a renderer load that exceeds the bounded readiness deadline', async () => {
+    vi.useFakeTimers();
+    const pendingWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => pendingWindow.win,
+      loadWindow: () => new Promise<void>(() => {}),
+      loadTimeoutMs: 10,
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const openExpectation = expect(registry.openConversation('conversation-1')).rejects.toThrow(
+      'Detached conversation window timed out while loading'
+    );
+    await vi.advanceTimersByTimeAsync(10);
+
+    await openExpectation;
+    expect(pendingWindow.win.destroy).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it('clears the readiness deadline when loading throws synchronously', async () => {
+    vi.useFakeTimers();
+    const failedWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const error = new Error('invalid renderer URL');
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => failedWindow.win,
+      loadWindow: () => {
+        throw error;
+      },
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(registry.openConversation('conversation-1')).rejects.toBe(error);
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('treats a user closing the window during load as cancellation instead of failure', async () => {
+    const closingWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    let rejectLoad: ((reason: Error & { code: number }) => void) | undefined;
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => closingWindow.win,
+      loadWindow: () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectLoad = reject;
+        }),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const open = registry.openConversation('conversation-1');
+    const abortedError = Object.assign(new Error('ERR_ABORTED'), { code: -3 });
+
+    closingWindow.emit('close');
+    rejectLoad?.(abortedError);
+
+    await expect(open).resolves.toBe(closingWindow.win);
+    closingWindow.emit('closed');
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('reports an unexpected destroyed window as a load failure', async () => {
+    const failedWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => failedWindow.win,
+      loadWindow: () => new Promise<void>(() => {}),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const open = registry.openConversation('conversation-1');
+
+    failedWindow.emit('closed');
+
+    await expect(open).rejects.toThrow('Detached conversation window closed before loading');
   });
 });
