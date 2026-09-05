@@ -88,17 +88,22 @@ const focusDetachedConversation = (conversationId: string | undefined): boolean 
   }
 };
 
-const openDetachedConversation = (conversationId: string, fallbackWindow: BrowserWindow | null): void => {
+/**
+ * Open the notification's own conversation. This branch is only reached with no
+ * live main window, so every remaining app window is a detached window pinned to
+ * a different conversation: revealing one would answer a click about
+ * conversation A by raising conversation B. A failure is therefore reported and
+ * nothing is revealed, rather than silently surfacing the wrong conversation.
+ */
+const openDetachedConversation = (conversationId: string): void => {
   try {
     void getDetachedWindowRegistry()
       .openConversation(conversationId)
       .catch((error) => {
         console.error('[Notification] Failed to open notification conversation:', error);
-        if (fallbackWindow) revealNotificationWindow(fallbackWindow);
       });
   } catch (error) {
     console.error('[Notification] Failed to open notification conversation:', error);
-    if (fallbackWindow) revealNotificationWindow(fallbackWindow);
   }
 };
 
@@ -178,11 +183,11 @@ export async function showNotification({
           ipcBridge.notification.clicked.emit({ conversation_id });
           return;
         }
-        const producer = getNotificationProducer();
         if (conversation_id) {
-          openDetachedConversation(conversation_id, producer);
+          openDetachedConversation(conversation_id);
           return;
         }
+        const producer = getNotificationProducer();
         if (producer) revealNotificationWindow(producer);
       });
       notification.show();

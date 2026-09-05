@@ -273,6 +273,35 @@ describe('showNotification', () => {
     expect(clickedEmit).not.toHaveBeenCalled();
   });
 
+  it('never raises an unrelated conversation when the notification open fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    openDetachedConversation.mockRejectedValueOnce(new Error('renderer failed to load'));
+    const main = makeWindow(false, 1);
+    const otherConversationWindow = makeWindow(false, 2);
+    setNotificationMainWindow(main as never);
+    registerNotificationAppWindow(otherConversationWindow as never);
+    main.emitClosed();
+    await showNotification({
+      title: 'AionUi',
+      body: 'done',
+      conversation_id: 'c2',
+      source_web_contents_id: 2,
+    });
+
+    FakeElectronNotification.instances[0].handlers.click?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(openDetachedConversation).toHaveBeenCalledWith('c2');
+    expect(otherConversationWindow.show).not.toHaveBeenCalled();
+    expect(clickedEmit).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[Notification] Failed to open notification conversation:',
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
+  });
+
   it('logs when skipping because notifications are disabled in settings', async () => {
     notificationEnabled = false;
     setNotificationMainWindow(makeWindow(false) as never);
