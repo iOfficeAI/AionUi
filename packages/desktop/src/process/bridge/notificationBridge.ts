@@ -15,6 +15,7 @@ import { getPlatformServices } from '@/common/platform';
 import { ipcBridge } from '@/common';
 import { electronNotification } from '@/common/electronSafe';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { getDetachedWindowRegistry } from '@process/services/detachedWindowRegistry';
 import type { BrowserWindow } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -65,6 +66,21 @@ const isAnyAppWindowFocused = (): boolean => {
   return false;
 };
 
+const getLiveMainWindow = (): BrowserWindow | null =>
+  mainWindowRef && !mainWindowRef.isDestroyed() ? mainWindowRef : null;
+
+const getNotificationProducer = (): BrowserWindow | null =>
+  getLiveMainWindow() ?? [...appWindows].find((win) => !win.isDestroyed()) ?? null;
+
+const focusDetachedConversation = (conversationId: string | undefined): boolean => {
+  if (!conversationId) return false;
+  try {
+    return getDetachedWindowRegistry().focusConversation(conversationId);
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Get app icon path for notifications
  */
@@ -89,8 +105,8 @@ const getNotificationIcon = (): string | undefined => {
  *
  * Skips when `system.notificationEnabled` is off, or when the main window is
  * already focused (no nagging). When a real Electron notification is available,
- * clicking it focuses the main window and emits `notification.clicked` so the
- * renderer can navigate to the originating conversation.
+ * clicking it first focuses an existing detached owner; otherwise it focuses
+ * the main window and emits `notification.clicked` so that renderer can navigate.
  *
  * In non-Electron mode this falls back to the platform service, which is a no-op.
  */
@@ -113,7 +129,7 @@ export async function showNotification({
   }
 
   if (source_web_contents_id !== undefined) {
-    const producer = [...appWindows].find((win) => !win.isDestroyed());
+    const producer = getNotificationProducer();
     if (source_web_contents_id === null || producer?.webContents.id !== source_web_contents_id) {
       console.log('[Notification] Skipped: another app window owns notification production');
       return;
@@ -133,8 +149,9 @@ export async function showNotification({
     try {
       const notification = new electronNotification({ title, body, ...(iconPath ? { icon: iconPath } : {}) });
       notification.on('click', () => {
-        const win = mainWindowRef;
-        if (win && !win.isDestroyed()) {
+        if (focusDetachedConversation(conversation_id)) return;
+        const win = getLiveMainWindow();
+        if (win) {
           if (win.isMinimized()) win.restore();
           win.show();
           win.focus();
