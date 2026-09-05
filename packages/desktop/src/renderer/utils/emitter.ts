@@ -17,32 +17,42 @@ export type ReplyQuote = {
 };
 
 interface EventTypes {
-  // The 2nd arg is the target conversation id: only the send box whose
-  // conversation matches consumes the event (team renders one send box per
-  // member column, so a bare type prefix alone would leak to same-type peers).
-  // `undefined` = no target = any same-type box accepts (back-compat).
+  // Lanes below carry an optional target conversation id: only the consumer
+  // whose conversation matches reacts (several conversation views can be
+  // mounted at once — team columns today, split columns next — so a bare type
+  // prefix alone would leak to same-type peers).
+  // `undefined` = no target = any matching consumer accepts (back-compat).
+  // An emitter that does not know its own conversation uses the focused one
+  // (pages/conversation/hooks/focusedConversationStore).
   'aionrs.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
   'aionrs.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
-  'aionrs.selected.file.clear': void;
+  'aionrs.selected.file.clear': [conversationId?: string];
   'aionrs.workspace.refresh': void;
   'acp.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
   'acp.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
-  'acp.selected.file.clear': void;
+  'acp.selected.file.clear': [conversationId?: string];
   'acp.workspace.refresh': void;
   'codex.selected.file': [Array<string | FileOrFolderItem>, string | undefined];
   'codex.selected.file.append': [Array<string | FileOrFolderItem>, string | undefined];
-  'codex.selected.file.clear': void;
+  'codex.selected.file.clear': [conversationId?: string];
   'codex.workspace.refresh': void;
-  'chat.history.refresh': void;
+  /**
+   * Reload the conversation list. Both listeners today are window-global list
+   * views (the sidebar and the chat-history panel), so they refresh on every
+   * event; the optional target is carried for a future conversation-scoped
+   * listener, which must ignore an event addressed to another conversation.
+   */
+  'chat.history.refresh': [conversationId?: string];
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
   // 预览面板事件 / Preview panel events
   'preview.open': [
-    { content: string; contentType: PreviewContentType; metadata?: { title?: string; file_name?: string } },
+    payload: { content: string; contentType: PreviewContentType; metadata?: { title?: string; file_name?: string } },
+    conversationId?: string,
   ];
   // 填充输入框事件 / Fill sendbox input event
-  'sendbox.fill': [string]; // prompt text to fill
-  'sendbox.reply': [ReplyQuote]; // reply/quote a message
+  'sendbox.fill': [text: string, conversationId?: string]; // prompt text to fill
+  'sendbox.reply': [quote: ReplyQuote, conversationId?: string]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
   /**
    * Mention a conversation in the send box, target already resolved.

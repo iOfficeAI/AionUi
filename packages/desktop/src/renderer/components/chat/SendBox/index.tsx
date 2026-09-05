@@ -348,6 +348,11 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
+  // Accept an addressed event only when it targets this box's conversation
+  // (undefined target = broadcast, back-compat). Prevents leaks across send
+  // boxes when several conversation views are mounted at once.
+  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
+    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
@@ -390,7 +395,14 @@ const SendBox: React.FC<{
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
   // Listen for reply events from message actions
-  useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
+  useAddEventListener(
+    'sendbox.reply',
+    (quote, targetConversationId) => {
+      if (!acceptsTarget(targetConversationId)) return;
+      setReplyQuote(quote);
+    },
+    [conversationContext?.conversation_id]
+  );
   useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
@@ -1086,12 +1098,6 @@ const SendBox: React.FC<{
       externalOwnedPathsRef.current.add(path);
     }
   }, []);
-
-  // Accept an append/set event only when it targets this box's conversation
-  // (undefined target = broadcast, back-compat). Prevents leaks across same-type
-  // send boxes on the multi-column team route.
-  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
-    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
 
   useAddEventListener(
     'aionrs.selected.file.append',

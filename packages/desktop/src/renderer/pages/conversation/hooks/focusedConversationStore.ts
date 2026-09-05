@@ -153,6 +153,17 @@ export const setFocusedConversation = (conversation_id: string | null): void => 
 
 export const getFocusedConversation = (): string | null => focusedConversationId;
 
+/**
+ * Address an announcement (`sendbox.fill`, `sendbox.reply`, `preview.open`, …)
+ * to a conversation. An emitter that knows its own conversation passes it; one
+ * that does not — a control rendered outside a conversation subtree — falls back
+ * to the focused conversation rather than shouting at every mounted view.
+ * `undefined` means "no conversation to address", which consumers treat as a
+ * broadcast for back-compat.
+ */
+export const resolveAnnouncementTarget = (conversation_id: string | undefined): string | undefined =>
+  conversation_id ?? getFocusedConversation() ?? undefined;
+
 /** Subscribe a React component to the focused conversation id. */
 export const useFocusedConversationId = (): string | null =>
   useSyncExternalStore(subscribe, getFocusedConversation, getFocusedConversation);

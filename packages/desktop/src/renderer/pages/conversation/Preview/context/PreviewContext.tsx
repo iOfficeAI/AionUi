@@ -14,6 +14,7 @@ import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from 
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
+import { getFocusedConversation } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { reflessTabKey } from './reflessTabKey';
 import { onPreviewWatchChange, reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
@@ -1259,11 +1260,20 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
   useEffect(() => {
-    const handleEmitterPreviewOpen = (data: {
-      content: string;
-      contentType: PreviewContentType;
-      metadata?: PreviewMetadata;
-    }) => {
+    const handleEmitterPreviewOpen = (
+      data: {
+        content: string;
+        contentType: PreviewContentType;
+        metadata?: PreviewMetadata;
+      },
+      targetConversationId?: string
+    ) => {
+      // One preview panel serves every mounted conversation, and it follows the
+      // focused one. An addressed open from a conversation the user is not
+      // working in must not take the panel over.
+      if (targetConversationId !== undefined && targetConversationId !== getFocusedConversation()) {
+        return;
+      }
       if (data && data.content) {
         openPreview(data.content, data.contentType, data.metadata);
       }

@@ -13,6 +13,7 @@ import {
   isConversationMounted,
   registerMountedConversation,
   resetFocusedConversationStoreForTest,
+  resolveAnnouncementTarget,
   setFocusedConversation,
   setFocusedProject,
   subscribeFocusedProject,
@@ -127,6 +128,24 @@ describe('focusedConversationStore — focus', () => {
 
     setFocusedConversation('a');
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('focusedConversationStore — announcement targets', () => {
+  it('keeps a target the emitter already knows', () => {
+    registerMountedConversation('a');
+    expect(resolveAnnouncementTarget('b')).toBe('b');
+  });
+
+  it('addresses the focused conversation when the emitter has none', () => {
+    registerMountedConversation('a');
+    registerMountedConversation('b');
+    setFocusedConversation('b');
+    expect(resolveAnnouncementTarget(undefined)).toBe('b');
+  });
+
+  it('stays undefined — a broadcast — when nothing is focused', () => {
+    expect(resolveAnnouncementTarget(undefined)).toBeUndefined();
   });
 });
 

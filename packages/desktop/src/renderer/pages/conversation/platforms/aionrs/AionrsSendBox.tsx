@@ -236,11 +236,14 @@ const AionrsSendBox: React.FC<{
   // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(
     'sendbox.fill',
-    (text: string) => {
+    (text: string, targetConversationId?: string) => {
+      // Ignore a fill addressed to another conversation — several send boxes can
+      // be mounted at once.
+      if (targetConversationId !== undefined && targetConversationId !== conversation_id) return;
       const prev = contentRef.current;
       setContentRef.current(prev ? `${prev}${text}` : text);
     },
-    []
+    [conversation_id]
   );
 
   // Shared file handling logic
@@ -404,7 +407,7 @@ const AionrsSendBox: React.FC<{
     const sessions = selectedSessions.length > 0 ? selectedSessions : undefined;
     clearFiles();
     setSelectedSessions([]);
-    emitter.emit('aionrs.selected.file.clear');
+    emitter.emit('aionrs.selected.file.clear', conversation_id);
     await executeCommand({ input: message, files: filesToSend, sessions });
   };
 
@@ -415,7 +418,7 @@ const AionrsSendBox: React.FC<{
     const input = content;
     setContent('');
     clearFiles();
-    emitter.emit('aionrs.selected.file.clear');
+    emitter.emit('aionrs.selected.file.clear', conversation_id);
     setInterrupting(true);
     try {
       await teamRuntime.onInterruptSend({ input, files });
@@ -444,7 +447,7 @@ const AionrsSendBox: React.FC<{
     setContent('');
     clearFiles();
     setSelectedSessions([]);
-    emitter.emit('aionrs.selected.file.clear');
+    emitter.emit('aionrs.selected.file.clear', conversation_id);
   }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
@@ -457,7 +460,7 @@ const AionrsSendBox: React.FC<{
       const { uploadFiles, atPath: restoredAtPath } = splitChatFileRefs(item.files);
       setUploadFile(uploadFiles);
       setAtPath(restoredAtPath);
-      emitter.emit('aionrs.selected.file.clear');
+      emitter.emit('aionrs.selected.file.clear', conversation_id);
     },
     [remove, setAtPath, setContent, setUploadFile]
   );

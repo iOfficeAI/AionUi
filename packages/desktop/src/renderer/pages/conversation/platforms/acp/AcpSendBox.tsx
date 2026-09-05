@@ -261,11 +261,14 @@ const AcpSendBox: React.FC<{
   // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(
     'sendbox.fill',
-    (text: string) => {
+    (text: string, targetConversationId?: string) => {
+      // Ignore a fill addressed to another conversation — several send boxes can
+      // be mounted at once.
+      if (targetConversationId !== undefined && targetConversationId !== conversation_id) return;
       const prev = contentRef.current;
       setContentRef.current(prev ? `${prev}${text}` : text);
     },
-    []
+    [conversation_id]
   );
 
   // Check for and send initial message from guid page
@@ -456,7 +459,7 @@ Please check your local CLI tool authentication status`,
     const sessions = selectedSessions.length > 0 ? selectedSessions : undefined;
     clearFiles();
     setSelectedSessions([]);
-    emitter.emit('acp.selected.file.clear');
+    emitter.emit('acp.selected.file.clear', conversation_id);
     await executeCommand({ input: message, files: allFiles, sessions });
   };
 
@@ -472,7 +475,7 @@ Please check your local CLI tool authentication status`,
     // always empty here. Cleared anyway so the state cannot leak if that
     // relationship ever changes.
     setSelectedSessions([]);
-    emitter.emit('acp.selected.file.clear');
+    emitter.emit('acp.selected.file.clear', conversation_id);
     setInterrupting(true);
     try {
       await teamRuntime.onInterruptSend({ input, files });
@@ -498,7 +501,7 @@ Please check your local CLI tool authentication status`,
     setContent('');
     clearFiles();
     setSelectedSessions([]);
-    emitter.emit('acp.selected.file.clear');
+    emitter.emit('acp.selected.file.clear', conversation_id);
   }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
@@ -509,7 +512,7 @@ Please check your local CLI tool authentication status`,
       const { uploadFiles, atPath: restoredAtPath } = splitChatFileRefs(item.files);
       setUploadFile(uploadFiles);
       setAtPath(restoredAtPath);
-      emitter.emit('acp.selected.file.clear');
+      emitter.emit('acp.selected.file.clear', conversation_id);
     },
     [remove, setAtPath, setContent, setUploadFile]
   );
