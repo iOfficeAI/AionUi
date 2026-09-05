@@ -294,6 +294,65 @@ describe('Layout sider brand Home button', () => {
     expect(navigate).toHaveBeenLastCalledWith('/conversation/detached-1?window=detached', { replace: true });
   });
 
+  it('recovers a repeated drift to the same route once the user acts again', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    // A real click or keypress is what separates a drift the user asked for
+    // from the automatic redirect that a restore can bounce straight back into.
+    fireEvent.keyDown(window, { key: 'Enter' });
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(navigate).toHaveBeenLastCalledWith('/conversation/detached-1?window=detached', { replace: true });
+  });
+
+  it('picks up a drift that arrived while an earlier close was still pending', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow
+      .mockReturnValueOnce(
+        new Promise<boolean>((resolve) => {
+          resolveClose = resolve;
+        })
+      )
+      .mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/guid';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      resolveClose?.(false);
+    });
+
+    // The blocked drift is not stranded: settling the first attempt re-runs the
+    // recovery for the route the window actually ended up on.
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/conversation/detached-1?window=detached', { replace: true })
+    );
+  });
+
   it('does not stack close attempts when the route bounces while a close is pending', async () => {
     let resolveClose: ((closed: boolean) => void) | undefined;
     detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(

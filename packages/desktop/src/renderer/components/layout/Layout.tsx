@@ -131,10 +131,19 @@ const Layout: React.FC<{
   const location = useLocation();
   const initialDetachedConversationId = useRef(getDetachedConversationId(location.pathname, location.search));
   const detachedConversationId = initialDetachedConversationId.current;
-  // Recovery is keyed by the route the window drifted to, not by the pinned
-  // conversation: repeating a recovery that already failed for that route would
-  // loop, while a later unrelated drift still deserves its own attempt.
-  const detachedRouteRecoveryAttemptedRef = useRef<Set<string>>(new Set());
+  // The drifted route a close attempt is currently outstanding for, so only one
+  // close is ever in flight, and the route the last attempt settled on, so an
+  // automatic redirect straight back to it cannot loop. Both hold a single
+  // route, never a growing history.
+  const detachedRoutePendingRef = useRef<string | null>(null);
+  const detachedRouteSettledRef = useRef<string | null>(null);
+  // Set by any real pointer or key input. A repeat drift to the route we just
+  // recovered from is a redirect loop when nothing touched the window since,
+  // and a fresh drift the user asked for when something did.
+  const detachedRouteUserActedRef = useRef(false);
+  // Bumped when an attempt settles so the effect re-runs and picks up a drift
+  // that arrived while the close was still outstanding.
+  const [detachedRouteRecoveryTick, setDetachedRouteRecoveryTick] = useState(0);
   // The route this window is currently on, or null once it unmounts. A close
   // result is only acted on while the window is still sitting on the route that
   // asked for it, so a drift that resolved itself is ignored and one that is
@@ -152,14 +161,34 @@ const Layout: React.FC<{
     };
   }, [location.pathname, location.search]);
   useEffect(() => {
+    if (!isDetached) return;
+    const markUserAction = (): void => {
+      detachedRouteUserActedRef.current = true;
+    };
+    window.addEventListener('pointerdown', markUserAction, true);
+    window.addEventListener('keydown', markUserAction, true);
+    return () => {
+      window.removeEventListener('pointerdown', markUserAction, true);
+      window.removeEventListener('keydown', markUserAction, true);
+    };
+  }, [isDetached]);
+  useEffect(() => {
     if (!isDetached || getDetachedConversationId(location.pathname, location.search) === detachedConversationId) return;
     const driftedRoute = `${location.pathname}${location.search}`;
-    // Claiming the route before the close is attempted keeps a route that
-    // bounces away and back from stacking duplicate close calls, and keeps a
-    // recovery that already failed from repeating.
-    if (detachedRouteRecoveryAttemptedRef.current.has(driftedRoute)) return;
-    detachedRouteRecoveryAttemptedRef.current.add(driftedRoute);
+    // One close per attempt: a route that bounces away and back while the close
+    // is outstanding must not stack a second one.
+    if (detachedRoutePendingRef.current !== null) return;
+    // The window was just put back on its pinned route and landed here again
+    // with no input in between, so restoring it a second time would only feed
+    // the redirect that sent it here.
+    if (detachedRouteSettledRef.current === driftedRoute && !detachedRouteUserActedRef.current) return;
+    detachedRoutePendingRef.current = driftedRoute;
     const settleClose = (shouldRestore: boolean): void => {
+      detachedRoutePendingRef.current = null;
+      detachedRouteSettledRef.current = driftedRoute;
+      detachedRouteUserActedRef.current = false;
+      if (currentRouteRef.current === null) return;
+      setDetachedRouteRecoveryTick((tick) => tick + 1);
       if (!shouldRestore || currentRouteRef.current !== driftedRoute) return;
       void navigate(buildDetachedConversationHash(detachedConversationId).slice(1), { replace: true });
     };
@@ -167,7 +196,7 @@ const Layout: React.FC<{
       .closeCurrentWindow()
       .then((closed) => settleClose(!closed))
       .catch(() => settleClose(true));
-  }, [detachedConversationId, isDetached, location.pathname, location.search, navigate]);
+  }, [detachedConversationId, detachedRouteRecoveryTick, isDetached, location.pathname, location.search, navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
