@@ -121,8 +121,9 @@ async function ensureRendererAppMounted(page: Page): Promise<void> {
 /**
  * The main window's webContents id, published by the main process in
  * `createWindow`. `null` when the app has not created it yet (or is an older
- * build without the marker), in which case window resolution falls back to
- * "the first non-DevTools window".
+ * build without the marker), in which case window resolution accepts the first
+ * non-DevTools window — the pre-marker rule, which is correct while the app can
+ * only open one window.
  */
 async function readMainWindowId(electronApp: ElectronApplication): Promise<number | null> {
   return electronApp
@@ -162,6 +163,28 @@ async function isMainWindow(page: Page, mainWindowId: number | null): Promise<bo
   return (await readPageWindowId(page)) === mainWindowId;
 }
 
+/**
+ * Everything known about why the main window could not be resolved: the marker
+ * the main process published, and the id every candidate window claimed. This
+ * is the difference between "the suite is broken" and "the preload never ran in
+ * window 3".
+ */
+async function describeUnresolvedMainWindow(
+  electronApp: ElectronApplication,
+  mainWindowId: number | null
+): Promise<string> {
+  const candidates = electronApp.windows().filter((win) => !isDevToolsWindow(win));
+  const observed = await Promise.all(
+    candidates.map(async (win) => `    ${win.url()} → __windowId=${String(await readPageWindowId(win))}`)
+  );
+  return [
+    'Failed to resolve the main renderer window.',
+    `  main process __aionuiMainWindowId: ${mainWindowId === null ? 'not published' : mainWindowId}`,
+    `  non-DevTools windows seen: ${candidates.length}`,
+    ...(observed.length > 0 ? observed : ['    (none)']),
+  ].join('\n');
+}
+
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
   // Read once up front; if the main window does not exist yet the marker is
   // null, and the wait loop below re-reads it as windows appear.
@@ -177,17 +200,10 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
     if (Date.now() >= deadline) {
-      // Every candidate was checked and none proved its id. That means the
-      // marker mechanism itself is broken (a preload that never ran, say), not
-      // that the main window is missing — so fall back to the pre-marker rule
-      // rather than failing the whole suite on a diagnostic.
-      const fallback = electronApp.windows().find((win) => !isDevToolsWindow(win));
-      if (fallback) {
-        console.warn('[e2e] No window published __windowId; falling back to the first non-DevTools window.');
-        await ensureRendererAppMounted(fallback);
-        return fallback;
-      }
-      throw new Error('Failed to resolve main renderer window (non-DevTools).');
+      // No window proved it is the main one. Guessing here is how a detached
+      // window ends up masquerading as main and a broken preload goes unnoticed
+      // for a whole suite run, so fail with what was actually observed.
+      throw new Error(await describeUnresolvedMainWindow(electronApp, mainWindowId));
     }
 
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
