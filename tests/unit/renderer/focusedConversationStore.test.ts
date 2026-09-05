@@ -158,6 +158,21 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBe('b');
   });
 
+  it('stays focused while one of two views of the same conversation closes', () => {
+    // The mounted set refcounts duplicates; the derived focus has to read that
+    // refcount, not merely "was it ever registered".
+    setFocusedConversation('a');
+    const releaseFirst = registerMountedConversation('a');
+    registerMountedConversation('a');
+    registerMountedConversation('b');
+
+    releaseFirst();
+    expect(getFocusedConversation()).toBe('a');
+
+    unregisterMountedConversation('a');
+    expect(getFocusedConversation()).toBe('b');
+  });
+
   it('returns to the named conversation when its view comes back', () => {
     setFocusedConversation('b');
     const releaseB = registerMountedConversation('b');

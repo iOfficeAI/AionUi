@@ -255,6 +255,28 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     expect(other).not.toHaveBeenCalled();
   });
 
+  it('ignores a release that already ran', () => {
+    // The release is idempotent by looking its own entry up rather than by
+    // holding a flag; running it twice must not take out a later registration.
+    mount();
+    const first = vi.fn();
+    const second = vi.fn();
+    let releaseFirst: (() => void) | undefined;
+    act(() => {
+      releaseFirst = ctx.setSendBoxHandler(first, 'conv-a');
+    });
+    act(() => releaseFirst?.());
+    act(() => {
+      ctx.setSendBoxHandler(second, 'conv-a');
+    });
+    registerMountedConversation('conv-a');
+
+    act(() => releaseFirst?.());
+    act(() => ctx.addToSendBox('survives a double release'));
+    expect(second).toHaveBeenCalledWith('survives a double release');
+    expect(first).not.toHaveBeenCalled();
+  });
+
   it('says so when nothing at all can receive the text', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
