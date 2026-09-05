@@ -131,30 +131,42 @@ const Layout: React.FC<{
   const location = useLocation();
   const initialDetachedConversationId = useRef(getDetachedConversationId(location.pathname, location.search));
   const detachedConversationId = initialDetachedConversationId.current;
-  const detachedRouteRecoveryAttemptedRef = useRef<string | null>(null);
+  // Recovery is keyed by the route the window drifted to, not by the pinned
+  // conversation: repeating a recovery that already failed for that route would
+  // loop, while a later unrelated drift still deserves its own attempt.
+  const detachedRouteRecoveryAttemptedRef = useRef<Set<string>>(new Set());
+  // The route this window is currently on, or null once it unmounts. A close
+  // result is only acted on while the window is still sitting on the route that
+  // asked for it, so a drift that resolved itself is ignored and one that is
+  // still stranded is repaired.
+  const currentRouteRef = useRef<string | null>(null);
   const isDetached = detachedConversationId !== null;
   useDeepLink(isDetached);
   useNotificationClick(isDetached);
   useBrowserNotification(isDetached);
   useDesktopTurnNotification();
   useEffect(() => {
+    currentRouteRef.current = `${location.pathname}${location.search}`;
+    return () => {
+      currentRouteRef.current = null;
+    };
+  }, [location.pathname, location.search]);
+  useEffect(() => {
     if (!isDetached || getDetachedConversationId(location.pathname, location.search) === detachedConversationId) return;
-    if (detachedRouteRecoveryAttemptedRef.current === detachedConversationId) return;
-    let active = true;
-    const restorePinnedRoute = (): void => {
-      if (!active || detachedRouteRecoveryAttemptedRef.current === detachedConversationId) return;
-      detachedRouteRecoveryAttemptedRef.current = detachedConversationId;
+    const driftedRoute = `${location.pathname}${location.search}`;
+    // Claiming the route before the close is attempted keeps a route that
+    // bounces away and back from stacking duplicate close calls, and keeps a
+    // recovery that already failed from repeating.
+    if (detachedRouteRecoveryAttemptedRef.current.has(driftedRoute)) return;
+    detachedRouteRecoveryAttemptedRef.current.add(driftedRoute);
+    const settleClose = (shouldRestore: boolean): void => {
+      if (!shouldRestore || currentRouteRef.current !== driftedRoute) return;
       void navigate(buildDetachedConversationHash(detachedConversationId).slice(1), { replace: true });
     };
     void detachedWindowActions
       .closeCurrentWindow()
-      .then((closed) => {
-        if (!closed) restorePinnedRoute();
-      })
-      .catch(restorePinnedRoute);
-    return () => {
-      active = false;
-    };
+      .then((closed) => settleClose(!closed))
+      .catch(() => settleClose(true));
   }, [detachedConversationId, isDetached, location.pathname, location.search, navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));

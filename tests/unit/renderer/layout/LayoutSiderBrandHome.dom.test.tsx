@@ -271,6 +271,57 @@ describe('Layout sider brand Home button', () => {
     expect(navigate).toHaveBeenCalledOnce();
   });
 
+  it('recovers a later unrelated drift after an earlier recovery already ran', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/guid';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(navigate).toHaveBeenLastCalledWith('/conversation/detached-1?window=detached', { replace: true });
+  });
+
+  it('does not stack close attempts when the route bounces while a close is pending', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        resolveClose = resolve;
+      })
+    );
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
+    // The window is still stranded on the drifted route, so the single refused
+    // close must still restore it.
+    resolveClose?.(false);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  });
+
   it('ignores a stale failed-close result after the pinned route is restored', async () => {
     let resolveClose: ((closed: boolean) => void) | undefined;
     detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(
