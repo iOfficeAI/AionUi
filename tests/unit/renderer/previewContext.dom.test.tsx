@@ -162,13 +162,13 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
   it('drops a send box registration when its view unmounts', () => {
     mount();
     const toA = vi.fn();
-    let release = () => {};
+    let release: (() => void) | undefined;
     act(() => {
       release = ctx.setSendBoxHandler(toA, 'conv-a');
     });
     registerMountedConversation('conv-a');
 
-    act(() => release());
+    act(() => release?.());
     act(() => ctx.addToSendBox('after unmount'));
     expect(toA).not.toHaveBeenCalled();
   });
@@ -179,14 +179,14 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     mount();
     const first = vi.fn();
     const second = vi.fn();
-    let releaseFirst = () => {};
+    let releaseFirst: (() => void) | undefined;
     act(() => {
       releaseFirst = ctx.setSendBoxHandler(first, 'conv-a');
       ctx.setSendBoxHandler(second, 'conv-a');
     });
     registerMountedConversation('conv-a');
 
-    act(() => releaseFirst());
+    act(() => releaseFirst?.());
     act(() => ctx.addToSendBox('still delivered'));
     expect(second).toHaveBeenCalledWith('still delivered');
     expect(first).not.toHaveBeenCalled();
@@ -239,13 +239,13 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     mount();
     const first = vi.fn();
     const second = vi.fn();
-    let releaseFirst = () => {};
+    let releaseFirst: (() => void) | undefined;
     act(() => {
       releaseFirst = ctx.setSendBoxHandler(first, undefined);
       ctx.setSendBoxHandler(second, undefined);
     });
 
-    act(() => releaseFirst());
+    act(() => releaseFirst?.());
     act(() => ctx.addToSendBox('unscoped'));
     expect(second).toHaveBeenCalledWith('unscoped');
     expect(first).not.toHaveBeenCalled();
