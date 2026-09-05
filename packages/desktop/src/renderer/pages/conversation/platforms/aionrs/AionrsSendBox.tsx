@@ -448,7 +448,7 @@ const AionrsSendBox: React.FC<{
     clearFiles();
     setSelectedSessions([]);
     emitter.emit('aionrs.selected.file.clear', conversation_id);
-  }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
+  }, [atPath, clearFiles, content, conversation_id, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -462,7 +462,7 @@ const AionrsSendBox: React.FC<{
       setAtPath(restoredAtPath);
       emitter.emit('aionrs.selected.file.clear', conversation_id);
     },
-    [remove, setAtPath, setContent, setUploadFile]
+    [conversation_id, remove, setAtPath, setContent, setUploadFile]
   );
 
   const appendSelectedFiles = useCallback(

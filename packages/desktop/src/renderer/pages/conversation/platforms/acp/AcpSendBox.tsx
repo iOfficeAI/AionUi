@@ -502,7 +502,7 @@ Please check your local CLI tool authentication status`,
     clearFiles();
     setSelectedSessions([]);
     emitter.emit('acp.selected.file.clear', conversation_id);
-  }, [atPath, clearFiles, content, enqueue, selectedSessions, setContent, uploadFile]);
+  }, [atPath, clearFiles, content, conversation_id, enqueue, selectedSessions, setContent, uploadFile]);
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -514,7 +514,7 @@ Please check your local CLI tool authentication status`,
       setAtPath(restoredAtPath);
       emitter.emit('acp.selected.file.clear', conversation_id);
     },
-    [remove, setAtPath, setContent, setUploadFile]
+    [conversation_id, remove, setAtPath, setContent, setUploadFile]
   );
 
   const appendSelectedFiles = useCallback(
