@@ -10,6 +10,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import type { I18nKey } from '@/renderer/services/i18n/i18n-keys';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
@@ -32,6 +33,16 @@ import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
+
+const CONVERSATION_SOURCE_I18N_KEYS = new Map<string, I18nKey>([
+  ['telegram', 'settings.channels.telegramTitle'],
+  ['slack', 'settings.channels.slackTitle'],
+  ['discord', 'settings.channels.discordTitle'],
+  ['lark', 'settings.channels.larkTitle'],
+  ['dingtalk', 'settings.channels.dingtalkTitle'],
+  ['weixin', 'settings.channels.weixinTitle'],
+  ['wecom', 'settings.channels.wecomTitle'],
+]);
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -78,6 +89,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
+  const sourceI18nKey = conversation.source ? CONVERSATION_SOURCE_I18N_KEYS.get(conversation.source) : undefined;
+  const sourceLabel =
+    !collapsed && conversation.source && conversation.source !== 'aionui'
+      ? sourceI18nKey
+        ? t(sourceI18nKey)
+        : conversation.source
+      : null;
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
@@ -232,8 +250,25 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             popupHoverStay={false}
             position='top'
           >
-            <div className='chat-history__item-name overflow-hidden text-ellipsis flex items-center gap-4px w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
-              <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>{conversation.name}</span>
+            <div
+              className={classNames(
+                'chat-history__item-name box-border overflow-hidden text-ellipsis flex items-center gap-4px w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary',
+                sourceLabel && !batchMode && 'pr-16px'
+              )}
+            >
+              <span className='block flex-1 overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>
+                {conversation.name}
+              </span>
+              {sourceLabel && (
+                <span
+                  className='max-w-68px flex-shrink-0 overflow-hidden text-ellipsis rd-4px bg-fill-2 px-4px text-10px font-[500] leading-16px text-t-secondary'
+                  aria-label={sourceLabel}
+                  data-testid='conversation-source-badge'
+                  title={sourceLabel}
+                >
+                  {sourceLabel}
+                </span>
+              )}
               {forkLineage && (
                 <Tooltip
                   content={
