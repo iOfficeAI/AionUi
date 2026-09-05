@@ -131,6 +131,7 @@ const Layout: React.FC<{
   const location = useLocation();
   const initialDetachedConversationId = useRef(getDetachedConversationId(location.pathname, location.search));
   const detachedConversationId = initialDetachedConversationId.current;
+  const detachedRouteRecoveryAttemptedRef = useRef<string | null>(null);
   const isDetached = detachedConversationId !== null;
   useDeepLink(isDetached);
   useNotificationClick(isDetached);
@@ -138,7 +139,11 @@ const Layout: React.FC<{
   useDesktopTurnNotification();
   useEffect(() => {
     if (!isDetached || getDetachedConversationId(location.pathname, location.search) === detachedConversationId) return;
+    if (detachedRouteRecoveryAttemptedRef.current === detachedConversationId) return;
+    let active = true;
     const restorePinnedRoute = (): void => {
+      if (!active || detachedRouteRecoveryAttemptedRef.current === detachedConversationId) return;
+      detachedRouteRecoveryAttemptedRef.current = detachedConversationId;
       void navigate(buildDetachedConversationHash(detachedConversationId).slice(1), { replace: true });
     };
     void detachedWindowActions
@@ -147,6 +152,9 @@ const Layout: React.FC<{
         if (!closed) restorePinnedRoute();
       })
       .catch(restorePinnedRoute);
+    return () => {
+      active = false;
+    };
   }, [detachedConversationId, isDetached, location.pathname, location.search, navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));

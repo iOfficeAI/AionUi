@@ -249,6 +249,51 @@ describe('Layout sider brand Home button', () => {
     );
   });
 
+  it('restores a missing pinned conversation only once when the browser cannot close the tab', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/missing';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/missing';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce());
+    expect(navigate).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a stale failed-close result after the pinned route is restored', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        resolveClose = resolve;
+      })
+    );
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    resolveClose?.(false);
+
+    await act(async () => Promise.resolve());
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {
     currentPathname = '/settings/about';
     sessionStorage.setItem('aion:last-non-settings-path', '/conversation/abc');
