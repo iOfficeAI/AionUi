@@ -14,6 +14,7 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { appendPromptToDraft, useConversationSendBoxPrefill } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
@@ -336,7 +337,7 @@ const SendBox: React.FC<{
   onSelectedWorkspaceItemsChange,
   bottomHint,
   onMobilePlusClick,
-  active = true,
+  active: activeProp = true,
   onFocused,
   topRightOverlay,
 }) => {
@@ -348,6 +349,10 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
+  // A split column is active only while it is the focused one; a conversation
+  // on its own, or a team slot, keeps its own `active` as is.
+  const { composerActive } = useChatColumn();
+  const active = activeProp && composerActive;
   // Accept an addressed event only when it targets this box's conversation
   // (undefined target = broadcast, back-compat). Prevents leaks across send
   // boxes when several conversation views are mounted at once.

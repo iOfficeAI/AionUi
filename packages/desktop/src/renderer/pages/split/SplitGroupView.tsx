@@ -13,11 +13,10 @@ import {
   setFocusedProject,
   useFocusedConversationId,
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
-import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { Tabs } from '@arco-design/web-react';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { SplitGroupColumn, SplitGroupColumnFrame } from './SplitGroupColumn';
 import styles from './SplitGroupView.module.css';
@@ -113,18 +112,41 @@ export const SplitGroupView: React.FC<{
   return <SplitGroupColumns group={group} focusedId={focusedMember.id} />;
 };
 
+/**
+ * The row's own width, measured before its children first paint (a column's
+ * default width is a share of it) and tracked as the row resizes (the Explorer
+ * column appearing beside it, the window changing). `null` until measured.
+ */
+const useMeasuredWidth = (): { ref: React.RefObject<HTMLDivElement | null>; width: number | null } => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    setWidth(element.offsetWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const next = entries[0]?.contentRect.width;
+      if (typeof next === 'number' && next > 0) setWidth(next);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, width };
+};
+
 const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({ group, focusedId }) => {
-  const { containerRef, containerWidth } = useContainerWidth();
+  const { ref, width: containerWidth } = useMeasuredWidth();
   const count = group.members.length;
 
   return (
     <div
-      ref={containerRef}
+      ref={ref}
       className='flex h-full w-full min-h-0 overflow-x-auto overflow-y-hidden'
       data-testid={`split-group-view-${group.id}`}
       data-layout='columns'
     >
-      {containerWidth > 0 &&
+      {containerWidth !== null &&
         group.members.map((member, index) => (
           <SplitGroupColumnFrame
             key={member.id}
