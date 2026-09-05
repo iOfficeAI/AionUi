@@ -66,11 +66,11 @@ const rowProps: ConversationRowProps = {
   getJobStatus: () => 'none',
 };
 
-const renderRow = () =>
+const renderRow = (overrides: Partial<ConversationRowProps> = {}) =>
   render(
     <DndContext>
       <SortableContext items={[pinnedConversation.id]} strategy={verticalListSortingStrategy}>
-        <SortableConversationRow {...rowProps} />
+        <SortableConversationRow {...rowProps} {...overrides} />
       </SortableContext>
     </DndContext>
   );
@@ -85,5 +85,24 @@ describe('SortableConversationRow', () => {
     renderRow();
     fireEvent.click(screen.getByTestId('conversation-drag-handle-conv-1'));
     expect(onConversationClick).not.toHaveBeenCalled();
+  });
+
+  it('still offers the drag handle while the conversation is generating', () => {
+    // The spinner used to take the handle's slot outright, so a working
+    // conversation could not be grabbed at all.
+    const view = renderRow({ isGenerating: true });
+    expect(view.getByTestId('conversation-drag-handle-conv-1')).toBeInTheDocument();
+    expect(view.getByTestId('conversation-busy-badge-conv-1')).toBeInTheDocument();
+  });
+
+  it('still offers the drag handle while the conversation waits on the user', () => {
+    const view = renderRow({ isWaitingConfirmation: true });
+    expect(view.getByTestId('conversation-drag-handle-conv-1')).toBeInTheDocument();
+    expect(view.getByTestId('conversation-busy-badge-conv-1')).toBeInTheDocument();
+  });
+
+  it('leaves an idle row without a busy badge', () => {
+    const view = renderRow();
+    expect(view.queryByTestId('conversation-busy-badge-conv-1')).toBeNull();
   });
 });
