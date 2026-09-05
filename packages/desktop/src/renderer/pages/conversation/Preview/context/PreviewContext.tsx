@@ -14,7 +14,10 @@ import { BROWSER_BLANK_URL, BROWSER_TAB_FALLBACK_TITLE, MAX_BROWSER_TABS } from 
 import { isBrowserMcpActivity, isBrowserMcpSettled } from '../browser/agentActivity';
 import { maybeNotifyFirstAgentBrowserUse } from '../browser/firstUseNotice';
 import { listPersistedPreviewScopeKeys, previewScopeStorageKey, type PreviewScopeKey } from './previewScope';
-import { getFocusedConversation } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
+import {
+  getFocusedConversation,
+  getMountedConversationIds,
+} from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { peKey } from '@/renderer/pages/conversation/explorer/explorerModel';
 import { reflessTabKey } from './reflessTabKey';
 import { onPreviewWatchChange, reconcilePreviewWatch, resetPreviewWatch } from './previewWatchStore';
@@ -1321,12 +1324,28 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
      * One preview panel serves every mounted conversation, and it follows the
      * focused one (a panel per column is deliberately out of scope). An open
      * addressed to a conversation the user is not working in must not take the
-     * panel over — but it must not vanish quietly either, so the drop is
-     * logged. An unaddressed open is accepted, which is every open today.
+     * panel over — and it must not vanish quietly either, so a refusal is
+     * logged.
+     *
+     * aioncore does not name the conversation on its own preview opens yet, so
+     * an unaddressed open cannot be attributed. With at most one conversation
+     * on screen there is nothing to get wrong and it is accepted, which is
+     * every open today. With several, accepting it would let an agent working
+     * in one column take the panel from the column the user is in, so it is
+     * refused until the backend says who it belongs to.
      */
     const acceptsPreviewOpen = (targetConversationId: string | undefined): boolean => {
-      if (targetConversationId === undefined) return true;
       const focused = getFocusedConversation();
+      if (targetConversationId === undefined) {
+        const mounted = getMountedConversationIds();
+        if (mounted.length > 1) {
+          console.warn(
+            `[Preview] Ignored an open that names no conversation while ${mounted.length} are on screen; it cannot be attributed to one of them.`
+          );
+          return false;
+        }
+        return true;
+      }
       if (targetConversationId === focused) return true;
       console.warn(
         `[Preview] Ignored an open for conversation ${targetConversationId}; the focused conversation is ${focused ?? 'none'}.`

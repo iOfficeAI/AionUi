@@ -279,6 +279,23 @@ describe('PreviewContext backend-driven opens follow the focused conversation', 
     expect(ctx.isOpen).toBe(true);
   });
 
+  it('refuses an unaddressed backend preview once several conversations are on screen', () => {
+    // aioncore does not name the conversation yet. With one conversation there
+    // is nothing to get wrong; with two, an unattributable open would take the
+    // shared panel from whichever column the user is working in.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      registerMountedConversation('conv-a');
+      registerMountedConversation('conv-b');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+      expect(ctx.isOpen).toBe(false);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('refuses a backend preview addressed elsewhere, and says so', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
