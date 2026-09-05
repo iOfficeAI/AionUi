@@ -664,11 +664,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // key holds composers that belong to no conversation; a real conversation id
   // is never empty, so the two cannot collide.
   const sendBoxHandlers = useRef<Map<string, SendBoxRegistration[]>>(new Map());
-  const { t } = useTranslation();
+  const { t: translate } = useTranslation();
   // Read through a ref from the long-lived listeners below so a language change
   // does not re-subscribe them.
-  const tRef = useRef(t);
-  tRef.current = t;
+  const tRef = useRef(translate);
+  tRef.current = translate;
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // Persist the active scope's preview state (open tabs + active tab + visibility)

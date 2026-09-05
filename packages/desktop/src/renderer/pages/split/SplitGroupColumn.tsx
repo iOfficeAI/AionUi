@@ -39,6 +39,7 @@ export const SplitGroupColumn: React.FC<{
     data: conversation,
     error,
     isLoading,
+    isValidating,
     mutate,
   } = useSWR(['split-column', member.id], () => getConversationOrNull(member.id));
 
@@ -52,16 +53,26 @@ export const SplitGroupColumn: React.FC<{
   }, [member.id, mutate]);
 
   // The list said this conversation exists but the backend has no such row:
-  // the tag points at a deleted conversation. Drop it from the group and say
-  // so, rather than showing an empty column forever.
-  const missing = !isLoading && !error && conversation === null;
+  // the tag points at a deleted conversation. Ask once more before acting on
+  // it — a single read is not proof — then drop it from the group and say so,
+  // rather than showing an empty column forever.
+  const missing = !isLoading && !isValidating && !error && conversation === null;
+  const missingConfirmationsRef = useRef(0);
   useEffect(() => {
-    if (!missing) return;
+    if (!missing) {
+      missingConfirmationsRef.current = 0;
+      return;
+    }
+    if (missingConfirmationsRef.current === 0) {
+      missingConfirmationsRef.current = 1;
+      void mutate();
+      return;
+    }
     console.error(
       `[SplitGroup] Member ${member.id} of group ${group.id} no longer exists; removing it from the group.`
     );
     void removeMember(group, member.id);
-  }, [group, member.id, missing, removeMember]);
+  }, [group, member.id, missing, mutate, removeMember]);
 
   useEffect(() => {
     if (error) console.error(`[SplitGroup] Member ${member.id} of group ${group.id} could not be loaded:`, error);

@@ -13,6 +13,7 @@ import {
   setFocusedProject,
   useFocusedConversationId,
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
+import { useCronJobsMap } from '@/renderer/pages/cron';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { Tabs } from '@arco-design/web-react';
@@ -44,24 +45,42 @@ export const SplitGroupView: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   const focusedId = useFocusedConversationId();
   const { closePreviewIfScopeChanged } = usePreviewContext();
+  const { markAsRead } = useCronJobsMap();
 
   const memberIds = group.members.map((member) => member.id);
   const memberKey = memberIds.join('|');
-  const startingId = requestedFocus && memberIds.includes(requestedFocus) ? requestedFocus : memberIds[0];
+  const requested = requestedFocus && memberIds.includes(requestedFocus) ? requestedFocus : undefined;
+  const startingId = requested ?? memberIds[0];
 
   // Mobile shows one column at a time, so the tab strip owns which one; the
   // focus store follows the mounted column rather than the other way round.
+  // A pill icon can ask for another member while the route is already open.
   const [activeTab, setActiveTab] = useState(startingId);
   useEffect(() => {
     const ids = memberKey.split('|');
     setActiveTab((current) => (ids.includes(current) ? current : ids[0]));
   }, [memberKey]);
+  useEffect(() => {
+    if (requested) setActiveTab(requested);
+  }, [requested]);
 
-  // Name the starting column. Derived on read: it wins as soon as its view is
-  // on screen, and a later click on another column replaces it.
+  // Name the focused column only when the user asks: on opening the group
+  // (the first member, or the one a pill icon named) and on a later pill
+  // request. Membership changes never re-run this — the focus store keeps the
+  // column the user last clicked while it is on screen and falls back on its
+  // own when that column leaves — so removing a member before the focused one
+  // cannot steal the focus (plan decision 2).
+  const startingIdRef = useRef(startingId);
+  startingIdRef.current = startingId;
   useLayoutEffect(() => {
-    setFocusedConversation(isMobile ? activeTab : startingId);
-  }, [group.id, startingId, isMobile, activeTab]);
+    if (!isMobile) setFocusedConversation(startingIdRef.current);
+  }, [group.id, isMobile]);
+  useLayoutEffect(() => {
+    if (!isMobile && requested) setFocusedConversation(requested);
+  }, [requested, isMobile]);
+  useLayoutEffect(() => {
+    if (isMobile) setFocusedConversation(activeTab);
+  }, [activeTab, isMobile]);
 
   const focusedMember =
     group.members.find((member) => member.id === focusedId) ??
@@ -85,7 +104,11 @@ export const SplitGroupView: React.FC<{
       <div className='flex flex-col h-full min-h-0' data-testid={`split-group-view-${group.id}`} data-layout='tabs'>
         <Tabs
           activeTab={activeMember.id}
-          onChange={setActiveTab}
+          onChange={(member_id) => {
+            // Only a shown member is read; the others wait for their tab.
+            markAsRead(member_id);
+            setActiveTab(member_id);
+          }}
           size='small'
           type='line'
           className={`shrink-0 px-8px ${styles.tabs}`}

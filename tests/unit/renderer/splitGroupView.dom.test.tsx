@@ -27,11 +27,14 @@ import {
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 
-const { layoutState, closePreviewIfScopeChanged, mountCounts } = vi.hoisted(() => ({
+const { layoutState, closePreviewIfScopeChanged, mountCounts, markAsRead } = vi.hoisted(() => ({
   layoutState: { isMobile: false },
   closePreviewIfScopeChanged: vi.fn(),
   mountCounts: new Map<string, number>(),
+  markAsRead: vi.fn(),
 }));
+
+vi.mock('@/renderer/pages/cron', () => ({ useCronJobsMap: () => ({ markAsRead }) }));
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
@@ -87,6 +90,7 @@ const focusedOf = (id: string) => screen.getByTestId(`split-column-${id}`).getAt
 beforeEach(() => {
   layoutState.isMobile = false;
   closePreviewIfScopeChanged.mockClear();
+  markAsRead.mockClear();
   mountCounts.clear();
 });
 
@@ -137,6 +141,32 @@ describe('SplitGroupView focus wiring (desktop columns)', () => {
   it('keeps a later pill request for another member, once the columns are up', () => {
     const { rerender } = render(<SplitGroupView group={trio} />);
     rerender(<SplitGroupView group={trio} requestedFocus='c' />);
+    expect(getFocusedConversation()).toBe('c');
+  });
+
+  it('keeps the column the user clicked when a member before it is removed', () => {
+    const { rerender } = render(<SplitGroupView group={trio} />);
+    fireEvent.pointerDown(screen.getByTestId('split-column-c'));
+    expect(getFocusedConversation()).toBe('c');
+
+    const withoutFirst: SplitGroup = { id: 'g1', members: [trio.members[1], trio.members[2]] };
+    rerender(<SplitGroupView group={withoutFirst} />);
+    expect(getFocusedConversation()).toBe('c');
+    expect(focusedOf('c')).toBe('true');
+  });
+
+  it('keeps the column the user clicked when a member is added', () => {
+    const { rerender } = render(<SplitGroupView group={trio} />);
+    fireEvent.pointerDown(screen.getByTestId('split-column-b'));
+    rerender(<SplitGroupView group={{ id: 'g1', members: [...trio.members, member('d', 3)] }} />);
+    expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('does not reset the focus when the pill body is clicked after an icon request', () => {
+    const { rerender } = render(<SplitGroupView group={trio} requestedFocus='b' />);
+    expect(getFocusedConversation()).toBe('b');
+    fireEvent.pointerDown(screen.getByTestId('split-column-c'));
+    rerender(<SplitGroupView group={trio} requestedFocus={undefined} />);
     expect(getFocusedConversation()).toBe('c');
   });
 
@@ -193,6 +223,24 @@ describe('SplitGroupView on a narrow viewport (tabs)', () => {
     expect(getMountedConversationIds()).toEqual(['b']);
     expect(getFocusedConversation()).toBe('b');
     expect(getFocusedProject()).toBe('p2');
+  });
+
+  it('shows the member a later pill request names, with membership unchanged', () => {
+    const { rerender } = render(<SplitGroupView group={trio} />);
+    expect(getMountedConversationIds()).toEqual(['a']);
+    rerender(<SplitGroupView group={trio} requestedFocus='c' />);
+    expect(getMountedConversationIds()).toEqual(['c']);
+    expect(getFocusedConversation()).toBe('c');
+  });
+
+  it('marks a member read only when its tab is opened', () => {
+    render(<SplitGroupView group={trio} />);
+    expect(markAsRead).not.toHaveBeenCalled();
+    act(() => {
+      fireEvent.click(screen.getByText('b'));
+    });
+    expect(markAsRead).toHaveBeenCalledTimes(1);
+    expect(markAsRead).toHaveBeenCalledWith('b');
   });
 
   it('does not let a stale focus name pick a member that is not shown', () => {

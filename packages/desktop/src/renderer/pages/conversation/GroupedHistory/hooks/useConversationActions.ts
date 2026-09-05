@@ -16,6 +16,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+
 import { isConversationPinned } from '../utils/groupingHelpers';
 import type { SplitGroup } from '../utils/splitGroupHelpers';
 import { splitGroupRoute } from './useSplitGroupMutations';
@@ -53,6 +55,7 @@ export const useConversationActions = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useLayoutContext()?.isMobile ?? false;
 
   // Close dropdown when entering batch mode
   useEffect(() => {
@@ -91,14 +94,17 @@ export const useConversationActions = ({
       blockMobileInputFocus();
       blurActiveElement();
 
-      for (const member of group.members) markAsRead(member.id);
+      // Desktop shows every column, so every member is seen; a narrow
+      // viewport shows one tab, and the others are marked read as they open.
+      const shown = isMobile ? [member_id ?? group.members[0].id] : group.members.map((member) => member.id);
+      for (const shown_id of shown) markAsRead(shown_id);
 
       void navigate(splitGroupRoute(group.id), { state: member_id ? { focus: member_id } : null });
       if (onSessionClick) {
         onSessionClick();
       }
     },
-    [batchMode, markAsRead, navigate, onSessionClick]
+    [batchMode, isMobile, markAsRead, navigate, onSessionClick]
   );
 
   const removeConversation = useCallback(
