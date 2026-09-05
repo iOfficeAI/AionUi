@@ -26,6 +26,18 @@ export type DetachedWindowRegistry = {
   isDetachedWindow: (window: BrowserWindow) => boolean;
 };
 
+/**
+ * Marks the readiness deadline specifically, so a window that already painted
+ * can survive a load that is merely slow while a real renderer failure still
+ * fails loudly.
+ */
+class DetachedWindowLoadTimeoutError extends Error {
+  constructor() {
+    super('Detached conversation window timed out while loading');
+    this.name = 'DetachedWindowLoadTimeoutError';
+  }
+}
+
 const revealWindow = (window: BrowserWindow): void => {
   if (window.isDestroyed()) return;
   if (window.isMinimized()) window.restore();
@@ -81,13 +93,14 @@ export const createDetachedWindowRegistry = (
         await pending;
         return existing;
       } catch (error) {
-        // A genuine load failure destroys its window, so repeated requests must
-        // still fail loudly. A rejected readiness on a window that is still
-        // alive is stale bookkeeping (cancelled or soft-timed-out open): drop it
-        // and build a replacement instead of poisoning every later request.
-        if (existing.isDestroyed()) throw error;
+        // A genuine load failure destroys and unregisters its window, so every
+        // waiter fails loudly with it. A window that outlived its rejection —
+        // one whose load merely passed the deadline after painting, or one the
+        // user cancelled — is still the single window for this conversation, so
+        // every caller shares it instead of opening a duplicate beside it.
+        if (existing.isDestroyed() || windows.get(conversationId) !== existing) throw error;
         readiness.delete(existing);
-        forgetWindow(conversationId, existing);
+        return existing;
       }
     }
     if (existing) windows.delete(conversationId);
@@ -135,7 +148,7 @@ export const createDetachedWindowRegistry = (
       let timeout: ReturnType<typeof setTimeout> | undefined;
       const timedOut = new Promise<void>((_resolve, reject) => {
         timeout = setTimeout(
-          () => reject(new Error('Detached conversation window timed out while loading')),
+          () => reject(new DetachedWindowLoadTimeoutError()),
           dependencies.loadTimeoutMs ?? DETACHED_WINDOW_LOAD_TIMEOUT_MS
         );
       });
@@ -157,13 +170,15 @@ export const createDetachedWindowRegistry = (
         // The user asked for this window to go away, so how the pending load
         // settled is irrelevant: an abort, a renderer that died with the window,
         // or the deadline are all cancellation, never a reportable failure.
-        forgetWindow(conversationId, window);
+        // The entry is dropped by the `closed` handler and only by it — a close
+        // a handler prevented leaves a live window that must stay reusable.
         return window;
       }
-      if (shown && !window.isDestroyed()) {
+      if (shown && !window.isDestroyed() && error instanceof DetachedWindowLoadTimeoutError) {
         // The window already painted and the user may be typing in it. A load
         // that is merely slow to settle (a hung subresource, a cold dev
         // compile) must never destroy visible work; report it and keep going.
+        // Only the deadline is softened: a real renderer failure still fails.
         console.warn('[AionUi] Detached conversation window is still loading:', error);
         return window;
       }

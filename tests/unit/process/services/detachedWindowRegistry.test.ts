@@ -297,10 +297,93 @@ describe('detached window registry', () => {
 
     await expect(open).resolves.toBe(closingWindow.win);
     expect(errorSpy).not.toHaveBeenCalled();
-    // Even when the close never completes, the cancelled entry must not block a
-    // fresh pop-out of the same conversation.
+    // A close that never completes leaves the window alive, so it stays the one
+    // window for this conversation instead of gaining a duplicate beside it.
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(closingWindow.win);
+    expect(createWindow).toHaveBeenCalledOnce();
+
+    // Once the close actually completes, the next open builds a fresh window.
+    closingWindow.emit('closed');
     await expect(registry.openConversation('conversation-1')).resolves.toBe(replacementWindow.win);
     expect(createWindow).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails loudly when a visible window reports a genuine renderer load failure', async () => {
+    const shownWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const error = new Error('renderer unavailable');
+    let rejectLoad: ((reason: Error) => void) | undefined;
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => shownWindow.win,
+      loadWindow: () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectLoad = reject;
+        }),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const open = registry.openConversation('conversation-1');
+    shownWindow.emit('ready-to-show');
+    rejectLoad?.(error);
+
+    await expect(open).rejects.toBe(error);
+    expect(shownWindow.win.destroy).toHaveBeenCalledOnce();
+    expect(errorSpy).toHaveBeenCalledWith('[AionUi] Failed to load detached conversation window:', error);
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(registry.focusConversation('conversation-1')).toBe(false);
+  });
+
+  it('shares one soft-timed-out window with every concurrent caller', async () => {
+    vi.useFakeTimers();
+    const shownWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const createWindow = vi.fn(() => shownWindow.win);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const registry = createDetachedWindowRegistry({
+      createWindow,
+      loadWindow: () => new Promise<void>(() => {}),
+      loadTimeoutMs: 10,
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const initialOpen = registry.openConversation('conversation-1');
+    const concurrentOpen = registry.openConversation('conversation-1');
+    shownWindow.emit('ready-to-show');
+    await vi.advanceTimersByTimeAsync(10);
+
+    await expect(Promise.all([initialOpen, concurrentOpen])).resolves.toEqual([shownWindow.win, shownWindow.win]);
+    expect(createWindow).toHaveBeenCalledOnce();
+    expect(shownWindow.win.destroy).not.toHaveBeenCalled();
+    expect(registry.focusConversation('conversation-1')).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('fails every concurrent caller when a visible renderer load genuinely fails', async () => {
+    const shownWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const error = new Error('renderer unavailable');
+    let rejectLoad: ((reason: Error) => void) | undefined;
+    const createWindow = vi.fn(() => shownWindow.win);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const registry = createDetachedWindowRegistry({
+      createWindow,
+      loadWindow: () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectLoad = reject;
+        }),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const initialOpen = registry.openConversation('conversation-1');
+    const concurrentOpen = registry.openConversation('conversation-1');
+    shownWindow.emit('ready-to-show');
+    rejectLoad?.(error);
+
+    await expect(initialOpen).rejects.toBe(error);
+    await expect(concurrentOpen).rejects.toBe(error);
+    expect(createWindow).toHaveBeenCalledOnce();
   });
 
   it('clears the readiness deadline when loading throws synchronously', async () => {
