@@ -170,15 +170,27 @@ describe('pickRowInGap', () => {
   const rows = [
     { id: 'a', top: 100, height: 34, left: 10, width: 200 },
     { id: 'b', top: 136, height: 34, left: 10, width: 200 },
+    { id: 'c', top: 172, height: 34, left: 10, width: 200 },
   ];
 
-  it('picks the row whose edge is within the gap, nearest first', () => {
+  it('picks the nearer of the two rows bracketing the gap', () => {
     expect(pickRowInGap({ x: 50, y: 135 }, rows)).toBe('a');
     expect(pickRowInGap({ x: 50, y: 135.5 }, rows)).toBe('b');
+    expect(pickRowInGap({ x: 50, y: 171 }, rows)).toBe('b');
   });
 
-  it('returns nothing below the last row beyond the gap (blank space)', () => {
-    expect(pickRowInGap({ x: 50, y: 200 }, rows)).toBeNull();
+  it('returns nothing just below the last row: that is blank space, not a gap', () => {
+    expect(pickRowInGap({ x: 50, y: 207 }, rows)).toBeNull();
+    expect(pickRowInGap({ x: 50, y: 213 }, rows)).toBeNull();
+  });
+
+  it('returns nothing just above the first row', () => {
+    expect(pickRowInGap({ x: 50, y: 98 }, rows)).toBeNull();
+  });
+
+  it('returns nothing in a space wider than a row gap (a section break)', () => {
+    const spaced = [rows[0], { id: 'z', top: 200, height: 34, left: 10, width: 200 }];
+    expect(pickRowInGap({ x: 50, y: 160 }, spaced)).toBeNull();
   });
 
   it('returns nothing beside the list, however close vertically', () => {

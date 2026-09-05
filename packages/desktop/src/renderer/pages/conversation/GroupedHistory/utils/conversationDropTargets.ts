@@ -100,24 +100,31 @@ export const resolveConversationDropAction = ({
 export const splitGroupDropId = (group_id: string): string => `split-group:${group_id}`;
 export const chatAreaDropId = (conversation_id: string): string => `chat-area:${conversation_id}`;
 
-/** How far outside a row, vertically, a release still counts as "between" that row and its neighbour. */
+/** How wide the space between two rows may be for a release there to count as "between" them. */
 export const ROW_GAP_PX = 8;
 
 export type RowRect = { id: string; top: number; height: number; left: number; width: number };
 
 /**
- * The row a pointer is next to when it is over none: only a row whose
- * horizontal span contains the pointer and whose edge is within the list's
- * row gap. A release over blank space — below the last row, beside the list,
- * in the chat area — returns nothing, so nothing gets fused by accident.
+ * The row a pointer is next to when it is over none: only when the pointer
+ * sits in the gap *between* two row-like targets (one ending just above it,
+ * one starting just below, within the list's row gap of each other), and
+ * within their horizontal span. Blank space — below the last row, above the
+ * first, beside the list, in the chat area — returns nothing, so nothing gets
+ * fused by accident.
  */
 export const pickRowInGap = (pointer: { x: number; y: number }, rows: readonly RowRect[]): string | null => {
-  let best: { id: string; distance: number } | null = null;
+  let above: RowRect | null = null;
+  let below: RowRect | null = null;
   for (const row of rows) {
     if (pointer.x < row.left || pointer.x > row.left + row.width) continue;
-    const distance = pointer.y < row.top ? row.top - pointer.y : pointer.y - (row.top + row.height);
-    if (distance > ROW_GAP_PX) continue;
-    if (!best || distance < best.distance) best = { id: row.id, distance };
+    const bottom = row.top + row.height;
+    if (bottom <= pointer.y && (!above || bottom > above.top + above.height)) above = row;
+    if (row.top >= pointer.y && (!below || row.top < below.top)) below = row;
   }
-  return best?.id ?? null;
+  if (!above || !below) return null;
+  if (below.top - (above.top + above.height) > ROW_GAP_PX * 2) return null;
+  const toAbove = pointer.y - (above.top + above.height);
+  const toBelow = below.top - pointer.y;
+  return toAbove <= toBelow ? above.id : below.id;
 };
