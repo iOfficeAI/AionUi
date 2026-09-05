@@ -216,6 +216,8 @@ export const shouldReconcileMarkWaiting = (pendingConfirmations: number): boolea
 
 type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
+  /** The first list fetch has settled (with data or with an error). */
+  listLoaded: boolean;
   generatingConversationIds: Set<string>;
   waitingConfirmationConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
@@ -254,6 +256,7 @@ const listeners = new Set<() => void>();
 
 let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
+let listLoadedState = false;
 let generatingConversationIdsState = new Set<string>();
 // Per-conversation set of pending confirmation ids (permission / acp_permission
 // / ask). A conversation with a non-empty set is "waiting on the user" and gets
@@ -276,6 +279,7 @@ let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
+  listLoaded: listLoadedState,
   generatingConversationIds: generatingConversationIdsState,
   waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
@@ -285,6 +289,7 @@ let snapshotState: ConversationListSyncSnapshot = {
 const emitStoreChange = () => {
   snapshotState = {
     conversations: conversationsState,
+    listLoaded: listLoadedState,
     generatingConversationIds: generatingConversationIdsState,
     waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
@@ -333,10 +338,11 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
   return name ? name : undefined;
 };
 
-const refreshConversations = () => {
-  void ipcBridge.database.getUserConversations
+const refreshConversations = (): Promise<void> =>
+  ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
     .then((result) => {
+      listLoadedState = true;
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
@@ -364,12 +370,26 @@ const refreshConversations = () => {
     })
     .catch((error) => {
       console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
+      listLoadedState = true;
       conversationsState = [];
       conversation_idsState = new Set();
       projectIdByIdState = new Map();
       emitStoreChange();
     });
-};
+
+/**
+ * Reload the sidebar list and resolve once the new snapshot is published, so a
+ * caller that just changed a row on the backend can navigate to what it now
+ * shows (a split group pill, say) without racing the refetch.
+ */
+export const refreshConversationList = (): Promise<void> => refreshConversations();
+
+/**
+ * Conversations with a turn in flight right now, from the same stream the
+ * sidebar spinner reads. The preview panel uses it to attribute a backend
+ * frame that names no conversation while several columns are on screen.
+ */
+export const getGeneratingConversationIds = (): ReadonlySet<string> => generatingConversationIdsState;
 
 /** Source of a generating-state transition, logged for field diagnosis. */
 type GeneratingTransitionSource = 'stream' | 'reconcile' | 'terminal' | 'turnCompleted' | 'deleted';
@@ -599,9 +619,9 @@ const initializeConversationListSyncStore = () => {
   }
 
   isStoreInitialized = true;
-  refreshConversations();
+  void refreshConversations();
 
-  addEventListener('chat.history.refresh', refreshConversations);
+  addEventListener('chat.history.refresh', () => void refreshConversations());
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id, 'deleted');
@@ -610,7 +630,7 @@ const initializeConversationListSyncStore = () => {
       clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
     }
-    refreshConversations();
+    void refreshConversations();
   });
   ipcBridge.conversation.confirmation.remove.on((event) => {
     if (!event?.conversation_id || !event.id) {
@@ -625,7 +645,7 @@ const initializeConversationListSyncStore = () => {
     }
 
     if (!conversation_idsState.has(conversation_id)) {
-      refreshConversations();
+      void refreshConversations();
     }
 
     if (isTerminalStreamMessage(message)) {
@@ -672,7 +692,7 @@ const initializeConversationListSyncStore = () => {
     }
     markCompleted(event.session_id, event.turn_id);
     clearGenerating(event.session_id, 'turnCompleted');
-    refreshConversations();
+    void refreshConversations();
   });
 };
 
@@ -683,6 +703,7 @@ export const useConversationListSync = () => {
 
   const {
     conversations,
+    listLoaded,
     generatingConversationIds,
     waitingConfirmationConversationIds,
     completionUnreadConversationIds,
@@ -739,6 +760,7 @@ export const useConversationListSync = () => {
 
   return {
     conversations,
+    listLoaded,
     isConversationGenerating,
     isConversationWaitingConfirmation,
     hasCompletionUnread,

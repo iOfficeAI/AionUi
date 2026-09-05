@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { isConversationPinned } from '../utils/groupingHelpers';
+import type { SplitGroup } from '../utils/splitGroupHelpers';
+import { splitGroupRoute } from './useSplitGroupMutations';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -77,6 +79,26 @@ export const useConversationActions = ({
       }
     },
     [batchMode, toggleSelectedConversation, markAsRead, navigate, onSessionClick]
+  );
+
+  // Open a split group's columns. Naming a member asks the column view to give
+  // that column the focus once it is on screen (the focus store derives the
+  // answer on read, so the request can land before the columns mount).
+  const handleSplitGroupOpen = useCallback(
+    (group: SplitGroup, member_id?: string) => {
+      setDropdownVisibleId(null);
+      if (batchMode) return;
+      blockMobileInputFocus();
+      blurActiveElement();
+
+      for (const member of group.members) markAsRead(member.id);
+
+      void navigate(splitGroupRoute(group.id), { state: member_id ? { focus: member_id } : null });
+      if (onSessionClick) {
+        onSessionClick();
+      }
+    },
+    [batchMode, markAsRead, navigate, onSessionClick]
   );
 
   const removeConversation = useCallback(
@@ -323,6 +345,7 @@ export const useConversationActions = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
+    handleSplitGroupOpen,
     handleBatchArchive,
     handleArchive,
     handleEditStart,
