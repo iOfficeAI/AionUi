@@ -89,7 +89,7 @@ describe('readSplitGroupCensus', () => {
     expect(sidebarItems).toHaveBeenCalledWith({
       scope: 'project:p1',
       cursor: 'cursor-1',
-      limit: 1000,
+      limit: 100,
       archived: true,
     });
     expect(census.members.map((member) => member.id)).toEqual(['a', 'b']);
@@ -106,10 +106,23 @@ describe('readSplitGroupCensus', () => {
     expect((await readSplitGroupCensus('g')).complete).toBe(false);
   });
 
-  it('propagates a failed read instead of reporting an empty group', async () => {
+  it('propagates a failed active read instead of reporting an empty group', async () => {
     getUserConversations.mockRejectedValue(new Error('list offline'));
     sidebarGet.mockResolvedValue(noArchive);
     await expect(readSplitGroupCensus('g')).rejects.toThrow('list offline');
+  });
+
+  it('keeps counting the active members when the archive will not answer, but never calls it complete', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      getUserConversations.mockResolvedValue({ items: [row('a', 'g')], total: 1, has_more: false });
+      sidebarGet.mockRejectedValue(new Error('archive offline'));
+      const census = await readSplitGroupCensus('g');
+      expect(census.members.map((member) => member.id)).toEqual(['a']);
+      expect(census.complete).toBe(false);
+    } finally {
+      error.mockRestore();
+    }
   });
 
   it('treats an answer that is not a list as a read it could not make', async () => {

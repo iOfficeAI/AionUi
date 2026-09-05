@@ -37,8 +37,8 @@ export type SplitGroupCensus = {
 
 /** The same window the sidebar itself loads the active list with; the response carries no cursor to page past it. */
 const ACTIVE_LIMIT = 10000;
-/** One archive window, far past any real archive; paging still runs if the backend says there is more. */
-const ARCHIVE_PAGE_LIMIT = 1000;
+/** The sidebar read model's hard cap (`limit out of range [1,100]`), so the archive is read a page at a time. */
+const ARCHIVE_PAGE_LIMIT = 100;
 
 const readActive = async (): Promise<SplitGroupCensus> => {
   const result = await ipcBridge.database.getUserConversations.invoke({ limit: ACTIVE_LIMIT });
@@ -83,7 +83,17 @@ const readArchived = async (): Promise<SplitGroupCensus> => {
  * there".
  */
 export const readSplitGroupCensus = async (group_id: string): Promise<SplitGroupCensus> => {
-  const [active, archived] = await Promise.all([readActive(), readArchived()]);
+  const [active, archived] = await Promise.all([
+    readActive(),
+    // An archive that will not answer is an unread slice, not an empty one: the
+    // count is incomplete, which is what stops it from clearing anyone's tag.
+    // The active members still count, so a member can still be added or taken
+    // out — only the writes that turn on a small count give way.
+    readArchived().catch((error: unknown): SplitGroupCensus => {
+      console.error('[SplitGroup] Could not read the archive; the member count is incomplete:', error);
+      return { members: [], complete: false };
+    }),
+  ]);
   const members: TChatConversation[] = [];
   const seen = new Set<string>();
   for (const conversation of [...active.members, ...archived.members]) {
