@@ -19,7 +19,8 @@ import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/p
 import { Tabs } from '@arco-design/web-react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { SplitGroupColumn, SplitGroupColumnFrame } from './SplitGroupColumn';
+import { SplitGroupColumn } from './SplitGroupColumn';
+import { SplitGroupColumnFrame } from './SplitGroupColumnFrame';
 import styles from './SplitGroupView.module.css';
 
 const conversationWorkspace = (conversation: TChatConversation): string | null =>

@@ -64,10 +64,7 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
       </div>
     );
   };
-  return {
-    SplitGroupColumn: Column,
-    SplitGroupColumnFrame: Column,
-  };
+  return { SplitGroupColumn: Column };
 });
 
 import { SplitGroupView } from '@/renderer/pages/split/SplitGroupView';
@@ -105,6 +102,20 @@ describe('SplitGroupView focus wiring (desktop columns)', () => {
     expect(getMountedConversationIds()).toEqual(['a', 'b', 'c']);
     expect(getFocusedConversation()).toBe('a');
     expect([focusedOf('a'), focusedOf('b'), focusedOf('c')]).toEqual(['true', 'false', 'false']);
+  });
+
+  it('draws a divider between every pair of adjacent columns, and none after the last', () => {
+    render(<SplitGroupView group={trio} />);
+    const dividers = screen.getAllByTestId(/^split-column-divider-/);
+    expect(dividers.map((divider) => divider.getAttribute('data-testid'))).toEqual([
+      'split-column-divider-a',
+      'split-column-divider-b',
+    ]);
+    // Each divider sits inside the frame of the column it follows.
+    expect(screen.getByTestId('split-column-frame-a')).toContainElement(dividers[0]);
+    expect(
+      screen.getByTestId('split-column-frame-c').querySelector('[data-testid^="split-column-divider-"]')
+    ).toBeNull();
   });
 
   it('starts on the member the sidebar asked for', () => {
