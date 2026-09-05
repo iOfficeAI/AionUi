@@ -234,6 +234,12 @@ ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
 });
 
+// The renderer's own webContents id, so a window can tell its own broadcast
+// events (window controls, maximize state) from another window's.
+ipcMain.on('get-window-id', (event) => {
+  event.returnValue = event.sender.id;
+});
+
 ipcMain.on('get-initial-language', (event) => {
   event.returnValue = rendererInitialLanguage;
 });

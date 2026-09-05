@@ -19,11 +19,49 @@ import type { BrowserWindow } from 'electron';
 import path from 'path';
 import fs from 'fs';
 
-// Main window reference, used to gate on focus and to focus + navigate on click.
+// Main window reference, used to focus + navigate on notification click.
 let mainWindowRef: BrowserWindow | null = null;
 
+/**
+ * Every app window that can show a conversation. Pet windows are deliberately
+ * absent: the pet is always-on-top decoration, not a place the user reads
+ * replies, so its focus must not suppress a notification.
+ */
+const appWindows = new Set<BrowserWindow>();
+
+/**
+ * Register a window as one the user can read conversations in. Its focus
+ * suppresses notifications, the same way the main window's always has.
+ */
+export const registerNotificationAppWindow = (win: BrowserWindow): void => {
+  appWindows.add(win);
+  win.once('closed', () => appWindows.delete(win));
+};
+
 export const setNotificationMainWindow = (win: BrowserWindow): void => {
+  // Recreating the main window (macOS `activate` after every window closed)
+  // must not leave the previous one behind suppressing notifications.
+  if (mainWindowRef) appWindows.delete(mainWindowRef);
   mainWindowRef = win;
+  registerNotificationAppWindow(win);
+};
+
+/** Test hook: forget the registered app windows. */
+export const resetNotificationAppWindowsForTest = (): void => {
+  appWindows.clear();
+  mainWindowRef = null;
+};
+
+/**
+ * True while the user is looking at any app window. With one window this is
+ * exactly `mainWindow.isFocused()`; with a detached conversation window open it
+ * also covers the case where that window, not the main one, has focus.
+ */
+const isAnyAppWindowFocused = (): boolean => {
+  for (const win of appWindows) {
+    if (!win.isDestroyed() && win.isFocused()) return true;
+  }
+  return false;
 };
 
 /**
@@ -72,8 +110,8 @@ export async function showNotification({
   }
 
   // Do not notify while the user is already looking at the app.
-  if (mainWindowRef && !mainWindowRef.isDestroyed() && mainWindowRef.isFocused()) {
-    console.log('[Notification] Skipped: main window is focused');
+  if (isAnyAppWindowFocused()) {
+    console.log('[Notification] Skipped: an app window is focused');
     return;
   }
 
