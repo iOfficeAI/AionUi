@@ -144,6 +144,59 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBe('a');
   });
 
+  it('gives up a pending focus whose view never mounts', async () => {
+    // Round 2: a named conversation that never arrives used to hold the focus
+    // for good, so announcements were addressed to a view that is not on
+    // screen while a real one is.
+    setFocusedConversation('missing');
+    registerMountedConversation('a');
+    expect(getFocusedConversation()).toBe('missing'); // held for this batch
+
+    await Promise.resolve();
+    expect(getFocusedConversation()).toBe('a');
+  });
+
+  it('still ends on the named conversation when it mounts in the same batch', async () => {
+    setFocusedConversation('b');
+    registerMountedConversation('a');
+    registerMountedConversation('b');
+
+    await Promise.resolve();
+    expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('gives up a pending focus named while other views are already on screen', async () => {
+    registerMountedConversation('a');
+    setFocusedConversation('missing');
+    expect(getFocusedConversation()).toBe('missing');
+
+    await Promise.resolve();
+    expect(getFocusedConversation()).toBe('a');
+  });
+
+  it('keeps a named conversation while nothing at all is mounted yet', async () => {
+    // The ordinary route case: the conversation is named, its view mounts a
+    // moment later. Nothing is on screen to fall back to, so nothing expires.
+    setFocusedConversation('b');
+    await Promise.resolve();
+    expect(getFocusedConversation()).toBe('b');
+
+    registerMountedConversation('b');
+    await Promise.resolve();
+    expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('notifies subscribers when a pending focus expires', async () => {
+    const listener = vi.fn();
+    setFocusedConversation('missing');
+    registerMountedConversation('a');
+    subscribeFocusedProject(listener);
+
+    await Promise.resolve();
+    expect(listener).toHaveBeenCalled();
+    expect(getFocusedConversation()).toBe('a');
+  });
+
   it('lets a later explicit focus replace a pending one', () => {
     setFocusedConversation('b');
     setFocusedConversation(null);

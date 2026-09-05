@@ -45,8 +45,17 @@ let focusedProjectId: string | null = null;
  * mounted yet. Mount bookkeeping leaves a pending focus alone, so
  * `setFocusedConversation('b')` followed by `a` and `b` mounting still ends on
  * `b`. Cleared the moment the named view mounts, or the focus is replaced.
+ *
+ * A pending focus is held for the mount batch it was named in and no longer:
+ * the columns of a split group mount together in one commit, so if the named
+ * view is not among them it is not coming, and holding the focus on a view that
+ * is not on screen would send announcements nowhere.
+ * {@link schedulePendingExpiry} closes that window.
  */
 let focusPending = false;
+
+/** True while an expiry check for {@link focusPending} is already queued. */
+let pendingExpiryScheduled = false;
 
 /**
  * Mount refcount per conversation id, in mount order. A conversation can be
@@ -77,6 +86,27 @@ const refreshMountedIds = (): void => {
 };
 
 /**
+ * Give the named view the rest of the current task to mount. React commits the
+ * sibling mounts of one render synchronously, so anything mounting alongside it
+ * has already registered by the time this runs. If the named view still is not
+ * on screen it is not coming: drop the hold and fall back to a mounted view,
+ * rather than leaving the focus parked on nothing.
+ */
+const schedulePendingExpiry = (): void => {
+  if (pendingExpiryScheduled) return;
+  pendingExpiryScheduled = true;
+  queueMicrotask(() => {
+    pendingExpiryScheduled = false;
+    if (!focusPending) return;
+
+    focusPending = false;
+    const previous = focusedConversationId;
+    reconcileFocus();
+    if (previous !== focusedConversationId) notify();
+  });
+};
+
+/**
  * Re-apply the focus rules after the mounted set changed. Never runs on a plain
  * `setFocusedConversation` — that is the explicit path, and it wins.
  */
@@ -86,10 +116,13 @@ const reconcileFocus = (): void => {
     focusPending = false;
     return;
   }
-  // Someone named a conversation whose view has not mounted yet. Hold it: the
-  // columns of a split group mount one at a time, and the first one through
-  // must not steal a focus the caller already decided.
-  if (focusPending) return;
+  // Someone named a conversation whose view has not mounted yet. Hold it for
+  // this mount batch: the columns of a split group mount one at a time, and the
+  // first one through must not steal a focus the caller already decided.
+  if (focusPending) {
+    schedulePendingExpiry();
+    return;
+  }
 
   if (mountedIds.length === 0) {
     focusedConversationId = null;
@@ -167,6 +200,11 @@ export const setFocusedConversation = (conversation_id: string | null): void => 
   // A named conversation whose view has not mounted yet is pending; clearing
   // the focus, or naming one already on screen, is not.
   focusPending = next !== null && !mountCounts.has(next);
+  // Naming one while other views are already on screen has to be bounded too,
+  // otherwise the focus parks on a view that never arrives while a real one is
+  // visible. Naming one with nothing mounted is the ordinary "route names it,
+  // then it mounts" case, and waits for the first mount to start the clock.
+  if (focusPending && mountedIds.length > 0) schedulePendingExpiry();
   notify();
 };
 
@@ -243,6 +281,7 @@ export const resetFocusedConversationStoreForTest = (): void => {
   focusedConversationId = null;
   focusedProjectId = null;
   focusPending = false;
+  pendingExpiryScheduled = false;
   mountCounts.clear();
   mountedIds = [];
   listeners.clear();
