@@ -66,7 +66,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   // Hovering reveals an overlay on the leading icon — the drag handle when the
   // row is draggable, otherwise a pushpin marker on pinned rows. The resting
   // icon fades on hover so the overlay reads cleanly.
-  const showLeadingOverlay = !batchMode && !isMobile && !isGenerating && !isWaitingConfirmation;
+  //
+  // A busy row is draggable like any other. The activity spinner used to take
+  // this slot and suppress the handle outright, so a conversation could not be
+  // grabbed while it was working — the one time you most want to move it. The
+  // spinner keeps the resting slot and the handle keeps the hover slot; the
+  // badge below carries the "still working" signal while the handle is up, so
+  // the two never contend for the same place.
+  const showLeadingOverlay = !batchMode && !isMobile;
   const leadingOverlay = dragHandle ?? (isPinned ? <Pushpin theme='outline' size='14' /> : null);
   const leadingFade = showLeadingOverlay && leadingOverlay ? 'group-hover:opacity-0 transition-opacity' : undefined;
 
@@ -93,6 +100,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   // paused turn still streams frames that mark it "generating", so without this
   // the distinct icon would never win.
   const showWaitingConfirmation = isWaitingConfirmation && !batchMode;
+
+  /** The row is working, so the handle covers its spinner while the pointer is on it. */
+  const busy = (isGenerating || isWaitingConfirmation) && !batchMode;
 
   const renderCompletionUnreadDot = () => {
     if (batchMode || !hasUnread || isGenerating || isWaitingConfirmation) {
@@ -121,8 +131,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           // dimIcon means this row sits inside a project/cron parent — visually indent the row content while keeping the bg full-width
           !collapsed && (dimIcon ? 'ps-34px' : 'ps-10px'),
           {
-            'hover:bg-fill-3': !batchMode && !selected && !dropTargeted,
-            '!bg-fill-3': selected,
+            'hover:bg-fill-2': !batchMode && !selected && !dropTargeted,
+            // The open conversation is marked by a light primary wash and a
+            // hairline in the border token, drawn as an inset shadow so the
+            // row keeps its exact size. The solid fill this replaces read as a
+            // black slab against the sidebar.
+            'bg-[rgba(var(--primary-6),0.08)] shadow-[inset_0_0_0_1px_var(--border-base)]': selected,
             'bg-[rgba(var(--primary-6),0.08)]': batchMode && checked,
             // A dragged row would fuse with this one on release.
             'shadow-[inset_0_0_0_2px_rgb(var(--primary-6))] bg-[rgba(var(--primary-6),0.08)]': dropTargeted,
@@ -150,6 +164,15 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             isWaitingConfirmation={showWaitingConfirmation}
             className={leadingFade}
           />
+          {showLeadingOverlay && busy && (
+            <span
+              aria-hidden='true'
+              data-testid={`conversation-busy-badge-${conversation.id}`}
+              className='absolute -top-2px -end-2px z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'
+            >
+              <span className='block size-6px rounded-full bg-[rgba(var(--primary-6),1)] animate-pulse' />
+            </span>
+          )}
           {showLeadingOverlay &&
             leadingOverlay &&
             (dragHandle ?? (

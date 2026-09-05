@@ -62,9 +62,9 @@ import { ChatColumnProvider } from '@/renderer/pages/conversation/hooks/chatColu
 
 const TITLE = 'Refactor the billing reconciliation job to run nightly';
 
-const renderHeader = (compact: boolean) =>
+const renderHeader = (compact: boolean, columnFocused = false) =>
   render(
-    <ChatColumnProvider value={{ composerActive: true, compactHeader: compact }}>
+    <ChatColumnProvider value={{ composerActive: true, compactHeader: compact, columnFocused }}>
       <ChatLayout
         title={TITLE}
         sider={<div>sider</div>}
@@ -119,6 +119,22 @@ describe('ChatLayout header inside a split column', () => {
     } finally {
       containerWidth = 400;
     }
+  });
+
+  it("washes the focused column's header band in a light primary tint", () => {
+    renderHeader(true, true);
+    const band = screen.getByTestId('chat-header-actions').closest('[data-column-header="true"]') as HTMLElement;
+    // The wash itself is a stylesheet rule keyed on this attribute: the glass
+    // background is `!important`, so a utility class could never win.
+    expect(band.getAttribute('data-column-focused')).toBe('true');
+    expect(band.className).toContain('chat-layout-header--glass');
+  });
+
+  it('leaves an unfocused column its plain band', () => {
+    renderHeader(true, false);
+    const band = screen.getByTestId('chat-header-actions').closest('[data-column-header="true"]') as HTMLElement;
+    expect(band.getAttribute('data-column-focused')).toBeNull();
+    expect(band.className).toContain('!bg-2');
   });
 
   it('leaves a conversation on its own with the header it always had', () => {

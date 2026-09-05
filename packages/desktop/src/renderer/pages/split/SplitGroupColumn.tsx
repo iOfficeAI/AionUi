@@ -94,7 +94,10 @@ export const SplitGroupColumn: React.FC<{
 
   // Only the focused column's composer takes the keyboard focus (on mount and
   // on each change of focus); see ChatColumnContext.
-  const chatColumn = useMemo(() => ({ composerActive: focused, compactHeader: true }), [focused]);
+  const chatColumn = useMemo(
+    () => ({ composerActive: focused, compactHeader: true, columnFocused: focused }),
+    [focused]
+  );
 
   const removeButton = (
     <Tooltip content={t('conversation.splitGroup.removeMember', { name })} position='bottom'>
@@ -129,13 +132,16 @@ export const SplitGroupColumn: React.FC<{
             {removeButton}
           </div>
         )}
-        {/* The focused column carries the highlight; painted above the chat and
-            never in the way of it. */}
+        {/* The focused column is outlined by a hairline in the border token,
+            painted above the chat and never in the way of it. The wash that
+            actually names the focused column sits on its header band; a 2px
+            primary ring here read as a hard box around the conversation. */}
         <div
           aria-hidden='true'
+          data-testid={`split-column-focus-ring-${member.id}`}
           className={classNames(
-            'absolute inset-0 pointer-events-none transition-shadow duration-150',
-            focused ? 'shadow-[inset_0_0_0_2px_rgb(var(--primary-6))]' : ''
+            'absolute inset-0 pointer-events-none transition-shadow duration-150 rd-2px',
+            focused ? 'shadow-[inset_0_0_0_1px_var(--border-base)]' : ''
           )}
         />
       </div>

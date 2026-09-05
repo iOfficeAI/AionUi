@@ -24,6 +24,12 @@ export type ChatColumnContextValue = {
    * never compact.
    */
   compactHeader: boolean;
+  /**
+   * This column is the one the user is working in. It is marked by a light
+   * primary wash on the header band and a hairline around the column — not by
+   * a heavy ring, which reads as a black box drawn over the chat.
+   */
+  columnFocused?: boolean;
 };
 
 const ChatColumnContext = createContext<ChatColumnContextValue>({ composerActive: true, compactHeader: false });

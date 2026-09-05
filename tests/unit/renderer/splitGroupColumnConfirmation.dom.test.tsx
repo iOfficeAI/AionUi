@@ -50,6 +50,11 @@ const group = { id: 'g', members: [member], leader_id: 'b' } as unknown as Param
   typeof SplitGroupColumn
 >[0]['group'];
 
+/** One settled read, for the cases that only care about what the column paints. */
+const settleOnce = (state: Partial<SwrState>) => {
+  swrState = { data: undefined, isLoading: false, isValidating: false, error: undefined, ...state };
+};
+
 /**
  * Drive the column through a sequence of settled reads the way SWR does: each
  * read is preceded by a revalidating pass (`isValidating`), which is what
@@ -104,5 +109,21 @@ describe('SplitGroupColumn: confirming a deleted member', () => {
     const offline = { error: new Error('offline') };
     renderSequence([offline, offline, offline, offline, offline]);
     expect(removeMember).not.toHaveBeenCalled();
+  });
+
+  it('outlines the focused column with a hairline, not a heavy primary ring', () => {
+    settleOnce({ data: { id: 'b' } as TChatConversation });
+    const view = render(<SplitGroupColumn group={group} member={member} focused />);
+    const ring = view.getByTestId('split-column-focus-ring-b');
+    expect(ring.className).toContain('shadow-[inset_0_0_0_1px_var(--border-base)]');
+    expect(ring.className).not.toContain('2px_rgb(var(--primary-6))');
+    view.unmount();
+  });
+
+  it('leaves an unfocused column with no outline of its own', () => {
+    settleOnce({ data: { id: 'b' } as TChatConversation });
+    const view = render(<SplitGroupColumn group={group} member={member} focused={false} />);
+    expect(view.getByTestId('split-column-focus-ring-b').className).not.toContain('shadow-[inset');
+    view.unmount();
   });
 });

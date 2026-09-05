@@ -72,7 +72,7 @@ const ChatLayout: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   // A split column: the header is a band of its own, the title keeps its room
   // and the actions (model picker first) give way as the column narrows.
-  const { compactHeader } = useChatColumn();
+  const { compactHeader, columnFocused = false } = useChatColumn();
 
   // Preview panel state
   const { isOpen: isPreviewOpenRaw, isMaximized } = usePreviewContext();
@@ -234,9 +234,12 @@ const ChatLayout: React.FC<{
     <ArcoLayout.Header
       className={classNames(
         'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px chat-layout-header chat-layout-header--glass overflow-hidden',
+        // The focused column's wash rides on `data-column-focused` in
+        // chat-layout.css, where it can out-specify the glass background.
         compactHeader ? '!bg-2 border-b border-solid border-b-[var(--bg-3)]' : '!bg-1'
       )}
       data-column-header={compactHeader ? 'true' : undefined}
+      data-column-focused={compactHeader && columnFocused ? 'true' : undefined}
     >
       {compactHeader ? (
         // The title takes exactly its own width and shrinks a hundred times
