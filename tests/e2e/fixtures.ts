@@ -148,13 +148,16 @@ async function isMainWindow(page: Page, mainWindowId: number | null): Promise<bo
 }
 
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
-  const mainWindowId = await readMainWindowId(electronApp);
+  // Read once up front; if the main window does not exist yet the marker is
+  // null, and the wait loop below re-reads it as windows appear.
+  let mainWindowId = await readMainWindowId(electronApp);
 
-  for (const win of electronApp.windows()) {
-    if (await isMainWindow(win, mainWindowId)) {
-      await ensureRendererAppMounted(win);
-      return win;
-    }
+  const openWindows = electronApp.windows();
+  const openWindowIsMain = await Promise.all(openWindows.map((win) => isMainWindow(win, mainWindowId)));
+  const existingMainWindow = openWindows.find((_win, index) => openWindowIsMain[index]);
+  if (existingMainWindow) {
+    await ensureRendererAppMounted(existingMainWindow);
+    return existingMainWindow;
   }
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
@@ -163,9 +166,12 @@ async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page
     }
 
     const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
-    if (win && (await isMainWindow(win, mainWindowId ?? (await readMainWindowId(electronApp))))) {
-      await ensureRendererAppMounted(win);
-      return win;
+    if (win) {
+      mainWindowId ??= await readMainWindowId(electronApp);
+      if (await isMainWindow(win, mainWindowId)) {
+        await ensureRendererAppMounted(win);
+        return win;
+      }
     }
 
     return resolveWindowBefore(deadline);
