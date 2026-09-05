@@ -173,7 +173,10 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBe('b');
   });
 
-  it('returns to the named conversation when its view comes back', () => {
+  it('does not let a closed column retake the focus when it comes back', () => {
+    // Once b's view leaves and a takes over, every reader has been answering
+    // "a" — so b's name is spent. Remounting b must not move the focus back
+    // with no click behind it; only naming it again does.
     setFocusedConversation('b');
     const releaseB = registerMountedConversation('b');
     registerMountedConversation('a');
@@ -183,7 +186,38 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBe('a');
 
     registerMountedConversation('b');
+    expect(getFocusedConversation()).toBe('a');
+
+    setFocusedConversation('b');
     expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('keeps the name when its view leaves with nothing on screen behind it', () => {
+    // The route transition: the old view unmounts before the new one mounts,
+    // so there is no fallback to promote and the name is still the only fact.
+    setFocusedConversation('b');
+    const releaseB = registerMountedConversation('b');
+
+    releaseB();
+    expect(getFocusedConversation()).toBe('b');
+
+    registerMountedConversation('b');
+    expect(getFocusedConversation()).toBe('b');
+  });
+
+  it('keeps a name whose view has not mounted yet while others come and go', () => {
+    // Spending the name is scoped to the name's own view leaving. A column the
+    // caller named but that has not arrived yet must still win when it does,
+    // however much churn happens meanwhile.
+    setFocusedConversation('c');
+    const releaseA = registerMountedConversation('a');
+    registerMountedConversation('b');
+
+    releaseA();
+    expect(getFocusedConversation()).toBe('b');
+
+    registerMountedConversation('c');
+    expect(getFocusedConversation()).toBe('c');
   });
 
   it('lets a later explicit focus replace a pending one', () => {

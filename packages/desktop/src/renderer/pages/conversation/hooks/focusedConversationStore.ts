@@ -30,6 +30,12 @@
  *    to fall back to, and clearing the name is the caller's explicit job
  *    (`Layout.tsx` does it on leaving the chat routes).
  *
+ * A name is spent when its own view leaves the screen and another view remains
+ * (see `unregisterMountedConversation`). Without that, a name superseded by
+ * rule 2 could come back on a later remount and move the focus with no click
+ * behind it, which is the one thing decision 2 of the plan forbids: focus is
+ * the column you last clicked, and a column you closed is not it.
+ *
  * Deriving is what makes this correct without timing assumptions. Naming a
  * column and then mounting the columns settles on the named one whenever it
  * arrives — same commit, next commit, or seconds later — because the answer is
@@ -110,6 +116,15 @@ export const unregisterMountedConversation = (conversation_id: string): void => 
     mountCounts.set(conversation_id, count - 1);
   } else {
     mountCounts.delete(conversation_id);
+    // The name is spent the moment its last view leaves the screen while
+    // another view is still there to take over. From here rule 2 is the answer
+    // every reader already gets, and keeping the name would let it reassert
+    // itself on a later remount — moving the focus with no click behind it.
+    // With nothing left on screen the name is all there is (rule 3), so it
+    // stays: that is the route transition, where the next view is on its way.
+    if (conversation_id === namedConversationId && mountCounts.size > 0) {
+      namedConversationId = null;
+    }
   }
   refreshMountedIds();
   notify();
