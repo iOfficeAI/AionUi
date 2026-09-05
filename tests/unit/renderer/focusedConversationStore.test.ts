@@ -97,14 +97,14 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBe('b');
   });
 
-  it('falls back to the most recently mounted survivor with three columns open', () => {
+  it('falls back to the oldest surviving view with three columns open', () => {
     registerMountedConversation('a');
     registerMountedConversation('b');
     registerMountedConversation('c');
     setFocusedConversation('a');
 
     unregisterMountedConversation('a');
-    expect(getFocusedConversation()).toBe('c');
+    expect(getFocusedConversation()).toBe('b');
   });
 
   it('clears focus when the last conversation unmounts', () => {
@@ -119,82 +119,56 @@ describe('focusedConversationStore — focus', () => {
     expect(getFocusedConversation()).toBeNull();
   });
 
-  it('keeps an explicit focus while its view is still mounting', () => {
-    // Regression: reconcileFocus used to hand focus to whichever view mounted
-    // first, so naming a column and then mounting the columns lost the name.
+  it('settles on the named conversation once its view mounts', () => {
+    // Naming a column and then letting the columns mount must end on the named
+    // one, whichever order they arrive in.
     setFocusedConversation('b');
     registerMountedConversation('a');
-    expect(getFocusedConversation()).toBe('b');
-
     registerMountedConversation('b');
     expect(getFocusedConversation()).toBe('b');
   });
 
-  it('stops holding an explicit focus once its view has mounted and gone', () => {
+  it('settles on the named conversation however late its view mounts', async () => {
+    // The answer is derived on read, not latched when the name is set, so the
+    // named view winning does not depend on it arriving in any particular tick.
     setFocusedConversation('b');
     registerMountedConversation('a');
+
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     registerMountedConversation('b');
+    expect(getFocusedConversation()).toBe('b');
 
-    unregisterMountedConversation('b');
-    expect(getFocusedConversation()).toBe('a');
+    // And it stays there — nothing expires it behind the user's back.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getFocusedConversation()).toBe('b');
   });
 
-  it('still auto-focuses the only mounted view when nothing was named', () => {
-    registerMountedConversation('a');
-    expect(getFocusedConversation()).toBe('a');
-  });
-
-  it('gives up a pending focus whose view never mounts', async () => {
-    // Round 2: a named conversation that never arrives used to hold the focus
-    // for good, so announcements were addressed to a view that is not on
-    // screen while a real one is.
+  it('does not strand the focus on a view that never mounts', () => {
     setFocusedConversation('missing');
     registerMountedConversation('a');
-    expect(getFocusedConversation()).toBe('missing'); // held for this batch
-
-    await Promise.resolve();
     expect(getFocusedConversation()).toBe('a');
   });
 
-  it('still ends on the named conversation when it mounts in the same batch', async () => {
+  it('keeps the name while nothing is on screen to fall back to', () => {
+    // The team route names its active member column, whose view does not
+    // register; clearing the name is the caller's job, not a guess made here.
     setFocusedConversation('b');
-    registerMountedConversation('a');
-    registerMountedConversation('b');
-
-    await Promise.resolve();
     expect(getFocusedConversation()).toBe('b');
   });
 
-  it('gives up a pending focus named while other views are already on screen', async () => {
+  it('returns to the named conversation when its view comes back', () => {
+    setFocusedConversation('b');
+    const releaseB = registerMountedConversation('b');
     registerMountedConversation('a');
-    setFocusedConversation('missing');
-    expect(getFocusedConversation()).toBe('missing');
+    expect(getFocusedConversation()).toBe('b');
 
-    await Promise.resolve();
+    releaseB();
     expect(getFocusedConversation()).toBe('a');
-  });
-
-  it('keeps a named conversation while nothing at all is mounted yet', async () => {
-    // The ordinary route case: the conversation is named, its view mounts a
-    // moment later. Nothing is on screen to fall back to, so nothing expires.
-    setFocusedConversation('b');
-    await Promise.resolve();
-    expect(getFocusedConversation()).toBe('b');
 
     registerMountedConversation('b');
-    await Promise.resolve();
     expect(getFocusedConversation()).toBe('b');
-  });
-
-  it('notifies subscribers when a pending focus expires', async () => {
-    const listener = vi.fn();
-    setFocusedConversation('missing');
-    registerMountedConversation('a');
-    subscribeFocusedProject(listener);
-
-    await Promise.resolve();
-    expect(listener).toHaveBeenCalled();
-    expect(getFocusedConversation()).toBe('a');
   });
 
   it('lets a later explicit focus replace a pending one', () => {

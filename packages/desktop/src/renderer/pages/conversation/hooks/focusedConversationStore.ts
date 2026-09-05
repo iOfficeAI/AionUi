@@ -14,20 +14,28 @@
  * Explorer's "add to chat" target, the project panel and the preview scope.
  *
  * This store keeps the same `useSyncExternalStore` shape and adds the missing
- * piece: the set of conversation views currently mounted. Focus rules, in order:
+ * piece: the set of conversation views currently mounted.
  *
- * 1. An explicit focus wins. A caller that names a conversation — the route, the
- *    team route, or a pointer event inside a view — keeps it, including while
- *    that view is still mounting. Without this, focusing a column and then
- *    letting the columns mount would hand focus to whichever mounted first.
- * 2. Otherwise, exactly one conversation mounted → it is the focused one. This
- *    is the single-conversation app as it behaves today, unchanged.
- * 3. Several mounted and no explicit focus pending → focus moves on user
- *    interaction inside a conversation's subtree (see
- *    `useFocusedConversationRegistration`), never implicitly.
- * 4. The focused conversation unmounts → focus falls to the most recently
- *    mounted survivor, or to `null` when none is left, so a stale target can
- *    never leak to a conversation the user is no longer looking at.
+ * Focus is **derived, never stored**. Two facts go in — the conversation a
+ * caller last named, and which views are mounted — and the answer is computed
+ * on read:
+ *
+ * 1. The named conversation, if its view is on screen. That is the column the
+ *    user last clicked, and the route's own publish.
+ * 2. Otherwise the view that has been on screen longest. One mounted
+ *    conversation is therefore always the focused one, which is the
+ *    single-conversation app exactly as it behaves today, and opening a second
+ *    column does not move the focus off the first — only a click does.
+ * 3. Otherwise the name as it stands: with nothing on screen there is nothing
+ *    to fall back to, and clearing the name is the caller's explicit job
+ *    (`Layout.tsx` does it on leaving the chat routes).
+ *
+ * Deriving is what makes this correct without timing assumptions. Naming a
+ * column and then mounting the columns settles on the named one whenever it
+ * arrives — same commit, next commit, or seconds later — because the answer is
+ * recomputed rather than latched. An earlier revision latched a "pending" focus
+ * and needed a timer to release it, which could strand the focus on a view that
+ * never mounted and refuse the one that mounted a tick too late.
  *
  * The project id is published explicitly by the routes that know it
  * (conversation + team) rather than derived from the focused conversation:
@@ -37,25 +45,10 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 
-let focusedConversationId: string | null = null;
+/** The conversation a caller last named. One of the two inputs to the focus. */
+let namedConversationId: string | null = null;
+
 let focusedProjectId: string | null = null;
-
-/**
- * True while `focusedConversationId` was named explicitly and that view has not
- * mounted yet. Mount bookkeeping leaves a pending focus alone, so
- * `setFocusedConversation('b')` followed by `a` and `b` mounting still ends on
- * `b`. Cleared the moment the named view mounts, or the focus is replaced.
- *
- * A pending focus is held for the mount batch it was named in and no longer:
- * the columns of a split group mount together in one commit, so if the named
- * view is not among them it is not coming, and holding the focus on a view that
- * is not on screen would send announcements nowhere.
- * {@link schedulePendingExpiry} closes that window.
- */
-let focusPending = false;
-
-/** True while an expiry check for {@link focusPending} is already queued. */
-let pendingExpiryScheduled = false;
 
 /**
  * Mount refcount per conversation id, in mount order. A conversation can be
@@ -85,52 +78,6 @@ const refreshMountedIds = (): void => {
   mountedIds = Array.from(mountCounts.keys());
 };
 
-/**
- * Give the named view the rest of the current task to mount. React commits the
- * sibling mounts of one render synchronously, so anything mounting alongside it
- * has already registered by the time this runs. If the named view still is not
- * on screen it is not coming: drop the hold and fall back to a mounted view,
- * rather than leaving the focus parked on nothing.
- */
-const schedulePendingExpiry = (): void => {
-  if (pendingExpiryScheduled) return;
-  pendingExpiryScheduled = true;
-  queueMicrotask(() => {
-    pendingExpiryScheduled = false;
-    if (!focusPending) return;
-
-    focusPending = false;
-    const previous = focusedConversationId;
-    reconcileFocus();
-    if (previous !== focusedConversationId) notify();
-  });
-};
-
-/**
- * Re-apply the focus rules after the mounted set changed. Never runs on a plain
- * `setFocusedConversation` — that is the explicit path, and it wins.
- */
-const reconcileFocus = (): void => {
-  // The focused view is on screen: it is the answer, and no longer pending.
-  if (focusedConversationId !== null && mountCounts.has(focusedConversationId)) {
-    focusPending = false;
-    return;
-  }
-  // Someone named a conversation whose view has not mounted yet. Hold it for
-  // this mount batch: the columns of a split group mount one at a time, and the
-  // first one through must not steal a focus the caller already decided.
-  if (focusPending) {
-    schedulePendingExpiry();
-    return;
-  }
-
-  if (mountedIds.length === 0) {
-    focusedConversationId = null;
-    return;
-  }
-  focusedConversationId = mountedIds[mountedIds.length - 1];
-};
-
 // ---------------------------------------------------------------------------
 // Mounted conversation views
 // ---------------------------------------------------------------------------
@@ -144,7 +91,6 @@ export const registerMountedConversation = (conversation_id: string): (() => voi
 
   mountCounts.set(conversation_id, (mountCounts.get(conversation_id) ?? 0) + 1);
   refreshMountedIds();
-  reconcileFocus();
   notify();
 
   let released = false;
@@ -166,7 +112,6 @@ export const unregisterMountedConversation = (conversation_id: string): void => 
     mountCounts.delete(conversation_id);
   }
   refreshMountedIds();
-  reconcileFocus();
   notify();
 };
 
@@ -195,20 +140,20 @@ export const useMountedConversationIds = (): readonly string[] =>
  */
 export const setFocusedConversation = (conversation_id: string | null): void => {
   const next = conversation_id || null;
-  if (next === focusedConversationId) return;
-  focusedConversationId = next;
-  // A named conversation whose view has not mounted yet is pending; clearing
-  // the focus, or naming one already on screen, is not.
-  focusPending = next !== null && !mountCounts.has(next);
-  // Naming one while other views are already on screen has to be bounded too,
-  // otherwise the focus parks on a view that never arrives while a real one is
-  // visible. Naming one with nothing mounted is the ordinary "route names it,
-  // then it mounts" case, and waits for the first mount to start the clock.
-  if (focusPending && mountedIds.length > 0) schedulePendingExpiry();
+  if (next === namedConversationId) return;
+  namedConversationId = next;
   notify();
 };
 
-export const getFocusedConversation = (): string | null => focusedConversationId;
+/**
+ * The conversation the user is working in, derived from the name and the
+ * mounted set on every read — see the rules at the top of this file.
+ */
+export const getFocusedConversation = (): string | null => {
+  if (namedConversationId !== null && mountCounts.has(namedConversationId)) return namedConversationId;
+  if (mountedIds.length > 0) return mountedIds[0];
+  return namedConversationId;
+};
 
 /**
  * Address an announcement (`sendbox.fill`, `sendbox.reply`, `preview.open`, …)
@@ -278,10 +223,8 @@ export const useFocusedConversationRegistration = (
 
 /** Test hook: reset module state. */
 export const resetFocusedConversationStoreForTest = (): void => {
-  focusedConversationId = null;
+  namedConversationId = null;
   focusedProjectId = null;
-  focusPending = false;
-  pendingExpiryScheduled = false;
   mountCounts.clear();
   mountedIds = [];
   listeners.clear();
