@@ -131,8 +131,11 @@ const Layout: React.FC<{
   useDesktopTurnNotification();
   const navigate = useNavigate();
   const location = useLocation();
+  const isSplitGroupRoute = location.pathname.startsWith('/split/');
   const workspaceAvailable =
-    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+    location.pathname.startsWith('/conversation/') ||
+    isSplitGroupRoute ||
+    (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
     setCollapsed((previous) => !previous);
   }, []);
@@ -202,7 +205,10 @@ const Layout: React.FC<{
   // P4 (②B): hoist the preview region to the Layout host for project
   // conversations so it is structurally persistent (no remount on same-project
   // switches). ChatLayout renders chat only in that case (previewHosted).
-  const previewRegionActive = Boolean(currentProject) && !isMobile && isPreviewOpen;
+  // Split columns always hoist here too, project or not: one shared panel that
+  // follows the focused column (plan decision 3), instead of one inline panel
+  // per column showing the same content.
+  const previewRegionActive = (Boolean(currentProject) || isSplitGroupRoute) && !isMobile && isPreviewOpen;
   // 最大化：隐藏聊天区、让预览铺满它腾出的空间；左侧边栏与右侧资源管理器列均不动。
   // Maximized: hide the chat area and let the preview fill the space it vacated;
   // the left sidebar and the right explorer column are both left untouched.

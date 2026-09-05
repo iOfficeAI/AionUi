@@ -147,10 +147,12 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 
-const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; sliderTitle: React.ReactNode }> = ({
-  conversation,
-  sliderTitle,
-}) => {
+const AionrsConversationPanel: React.FC<{
+  conversation: AionrsConversation;
+  sliderTitle: React.ReactNode;
+  headerActions?: React.ReactNode;
+  previewHosted?: boolean;
+}> = ({ conversation, sliderTitle, headerActions, previewHosted }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -218,13 +220,14 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
             onSetThoughtLevel={handleThoughtLevelSetOption}
           />
         )}
+        {headerActions && <div className='shrink-0'>{headerActions}</div>}
       </div>
     ),
     workspaceEnabled,
     // For project conversations the preview panel is hoisted to the Layout-level
     // project host (structurally persistent across same-project conversation
     // switches — no remount). ChatLayout then renders chat only.
-    previewHosted: Boolean(conversation.project_id),
+    previewHosted: previewHosted ?? Boolean(conversation.project_id),
     workspacePath: conversation.extra?.workspace,
     // Key the workspace-panel collapse preference per-project (falls back to
     // conversation_id inside ChatLayout when there is no project) so the panel's
@@ -269,7 +272,15 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
   hideSendBox?: boolean;
-}> = ({ conversation, hideSendBox }) => {
+  /** Extra controls at the end of the header, after the model selector (a split column's ×). */
+  headerActions?: React.ReactNode;
+  /**
+   * Force the preview panel to the Layout-level host. Defaults to "when the
+   * conversation belongs to a project"; a split column passes `true` so every
+   * column shares the one hoisted panel instead of rendering its own.
+   */
+  previewHosted?: boolean;
+}> = ({ conversation, hideSendBox, headerActions, previewHosted }) => {
   const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
   const { t } = useTranslation();
   // Stable identity: the selector reports readiness from an effect keyed on this
@@ -396,7 +407,15 @@ const ChatConversation: React.FC<{
   }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation, resolvedConversationBackend]);
 
   if (conversation && conversation.type === 'aionrs') {
-    return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
+    return (
+      <AionrsConversationPanel
+        key={conversation.id}
+        conversation={conversation}
+        sliderTitle={sliderTitle}
+        headerActions={headerActions}
+        previewHosted={previewHosted}
+      />
+    );
   }
 
   // 如果有预设助手信息，使用预设助手的 logo 和名称；加载中时不进入 fallback；否则使用 backend 的 logo
@@ -428,6 +447,7 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      {headerActions && <div className='shrink-0'>{headerActions}</div>}
     </div>
   );
 
@@ -442,7 +462,7 @@ const ChatConversation: React.FC<{
         siderTitle={sliderTitle}
         sider={<ChatSlider conversation={conversation} />}
         workspaceEnabled={workspaceEnabled}
-        previewHosted={Boolean(conversation?.project_id)}
+        previewHosted={previewHosted ?? Boolean(conversation?.project_id)}
         workspacePath={conversation?.extra?.workspace}
         workspacePreferenceKey={conversation?.project_id}
         isTemporaryWorkspace={
