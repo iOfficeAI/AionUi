@@ -20,7 +20,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 import { isConversationPinned } from '../utils/groupingHelpers';
 import type { SplitGroup } from '../utils/splitGroupHelpers';
-import { splitGroupRoute } from './useSplitGroupMutations';
+import { nextFocusNonce, splitGroupRoute } from './useSplitGroupMutations';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -101,8 +101,9 @@ export const useConversationActions = ({
       const shown = isMobile ? [focus ?? group.members[0].id] : group.members.map((member) => member.id);
       for (const shown_id of shown) markAsRead(shown_id);
 
-      // The nonce makes a repeated request for the same member a new one.
-      void navigate(splitGroupRoute(group.id), { state: focus ? { focus, nonce: Date.now() } : null });
+      // The nonce makes a repeated request for the same member a new one — a
+      // counter, so a held Enter cannot issue two of them in the same millisecond.
+      void navigate(splitGroupRoute(group.id), { state: focus ? { focus, nonce: nextFocusNonce() } : null });
       if (onSessionClick) {
         onSessionClick();
       }

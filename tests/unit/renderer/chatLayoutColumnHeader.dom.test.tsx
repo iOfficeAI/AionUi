@@ -35,8 +35,9 @@ vi.mock('@/renderer/components/agent/AgentBadge', () => ({
 vi.mock('@/renderer/hooks/ui/useResizableSplit', () => ({
   useResizableSplit: () => ({ splitRatio: 60, setSplitRatio: vi.fn(), createDragHandle: () => null }),
 }));
+let containerWidth = 400;
 vi.mock('@/renderer/pages/conversation/hooks/useContainerWidth', () => ({
-  useContainerWidth: () => ({ containerRef: { current: null }, containerWidth: 400 }),
+  useContainerWidth: () => ({ containerRef: { current: null }, containerWidth }),
 }));
 vi.mock('@/renderer/pages/conversation/hooks/useLayoutConstraints', () => ({
   useLayoutConstraints: () => undefined,
@@ -97,6 +98,27 @@ describe('ChatLayout header inside a split column', () => {
   it('marks the header as the column band', () => {
     renderHeader(true);
     expect(screen.getByTestId('chat-header-actions').closest('[data-column-header="true"]')).not.toBeNull();
+  });
+
+  it("caps the title area at the column's measured width", () => {
+    containerWidth = 400;
+    renderHeader(true);
+    const editor = screen.getByTestId('chat-header-title').firstElementChild as HTMLElement;
+    expect(editor.style.maxWidth).toBe('400px');
+  });
+
+  it('leaves the title uncapped until the column has been measured', () => {
+    // A width of 0 is "not measured yet", not "no room": capping at it would
+    // clip the title to nothing for as long as the measurement is missing.
+    containerWidth = 0;
+    try {
+      renderHeader(true);
+      const editor = screen.getByTestId('chat-header-title').firstElementChild as HTMLElement;
+      expect(editor.style.maxWidth).toBe('');
+      expect(screen.getByText(TITLE).textContent).toBe(TITLE);
+    } finally {
+      containerWidth = 400;
+    }
   });
 
   it('leaves a conversation on its own with the header it always had', () => {

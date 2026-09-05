@@ -57,6 +57,12 @@ export const SplitGroupColumn: React.FC<{
   // times and otherwise leaves the column in its error state — an error is
   // not a deletion. Counters live in refs so a re-read in flight does not
   // reset them; the column is keyed by member, so a new member starts clean.
+  //
+  // Spending that retry budget is not a dead end: this nudge only hurries the
+  // confirming read along. SWR keeps revalidating a rejected fetch on its own
+  // (`shouldRetryOnError` with no retry cap, plus a revalidate when the network
+  // reconnects — the app's config only turns off focus revalidation), so once
+  // the backend answers again the second 404 lands and the member is removed.
   const nullReadsRef = useRef(0);
   const failedReadsRef = useRef(0);
   useEffect(() => {

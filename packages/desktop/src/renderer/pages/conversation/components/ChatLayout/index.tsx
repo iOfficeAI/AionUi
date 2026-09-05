@@ -211,7 +211,7 @@ const ChatLayout: React.FC<{
       submitTitleRename={submitTitleRename}
       // The single layout reserves room beside the title for its own chrome;
       // a column has none of that, so the title may use the whole header.
-      titleAreaMaxWidth={compactHeader ? containerWidth : titleAreaMaxWidth}
+      titleAreaMaxWidth={compactHeader ? containerWidth || undefined : titleAreaMaxWidth}
       title={props.title}
       conversation_id={conversation_id}
       fitContent={compactHeader}
