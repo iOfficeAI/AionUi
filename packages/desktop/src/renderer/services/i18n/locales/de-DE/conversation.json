@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "Geteilte Ansicht: {{names}}",
+    "open": "Geteilte Ansicht öffnen",
+    "focusMember": "„{{name}}“ in der geteilten Ansicht anzeigen",
+    "removeMember": "„{{name}}“ aus der geteilten Ansicht entfernen",
+    "dragToSplit": "Auf eine andere Unterhaltung ziehen, um beide nebeneinander zu öffnen",
+    "dropToSplit": "Loslassen, um nebeneinander zu öffnen",
+    "dropToAdd": "Loslassen, um zu dieser geteilten Ansicht hinzuzufügen",
+    "notFound": "Diese geteilte Ansicht existiert nicht mehr.",
+    "updateFailed": "Die geteilte Ansicht konnte nicht aktualisiert werden",
+    "memberUnavailable": "„{{name}}“ konnte nicht geladen werden."
+  },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
     "title": "Gesprächsinhalt durchsuchen",

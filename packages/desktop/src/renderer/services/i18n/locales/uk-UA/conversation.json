@@ -95,6 +95,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "Розділений вигляд: {{names}}",
+    "open": "Відкрити розділений вигляд",
+    "focusMember": "Показати «{{name}}» у розділеному вигляді",
+    "removeMember": "Прибрати «{{name}}» з розділеного вигляду",
+    "dragToSplit": "Перетягніть на іншу розмову, щоб відкрити їх поруч",
+    "dropToSplit": "Відпустіть, щоб відкрити поруч",
+    "dropToAdd": "Відпустіть, щоб додати до цього розділеного вигляду",
+    "notFound": "Цей розділений вигляд більше не існує.",
+    "updateFailed": "Не вдалося оновити розділений вигляд",
+    "memberUnavailable": "Не вдалося завантажити «{{name}}»."
+  },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
     "title": "Пошук за вмістом діалогів",

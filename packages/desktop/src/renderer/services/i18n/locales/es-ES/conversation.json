@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "Vista dividida: {{names}}",
+    "open": "Abrir vista dividida",
+    "focusMember": "Mostrar “{{name}}” en la vista dividida",
+    "removeMember": "Quitar “{{name}}” de la vista dividida",
+    "dragToSplit": "Arrastra sobre otra conversación para abrirlas una al lado de la otra",
+    "dropToSplit": "Suelta para abrir una al lado de la otra",
+    "dropToAdd": "Suelta para añadir a esta vista dividida",
+    "notFound": "Esta vista dividida ya no existe.",
+    "updateFailed": "No se pudo actualizar la vista dividida",
+    "memberUnavailable": "No se pudo cargar “{{name}}”."
+  },
   "historySearch": {
     "tooltip": "Buscar mensajes",
     "title": "Buscar en el contenido de conversaciones",

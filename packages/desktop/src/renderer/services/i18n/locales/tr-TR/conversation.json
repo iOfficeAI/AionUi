@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "Bölünmüş görünüm: {{names}}",
+    "open": "Bölünmüş görünümü aç",
+    "focusMember": "“{{name}}” sohbetini bölünmüş görünümde göster",
+    "removeMember": "“{{name}}” sohbetini bölünmüş görünümden çıkar",
+    "dragToSplit": "Yan yana açmak için başka bir sohbetin üzerine sürükleyin",
+    "dropToSplit": "Yan yana açmak için bırakın",
+    "dropToAdd": "Bu bölünmüş görünüme eklemek için bırakın",
+    "notFound": "Bu bölünmüş görünüm artık yok.",
+    "updateFailed": "Bölünmüş görünüm güncellenemedi",
+    "memberUnavailable": "“{{name}}” yüklenemedi."
+  },
   "historySearch": {
     "tooltip": "Mesajları ara",
     "title": "Sohbet içeriğini ara",

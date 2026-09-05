@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "確定歸檔專案「{{name}}」嗎？專案下的 {{count}} 個對話也會一起歸檔。歸檔後可在設定的歸檔頁恢復或刪除。",
     "archiving": "歸檔中..."
   },
+  "splitGroup": {
+    "tooltip": "分割檢視：{{names}}",
+    "open": "開啟分割檢視",
+    "focusMember": "在分割檢視中顯示「{{name}}」",
+    "removeMember": "將「{{name}}」移出分割檢視",
+    "dragToSplit": "拖到另一個會話上可並排開啟",
+    "dropToSplit": "放開以並排開啟",
+    "dropToAdd": "放開以加入此分割檢視",
+    "notFound": "此分割檢視已不存在。",
+    "updateFailed": "無法更新分割檢視",
+    "memberUnavailable": "無法載入「{{name}}」。"
+  },
   "historySearch": {
     "tooltip": "搜尋訊息",
     "title": "搜尋對話內容",

@@ -176,5 +176,8 @@
   "zoomIn": "Ampliar",
   "zoomOut": "Reduzir",
   "zoomReset": "Redefinir visualização",
-  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar"
+  "diagramZoomHint": "Role para ampliar • Arraste para mover • ESC para fechar",
+  "addToChatUnavailable": "Nada para adicionar: a conversa em foco não tem um campo de mensagem no momento.",
+  "openFromOtherColumn": "Uma prévia de “{{name}}” não foi exibida porque essa coluna não está em foco.",
+  "openUnattributed": "Uma prévia não foi exibida: várias conversas estão ativas e não foi possível atribuí-la a uma delas."
 }

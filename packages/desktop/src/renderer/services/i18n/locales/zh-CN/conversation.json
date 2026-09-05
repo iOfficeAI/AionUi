@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "确定归档项目「{{name}}」吗？项目下的 {{count}} 个对话也会一起归档。归档后可在设置的归档页恢复或删除。",
     "archiving": "归档中..."
   },
+  "splitGroup": {
+    "tooltip": "分屏视图：{{names}}",
+    "open": "打开分屏视图",
+    "focusMember": "在分屏视图中显示“{{name}}”",
+    "removeMember": "将“{{name}}”移出分屏视图",
+    "dragToSplit": "拖到另一个会话上可并排打开",
+    "dropToSplit": "松开以并排打开",
+    "dropToAdd": "松开以加入此分屏视图",
+    "notFound": "此分屏视图已不存在。",
+    "updateFailed": "无法更新分屏视图",
+    "memberUnavailable": "无法加载“{{name}}”。"
+  },
   "historySearch": {
     "tooltip": "检索会话",
     "title": "检索会话内容",

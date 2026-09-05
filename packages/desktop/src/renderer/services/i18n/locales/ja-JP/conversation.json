@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "分割ビュー: {{names}}",
+    "open": "分割ビューを開く",
+    "focusMember": "分割ビューで「{{name}}」を表示",
+    "removeMember": "「{{name}}」を分割ビューから外す",
+    "dragToSplit": "別の会話にドラッグすると並べて開けます",
+    "dropToSplit": "ドロップして並べて開く",
+    "dropToAdd": "ドロップしてこの分割ビューに追加",
+    "notFound": "この分割ビューはもう存在しません。",
+    "updateFailed": "分割ビューを更新できませんでした",
+    "memberUnavailable": "「{{name}}」を読み込めませんでした。"
+  },
   "historySearch": {
     "tooltip": "メッセージを検索",
     "title": "会話内容を検索",

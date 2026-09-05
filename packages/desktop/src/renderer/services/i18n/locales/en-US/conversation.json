@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "Split view: {{names}}",
+    "open": "Open split view",
+    "focusMember": "Show “{{name}}” in the split view",
+    "removeMember": "Remove “{{name}}” from the split view",
+    "dragToSplit": "Drag onto another conversation to open them side by side",
+    "dropToSplit": "Drop to open side by side",
+    "dropToAdd": "Drop to add to this split view",
+    "notFound": "This split view no longer exists.",
+    "updateFailed": "Could not update the split view",
+    "memberUnavailable": "“{{name}}” could not be loaded."
+  },
   "historySearch": {
     "tooltip": "Search messages",
     "title": "Search conversation content",

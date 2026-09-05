@@ -91,6 +91,18 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "splitGroup": {
+    "tooltip": "نمای تقسیم‌شده: {{names}}",
+    "open": "باز کردن نمای تقسیم‌شده",
+    "focusMember": "نمایش «{{name}}» در نمای تقسیم‌شده",
+    "removeMember": "حذف «{{name}}» از نمای تقسیم‌شده",
+    "dragToSplit": "روی گفتگوی دیگری بکشید تا کنار هم باز شوند",
+    "dropToSplit": "رها کنید تا کنار هم باز شوند",
+    "dropToAdd": "رها کنید تا به این نمای تقسیم‌شده اضافه شود",
+    "notFound": "این نمای تقسیم‌شده دیگر وجود ندارد.",
+    "updateFailed": "نمای تقسیم‌شده به‌روزرسانی نشد",
+    "memberUnavailable": "«{{name}}» بارگذاری نشد."
+  },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
     "title": "جستجوی محتوای مکالمه",
