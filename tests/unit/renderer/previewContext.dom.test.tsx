@@ -11,10 +11,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // PreviewContext pulls ipcBridge (WS-backed emitters + fs IO). Stub the surface
 // it wires on mount so the provider mounts cleanly in jsdom and this test
 // exercises only the scope-reset behavior.
+const { ipcPreviewOpenListeners } = vi.hoisted(() => ({
+  ipcPreviewOpenListeners: [] as Array<(payload: unknown) => void>,
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     fileStream: { contentUpdate: { on: () => () => {} } },
-    preview: { open: { on: () => () => {} } },
+    preview: {
+      open: {
+        on: (cb: (payload: unknown) => void) => {
+          ipcPreviewOpenListeners.push(cb);
+          return () => {
+            const index = ipcPreviewOpenListeners.indexOf(cb);
+            if (index >= 0) ipcPreviewOpenListeners.splice(index, 1);
+          };
+        },
+      },
+    },
     fs: {
       writeFile: { invoke: async () => true },
       getFileMetadata: { invoke: async () => null },
@@ -170,5 +184,47 @@ describe('PreviewContext add-to-chat targets the focused conversation', () => {
     registerMountedConversation('conv-a');
     act(() => ctx.addToSendBox('focused but unregistered'));
     expect(unscoped).toHaveBeenCalledWith('focused but unregistered');
+  });
+});
+
+/**
+ * The backend can open a preview on its own (an agent showing a page). That
+ * frame reaches every window and every column, so once it names a conversation
+ * only the focused one may take the shared panel — and a refused open is
+ * logged, never dropped in silence.
+ */
+describe('PreviewContext backend-driven opens follow the focused conversation', () => {
+  const emitIpcPreviewOpen = (payload: Record<string, unknown>): void => {
+    act(() => {
+      for (const listener of ipcPreviewOpenListeners) listener(payload);
+    });
+  };
+
+  it('opens an unaddressed backend preview, which is every frame today', () => {
+    mount();
+    emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html' });
+    expect(ctx.isOpen).toBe(true);
+  });
+
+  it('opens a backend preview addressed to the focused conversation', () => {
+    mount();
+    registerMountedConversation('conv-a');
+    setFocusedConversation('conv-a');
+    emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html', conversation_id: 'conv-a' });
+    expect(ctx.isOpen).toBe(true);
+  });
+
+  it('refuses a backend preview addressed elsewhere, and says so', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      mount();
+      registerMountedConversation('conv-a');
+      setFocusedConversation('conv-a');
+      emitIpcPreviewOpen({ content: 'https://example.test', content_type: 'html', conversation_id: 'conv-b' });
+      expect(ctx.isOpen).toBe(false);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

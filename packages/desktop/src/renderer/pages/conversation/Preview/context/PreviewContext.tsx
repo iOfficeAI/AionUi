@@ -1279,6 +1279,23 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
   useEffect(() => {
+    /**
+     * One preview panel serves every mounted conversation, and it follows the
+     * focused one (a panel per column is deliberately out of scope). An open
+     * addressed to a conversation the user is not working in must not take the
+     * panel over — but it must not vanish quietly either, so the drop is
+     * logged. An unaddressed open is accepted, which is every open today.
+     */
+    const acceptsPreviewOpen = (targetConversationId: string | undefined): boolean => {
+      if (targetConversationId === undefined) return true;
+      const focused = getFocusedConversation();
+      if (targetConversationId === focused) return true;
+      console.warn(
+        `[Preview] Ignored an open for conversation ${targetConversationId}; the focused conversation is ${focused ?? 'none'}.`
+      );
+      return false;
+    };
+
     const handleEmitterPreviewOpen = (
       data: {
         content: string;
@@ -1287,12 +1304,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       },
       targetConversationId?: string
     ) => {
-      // One preview panel serves every mounted conversation, and it follows the
-      // focused one. An addressed open from a conversation the user is not
-      // working in must not take the panel over.
-      if (targetConversationId !== undefined && targetConversationId !== getFocusedConversation()) {
-        return;
-      }
+      if (!acceptsPreviewOpen(targetConversationId)) return;
       if (data && data.content) {
         openPreview(data.content, data.contentType, data.metadata);
       }
@@ -1302,7 +1314,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       content: string;
       content_type: PreviewContentType;
       metadata?: PreviewMetadata;
+      conversation_id?: string;
     }) => {
+      // Backend-driven opens (an agent showing a page) travel the same way: when
+      // the frame names a conversation, only the focused one may take the panel.
+      // Today's frames carry no conversation, so this is a no-op until the
+      // backend starts sending one.
+      if (!acceptsPreviewOpen(data?.conversation_id)) return;
       if (data && data.content) {
         openPreview(data.content, data.content_type, data.metadata);
       }
