@@ -244,6 +244,65 @@ describe('detached window registry', () => {
     vi.useRealTimers();
   });
 
+  it('keeps a visible window alive when its load exceeds the readiness deadline', async () => {
+    vi.useFakeTimers();
+    const shownWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const registry = createDetachedWindowRegistry({
+      createWindow: () => shownWindow.win,
+      loadWindow: () => new Promise<void>(() => {}),
+      loadTimeoutMs: 10,
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+
+    const open = registry.openConversation('conversation-1');
+    shownWindow.emit('ready-to-show');
+    await vi.advanceTimersByTimeAsync(10);
+
+    await expect(open).resolves.toBe(shownWindow.win);
+    expect(shownWindow.win.destroy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledOnce();
+    // The soft failure must not poison later requests for the same conversation.
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(shownWindow.win);
+    vi.useRealTimers();
+  });
+
+  it('treats any load rejection during a user close as cancellation', async () => {
+    const closingWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    const replacementWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });
+    let rejectLoad: ((reason: Error) => void) | undefined;
+    const createWindow = vi.fn().mockReturnValueOnce(closingWindow.win).mockReturnValueOnce(replacementWindow.win);
+    const registry = createDetachedWindowRegistry({
+      createWindow,
+      loadWindow: vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectLoad = reject;
+            })
+        )
+        .mockResolvedValueOnce(undefined),
+      prepareWindow: () => {},
+      resolveBounds: () => ({ width: 800, height: 720 }),
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const open = registry.openConversation('conversation-1');
+
+    closingWindow.emit('close');
+    rejectLoad?.(Object.assign(new Error('ERR_CONNECTION_REFUSED'), { code: -102 }));
+
+    await expect(open).resolves.toBe(closingWindow.win);
+    expect(errorSpy).not.toHaveBeenCalled();
+    // Even when the close never completes, the cancelled entry must not block a
+    // fresh pop-out of the same conversation.
+    await expect(registry.openConversation('conversation-1')).resolves.toBe(replacementWindow.win);
+    expect(createWindow).toHaveBeenCalledTimes(2);
+  });
+
   it('clears the readiness deadline when loading throws synchronously', async () => {
     vi.useFakeTimers();
     const failedWindow = makeWindow({ x: 0, y: 0, width: 800, height: 720 });

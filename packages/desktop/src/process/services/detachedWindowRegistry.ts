@@ -75,8 +75,20 @@ export const createDetachedWindowRegistry = (
     const existing = windows.get(conversationId);
     if (existing && !existing.isDestroyed()) {
       revealWindow(existing);
-      await readiness.get(existing);
-      return existing;
+      const pending = readiness.get(existing);
+      if (!pending) return existing;
+      try {
+        await pending;
+        return existing;
+      } catch (error) {
+        // A genuine load failure destroys its window, so repeated requests must
+        // still fail loudly. A rejected readiness on a window that is still
+        // alive is stale bookkeeping (cancelled or soft-timed-out open): drop it
+        // and build a replacement instead of poisoning every later request.
+        if (existing.isDestroyed()) throw error;
+        readiness.delete(existing);
+        forgetWindow(conversationId, existing);
+      }
     }
     if (existing) windows.delete(conversationId);
 
@@ -88,6 +100,7 @@ export const createDetachedWindowRegistry = (
     creationOrder.push(window);
 
     let userCloseRequested = false;
+    let shown = false;
     let resolveClosed: (() => void) | undefined;
     let rejectClosed: ((error: Error) => void) | undefined;
     const closed = new Promise<void>((resolve, reject) => {
@@ -95,7 +108,10 @@ export const createDetachedWindowRegistry = (
       rejectClosed = reject;
     });
     void closed.catch(() => {});
-    window.once('ready-to-show', () => revealWindow(window));
+    window.once('ready-to-show', () => {
+      shown = true;
+      revealWindow(window);
+    });
     window.once('close', () => {
       userCloseRequested = true;
     });
@@ -136,7 +152,21 @@ export const createDetachedWindowRegistry = (
       readiness.set(window, ready);
       await ready;
     } catch (error) {
-      if (userCloseRequested && isAbortedWindowLoad(error)) return window;
+      readiness.delete(window);
+      if (userCloseRequested) {
+        // The user asked for this window to go away, so how the pending load
+        // settled is irrelevant: an abort, a renderer that died with the window,
+        // or the deadline are all cancellation, never a reportable failure.
+        forgetWindow(conversationId, window);
+        return window;
+      }
+      if (shown && !window.isDestroyed()) {
+        // The window already painted and the user may be typing in it. A load
+        // that is merely slow to settle (a hung subresource, a cold dev
+        // compile) must never destroy visible work; report it and keep going.
+        console.warn('[AionUi] Detached conversation window is still loading:', error);
+        return window;
+      }
       handleSetupFailure(error);
       throw error;
     }
@@ -148,12 +178,6 @@ export const createDetachedWindowRegistry = (
     focusConversation,
     isDetachedWindow: (window) => detachedWindows.has(window),
   };
-};
-
-const isAbortedWindowLoad = (error: unknown): boolean => {
-  if (typeof error !== 'object' || error === null) return false;
-  const candidate = error as { code?: unknown; errno?: unknown };
-  return candidate.code === -3 || candidate.code === 'ERR_ABORTED' || candidate.errno === -3;
 };
 
 let configuredRegistry: DetachedWindowRegistry | null = null;
