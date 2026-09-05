@@ -338,10 +338,25 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
   return name ? name : undefined;
 };
 
-const refreshConversations = (): Promise<void> =>
-  ipcBridge.database.getUserConversations
+/**
+ * Sequence number of the latest list request. A response that lands after a
+ * newer request was issued is stale — publishing it would show the list as it
+ * was between two writes (a half-tagged group, say) — so it is dropped and
+ * the newer response is the one that gets published.
+ */
+let refreshSequence = 0;
+
+/**
+ * Fetch the list and publish it. Rejects when the backend call fails, in which
+ * case the previously published snapshot stays as it is: an empty list would
+ * tell every reader the conversations are gone when only one request was.
+ */
+const loadConversations = (): Promise<void> => {
+  const sequence = ++refreshSequence;
+  return ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
     .then((result) => {
+      if (sequence !== refreshSequence) return;
       listLoadedState = true;
       const items = result?.items;
       if (items && Array.isArray(items)) {
@@ -368,21 +383,32 @@ const refreshConversations = (): Promise<void> =>
       projectIdByIdState = new Map();
       emitStoreChange();
     })
-    .catch((error) => {
-      console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
-      listLoadedState = true;
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
-      emitStoreChange();
+    .catch((error: unknown) => {
+      if (sequence === refreshSequence) {
+        listLoadedState = true;
+        emitStoreChange();
+      }
+      throw error;
     });
+};
+
+/** The background refresh: a failure is logged and the last snapshot stands. */
+const refreshConversations = (): Promise<void> =>
+  loadConversations().catch((error: unknown) => {
+    console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
+  });
 
 /**
  * Reload the sidebar list and resolve once the new snapshot is published, so a
  * caller that just changed a row on the backend can navigate to what it now
- * shows (a split group pill, say) without racing the refetch.
+ * shows (a split group pill, say) without racing the refetch. Rejects when the
+ * reload fails, so the caller does not navigate to something the list never
+ * confirmed; the previous snapshot stays published.
  */
-export const refreshConversationList = (): Promise<void> => refreshConversations();
+export const refreshConversationList = (): Promise<void> => loadConversations();
+
+/** The published conversation list, for callers that need it outside React. */
+export const getSnapshotConversations = (): readonly TChatConversation[] => conversationsState;
 
 /**
  * Conversations with a turn in flight right now, from the same stream the
