@@ -291,6 +291,22 @@ describe('SplitGroupView title', () => {
     expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe('conversation.splitGroup.blockLabel');
   });
 
+  it('leaves the tab layout bounded: the title takes room from the pane, not from the viewport', () => {
+    layoutState.isMobile = true;
+    render(<SplitGroupView group={trio} />);
+    const view = screen.getByTestId('split-group-view-g1');
+    // A bounded flex column: the title and the tab strip hold their own height,
+    // and the pane below them takes what is left instead of overflowing. The
+    // title is a third shrink-0 sibling in a layout that already had two.
+    expect(view.className).toContain('flex-col');
+    expect(view.className).toContain('h-full');
+    expect(view.className).toContain('min-h-0');
+    expect(screen.getByTestId('split-group-view-title-g1').className).toContain('shrink-0');
+    const pane = screen.getByTestId('split-column-a').closest('div[class*="flex-1"]');
+    expect(pane).not.toBeNull();
+    expect(pane?.className).toContain('min-h-0');
+  });
+
   it('shows the name and the size once the group is named, on both layouts', () => {
     render(<SplitGroupView group={{ ...trio, name: 'Research' }} />);
     expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe(
