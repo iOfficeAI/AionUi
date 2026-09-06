@@ -34,10 +34,12 @@ export const PanelEmptyState: React.FC<{ testId?: string; onClose?: () => void }
           aria-label={t('preview.closePreview')}
           data-testid={`${testId}-close`}
           icon={<Close theme='outline' size='12' fill='currentColor' />}
-          // Above the neighbouring column's resize grab zone, which reaches
-          // 20px into this panel from its right edge; without this the corner
-          // is the one place the button cannot be pressed.
-          className='!absolute top-8px end-8px z-30 !size-24px !min-w-24px !p-0 !rd-4px flex items-center justify-center !text-t-tertiary hover:!text-t-primary'
+          // The start corner, not the end one: the neighbouring column's
+          // resize grab strip lies inside this panel's end edge and paints
+          // above the panel's own stacking context, so a button there can be
+          // seen but never pressed — measured by hit-testing its centre on
+          // the running app. Nothing overlaps the start corner.
+          className='!absolute top-8px start-8px !size-24px !min-w-24px !p-0 !rd-4px flex items-center justify-center !text-t-tertiary hover:!text-t-primary'
           onClick={onClose}
         />
       )}
