@@ -65,13 +65,17 @@ const ConversationDragContext = createContext<ConversationDragValue>(idleValue);
 /** Live drag state for highlights. Safe to call with no provider above (nothing is ever dragged). */
 export const useConversationDrag = (): ConversationDragValue => useContext(ConversationDragContext);
 
+/** Marks a collision that was picked for the pointer sitting in the gap beside its target. */
+export const GAP_COLLISION = 'gap';
+
 /**
  * The droppable under the pointer; failing that, the row-like target (a row
  * or a pill) the pointer is in the gap between, so a release between two
- * sidebar entries still reads as "between". Blank space is not a target:
- * releasing there does nothing.
+ * sidebar entries still reads as "between". A gap pick is marked as one on the
+ * collision, so the drop can be read as "beside" rather than "onto" whatever
+ * it is beside. Blank space is not a target: releasing there does nothing.
  */
-const collisionDetection: CollisionDetection = (args) => {
+export const collisionDetection: CollisionDetection = (args) => {
   const within = pointerWithin(args);
   if (within.length > 0) return within;
   const pointer = args.pointerCoordinates;
@@ -87,7 +91,9 @@ const collisionDetection: CollisionDetection = (args) => {
   const id = pickRowInGap(pointer, rows);
   if (id === null) return [];
   const container = args.droppableContainers.find((candidate) => String(candidate.id) === id);
-  return container ? [{ id: container.id, data: { droppableContainer: container, value: 0 } }] : [];
+  return container
+    ? [{ id: container.id, data: { droppableContainer: container, value: 0, [GAP_COLLISION]: true } }]
+    : [];
 };
 
 const ConversationDragGhost: React.FC<{ conversation: TChatConversation; hint?: string }> = ({
@@ -170,23 +176,34 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
   const resolveOver = useCallback(
     (
       event: DragMoveEvent | DragEndEvent
-    ): { id: string; target: ConversationDropTarget; intent: DropIntent } | null => {
+    ): { id: string; target: ConversationDropTarget; intent: DropIntent; inGap: boolean } | null => {
       const { over, active } = event;
       const target = over?.data.current as ConversationDropTarget | undefined;
       if (!over || !target?.kind) return null;
 
+      // Whether collision detection settled on this target for the pointer
+      // being in the gap beside it, rather than over it. A gap is "between"
+      // whatever it is beside — a plain row, a pill, a row inside one — so the
+      // intent is decided before the target's kind is looked at.
+      const inGap =
+        event.collisions?.some((collision) => collision.id === over.id && collision.data?.[GAP_COLLISION] === true) ??
+        false;
       let intent: DropIntent = 'onto';
-      if (target.kind === 'conversation' && target.surface === 'row') {
+      if (inGap || (target.kind === 'conversation' && target.surface === 'row')) {
         const origin = getEventCoordinates(event.activatorEvent);
         const pointerY = (origin?.y ?? over.rect.top) + event.delta.y;
         intent = resolveDropIntent({
           pointerY,
           targetTop: over.rect.top,
           targetHeight: over.rect.height,
-          canReorder: pinnedIds.includes(String(active.id)) && pinnedIds.includes(target.conversation_id),
+          canReorder:
+            target.kind === 'conversation' &&
+            pinnedIds.includes(String(active.id)) &&
+            pinnedIds.includes(target.conversation_id),
+          inGap,
         });
       }
-      return { id: String(over.id), target, intent };
+      return { id: String(over.id), target, intent, inGap };
     },
     [pinnedIds]
   );
@@ -198,6 +215,7 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
         dragged_id: String(event.active.id),
         target: resolved?.target ?? null,
         intent: resolved?.intent ?? 'onto',
+        inGap: resolved?.inGap ?? false,
         groups: splitGroups,
         pinnedIds,
       }),

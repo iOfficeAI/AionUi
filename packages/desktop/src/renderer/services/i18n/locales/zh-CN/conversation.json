@@ -108,6 +108,7 @@
     "dropToSplit": "松开以并排打开",
     "dropToAdd": "松开以加入此分屏视图",
     "dropToRemove": "松开即可将其移出分屏视图",
+    "emptyColumnPanel": "此列中没有打开的文件",
     "dropToMove": "松开即可移动到这里",
     "notFound": "此分屏视图已不存在。",
     "updateFailed": "无法更新分屏视图",

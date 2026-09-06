@@ -108,6 +108,7 @@
     "dropToSplit": "ドロップして並べて開く",
     "dropToAdd": "ドロップしてこの分割ビューに追加",
     "dropToRemove": "離すと分割ビューから外れます",
+    "emptyColumnPanel": "この列で開いているファイルはありません",
     "dropToMove": "離すとここへ移動します",
     "notFound": "この分割ビューはもう存在しません。",
     "updateFailed": "分割ビューを更新できませんでした",

@@ -108,6 +108,7 @@
     "dropToSplit": "Suelta para abrir una al lado de la otra",
     "dropToAdd": "Suelta para añadir a esta vista dividida",
     "dropToRemove": "Suelta para sacarla de la vista dividida",
+    "emptyColumnPanel": "No hay archivos abiertos en esta columna",
     "dropToMove": "Suelta para moverla aquí",
     "notFound": "Esta vista dividida ya no existe.",
     "updateFailed": "No se pudo actualizar la vista dividida",

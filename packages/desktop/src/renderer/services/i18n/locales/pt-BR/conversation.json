@@ -108,6 +108,7 @@
     "dropToSplit": "Solte para abrir lado a lado",
     "dropToAdd": "Solte para adicionar a esta visualização dividida",
     "dropToRemove": "Solte para tirá-la da visualização dividida",
+    "emptyColumnPanel": "Nenhum arquivo aberto nesta coluna",
     "dropToMove": "Solte para movê-la para cá",
     "notFound": "Esta visualização dividida não existe mais.",
     "updateFailed": "Não foi possível atualizar a visualização dividida",

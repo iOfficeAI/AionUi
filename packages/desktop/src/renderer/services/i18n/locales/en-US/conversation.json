@@ -108,6 +108,7 @@
     "dropToSplit": "Drop to open side by side",
     "dropToAdd": "Drop to add to this split view",
     "dropToRemove": "Release to take it out of the split view",
+    "emptyColumnPanel": "No files open in this column",
     "dropToMove": "Release to move it here",
     "notFound": "This split view no longer exists.",
     "updateFailed": "Could not update the split view",
