@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DndContext } from '@dnd-kit/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -321,7 +321,7 @@ describe('SplitGroupRow rename', () => {
   });
 
   it('opens the rename box on the current name and saves the new one', async () => {
-    const onRenameGroup = vi.fn();
+    const onRenameGroup = vi.fn(async () => true);
     const { onOpen } = renderPill({ group: namedGroup, onRenameGroup });
     fireEvent.click(screen.getByTestId('split-group-rename-g1'));
 
@@ -338,13 +338,79 @@ describe('SplitGroupRow rename', () => {
   });
 
   it('hands an emptied box straight through, so the name can be cleared', async () => {
-    const onRenameGroup = vi.fn();
+    const onRenameGroup = vi.fn(async () => true);
     renderPill({ group: namedGroup, onRenameGroup });
     fireEvent.click(screen.getByTestId('split-group-rename-g1'));
     const input = await screen.findByTestId('split-group-rename-input-g1');
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
     expect(onRenameGroup).toHaveBeenCalledWith(namedGroup, '   ');
+  });
+
+  it('closes the box once the name is stored', async () => {
+    const onRenameGroup = vi.fn(async () => true);
+    renderPill({ group: namedGroup, onRenameGroup });
+    fireEvent.click(screen.getByTestId('split-group-rename-g1'));
+    const input = await screen.findByTestId('split-group-rename-input-g1');
+    fireEvent.change(input, { target: { value: 'Weekly review' } });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    await waitFor(() => expect((screen.getByTestId('split-group-rename-input-g1') as HTMLInputElement).value).toBe(''));
+  });
+
+  it('keeps the box open with the typed name when the write is refused', async () => {
+    const onRenameGroup = vi.fn(async () => false);
+    renderPill({ group: namedGroup, onRenameGroup });
+    fireEvent.click(screen.getByTestId('split-group-rename-g1'));
+    const input = await screen.findByTestId('split-group-rename-input-g1');
+    fireEvent.change(input, { target: { value: 'Weekly review' } });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    await waitFor(() => expect(onRenameGroup).toHaveBeenCalledTimes(1));
+    // Nothing was stored, so nothing is forgotten: the name is still there to
+    // try again with.
+    expect((screen.getByTestId('split-group-rename-input-g1') as HTMLInputElement).value).toBe('Weekly review');
+  });
+
+  it('ignores the Enter that confirms an IME composition', async () => {
+    const onRenameGroup = vi.fn(async () => true);
+    renderPill({ group: namedGroup, onRenameGroup });
+    fireEvent.click(screen.getByTestId('split-group-rename-g1'));
+    const input = await screen.findByTestId('split-group-rename-input-g1');
+    fireEvent.change(input, { target: { value: '研究' } });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13, isComposing: true });
+    expect(onRenameGroup).not.toHaveBeenCalled();
+    // The Enter after the composition is the one that means "save".
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    expect(onRenameGroup).toHaveBeenCalledWith(namedGroup, '研究');
+  });
+
+  it('renames through an Arco control, not a hand-rolled one', () => {
+    renderPill({ group: namedGroup, onRenameGroup: vi.fn(async () => true) });
+    const pencil = screen.getByTestId('split-group-rename-g1');
+    expect(pencil.tagName).toBe('BUTTON');
+    expect(pencil.className).toContain('arco-btn');
+  });
+
+  it('pins the pencil open where the pointer cannot hover', () => {
+    const original = window.matchMedia;
+    // A touch-capable desktop is not "mobile", and a hover-reveal control
+    // there is a control nobody can uncover.
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string) => ({ matches: query.includes('hover: none'), media: query }),
+    });
+    try {
+      renderPill({ group: namedGroup, onRenameGroup: vi.fn(async () => true) });
+      expect(screen.getByTestId('split-group-rename-g1').className).toContain('opacity-100');
+      expect(screen.getByTestId('split-group-rename-g1').className).not.toContain('opacity-0');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+    }
+  });
+
+  it('leaves the pencil to hover where the pointer can hover', () => {
+    renderPill({ group: namedGroup, onRenameGroup: vi.fn(async () => true) });
+    expect(screen.getByTestId('split-group-rename-g1').className).toContain('opacity-0');
   });
 });
 

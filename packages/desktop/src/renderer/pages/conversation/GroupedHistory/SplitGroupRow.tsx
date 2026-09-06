@@ -7,7 +7,7 @@
 import type { TChatConversation } from '@/common/config/storage';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { CloseSmall, Drag, EditOne, MoreOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import ConversationLeadingIcon from './ConversationLeadingIcon';
 import type { CronJobStatus } from './ConversationLeadingIcon';
 import { ConversationRowMenu } from './ConversationRow';
+import { isNoHoverPointer } from '@/renderer/pages/conversation/utils/detectPlatform';
 import { useConversationDrag } from './hooks/ConversationDragContext';
 import type { ConversationRowProps } from './types';
 import { splitGroupDropId } from './utils/conversationDropTargets';
@@ -38,8 +39,11 @@ export type SplitGroupRowProps = {
   /** Open the group; `member_id` asks for that column to take the focus. */
   onOpen: (group: SplitGroup, member_id?: string) => void;
   onRemoveMember: (group: SplitGroup, member_id: string) => void;
-  /** Name the group, or clear its name when the input is blank. Omitted means the header cannot be renamed. */
-  onRenameGroup?: (group: SplitGroup, name: string | null) => void;
+  /**
+   * Name the group, or clear its name when the input is blank. Answers whether
+   * the write landed. Omitted means the header cannot be renamed.
+   */
+  onRenameGroup?: (group: SplitGroup, name: string | null) => Promise<boolean>;
   /**
    * The props a member's row would have as a plain sidebar row, so its
    * right-click menu offers the same actions. Omitted means the member rows
@@ -312,6 +316,8 @@ const SplitGroupHeader: React.FC<{
 }> = ({ group, isMobile, onRename }) => {
   const { t } = useTranslation();
   const count = group.members.length;
+  // Width says nothing about whether the pointer can hover; ask that directly.
+  const alwaysVisible = isMobile || isNoHoverPointer();
   const label = group.name
     ? t('conversation.splitGroup.blockLabelNamed', { name: group.name, count })
     : t('conversation.splitGroup.blockLabel', { count });
@@ -323,30 +329,26 @@ const SplitGroupHeader: React.FC<{
     >
       <span className='truncate min-w-0'>{label}</span>
       {onRename && (
-        <span
-          role='button'
-          tabIndex={0}
+        <Button
+          type='text'
+          size='mini'
           aria-label={t('conversation.splitGroup.rename')}
           data-testid={`split-group-rename-${group.id}`}
+          icon={<EditOne theme='outline' size='11' fill='currentColor' />}
           className={classNames(
-            'flex items-center justify-center size-14px rd-4px shrink-0 cursor-pointer hover:text-t-primary transition-opacity',
-            isMobile ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100'
+            '!size-14px !min-w-14px !p-0 !rd-4px shrink-0 flex items-center justify-center !text-t-tertiary hover:!text-t-primary transition-opacity',
+            // Revealed by hover where there is a hover to reveal it, pinned
+            // open where there is not — a touch-capable desktop is not
+            // "mobile", and a control nobody can uncover is a control nobody
+            // has.
+            alwaysVisible ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100'
           )}
           onClick={(event) => {
             event.stopPropagation();
             cleanupSiderTooltips();
             onRename();
           }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              event.stopPropagation();
-              onRename();
-            }
-          }}
-        >
-          <EditOne theme='outline' size='11' fill='currentColor' />
-        </span>
+        />
       )}
     </div>
   );
@@ -399,6 +401,7 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const [renameDraft, setRenameDraft] = useState<string | null>(null);
+  const [renameSaving, setRenameSaving] = useState(false);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { activeConversation, dropTarget } = useConversationDrag();
@@ -486,6 +489,23 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   );
 
   if (!onRenameGroup) return block;
+
+  /**
+   * The name is only forgotten once it is stored. A refused write leaves the
+   * box open with what was typed still in it — the write path has already said
+   * what went wrong, and asking someone to type it again would be the second
+   * thing to go wrong.
+   */
+  const submitRename = async (): Promise<void> => {
+    if (renameDraft === null || renameSaving) return;
+    setRenameSaving(true);
+    try {
+      if (await onRenameGroup(group, renameDraft)) setRenameDraft(null);
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+
   return (
     <>
       {block}
@@ -494,12 +514,12 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         title={t('conversation.splitGroup.rename')}
         okText={t('common.confirm')}
         cancelText={t('common.cancel')}
-        onOk={() => {
-          onRenameGroup(group, renameDraft);
+        confirmLoading={renameSaving}
+        onOk={() => void submitRename()}
+        onCancel={() => {
+          if (renameSaving) return;
           setRenameDraft(null);
         }}
-        onCancel={() => setRenameDraft(null)}
-        afterClose={() => setRenameDraft(null)}
         style={{ borderRadius: '12px' }}
         alignCenter
         getPopupContainer={() => document.body}
@@ -509,12 +529,16 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
           value={renameDraft ?? ''}
           maxLength={SPLIT_GROUP_NAME_MAX}
           showWordLimit
+          disabled={renameSaving}
           placeholder={t('conversation.splitGroup.renamePlaceholder')}
           data-testid={`split-group-rename-input-${group.id}`}
           onChange={setRenameDraft}
-          onPressEnter={() => {
-            onRenameGroup(group, renameDraft);
-            setRenameDraft(null);
+          onPressEnter={(event: React.KeyboardEvent<HTMLInputElement>) => {
+            // The Enter that confirms an IME composition is not the Enter that
+            // confirms the name; acting on it would save half a word and close
+            // the box under someone mid-sentence.
+            if (event.nativeEvent.isComposing) return;
+            void submitRename();
           }}
         />
       </Modal>
