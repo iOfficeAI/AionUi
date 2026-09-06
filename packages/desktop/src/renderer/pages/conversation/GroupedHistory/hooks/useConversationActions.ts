@@ -173,15 +173,19 @@ export const useConversationActions = ({
       try {
         left = await leaveOwnGroup(item_id, { moveToSurvivor: (survivor_id) => !alsoArchiving.has(survivor_id) });
       } catch (error) {
-        // The queue normally answers `false` rather than throwing; anything
-        // that gets past it is still a failure of the same step.
+        // The queue normally answers `false` rather than throwing, and has
+        // already said so on screen when it does. Anything that gets past it is
+        // still a failure of the same step — but one the queue never reported,
+        // so it is said here, once, before the caller suppresses the archive
+        // message for it.
         console.error(`Failed to take ${item_id} out of its split group:`, error);
+        Message.error(t('conversation.splitGroup.updateFailed'));
         throw leaveFailed(item_id);
       }
       if (!left) throw leaveFailed(item_id);
       await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
     },
-    [leaveOwnGroup]
+    [leaveOwnGroup, t]
   );
 
   /**

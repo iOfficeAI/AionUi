@@ -366,9 +366,11 @@ describe('archive failure is reported for the step that actually failed', () => 
     expect(messageError).not.toHaveBeenCalled();
   });
 
-  it('treats a leave that throws as a failed leave, not a failed archive', async () => {
-    // The queue normally answers false; anything that gets past it is still a
-    // failure of the same step, and must not be reported as the next one.
+  it('treats a leave that throws as a failed leave, not a failed archive — and still says so', async () => {
+    // The queue normally answers false and speaks for itself; anything that
+    // gets past it is still a failure of the same step, must not be reported
+    // as the next one, and must not go unreported either: the queue never saw
+    // it, so nobody else has told the user.
     leaveOwnGroupMock.mockRejectedValue(new Error('ipc exploded'));
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
@@ -377,7 +379,9 @@ describe('archive failure is reported for the step that actually failed', () => 
         await result.current.handleArchive(makeConversation('member-a', 'acp'));
       });
       expect(archiveMock).not.toHaveBeenCalled();
-      expect(messageError).not.toHaveBeenCalled();
+      expect(messageError).toHaveBeenCalledTimes(1);
+      expect(messageError).toHaveBeenCalledWith('conversation.splitGroup.updateFailed');
+      expect(messageError).not.toHaveBeenCalledWith('conversation.history.archiveFailed');
     } finally {
       error.mockRestore();
     }
