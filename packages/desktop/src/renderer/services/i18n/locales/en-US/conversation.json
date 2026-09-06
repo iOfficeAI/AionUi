@@ -111,6 +111,7 @@
     "emptyColumnPanel": "No files open in this column",
     "reorderHandle": "Drag to reorder columns",
     "columnMoved": "Moved to column {{position}} of {{count}}",
+    "columnNotMoved": "The column was not moved",
     "dropToMove": "Release to move it here",
     "notFound": "This split view no longer exists.",
     "updateFailed": "Could not update the split view",

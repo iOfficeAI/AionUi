@@ -197,10 +197,24 @@ type HeaderDrag = {
   id: string;
   pointerId: number;
   startX: number;
+  startY: number;
   element: HTMLElement;
   active: boolean;
   holdTimer: ReturnType<typeof setTimeout> | null;
+  /** Drop the gesture where it stands: listeners, timer, capture and state. */
+  cancel: () => void;
 };
+
+/** A point the pointer is at, in viewport coordinates. */
+type Point = { x: number; y: number };
+
+/** How long a reorder announcement stays in the live region before the next one may repeat it. */
+const ANNOUNCEMENT_MS = 2000;
+
+/** A press that starts inside a text field is the field's own: typing, selecting, placing the caret. */
+const startsInTextField = (target: EventTarget | null): boolean =>
+  target instanceof Element &&
+  target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null;
 
 /**
  * The columns in the order the group has them, and the reorder gesture over
@@ -209,7 +223,8 @@ type HeaderDrag = {
  * is written onto every member's tag in one reconciled batch, so the sidebar
  * block, this view and every other window agree, and it survives a relaunch.
  * The columns move at once and the write lands behind; a refused write puts
- * them back and the queue has already said why.
+ * them back to the order the group had last confirmed, and the queue has
+ * already said why.
  *
  * The gesture is the view's own pointer-capture drag, like the divider's
  * resize, rather than a second drag-and-drop context: every column holds the
@@ -230,6 +245,9 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   }, [groupOrderKey]);
   const orderRef = useRef(order);
   orderRef.current = order;
+  // The order the group last confirmed — what a refused write falls back to.
+  const groupOrderRef = useRef(groupOrder);
+  groupOrderRef.current = groupOrder;
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -239,26 +257,46 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     else frames.current.delete(conversation_id);
   }, []);
 
+  // Each write is numbered; only the newest one may put the columns back when
+  // it is refused, and it puts them back to the order the group has confirmed
+  // since — not to the order this view had when the write left. An older
+  // refusal under a newer optimistic order leaves that newer order to its own
+  // write.
+  const writeSerial = useRef(0);
   const commit = useCallback(
-    (next: string[]) => {
+    async (next: string[]): Promise<boolean> => {
       setOrder(next);
-      const members = group.members;
-      void reorderMembers(group.id, next).then((landed) => {
-        if (!landed) setOrder(members.map((member) => member.id));
-      });
+      const serial = ++writeSerial.current;
+      let landed = false;
+      try {
+        landed = await reorderMembers(group.id, next);
+      } catch (error) {
+        // The queue reports its own failures; this catches a throw before it.
+        console.error('[SplitGroup] reorder columns failed:', error);
+      }
+      if (!landed && serial === writeSerial.current) setOrder(groupOrderRef.current);
+      return landed;
     },
-    [group.id, group.members, reorderMembers]
+    [group.id, reorderMembers]
   );
 
-  /** The slot the dragged column would take with the pointer at this x. */
-  const slotAt = useCallback((activeId: string, clientX: number): number | null => {
+  // A stale announcement must not swallow the next identical one: the same
+  // words twice are one change to a live region, so the region empties first.
+  useEffect(() => {
+    if (!announcement) return;
+    const timer = setTimeout(() => setAnnouncement(''), ANNOUNCEMENT_MS);
+    return () => clearTimeout(timer);
+  }, [announcement]);
+
+  /** The slot the dragged column would take with the pointer here; none while it is off the columns. */
+  const slotAt = useCallback((activeId: string, point: Point): number | null => {
     for (const [id, element] of frames.current) {
       const rect = element.getBoundingClientRect();
-      if (clientX < rect.left || clientX > rect.right) continue;
+      if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) continue;
       return resolveColumnDropIndex({
         activeId,
         overId: id,
-        pointerX: clientX,
+        pointerX: point.x,
         overLeft: rect.left,
         overWidth: rect.width,
         order: orderRef.current,
@@ -270,7 +308,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   const drag = useRef<HeaderDrag | null>(null);
   const justDragged = useRef(false);
   const endDrag = useCallback(
-    (clientX: number | null) => {
+    (point: Point | null) => {
       const current = drag.current;
       if (!current) return;
       drag.current = null;
@@ -288,24 +326,33 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
       setTimeout(() => {
         justDragged.current = false;
       }, 0);
-      const slot = clientX === null ? null : slotAt(current.id, clientX);
-      if (slot !== null) commit(reorderColumns(orderRef.current, current.id, slot));
+      const slot = point === null ? null : slotAt(current.id, point);
+      if (slot !== null) void commit(reorderColumns(orderRef.current, current.id, slot));
     },
     [commit, slotAt]
   );
+  // The view may go while a pointer is down (the group dissolves, the route
+  // changes): the window listeners and the hold timer go with it.
+  useEffect(() => () => drag.current?.cancel(), []);
 
   const handleHeaderPointerDown = useCallback(
     (conversation_id: string, event: React.PointerEvent<HTMLElement>) => {
       if (event.pointerType !== 'touch' && event.button !== 0) return;
       if (drag.current) return;
+      if (startsInTextField(event.target)) return;
       const element = event.currentTarget;
       const current: HeaderDrag = {
         id: conversation_id,
         pointerId: event.pointerId,
         startX: event.clientX,
+        startY: event.clientY,
         element,
         active: false,
         holdTimer: null,
+        cancel: () => {
+          cleanup();
+          endDrag(null);
+        },
       };
       drag.current = current;
       const activate = () => {
@@ -314,7 +361,8 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         try {
           element.setPointerCapture(current.pointerId);
         } catch {
-          // Without capture the header still receives moves while the pointer stays over it.
+          // The listeners are on the window, so the moves keep arriving either
+          // way; capture only keeps them coming while the pointer leaves it.
         }
         setDraggingId(current.id);
       };
@@ -330,10 +378,10 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
       };
       const onMove = (move: PointerEvent) => {
         if (drag.current !== current || move.pointerId !== current.pointerId) return;
-        const moved = Math.abs(move.clientX - current.startX);
+        const moved = Math.hypot(move.clientX - current.startX, move.clientY - current.startY);
         if (!current.active) {
           if (move.pointerType === 'touch') {
-            // A finger that moves during the hold is scrolling, not dragging.
+            // A finger that moves during the hold, in any direction, is scrolling.
             if (moved > TOUCH_HOLD_TOLERANCE_PX) cleanup();
             return;
           }
@@ -341,13 +389,13 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
           activate();
         }
         move.preventDefault();
-        const slot = slotAt(current.id, move.clientX);
+        const slot = slotAt(current.id, { x: move.clientX, y: move.clientY });
         setDropSlot((previous) => (previous === slot ? previous : slot));
       };
       const onUp = (up: PointerEvent) => {
         if (drag.current !== current || up.pointerId !== current.pointerId) return;
         cleanup();
-        endDrag(up.type === 'pointerup' ? up.clientX : null);
+        endDrag(up.type === 'pointerup' ? { x: up.clientX, y: up.clientY } : null);
       };
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
@@ -365,12 +413,21 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
 
   const handleMoveColumn = useCallback(
     (conversation_id: string, delta: -1 | 1) => {
+      // The pointer has the columns; the keyboard waits for it to let go.
+      if (drag.current?.active) return;
       const next = moveColumn(orderRef.current, conversation_id, delta);
       if (next.join('|') === orderRef.current.join('|')) return;
-      commit(next);
-      setAnnouncement(
-        t('conversation.splitGroup.columnMoved', { position: next.indexOf(conversation_id) + 1, count: next.length })
-      );
+      // Said once the write has landed, or refused: not before.
+      void commit(next).then((landed) => {
+        setAnnouncement(
+          landed
+            ? t('conversation.splitGroup.columnMoved', {
+                position: next.indexOf(conversation_id) + 1,
+                count: next.length,
+              })
+            : t('conversation.splitGroup.columnNotMoved')
+        );
+      });
     },
     [commit, t]
   );

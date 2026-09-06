@@ -111,6 +111,7 @@
     "emptyColumnPanel": "此列中没有打开的文件",
     "reorderHandle": "拖动以重新排列列",
     "columnMoved": "已移至第 {{position}} 列（共 {{count}} 列）",
+    "columnNotMoved": "列未移动",
     "dropToMove": "松开即可移动到这里",
     "notFound": "此分屏视图已不存在。",
     "updateFailed": "无法更新分屏视图",

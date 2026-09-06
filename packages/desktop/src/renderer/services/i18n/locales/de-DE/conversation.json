@@ -111,6 +111,7 @@
     "emptyColumnPanel": "In dieser Spalte sind keine Dateien geöffnet",
     "reorderHandle": "Ziehen, um Spalten neu anzuordnen",
     "columnMoved": "Verschoben in Spalte {{position}} von {{count}}",
+    "columnNotMoved": "Die Spalte wurde nicht verschoben",
     "dropToMove": "Loslassen, um sie hierher zu verschieben",
     "notFound": "Diese geteilte Ansicht existiert nicht mehr.",
     "updateFailed": "Die geteilte Ansicht konnte nicht aktualisiert werden",

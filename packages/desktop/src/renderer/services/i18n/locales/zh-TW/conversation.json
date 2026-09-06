@@ -111,6 +111,7 @@
     "emptyColumnPanel": "此欄中沒有開啟的檔案",
     "reorderHandle": "拖曳以重新排列欄位",
     "columnMoved": "已移至第 {{position}} 欄（共 {{count}} 欄）",
+    "columnNotMoved": "欄位未移動",
     "dropToMove": "放開即可移動到這裡",
     "notFound": "此分割檢視已不存在。",
     "updateFailed": "無法更新分割檢視",

@@ -90,6 +90,7 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
               aria-label={headerDragHandle.label}
               onKeyDown={headerDragHandle.onKeyDown}
             />
+            <input data-testid={`split-column-input-${member.id}`} />
           </div>
         )}
         {member.name}
@@ -360,6 +361,29 @@ describe('SplitGroupView title', () => {
  * order at once and writes it onto the group in one batch, and puts it back
  * when the write is refused. Alt+Arrow on the grip is the keyboard's way.
  */
+// Frames laid out side by side, 400px each and 800px tall, so the resolver has rects to read.
+const withFrameRects = (body: () => void) => {
+  const rect = HTMLElement.prototype.getBoundingClientRect;
+  HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+    if (this.hasAttribute('data-column-index')) {
+      const index = Number(this.getAttribute('data-column-index'));
+      return { left: index * 400, right: index * 400 + 400, width: 400, top: 0, bottom: 800, height: 800 } as DOMRect;
+    }
+    return rect.call(this);
+  };
+  try {
+    body();
+  } finally {
+    HTMLElement.prototype.getBoundingClientRect = rect;
+  }
+};
+
+/** A write that settles when the test says so. */
+const deferredWrite = () => {
+  const { promise, resolve } = Promise.withResolvers<boolean>();
+  return { promise, resolve };
+};
+
 describe('SplitGroupView column reorder', () => {
   const columnOrder = () => screen.getByTestId('split-group-view-g1').getAttribute('data-column-order');
 
@@ -385,7 +409,48 @@ describe('SplitGroupView column reorder', () => {
     });
     expect(columnOrder()).toBe('a|c|b');
     expect(reorderMembersMock).toHaveBeenCalledWith('g1', ['a', 'c', 'b']);
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe('conversation.splitGroup.columnMoved');
+  });
+
+  it('says the column moved only once the write has landed, and says so when it is refused', async () => {
+    const write = deferredWrite();
+    reorderMembersMock.mockReturnValue(write.promise);
+    render(<SplitGroupView group={trio} />);
+    const status = () => screen.getByTestId('split-group-reorder-status-g1').textContent;
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    expect(columnOrder()).toBe('a|c|b');
+    expect(status()).toBe('');
+    await act(async () => {
+      write.resolve(false);
+      await Promise.resolve();
+    });
+    expect(columnOrder()).toBe('a|b|c');
+    expect(status()).toBe('conversation.splitGroup.columnNotMoved');
+  });
+
+  it('empties the live region after a moment, so the same words can be said again', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<SplitGroupView group={trio} />);
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+        await Promise.resolve();
+      });
+      expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe(
+        'conversation.splitGroup.columnMoved'
+      );
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe('');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does nothing at the edge, and without Alt', async () => {
@@ -410,17 +475,71 @@ describe('SplitGroupView column reorder', () => {
     expect(columnOrder()).toBe('a|b|c');
   });
 
-  it('reorders by a pointer drag on the header: third column into the first slot, marker at the slot', () => {
-    // Frames laid out side by side, 400px each, so the resolver has rects to read.
-    const rect = HTMLElement.prototype.getBoundingClientRect;
-    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
-      if (this.hasAttribute('data-column-index')) {
-        const index = Number(this.getAttribute('data-column-index'));
-        return { left: index * 400, right: index * 400 + 400, width: 400, top: 0, bottom: 800, height: 800 } as DOMRect;
-      }
-      return rect.call(this);
-    };
+  it('puts the columns back to the order the group confirmed since, not the order the write left from', async () => {
+    const write = deferredWrite();
+    reorderMembersMock.mockReturnValue(write.promise);
+    const view = render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    expect(columnOrder()).toBe('a|c|b');
+    // Another window reordered the group while the write was out.
+    const elsewhere: SplitGroup = { id: 'g1', members: [trio.members[1], trio.members[0], trio.members[2]] };
+    view.rerender(<SplitGroupView group={elsewhere} />);
+    expect(columnOrder()).toBe('b|a|c');
+    await act(async () => {
+      write.resolve(false);
+      await Promise.resolve();
+    });
+    expect(columnOrder()).toBe('b|a|c');
+  });
+
+  it('lets a newer optimistic order stand when an older write is the one refused', async () => {
+    const settlers: Array<(landed: boolean) => void> = [];
+    reorderMembersMock.mockImplementation(() => new Promise<boolean>((resolve) => settlers.push(resolve)));
+    render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    expect(columnOrder()).toBe('c|a|b');
+    await act(async () => {
+      settlers[0](false);
+      await Promise.resolve();
+    });
+    expect(columnOrder()).toBe('c|a|b');
+    await act(async () => {
+      settlers[1](false);
+      await Promise.resolve();
+    });
+    expect(columnOrder()).toBe('a|b|c');
+  });
+
+  it('treats a write that throws as refused', async () => {
+    reorderMembersMock.mockRejectedValue(new Error('ipc down'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
+      render(<SplitGroupView group={trio} />);
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+      });
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(columnOrder()).toBe('a|b|c');
+      expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe(
+        'conversation.splitGroup.columnNotMoved'
+      );
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('reorders by a pointer drag on the header: third column into the first slot, marker at the slot', () => {
+    withFrameRects(() => {
       render(<SplitGroupView group={trio} />);
       const header = screen.getByTestId('split-column-header-c');
       fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000 });
@@ -437,8 +556,128 @@ describe('SplitGroupView column reorder', () => {
       expect(columnOrder()).toBe('c|a|b');
       expect(reorderMembersMock).toHaveBeenCalledWith('g1', ['c', 'a', 'b']);
       expect(screen.queryByTestId(/^split-column-drop-marker-/)).toBeNull();
+    });
+  });
+
+  it('still drags when the header cannot capture the pointer: the listeners are on the window', () => {
+    const capture = HTMLElement.prototype.setPointerCapture;
+    HTMLElement.prototype.setPointerCapture = () => {
+      throw new Error('no capture here');
+    };
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+        fireEvent.pointerMove(window, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+        expect(header.getAttribute('data-dragging')).toBe('true');
+        fireEvent.pointerUp(window, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+        expect(columnOrder()).toBe('c|a|b');
+      });
     } finally {
-      HTMLElement.prototype.getBoundingClientRect = rect;
+      HTMLElement.prototype.setPointerCapture = capture;
+    }
+  });
+
+  it('drops nothing when the pointer is released above or below the columns', () => {
+    withFrameRects(() => {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('0');
+      // Same x, but off the top of the columns: no slot, no marker.
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: -40 });
+      expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBeNull();
+      expect(screen.queryByTestId(/^split-column-drop-marker-/)).toBeNull();
+      fireEvent.pointerUp(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 900 });
+      expect(header.getAttribute('data-dragging')).toBe('false');
+      expect(columnOrder()).toBe('a|b|c');
+      expect(reorderMembersMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it('leaves a press inside the title field to the field: selecting text is not a drag', () => {
+    withFrameRects(() => {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      const input = screen.getByTestId('split-column-input-c');
+      fireEvent.pointerDown(input, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(input, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(header.getAttribute('data-dragging')).toBe('false');
+      fireEvent.pointerUp(input, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(columnOrder()).toBe('a|b|c');
+      expect(reorderMembersMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it('ignores Alt+Arrow while the pointer has a column', () => {
+    withFrameRects(() => {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 700, clientY: 20 });
+      expect(header.getAttribute('data-dragging')).toBe('true');
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+      expect(columnOrder()).toBe('a|b|c');
+      expect(reorderMembersMock).not.toHaveBeenCalled();
+      fireEvent.pointerUp(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(columnOrder()).toBe('c|a|b');
+    });
+  });
+
+  it('lets a finger that moves up or down during the hold scroll instead', () => {
+    vi.useFakeTimers();
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        fireEvent.pointerDown(header, { pointerId: 7, pointerType: 'touch', clientX: 1000, clientY: 20 });
+        fireEvent.pointerMove(header, { pointerId: 7, pointerType: 'touch', clientX: 1001, clientY: 40 });
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+        expect(header.getAttribute('data-dragging')).toBe('false');
+        fireEvent.pointerUp(header, { pointerId: 7, pointerType: 'touch', clientX: 1001, clientY: 40 });
+        expect(reorderMembersMock).not.toHaveBeenCalled();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drags after a still hold, and lets go of the timer and the window when the view goes mid-hold', () => {
+    vi.useFakeTimers();
+    const removed = vi.spyOn(window, 'removeEventListener');
+    try {
+      withFrameRects(() => {
+        const view = render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        fireEvent.pointerDown(header, { pointerId: 7, pointerType: 'touch', clientX: 1000, clientY: 20 });
+        fireEvent.pointerMove(header, { pointerId: 7, pointerType: 'touch', clientX: 1002, clientY: 22 });
+        act(() => {
+          vi.advanceTimersByTime(250);
+        });
+        expect(header.getAttribute('data-dragging')).toBe('true');
+        fireEvent.pointerUp(header, { pointerId: 7, pointerType: 'touch', clientX: 100, clientY: 20 });
+        expect(columnOrder()).toBe('c|a|b');
+        // The drop's own click-swallow tick runs out before the next hold starts.
+        act(() => {
+          vi.runOnlyPendingTimers();
+        });
+        // A second hold, cut short by the view going away.
+        const again = screen.getByTestId('split-column-header-a');
+        fireEvent.pointerDown(again, { pointerId: 8, pointerType: 'touch', clientX: 600, clientY: 20 });
+        removed.mockClear();
+        view.unmount();
+        expect(vi.getTimerCount()).toBe(0);
+        expect(removed.mock.calls.map(([type]) => type)).toEqual(
+          expect.arrayContaining(['pointermove', 'pointerup', 'pointercancel'])
+        );
+      });
+    } finally {
+      removed.mockRestore();
+      vi.useRealTimers();
     }
   });
 

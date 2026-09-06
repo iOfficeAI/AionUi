@@ -111,6 +111,7 @@
     "emptyColumnPanel": "Bu sütunda açık dosya yok",
     "reorderHandle": "Sütunları yeniden sıralamak için sürükleyin",
     "columnMoved": "{{count}} sütundan {{position}}. sütuna taşındı",
+    "columnNotMoved": "Sütun taşınmadı",
     "dropToMove": "Buraya taşımak için bırakın",
     "notFound": "Bu bölünmüş görünüm artık yok.",
     "updateFailed": "Bölünmüş görünüm güncellenemedi",

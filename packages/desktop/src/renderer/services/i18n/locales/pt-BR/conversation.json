@@ -111,6 +111,7 @@
     "emptyColumnPanel": "Nenhum arquivo aberto nesta coluna",
     "reorderHandle": "Arraste para reordenar as colunas",
     "columnMoved": "Movida para a coluna {{position}} de {{count}}",
+    "columnNotMoved": "A coluna não foi movida",
     "dropToMove": "Solte para movê-la para cá",
     "notFound": "Esta visualização dividida não existe mais.",
     "updateFailed": "Não foi possível atualizar a visualização dividida",

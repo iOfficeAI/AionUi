@@ -111,6 +111,7 @@
     "emptyColumnPanel": "Aucun fichier ouvert dans cette colonne",
     "reorderHandle": "Glisser pour réordonner les colonnes",
     "columnMoved": "Déplacée en colonne {{position}} sur {{count}}",
+    "columnNotMoved": "La colonne n’a pas été déplacée",
     "dropToMove": "Relâchez pour la déplacer ici",
     "notFound": "Cette vue partagée n’existe plus.",
     "updateFailed": "Impossible de mettre à jour la vue partagée",

@@ -829,6 +829,7 @@ export type I18nKey =
   | 'conversation.splitGroup.blockLabel'
   | 'conversation.splitGroup.blockLabelNamed'
   | 'conversation.splitGroup.columnMoved'
+  | 'conversation.splitGroup.columnNotMoved'
   | 'conversation.splitGroup.dragMember'
   | 'conversation.splitGroup.dragToSplit'
   | 'conversation.splitGroup.dropToAdd'

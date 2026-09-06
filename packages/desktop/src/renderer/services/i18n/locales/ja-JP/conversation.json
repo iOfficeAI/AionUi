@@ -111,6 +111,7 @@
     "emptyColumnPanel": "この列で開いているファイルはありません",
     "reorderHandle": "ドラッグして列を並べ替え",
     "columnMoved": "{{count}}列中{{position}}列目に移動しました",
+    "columnNotMoved": "列は移動されませんでした",
     "dropToMove": "離すとここへ移動します",
     "notFound": "この分割ビューはもう存在しません。",
     "updateFailed": "分割ビューを更新できませんでした",
