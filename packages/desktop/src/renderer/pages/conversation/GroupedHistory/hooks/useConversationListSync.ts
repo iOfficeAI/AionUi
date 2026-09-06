@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { isConversationMounted } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
@@ -580,6 +581,18 @@ const setActiveConversationState = (conversation_id: string | null) => {
   activeConversationIdState = conversation_id;
 };
 
+/**
+ * True when the user can currently see this conversation, so a finished turn
+ * must not raise an unread badge on it.
+ *
+ * "On screen" is the set of mounted conversation views — several can be mounted
+ * at once, so a single active id would badge every column but one as unread —
+ * union the route's active conversation, which the sidebar publishes before the
+ * view itself finishes loading.
+ */
+export const isConversationOnScreen = (conversation_id: string, activeConversationId: string | null): boolean =>
+  isConversationMounted(conversation_id) || activeConversationId === conversation_id;
+
 const initializeConversationListSyncStore = () => {
   if (isStoreInitialized) {
     return;
@@ -617,7 +630,7 @@ const initializeConversationListSyncStore = () => {
 
     if (isTerminalStreamMessage(message)) {
       const wasGenerating = generatingConversationIdsState.has(conversation_id);
-      if (wasGenerating && activeConversationIdState !== conversation_id) {
+      if (wasGenerating && !isConversationOnScreen(conversation_id, activeConversationIdState)) {
         markCompletionUnread(conversation_id);
       }
       clearGenerating(conversation_id, 'terminal');
@@ -654,7 +667,7 @@ const initializeConversationListSyncStore = () => {
     }
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
-    if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
+    if (isTerminalTurnState(event.state) && !isConversationOnScreen(event.session_id, activeConversationIdState)) {
       markCompletionUnread(event.session_id);
     }
     markCompleted(event.session_id, event.turn_id);

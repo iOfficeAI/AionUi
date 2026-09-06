@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mirror the project convention: t() echoes the key so labels/tooltips are assertable.
@@ -16,6 +16,7 @@ vi.mock('react-i18next', () => ({
 // react-router-dom: control location, capture navigate.
 const navigate = vi.fn();
 let currentPathname = '/guid';
+let currentSearch = '';
 const platformMocks = vi.hoisted(() => ({
   isElectronDesktopMock: vi.fn(() => false),
 }));
@@ -25,9 +26,11 @@ const shortcutMocks = vi.hoisted(() => ({
 const featureMocks = vi.hoisted(() => ({
   teamModeEnabled: false,
 }));
+const detachedWindowMocks = vi.hoisted(() => ({ closeCurrentWindow: vi.fn(() => Promise.resolve(true)) }));
 vi.mock('react-router-dom', () => ({
+  NavigationType: { Pop: 'POP', Push: 'PUSH', Replace: 'REPLACE' },
   useNavigate: () => navigate,
-  useLocation: () => ({ pathname: currentPathname, search: '', hash: '' }),
+  useLocation: () => ({ pathname: currentPathname, search: currentSearch, hash: '' }),
   useNavigationType: () => 'POP',
   Outlet: () => null,
 }));
@@ -51,7 +54,12 @@ vi.mock('@/common/config/constants', () => ({
   },
 }));
 vi.mock('@/renderer/components/layout/PwaPullToRefresh', () => ({ default: () => null }));
-vi.mock('@/renderer/components/layout/Titlebar', () => ({ default: () => null }));
+vi.mock('@/renderer/components/layout/Titlebar', () => ({
+  default: () => null,
+  DetachedTitlebar: ({ conversationId }: { conversationId: string }) => (
+    <div data-testid='detached-titlebar'>{conversationId}</div>
+  ),
+}));
 vi.mock('@/renderer/components/settings/UpdateModal', () => ({ default: () => null }));
 vi.mock('@renderer/hooks/system/useDeepLink', () => ({ useDeepLink: () => {} }));
 vi.mock('@renderer/hooks/system/notification/useNotificationClick', () => ({ useNotificationClick: () => {} }));
@@ -60,6 +68,7 @@ vi.mock('@renderer/hooks/file/useDirectorySelection', () => ({
   useDirectorySelection: () => ({ contextHolder: null }),
 }));
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: () => {} }));
+vi.mock('@/renderer/utils/ui/detachedWindow', () => ({ detachedWindowActions: detachedWindowMocks }));
 vi.mock('@renderer/hooks/ui/useConversationShortcuts', () => ({
   useConversationShortcuts: (params: { toggleSider: () => void }) => {
     shortcutMocks.params = params;
@@ -98,6 +107,9 @@ describe('Layout sider brand Home button', () => {
     featureMocks.teamModeEnabled = false;
     sessionStorage.clear();
     currentPathname = '/guid';
+    currentSearch = '';
+    detachedWindowMocks.closeCurrentWindow.mockReset();
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -194,6 +206,202 @@ describe('Layout sider brand Home button', () => {
     renderLayout();
 
     expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
+  });
+
+  it('renders the chrome-less shell for a detached conversation route', () => {
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+
+    const { container } = renderLayout();
+
+    expect(screen.getByTestId('detached-titlebar')).toHaveTextContent('detached-1');
+    expect(container.querySelector('.layout-sider')).toBeNull();
+    expect(screen.queryByText('sider')).toBeNull();
+    expect(shortcutMocks.params?.toggleSider).toEqual(expect.any(Function));
+  });
+
+  it('closes a detached window when an in-window action leaves its pinned conversation route', () => {
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('detached-titlebar')).toHaveTextContent('detached-1');
+    expect(screen.queryByText('sider')).toBeNull();
+  });
+
+  it('restores a manually opened browser tab when the browser refuses to close it', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValueOnce(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/conversation/detached-1?window=detached', { replace: true })
+    );
+  });
+
+  it('restores a missing pinned conversation only once when the browser cannot close the tab', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/missing';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/missing';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce());
+    expect(navigate).toHaveBeenCalledOnce();
+  });
+
+  it('recovers a later unrelated drift after an earlier recovery already ran', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/guid';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(navigate).toHaveBeenLastCalledWith('/conversation/detached-1?window=detached', { replace: true });
+  });
+
+  it('recovers a repeated drift to the same route once the user acts again', async () => {
+    detachedWindowMocks.closeCurrentWindow.mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    // A real click or keypress is what separates a drift the user asked for
+    // from the automatic redirect that a restore can bounce straight back into.
+    fireEvent.keyDown(window, { key: 'Enter' });
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+    expect(navigate).toHaveBeenLastCalledWith('/conversation/detached-1?window=detached', { replace: true });
+  });
+
+  it('picks up a drift that arrived while an earlier close was still pending', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow
+      .mockReturnValueOnce(
+        new Promise<boolean>((resolve) => {
+          resolveClose = resolve;
+        })
+      )
+      .mockResolvedValue(false);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/guid';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      resolveClose?.(false);
+    });
+
+    // The blocked drift is not stranded: settling the first attempt re-runs the
+    // recovery for the route the window actually ended up on.
+    await waitFor(() => expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/conversation/detached-1?window=detached', { replace: true })
+    );
+  });
+
+  it('does not stack close attempts when the route bounces while a close is pending', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        resolveClose = resolve;
+      })
+    );
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+
+    expect(detachedWindowMocks.closeCurrentWindow).toHaveBeenCalledOnce();
+    // The window is still stranded on the drifted route, so the single refused
+    // close must still restore it.
+    resolveClose?.(false);
+    await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  });
+
+  it('ignores a stale failed-close result after the pinned route is restored', async () => {
+    let resolveClose: ((closed: boolean) => void) | undefined;
+    detachedWindowMocks.closeCurrentWindow.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        resolveClose = resolve;
+      })
+    );
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    const { rerender } = renderLayout();
+
+    currentPathname = '/settings/skills';
+    currentSearch = '';
+    rerender(<Layout sider={<div>sider</div>} />);
+    currentPathname = '/conversation/detached-1';
+    currentSearch = '?window=detached';
+    rerender(<Layout sider={<div>sider</div>} />);
+    resolveClose?.(false);
+
+    await act(async () => Promise.resolve());
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('clicking the logo icon counts toward the devtools easter-egg and never navigates', () => {

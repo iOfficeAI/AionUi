@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 const streamHandlers: Array<(e: unknown) => void> = [];
+let locationSearch = '';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -23,7 +24,10 @@ vi.mock('@/common', () => ({
 vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => false }));
 vi.mock('@/common/config/configService', () => ({ configService: { get: () => true } }));
 const navigate = vi.fn();
-vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
+vi.mock('react-router-dom', () => ({
+  useLocation: () => ({ search: locationSearch }),
+  useNavigate: () => navigate,
+}));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 
 import { useBrowserNotification } from '@/renderer/hooks/system/notification/useBrowserNotification';
@@ -47,6 +51,7 @@ beforeEach(() => {
   streamHandlers.length = 0;
   FakeNotification.instances.length = 0;
   navigate.mockClear();
+  locationSearch = '';
   (globalThis as unknown as { Notification: unknown }).Notification = FakeNotification;
   // jsdom does not implement window.focus(); stub it so the click path is quiet.
   window.focus = vi.fn();
@@ -79,5 +84,11 @@ describe('useBrowserNotification', () => {
     emitStream({ type: 'thinking', conversation_id: 's1', turn_id: 't1' });
     emitStream({ type: 'text', conversation_id: 's1', turn_id: 't1' });
     expect(FakeNotification.instances).toHaveLength(0);
+  });
+
+  it('does not create duplicate browser notifications in a detached window', () => {
+    locationSearch = '?window=detached';
+    renderHook(() => useBrowserNotification());
+    expect(streamHandlers).toHaveLength(0);
   });
 });
