@@ -115,6 +115,15 @@ const renderActions = (onSessionClick?: () => void, selectedConversationIds = ne
     })
   );
 
+type LeaveOptions = { moveToSurvivor: (survivor_id: string) => boolean };
+
+/** The leave options a given row was handed, by the row's id. */
+const leaveOptionsFor = (item_id: string): LeaveOptions => {
+  const call = leaveOwnGroupMock.mock.calls.find(([id]) => id === item_id);
+  if (!call) throw new Error(`leaveOwnGroup was never asked about ${item_id}`);
+  return call[1] as LeaveOptions;
+};
+
 describe('create scheduled task conversation action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -181,7 +190,7 @@ describe('archiving takes a conversation out of its split group first', () => {
     await act(async () => {
       await result.current.handleArchive(conversation);
     });
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-b')).toBe(true);
     expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
     // Order matters: archiving first would strand the tag on a row the active
     // list can no longer show.
@@ -196,7 +205,7 @@ describe('archiving takes a conversation out of its split group first', () => {
     });
     // leaveOwnGroup is a no-op for an ungrouped row, so the caller never has to
     // know which rows are members.
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('loner', { moveToSurvivor: true });
+    expect(leaveOptionsFor('loner').moveToSurvivor('anyone')).toBe(true);
     expect(archiveMock).toHaveBeenCalledTimes(1);
   });
 });
@@ -222,7 +231,7 @@ describe('a refused leave stops the archive', () => {
     await act(async () => {
       await result.current.handleArchive(makeConversation('member-a', 'acp'));
     });
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', expect.anything());
     expect(archiveMock).not.toHaveBeenCalled();
   });
 
@@ -234,11 +243,8 @@ describe('a refused leave stops the archive', () => {
     expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
   });
 
-  it('does not hand the user a survivor it is about to archive', async () => {
-    // Archiving both members of a pair dissolves it. Following that dissolve
-    // would drop the user on the survivor moments before the next call takes
-    // it out of the list too.
-    const { result } = renderActions(undefined, new Set(['member-a', 'member-b']));
+  const runBatch = async (ids: string[]) => {
+    const { result } = renderActions(undefined, new Set(ids));
     await act(async () => {
       result.current.handleBatchArchive();
       await Promise.resolve();
@@ -246,9 +252,24 @@ describe('a refused leave stops the archive', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    for (const call of leaveOwnGroupMock.mock.calls) {
-      expect(call[1]).toEqual({ moveToSurvivor: false });
-    }
+  };
+
+  it('does not hand the user a survivor it is about to archive', async () => {
+    // Archiving both members of a pair dissolves it. Following that dissolve
+    // would drop the user on the survivor moments before the next call takes
+    // it out of the list too.
+    await runBatch(['member-a', 'member-b']);
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-b')).toBe(false);
+    expect(leaveOptionsFor('member-b').moveToSurvivor('member-a')).toBe(false);
+  });
+
+  it('does follow the dissolve when the survivor is not in the batch', async () => {
+    // Archiving one member of a pair alongside an unrelated row dissolves the
+    // pair, but its survivor stays. Suppressing the move here left the open
+    // split route on its not-found screen although the survivor remained.
+    await runBatch(['member-a', 'unrelated']);
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-b')).toBe(true);
+    expect(leaveOptionsFor('member-a').moveToSurvivor('unrelated')).toBe(false);
   });
 
   it('still shows the survivor when a single row leaves a pair', async () => {
@@ -258,7 +279,41 @@ describe('a refused leave stops the archive', () => {
     });
     // One row leaving is the case the survivor navigation was written for:
     // the group's columns are gone, and that is where the user was looking.
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-b')).toBe(true);
+  });
+
+  it('archiving a folder follows the dissolve only to a survivor outside the folder', async () => {
+    // A group can span two folders: the survivor in the other folder stays,
+    // and the user should land on it; a survivor in this folder is going too.
+    const { result } = renderActions();
+    act(() => {
+      result.current.handleArchiveProject('folder', [
+        makeConversation('member-a', 'acp'),
+        makeConversation('member-c', 'acp'),
+      ]);
+    });
+    await act(async () => {
+      await result.current.handleArchiveProjectConfirm();
+    });
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-b')).toBe(true);
+    expect(leaveOptionsFor('member-a').moveToSurvivor('member-c')).toBe(false);
+    expect(archiveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('never opens the folder archive for a folder with nothing in it, so nothing is ever reported for it', async () => {
+    // With no rows there would be nothing to settle, and an empty settlement
+    // would read as "archived 0" success. The flow is refused before it opens.
+    const { result } = renderActions();
+    act(() => {
+      result.current.handleArchiveProject('empty', []);
+    });
+    expect(result.current.archiveProjectTarget).toBeNull();
+    await act(async () => {
+      await result.current.handleArchiveProjectConfirm();
+    });
+    expect(archiveMock).not.toHaveBeenCalled();
+    expect(messageSuccess).not.toHaveBeenCalled();
+    expect(messageError).not.toHaveBeenCalled();
   });
 
   it('lets the rest of a batch through when one row cannot leave', async () => {
@@ -311,9 +366,11 @@ describe('archive failure is reported for the step that actually failed', () => 
     expect(messageError).not.toHaveBeenCalled();
   });
 
-  it('treats a leave that throws as a failed leave, not a failed archive', async () => {
-    // The queue normally answers false; anything that gets past it is still a
-    // failure of the same step, and must not be reported as the next one.
+  it('treats a leave that throws as a failed leave, not a failed archive — and still says so', async () => {
+    // The queue normally answers false and speaks for itself; anything that
+    // gets past it is still a failure of the same step, must not be reported
+    // as the next one, and must not go unreported either: the queue never saw
+    // it, so nobody else has told the user.
     leaveOwnGroupMock.mockRejectedValue(new Error('ipc exploded'));
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
@@ -322,7 +379,9 @@ describe('archive failure is reported for the step that actually failed', () => 
         await result.current.handleArchive(makeConversation('member-a', 'acp'));
       });
       expect(archiveMock).not.toHaveBeenCalled();
-      expect(messageError).not.toHaveBeenCalled();
+      expect(messageError).toHaveBeenCalledTimes(1);
+      expect(messageError).toHaveBeenCalledWith('conversation.splitGroup.updateFailed');
+      expect(messageError).not.toHaveBeenCalledWith('conversation.history.archiveFailed');
     } finally {
       error.mockRestore();
     }

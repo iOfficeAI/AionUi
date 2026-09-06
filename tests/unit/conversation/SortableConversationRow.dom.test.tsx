@@ -23,8 +23,9 @@ vi.mock('@/renderer/pages/cron', () => ({
   CronJobIndicator: () => null,
 }));
 
+const { layoutState } = vi.hoisted(() => ({ layoutState: { isMobile: false } }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
-  useLayoutContext: () => ({ isMobile: false }),
+  useLayoutContext: () => ({ isMobile: layoutState.isMobile }),
 }));
 
 vi.mock('@/renderer/pages/conversation/utils/conversationAssistantIdentity', () => ({
@@ -104,5 +105,18 @@ describe('SortableConversationRow', () => {
   it('leaves an idle row without a busy badge', () => {
     const view = renderRow();
     expect(view.queryByTestId('conversation-busy-badge-conv-1')).toBeNull();
+  });
+
+  it('still shows the handle it was handed in a narrow window', () => {
+    // Whether the row drags is the list's decision; once handed a handle, the
+    // row must not hide it on width, or a drag source is left with no activator.
+    layoutState.isMobile = true;
+    try {
+      const view = renderRow({ isGenerating: true });
+      expect(view.getByTestId('conversation-drag-handle-conv-1')).toBeInTheDocument();
+      expect(view.getByTestId('conversation-busy-badge-conv-1')).toBeInTheDocument();
+    } finally {
+      layoutState.isMobile = false;
+    }
   });
 });

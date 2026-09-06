@@ -153,7 +153,17 @@ export const useConversationActions = ({
    * what went wrong, so this adds no second message of its own.
    */
   const archiveConversation = useCallback(
-    async (item_id: string, { moveToSurvivor = true }: { moveToSurvivor?: boolean } = {}): Promise<void> => {
+    async (
+      item_id: string,
+      /**
+       * The rest of the rows this archive is taking. A dissolve moves the user
+       * onto the survivor only when the survivor is not one of them — landing
+       * on a row moments before archiving it is worse than not moving at all,
+       * but a survivor that stays is exactly where the user should end up,
+       * since the columns they were looking at are gone.
+       */
+      { alsoArchiving = new Set<string>() }: { alsoArchiving?: ReadonlySet<string> } = {}
+    ): Promise<void> => {
       // Which step failed decides what the user is told, so it is carried on
       // the error rather than read back out of its text: an archive that fails
       // while echoing a conversation's own words must not be mistaken for a
@@ -161,17 +171,21 @@ export const useConversationActions = ({
       // branch runs.
       let left = false;
       try {
-        left = await leaveOwnGroup(item_id, { moveToSurvivor });
+        left = await leaveOwnGroup(item_id, { moveToSurvivor: (survivor_id) => !alsoArchiving.has(survivor_id) });
       } catch (error) {
-        // The queue normally answers `false` rather than throwing; anything
-        // that gets past it is still a failure of the same step.
+        // The queue normally answers `false` rather than throwing, and has
+        // already said so on screen when it does. Anything that gets past it is
+        // still a failure of the same step — but one the queue never reported,
+        // so it is said here, once, before the caller suppresses the archive
+        // message for it.
         console.error(`Failed to take ${item_id} out of its split group:`, error);
+        Message.error(t('conversation.splitGroup.updateFailed'));
         throw leaveFailed(item_id);
       }
       if (!left) throw leaveFailed(item_id);
       await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
     },
-    [leaveOwnGroup]
+    [leaveOwnGroup, t]
   );
 
   /**
@@ -218,11 +232,11 @@ export const useConversationActions = ({
           // Each row leaves its group and then archives, on its own. One row
           // that cannot leave is one row that does not archive — it is not a
           // reason to leave the rest of the selection where it was.
-          // A dissolve here must not move the user onto the survivor: the
-          // survivor may be further down this very selection, and landing on a
-          // row moments before archiving it is worse than not moving at all.
+          // A dissolve moves the user onto the survivor only if the survivor is
+          // not further down this very selection.
+          const alsoArchiving = new Set(selectedIds);
           const results = await Promise.allSettled(
-            selectedIds.map((item_id) => archiveConversation(item_id, { moveToSurvivor: false }))
+            selectedIds.map((item_id) => archiveConversation(item_id, { alsoArchiving }))
           );
           emitter.emit('chat.history.refresh');
           reportArchived(results);
@@ -380,8 +394,11 @@ export const useConversationActions = ({
     if (!archiveProjectTarget) return;
     setArchiveProjectLoading(true);
     try {
+      // A group can span two folders; a survivor in the other folder stays,
+      // and the user should land on it.
+      const alsoArchiving = new Set(archiveProjectTarget.conversations.map((c) => c.id));
       const results = await Promise.allSettled(
-        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id, { moveToSurvivor: false }))
+        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id, { alsoArchiving }))
       );
       emitter.emit('chat.history.refresh');
       reportArchived(results);

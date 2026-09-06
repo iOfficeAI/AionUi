@@ -995,6 +995,33 @@ describe('useSplitGroupMutations: a drop on the open chat area shows what it bui
     expect(navigateMock.mock.calls[0][0]).toBe('/split/g2');
   });
 
+  it('follows a dissolve to its survivor when the caller allows that survivor', async () => {
+    navigateMock.mockClear();
+    routeState.pathname = '/split/g1';
+    wireBackend({ a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)) });
+    const asked: string[] = [];
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await result.current.leaveOwnGroup('b', {
+      moveToSurvivor: (survivor_id) => {
+        asked.push(survivor_id);
+        return true;
+      },
+    });
+    // The caller is asked about the actual survivor, once it is known.
+    expect(asked).toEqual(['a']);
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
+    expect(navigateMock.mock.calls[0][0]).toBe('/conversation/a');
+  });
+
+  it('stays put when the caller is taking the survivor too', async () => {
+    navigateMock.mockClear();
+    routeState.pathname = '/split/g1';
+    wireBackend({ a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)) });
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await expect(result.current.leaveOwnGroup('b', { moveToSurvivor: () => false })).resolves.toBe(true);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it('still leaves a dissolved group on its survivor when the drop was in the sidebar', async () => {
     navigateMock.mockClear();
     routeState.pathname = '/split/g1';

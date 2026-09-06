@@ -11,44 +11,18 @@ import { Button, Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-
 import { CloseSmall, Drag, EditOne, MoreOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationLeadingIcon from './ConversationLeadingIcon';
 import type { CronJobStatus } from './ConversationLeadingIcon';
 import { ConversationRowMenu } from './ConversationRow';
 import { useConversationDrag } from './hooks/ConversationDragContext';
+import { useCanHover } from './hooks/useCanHover';
 import type { ConversationRowProps } from './types';
 import { splitGroupDropId } from './utils/conversationDropTargets';
 import type { SplitGroup } from './utils/splitGroupHelpers';
 import { SPLIT_GROUP_NAME_MAX } from './utils/splitGroupHelpers';
-
-const NO_HOVER_QUERIES = ['(hover: none)', '(pointer: coarse)'];
-
-const readCanHover = (): boolean => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
-  return !NO_HOVER_QUERIES.some((query) => window.matchMedia(query).matches);
-};
-
-const subscribeToPointer = (onChange: () => void): (() => void) => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
-  const lists = NO_HOVER_QUERIES.map((query) => window.matchMedia(query));
-  for (const list of lists) list.addEventListener?.('change', onChange);
-  return () => {
-    for (const list of lists) list.removeEventListener?.('change', onChange);
-  };
-};
-
-/**
- * Whether the pointer can hover, kept current rather than sampled once.
- *
- * Viewport width does not answer this — a touch-capable desktop is not
- * "mobile", and a narrow window on a mouse-driven one is not a touch screen —
- * and the answer can change under a running window when a laptop is switched
- * between its touchscreen and its trackpad. Read once and it goes stale until
- * some unrelated state change happens to re-render the row.
- */
-const useCanHover = (): boolean => useSyncExternalStore(subscribeToPointer, readCanHover, () => true);
 
 export type SplitGroupRowProps = {
   group: SplitGroup;
@@ -105,7 +79,12 @@ type SplitGroupMemberRowProps = {
  *
  * The handle never shares a slot with anything, so a row that is working is
  * still grabbable — dragging a member out of the block is how it leaves the
- * group, and a busy conversation is exactly the one you want to move.
+ * group, and a busy conversation is exactly the one you want to move. It is
+ * there in every layout the row has: beside the mark when the sidebar is
+ * expanded, over the mark when the rail is collapsed (the way a plain row's
+ * handle covers its icon), and regardless of how narrow the window is. The
+ * only thing that takes it away is a pointer that cannot hover, because a
+ * hover-revealed handle nobody can see would only steal the scroll gesture.
  */
 const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   member,
@@ -129,8 +108,11 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
   const engaged = hovered || focusWithin;
-  const draggable = !batchMode && !collapsed;
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
+  const canHover = useCanHover();
+  // Width never decides this. The collapsed rail and a narrow window are
+  // layouts the handle has to fit into, not reasons to take it away.
+  const draggable = !batchMode && canHover;
+  const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: member.id,
     disabled: !draggable,
     data: { kind: 'conversation', conversation_id: member.id },
@@ -139,8 +121,10 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const name = member.name || t('conversation.welcome.newConversation');
   /** The row offers a menu only where there is room for one and something to put in it. */
   const menu = rowProps && !batchMode && !collapsed ? rowProps : null;
-  const canHover = useCanHover();
   const swapped = engaged && canHover && !collapsed && !batchMode && !isDragging;
+  /** In the rail the handle has no slot of its own, so it covers the mark while the pointer is on the row. */
+  const handleOverMark = draggable && collapsed;
+  const markHidden = swapped || (handleOverMark && (engaged || isDragging));
   const removeLabel = t('conversation.splitGroup.removeMember', { name });
 
   const remove = () => {
@@ -163,11 +147,33 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
     />
   );
 
+  // Only a PointerSensor is registered, so the handle can be grabbed but never
+  // driven from the keyboard; it is a pointer affordance and is marked as one —
+  // no tab stop, no role, hidden from assistive tech. The keyboard leaves a
+  // group through the remove button in the icon slot or the row's menu.
+  const dragHandle = (className: string, onClick?: (event: React.MouseEvent) => void) => (
+    <span
+      ref={setActivatorNodeRef}
+      {...listeners}
+      aria-hidden='true'
+      data-testid={`split-group-drag-handle-${member.id}`}
+      className={classNames(
+        'flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
+        isDragging ? 'opacity-100 cursor-grabbing' : engaged ? 'opacity-100 cursor-grab' : 'opacity-0 cursor-grab',
+        className
+      )}
+      style={{ lineHeight: 0, touchAction: 'none' }}
+      onClick={onClick}
+    >
+      <Drag theme='outline' size='12' fill='currentColor' />
+    </span>
+  );
+
   const mark = (
     <>
       <span
-        className={classNames('flex items-center justify-center size-full', swapped && 'opacity-0')}
-        aria-hidden={swapped}
+        className={classNames('flex items-center justify-center size-full', markHidden && 'opacity-0')}
+        aria-hidden={markHidden}
       >
         <ConversationLeadingIcon
           conversation={member}
@@ -177,7 +183,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
         />
       </span>
-      {unread && !swapped && (
+      {unread && !markHidden && (
         <span
           className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
           data-testid={`split-group-member-unread-${member.id}`}
@@ -187,6 +193,11 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         removeButton(
           'absolute inset-0 flex items-center justify-center rd-4px text-t-secondary hover:!text-t-primary transition-colors'
         )}
+      {/* The rail's handle sits over the mark, inside the opener. A click that
+          is not a drag falls through to the opener and opens the member: the
+          handle covers the only thing there is to click, so it cannot eat the
+          click the way the expanded row's handle does. */}
+      {handleOverMark && dragHandle('absolute inset-0 rd-4px bg-fill-3')}
     </>
   );
 
@@ -246,31 +257,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         onOpen(member.id);
       }}
     >
-      {draggable && !isMobile && (
-        <span
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          // Only a PointerSensor is registered, so the handle can be grabbed
-          // but never driven from the keyboard. Leaving it in the tab order
-          // gave keyboard users a stop that does nothing — worse, Enter on it
-          // bubbled to the row and opened the conversation. It is a pointer
-          // affordance and is now marked as one; the keyboard leaves a group
-          // through the remove button in the icon slot or the row's menu.
-          tabIndex={-1}
-          aria-hidden='true'
-          data-testid={`split-group-drag-handle-${member.id}`}
-          className={classNames(
-            'size-14px flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
-            isDragging ? 'opacity-100 cursor-grabbing' : engaged ? 'opacity-100 cursor-grab' : 'opacity-0 cursor-grab'
-          )}
-          style={{ lineHeight: 0, touchAction: 'none' }}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <Drag theme='outline' size='12' fill='currentColor' />
-        </span>
-      )}
+      {draggable && !collapsed && dragHandle('size-14px', (event) => event.stopPropagation())}
       {leadingSlot}
       {!collapsed &&
         (batchMode ? (
