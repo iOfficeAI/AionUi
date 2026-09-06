@@ -32,7 +32,12 @@ import { useTranslation } from 'react-i18next';
 
 import ConversationLeadingIcon from '../ConversationLeadingIcon';
 import type { ConversationDropAction, ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
-import { pickRowInGap, resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
+import {
+  dropActionHighlightsTarget,
+  pickRowInGap,
+  resolveConversationDropAction,
+  resolveDropIntent,
+} from '../utils/conversationDropTargets';
 import type { RowRect } from '../utils/conversationDropTargets';
 import { readSplitGroupTag } from '../utils/splitGroupHelpers';
 import { usePinnedReorder } from './useDragAndDrop';
@@ -235,12 +240,16 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
   const handleDragMove = useCallback(
     (event: DragMoveEvent) => {
       const resolved = resolveOver(event);
-      setDropTarget((previous) => {
-        if (!resolved) return previous === null ? previous : null;
-        if (previous && previous.id === resolved.id && previous.intent === resolved.intent) return previous;
-        return { id: resolved.id, intent: resolved.intent };
-      });
       const action = resolveAction(event, resolved);
+      // A target lights up only when releasing would use it. A member leaving
+      // its group beside a row or a block must not make that row or block say
+      // "drop here" while the ghost says "take it out".
+      const highlighted = resolved && dropActionHighlightsTarget(action) ? resolved : null;
+      setDropTarget((previous) => {
+        if (!highlighted) return previous === null ? previous : null;
+        if (previous && previous.id === highlighted.id && previous.intent === highlighted.intent) return previous;
+        return { id: highlighted.id, intent: highlighted.intent };
+      });
       const hint: ConversationDropHint =
         action.type === 'remove-member' || action.type === 'move-member' ? action.type : null;
       setDropHint((previous) => (previous === hint ? previous : hint));

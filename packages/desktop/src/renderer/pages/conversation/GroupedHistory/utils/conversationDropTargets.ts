@@ -169,6 +169,15 @@ export const resolveConversationDropAction = ({
   return { type: 'none', reason: 'between' };
 };
 
+/**
+ * Whether the target under the pointer should light up for this action. Only
+ * an action that would *use* the target does — a fuse, a join, a reorder. A
+ * member leaving its group uses nothing; lighting the row or block it happens
+ * to be beside would say "drop here" while the ghost says "take it out".
+ */
+export const dropActionHighlightsTarget = (action: ConversationDropAction): boolean =>
+  action.type !== 'remove-member' && action.type !== 'none';
+
 /** Droppable ids, unique across the one DndContext that spans sidebar and chat area. */
 export const splitGroupDropId = (group_id: string): string => `split-group:${group_id}`;
 export const chatAreaDropId = (conversation_id: string): string => `chat-area:${conversation_id}`;
