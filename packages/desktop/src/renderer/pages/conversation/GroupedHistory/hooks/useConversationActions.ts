@@ -130,6 +130,29 @@ export const useConversationActions = ({
     [id, navigate]
   );
 
+  /**
+   * Archive one conversation, taking it out of its split group first.
+   *
+   * The order is deliberate and is the lesser of two partial failures. Leaving
+   * first means a refused archive leaves the conversation ungrouped but intact
+   * and still in the sidebar — visible, and something the user can simply drag
+   * back. Archiving first would mean a refused leave strands the tag on a row
+   * the active list no longer shows, where no census will ever clear it and
+   * the survivor can never join another group. There is no transaction across
+   * the two calls, so one of the two windows has to exist; this is the one
+   * that stays recoverable.
+   *
+   * A leave that fails stops the archive outright. The queue has already said
+   * what went wrong, so this adds no second message of its own.
+   */
+  const archiveConversation = useCallback(
+    async (item_id: string): Promise<void> => {
+      if (!(await leaveOwnGroup(item_id))) throw new Error(`${item_id} could not leave its split group`);
+      await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
+    },
+    [leaveOwnGroup]
+  );
+
   const handleBatchArchive = useCallback(() => {
     if (selectedConversationIds.size === 0) {
       Message.warning(t('conversation.history.batchNoSelection'));
@@ -147,12 +170,10 @@ export const useConversationActions = ({
         // refresh clears the selection's rows and the archive page picks them up.
         const selectedIds = Array.from(selectedConversationIds);
         try {
-          // Queued together; the split-group write path runs them one at a
-          // time on its own queue, so there is nothing to serialize here.
-          await Promise.all(selectedIds.map((item_id) => leaveOwnGroup(item_id)));
-          const results = await Promise.allSettled(
-            selectedIds.map((item_id) => ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id }))
-          );
+          // Each row leaves its group and then archives, on its own. One row
+          // that cannot leave is one row that does not archive — it is not a
+          // reason to leave the rest of the selection where it was.
+          const results = await Promise.allSettled(selectedIds.map((item_id) => archiveConversation(item_id)));
           const successCount = results.filter((r) => r.status === 'fulfilled').length;
           emitter.emit('chat.history.refresh');
           if (successCount > 0) {
@@ -172,7 +193,7 @@ export const useConversationActions = ({
       alignCenter: true,
       getPopupContainer: () => document.body,
     });
-  }, [leaveOwnGroup, onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
+  }, [archiveConversation, onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -314,11 +335,8 @@ export const useConversationActions = ({
     if (!archiveProjectTarget) return;
     setArchiveProjectLoading(true);
     try {
-      await Promise.all(archiveProjectTarget.conversations.map((c) => leaveOwnGroup(c.id)));
       const results = await Promise.allSettled(
-        archiveProjectTarget.conversations.map((c) =>
-          ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: c.id })
-        )
+        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id))
       );
       const successCount = results.filter((r) => r.status === 'fulfilled').length;
       emitter.emit('chat.history.refresh');
@@ -334,7 +352,7 @@ export const useConversationActions = ({
     } finally {
       setArchiveProjectLoading(false);
     }
-  }, [archiveProjectTarget, leaveOwnGroup, t]);
+  }, [archiveConversation, archiveProjectTarget, t]);
 
   const handleArchive = useCallback(
     async (conversation: TChatConversation) => {
@@ -344,16 +362,20 @@ export const useConversationActions = ({
       // list on its own; the archived management page picks it up.
       setDropdownVisibleId(null);
       try {
-        await leaveOwnGroup(conversation.id);
-        await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: conversation.id });
+        await archiveConversation(conversation.id);
         emitter.emit('chat.history.refresh');
         Message.success(t('conversation.history.archiveSuccess'));
       } catch (error) {
         console.error('Failed to archive conversation:', error);
-        Message.error(t('conversation.history.archiveFailed'));
+        // A refused leave has already been reported by the write path; only a
+        // refused archive needs saying here.
+        if (!(error instanceof Error) || !error.message.includes('could not leave its split group')) {
+          Message.error(t('conversation.history.archiveFailed'));
+        }
+        emitter.emit('chat.history.refresh');
       }
     },
-    [leaveOwnGroup, t]
+    [archiveConversation, t]
   );
 
   return {

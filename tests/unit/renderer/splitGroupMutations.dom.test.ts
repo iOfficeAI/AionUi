@@ -25,6 +25,11 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/utils/splitGroupCensus', (
 }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
+const { messageError } = vi.hoisted(() => ({ messageError: vi.fn() }));
+// Arco's Message renders through the React 18 ReactDOM.render shim, which is
+// gone in React 19; what matters here is that it was asked to speak.
+vi.mock('@arco-design/web-react', () => ({ Message: { error: messageError, success: vi.fn() } }));
+
 const { navigateMock, routeState } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   routeState: { pathname: '/' },
@@ -727,5 +732,61 @@ describe('useSplitGroupMutations: a drop on the open chat area shows what it bui
     await result.current.moveMember('g1', 'b', { kind: 'group', group_id: 'g2' });
     await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
     expect(navigateMock.mock.calls[0][0]).toBe('/conversation/a');
+  });
+});
+
+/**
+ * A mutation that throws is not an unhandled rejection. The queue is the one
+ * place every mutation passes through, and it turns a throw into a console
+ * error, a message on screen, and a `null` result — so a `void`-ed call from a
+ * drag handler cannot go quiet or bring the window down.
+ */
+describe('useSplitGroupMutations: a refused mutation is reported, not dropped', () => {
+  const wire = (backend: Backend, complete: boolean) => {
+    vi.mocked(getConversationOrNull).mockImplementation(async (id: string) => backend[id] ?? null);
+    vi.mocked(ipcBridge.conversation.update.invoke).mockResolvedValue(true);
+    vi.mocked(readSplitGroupCensus).mockImplementation(async (group_id: string) => ({
+      members: Object.values(backend).filter(
+        (item): item is TChatConversation => item !== null && readSplitGroupTag(item)?.id === group_id
+      ),
+      complete,
+    }));
+  };
+
+  it('surfaces the failure and resolves, rather than rejecting into the drag handler', async () => {
+    messageError.mockClear();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      // An incomplete count refuses the join; the throw happens inside the
+      // queue, which is below every call site.
+      wire({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), z: row('z') }, false);
+      const { result } = renderHook(() => useSplitGroupMutations());
+      await expect(result.current.addMember('g', 'z')).resolves.toBeUndefined();
+      expect(messageError).toHaveBeenCalledWith('conversation.splitGroup.updateFailed');
+      expect(error).toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('answers false for a refused leave, so archiving can stop', async () => {
+    messageError.mockClear();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      wire({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, true);
+      vi.mocked(ipcBridge.conversation.update.invoke).mockResolvedValue(false);
+      const { result } = renderHook(() => useSplitGroupMutations());
+      await expect(result.current.leaveOwnGroup('b')).resolves.toBe(false);
+      expect(messageError).toHaveBeenCalledWith('conversation.splitGroup.updateFailed');
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('answers true when the leave lands', async () => {
+    wire({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, true);
+    vi.mocked(ipcBridge.conversation.update.invoke).mockResolvedValue(true);
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await expect(result.current.leaveOwnGroup('b')).resolves.toBe(true);
   });
 });
