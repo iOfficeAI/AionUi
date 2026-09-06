@@ -110,6 +110,9 @@ describe('PanelEmptyState', () => {
     const close = screen.getByTestId('empty-close');
     expect(close.tagName).toBe('BUTTON');
     expect(close).toHaveAttribute('aria-label', 'preview.closePreview');
+    // The neighbouring column's resize grab zone reaches into this corner; the
+    // button has to sit above it or a pointer can never reach it.
+    expect(close.className).toContain('z-30');
     fireEvent.click(close);
     expect(onClose).toHaveBeenCalledTimes(1);
   });

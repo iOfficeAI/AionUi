@@ -34,7 +34,10 @@ export const PanelEmptyState: React.FC<{ testId?: string; onClose?: () => void }
           aria-label={t('preview.closePreview')}
           data-testid={`${testId}-close`}
           icon={<Close theme='outline' size='12' fill='currentColor' />}
-          className='!absolute top-8px end-8px !size-24px !min-w-24px !p-0 !rd-4px flex items-center justify-center !text-t-tertiary hover:!text-t-primary'
+          // Above the neighbouring column's resize grab zone, which reaches
+          // 20px into this panel from its right edge; without this the corner
+          // is the one place the button cannot be pressed.
+          className='!absolute top-8px end-8px z-30 !size-24px !min-w-24px !p-0 !rd-4px flex items-center justify-center !text-t-tertiary hover:!text-t-primary'
           onClick={onClose}
         />
       )}
