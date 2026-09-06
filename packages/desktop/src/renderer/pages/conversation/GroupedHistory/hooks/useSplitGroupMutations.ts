@@ -33,7 +33,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { SplitGroupCensus } from '../utils/splitGroupCensus';
 import { readSplitGroupCensus } from '../utils/splitGroupCensus';
 import type { SplitGroupPatch, SplitGroupTag } from '../utils/splitGroupHelpers';
-import { newSplitGroupId, planCreateSplitGroup, readSplitGroupTag } from '../utils/splitGroupHelpers';
+import {
+  newSplitGroupId,
+  normalizeSplitGroupName,
+  planCreateSplitGroup,
+  readSplitGroupName,
+  readSplitGroupTag,
+  splitGroupTag,
+} from '../utils/splitGroupHelpers';
 import { refreshConversationList } from './useConversationListSync';
 
 export const splitGroupRoute = (group_id: string): string => `/split/${group_id}`;
@@ -53,6 +60,8 @@ export type SplitGroupMutation =
   | { type: 'create'; target_id: string; dragged_id: string }
   | { type: 'add'; group_id: string; conversation_id: string }
   | { type: 'remove'; group_id: string; conversation_id: string }
+  /** Name the group, or clear the name when it is blank. Written onto every member. */
+  | { type: 'rename'; group_id: string; name: string | null }
   /** Leave one group and join another (or fuse with a plain row) as a single batch. */
   | {
       type: 'move';
@@ -196,7 +205,10 @@ export const runSplitGroupMutation = async (
       const { members } = await readGroup(targetTag.id, deps, [target]);
       members.forEach(remember);
       const patches: SplitGroupPatch[] = [
-        { conversation_id: dragged.id, split_group: { id: targetTag.id, order: nextOrder(members) } },
+        {
+          conversation_id: dragged.id,
+          split_group: splitGroupTag(targetTag.id, nextOrder(members), readSplitGroupName(members)),
+        },
       ];
       await applySplitGroupPatches(patches, previous, deps);
       return { group_id: targetTag.id, dissolved: false, survivor: null };
@@ -220,7 +232,10 @@ export const runSplitGroupMutation = async (
     if (rowTag && !(await isLeftoverTag(rowTag, row, deps))) throw new Error(`${row.id} already belongs to a group`);
     remember(row);
     const patches: SplitGroupPatch[] = [
-      { conversation_id: row.id, split_group: { id: mutation.group_id, order: nextOrder(members) } },
+      {
+        conversation_id: row.id,
+        split_group: splitGroupTag(mutation.group_id, nextOrder(members), readSplitGroupName(members)),
+      },
     ];
     await applySplitGroupPatches(patches, previous, deps);
     return { group_id: mutation.group_id, dissolved: false, survivor: null };
@@ -247,6 +262,26 @@ export const runSplitGroupMutation = async (
     return { group_id: mutation.group_id, dissolved: true, survivor: members[0].id };
   }
 
+  if (mutation.type === 'rename') {
+    const { members } = await readGroup(mutation.group_id, deps);
+    if (members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
+    members.forEach(remember);
+    const name = normalizeSplitGroupName(mutation.name);
+    // Every member carries the name, so every member is rewritten — a group
+    // half-renamed by a refused write is rolled back whole, and a group whose
+    // members disagree is put back in step by the next successful rename.
+    const patches = members.flatMap((member): SplitGroupPatch[] => {
+      const tag = readSplitGroupTag(member);
+      if (!tag || tag.name === name) return [];
+      return [{ conversation_id: member.id, split_group: splitGroupTag(tag.id, tag.order, name) }];
+    });
+    if (patches.length === 0) {
+      return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'the name is already that' };
+    }
+    await applySplitGroupPatches(patches, previous, deps);
+    return { group_id: mutation.group_id, dissolved: false, survivor: null };
+  }
+
   if (mutation.type === 'move') {
     const row = await deps.read(mutation.conversation_id);
     if (!row) throw new Error(`${mutation.conversation_id} no longer exists`);
@@ -265,7 +300,10 @@ export const runSplitGroupMutation = async (
       const { members } = await readGroup(mutation.to.group_id, deps);
       if (members.length === 0) throw new Error(`group ${mutation.to.group_id} no longer exists`);
       destination_id = mutation.to.group_id;
-      patches.push({ conversation_id: row.id, split_group: { id: destination_id, order: nextOrder(members) } });
+      patches.push({
+        conversation_id: row.id,
+        split_group: splitGroupTag(destination_id, nextOrder(members), readSplitGroupName(members)),
+      });
     } else {
       const target = await deps.read(mutation.to.conversation_id);
       if (!target) throw new Error(`${mutation.to.conversation_id} no longer exists`);
@@ -277,7 +315,10 @@ export const runSplitGroupMutation = async (
       if (targetTag) {
         const { members } = await readGroup(targetTag.id, deps, [target]);
         destination_id = targetTag.id;
-        patches.push({ conversation_id: row.id, split_group: { id: destination_id, order: nextOrder(members) } });
+        patches.push({
+          conversation_id: row.id,
+          split_group: splitGroupTag(destination_id, nextOrder(members), readSplitGroupName(members)),
+        });
       } else {
         destination_id = newSplitGroupId();
         patches.push(...planCreateSplitGroup(target.id, row.id, destination_id));
@@ -431,6 +472,14 @@ export const useSplitGroupMutations = () => {
     [enqueue, leaveDissolvedGroup]
   );
 
+  /** Name the group, or clear its name when the input is blank. */
+  const renameGroup = useCallback(
+    async (group_id: string, name: string | null): Promise<void> => {
+      await enqueue('rename group', { type: 'rename', group_id, name });
+    },
+    [enqueue]
+  );
+
   /**
    * Drag a member onto another group or another row: it leaves where it was
    * and joins where it landed as one reconciled batch, so it is never briefly
@@ -476,5 +525,5 @@ export const useSplitGroupMutations = () => {
     [enqueue]
   );
 
-  return { createGroup, addMember, removeMember, moveMember, reconcileDeleted, dissolveIfAlone };
+  return { createGroup, addMember, removeMember, moveMember, renameGroup, reconcileDeleted, dissolveIfAlone };
 };

@@ -9,12 +9,14 @@ import type { TChatConversation } from '@/common/config/storage';
 import {
   buildSplitGroups,
   findSplitGroupOf,
+  normalizeSplitGroupName,
   placeSplitGroupPills,
   planAddSplitGroupMember,
   planCreateSplitGroup,
   planRemoveSplitGroupMember,
   readSplitGroupTag,
   resetSplitGroupWarningsForTest,
+  SPLIT_GROUP_NAME_MAX,
 } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 
 const conversation = (id: string, extra: Record<string, unknown> = {}): TChatConversation =>
@@ -22,6 +24,9 @@ const conversation = (id: string, extra: Record<string, unknown> = {}): TChatCon
 
 const member = (id: string, group: string, order: number): TChatConversation =>
   conversation(id, { split_group: { id: group, order } });
+
+const named = (id: string, group: string, order: number, name?: string): TChatConversation =>
+  conversation(id, { split_group: name === undefined ? { id: group, order } : { id: group, order, name } });
 
 let warn: ReturnType<typeof vi.spyOn>;
 
@@ -197,5 +202,52 @@ describe('findSplitGroupOf', () => {
     const groups = buildSplitGroups([member('a', 'g1', 0), member('b', 'g1', 1)]);
     expect(findSplitGroupOf(groups, 'b')?.id).toBe('g1');
     expect(findSplitGroupOf(groups, 'x')).toBeUndefined();
+  });
+});
+
+describe('split-group names', () => {
+  it('derives the name from the first member by order, not by list position', () => {
+    const [group] = buildSplitGroups([
+      named('b', 'g', 1, 'Ignored'),
+      named('a', 'g', 0, 'Research'),
+      named('c', 'g', 2, 'Also ignored'),
+    ]);
+    expect(group.name).toBe('Research');
+  });
+
+  it('leaves the name absent when the first member carries none', () => {
+    const [group] = buildSplitGroups([named('a', 'g', 0), named('b', 'g', 1, 'Research')]);
+    expect(group.name).toBeUndefined();
+  });
+
+  it('treats a malformed or over-long name as absent without losing the group', () => {
+    const broken = [
+      { ...named('a', 'g', 0), extra: { split_group: { id: 'g', order: 0, name: 42 } } },
+      { ...named('b', 'g', 1), extra: { split_group: { id: 'g', order: 1, name: 'x'.repeat(61) } } },
+    ] as unknown as TChatConversation[];
+    const [group] = buildSplitGroups(broken);
+    expect(group.members).toHaveLength(2);
+    expect(group.name).toBeUndefined();
+    expect(readSplitGroupTag(broken[1])).toEqual({ id: 'g', order: 1 });
+  });
+
+  it('trims a name and drops one that is only whitespace', () => {
+    expect(normalizeSplitGroupName('  Research  ')).toBe('Research');
+    expect(normalizeSplitGroupName('   ')).toBeUndefined();
+    expect(normalizeSplitGroupName('')).toBeUndefined();
+    expect(normalizeSplitGroupName(null)).toBeUndefined();
+    expect(normalizeSplitGroupName('x'.repeat(80))).toHaveLength(SPLIT_GROUP_NAME_MAX);
+  });
+
+  it('copies the name onto a conversation joining the group', () => {
+    const group = buildSplitGroups([named('a', 'g', 0, 'Research'), named('b', 'g', 1, 'Research')])[0];
+    expect(planAddSplitGroupMember(group, 'z')).toEqual([
+      { conversation_id: 'z', split_group: { id: 'g', order: 2, name: 'Research' } },
+    ]);
+  });
+
+  it('leaves the name out of the tag entirely when there is none', () => {
+    const group = buildSplitGroups([named('a', 'g', 0), named('b', 'g', 1)])[0];
+    expect(planAddSplitGroupMember(group, 'z')).toEqual([{ conversation_id: 'z', split_group: { id: 'g', order: 2 } }]);
   });
 });

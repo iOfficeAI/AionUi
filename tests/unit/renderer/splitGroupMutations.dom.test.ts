@@ -316,6 +316,97 @@ describe('runSplitGroupMutation: remove', () => {
   });
 });
 
+describe('runSplitGroupMutation: rename', () => {
+  it('writes the name onto every member in one batch', async () => {
+    const { deps, writes, refresh } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 1)),
+      c: row('c', tag('g', 2)),
+    });
+    await runSplitGroupMutation({ type: 'rename', group_id: 'g', name: '  Research  ' }, deps);
+    expect(writes).toEqual([
+      ['a', { id: 'g', order: 0, name: 'Research' }],
+      ['b', { id: 'g', order: 1, name: 'Research' }],
+      ['c', { id: 'g', order: 2, name: 'Research' }],
+    ]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the name on every member when the input is blank', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+    });
+    await runSplitGroupMutation({ type: 'rename', group_id: 'g', name: '   ' }, deps);
+    // The name is left out of the tag entirely rather than stored as empty.
+    expect(writes).toEqual([
+      ['a', { id: 'g', order: 0 }],
+      ['b', { id: 'g', order: 1 }],
+    ]);
+  });
+
+  it('reconciles the members a half-landed rename left disagreeing', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', tag('g', 1)),
+    });
+    await runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps);
+    // Only the member that is out of step is written.
+    expect(writes).toEqual([['b', { id: 'g', order: 1, name: 'Research' }]]);
+  });
+
+  it('writes nothing when the name is already the one asked for', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+    });
+    const result = await runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps);
+    expect(result.noop).toBe('the name is already that');
+    expect(writes).toEqual([]);
+  });
+
+  it('rolls the whole rename back when one member refuses it', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, { refuse: ['b'] });
+      await expect(runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps)).rejects.toThrow(
+        /rejected/
+      );
+      expect(writes.slice(2)).toEqual([['a', tag('g', 0)]]);
+    }));
+
+  it('refuses to name a group nobody carries', async () => {
+    const { deps } = makeDeps({ a: row('a') });
+    await expect(runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps)).rejects.toThrow(
+      /no longer exists/
+    );
+  });
+
+  it('carries the name onto a conversation added to a named group', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      z: row('z'),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps);
+    expect(writes).toEqual([['z', { id: 'g', order: 2, name: 'Research' }]]);
+  });
+
+  it('carries the name onto a member moved into a named group', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+      z: row('z', tag('g2', 2)),
+    });
+    await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g2', conversation_id: 'z', to: { kind: 'group', group_id: 'g' } },
+      deps
+    );
+    expect(writes).toEqual([['z', { id: 'g', order: 2, name: 'Research' }]]);
+  });
+});
+
 describe('runSplitGroupMutation: move', () => {
   it('leaves one group and joins another as a single batch', async () => {
     const { deps, writes, refresh } = makeDeps({
