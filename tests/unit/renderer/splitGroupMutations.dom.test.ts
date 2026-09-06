@@ -12,6 +12,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
 
 vi.mock('@/common', () => ({ ipcBridge: { conversation: { update: { invoke: vi.fn() } } } }));
 vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({ getConversationOrNull: vi.fn() }));
@@ -24,12 +25,25 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/utils/splitGroupCensus', (
 }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
+const { navigateMock, routeState } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+  routeState: { pathname: '/' },
+}));
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => navigateMock,
+  useLocation: () => ({ pathname: routeState.pathname, search: '', hash: '', state: null, key: 'test' }),
+}));
+
 import type { TChatConversation } from '@/common/config/storage';
+import { ipcBridge } from '@/common';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { readSplitGroupCensus } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupCensus';
 import type { SplitGroupMutationDeps } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import {
   applySplitGroupPatches,
   nextFocusNonce,
   runSplitGroupMutation,
+  useSplitGroupMutations,
 } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import type { SplitGroupTag } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 import { readSplitGroupTag } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
@@ -445,6 +459,115 @@ describe('runSplitGroupMutation: move', () => {
   });
 });
 
+describe('runSplitGroupMutation: joining a group that could not be read whole', () => {
+  // A short count cannot say what the highest order is. Appending anyway hands
+  // the newcomer an order an unread member already holds, and nothing
+  // afterwards can tell the two columns apart — so every path that appends a
+  // column refuses instead.
+  it('refuses to add a conversation to a group whose count is short', async () => {
+    const { deps, writes } = makeDeps(
+      { a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), z: row('z') },
+      { incomplete: true }
+    );
+    await expect(runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps)).rejects.toThrow(
+      /could not be read whole/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses to move a member into a group whose count is short', async () => {
+    const { deps, writes } = makeDeps(
+      { a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)), c: row('c', tag('g1', 2)), x: row('x', tag('g2', 0)) },
+      { incomplete: true }
+    );
+    await expect(
+      runSplitGroupMutation(
+        { type: 'move', from_group_id: 'g1', conversation_id: 'c', to: { kind: 'group', group_id: 'g2' } },
+        deps
+      )
+    ).rejects.toThrow(/could not be read whole/);
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses to move a member onto a row whose group cannot be counted', async () => {
+    const { deps, writes } = makeDeps(
+      { a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)), c: row('c', tag('g1', 2)), x: row('x', tag('g2', 0)) },
+      { incomplete: true }
+    );
+    await expect(
+      runSplitGroupMutation(
+        { type: 'move', from_group_id: 'g1', conversation_id: 'c', to: { kind: 'conversation', conversation_id: 'x' } },
+        deps
+      )
+    ).rejects.toThrow(/could not be read whole/);
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses a create whose target joined a group that cannot be counted', async () => {
+    const { deps, writes } = makeDeps(
+      { a: row('a', tag('g', 0)), c: row('c', tag('g', 1)), b: row('b') },
+      { incomplete: true }
+    );
+    await expect(runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps)).rejects.toThrow(
+      /could not be read whole/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('still fuses two plain rows, which need no count at all', async () => {
+    const { deps, writes } = makeDeps({ a: row('a'), b: row('b') }, { incomplete: true });
+    const result = await runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps);
+    expect(result.group_id).toBeTruthy();
+    expect(writes.map(([id, t]) => [id, t?.order])).toEqual([
+      ['a', 0],
+      ['b', 1],
+    ]);
+  });
+});
+
+describe('runSplitGroupMutation: leave-own-group', () => {
+  // Archiving takes a conversation out of the active list but leaves its tag
+  // behind, so the group folds to a plain row while the census — which counts
+  // archived rows — still sees two and refuses to dissolve it. Leaving first
+  // is what keeps that from happening.
+  it('takes the conversation out of whatever group it is in', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 1)),
+      c: row('c', tag('g', 2)),
+    });
+    const result = await runSplitGroupMutation({ type: 'leave-own-group', conversation_id: 'c' }, deps);
+    expect(result.group_id).toBe('g');
+    expect(result.dissolved).toBe(false);
+    expect(writes).toEqual([['c', null]]);
+  });
+
+  it('dissolves the pair it leaves behind, so no survivor keeps a dangling tag', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) });
+    const result = await runSplitGroupMutation({ type: 'leave-own-group', conversation_id: 'b' }, deps);
+    expect(result.dissolved).toBe(true);
+    expect(result.survivor).toBe('a');
+    expect(writes).toEqual([
+      ['b', null],
+      ['a', null],
+    ]);
+  });
+
+  it('writes nothing for a conversation that is in no group', async () => {
+    const { deps, writes } = makeDeps({ z: row('z') });
+    const result = await runSplitGroupMutation({ type: 'leave-own-group', conversation_id: 'z' }, deps);
+    expect(result.noop).toBe('not in a group');
+    expect(writes).toEqual([]);
+  });
+
+  it('writes nothing for a conversation the backend no longer has', async () => {
+    const { deps, writes } = makeDeps({});
+    const result = await runSplitGroupMutation({ type: 'leave-own-group', conversation_id: 'gone' }, deps);
+    expect(result.noop).toBe('no longer exists');
+    expect(writes).toEqual([]);
+  });
+});
+
 describe('runSplitGroupMutation: dissolve-if-alone', () => {
   it('clears a tag nobody else carries', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b') });
@@ -519,5 +642,90 @@ describe('nextFocusNonce', () => {
     const nonces = Array.from({ length: 5 }, () => nextFocusNonce());
     expect(new Set(nonces).size).toBe(nonces.length);
     expect(nonces.toSorted((a, b) => a - b)).toEqual(nonces);
+  });
+});
+
+/**
+ * The standing rule (ledger 2026-09-05 18:40): dropping a conversation onto the
+ * OPEN CHAT AREA creates or extends the group *and shows the columns*. A
+ * split-group member dropped there takes the same gesture, so it must land the
+ * same way — on the destination's columns, not on wherever the user already was.
+ */
+describe('useSplitGroupMutations: a drop on the open chat area shows what it built', () => {
+  /** Point the module-level ipc dependencies at an in-memory backend. */
+  const wireBackend = (backend: Backend) => {
+    vi.mocked(getConversationOrNull).mockImplementation(async (id: string) => backend[id] ?? null);
+    vi.mocked(ipcBridge.conversation.update.invoke).mockImplementation(
+      async ({ id, updates }: { id: string; updates: { extra: { split_group: SplitGroupTag | null } } }) => {
+        if (backend[id]) backend[id] = row(id, updates.extra.split_group);
+        return true;
+      }
+    );
+    vi.mocked(readSplitGroupCensus).mockImplementation(async (group_id: string) => ({
+      members: Object.values(backend).filter(
+        (item): item is TChatConversation => item !== null && readSplitGroupTag(item)?.id === group_id
+      ),
+      complete: true,
+    }));
+  };
+
+  const trio = (): Backend => ({
+    a: row('a', tag('g1', 0)),
+    b: row('b', tag('g1', 1)),
+    c: row('c', tag('g1', 2)),
+    x: row('x', tag('g2', 0)),
+    y: row('y', tag('g2', 1)),
+  });
+
+  it("opens the destination's columns, with the dropped member focused", async () => {
+    navigateMock.mockClear();
+    routeState.pathname = '/conversation/x';
+    wireBackend(trio());
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await result.current.moveMember('g1', 'c', { kind: 'group', group_id: 'g2' }, { open: true });
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
+    expect(navigateMock.mock.calls[0][0]).toBe('/split/g2');
+    expect(navigateMock.mock.calls[0][1].state.focus).toBe('c');
+  });
+
+  it('leaves the view alone for the same move made in the sidebar', async () => {
+    navigateMock.mockClear();
+    routeState.pathname = '/conversation/x';
+    wireBackend(trio());
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await result.current.moveMember('g1', 'c', { kind: 'group', group_id: 'g2' });
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('shows the destination even when the group it left dissolved under the user', async () => {
+    navigateMock.mockClear();
+    // The user is looking at g1's columns, and the move empties g1 — the
+    // survivor navigation must not win over the columns they dropped onto.
+    routeState.pathname = '/split/g1';
+    wireBackend({
+      a: row('a', tag('g1', 0)),
+      b: row('b', tag('g1', 1)),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+    });
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await result.current.moveMember('g1', 'b', { kind: 'group', group_id: 'g2' }, { open: true });
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
+    expect(navigateMock.mock.calls[0][0]).toBe('/split/g2');
+  });
+
+  it('still leaves a dissolved group on its survivor when the drop was in the sidebar', async () => {
+    navigateMock.mockClear();
+    routeState.pathname = '/split/g1';
+    wireBackend({
+      a: row('a', tag('g1', 0)),
+      b: row('b', tag('g1', 1)),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+    });
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await result.current.moveMember('g1', 'b', { kind: 'group', group_id: 'g2' });
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
+    expect(navigateMock.mock.calls[0][0]).toBe('/conversation/a');
   });
 });
