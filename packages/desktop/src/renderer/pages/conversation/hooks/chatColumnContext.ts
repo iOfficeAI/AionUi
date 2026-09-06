@@ -9,14 +9,15 @@ import { createContext, useContext } from 'react';
 
 /**
  * What a column's header needs to be the thing you grab to reorder columns:
- * dnd-kit's activator ref and listeners for the title area, whether this
- * column is the one being dragged (its header shows a light wash), the
- * accessible name of the grip, and the keyboard alternative (Alt+Arrow on the
- * grip moves the column one slot).
+ * the pointer-down that may become a drag (the view decides, after a small
+ * move or a hold), the click that must not follow a drag, whether this column
+ * is the one being dragged (its header shows a light wash), the accessible
+ * name of the grip, and the keyboard alternative (Alt+Arrow on the grip moves
+ * the column one slot).
  */
 export type ColumnHeaderDragHandle = {
-  setActivatorNodeRef: (element: HTMLElement | null) => void;
-  listeners?: Record<string, (event: React.SyntheticEvent) => void>;
+  onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
+  onClickCapture: (event: React.MouseEvent<HTMLElement>) => void;
   isDragging: boolean;
   label: string;
   onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void;

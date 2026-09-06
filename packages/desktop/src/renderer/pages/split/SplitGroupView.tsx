@@ -7,6 +7,7 @@
 import type { TChatConversation } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import ConversationLeadingIcon from '@/renderer/pages/conversation/GroupedHistory/ConversationLeadingIcon';
+import { useSplitGroupMutations } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 import {
   setFocusedConversation,
@@ -16,11 +17,7 @@ import {
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
-import { useSplitGroupMutations } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import { Tabs } from '@arco-design/web-react';
-import type { DragEndEvent, DragMoveEvent } from '@dnd-kit/core';
-import { DndContext, MouseSensor, TouchSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
-import { getEventCoordinates } from '@dnd-kit/utilities';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -190,6 +187,21 @@ const useMeasuredWidth = (): { ref: React.RefObject<HTMLDivElement | null>; widt
   return { ref, width };
 };
 
+/** A mouse drags after this many pixels; a click never moves that far. */
+const DRAG_START_PX = 6;
+/** A finger has to hold this long before it drags; a swipe scrolls instead. */
+const TOUCH_HOLD_MS = 250;
+const TOUCH_HOLD_TOLERANCE_PX = 5;
+
+type HeaderDrag = {
+  id: string;
+  pointerId: number;
+  startX: number;
+  element: HTMLElement;
+  active: boolean;
+  holdTimer: ReturnType<typeof setTimeout> | null;
+};
+
 /**
  * The columns in the order the group has them, and the reorder gesture over
  * them. A column is grabbed by its header ("the top") and dragged left or
@@ -198,6 +210,13 @@ const useMeasuredWidth = (): { ref: React.RefObject<HTMLDivElement | null>; widt
  * block, this view and every other window agree, and it survives a relaunch.
  * The columns move at once and the write lands behind; a refused write puts
  * them back and the queue has already said why.
+ *
+ * The gesture is the view's own pointer-capture drag, like the divider's
+ * resize, rather than a second drag-and-drop context: every column holds the
+ * chat area's drop zone, which is a droppable of the sidebar's drag provider,
+ * and a nested context would take that zone for itself — the sidebar's rows
+ * could no longer be dropped onto an open column, and the zone would sit in
+ * the way of the column drop. One pointer, three listeners, no second context.
  */
 const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({ group, focusedId }) => {
   const { t } = useTranslation();
@@ -209,15 +228,16 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   useEffect(() => {
     setOrder(groupOrderKey.split('|'));
   }, [groupOrderKey]);
+  const orderRef = useRef(order);
+  orderRef.current = order;
   const [dropSlot, setDropSlot] = useState<number | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
-
-  // A mouse drags after a few pixels, so the title's own click still renames;
-  // a finger holds first, so a swipe over the header still scrolls the row.
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
-  );
+  const frames = useRef(new Map<string, HTMLDivElement>());
+  const registerFrame = useCallback((conversation_id: string, element: HTMLDivElement | null) => {
+    if (element) frames.current.set(conversation_id, element);
+    else frames.current.delete(conversation_id);
+  }, []);
 
   const commit = useCallback(
     (next: string[]) => {
@@ -230,50 +250,126 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     [group.id, group.members, reorderMembers]
   );
 
-  const slotFor = useCallback(
-    (event: DragMoveEvent | DragEndEvent): number | null => {
-      const { active, over } = event;
-      if (!over) return null;
-      const origin = getEventCoordinates(event.activatorEvent);
-      const pointerX = (origin?.x ?? over.rect.left) + event.delta.x;
+  /** The slot the dragged column would take with the pointer at this x. */
+  const slotAt = useCallback((activeId: string, clientX: number): number | null => {
+    for (const [id, element] of frames.current) {
+      const rect = element.getBoundingClientRect();
+      if (clientX < rect.left || clientX > rect.right) continue;
       return resolveColumnDropIndex({
-        activeId: String(active.id),
-        overId: String(over.id),
-        pointerX,
-        overLeft: over.rect.left,
-        overWidth: over.rect.width,
-        order,
+        activeId,
+        overId: id,
+        pointerX: clientX,
+        overLeft: rect.left,
+        overWidth: rect.width,
+        order: orderRef.current,
       });
+    }
+    return null;
+  }, []);
+
+  const drag = useRef<HeaderDrag | null>(null);
+  const justDragged = useRef(false);
+  const endDrag = useCallback(
+    (clientX: number | null) => {
+      const current = drag.current;
+      if (!current) return;
+      drag.current = null;
+      if (current.holdTimer) clearTimeout(current.holdTimer);
+      if (!current.active) return;
+      try {
+        current.element.releasePointerCapture(current.pointerId);
+      } catch {
+        // Capture may already be gone.
+      }
+      setDraggingId(null);
+      setDropSlot(null);
+      // The click that ends a drag on the header is not a click on the title.
+      justDragged.current = true;
+      setTimeout(() => {
+        justDragged.current = false;
+      }, 0);
+      const slot = clientX === null ? null : slotAt(current.id, clientX);
+      if (slot !== null) commit(reorderColumns(orderRef.current, current.id, slot));
     },
-    [order]
+    [commit, slotAt]
   );
 
-  const handleDragMove = useCallback(
-    (event: DragMoveEvent) => {
-      const slot = slotFor(event);
-      setDropSlot((previous) => (previous === slot ? previous : slot));
+  const handleHeaderPointerDown = useCallback(
+    (conversation_id: string, event: React.PointerEvent<HTMLElement>) => {
+      if (event.pointerType !== 'touch' && event.button !== 0) return;
+      if (drag.current) return;
+      const element = event.currentTarget;
+      const current: HeaderDrag = {
+        id: conversation_id,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        element,
+        active: false,
+        holdTimer: null,
+      };
+      drag.current = current;
+      const activate = () => {
+        if (drag.current !== current || current.active) return;
+        current.active = true;
+        try {
+          element.setPointerCapture(current.pointerId);
+        } catch {
+          // Without capture the header still receives moves while the pointer stays over it.
+        }
+        setDraggingId(current.id);
+      };
+      const cleanup = () => {
+        element.removeEventListener('pointermove', onMove);
+        element.removeEventListener('pointerup', onUp);
+        element.removeEventListener('pointercancel', onUp);
+        if (current.holdTimer) clearTimeout(current.holdTimer);
+        if (!current.active) drag.current = null;
+      };
+      const onMove = (move: PointerEvent) => {
+        if (drag.current !== current || move.pointerId !== current.pointerId) return;
+        const moved = Math.abs(move.clientX - current.startX);
+        if (!current.active) {
+          if (move.pointerType === 'touch') {
+            // A finger that moves during the hold is scrolling, not dragging.
+            if (moved > TOUCH_HOLD_TOLERANCE_PX) cleanup();
+            return;
+          }
+          if (moved < DRAG_START_PX) return;
+          activate();
+        }
+        move.preventDefault();
+        const slot = slotAt(current.id, move.clientX);
+        setDropSlot((previous) => (previous === slot ? previous : slot));
+      };
+      const onUp = (up: PointerEvent) => {
+        if (drag.current !== current || up.pointerId !== current.pointerId) return;
+        cleanup();
+        endDrag(up.type === 'pointerup' ? up.clientX : null);
+      };
+      element.addEventListener('pointermove', onMove);
+      element.addEventListener('pointerup', onUp);
+      element.addEventListener('pointercancel', onUp);
+      if (event.pointerType === 'touch') current.holdTimer = setTimeout(activate, TOUCH_HOLD_MS);
     },
-    [slotFor]
+    [endDrag, slotAt]
   );
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      setDropSlot(null);
-      const slot = slotFor(event);
-      if (slot === null) return;
-      commit(reorderColumns(order, String(event.active.id), slot));
-    },
-    [commit, order, slotFor]
-  );
+
+  const handleHeaderClickCapture = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    if (!justDragged.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
   const handleMoveColumn = useCallback(
     (conversation_id: string, delta: -1 | 1) => {
-      const next = moveColumn(order, conversation_id, delta);
-      if (next.join('|') === order.join('|')) return;
+      const next = moveColumn(orderRef.current, conversation_id, delta);
+      if (next.join('|') === orderRef.current.join('|')) return;
       commit(next);
       setAnnouncement(
         t('conversation.splitGroup.columnMoved', { position: next.indexOf(conversation_id) + 1, count: next.length })
       );
     },
-    [commit, order, t]
+    [commit, t]
   );
 
   const members = order
@@ -287,37 +383,34 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
       data-testid={`split-group-view-${group.id}`}
       data-layout='columns'
       data-column-order={order.join('|')}
+      data-drop-slot={dropSlot ?? undefined}
     >
       <SplitGroupTitle group={group} />
       <span role='status' aria-live='polite' className='sr-only' data-testid={`split-group-reorder-status-${group.id}`}>
         {announcement}
       </span>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={pointerWithin}
-        onDragMove={handleDragMove}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => setDropSlot(null)}
-      >
-        <div ref={ref} className='flex flex-1 w-full min-h-0 overflow-x-auto overflow-y-hidden'>
-          {containerWidth !== null &&
-            members.map((member, index) => (
-              <SplitGroupColumnFrame
-                key={member.id}
-                group={group}
-                member={member}
-                focused={member.id === focusedId}
-                isLast={index === count - 1}
-                containerWidth={containerWidth}
-                columnCount={count}
-                trailingCount={count - 1 - index}
-                dropSlot={dropSlot}
-                index={index}
-                onMoveColumn={handleMoveColumn}
-              />
-            ))}
-        </div>
-      </DndContext>
+      <div ref={ref} className='flex flex-1 w-full min-h-0 overflow-x-auto overflow-y-hidden'>
+        {containerWidth !== null &&
+          members.map((member, index) => (
+            <SplitGroupColumnFrame
+              key={member.id}
+              group={group}
+              member={member}
+              focused={member.id === focusedId}
+              isLast={index === count - 1}
+              containerWidth={containerWidth}
+              columnCount={count}
+              trailingCount={count - 1 - index}
+              dropSlot={dropSlot}
+              index={index}
+              dragging={draggingId === member.id}
+              onHeaderPointerDown={handleHeaderPointerDown}
+              onHeaderClickCapture={handleHeaderClickCapture}
+              onMoveColumn={handleMoveColumn}
+              registerFrame={registerFrame}
+            />
+          ))}
+      </div>
     </div>
   );
 };

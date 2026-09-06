@@ -63,7 +63,13 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
     group: SplitGroup;
     member: TChatConversation;
     focused: boolean;
-    headerDragHandle?: { label: string; onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void };
+    headerDragHandle?: {
+      label: string;
+      isDragging: boolean;
+      onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void;
+      onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
+      onClickCapture: (event: React.MouseEvent<HTMLElement>) => void;
+    };
   }> = ({ member, focused, headerDragHandle }) => {
     const registration = useFocusedConversationRegistration(member.id);
     React.useEffect(() => {
@@ -72,12 +78,19 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
     return (
       <div data-testid={`split-column-${member.id}`} data-focused={focused ? 'true' : 'false'} {...registration}>
         {headerDragHandle && (
-          <button
-            type='button'
-            data-testid={`split-column-grip-${member.id}`}
-            aria-label={headerDragHandle.label}
-            onKeyDown={headerDragHandle.onKeyDown}
-          />
+          <div
+            data-testid={`split-column-header-${member.id}`}
+            data-dragging={headerDragHandle.isDragging ? 'true' : 'false'}
+            onPointerDown={headerDragHandle.onPointerDown}
+            onClickCapture={headerDragHandle.onClickCapture}
+          >
+            <button
+              type='button'
+              data-testid={`split-column-grip-${member.id}`}
+              aria-label={headerDragHandle.label}
+              onKeyDown={headerDragHandle.onKeyDown}
+            />
+          </div>
         )}
         {member.name}
       </div>
@@ -395,6 +408,38 @@ describe('SplitGroupView column reorder', () => {
       await Promise.resolve();
     });
     expect(columnOrder()).toBe('a|b|c');
+  });
+
+  it('reorders by a pointer drag on the header: third column into the first slot, marker at the slot', () => {
+    // Frames laid out side by side, 400px each, so the resolver has rects to read.
+    const rect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      if (this.hasAttribute('data-column-index')) {
+        const index = Number(this.getAttribute('data-column-index'));
+        return { left: index * 400, right: index * 400 + 400, width: 400, top: 0, bottom: 800, height: 800 } as DOMRect;
+      }
+      return rect.call(this);
+    };
+    try {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000 });
+      // A few pixels is still a click.
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 1003 });
+      expect(header.getAttribute('data-dragging')).toBe('false');
+      // Past the threshold it is a drag; over the first column's left half the marker shows at slot 0.
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 700 });
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 100 });
+      expect(header.getAttribute('data-dragging')).toBe('true');
+      expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('0');
+      expect(screen.getByTestId('split-column-drop-marker-a-start')).toBeInTheDocument();
+      fireEvent.pointerUp(header, { pointerId: 1, pointerType: 'mouse', clientX: 100 });
+      expect(columnOrder()).toBe('c|a|b');
+      expect(reorderMembersMock).toHaveBeenCalledWith('g1', ['c', 'a', 'b']);
+      expect(screen.queryByTestId(/^split-column-drop-marker-/)).toBeNull();
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = rect;
+    }
   });
 
   it('follows the group when its order changes underneath, as after the write lands', () => {

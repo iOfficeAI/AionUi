@@ -8,14 +8,10 @@ import type { TChatConversation } from '@/common/config/storage';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 import type { ColumnHeaderDragHandle } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { MIN_CHAT_PANEL_PX } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SplitGroupColumn } from './SplitGroupColumn';
-
-/** What a column frame registers with the view's drag context. */
-export type ColumnDragData = { kind: 'split-column'; conversation_id: string };
 
 const columnWidthStorageKey = (conversation_id: string): string => `split-column-width-${conversation_id}`;
 
@@ -70,8 +66,16 @@ export const SplitGroupColumnFrame: React.FC<{
    */
   dropSlot?: number | null;
   index: number;
+  /** This column is the one being dragged. */
+  dragging?: boolean;
+  /** The view turns a pointer-down on the header into a drag, or not. */
+  onHeaderPointerDown?: (conversation_id: string, event: React.PointerEvent<HTMLElement>) => void;
+  /** The click that follows a drag on the header is the view's to swallow. */
+  onHeaderClickCapture?: (event: React.MouseEvent<HTMLElement>) => void;
   /** Alt+Arrow on the grip moves this column one slot. */
   onMoveColumn?: (conversation_id: string, delta: -1 | 1) => void;
+  /** The view keeps every frame's element, to tell which column is under the pointer. */
+  registerFrame?: (conversation_id: string, element: HTMLDivElement | null) => void;
 }> = ({
   group,
   member,
@@ -82,47 +86,42 @@ export const SplitGroupColumnFrame: React.FC<{
   trailingCount,
   dropSlot = null,
   index,
+  dragging = false,
+  onHeaderPointerDown,
+  onHeaderClickCapture,
   onMoveColumn,
+  registerFrame,
 }) => {
   const { t } = useTranslation();
   const maxWidth = Math.max(MIN_CHAT_PANEL_PX, Math.floor(containerWidth - MIN_CHAT_PANEL_PX * trailingCount));
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // The header is the drag source, the whole frame the drop target: the
-  // column under the pointer decides which slot the marker shows, by halves.
-  const dragData: ColumnDragData = useMemo(() => ({ kind: 'split-column', conversation_id: member.id }), [member.id]);
-  const {
-    listeners,
-    setNodeRef: setDragRef,
-    setActivatorNodeRef,
-    isDragging,
-  } = useDraggable({
-    id: member.id,
-    data: dragData,
-  });
-  const { setNodeRef: setDropRef } = useDroppable({ id: member.id, data: dragData });
-  const headerDragHandle = useMemo<ColumnHeaderDragHandle>(
-    () => ({
-      setActivatorNodeRef,
-      listeners: listeners as ColumnHeaderDragHandle['listeners'],
-      isDragging,
-      label: t('conversation.splitGroup.reorderHandle'),
-      onKeyDown: (event) => {
-        if (!event.altKey || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onMoveColumn?.(member.id, event.key === 'ArrowLeft' ? -1 : 1);
-      },
-    }),
-    [isDragging, listeners, member.id, onMoveColumn, setActivatorNodeRef, t]
+  // The header is the drag source; the column under the pointer decides which
+  // slot the marker shows, by halves. Only offered when the view can reorder.
+  const headerDragHandle = useMemo<ColumnHeaderDragHandle | undefined>(
+    () =>
+      onHeaderPointerDown
+        ? {
+            onPointerDown: (event) => onHeaderPointerDown(member.id, event),
+            onClickCapture: (event) => onHeaderClickCapture?.(event),
+            isDragging: dragging,
+            label: t('conversation.splitGroup.reorderHandle'),
+            onKeyDown: (event) => {
+              if (!event.altKey || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+              event.preventDefault();
+              event.stopPropagation();
+              onMoveColumn?.(member.id, event.key === 'ArrowLeft' ? -1 : 1);
+            },
+          }
+        : undefined,
+    [dragging, member.id, onHeaderClickCapture, onHeaderPointerDown, onMoveColumn, t]
   );
   const setFrameRef = useCallback(
     (element: HTMLDivElement | null) => {
       frameRef.current = element;
-      setDragRef(element);
-      setDropRef(element);
+      registerFrame?.(member.id, element);
     },
-    [setDragRef, setDropRef]
+    [member.id, registerFrame]
   );
   const [pinnedWidth, setPinnedWidth] = useState<number | null>(() => readStoredColumnWidth(member.id));
 
@@ -187,7 +186,7 @@ export const SplitGroupColumnFrame: React.FC<{
     <div
       ref={setFrameRef}
       className='relative h-full shrink-0'
-      style={{ ...style, opacity: isDragging ? 0.85 : undefined }}
+      style={style}
       data-testid={`split-column-frame-${member.id}`}
       data-column-index={index}
     >

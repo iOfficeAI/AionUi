@@ -250,12 +250,12 @@ const ChatLayout: React.FC<{
         // icon, and only then does the title truncate.
         // In a split, the title area is also what you grab to reorder the
         // columns: a grip glyph shows under the pointer (pinned visible where
-        // nothing hovers, via the same rule the sidebar uses), the pointer
-        // sensors only start a drag after a small move or a hold, so the
-        // title's own click-to-rename still works.
+        // nothing hovers), and the view only turns a pointer-down into a drag
+        // after a small move or a hold, so the title's own click-to-rename
+        // still works.
         <div
-          ref={headerDragHandle?.setActivatorNodeRef}
-          {...headerDragHandle?.listeners}
+          onPointerDown={headerDragHandle?.onPointerDown}
+          onClickCapture={headerDragHandle?.onClickCapture}
           className={classNames('group/title h-full min-w-0 flex items-center gap-4px rd-4px transition-colors', {
             'cursor-grab': headerDragHandle && !headerDragHandle.isDragging,
             'cursor-grabbing bg-[rgba(var(--primary-6),0.08)]': headerDragHandle?.isDragging,

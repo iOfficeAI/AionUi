@@ -59,11 +59,15 @@ vi.mock('@/renderer/pages/conversation/hooks/useWorkspaceCollapse', () => ({
 
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import { ChatColumnProvider } from '@/renderer/pages/conversation/hooks/chatColumnContext';
-import type { ColumnHeaderDragHandle } from '@/renderer/pages/conversation/hooks/chatColumnContext';
+import type { ChatColumnContextValue } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 
 const TITLE = 'Refactor the billing reconciliation job to run nightly';
 
-const renderHeader = (compact: boolean, columnFocused = false, headerDragHandle?: ColumnHeaderDragHandle) =>
+const renderHeader = (
+  compact: boolean,
+  columnFocused = false,
+  headerDragHandle?: ChatColumnContextValue['headerDragHandle']
+) =>
   render(
     <ChatColumnProvider value={{ composerActive: true, compactHeader: compact, columnFocused, headerDragHandle }}>
       <ChatLayout
@@ -154,33 +158,24 @@ describe('ChatLayout header inside a split column', () => {
  * controls stay where they were.
  */
 describe('ChatLayout header as the column drag handle', () => {
-  const handle = (isDragging = false): ColumnHeaderDragHandle & { pointerDowns: number } => {
-    const record = { pointerDowns: 0 };
-    return {
-      setActivatorNodeRef: vi.fn(),
-      listeners: {
-        onPointerDown: () => {
-          record.pointerDowns += 1;
-        },
-      },
-      isDragging,
-      label: 'conversation.splitGroup.reorderHandle',
-      onKeyDown: vi.fn(),
-      get pointerDowns() {
-        return record.pointerDowns;
-      },
-    };
-  };
+  const handle = (isDragging = false) => ({
+    onPointerDown: vi.fn(),
+    onClickCapture: vi.fn(),
+    isDragging,
+    label: 'conversation.splitGroup.reorderHandle',
+    onKeyDown: vi.fn(),
+  });
 
   it('puts the activator on the title area and a labelled grip beside the title', () => {
     const h = handle();
     renderHeader(true, false, h);
     const title = screen.getByTestId('chat-header-title');
-    expect(h.setActivatorNodeRef).toHaveBeenCalledWith(title);
     expect(title.className).toContain('cursor-grab');
     expect(title.style.touchAction).toBe('manipulation');
     fireEvent.pointerDown(title);
-    expect(h.pointerDowns).toBe(1);
+    expect(h.onPointerDown).toHaveBeenCalledTimes(1);
+    fireEvent.click(title);
+    expect(h.onClickCapture).toHaveBeenCalledTimes(1);
     const grip = screen.getByTestId('chat-header-grip');
     expect(grip.tagName).toBe('BUTTON');
     expect(grip).toHaveAttribute('aria-label', 'conversation.splitGroup.reorderHandle');
