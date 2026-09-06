@@ -24,7 +24,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import type { CollisionDetection, DragEndEvent, DragMoveEvent, DragStartEvent } from '@dnd-kit/core';
-import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
 import { getEventCoordinates } from '@dnd-kit/utilities';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -155,7 +155,16 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
   const [dropTarget, setDropTarget] = useState<ConversationDropTargetState>(null);
   const [dropHint, setDropHint] = useState<ConversationDropHint>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Two sensors, because a mouse and a finger need opposite rules. A mouse
+  // drags once it has moved 8px, so a click stays a click. A finger has to
+  // hold still for a moment first: the list scrolls by touch, and a swipe that
+  // started on a handle must scroll, not drag. Movement during the hold cancels
+  // the drag and lets the scroll through. This is what keeps drag available on
+  // every device without hijacking the one gesture a touch screen needs most.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
   const pinnedIds = useMemo(() => pinnedConversations.map((conversation) => conversation.id), [pinnedConversations]);
 
   const resolveOver = useCallback(
