@@ -3,9 +3,14 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Main-window bounds persistence: restore the last-known size and position
- * when the app re-opens, and write back the user's adjustments as they
- * resize or move the window.
+ * Window bounds persistence: restore the last-known size and position when a
+ * window re-opens, and write back the user's adjustments as they resize or
+ * move it.
+ *
+ * Bounds are kept per window kind. The main window uses `'main'` and the config
+ * key it always has; a second kind (a detached conversation window, say) keeps
+ * its own cache entry and supplies its own `persist`, so two windows cannot
+ * overwrite each other's remembered geometry.
  *
  * Mirrors the shape of process/utils/zoom.ts so there is one
  * load-at-startup + attach-per-window pattern per persisted window property.
@@ -36,15 +41,26 @@ const DEFAULT_HEIGHT_RATIO = 0.95;
 // of ProcessConfig.set calls per second.
 const PERSIST_DEBOUNCE_MS = 300;
 
-let cachedBounds: WindowBounds | undefined;
+/**
+ * Identifies which window's bounds are being read or written. The main window
+ * keeps the historic value so nothing changes for existing users.
+ */
+export type WindowBoundsKind = string;
+
+export const MAIN_WINDOW_BOUNDS_KIND: WindowBoundsKind = 'main';
+
+const cachedBoundsByKind = new Map<WindowBoundsKind, WindowBounds | undefined>();
 
 /** Load persisted bounds once at startup. Safe to call even if config is empty. */
-export const loadSavedWindowBounds = (saved: WindowBounds | undefined): void => {
-  cachedBounds = saved;
+export const loadSavedWindowBounds = (
+  saved: WindowBounds | undefined,
+  kind: WindowBoundsKind = MAIN_WINDOW_BOUNDS_KIND
+): void => {
+  cachedBoundsByKind.set(kind, saved);
 };
 
-/** Compute the bounds to apply to a new BrowserWindow. */
-export const resolveInitialBounds = (): WindowBounds => {
+/** Compute the bounds to apply to a new BrowserWindow of this kind. */
+export const resolveInitialBounds = (kind: WindowBoundsKind = MAIN_WINDOW_BOUNDS_KIND): WindowBounds => {
   const primary = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = primary.workAreaSize;
   const defaults: WindowBounds = {
@@ -52,6 +68,7 @@ export const resolveInitialBounds = (): WindowBounds => {
     height: Math.floor(screenHeight * DEFAULT_HEIGHT_RATIO),
   };
 
+  const cachedBounds = cachedBoundsByKind.get(kind);
   if (!cachedBounds) return defaults;
   if (cachedBounds.width < MIN_WINDOW_WIDTH || cachedBounds.height < MIN_WINDOW_HEIGHT) return defaults;
   if (!boundsOverlapAnyDisplay(cachedBounds)) return defaults;
@@ -88,10 +105,14 @@ const boundsOverlapAnyDisplay = (bounds: WindowBounds): boolean => {
  * Each write is registered with persistOnQuit so a resize immediately
  * followed by ⌘Q still flushes to disk before the app exits — otherwise the
  * window would reset to the default size on next launch.
+ *
+ * `persist` owns the storage key and `kind` owns the in-memory cache entry;
+ * both must be unique per window kind.
  */
 export const attachWindowBoundsPersistence = (
   win: BrowserWindow,
-  persist: (bounds: WindowBounds) => void | Promise<unknown>
+  persist: (bounds: WindowBounds) => void | Promise<unknown>,
+  kind: WindowBoundsKind = MAIN_WINDOW_BOUNDS_KIND
 ): void => {
   let saveTimer: NodeJS.Timeout | null = null;
 
@@ -99,8 +120,9 @@ export const attachWindowBoundsPersistence = (
     // Update the in-memory cache synchronously so a subsequent
     // resolveInitialBounds() (e.g. user closes the window then reopens it
     // without quitting the app) sees the latest bounds rather than the
-    // boot-time snapshot.
-    cachedBounds = bounds;
+    // boot-time snapshot. Scoped to this window kind so another window's
+    // resize cannot move it.
+    cachedBoundsByKind.set(kind, bounds);
     const op = Promise.resolve(persist(bounds)).catch((error) => {
       console.error('[AionUi] Failed to persist window bounds:', error);
     });

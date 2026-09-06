@@ -37,14 +37,18 @@ function resolveControlWindow(): BrowserWindow | null {
  * @param window - 要监听的 BrowserWindow 实例 / BrowserWindow instance to listen to
  */
 export function registerWindowMaximizeListeners(window: BrowserWindow): void {
+  // The emit is a broadcast to every renderer, so it carries the id of the
+  // window it is about; a renderer that is not that window ignores it.
+  const web_contents_id = window.webContents.id;
+
   // 当窗口最大化时通知渲染进程 / Notify renderer when window is maximized
   window.on('maximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: true });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: true, web_contents_id });
   });
 
   // 当窗口取消最大化时通知渲染进程 / Notify renderer when window is unmaximized
   window.on('unmaximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: false });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: false, web_contents_id });
   });
 }
 

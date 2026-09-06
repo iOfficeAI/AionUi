@@ -7,6 +7,7 @@ const testState = vi.hoisted(() => ({
   pathname: '/conversation/conversation-1',
   desktop: true,
   mac: true,
+  visibleConversationIds: [] as string[],
 }));
 
 const serviceMocks = vi.hoisted(() => ({
@@ -24,7 +25,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds', () => ({
-  useVisibleConversationIds: () => [],
+  useVisibleConversationIds: () => testState.visibleConversationIds,
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({
@@ -53,6 +54,11 @@ vi.mock('@/renderer/components/base', () => ({
 }));
 
 import { useConversationShortcuts } from '@/renderer/hooks/ui/useConversationShortcuts';
+import {
+  registerMountedConversation,
+  resetFocusedConversationStoreForTest,
+  setFocusedConversation,
+} from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import ConversationSearchPopover from '@/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 import { useMinimapPanel } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
@@ -93,6 +99,8 @@ describe('common desktop UI shortcuts', () => {
     testState.pathname = '/conversation/conversation-1';
     testState.desktop = true;
     testState.mac = true;
+    testState.visibleConversationIds = [];
+    resetFocusedConversationStoreForTest();
   });
 
   afterEach(() => {
@@ -559,5 +567,55 @@ describe('existing conversation search shortcuts', () => {
     const event = dispatchShortcut(document.body, { key: 'f', metaKey: true });
 
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+/**
+ * Ctrl+Tab used to read the conversation out of the pathname. One window can
+ * mount several conversation views, and only one of them matches the URL, so
+ * the chord has to cycle from the focused conversation — falling back to the
+ * pathname while nothing has registered yet.
+ */
+describe('conversation cycling target', () => {
+  beforeEach(() => {
+    testState.pathname = '/conversation/conversation-1';
+    testState.desktop = true;
+    testState.mac = true;
+    testState.visibleConversationIds = ['conversation-1', 'conversation-2', 'conversation-3'];
+    resetFocusedConversationStoreForTest();
+  });
+
+  afterEach(() => {
+    cleanup();
+    document.body.innerHTML = '';
+    vi.clearAllMocks();
+    resetFocusedConversationStoreForTest();
+  });
+
+  it('cycles from the focused conversation, not the one in the URL', () => {
+    registerMountedConversation('conversation-1');
+    registerMountedConversation('conversation-3');
+    setFocusedConversation('conversation-3');
+
+    const { navigate } = renderConversationShortcuts();
+    dispatchShortcut(window, { key: 'Tab', ctrlKey: true });
+
+    expect(navigate).toHaveBeenCalledWith('/conversation/conversation-1');
+  });
+
+  it('falls back to the pathname while no conversation view has registered', () => {
+    const { navigate } = renderConversationShortcuts();
+    dispatchShortcut(window, { key: 'Tab', ctrlKey: true });
+
+    expect(navigate).toHaveBeenCalledWith('/conversation/conversation-2');
+  });
+
+  it('cycles backwards with Shift', () => {
+    registerMountedConversation('conversation-2');
+
+    const { navigate } = renderConversationShortcuts();
+    dispatchShortcut(window, { key: 'Tab', ctrlKey: true, shiftKey: true });
+
+    expect(navigate).toHaveBeenCalledWith('/conversation/conversation-1');
   });
 });
