@@ -6,10 +6,16 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
+import type { ColumnHeaderDragHandle } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { MIN_CHAT_PANEL_PX } from '@/renderer/pages/conversation/utils/layoutCalc';
-import React, { useCallback, useRef, useState } from 'react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { SplitGroupColumn } from './SplitGroupColumn';
+
+/** What a column frame registers with the view's drag context. */
+export type ColumnDragData = { kind: 'split-column'; conversation_id: string };
 
 const columnWidthStorageKey = (conversation_id: string): string => `split-column-width-${conversation_id}`;
 
@@ -57,9 +63,67 @@ export const SplitGroupColumnFrame: React.FC<{
   columnCount: number;
   /** Columns to the right of this one; each must keep its minimum width. */
   trailingCount: number;
-}> = ({ group, member, focused, isLast, containerWidth, columnCount: _columnCount, trailingCount }) => {
+  /**
+   * Where a column being dragged would land, as the slot it takes: this
+   * frame draws the marker on its left edge for its own slot, and the last
+   * frame also draws it on its right edge for the slot after it.
+   */
+  dropSlot?: number | null;
+  index: number;
+  /** Alt+Arrow on the grip moves this column one slot. */
+  onMoveColumn?: (conversation_id: string, delta: -1 | 1) => void;
+}> = ({
+  group,
+  member,
+  focused,
+  isLast,
+  containerWidth,
+  columnCount: _columnCount,
+  trailingCount,
+  dropSlot = null,
+  index,
+  onMoveColumn,
+}) => {
+  const { t } = useTranslation();
   const maxWidth = Math.max(MIN_CHAT_PANEL_PX, Math.floor(containerWidth - MIN_CHAT_PANEL_PX * trailingCount));
   const frameRef = useRef<HTMLDivElement>(null);
+
+  // The header is the drag source, the whole frame the drop target: the
+  // column under the pointer decides which slot the marker shows, by halves.
+  const dragData: ColumnDragData = useMemo(() => ({ kind: 'split-column', conversation_id: member.id }), [member.id]);
+  const {
+    listeners,
+    setNodeRef: setDragRef,
+    setActivatorNodeRef,
+    isDragging,
+  } = useDraggable({
+    id: member.id,
+    data: dragData,
+  });
+  const { setNodeRef: setDropRef } = useDroppable({ id: member.id, data: dragData });
+  const headerDragHandle = useMemo<ColumnHeaderDragHandle>(
+    () => ({
+      setActivatorNodeRef,
+      listeners: listeners as ColumnHeaderDragHandle['listeners'],
+      isDragging,
+      label: t('conversation.splitGroup.reorderHandle'),
+      onKeyDown: (event) => {
+        if (!event.altKey || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onMoveColumn?.(member.id, event.key === 'ArrowLeft' ? -1 : 1);
+      },
+    }),
+    [isDragging, listeners, member.id, onMoveColumn, setActivatorNodeRef, t]
+  );
+  const setFrameRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      frameRef.current = element;
+      setDragRef(element);
+      setDropRef(element);
+    },
+    [setDragRef, setDropRef]
+  );
   const [pinnedWidth, setPinnedWidth] = useState<number | null>(() => readStoredColumnWidth(member.id));
 
   const handleDividerPointerDown = useCallback(
@@ -107,14 +171,29 @@ export const SplitGroupColumnFrame: React.FC<{
       ? { flex: '0 0 auto', width: Math.min(Math.max(pinnedWidth, MIN_CHAT_PANEL_PX), maxWidth) }
       : { flex: '1 1 0px', minWidth: MIN_CHAT_PANEL_PX };
 
+  // A 2px hairline in a primary wash at the slot the dragged column would
+  // take — never a dark outline, never an accent bar.
+  const marker = (edge: 'start' | 'end') => (
+    <span
+      aria-hidden='true'
+      data-testid={`split-column-drop-marker-${member.id}-${edge}`}
+      className={`pointer-events-none absolute top-8px bottom-8px w-2px rd-1px bg-[rgba(var(--primary-6),0.55)] z-40 ${
+        edge === 'start' ? 'start-0' : 'end-0'
+      }`}
+    />
+  );
+
   return (
     <div
-      ref={frameRef}
+      ref={setFrameRef}
       className='relative h-full shrink-0'
-      style={style}
+      style={{ ...style, opacity: isDragging ? 0.85 : undefined }}
       data-testid={`split-column-frame-${member.id}`}
+      data-column-index={index}
     >
-      <SplitGroupColumn group={group} member={member} focused={focused} />
+      <SplitGroupColumn group={group} member={member} focused={focused} headerDragHandle={headerDragHandle} />
+      {dropSlot === index && marker('start')}
+      {isLast && dropSlot === index + 1 && marker('end')}
       {!isLast && (
         <div
           role='separator'

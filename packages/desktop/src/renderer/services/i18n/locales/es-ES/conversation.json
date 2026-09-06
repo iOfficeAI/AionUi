@@ -109,6 +109,8 @@
     "dropToAdd": "Suelta para añadir a esta vista dividida",
     "dropToRemove": "Suelta para sacarla de la vista dividida",
     "emptyColumnPanel": "No hay archivos abiertos en esta columna",
+    "reorderHandle": "Arrastra para reordenar columnas",
+    "columnMoved": "Movida a la columna {{position}} de {{count}}",
     "dropToMove": "Suelta para moverla aquí",
     "notFound": "Esta vista dividida ya no existe.",
     "updateFailed": "No se pudo actualizar la vista dividida",

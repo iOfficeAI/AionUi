@@ -109,6 +109,8 @@
     "dropToAdd": "Solte para adicionar a esta visualização dividida",
     "dropToRemove": "Solte para tirá-la da visualização dividida",
     "emptyColumnPanel": "Nenhum arquivo aberto nesta coluna",
+    "reorderHandle": "Arraste para reordenar as colunas",
+    "columnMoved": "Movida para a coluna {{position}} de {{count}}",
     "dropToMove": "Solte para movê-la para cá",
     "notFound": "Esta visualização dividida não existe mais.",
     "updateFailed": "Não foi possível atualizar a visualização dividida",

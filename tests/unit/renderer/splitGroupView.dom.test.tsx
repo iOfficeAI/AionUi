@@ -54,17 +54,31 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/ConversationLeadingIcon', 
 vi.mock('@/renderer/pages/conversation/hooks/useContainerWidth', () => ({
   useContainerWidth: () => ({ containerRef: { current: null }, containerWidth: 1200 }),
 }));
+const { reorderMembersMock } = vi.hoisted(() => ({ reorderMembersMock: vi.fn(async () => true) }));
+vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations', () => ({
+  useSplitGroupMutations: () => ({ reorderMembers: reorderMembersMock, removeMember: vi.fn() }),
+}));
 vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
-  const Column: React.FC<{ group: SplitGroup; member: TChatConversation; focused: boolean }> = ({
-    member,
-    focused,
-  }) => {
+  const Column: React.FC<{
+    group: SplitGroup;
+    member: TChatConversation;
+    focused: boolean;
+    headerDragHandle?: { label: string; onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void };
+  }> = ({ member, focused, headerDragHandle }) => {
     const registration = useFocusedConversationRegistration(member.id);
     React.useEffect(() => {
       mountCounts.set(member.id, (mountCounts.get(member.id) ?? 0) + 1);
     }, [member.id]);
     return (
       <div data-testid={`split-column-${member.id}`} data-focused={focused ? 'true' : 'false'} {...registration}>
+        {headerDragHandle && (
+          <button
+            type='button'
+            data-testid={`split-column-grip-${member.id}`}
+            aria-label={headerDragHandle.label}
+            onKeyDown={headerDragHandle.onKeyDown}
+          />
+        )}
         {member.name}
       </div>
     );
@@ -325,5 +339,68 @@ describe('SplitGroupView title', () => {
     expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe(
       'conversation.splitGroup.blockLabelNamed:Research:3'
     );
+  });
+});
+
+/**
+ * Columns are reordered by grabbing their headers; the view keeps the new
+ * order at once and writes it onto the group in one batch, and puts it back
+ * when the write is refused. Alt+Arrow on the grip is the keyboard's way.
+ */
+describe('SplitGroupView column reorder', () => {
+  const columnOrder = () => screen.getByTestId('split-group-view-g1').getAttribute('data-column-order');
+
+  beforeEach(() => {
+    reorderMembersMock.mockClear();
+    reorderMembersMock.mockResolvedValue(true);
+  });
+
+  it('renders the columns in the group order and hands each header a grip', () => {
+    render(<SplitGroupView group={trio} />);
+    expect(columnOrder()).toBe('a|b|c');
+    expect(screen.getAllByTestId(/^split-column-grip-/).map((e) => e.getAttribute('aria-label'))).toEqual([
+      'conversation.splitGroup.reorderHandle',
+      'conversation.splitGroup.reorderHandle',
+      'conversation.splitGroup.reorderHandle',
+    ]);
+  });
+
+  it('moves a column with Alt+Arrow, writes the whole order, and says where it went', async () => {
+    render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    expect(columnOrder()).toBe('a|c|b');
+    expect(reorderMembersMock).toHaveBeenCalledWith('g1', ['a', 'c', 'b']);
+    expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe('conversation.splitGroup.columnMoved');
+  });
+
+  it('does nothing at the edge, and without Alt', async () => {
+    render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-a'), { key: 'ArrowLeft', altKey: true });
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-b'), { key: 'ArrowRight' });
+    });
+    expect(columnOrder()).toBe('a|b|c');
+    expect(reorderMembersMock).not.toHaveBeenCalled();
+  });
+
+  it('puts the columns back when the write is refused', async () => {
+    reorderMembersMock.mockResolvedValue(false);
+    render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(columnOrder()).toBe('a|b|c');
+  });
+
+  it('follows the group when its order changes underneath, as after the write lands', () => {
+    const view = render(<SplitGroupView group={trio} />);
+    const reordered: SplitGroup = { id: 'g1', members: [trio.members[2], trio.members[0], trio.members[1]] };
+    view.rerender(<SplitGroupView group={reordered} />);
+    expect(columnOrder()).toBe('c|a|b');
   });
 });

@@ -10,6 +10,7 @@ import ChatConversation from '@/renderer/pages/conversation/components/ChatConve
 import { useSplitGroupMutations } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 import { ChatColumnProvider } from '@/renderer/pages/conversation/hooks/chatColumnContext';
+import type { ColumnHeaderDragHandle } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { CloseSmall } from '@icon-park/react';
@@ -30,7 +31,9 @@ export const SplitGroupColumn: React.FC<{
   group: SplitGroup;
   member: TChatConversation;
   focused: boolean;
-}> = ({ group, member, focused }) => {
+  /** The header's title area is what you grab to reorder the columns. */
+  headerDragHandle?: ColumnHeaderDragHandle;
+}> = ({ group, member, focused, headerDragHandle }) => {
   const { t } = useTranslation();
   const { removeMember } = useSplitGroupMutations();
   const name = member.name || t('conversation.welcome.newConversation');
@@ -95,8 +98,8 @@ export const SplitGroupColumn: React.FC<{
   // Only the focused column's composer takes the keyboard focus (on mount and
   // on each change of focus); see ChatColumnContext.
   const chatColumn = useMemo(
-    () => ({ composerActive: focused, compactHeader: true, columnFocused: focused }),
-    [focused]
+    () => ({ composerActive: focused, compactHeader: true, columnFocused: focused, headerDragHandle }),
+    [focused, headerDragHandle]
   );
 
   const removeButton = (

@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type React from 'react';
 import { createContext, useContext } from 'react';
+
+/**
+ * What a column's header needs to be the thing you grab to reorder columns:
+ * dnd-kit's activator ref and listeners for the title area, whether this
+ * column is the one being dragged (its header shows a light wash), the
+ * accessible name of the grip, and the keyboard alternative (Alt+Arrow on the
+ * grip moves the column one slot).
+ */
+export type ColumnHeaderDragHandle = {
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+  listeners?: Record<string, (event: React.SyntheticEvent) => void>;
+  isDragging: boolean;
+  label: string;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void;
+};
 
 export type ChatColumnContextValue = {
   /**
@@ -30,6 +46,8 @@ export type ChatColumnContextValue = {
    * a heavy ring, which reads as a black box drawn over the chat.
    */
   columnFocused?: boolean;
+  /** Present in a split column: the header's title area is the drag activator that reorders columns. */
+  headerDragHandle?: ColumnHeaderDragHandle;
 };
 
 const ChatColumnContext = createContext<ChatColumnContextValue>({ composerActive: true, compactHeader: false });

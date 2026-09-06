@@ -109,6 +109,8 @@
     "dropToAdd": "놓으면 이 분할 보기에 추가됩니다",
     "dropToRemove": "놓으면 분할 보기에서 제외됩니다",
     "emptyColumnPanel": "이 열에 열린 파일이 없습니다",
+    "reorderHandle": "드래그하여 열 순서 변경",
+    "columnMoved": "{{count}}개 중 {{position}}번째 열로 이동됨",
     "dropToMove": "놓으면 여기로 이동합니다",
     "notFound": "이 분할 보기는 더 이상 존재하지 않습니다.",
     "updateFailed": "분할 보기를 업데이트할 수 없습니다",

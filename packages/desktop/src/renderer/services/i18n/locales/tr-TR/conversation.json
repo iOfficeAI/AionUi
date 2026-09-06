@@ -109,6 +109,8 @@
     "dropToAdd": "Bu bölünmüş görünüme eklemek için bırakın",
     "dropToRemove": "Bölünmüş görünümden çıkarmak için bırakın",
     "emptyColumnPanel": "Bu sütunda açık dosya yok",
+    "reorderHandle": "Sütunları yeniden sıralamak için sürükleyin",
+    "columnMoved": "{{count}} sütundan {{position}}. sütuna taşındı",
     "dropToMove": "Buraya taşımak için bırakın",
     "notFound": "Bu bölünmüş görünüm artık yok.",
     "updateFailed": "Bölünmüş görünüm güncellenemedi",

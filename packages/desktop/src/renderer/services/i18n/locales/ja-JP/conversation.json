@@ -109,6 +109,8 @@
     "dropToAdd": "ドロップしてこの分割ビューに追加",
     "dropToRemove": "離すと分割ビューから外れます",
     "emptyColumnPanel": "この列で開いているファイルはありません",
+    "reorderHandle": "ドラッグして列を並べ替え",
+    "columnMoved": "{{count}}列中{{position}}列目に移動しました",
     "dropToMove": "離すとここへ移動します",
     "notFound": "この分割ビューはもう存在しません。",
     "updateFailed": "分割ビューを更新できませんでした",

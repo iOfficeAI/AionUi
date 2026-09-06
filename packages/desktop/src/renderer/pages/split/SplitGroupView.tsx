@@ -16,13 +16,18 @@ import {
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
+import { useSplitGroupMutations } from '@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations';
 import { Tabs } from '@arco-design/web-react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { DragEndEvent, DragMoveEvent } from '@dnd-kit/core';
+import { DndContext, MouseSensor, TouchSensor, pointerWithin, useSensor, useSensors } from '@dnd-kit/core';
+import { getEventCoordinates } from '@dnd-kit/utilities';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SplitGroupColumn } from './SplitGroupColumn';
 import { SplitGroupColumnFrame } from './SplitGroupColumnFrame';
 import styles from './SplitGroupView.module.css';
+import { moveColumn, reorderColumns, resolveColumnDropIndex } from './columnReorder';
 
 const conversationWorkspace = (conversation: TChatConversation): string | null =>
   (conversation.extra as { workspace?: string } | undefined)?.workspace ?? null;
@@ -185,32 +190,134 @@ const useMeasuredWidth = (): { ref: React.RefObject<HTMLDivElement | null>; widt
   return { ref, width };
 };
 
+/**
+ * The columns in the order the group has them, and the reorder gesture over
+ * them. A column is grabbed by its header ("the top") and dragged left or
+ * right; a thin marker shows the slot it would take; on release the new order
+ * is written onto every member's tag in one reconciled batch, so the sidebar
+ * block, this view and every other window agree, and it survives a relaunch.
+ * The columns move at once and the write lands behind; a refused write puts
+ * them back and the queue has already said why.
+ */
 const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({ group, focusedId }) => {
+  const { t } = useTranslation();
   const { ref, width: containerWidth } = useMeasuredWidth();
-  const count = group.members.length;
+  const { reorderMembers } = useSplitGroupMutations();
+  const groupOrder = group.members.map((member) => member.id);
+  const groupOrderKey = groupOrder.join('|');
+  const [order, setOrder] = useState<string[]>(groupOrder);
+  useEffect(() => {
+    setOrder(groupOrderKey.split('|'));
+  }, [groupOrderKey]);
+  const [dropSlot, setDropSlot] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+
+  // A mouse drags after a few pixels, so the title's own click still renames;
+  // a finger holds first, so a swipe over the header still scrolls the row.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  const commit = useCallback(
+    (next: string[]) => {
+      setOrder(next);
+      const members = group.members;
+      void reorderMembers(group.id, next).then((landed) => {
+        if (!landed) setOrder(members.map((member) => member.id));
+      });
+    },
+    [group.id, group.members, reorderMembers]
+  );
+
+  const slotFor = useCallback(
+    (event: DragMoveEvent | DragEndEvent): number | null => {
+      const { active, over } = event;
+      if (!over) return null;
+      const origin = getEventCoordinates(event.activatorEvent);
+      const pointerX = (origin?.x ?? over.rect.left) + event.delta.x;
+      return resolveColumnDropIndex({
+        activeId: String(active.id),
+        overId: String(over.id),
+        pointerX,
+        overLeft: over.rect.left,
+        overWidth: over.rect.width,
+        order,
+      });
+    },
+    [order]
+  );
+
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const slot = slotFor(event);
+      setDropSlot((previous) => (previous === slot ? previous : slot));
+    },
+    [slotFor]
+  );
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setDropSlot(null);
+      const slot = slotFor(event);
+      if (slot === null) return;
+      commit(reorderColumns(order, String(event.active.id), slot));
+    },
+    [commit, order, slotFor]
+  );
+  const handleMoveColumn = useCallback(
+    (conversation_id: string, delta: -1 | 1) => {
+      const next = moveColumn(order, conversation_id, delta);
+      if (next.join('|') === order.join('|')) return;
+      commit(next);
+      setAnnouncement(
+        t('conversation.splitGroup.columnMoved', { position: next.indexOf(conversation_id) + 1, count: next.length })
+      );
+    },
+    [commit, order, t]
+  );
+
+  const members = order
+    .map((id) => group.members.find((member) => member.id === id))
+    .filter((member): member is TChatConversation => member !== undefined);
+  const count = members.length;
 
   return (
     <div
       className='flex flex-col h-full w-full min-h-0'
       data-testid={`split-group-view-${group.id}`}
       data-layout='columns'
+      data-column-order={order.join('|')}
     >
       <SplitGroupTitle group={group} />
-      <div ref={ref} className='flex flex-1 w-full min-h-0 overflow-x-auto overflow-y-hidden'>
-        {containerWidth !== null &&
-          group.members.map((member, index) => (
-            <SplitGroupColumnFrame
-              key={member.id}
-              group={group}
-              member={member}
-              focused={member.id === focusedId}
-              isLast={index === count - 1}
-              containerWidth={containerWidth}
-              columnCount={count}
-              trailingCount={count - 1 - index}
-            />
-          ))}
-      </div>
+      <span role='status' aria-live='polite' className='sr-only' data-testid={`split-group-reorder-status-${group.id}`}>
+        {announcement}
+      </span>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDropSlot(null)}
+      >
+        <div ref={ref} className='flex flex-1 w-full min-h-0 overflow-x-auto overflow-y-hidden'>
+          {containerWidth !== null &&
+            members.map((member, index) => (
+              <SplitGroupColumnFrame
+                key={member.id}
+                group={group}
+                member={member}
+                focused={member.id === focusedId}
+                isLast={index === count - 1}
+                containerWidth={containerWidth}
+                columnCount={count}
+                trailingCount={count - 1 - index}
+                dropSlot={dropSlot}
+                index={index}
+                onMoveColumn={handleMoveColumn}
+              />
+            ))}
+        </div>
+      </DndContext>
     </div>
   );
 };

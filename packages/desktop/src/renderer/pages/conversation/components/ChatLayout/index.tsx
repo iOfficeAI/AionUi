@@ -3,6 +3,7 @@ import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssist
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
+import { Drag } from '@icon-park/react';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
@@ -21,7 +22,7 @@ import {
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { Layout as ArcoLayout } from '@arco-design/web-react';
+import { Button, Layout as ArcoLayout } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
@@ -72,7 +73,7 @@ const ChatLayout: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   // A split column: the header is a band of its own, the title keeps its room
   // and the actions (model picker first) give way as the column narrows.
-  const { compactHeader, columnFocused = false } = useChatColumn();
+  const { compactHeader, columnFocused = false, headerDragHandle } = useChatColumn();
 
   // Preview panel state
   const { isOpen: isPreviewOpenRaw, isMaximized } = usePreviewContext();
@@ -247,7 +248,33 @@ const ChatLayout: React.FC<{
         // room (the picker fills up to its full label, the buttons hug the
         // right edge). Short of room, the picker gives way first, down to its
         // icon, and only then does the title truncate.
-        <div className='h-full min-w-0 flex items-center' style={{ flex: '0 1 auto' }} data-testid='chat-header-title'>
+        // In a split, the title area is also what you grab to reorder the
+        // columns: a grip glyph shows under the pointer (pinned visible where
+        // nothing hovers, via the same rule the sidebar uses), the pointer
+        // sensors only start a drag after a small move or a hold, so the
+        // title's own click-to-rename still works.
+        <div
+          ref={headerDragHandle?.setActivatorNodeRef}
+          {...headerDragHandle?.listeners}
+          className={classNames('group/title h-full min-w-0 flex items-center gap-4px rd-4px transition-colors', {
+            'cursor-grab': headerDragHandle && !headerDragHandle.isDragging,
+            'cursor-grabbing bg-[rgba(var(--primary-6),0.08)]': headerDragHandle?.isDragging,
+          })}
+          style={{ flex: '0 1 auto', touchAction: headerDragHandle ? 'manipulation' : undefined }}
+          data-testid='chat-header-title'
+          data-column-dragging={headerDragHandle?.isDragging ? 'true' : undefined}
+        >
+          {headerDragHandle && (
+            <Button
+              type='text'
+              size='mini'
+              aria-label={headerDragHandle.label}
+              data-testid='chat-header-grip'
+              icon={<Drag theme='outline' size='14' fill='currentColor' />}
+              className='!size-22px !min-w-22px !p-0 !rd-4px shrink-0 flex items-center justify-center !text-t-tertiary opacity-0 group-hover/title:opacity-100 focus-visible:opacity-100 [@media(any-hover:none)]:opacity-100 transition-opacity'
+              onKeyDown={headerDragHandle.onKeyDown}
+            />
+          )}
           {titleEditor}
         </div>
       ) : (

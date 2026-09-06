@@ -109,6 +109,8 @@
     "dropToAdd": "放開以加入此分割檢視",
     "dropToRemove": "放開即可將其移出分割檢視",
     "emptyColumnPanel": "此欄中沒有開啟的檔案",
+    "reorderHandle": "拖曳以重新排列欄位",
+    "columnMoved": "已移至第 {{position}} 欄（共 {{count}} 欄）",
     "dropToMove": "放開即可移動到這裡",
     "notFound": "此分割檢視已不存在。",
     "updateFailed": "無法更新分割檢視",
