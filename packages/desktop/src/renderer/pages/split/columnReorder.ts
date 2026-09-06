@@ -29,7 +29,15 @@ export const columnsRunRightToLeft = (element: Element): boolean => {
 /** The step an arrow key means, in logical slots: toward the end, or toward the start. */
 export const arrowStep = (toward: 'left' | 'right', rtl: boolean): -1 | 1 => ((toward === 'right') !== rtl ? 1 : -1);
 
-/** The slot index the dragged column would take, `null` when it is its own. */
+/**
+ * The slot index the dragged column would take, `null` when it is its own.
+ *
+ * `null` means "nothing to do", whether the pointer is over the dragged
+ * column's own place or names a column the order does not have; the view
+ * commits only a slot this answers, so `reorderColumns` and `moveColumn`
+ * below never see an unknown id from it — and when handed one anyway they
+ * return the order unchanged, which is the same "nothing to do".
+ */
 export const resolveColumnDropIndex = ({
   activeId,
   overId,

@@ -490,10 +490,11 @@ describe('SplitGroupView column reorder', () => {
       fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
     });
     expect(columnOrder()).toBe('a|c|b');
-    // Another window reordered the group while the write was out.
+    // Another window reordered the group while the write was out: the screen
+    // holds its own order until the write settles, then takes the group's.
     const elsewhere: SplitGroup = { id: 'g1', members: [trio.members[1], trio.members[0], trio.members[2]] };
     view.rerender(<SplitGroupView group={elsewhere} />);
-    expect(columnOrder()).toBe('b|a|c');
+    expect(columnOrder()).toBe('a|c|b');
     await act(async () => {
       write.resolve(false);
       await Promise.resolve();
@@ -524,6 +525,51 @@ describe('SplitGroupView column reorder', () => {
     expect(columnOrder()).toBe('a|b|c');
   });
 
+  it('does not follow the first write back through the group while a second is still out', async () => {
+    const settlers: Array<(landed: boolean) => void> = [];
+    reorderMembersMock.mockImplementation(() => new Promise<boolean>((resolve) => settlers.push(resolve)));
+    const view = render(<SplitGroupView group={trio} />);
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+    });
+    expect(columnOrder()).toBe('c|a|b');
+    // The first write lands and comes back through the group: a|c|b.
+    await act(async () => {
+      settlers[0](true);
+      await Promise.resolve();
+    });
+    const firstLanded: SplitGroup = { id: 'g1', members: [trio.members[0], trio.members[2], trio.members[1]] };
+    view.rerender(<SplitGroupView group={firstLanded} />);
+    expect(columnOrder()).toBe('c|a|b');
+    // A move meanwhile is computed from what is on screen, not the stale echo.
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowRight', altKey: true });
+    });
+    expect(columnOrder()).toBe('a|c|b');
+    expect(reorderMembersMock).toHaveBeenLastCalledWith('g1', ['a', 'c', 'b']);
+    // The rest land and the group catches up to the last order.
+    await act(async () => {
+      settlers[1](true);
+      settlers[2](true);
+      await Promise.resolve();
+    });
+    view.rerender(<SplitGroupView group={firstLanded} />);
+    expect(columnOrder()).toBe('a|c|b');
+    // With nothing out, the group is followed again.
+    const elsewhere: SplitGroup = { id: 'g1', members: [trio.members[1], trio.members[0], trio.members[2]] };
+    view.rerender(<SplitGroupView group={elsewhere} />);
+    expect(columnOrder()).toBe('b|a|c');
+  });
+
+  it('keeps an id whole whatever characters it holds', () => {
+    const odd: SplitGroup = { id: 'g1', members: [member('x|y', 0), member('z', 1)] };
+    render(<SplitGroupView group={odd} />);
+    expect(screen.getAllByTestId(/^split-column-frame-/).map((e) => e.dataset.testid?.slice(19))).toEqual(['x|y', 'z']);
+  });
+
   it('announces only the newest write when two settle out of order', async () => {
     const settlers: Array<(landed: boolean) => void> = [];
     reorderMembersMock.mockImplementation(() => new Promise<boolean>((resolve) => settlers.push(resolve)));
@@ -547,6 +593,27 @@ describe('SplitGroupView column reorder', () => {
     });
     expect(status()).toBe('conversation.splitGroup.columnMoved');
     expect(columnOrder()).toBe('c|a|b');
+  });
+
+  it('drops the repeat timer with the view', async () => {
+    vi.useFakeTimers();
+    reorderMembersMock.mockResolvedValue(false);
+    try {
+      const view = render(<SplitGroupView group={trio} />);
+      const refusedMove = async () => {
+        await act(async () => {
+          fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+          await Promise.resolve();
+        });
+      };
+      await refusedMove();
+      await refusedMove();
+      expect(screen.getByTestId('split-group-reorder-status-g1').textContent).toBe('');
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('says the same words again when a second move ends the same way', async () => {
@@ -693,6 +760,45 @@ describe('SplitGroupView column reorder', () => {
       expect(columnOrder()).toBe('a|b|c');
       expect(reorderMembersMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('lets a cancelled pointer go without a drop', () => {
+    withFrameRects(() => {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('0');
+      expect(() => fireEvent.pointerCancel(header, { pointerId: 1, pointerType: 'mouse' })).not.toThrow();
+      expect(header.getAttribute('data-dragging')).toBe('false');
+      expect(screen.queryByTestId(/^split-column-drop-marker-/)).toBeNull();
+      expect(columnOrder()).toBe('a|b|c');
+      expect(reorderMembersMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it('hears one pointer at a time: a second one adds no listeners and moves nothing', () => {
+    const added = vi.spyOn(window, 'addEventListener');
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+        fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 500, clientY: 20 });
+        const listeners = added.mock.calls.length;
+        const other = screen.getByTestId('split-column-header-a');
+        fireEvent.pointerDown(other, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 20 });
+        expect(added.mock.calls.length).toBe(listeners);
+        fireEvent.pointerMove(window, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 20 });
+        expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('1');
+        fireEvent.pointerUp(window, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 20 });
+        expect(header.getAttribute('data-dragging')).toBe('true');
+        fireEvent.pointerUp(header, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+        expect(columnOrder()).toBe('c|a|b');
+      });
+    } finally {
+      added.mockRestore();
+    }
   });
 
   it('ignores Alt+Arrow while the pointer has a column', () => {

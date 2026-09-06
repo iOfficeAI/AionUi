@@ -242,14 +242,22 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   const groupOrder = group.members.map((member) => member.id);
   const groupOrderKey = groupOrder.join('|');
   const [order, setOrder] = useState<string[]>(groupOrder);
-  useEffect(() => {
-    setOrder(groupOrderKey.split('|'));
-  }, [groupOrderKey]);
   const orderRef = useRef(order);
   orderRef.current = order;
   // The order the group last confirmed — what a refused write falls back to.
   const groupOrderRef = useRef(groupOrder);
   groupOrderRef.current = groupOrder;
+  // Writes still out. While one is, the group's order is not followed: the
+  // first of two quick reorders lands and comes back through the group before
+  // the second has, and following it would put the columns back a step and
+  // hand the next move a stale order. The last write to settle decides.
+  const pendingWrites = useRef(0);
+  useEffect(() => {
+    if (pendingWrites.current > 0) return;
+    // The ids themselves, not the key parsed back: an id is whatever the
+    // backend minted, and the key only says whether the order changed.
+    setOrder(groupOrderRef.current);
+  }, [groupOrderKey]);
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -269,15 +277,21 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     async (next: string[]): Promise<{ landed: boolean; latest: boolean }> => {
       setOrder(next);
       const serial = ++writeSerial.current;
+      pendingWrites.current += 1;
       let landed = false;
       try {
+        // The queue runs writes one after another, in the order they were
+        // asked; this only waits for its own.
         landed = await reorderMembers(group.id, next);
       } catch (error) {
         // The queue reports its own failures; this catches a throw before it.
         console.error('[SplitGroup] reorder columns failed:', error);
+      } finally {
+        pendingWrites.current -= 1;
       }
       // Writes settle in the order they were queued, but a caller must not
-      // speak for an older one once a newer one is out.
+      // speak for an older one once a newer one is out. A landed last write
+      // keeps its order on screen: the group comes back saying the same.
       const latest = serial === writeSerial.current;
       if (!landed && latest) setOrder(groupOrderRef.current);
       return { landed, latest };
