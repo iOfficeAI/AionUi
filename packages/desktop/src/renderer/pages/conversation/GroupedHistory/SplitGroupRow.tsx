@@ -367,13 +367,13 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
  */
 const SplitGroupHeader: React.FC<{
   group: SplitGroup;
-  isMobile: boolean;
   onRename?: () => void;
-}> = ({ group, isMobile, onRename }) => {
+}> = ({ group, onRename }) => {
   const { t } = useTranslation();
   const count = group.members.length;
-  // Width says nothing about whether the pointer can hover; ask that directly.
-  const alwaysVisible = isMobile || isNoHoverPointer();
+  // Width says nothing about whether the pointer can hover; ask that directly,
+  // and keep asking — the answer can change under a running window.
+  const alwaysVisible = !useCanHover();
   const label = group.name
     ? t('conversation.splitGroup.blockLabelNamed', { name: group.name, count })
     : t('conversation.splitGroup.blockLabel', { count });
@@ -514,11 +514,7 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
             read before any of the text is. */}
         <span aria-hidden='true' className='absolute inset-y-0 start-0 w-2px bg-[rgba(var(--primary-6),1)]' />
         {!collapsed && (
-          <SplitGroupHeader
-            group={group}
-            isMobile={isMobile}
-            onRename={onRenameGroup && (() => setRenameDraft(group.name ?? ''))}
-          />
+          <SplitGroupHeader group={group} onRename={onRenameGroup && (() => setRenameDraft(group.name ?? ''))} />
         )}
         {/* Indented under the header, so the block has an inside. */}
         <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-4px')}>
