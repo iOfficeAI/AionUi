@@ -69,6 +69,12 @@ export type SplitGroupMutation =
       conversation_id: string;
       to: { kind: 'group'; group_id: string } | { kind: 'conversation'; conversation_id: string };
     }
+  /**
+   * Take a conversation out of whatever group it is in, if any. The caller
+   * names no group: archiving is the caller here, and it knows the row, not
+   * the membership.
+   */
+  | { type: 'leave-own-group'; conversation_id: string }
   /** A backend "deleted" event: remove the member only if its own read confirms it is gone. */
   | { type: 'remove-if-deleted'; group_id: string; conversation_id: string }
   /** Clear a tag left behind by a group that no longer has anyone else — proven, not assumed. */
@@ -174,8 +180,19 @@ const isLeftoverTag = async (
   return complete && members.every((member) => member.id === row.id);
 };
 
-const nextOrder = (members: TChatConversation[]): number =>
-  Math.max(-1, ...members.map((member) => readSplitGroupTag(member)?.order ?? 0)) + 1;
+/**
+ * The column order a conversation joining this group takes.
+ *
+ * A count that could not be read whole cannot say what the highest order is,
+ * and guessing hands the newcomer an order an unread member already holds —
+ * two columns claiming one slot, with nothing left to tell them apart. So an
+ * incomplete count refuses the join rather than writing a duplicate; the user
+ * sees the failure and can try again once the backend answers whole.
+ */
+const nextOrderIn = (group_id: string, census: SplitGroupCensus): number => {
+  if (!census.complete) throw new Error(`group ${group_id} could not be read whole`);
+  return Math.max(-1, ...census.members.map((member) => readSplitGroupTag(member)?.order ?? 0)) + 1;
+};
 
 /**
  * Carry out one mutation against the backend as it is right now. Pure with
@@ -202,12 +219,16 @@ export const runSplitGroupMutation = async (
     const targetTag = readSplitGroupTag(target);
     if (targetTag) {
       // The target joined a group since the drag started: add to that group.
-      const { members } = await readGroup(targetTag.id, deps, [target]);
-      members.forEach(remember);
+      const census = await readGroup(targetTag.id, deps, [target]);
+      census.members.forEach(remember);
       const patches: SplitGroupPatch[] = [
         {
           conversation_id: dragged.id,
-          split_group: splitGroupTag(targetTag.id, nextOrder(members), readSplitGroupName(members)),
+          split_group: splitGroupTag(
+            targetTag.id,
+            nextOrderIn(targetTag.id, census),
+            readSplitGroupName(census.members)
+          ),
         },
       ];
       await applySplitGroupPatches(patches, previous, deps);
@@ -219,13 +240,10 @@ export const runSplitGroupMutation = async (
   }
 
   if (mutation.type === 'add') {
-    const [row, { members }] = await Promise.all([
-      deps.read(mutation.conversation_id),
-      readGroup(mutation.group_id, deps),
-    ]);
+    const [row, census] = await Promise.all([deps.read(mutation.conversation_id), readGroup(mutation.group_id, deps)]);
     if (!row) throw new Error(`${mutation.conversation_id} no longer exists`);
-    if (members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
-    if (members.some((member) => member.id === row.id)) {
+    if (census.members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
+    if (census.members.some((member) => member.id === row.id)) {
       return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'already a member' };
     }
     const rowTag = readSplitGroupTag(row);
@@ -234,7 +252,11 @@ export const runSplitGroupMutation = async (
     const patches: SplitGroupPatch[] = [
       {
         conversation_id: row.id,
-        split_group: splitGroupTag(mutation.group_id, nextOrder(members), readSplitGroupName(members)),
+        split_group: splitGroupTag(
+          mutation.group_id,
+          nextOrderIn(mutation.group_id, census),
+          readSplitGroupName(census.members)
+        ),
       },
     ];
     await applySplitGroupPatches(patches, previous, deps);
@@ -282,6 +304,16 @@ export const runSplitGroupMutation = async (
     return { group_id: mutation.group_id, dissolved: false, survivor: null };
   }
 
+  if (mutation.type === 'leave-own-group') {
+    const row = await deps.read(mutation.conversation_id);
+    if (!row) return { group_id: null, dissolved: false, survivor: null, noop: 'no longer exists' };
+    const tag = readSplitGroupTag(row);
+    if (!tag) return { group_id: null, dissolved: false, survivor: null, noop: 'not in a group' };
+    // From here it is an ordinary removal, dissolve rule and all — the only
+    // thing this arm adds is finding out which group to name.
+    return runSplitGroupMutation({ type: 'remove', group_id: tag.id, conversation_id: row.id }, deps);
+  }
+
   if (mutation.type === 'move') {
     const row = await deps.read(mutation.conversation_id);
     if (!row) throw new Error(`${mutation.conversation_id} no longer exists`);
@@ -297,12 +329,16 @@ export const runSplitGroupMutation = async (
     let destination_id: string;
     const patches: SplitGroupPatch[] = [];
     if (mutation.to.kind === 'group') {
-      const { members } = await readGroup(mutation.to.group_id, deps);
-      if (members.length === 0) throw new Error(`group ${mutation.to.group_id} no longer exists`);
+      const census = await readGroup(mutation.to.group_id, deps);
+      if (census.members.length === 0) throw new Error(`group ${mutation.to.group_id} no longer exists`);
       destination_id = mutation.to.group_id;
       patches.push({
         conversation_id: row.id,
-        split_group: splitGroupTag(destination_id, nextOrder(members), readSplitGroupName(members)),
+        split_group: splitGroupTag(
+          destination_id,
+          nextOrderIn(destination_id, census),
+          readSplitGroupName(census.members)
+        ),
       });
     } else {
       const target = await deps.read(mutation.to.conversation_id);
@@ -313,11 +349,15 @@ export const runSplitGroupMutation = async (
         return { group_id: mutation.from_group_id, dissolved: false, survivor: null, noop: 'the same group' };
       }
       if (targetTag) {
-        const { members } = await readGroup(targetTag.id, deps, [target]);
+        const census = await readGroup(targetTag.id, deps, [target]);
         destination_id = targetTag.id;
         patches.push({
           conversation_id: row.id,
-          split_group: splitGroupTag(destination_id, nextOrder(members), readSplitGroupName(members)),
+          split_group: splitGroupTag(
+            destination_id,
+            nextOrderIn(destination_id, census),
+            readSplitGroupName(census.members)
+          ),
         });
       } else {
         destination_id = newSplitGroupId();
@@ -489,12 +529,37 @@ export const useSplitGroupMutations = () => {
     async (
       from_group_id: string,
       conversation_id: string,
-      to: { kind: 'group'; group_id: string } | { kind: 'conversation'; conversation_id: string }
+      to: { kind: 'group'; group_id: string } | { kind: 'conversation'; conversation_id: string },
+      { open = false }: OpenOption = {}
     ): Promise<void> => {
-      leaveDissolvedGroup(
-        from_group_id,
-        await enqueue('move member', { type: 'move', from_group_id, conversation_id, to })
-      );
+      const result = await enqueue('move member', { type: 'move', from_group_id, conversation_id, to });
+      // Released on the open chat area, the gesture asks to *see* what it
+      // built. That navigation supersedes the one a dissolved source would
+      // ask for: the group the user is looking at is the destination now.
+      if (open && result?.group_id) {
+        void navigate(splitGroupRoute(result.group_id), {
+          state: { focus: conversation_id, nonce: nextFocusNonce() },
+        });
+        return;
+      }
+      leaveDissolvedGroup(from_group_id, result);
+    },
+    [enqueue, leaveDissolvedGroup, navigate]
+  );
+
+  /**
+   * Take a conversation out of its split group before something else takes it
+   * out of the sidebar. Archiving is the caller: an archived member leaves the
+   * active list but keeps its tag, so the group it was in shows one loaded
+   * member and folds back into a plain row — while the census, which counts
+   * archived rows, still sees two and refuses to dissolve it or to let the
+   * survivor join anything else. Leaving first turns that dead end into an
+   * ordinary removal.
+   */
+  const leaveOwnGroup = useCallback(
+    async (conversation_id: string): Promise<void> => {
+      const result = await enqueue('leave own group', { type: 'leave-own-group', conversation_id });
+      if (result?.group_id) leaveDissolvedGroup(result.group_id, result);
     },
     [enqueue, leaveDissolvedGroup]
   );
@@ -525,5 +590,14 @@ export const useSplitGroupMutations = () => {
     [enqueue]
   );
 
-  return { createGroup, addMember, removeMember, moveMember, renameGroup, reconcileDeleted, dissolveIfAlone };
+  return {
+    createGroup,
+    addMember,
+    removeMember,
+    moveMember,
+    renameGroup,
+    leaveOwnGroup,
+    reconcileDeleted,
+    dissolveIfAlone,
+  };
 };

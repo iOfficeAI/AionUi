@@ -99,6 +99,7 @@
     "rename": "重命名分屏视图",
     "renamePlaceholder": "为该分屏视图命名",
     "focusMember": "在分屏视图中显示“{{name}}”",
+    "memberActions": "“{{name}}”的操作",
     "removeMember": "将“{{name}}”移出分屏视图",
     "removeFromSplit": "移出分屏视图",
     "dragToSplit": "拖到另一个会话上可并排打开",

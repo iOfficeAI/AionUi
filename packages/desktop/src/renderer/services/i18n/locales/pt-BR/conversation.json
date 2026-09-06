@@ -99,6 +99,7 @@
     "rename": "Renomear visualização dividida",
     "renamePlaceholder": "Dê um nome a esta visualização dividida",
     "focusMember": "Mostrar “{{name}}” na visualização dividida",
+    "memberActions": "Ações para “{{name}}”",
     "removeMember": "Remover “{{name}}” da visualização dividida",
     "removeFromSplit": "Remover da visualização dividida",
     "dragToSplit": "Arraste sobre outra conversa para abri-las lado a lado",

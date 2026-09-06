@@ -20,7 +20,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 import { isConversationPinned } from '../utils/groupingHelpers';
 import type { SplitGroup } from '../utils/splitGroupHelpers';
-import { nextFocusNonce, splitGroupRoute } from './useSplitGroupMutations';
+import { nextFocusNonce, splitGroupRoute, useSplitGroupMutations } from './useSplitGroupMutations';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -56,6 +56,9 @@ export const useConversationActions = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useLayoutContext()?.isMobile ?? false;
+  // Archiving a split-group member has to take it out of the group first —
+  // see `leaveOwnGroup`. Every archive path below goes through it.
+  const { leaveOwnGroup } = useSplitGroupMutations();
 
   // Close dropdown when entering batch mode
   useEffect(() => {
@@ -144,6 +147,9 @@ export const useConversationActions = ({
         // refresh clears the selection's rows and the archive page picks them up.
         const selectedIds = Array.from(selectedConversationIds);
         try {
+          // Queued together; the split-group write path runs them one at a
+          // time on its own queue, so there is nothing to serialize here.
+          await Promise.all(selectedIds.map((item_id) => leaveOwnGroup(item_id)));
           const results = await Promise.allSettled(
             selectedIds.map((item_id) => ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id }))
           );
@@ -166,7 +172,7 @@ export const useConversationActions = ({
       alignCenter: true,
       getPopupContainer: () => document.body,
     });
-  }, [onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
+  }, [leaveOwnGroup, onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -308,6 +314,7 @@ export const useConversationActions = ({
     if (!archiveProjectTarget) return;
     setArchiveProjectLoading(true);
     try {
+      await Promise.all(archiveProjectTarget.conversations.map((c) => leaveOwnGroup(c.id)));
       const results = await Promise.allSettled(
         archiveProjectTarget.conversations.map((c) =>
           ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: c.id })
@@ -327,7 +334,7 @@ export const useConversationActions = ({
     } finally {
       setArchiveProjectLoading(false);
     }
-  }, [archiveProjectTarget, t]);
+  }, [archiveProjectTarget, leaveOwnGroup, t]);
 
   const handleArchive = useCallback(
     async (conversation: TChatConversation) => {
@@ -337,6 +344,7 @@ export const useConversationActions = ({
       // list on its own; the archived management page picks it up.
       setDropdownVisibleId(null);
       try {
+        await leaveOwnGroup(conversation.id);
         await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id: conversation.id });
         emitter.emit('chat.history.refresh');
         Message.success(t('conversation.history.archiveSuccess'));
@@ -345,7 +353,7 @@ export const useConversationActions = ({
         Message.error(t('conversation.history.archiveFailed'));
       }
     },
-    [t]
+    [leaveOwnGroup, t]
   );
 
   return {

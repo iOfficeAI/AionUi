@@ -99,6 +99,7 @@
     "rename": "Renommer la vue divisée",
     "renamePlaceholder": "Nommez cette vue divisée",
     "focusMember": "Afficher « {{name}} » dans la vue partagée",
+    "memberActions": "Actions pour « {{name}} »",
     "removeMember": "Retirer « {{name}} » de la vue partagée",
     "removeFromSplit": "Retirer de la vue divisée",
     "dragToSplit": "Faites glisser sur une autre conversation pour les ouvrir côte à côte",

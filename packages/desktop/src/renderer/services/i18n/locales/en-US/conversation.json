@@ -99,6 +99,7 @@
     "rename": "Rename split view",
     "renamePlaceholder": "Name this split view",
     "focusMember": "Show “{{name}}” in the split view",
+    "memberActions": "Actions for “{{name}}”",
     "removeMember": "Remove “{{name}}” from the split view",
     "removeFromSplit": "Remove from split view",
     "dragToSplit": "Drag onto another conversation to open them side by side",

@@ -99,6 +99,7 @@
     "rename": "Geteilte Ansicht umbenennen",
     "renamePlaceholder": "Diese geteilte Ansicht benennen",
     "focusMember": "„{{name}}“ in der geteilten Ansicht anzeigen",
+    "memberActions": "Aktionen für „{{name}}“",
     "removeMember": "„{{name}}“ aus der geteilten Ansicht entfernen",
     "removeFromSplit": "Aus geteilter Ansicht entfernen",
     "dragToSplit": "Auf eine andere Unterhaltung ziehen, um beide nebeneinander zu öffnen",

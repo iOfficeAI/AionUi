@@ -251,7 +251,7 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
           void removeMember(action.group_id, action.dragged_id);
           return;
         case 'move-member':
-          void moveMember(action.from_group_id, action.dragged_id, action.to);
+          void moveMember(action.from_group_id, action.dragged_id, action.to, { open });
           return;
         case 'none':
           if (action.reason !== 'self' && action.reason !== 'between' && action.reason !== 'nowhere') {

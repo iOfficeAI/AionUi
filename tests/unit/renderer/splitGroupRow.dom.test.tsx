@@ -347,3 +347,82 @@ describe('SplitGroupRow rename', () => {
     expect(onRenameGroup).toHaveBeenCalledWith(namedGroup, '   ');
   });
 });
+
+/**
+ * Reaching a member row without a mouse. The remove button already appears on
+ * focus; the grab handle and the action menu are the two that did not answer
+ * the keyboard at all.
+ */
+describe('SplitGroupRow keyboard reach', () => {
+  const menuProps = (conversation: TChatConversation, menuVisible: boolean): ConversationRowProps =>
+    ({
+      conversation,
+      isGenerating: false,
+      isWaitingConfirmation: false,
+      hasUnread: false,
+      isManualUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible,
+      onToggleChecked: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: vi.fn(),
+      onEditStart: vi.fn(),
+      onCreateCronTask: vi.fn(),
+      onArchive: vi.fn(),
+      onTogglePin: vi.fn(),
+      onToggleManualUnread: vi.fn(),
+      getJobStatus: () => 'none',
+    }) as ConversationRowProps;
+
+  it('keeps the grab handle out of the tab order and out of the accessibility tree', () => {
+    renderPill();
+    const handle = screen.getByTestId('split-group-drag-handle-a');
+    // Only a PointerSensor is registered: a tab stop here would do nothing.
+    expect(handle).toHaveAttribute('tabindex', '-1');
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('does not open the member when a key is pressed on the handle', () => {
+    const { onOpen } = renderPill();
+    fireEvent.keyDown(screen.getByTestId('split-group-drag-handle-a'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByTestId('split-group-drag-handle-a'), { key: ' ' });
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('gives the row a focusable menu button, so the actions are not behind a right-click', () => {
+    const onOpenMenu = vi.fn();
+    renderPill({
+      getMemberRowProps: (conversation) => ({ ...menuProps(conversation, false), onOpenMenu }),
+    });
+    const button = screen.getByTestId('split-group-member-menu-b');
+    expect(button).toHaveAttribute('tabindex', '0');
+    expect(button).toHaveAttribute('aria-label', 'conversation.splitGroup.memberActions:Conversation b');
+
+    fireEvent.keyDown(button, { key: 'Enter' });
+    expect(onOpenMenu).toHaveBeenCalledTimes(1);
+    expect(onOpenMenu.mock.calls[0][0].id).toBe('b');
+  });
+
+  it('opens the menu on a click of that button without opening the member', () => {
+    const onOpenMenu = vi.fn();
+    const { onOpen } = renderPill({
+      getMemberRowProps: (conversation) => ({ ...menuProps(conversation, false), onOpenMenu }),
+    });
+    fireEvent.click(screen.getByTestId('split-group-member-menu-c'));
+    expect(onOpenMenu).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('offers no menu button where there is no menu — the collapsed rail and batch mode', () => {
+    renderPill({ collapsed: true, getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    expect(screen.queryAllByTestId(/^split-group-member-menu-/)).toHaveLength(0);
+    cleanup();
+    renderPill({ batchMode: true, getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    expect(screen.queryAllByTestId(/^split-group-member-menu-/)).toHaveLength(0);
+  });
+});

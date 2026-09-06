@@ -99,6 +99,7 @@
     "rename": "Cambiar el nombre de la vista dividida",
     "renamePlaceholder": "Ponle nombre a esta vista dividida",
     "focusMember": "Mostrar “{{name}}” en la vista dividida",
+    "memberActions": "Acciones para «{{name}}»",
     "removeMember": "Quitar “{{name}}” de la vista dividida",
     "removeFromSplit": "Quitar de la vista dividida",
     "dragToSplit": "Arrastra sobre otra conversación para abrirlas una al lado de la otra",

@@ -834,6 +834,7 @@ export type I18nKey =
   | 'conversation.splitGroup.dropToRemove'
   | 'conversation.splitGroup.dropToSplit'
   | 'conversation.splitGroup.focusMember'
+  | 'conversation.splitGroup.memberActions'
   | 'conversation.splitGroup.memberUnavailable'
   | 'conversation.splitGroup.notFound'
   | 'conversation.splitGroup.open'
