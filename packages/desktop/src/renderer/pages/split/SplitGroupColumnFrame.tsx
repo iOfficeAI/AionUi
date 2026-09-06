@@ -176,7 +176,7 @@ export const SplitGroupColumnFrame: React.FC<{
     <span
       aria-hidden='true'
       data-testid={`split-column-drop-marker-${member.id}-${edge}`}
-      className={`pointer-events-none absolute top-8px bottom-8px w-2px rd-1px bg-[rgba(var(--primary-6),0.55)] z-40 ${
+      className={`pointer-events-none absolute top-8px bottom-8px w-2px rd-1px bg-t-secondary z-40 ${
         edge === 'start' ? 'start-0' : 'end-0'
       }`}
     />

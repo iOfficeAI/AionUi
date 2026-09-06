@@ -34,7 +34,8 @@ export const ColumnHeaderActivator: React.FC<
       // rename field keeps its own selection.
       'select-none [&_input]:select-text': handle,
       'cursor-grab': handle && !handle.isDragging,
-      'cursor-grabbing bg-[rgba(var(--primary-6),0.08)]': handle?.isDragging,
+      // The lightest primary tint the theme offers: a wash, not an outline.
+      'cursor-grabbing bg-primary-light-1': handle?.isDragging,
     })}
     style={{ flex: '0 1 auto', touchAction: handle ? 'manipulation' : undefined }}
     data-testid='chat-header-title'
