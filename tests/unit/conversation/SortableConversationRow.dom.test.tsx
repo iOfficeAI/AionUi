@@ -47,6 +47,7 @@ const pinnedConversation = {
 } as unknown as TChatConversation;
 
 const onConversationClick = vi.fn();
+const setNoRef = () => {};
 
 const rowProps: ConversationRowProps = {
   conversation: pinnedConversation,
@@ -86,14 +87,13 @@ describe('SortableConversationRow', () => {
 
   it('swallows only the click that ends a drag, and lets a plain click on the handle open the row', () => {
     const onClick = vi.fn();
-    const noop = () => {};
     const handle = (isDragging: boolean) => (
       <div onClick={onClick}>
         <DragHandle
           conversation_id='conv-1'
           label='drag'
           isDragging={isDragging}
-          setActivatorNodeRef={noop}
+          setActivatorNodeRef={setNoRef}
           attributes={{} as never}
           listeners={{}}
         />
