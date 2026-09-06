@@ -86,6 +86,7 @@
     "batchArchive": "批次歸檔",
     "batchArchiveConfirm": "確定歸檔已選的 {{count}} 個話題嗎？歸檔後可在設定的歸檔頁恢復或刪除。",
     "batchArchiveSuccess": "已歸檔 {{count}} 個話題",
+    "batchArchivePartial": "已封存 {{total}} 個中的 {{count}} 個，其餘封存失敗",
     "archiveProject": "歸檔專案",
     "archiveProjectTitle": "歸檔專案",
     "archiveProjectConfirm": "確定歸檔專案「{{name}}」嗎？專案下的 {{count}} 個對話也會一起歸檔。歸檔後可在設定的歸檔頁恢復或刪除。",
