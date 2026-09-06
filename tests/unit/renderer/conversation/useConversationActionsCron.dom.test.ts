@@ -169,7 +169,7 @@ describe('archiving takes a conversation out of its split group first', () => {
     await act(async () => {
       await result.current.handleArchive(conversation);
     });
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a');
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
     expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
     // Order matters: archiving first would strand the tag on a row the active
     // list can no longer show.
@@ -184,7 +184,7 @@ describe('archiving takes a conversation out of its split group first', () => {
     });
     // leaveOwnGroup is a no-op for an ungrouped row, so the caller never has to
     // know which rows are members.
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('loner');
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('loner', { moveToSurvivor: true });
     expect(archiveMock).toHaveBeenCalledTimes(1);
   });
 });
@@ -210,7 +210,7 @@ describe('a refused leave stops the archive', () => {
     await act(async () => {
       await result.current.handleArchive(makeConversation('member-a', 'acp'));
     });
-    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a');
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
     expect(archiveMock).not.toHaveBeenCalled();
   });
 
@@ -220,6 +220,33 @@ describe('a refused leave stops the archive', () => {
       await result.current.handleArchive(makeConversation('member-a', 'acp'));
     });
     expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
+  });
+
+  it('does not hand the user a survivor it is about to archive', async () => {
+    // Archiving both members of a pair dissolves it. Following that dissolve
+    // would drop the user on the survivor moments before the next call takes
+    // it out of the list too.
+    const { result } = renderActions(undefined, new Set(['member-a', 'member-b']));
+    await act(async () => {
+      result.current.handleBatchArchive();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    for (const call of leaveOwnGroupMock.mock.calls) {
+      expect(call[1]).toEqual({ moveToSurvivor: false });
+    }
+  });
+
+  it('still shows the survivor when a single row leaves a pair', async () => {
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    // One row leaving is the case the survivor navigation was written for:
+    // the group's columns are gone, and that is where the user was looking.
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a', { moveToSurvivor: true });
   });
 
   it('lets the rest of a batch through when one row cannot leave', async () => {
