@@ -340,18 +340,72 @@ describe('SplitGroupRow keyboard reach', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('gives the row a focusable menu button, so the actions are not behind a right-click', () => {
+  it('gives the row a real menu button, so the actions are not behind a right-click', () => {
     const onOpenMenu = vi.fn();
     renderPill({
       getMemberRowProps: (conversation) => ({ ...menuProps(conversation, false), onOpenMenu }),
     });
     const button = screen.getByTestId('split-group-member-menu-b');
-    expect(button).toHaveAttribute('tabindex', '0');
+    // An Arco control, not a span wearing role='button': focusable and
+    // keyboard-activated by the platform rather than by hand.
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.className).toContain('arco-btn');
     expect(button).toHaveAttribute('aria-label', 'conversation.splitGroup.memberActions:Conversation b');
+    expect(button).toHaveAttribute('aria-haspopup', 'menu');
 
-    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.click(button);
     expect(onOpenMenu).toHaveBeenCalledTimes(1);
     expect(onOpenMenu.mock.calls[0][0].id).toBe('b');
+  });
+
+  it('reveals the menu button when the keyboard tabs onto it', () => {
+    renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const button = screen.getByTestId('split-group-member-menu-b');
+    // Not hovered, so it starts out of sight — and would be an invisible tab
+    // stop if focus did not bring it up.
+    expect(button.className).toContain('opacity-0');
+    fireEvent.focus(button);
+    expect(screen.getByTestId('split-group-member-menu-b').className).toContain('opacity-100');
+  });
+
+  it('leaves no control nested inside another', () => {
+    renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const row = screen.getByTestId('split-group-member-b');
+    // The row is a plain container now. A row that was itself role='button'
+    // with buttons inside it is a control nested in a control, which neither
+    // ARIA nor a screen reader can express.
+    expect(row).not.toHaveAttribute('role');
+    expect(row).not.toHaveAttribute('tabindex');
+    for (const control of row.querySelectorAll('button')) {
+      expect(control.closest('[role="button"]')).toBeNull();
+    }
+  });
+
+  it('opens the member through an Arco control carrying its name', () => {
+    const { onOpen } = renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const title = screen.getByTestId('split-group-title-b');
+    expect(title.tagName).toBe('BUTTON');
+    expect(title).toHaveAttribute('aria-label', 'conversation.splitGroup.focusMember:Conversation b');
+    fireEvent.click(title);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it("pins the row's buttons open where the pointer cannot hover", () => {
+    const original = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string) => ({ matches: query.includes('hover: none'), media: query }),
+    });
+    try {
+      renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+      // No hover to uncover them with, so the remove button takes its
+      // permanent place at the end of the row and the menu stays visible.
+      expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+      expect(screen.getByTestId('split-group-member-menu-b').className).toContain('opacity-100');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+    }
   });
 
   it('opens the menu on a click of that button without opening the member', () => {
