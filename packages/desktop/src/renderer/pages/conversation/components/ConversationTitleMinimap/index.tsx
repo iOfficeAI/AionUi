@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { COLUMN_DRAG_IGNORE_PROPS } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { Empty, Input, Spin } from '@arco-design/web-react';
 import { IconSearch } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
@@ -238,6 +239,9 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({
           aria-expanded={visible}
           aria-haspopup='dialog'
           aria-label={t('conversation.minimap.searchAria', { defaultValue: 'Search conversation' })}
+          // Inside a split column the title area is the column's drag
+          // activator; this press is the trigger's own, never a drag.
+          {...COLUMN_DRAG_IGNORE_PROPS}
           title={t('conversation.minimap.searchHint', { defaultValue: 'Click here to search keywords' })}
           className={classNames(
             'conversation-minimap-trigger inline-flex h-24px w-24px items-center justify-center cursor-pointer rounded-full border border-solid border-transparent bg-transparent text-t-secondary transition-all duration-150 focus:outline-none hover:border-[color:color-mix(in_srgb,var(--color-border-2)_72%,transparent)] hover:bg-fill-3 hover:text-[rgb(var(--primary-6))] focus:border-[color:color-mix(in_srgb,var(--color-border-2)_72%,transparent)] focus:bg-fill-3 focus:text-[rgb(var(--primary-6))]',

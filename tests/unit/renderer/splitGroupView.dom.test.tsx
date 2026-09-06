@@ -27,11 +27,12 @@ import {
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 
-const { layoutState, closePreviewIfScopeChanged, mountCounts, markAsRead } = vi.hoisted(() => ({
+const { layoutState, closePreviewIfScopeChanged, mountCounts, markAsRead, minimapClicks } = vi.hoisted(() => ({
   layoutState: { isMobile: false },
   closePreviewIfScopeChanged: vi.fn(),
   mountCounts: new Map<string, number>(),
   markAsRead: vi.fn(),
+  minimapClicks: [] as string[],
 }));
 
 vi.mock('@/renderer/pages/cron', () => ({ useCronJobsMap: () => ({ markAsRead }) }));
@@ -58,7 +59,9 @@ const { reorderMembersMock } = vi.hoisted(() => ({ reorderMembersMock: vi.fn(asy
 vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations', () => ({
   useSplitGroupMutations: () => ({ reorderMembers: reorderMembersMock, removeMember: vi.fn() }),
 }));
-vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
+vi.mock('@/renderer/pages/split/SplitGroupColumn', async () => {
+  // The real mark the minimap trigger carries, so the stub and the view agree.
+  const { COLUMN_DRAG_IGNORE_PROPS } = await import('@/renderer/pages/conversation/hooks/chatColumnContext');
   const Column: React.FC<{
     group: SplitGroup;
     member: TChatConversation;
@@ -91,6 +94,13 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
               onKeyDown={headerDragHandle.onKeyDown}
             />
             <input data-testid={`split-column-input-${member.id}`} />
+            <span
+              role='button'
+              tabIndex={0}
+              data-testid={`split-column-minimap-${member.id}`}
+              {...COLUMN_DRAG_IGNORE_PROPS}
+              onClick={() => minimapClicks.push(member.id)}
+            />
           </div>
         )}
         {member.name}
@@ -129,6 +139,7 @@ beforeEach(() => {
   closePreviewIfScopeChanged.mockClear();
   markAsRead.mockClear();
   mountCounts.clear();
+  minimapClicks.length = 0;
 });
 
 afterEach(() => {
@@ -760,6 +771,51 @@ describe('SplitGroupView column reorder', () => {
       expect(columnOrder()).toBe('a|b|c');
       expect(reorderMembersMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('leaves a press on the minimap trigger to the trigger: a move is not a drag, and its click still fires', () => {
+    withFrameRects(() => {
+      render(<SplitGroupView group={trio} />);
+      const header = screen.getByTestId('split-column-header-c');
+      const trigger = screen.getByTestId('split-column-minimap-c');
+      fireEvent.pointerDown(trigger, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(trigger, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(header.getAttribute('data-dragging')).toBe('false');
+      expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBeNull();
+      fireEvent.pointerUp(trigger, { pointerId: 1, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      fireEvent.click(trigger);
+      expect(minimapClicks).toEqual(['c']);
+      expect(columnOrder()).toBe('a|b|c');
+      expect(reorderMembersMock).not.toHaveBeenCalled();
+      // The header beside it is still the drag.
+      fireEvent.pointerDown(header, { pointerId: 2, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+      fireEvent.pointerMove(header, { pointerId: 2, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(header.getAttribute('data-dragging')).toBe('true');
+      fireEvent.pointerUp(header, { pointerId: 2, pointerType: 'mouse', clientX: 100, clientY: 20 });
+      expect(columnOrder()).toBe('c|a|b');
+    });
+  });
+
+  it('leaves a finger held on the minimap trigger to the trigger: no drag after the hold, and its tap still fires', () => {
+    vi.useFakeTimers();
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        const trigger = screen.getByTestId('split-column-minimap-c');
+        fireEvent.pointerDown(trigger, { pointerId: 7, pointerType: 'touch', clientX: 1000, clientY: 20 });
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+        expect(header.getAttribute('data-dragging')).toBe('false');
+        fireEvent.pointerUp(trigger, { pointerId: 7, pointerType: 'touch', clientX: 1000, clientY: 20 });
+        fireEvent.click(trigger);
+        expect(minimapClicks).toEqual(['c']);
+        expect(reorderMembersMock).not.toHaveBeenCalled();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('lets a cancelled pointer go without a drop', () => {

@@ -193,6 +193,23 @@ describe('ChatLayout header as the column drag handle', () => {
     expect(title.className).not.toMatch(/border|shadow/);
   });
 
+  it('marks the minimap trigger inside the activator as its own press, and nothing else', () => {
+    const h = handle();
+    renderHeader(true, false, h);
+    const title = screen.getByTestId('chat-header-title');
+    const trigger = title.querySelector('.conversation-minimap-trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger).toHaveAttribute('role', 'button');
+    expect(trigger).toHaveAttribute('data-column-drag', 'ignore');
+    // The activator still hears the press; the view is what reads the mark off the target.
+    fireEvent.pointerDown(trigger as Element);
+    expect(h.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(h.onPointerDown.mock.calls[0][0].target).toBe(trigger);
+    // The title and the grip are the drag: unmarked.
+    expect(screen.getByTestId('chat-title-editor-trigger')).not.toHaveAttribute('data-column-drag');
+    expect(screen.getByTestId('chat-header-grip')).not.toHaveAttribute('data-column-drag');
+  });
+
   it('hands Alt+Arrow on the grip to the handle', () => {
     const h = handle();
     renderHeader(true, false, h);

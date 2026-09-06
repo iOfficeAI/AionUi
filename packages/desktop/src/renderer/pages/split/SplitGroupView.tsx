@@ -14,6 +14,7 @@ import {
   setFocusedProject,
   useFocusedConversationId,
 } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
+import { COLUMN_DRAG_IGNORE_SELECTOR } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
@@ -213,10 +214,17 @@ const ANNOUNCEMENT_MS = 2000;
 /** The gap between emptying the live region and saying the same words again, so they count as new. */
 const ANNOUNCEMENT_REPEAT_MS = 50;
 
-/** A press that starts inside a text field is the field's own: typing, selecting, placing the caret. */
-const startsInTextField = (target: EventTarget | null): boolean =>
+/**
+ * A press that starts inside a text field is the field's own (typing,
+ * selecting, placing the caret), and so is one on a control the header has
+ * marked as its own — the minimap's search trigger. Neither becomes a drag,
+ * so the click that ends it still reaches the control.
+ */
+const startsOnAnotherControl = (target: EventTarget | null): boolean =>
   target instanceof Element &&
-  target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])') !== null;
+  target.closest(
+    `input, textarea, select, [contenteditable]:not([contenteditable="false"]), ${COLUMN_DRAG_IGNORE_SELECTOR}`
+  ) !== null;
 
 /**
  * The columns in the order the group has them, and the reorder gesture over
@@ -385,7 +393,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     (conversation_id: string, event: React.PointerEvent<HTMLElement>) => {
       if (event.pointerType !== 'touch' && event.button !== 0) return;
       if (drag.current) return;
-      if (startsInTextField(event.target)) return;
+      if (startsOnAnotherControl(event.target)) return;
       const element = event.currentTarget;
       const current: HeaderDrag = {
         id: conversation_id,

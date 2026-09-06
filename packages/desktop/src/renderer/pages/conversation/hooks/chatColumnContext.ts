@@ -23,6 +23,17 @@ export type ColumnHeaderDragHandle = {
   onKeyDown?: (event: React.KeyboardEvent<HTMLElement>) => void;
 };
 
+/**
+ * Spread onto an interactive descendant of the header's title area whose
+ * press is its own — the minimap's search trigger — so a pointer-down there
+ * never becomes a column drag and the click that ends it still fires. Text
+ * fields need no mark: a press inside one is always the field's. The title
+ * and the grip are not marked: they are the drag.
+ */
+export const COLUMN_DRAG_IGNORE_PROPS = { 'data-column-drag': 'ignore' } as const;
+/** Matches an element carrying `COLUMN_DRAG_IGNORE_PROPS`, for the view's own check. */
+export const COLUMN_DRAG_IGNORE_SELECTOR = '[data-column-drag="ignore"]';
+
 export type ChatColumnContextValue = {
   /**
    * Is this column the active one, so its composer may take the keyboard
