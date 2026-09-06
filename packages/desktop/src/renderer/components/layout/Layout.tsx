@@ -567,7 +567,11 @@ const Layout: React.FC<{
                       lineStyle: { width: '2px' },
                     })}
                   <div className='h-full w-full overflow-hidden'>
-                    {isPreviewOpen ? <PreviewPanel /> : <PanelEmptyState testId='preview-region-empty-state' />}
+                    {isPreviewOpen ? (
+                      <PreviewPanel />
+                    ) : (
+                      <PanelEmptyState testId='preview-region-empty-state' onClose={closePreviewOnRouteChange} />
+                    )}
                   </div>
                 </div>
               )}

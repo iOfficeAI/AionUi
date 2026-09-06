@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { fireEvent, render, screen, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Stub the heavy tree; the column test only covers host chrome (gating, collapse).
@@ -15,6 +15,7 @@ vi.mock('@/renderer/pages/conversation/explorer/ExplorerContainer', () => ({
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 import { ProjectPanelHost } from '@/renderer/components/layout/ProjectPanelHost';
+import { PanelEmptyState } from '@/renderer/pages/conversation/Preview/components/PanelEmptyState';
 import {
   setCurrentProject,
   resetCurrentProjectForTest,
@@ -94,5 +95,28 @@ describe('ProjectPanelHost held open while empty', () => {
   it('still renders nothing by default', () => {
     render(<ProjectPanelHost widthPx={260} collapsed={false} />);
     expect(document.querySelector('[data-explorer-column]')).toBeNull();
+  });
+});
+
+/**
+ * A held-open panel has to be dismissable from the column that has nothing in
+ * it, or the user is stuck with an empty panel until they find a column that
+ * has a tab to close.
+ */
+describe('PanelEmptyState', () => {
+  it('offers a close when given one, labelled as the preview close, and calls it', () => {
+    const onClose = vi.fn();
+    render(<PanelEmptyState testId='empty' onClose={onClose} />);
+    const close = screen.getByTestId('empty-close');
+    expect(close.tagName).toBe('BUTTON');
+    expect(close).toHaveAttribute('aria-label', 'preview.closePreview');
+    fireEvent.click(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no close where there is nothing to close — the empty explorer column', () => {
+    render(<ProjectPanelHost widthPx={260} collapsed={false} keepMountedWhileEmpty />);
+    expect(screen.getByTestId('project-panel-empty-state')).toBeInTheDocument();
+    expect(screen.queryByTestId('project-panel-empty-state-close')).not.toBeInTheDocument();
   });
 });
