@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import {
   chatAreaDropId,
+  dropActionHighlightsTarget,
   pickRowInGap,
   resolveConversationDropAction,
   resolveDropIntent,
@@ -296,6 +297,29 @@ describe('resolveConversationDropAction', () => {
         pinnedIds: [],
       })
     ).toEqual({ type: 'none', reason: 'unknown-group' });
+  });
+});
+
+describe('dropActionHighlightsTarget', () => {
+  it('lights the target only for an action that would use it', () => {
+    expect(dropActionHighlightsTarget({ type: 'create-group', target_id: 'z', dragged_id: 'a' })).toBe(true);
+    expect(dropActionHighlightsTarget({ type: 'add-member', group_id: 'g1', dragged_id: 'a' })).toBe(true);
+    expect(
+      dropActionHighlightsTarget({
+        type: 'move-member',
+        from_group_id: 'g1',
+        dragged_id: 'm1',
+        to: { kind: 'conversation', conversation_id: 'z' },
+      })
+    ).toBe(true);
+    expect(dropActionHighlightsTarget({ type: 'reorder-pinned', active_id: 'a', over_id: 'b' })).toBe(true);
+  });
+
+  it('lights nothing while a member is leaving, or while a release would do nothing', () => {
+    // Beside a block, the block must not say "drop here" while the ghost says "take it out".
+    expect(dropActionHighlightsTarget({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' })).toBe(false);
+    expect(dropActionHighlightsTarget({ type: 'none', reason: 'between' })).toBe(false);
+    expect(dropActionHighlightsTarget({ type: 'none', reason: 'self' })).toBe(false);
   });
 });
 
