@@ -171,6 +171,7 @@ describe('ChatLayout header as the column drag handle', () => {
     renderHeader(true, false, h);
     const title = screen.getByTestId('chat-header-title');
     expect(title.className).toContain('cursor-grab');
+    expect(title.className).toContain('select-none');
     expect(title.style.touchAction).toBe('manipulation');
     fireEvent.pointerDown(title);
     expect(h.onPointerDown).toHaveBeenCalledTimes(1);
@@ -202,5 +203,10 @@ describe('ChatLayout header as the column drag handle', () => {
   it('gives a conversation on its own no grip and no activator', () => {
     renderHeader(false);
     expect(screen.queryByTestId('chat-header-grip')).toBeNull();
+  });
+
+  it('leaves a column without a handle selectable', () => {
+    renderHeader(true, false);
+    expect(screen.getByTestId('chat-header-title').className).not.toContain('select-none');
   });
 });

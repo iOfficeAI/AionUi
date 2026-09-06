@@ -257,6 +257,9 @@ const ChatLayout: React.FC<{
           onPointerDown={headerDragHandle?.onPointerDown}
           onClickCapture={headerDragHandle?.onClickCapture}
           className={classNames('group/title h-full min-w-0 flex items-center gap-4px rd-4px transition-colors', {
+            // A grab must not paint the title as selected text on its way out;
+            // the rename field keeps its own selection.
+            'select-none [&_input]:select-text': headerDragHandle,
             'cursor-grab': headerDragHandle && !headerDragHandle.isDragging,
             'cursor-grabbing bg-[rgba(var(--primary-6),0.08)]': headerDragHandle?.isDragging,
           })}
