@@ -116,12 +116,9 @@ export const resolveConversationDropAction = ({
     if (!target) return { type: 'remove-member', group_id: sourceGroup.id, dragged_id };
     // Beside anything — a plain row, a block, a row inside one — is not a fuse
     // either, whatever it is beside and whether or not anything there can be
-    // reordered: the member still leaves. So is a "between" band on a plain
-    // row. Only a release *onto* a target moves it.
-    if (
-      inGap ||
-      (target.kind === 'conversation' && intent !== 'onto' && !findSplitGroupOf(groups, target.conversation_id))
-    ) {
+    // reordered: the member still leaves. So is a "between" band on any row.
+    // Only a release *onto* a target moves it.
+    if (inGap || (target.kind === 'conversation' && intent !== 'onto')) {
       return { type: 'remove-member', group_id: sourceGroup.id, dragged_id };
     }
     if (target.kind === 'split_group') {

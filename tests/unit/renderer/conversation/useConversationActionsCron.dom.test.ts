@@ -537,6 +537,45 @@ describe('a batch that fails to take the survivor lands the user on it', () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
+  it('stays put when the user went elsewhere while the batch was settling', async () => {
+    // The route is read when the results are in, not captured when the batch starts.
+    let rerender: (() => void) | null = null;
+    archiveMock.mockImplementation(async ({ item_id }: { item_id: string }) => {
+      if (item_id === 'member-b') {
+        routeState.groupId = 'some-other-group';
+        rerender?.();
+        throw new Error('backend refused');
+      }
+      return true;
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const view = renderHook(() =>
+        useConversationActions({
+          batchMode: false,
+          selectedConversationIds: new Set(['member-a', 'member-b']),
+          setSelectedConversationIds: vi.fn(),
+          toggleSelectedConversation: vi.fn(),
+          markAsRead: vi.fn(),
+          markManualUnread: vi.fn(),
+          clearManualUnread: vi.fn(),
+          isManualUnread: () => false,
+        })
+      );
+      rerender = () => act(() => view.rerender());
+      await act(async () => {
+        view.result.current.handleBatchArchive();
+        await Promise.resolve();
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(navigateMock).not.toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+
   it('stays put when the open route is not that group', async () => {
     routeState.groupId = 'some-other-group';
     archiveMock.mockImplementation(async ({ item_id }: { item_id: string }) => {

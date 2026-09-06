@@ -12,7 +12,7 @@ import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -60,6 +60,10 @@ export const useConversationActions = ({
   const [renameLoading, setRenameLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
   const { id, groupId } = useParams();
+  // Read at settlement, not captured when the batch starts: the user may have
+  // gone elsewhere while it settled, and must not be pulled back.
+  const groupIdRef = useRef(groupId);
+  groupIdRef.current = groupId;
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useLayoutContext()?.isMobile ?? false;
@@ -211,14 +215,15 @@ export const useConversationActions = ({
    */
   const landOnSurvivorLeftBehind = useCallback(
     (survivorsLeftBehind: Map<string, string>, ids: string[], results: PromiseSettledResult<void>[]) => {
-      if (!groupId) return;
-      const survivor = survivorsLeftBehind.get(groupId);
+      const openGroup = groupIdRef.current;
+      if (!openGroup) return;
+      const survivor = survivorsLeftBehind.get(openGroup);
       if (!survivor) return;
       const outcome = results[ids.indexOf(survivor)];
       if (outcome?.status !== 'rejected') return;
       void navigate(`/conversation/${survivor}`, { replace: true });
     },
-    [groupId, navigate]
+    [navigate]
   );
 
   /**

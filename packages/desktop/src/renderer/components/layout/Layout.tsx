@@ -189,9 +189,12 @@ const Layout: React.FC<{
   const currentProject = useCurrentProject();
   const { containerRef: mainRowRef, containerWidth: mainRowWidth } = useContainerWidth();
   const explorerActive = Boolean(currentProject) && !isMobile;
+  // The clamp reserves the preview's space whenever the region is on screen —
+  // held open on a split route as much as open — or resizing the explorer
+  // with the hold active could squeeze the chat below its minimum.
   const { widthPx: explorerWidthPx, createDragHandle: createExplorerDragHandle } = useProjectExplorerColumnWidth(
     mainRowWidth,
-    isPreviewOpen,
+    isPreviewOpen || previewHeldOpenOnSplit,
     explorerActive
   );
   // P3: host-level collapse (project-scoped on desktop; overlay on mobile). The

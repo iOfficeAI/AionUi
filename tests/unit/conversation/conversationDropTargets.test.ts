@@ -220,6 +220,24 @@ describe('resolveConversationDropAction', () => {
     ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
   });
 
+  it('takes a member out of its group when it lands in a "between" band of any row, grouped or not', () => {
+    // A dragged member has bands on every row: the 2px gap alone is too
+    // narrow to be the only way out of a group.
+    expect(
+      resolveConversationDropAction({ dragged_id: 'm1', target: row('z'), intent: 'before', groups, pinnedIds: [] })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+    const two: SplitGroup[] = [...groups, { id: 'g2', members: [member('n1', 'g2', 0), member('n2', 'g2', 1)] }];
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: row('n2'),
+        intent: 'after',
+        groups: two,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
   it('does nothing with a plain row released in the gap beside a block or beside one of its members', () => {
     expect(
       resolveConversationDropAction({

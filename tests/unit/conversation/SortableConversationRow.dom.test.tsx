@@ -151,3 +151,17 @@ describe('SortableConversationRow', () => {
     }
   });
 });
+
+/**
+ * The droppable wrapper sits between the row and its siblings, so it has to
+ * carry the list's row spacing: otherwise rows touch and there is no gap for a
+ * group member to be dropped into.
+ */
+describe('droppable wrappers keep the row spacing', () => {
+  it('gives the sortable wrapper the sibling-margin rule', () => {
+    renderRow();
+    const wrapper = screen.getByTestId('conversation-drag-handle-conv-1').closest('.chat-history__item')?.parentElement;
+    expect(wrapper?.className).toContain('conversation-item');
+    expect(wrapper?.className).toContain('mt-2px');
+  });
+});
