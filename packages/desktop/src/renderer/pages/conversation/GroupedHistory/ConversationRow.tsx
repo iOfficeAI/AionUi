@@ -189,7 +189,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   // spinner keeps the resting slot and the handle keeps the hover slot; the
   // badge below carries the "still working" signal while the handle is up, so
   // the two never contend for the same place.
-  const showLeadingOverlay = !batchMode && !isMobile;
+  //
+  // Whether the row is a drag source at all is the list's decision (it asks the
+  // pointer, not the viewport); a narrow window still gets the overlay, so a
+  // handle it was handed is never left with nowhere to show.
+  const showLeadingOverlay = !batchMode;
   const leadingOverlay = dragHandle ?? (isPinned ? <Pushpin theme='outline' size='14' /> : null);
   const leadingFade = showLeadingOverlay && leadingOverlay ? 'group-hover:opacity-0 transition-opacity' : undefined;
 
