@@ -884,6 +884,14 @@ describe('runSplitGroupMutation: reorder', () => {
     ]);
   });
 
+  it('refuses an empty sequence, writing nothing', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) });
+    await expect(runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: [] }, deps)).rejects.toThrow(
+      /names no member/
+    );
+    expect(writes).toEqual([]);
+  });
+
   it('refuses a sequence that names a member twice, writing nothing', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), c: row('c', tag('g', 2)) });
     await expect(

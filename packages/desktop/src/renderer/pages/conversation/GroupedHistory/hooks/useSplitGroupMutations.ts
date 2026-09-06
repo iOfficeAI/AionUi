@@ -345,6 +345,7 @@ export const runSplitGroupMutation = async (
     // since the drag started) keeps the tail in the order they had.
     // A sequence that names a member twice is not an order; nothing of it is
     // written, and the refusal is loud like every other one on this boundary.
+    if (mutation.order.length === 0) throw new Error(`reorder of group ${mutation.group_id} names no member`);
     if (new Set(mutation.order).size !== mutation.order.length) {
       throw new Error(`reorder of group ${mutation.group_id} names a member twice: ${mutation.order.join(', ')}`);
     }
