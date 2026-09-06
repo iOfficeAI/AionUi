@@ -393,6 +393,14 @@ describe('runSplitGroupMutation: rename', () => {
       expect(writes.slice(2)).toEqual([['a', tag('g', 0)]]);
     }));
 
+  it('refuses to name one leftover tag, which is not a group', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)) });
+    await expect(runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps)).rejects.toThrow(
+      /no longer exists/
+    );
+    expect(writes).toEqual([]);
+  });
+
   it('refuses to name a group nobody carries', async () => {
     const { deps } = makeDeps({ a: row('a') });
     await expect(runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps)).rejects.toThrow(
@@ -570,7 +578,7 @@ describe('runSplitGroupMutation: a group keeps its name when someone leaves it',
     expect(writes).toEqual([['a', null]]);
   });
 
-  it('leaves the survivors alone when the count could not be read whole', async () =>
+  it('still holds the survivors it could read to the name when the count is short', async () =>
     silenced(async () => {
       const { deps, writes } = makeDeps(
         {
@@ -581,10 +589,30 @@ describe('runSplitGroupMutation: a group keeps its name when someone leaves it',
         { incomplete: true }
       );
       await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
-      // A short count cannot say who the members that stay are, so it repairs
-      // nobody rather than repairing them towards a name it half-read.
-      expect(writes).toEqual([['a', null]]);
+      // The carrier is leaving. Left alone, readers would take the name from
+      // whichever member is first now — none — and the group would lose its
+      // name because someone walked out. The read survivors are held to it;
+      // any the count missed are put back in step by the next complete write.
+      expect(writes).toEqual([
+        ['a', null],
+        ['b', { id: 'g', order: 1, name: 'Research' }],
+        ['c', { id: 'g', order: 2, name: 'Research' }],
+      ]);
     }));
+
+  it('says so when it could only hold the name among the survivors it read', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { deps } = makeDeps(
+        { a: row('a', { id: 'g', order: 0, name: 'Research' }), b: row('b', tag('g', 1)), c: row('c', tag('g', 2)) },
+        { incomplete: true }
+      );
+      await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('its name was held only among b, c'));
+    } finally {
+      error.mockRestore();
+    }
+  });
 
   it('has nothing to hold when the group dissolves', async () => {
     const { deps, writes } = makeDeps({
@@ -790,6 +818,20 @@ describe('runSplitGroupMutation: joining a group that could not be read whole', 
       { incomplete: true }
     );
     await expect(runSplitGroupMutation({ type: 'create', target_id: 'a', dragged_id: 'b' }, deps)).rejects.toThrow(
+      /could not be read whole/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('propagates no name at all when the count that would supply it is short', async () => {
+    // The member the count missed is the one carrying the name; the members it
+    // did read carry a stale one. Nothing is inherited and nothing is repaired,
+    // because nothing is written: the join is refused before the name matters.
+    const { deps, writes } = makeDeps(
+      { b: row('b', { id: 'g', order: 1, name: 'Old' }), c: row('c', { id: 'g', order: 2, name: 'Old' }), z: row('z') },
+      { incomplete: true }
+    );
+    await expect(runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps)).rejects.toThrow(
       /could not be read whole/
     );
     expect(writes).toEqual([]);

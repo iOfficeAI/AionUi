@@ -306,12 +306,15 @@ export const runSplitGroupMutation = async (
 
   if (mutation.type === 'rename') {
     const census = await readGroup(mutation.group_id, deps);
-    if (census.members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
     // Every member carries the name, so a rename is only a rename once it has
     // reached all of them. A count read short would name the members it could
     // see and report success, leaving the group disagreeing with itself — so
     // it refuses instead, loudly, the way the join paths do.
     if (!census.complete) throw new Error(`group ${mutation.group_id} could not be read whole`);
+    // A group is at least two members. One tag left behind by a dissolve is
+    // not a group to name; naming it would report success over a leftover
+    // that the next complete read is going to clear anyway.
+    if (census.members.length < 2) throw new Error(`group ${mutation.group_id} no longer exists`);
     census.members.forEach(remember);
     const name = normalizeSplitGroupName(mutation.name);
     const patches = reconcileNamePatches(census.members, name);
@@ -396,9 +399,15 @@ export const runSplitGroupMutation = async (
     }
     if (dissolved) {
       for (const member of staying) patches.push({ conversation_id: member.id, split_group: null });
-    } else if (source.complete) {
+    } else {
       // Same rule on the way out as on the way in: the group being left keeps
-      // the name it had, even when the member who carried it is the one going.
+      // the name it had, even when the member who carried it is the one going —
+      // and, as in a removal, a short count still holds the survivors it read.
+      if (!source.complete) {
+        console.error(
+          `[SplitGroup] Could not read every conversation of group ${mutation.from_group_id}; its name was held only among ${staying.map((member) => member.id).join(', ')}.`
+        );
+      }
       patches.push(...reconcileNamePatches(staying, readSplitGroupName(source.members)));
     }
     await applySplitGroupPatches(patches, previous, deps);
@@ -434,8 +443,20 @@ export const runSplitGroupMutation = async (
   // the group whatever the next one happens to carry. The name the group had
   // before this write is the name it keeps, and the members that stay are put
   // back in step with it here — a group does not get renamed by someone
-  // leaving it. Only a complete count can say who "the members that stay" are.
-  if (!dissolved && complete) patches.push(...reconcileNamePatches(remaining, readSplitGroupName(members)));
+  // leaving it. A short count cannot name every survivor, but it can still
+  // hold the ones it read to the name the group had: after any complete write
+  // every member agrees, so the name read from the lowest order on hand is the
+  // group's name, and leaving the read survivors alone would let the group
+  // rename itself the moment its carrier left. The unread ones are put back in
+  // step by the next complete write, and the short read is said out loud.
+  if (!dissolved) {
+    if (!complete) {
+      console.error(
+        `[SplitGroup] Could not read every conversation of group ${mutation.group_id}; its name was held only among ${remaining.map((member) => member.id).join(', ')}.`
+      );
+    }
+    patches.push(...reconcileNamePatches(remaining, readSplitGroupName(members)));
+  }
   await applySplitGroupPatches(patches, previous, deps);
   return { group_id: mutation.group_id, dissolved, survivor: dissolved ? (remaining[0]?.id ?? null) : null };
 };
