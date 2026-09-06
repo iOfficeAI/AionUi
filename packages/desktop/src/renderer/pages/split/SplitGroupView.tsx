@@ -210,6 +210,8 @@ type Point = { x: number; y: number };
 
 /** How long a reorder announcement stays in the live region before the next one may repeat it. */
 const ANNOUNCEMENT_MS = 2000;
+/** The gap between emptying the live region and saying the same words again, so they count as new. */
+const ANNOUNCEMENT_REPEAT_MS = 50;
 
 /** A press that starts inside a text field is the field's own: typing, selecting, placing the caret. */
 const startsInTextField = (target: EventTarget | null): boolean =>
@@ -264,7 +266,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   // write.
   const writeSerial = useRef(0);
   const commit = useCallback(
-    async (next: string[]): Promise<boolean> => {
+    async (next: string[]): Promise<{ landed: boolean; latest: boolean }> => {
       setOrder(next);
       const serial = ++writeSerial.current;
       let landed = false;
@@ -274,19 +276,41 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         // The queue reports its own failures; this catches a throw before it.
         console.error('[SplitGroup] reorder columns failed:', error);
       }
-      if (!landed && serial === writeSerial.current) setOrder(groupOrderRef.current);
-      return landed;
+      // Writes settle in the order they were queued, but a caller must not
+      // speak for an older one once a newer one is out.
+      const latest = serial === writeSerial.current;
+      if (!landed && latest) setOrder(groupOrderRef.current);
+      return { landed, latest };
     },
     [group.id, reorderMembers]
   );
 
   // A stale announcement must not swallow the next identical one: the same
-  // words twice are one change to a live region, so the region empties first.
+  // words twice are one change to a live region, so the region empties first
+  // — after a moment on its own, and at once when the same words come again.
+  const spoken = useRef('');
+  spoken.current = announcement;
+  const republish = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announce = useCallback((text: string) => {
+    if (republish.current) clearTimeout(republish.current);
+    if (spoken.current !== text) {
+      setAnnouncement(text);
+      return;
+    }
+    setAnnouncement('');
+    republish.current = setTimeout(() => setAnnouncement(text), ANNOUNCEMENT_REPEAT_MS);
+  }, []);
   useEffect(() => {
     if (!announcement) return;
     const timer = setTimeout(() => setAnnouncement(''), ANNOUNCEMENT_MS);
     return () => clearTimeout(timer);
   }, [announcement]);
+  useEffect(
+    () => () => {
+      if (republish.current) clearTimeout(republish.current);
+    },
+    []
+  );
 
   /** Which way the columns run, read when it matters: the locale can change under an open split. */
   const rightToLeft = useCallback(() => (ref.current ? columnsRunRightToLeft(ref.current) : false), [ref]);
@@ -339,7 +363,8 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     [commit, slotAt]
   );
   // The view may go while a pointer is down (the group dissolves, the route
-  // changes): the window listeners and the hold timer go with it.
+  // changes): the window listeners, the hold timer and the capture go with
+  // it. Nothing is rendered after this, so no state is touched.
   useEffect(() => () => drag.current?.cancel(), []);
 
   const handleHeaderPointerDown = useCallback(
@@ -358,7 +383,14 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         holdTimer: null,
         cancel: () => {
           cleanup();
-          endDrag(null);
+          if (current.active) {
+            try {
+              element.releasePointerCapture(current.pointerId);
+            } catch {
+              // Capture may already be gone.
+            }
+          }
+          drag.current = null;
         },
       };
       drag.current = current;
@@ -434,9 +466,11 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
       if (drag.current?.active) return;
       const next = moveColumn(orderRef.current, conversation_id, arrowStep(toward, rightToLeft()));
       if (next.join('|') === orderRef.current.join('|')) return;
-      // Said once the write has landed, or refused: not before.
-      void commit(next).then((landed) => {
-        setAnnouncement(
+      // Said once the write has landed, or refused: not before, and only for
+      // the newest write — an older one settling after it has nothing to add.
+      void commit(next).then(({ landed, latest }) => {
+        if (!latest) return;
+        announce(
           landed
             ? t('conversation.splitGroup.columnMoved', {
                 position: next.indexOf(conversation_id) + 1,
@@ -446,7 +480,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         );
       });
     },
-    [commit, rightToLeft, t]
+    [announce, commit, rightToLeft, t]
   );
 
   const members = order
