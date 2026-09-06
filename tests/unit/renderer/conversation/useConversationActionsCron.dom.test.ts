@@ -8,10 +8,12 @@ import type { TChatConversation } from '@/common/config/storage';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { navigateMock, requestPrefillMock, routeState } = vi.hoisted(() => ({
+const { navigateMock, requestPrefillMock, routeState, archiveMock, leaveOwnGroupMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   requestPrefillMock: vi.fn(),
   routeState: { id: 'current-conversation' as string | undefined },
+  archiveMock: vi.fn(async () => true),
+  leaveOwnGroupMock: vi.fn(async () => {}),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -35,8 +37,23 @@ vi.mock('@/common', () => ({
       remove: { invoke: vi.fn() },
       update: { invoke: vi.fn() },
     },
+    sidebar: { archive: { invoke: archiveMock } },
   },
 }));
+
+vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutations', () => ({
+  useSplitGroupMutations: () => ({ leaveOwnGroup: leaveOwnGroupMock }),
+  nextFocusNonce: () => 1,
+  splitGroupRoute: (group_id: string) => `/split/${group_id}`,
+}));
+
+// Arco's Message renders through the React 18 ReactDOM.render shim, which is
+// gone in React 19; the archive actions below are the only ones here that
+// reach it, and what they show is not what these tests are about.
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return { ...actual, Message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } };
+});
 
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   requestConversationSendBoxPrefill: requestPrefillMock,
@@ -124,4 +141,44 @@ describe('create scheduled task conversation action', () => {
       });
     }
   );
+});
+
+/**
+ * Archiving a split-group member used to leave its tag behind. The row left
+ * the active list, so the group showed one loaded member and folded back into
+ * a plain row — while the census, which counts archived rows, still saw two and
+ * refused both to dissolve the group and to let the survivor join another one.
+ * Every archive path now takes the conversation out of its group first, which
+ * turns that dead end into an ordinary removal.
+ */
+describe('archiving takes a conversation out of its split group first', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    routeState.id = 'current-conversation';
+  });
+
+  it('leaves the group before the row archives', async () => {
+    const conversation = makeConversation('member-a', 'acp');
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(conversation);
+    });
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a');
+    expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
+    // Order matters: archiving first would strand the tag on a row the active
+    // list can no longer show.
+    expect(leaveOwnGroupMock.mock.invocationCallOrder[0]).toBeLessThan(archiveMock.mock.invocationCallOrder[0]);
+  });
+
+  it('does the same for a conversation that is in no group — the write path decides, not the caller', async () => {
+    const conversation = makeConversation('loner', 'acp');
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(conversation);
+    });
+    // leaveOwnGroup is a no-op for an ungrouped row, so the caller never has to
+    // know which rows are members.
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('loner');
+    expect(archiveMock).toHaveBeenCalledTimes(1);
+  });
 });
