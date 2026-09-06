@@ -59,7 +59,7 @@ export const useConversationActions = ({
   const [renameModalId, setRenameModalId] = useState<string | null>(null);
   const [renameLoading, setRenameLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
-  const { id } = useParams();
+  const { id, groupId } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useLayoutContext()?.isMobile ?? false;
@@ -162,7 +162,14 @@ export const useConversationActions = ({
        * but a survivor that stays is exactly where the user should end up,
        * since the columns they were looking at are gone.
        */
-      { alsoArchiving = new Set<string>() }: { alsoArchiving?: ReadonlySet<string> } = {}
+      {
+        alsoArchiving = new Set<string>(),
+        survivorsLeftBehind,
+      }: {
+        alsoArchiving?: ReadonlySet<string>;
+        /** Where to note a survivor this archive chose not to follow, by the group it survived. */
+        survivorsLeftBehind?: Map<string, string>;
+      } = {}
     ): Promise<void> => {
       // Which step failed decides what the user is told, so it is carried on
       // the error rather than read back out of its text: an archive that fails
@@ -171,7 +178,13 @@ export const useConversationActions = ({
       // branch runs.
       let left = false;
       try {
-        left = await leaveOwnGroup(item_id, { moveToSurvivor: (survivor_id) => !alsoArchiving.has(survivor_id) });
+        left = await leaveOwnGroup(item_id, {
+          moveToSurvivor: (survivor_id, group_id) => {
+            if (!alsoArchiving.has(survivor_id)) return true;
+            survivorsLeftBehind?.set(group_id, survivor_id);
+            return false;
+          },
+        });
       } catch (error) {
         // The queue normally answers `false` rather than throwing, and has
         // already said so on screen when it does. Anything that gets past it is
@@ -186,6 +199,26 @@ export const useConversationActions = ({
       await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
     },
     [leaveOwnGroup, t]
+  );
+
+  /**
+   * A batch chose not to follow a dissolve onto its survivor because the batch
+   * was about to archive that survivor too. That decision was made before the
+   * survivor's own archive ran; if it then failed, the survivor is still there,
+   * the group's columns are gone, and the user is on a route for a group that
+   * no longer exists. Land them on the survivor after all — but only when the
+   * open route is that group's, and only when the survivor actually stayed.
+   */
+  const landOnSurvivorLeftBehind = useCallback(
+    (survivorsLeftBehind: Map<string, string>, ids: string[], results: PromiseSettledResult<void>[]) => {
+      if (!groupId) return;
+      const survivor = survivorsLeftBehind.get(groupId);
+      if (!survivor) return;
+      const outcome = results[ids.indexOf(survivor)];
+      if (outcome?.status !== 'rejected') return;
+      void navigate(`/conversation/${survivor}`, { replace: true });
+    },
+    [groupId, navigate]
   );
 
   /**
@@ -235,10 +268,12 @@ export const useConversationActions = ({
           // A dissolve moves the user onto the survivor only if the survivor is
           // not further down this very selection.
           const alsoArchiving = new Set(selectedIds);
+          const survivorsLeftBehind = new Map<string, string>();
           const results = await Promise.allSettled(
-            selectedIds.map((item_id) => archiveConversation(item_id, { alsoArchiving }))
+            selectedIds.map((item_id) => archiveConversation(item_id, { alsoArchiving, survivorsLeftBehind }))
           );
           emitter.emit('chat.history.refresh');
+          landOnSurvivorLeftBehind(survivorsLeftBehind, selectedIds, results);
           reportArchived(results);
         } catch (error) {
           console.error('Failed to batch archive conversations:', error);
@@ -252,7 +287,15 @@ export const useConversationActions = ({
       alignCenter: true,
       getPopupContainer: () => document.body,
     });
-  }, [archiveConversation, onBatchModeChange, reportArchived, selectedConversationIds, t, setSelectedConversationIds]);
+  }, [
+    archiveConversation,
+    landOnSurvivorLeftBehind,
+    onBatchModeChange,
+    reportArchived,
+    selectedConversationIds,
+    t,
+    setSelectedConversationIds,
+  ]);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -396,11 +439,14 @@ export const useConversationActions = ({
     try {
       // A group can span two folders; a survivor in the other folder stays,
       // and the user should land on it.
-      const alsoArchiving = new Set(archiveProjectTarget.conversations.map((c) => c.id));
+      const ids = archiveProjectTarget.conversations.map((c) => c.id);
+      const alsoArchiving = new Set(ids);
+      const survivorsLeftBehind = new Map<string, string>();
       const results = await Promise.allSettled(
-        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id, { alsoArchiving }))
+        ids.map((item_id) => archiveConversation(item_id, { alsoArchiving, survivorsLeftBehind }))
       );
       emitter.emit('chat.history.refresh');
+      landOnSurvivorLeftBehind(survivorsLeftBehind, ids, results);
       reportArchived(results);
       setArchiveProjectTarget(null);
     } catch (error) {
@@ -409,7 +455,7 @@ export const useConversationActions = ({
     } finally {
       setArchiveProjectLoading(false);
     }
-  }, [archiveConversation, archiveProjectTarget, reportArchived, t]);
+  }, [archiveConversation, archiveProjectTarget, landOnSurvivorLeftBehind, reportArchived, t]);
 
   const handleArchive = useCallback(
     async (conversation: TChatConversation) => {

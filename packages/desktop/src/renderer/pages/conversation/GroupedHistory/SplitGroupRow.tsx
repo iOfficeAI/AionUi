@@ -80,11 +80,15 @@ type SplitGroupMemberRowProps = {
  * The handle never shares a slot with anything, so a row that is working is
  * still grabbable — dragging a member out of the block is how it leaves the
  * group, and a busy conversation is exactly the one you want to move. It is
- * there in every layout the row has: beside the mark when the sidebar is
- * expanded, over the mark when the rail is collapsed (the way a plain row's
- * handle covers its icon), and regardless of how narrow the window is. The
- * only thing that takes it away is a pointer that cannot hover, because a
- * hover-revealed handle nobody can see would only steal the scroll gesture.
+ * there in every layout and on every device: beside the mark whether the
+ * sidebar is expanded or collapsed, however narrow the window, revealed by
+ * hover where there is a hover and pinned visible where there is not. Touch
+ * does not switch it off — the touch sensor waits for a hold before it drags,
+ * so a swipe that starts on the handle still scrolls.
+ *
+ * The collapsed rail has no title and no menu, so the mark is the control
+ * that opens the member there; it cannot also hold the remove button, so the
+ * x stands beside it — revealed by hover or focus, pinned where nothing hovers.
  */
 const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   member,
@@ -109,9 +113,10 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const [focusWithin, setFocusWithin] = useState(false);
   const engaged = hovered || focusWithin;
   const canHover = useCanHover();
-  // Width never decides this. The collapsed rail and a narrow window are
-  // layouts the handle has to fit into, not reasons to take it away.
-  const draggable = !batchMode && canHover;
+  // Neither width nor pointer decides this. The collapsed rail and a narrow
+  // window are layouts the handle has to fit into, and a finger is a pointer
+  // the sensors know how to wait for — not reasons to take the handle away.
+  const draggable = !batchMode;
   const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: member.id,
     disabled: !draggable,
@@ -122,9 +127,14 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   /** The row offers a menu only where there is room for one and something to put in it. */
   const menu = rowProps && !batchMode && !collapsed ? rowProps : null;
   const swapped = engaged && canHover && !collapsed && !batchMode && !isDragging;
-  /** In the rail the handle has no slot of its own, so it covers the mark while the pointer is on the row. */
-  const handleOverMark = draggable && collapsed;
-  const markHidden = swapped || (handleOverMark && (engaged || isDragging));
+  /**
+   * Where the x stands beside the row instead of replacing the mark: always
+   * where nothing can hover (a swap nobody can trigger is no control at all),
+   * and in the collapsed rail while the row is engaged, because the mark there
+   * is the opener and cannot also be the remove button.
+   */
+  const removeBesideSlot = !batchMode && (collapsed || !canHover);
+  const removeBeside = removeBesideSlot && (!canHover || engaged);
   const removeLabel = t('conversation.splitGroup.removeMember', { name });
 
   const remove = () => {
@@ -147,23 +157,26 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
     />
   );
 
-  // Only a PointerSensor is registered, so the handle can be grabbed but never
+  // Only pointer sensors are registered, so the handle can be grabbed but never
   // driven from the keyboard; it is a pointer affordance and is marked as one —
   // no tab stop, no role, hidden from assistive tech. The keyboard leaves a
-  // group through the remove button in the icon slot or the row's menu.
-  const dragHandle = (className: string, onClick?: (event: React.MouseEvent) => void) => (
+  // group through the remove button instead. `touch-action: manipulation`
+  // rather than `none`: the browser keeps panning from a touch that starts
+  // here, and the touch sensor only takes over once the finger has held still.
+  const handleShown = isDragging || engaged || !canHover;
+  const dragHandle = (
     <span
       ref={setActivatorNodeRef}
       {...listeners}
       aria-hidden='true'
       data-testid={`split-group-drag-handle-${member.id}`}
       className={classNames(
-        'flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
-        isDragging ? 'opacity-100 cursor-grabbing' : engaged ? 'opacity-100 cursor-grab' : 'opacity-0 cursor-grab',
-        className
+        'size-14px flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
+        isDragging ? 'cursor-grabbing' : 'cursor-grab',
+        handleShown ? 'opacity-100' : 'opacity-0'
       )}
-      style={{ lineHeight: 0, touchAction: 'none' }}
-      onClick={onClick}
+      style={{ lineHeight: 0, touchAction: 'manipulation' }}
+      onClick={(event) => event.stopPropagation()}
     >
       <Drag theme='outline' size='12' fill='currentColor' />
     </span>
@@ -172,8 +185,8 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const mark = (
     <>
       <span
-        className={classNames('flex items-center justify-center size-full', markHidden && 'opacity-0')}
-        aria-hidden={markHidden}
+        className={classNames('flex items-center justify-center size-full', swapped && 'opacity-0')}
+        aria-hidden={swapped}
       >
         <ConversationLeadingIcon
           conversation={member}
@@ -183,7 +196,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
         />
       </span>
-      {unread && !markHidden && (
+      {unread && !swapped && (
         <span
           className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
           data-testid={`split-group-member-unread-${member.id}`}
@@ -193,16 +206,11 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         removeButton(
           'absolute inset-0 flex items-center justify-center rd-4px text-t-secondary hover:!text-t-primary transition-colors'
         )}
-      {/* The rail's handle sits over the mark, inside the opener. A click that
-          is not a drag falls through to the opener and opens the member: the
-          handle covers the only thing there is to click, so it cannot eat the
-          click the way the expanded row's handle does. */}
-      {handleOverMark && dragHandle('absolute inset-0 rd-4px bg-fill-3')}
     </>
   );
 
-  // The collapsed rail has no title, no remove button and no menu — the mark
-  // is all there is, so the mark is the control. Expanded, the title is the
+  // The collapsed rail has no title and no menu — the mark is what opens the
+  // member there, so the mark is the control. Expanded, the title is the
   // control and this stays a plain slot, because a button holding the remove
   // button would be a control inside a control again.
   const leadingSlot =
@@ -232,7 +240,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
       style={isDragging ? { opacity: 0.4 } : undefined}
       className={classNames(
         'group/member relative flex items-center h-28px rd-6px min-w-0 transition-colors',
-        collapsed ? 'justify-center px-0' : 'gap-6px ps-2px pe-6px',
+        collapsed ? 'justify-center gap-2px px-0' : 'gap-6px ps-2px pe-6px',
         // A primary wash, not a grey fill: over the block's own tint a
         // heavier grey would read as a second container.
         batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-[rgba(var(--primary-6),0.06)]'
@@ -257,7 +265,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         onOpen(member.id);
       }}
     >
-      {draggable && !collapsed && dragHandle('size-14px', (event) => event.stopPropagation())}
+      {draggable && dragHandle}
       {leadingSlot}
       {!collapsed &&
         (batchMode ? (
@@ -283,9 +291,9 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
             <span className='block w-full truncate text-start'>{name}</span>
           </Button>
         ))}
-      {!collapsed && !batchMode && !canHover && (
+      {removeBesideSlot && (
         <span className='size-18px flex items-center justify-center shrink-0'>
-          {removeButton('!size-18px !rd-4px !text-t-tertiary hover:!text-t-primary')}
+          {removeBeside && removeButton('!size-18px !rd-4px !text-t-tertiary hover:!text-t-primary')}
         </span>
       )}
       {/* The same "…" a plain row carries. Right-clicking the row opens the

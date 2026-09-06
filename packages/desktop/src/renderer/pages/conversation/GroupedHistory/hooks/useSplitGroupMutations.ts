@@ -603,7 +603,7 @@ export const useSplitGroupMutations = () => {
        * the caller knows which rows it is taking, and only the write knows who
        * survived, so the caller answers per survivor rather than up front.
        */
-      { moveToSurvivor = () => true }: { moveToSurvivor?: (survivor_id: string) => boolean } = {}
+      { moveToSurvivor = () => true }: { moveToSurvivor?: (survivor_id: string, group_id: string) => boolean } = {}
     ): Promise<boolean> => {
       const result = await enqueue('leave own group', { type: 'leave-own-group', conversation_id });
       // The queue turns a refused write into `null` and says so on screen. The
@@ -611,7 +611,7 @@ export const useSplitGroupMutations = () => {
       // cleared is exactly the dead end this call exists to prevent, and
       // reporting the archive as done would hide it.
       if (!result) return false;
-      if (result.group_id && result.survivor && moveToSurvivor(result.survivor)) {
+      if (result.group_id && result.survivor && moveToSurvivor(result.survivor, result.group_id)) {
         leaveDissolvedGroup(result.group_id, result);
       }
       return true;

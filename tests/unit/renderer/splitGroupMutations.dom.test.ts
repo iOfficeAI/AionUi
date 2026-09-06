@@ -1002,13 +1002,13 @@ describe('useSplitGroupMutations: a drop on the open chat area shows what it bui
     const asked: string[] = [];
     const { result } = renderHook(() => useSplitGroupMutations());
     await result.current.leaveOwnGroup('b', {
-      moveToSurvivor: (survivor_id) => {
-        asked.push(survivor_id);
+      moveToSurvivor: (survivor_id, group_id) => {
+        asked.push(`${survivor_id}@${group_id}`);
         return true;
       },
     });
-    // The caller is asked about the actual survivor, once it is known.
-    expect(asked).toEqual(['a']);
+    // The caller is asked about the actual survivor and the group it survived, once known.
+    expect(asked).toEqual(['a@g1']);
     await waitFor(() => expect(navigateMock).toHaveBeenCalledTimes(1));
     expect(navigateMock.mock.calls[0][0]).toBe('/conversation/a');
   });

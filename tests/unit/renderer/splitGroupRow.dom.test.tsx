@@ -264,11 +264,14 @@ describe('SplitGroupRow', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('hides the remove buttons in the collapsed rail, where there is no room, but keeps every grab handle', () => {
+  it("keeps every grab handle in the collapsed rail, and reveals only the engaged row's remove button", () => {
     renderPill({ collapsed: true });
-    engage('a');
     expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
     expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
+    engage('a');
+    expect(screen.getAllByTestId(/^split-group-remove-/).map((e) => e.getAttribute('data-testid'))).toEqual([
+      'split-group-remove-a',
+    ]);
   });
 
   it('keeps every grab handle in a narrow window — width is not a reason to take it away', () => {
@@ -280,12 +283,18 @@ describe('SplitGroupRow', () => {
     expect(screen.getByTestId('split-group-drag-handle-b').className).toContain('opacity-100');
   });
 
-  it('is not a drag source where the pointer cannot hover — a handle nobody can see would only hijack scrolling', () => {
+  it('pins the grab handle visible where the pointer cannot hover, next to the permanent remove button', () => {
+    // Touch does not switch dragging off — the drag provider's touch sensor
+    // waits for a hold — so the handle stays, and stays visible, because a
+    // hover-revealed handle is invisible to a finger.
     withPointer(false, () => {
       renderPill();
-      expect(screen.queryAllByTestId(/^split-group-drag-handle-/)).toHaveLength(0);
-      // The permanent remove button is the affordance there instead.
+      const handles = screen.getAllByTestId(/^split-group-drag-handle-/);
+      expect(handles).toHaveLength(3);
+      for (const handle of handles) expect(handle.className).toContain('opacity-100');
       expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(3);
+      // And it lets a touch scroll begin: the browser keeps panning from it.
+      expect(handles[0].style.touchAction).toBe('manipulation');
     });
   });
 
@@ -611,34 +620,68 @@ describe('SplitGroupRow collapsed rail', () => {
     expect(onOpen).toHaveBeenCalledWith(group, 'b');
   });
 
-  it('leaves one control per row and no nesting', () => {
+  it('leaves one control per row at rest and no nesting', () => {
     renderPill({ collapsed: true });
     const row = screen.getByTestId('split-group-member-b');
     expect(row.querySelectorAll('button')).toHaveLength(1);
     expect(row).not.toHaveAttribute('role');
-    // The grab handle lives inside the opener; it must not read as a second control.
+    // The grab handle is a pointer affordance; it must not read as a second control.
     expect(row.querySelectorAll('[role], [tabindex]')).toHaveLength(0);
   });
 
-  it('lays the grab handle over the mark, where a plain row keeps its own', () => {
+  it('gives the handle a slot of its own beside the opener, revealed with the row and kept off the mark', () => {
     renderPill({ collapsed: true });
     const opener = screen.getByTestId('split-group-open-b');
     const handle = screen.getByTestId('split-group-drag-handle-b');
-    expect(opener.contains(handle)).toBe(true);
+    expect(opener.contains(handle)).toBe(false);
     expect(handle.className).toContain('opacity-0');
     engage('b');
-    // Up on hover, covering the icon — the busy row's spinner included.
+    // Up on hover, and the mark — the busy row's spinner included — stays where it was.
     expect(handle.className).toContain('opacity-100');
-    expect(screen.getByTestId('leading-icon-b').parentElement?.className).toContain('opacity-0');
-    disengage('b');
     expect(screen.getByTestId('leading-icon-b').parentElement?.className).not.toContain('opacity-0');
   });
 
-  it('lets a click on the handle fall through to the opener — it covers the only thing there is to click', () => {
+  it('does not open the member from a click on the handle', () => {
     const { onOpen } = renderPill({ collapsed: true });
     fireEvent.click(screen.getByTestId('split-group-drag-handle-b'));
-    expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('reveals a remove button beside the mark on hover, as a sibling of the opener, and it removes', () => {
+    const { onOpen, onRemoveMember } = renderPill({ collapsed: true });
+    engage('b');
+    const remove = screen.getByTestId('split-group-remove-b');
+    const row = screen.getByTestId('split-group-member-b');
+    expect(screen.getByTestId('split-group-open-b').contains(remove)).toBe(false);
+    expect(row.querySelectorAll('button')).toHaveLength(2);
+    expect(row.querySelectorAll('button button, [role="button"] button')).toHaveLength(0);
+    fireEvent.click(remove);
+    expect(onRemoveMember).toHaveBeenCalledWith(group, 'b');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('reveals the remove button for the keyboard too: focus on the opener brings it up, and Tab reaches it', () => {
+    renderPill({ collapsed: true });
+    const opener = screen.getByTestId('split-group-open-b');
+    fireEvent.focus(opener);
+    const remove = screen.getByTestId('split-group-remove-b');
+    expect(remove.tagName).toBe('BUTTON');
+    // Moving focus onto the remove button keeps the row engaged, so it does not vanish under the focus.
+    fireEvent.blur(opener, { relatedTarget: remove });
+    fireEvent.focus(remove);
+    expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+    fireEvent.blur(remove, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-b')).toBeNull();
+  });
+
+  it('pins the remove button and the handle where the pointer cannot hover', () => {
+    withPointer(false, () => {
+      renderPill({ collapsed: true });
+      expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(3);
+      for (const handle of screen.getAllByTestId(/^split-group-drag-handle-/)) {
+        expect(handle.className).toContain('opacity-100');
+      }
+    });
   });
 
   it('has no handle while batch-selecting, where nothing is draggable', () => {

@@ -40,7 +40,9 @@ const DragHandle: React.FC<{
     className={`absolute inset-0 flex-center text-t-secondary transition-opacity ${
       isDragging ? 'opacity-100 cursor-grabbing' : 'opacity-0 group-hover:opacity-100 cursor-grab'
     }`}
-    style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'none' }}
+    // `manipulation`, not `none`: a swipe that starts on the handle must still
+    // scroll the list; the touch sensor only takes over after a hold.
+    style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'manipulation' }}
     onClick={(event) => event.stopPropagation()}
   >
     <Drag theme='outline' size='14' fill='currentColor' />
