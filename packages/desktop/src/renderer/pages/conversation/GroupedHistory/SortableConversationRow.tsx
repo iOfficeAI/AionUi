@@ -30,7 +30,18 @@ import type { ConversationDragSource, ConversationDropTarget } from './utils/con
 export const useSwallowClickAfterDrag = (isDragging: boolean): ((event: React.MouseEvent) => void) => {
   const dragged = useRef(false);
   useEffect(() => {
-    if (isDragging) dragged.current = true;
+    if (isDragging) {
+      dragged.current = true;
+      return;
+    }
+    // The click a drag ends with, if there is one, dispatches in the same task
+    // as the pointer-up that ended it. A drop somewhere else produces no click
+    // on the handle at all, so the latch must not wait for one: it is cleared
+    // as soon as that task is over, or it would eat the next unrelated click.
+    const timer = setTimeout(() => {
+      dragged.current = false;
+    }, 0);
+    return () => clearTimeout(timer);
   }, [isDragging]);
   return (event) => {
     if (!dragged.current) return;
