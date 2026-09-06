@@ -299,6 +299,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           getJobStatus={getJobStatus}
           onOpen={handleSplitGroupOpen}
           onRemoveMember={(target, member_id) => void removeSplitGroupMember(target.id, member_id)}
+          getMemberRowProps={getConversationRowProps}
         />
       );
     }

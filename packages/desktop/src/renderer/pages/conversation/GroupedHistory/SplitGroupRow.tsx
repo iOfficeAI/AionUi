@@ -7,16 +7,18 @@
 import type { TChatConversation } from '@/common/config/storage';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Tooltip } from '@arco-design/web-react';
-import { CloseSmall } from '@icon-park/react';
-import { useDroppable } from '@dnd-kit/core';
+import { Dropdown, Tooltip } from '@arco-design/web-react';
+import { CloseSmall, Drag } from '@icon-park/react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationLeadingIcon from './ConversationLeadingIcon';
 import type { CronJobStatus } from './ConversationLeadingIcon';
+import { ConversationRowMenu } from './ConversationRow';
 import { useConversationDrag } from './hooks/ConversationDragContext';
+import type { ConversationRowProps } from './types';
 import { splitGroupDropId } from './utils/conversationDropTargets';
 import type { SplitGroup } from './utils/splitGroupHelpers';
 
@@ -35,14 +37,228 @@ export type SplitGroupRowProps = {
   /** Open the group; `member_id` asks for that column to take the focus. */
   onOpen: (group: SplitGroup, member_id?: string) => void;
   onRemoveMember: (group: SplitGroup, member_id: string) => void;
+  /**
+   * The props a member's row would have as a plain sidebar row, so its
+   * right-click menu offers the same actions. Omitted means the member rows
+   * have no menu.
+   */
+  getMemberRowProps?: (member: TChatConversation) => ConversationRowProps;
+};
+
+type SplitGroupMemberRowProps = {
+  member: TChatConversation;
+  collapsed: boolean;
+  dimIcon: boolean;
+  batchMode: boolean;
+  isMobile: boolean;
+  isGenerating: boolean;
+  isWaitingConfirmation: boolean;
+  unread: boolean;
+  jobStatus: CronJobStatus;
+  onOpen: (member_id: string) => void;
+  onRemove: (member_id: string) => void;
+  rowProps?: ConversationRowProps;
 };
 
 /**
- * The sidebar block for a split group: one row per member — its leading
- * icon and its full title — with a × on each row, sitting where the group's
- * first member used to sit. The block is one unit: clicking any row opens
- * the columns with that member focused, the whole block is the drop target,
- * and × takes that member out of the group and nothing else.
+ * One member of a split group, laid out like a browser tab: a grab handle of
+ * its own, then the slot that carries the conversation's mark, then its title.
+ *
+ * The mark slot is the remove button while the pointer is on the row (or the
+ * keyboard is in it) and the conversation's icon — or its activity spinner —
+ * the rest of the time, the way a browser tab swaps its favicon for a x. That
+ * slot is the only remove button on a pointer device; a touch screen has no
+ * hover, so there it keeps a permanent place at the end of the row instead.
+ *
+ * The handle never shares a slot with anything, so a row that is working is
+ * still grabbable — dragging a member out of the block is how it leaves the
+ * group, and a busy conversation is exactly the one you want to move.
+ */
+const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
+  member,
+  collapsed,
+  dimIcon,
+  batchMode,
+  isMobile,
+  isGenerating,
+  isWaitingConfirmation,
+  unread,
+  jobStatus,
+  onOpen,
+  onRemove,
+  rowProps,
+}) => {
+  const { t } = useTranslation();
+  const [engaged, setEngaged] = useState(false);
+  const draggable = !batchMode && !collapsed;
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
+    id: member.id,
+    disabled: !draggable,
+    data: { kind: 'conversation', conversation_id: member.id },
+  });
+
+  const name = member.name || t('conversation.welcome.newConversation');
+  // The swap is a pointer affordance: a touch screen never hovers, so it would
+  // strand the remove button behind a gesture that does not exist there.
+  const swapped = engaged && !isMobile && !collapsed && !batchMode && !isDragging;
+  const removeLabel = t('conversation.splitGroup.removeMember', { name });
+
+  const remove = () => {
+    cleanupSiderTooltips();
+    onRemove(member.id);
+  };
+
+  const removeButton = (className: string) => (
+    <span
+      role='button'
+      tabIndex={0}
+      aria-label={removeLabel}
+      data-testid={`split-group-remove-${member.id}`}
+      className={className}
+      onClick={(event) => {
+        event.stopPropagation();
+        remove();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          remove();
+        }
+      }}
+    >
+      <CloseSmall theme='outline' size='12' fill='currentColor' />
+    </span>
+  );
+
+  const row = (
+    <div
+      ref={setNodeRef}
+      role='button'
+      tabIndex={batchMode ? -1 : 0}
+      aria-disabled={batchMode || undefined}
+      aria-label={t('conversation.splitGroup.focusMember', { name })}
+      data-testid={`split-group-member-${member.id}`}
+      style={isDragging ? { opacity: 0.4 } : undefined}
+      className={classNames(
+        'group/member relative flex items-center h-28px rd-6px min-w-0 transition-colors',
+        collapsed ? 'justify-center px-0' : 'gap-6px ps-2px pe-6px',
+        // A primary wash, not a grey fill: over the block's own tint a
+        // heavier grey would read as a second container.
+        batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-[rgba(var(--primary-6),0.06)]'
+      )}
+      onMouseEnter={() => setEngaged(true)}
+      onMouseLeave={() => setEngaged(false)}
+      onFocus={() => setEngaged(true)}
+      onBlur={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget)) return;
+        setEngaged(false);
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        cleanupSiderTooltips();
+        if (batchMode) return;
+        onOpen(member.id);
+      }}
+      onKeyDown={(event) => {
+        if (batchMode) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          cleanupSiderTooltips();
+          onOpen(member.id);
+        }
+      }}
+    >
+      {draggable && !isMobile && (
+        <span
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={t('conversation.splitGroup.dragMember', { name })}
+          data-testid={`split-group-drag-handle-${member.id}`}
+          className={classNames(
+            'size-14px flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
+            isDragging ? 'opacity-100 cursor-grabbing' : engaged ? 'opacity-100 cursor-grab' : 'opacity-0 cursor-grab'
+          )}
+          style={{ lineHeight: 0, touchAction: 'none' }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Drag theme='outline' size='12' fill='currentColor' />
+        </span>
+      )}
+      <span className='size-22px flex items-center justify-center shrink-0 relative'>
+        <span className={classNames('flex items-center justify-center', swapped && 'opacity-0')} aria-hidden={swapped}>
+          <ConversationLeadingIcon
+            conversation={member}
+            cronStatus={jobStatus}
+            isGenerating={isGenerating && !batchMode}
+            isWaitingConfirmation={isWaitingConfirmation && !batchMode}
+            className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
+          />
+        </span>
+        {unread && !swapped && (
+          <span
+            className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
+            data-testid={`split-group-member-unread-${member.id}`}
+          />
+        )}
+        {swapped &&
+          removeButton(
+            'absolute inset-0 flex items-center justify-center rd-4px cursor-pointer text-t-secondary hover:text-t-primary hover:bg-fill-3 transition-colors'
+          )}
+      </span>
+      {!collapsed && (
+        <span
+          className='chat-history__item-name flex-1 min-w-0 truncate text-14px font-[500] lh-24px text-t-primary'
+          data-testid={`split-group-title-${member.id}`}
+        >
+          {name}
+        </span>
+      )}
+      {!collapsed && !batchMode && isMobile && (
+        <span className='size-18px flex items-center justify-center shrink-0'>
+          {removeButton(
+            'flex items-center justify-center size-18px rd-4px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3'
+          )}
+        </span>
+      )}
+    </div>
+  );
+
+  // The two wrappers never both apply: the tooltip only speaks for a row whose
+  // title is hidden by the collapsed rail, and that rail has no room for a
+  // menu. Nesting one Arco trigger directly inside another stops the inner one
+  // from ever opening, so the row picks exactly one.
+  if (rowProps && !batchMode && !collapsed) {
+    return (
+      <Dropdown
+        droplist={<ConversationRowMenu {...rowProps} onRemoveFromSplit={() => onRemove(member.id)} />}
+        trigger='contextMenu'
+        position='br'
+        popupVisible={rowProps.menuVisible}
+        onVisibleChange={(visible) => rowProps.onMenuVisibleChange(member.id, visible)}
+        getPopupContainer={() => document.body}
+        unmountOnExit={false}
+      >
+        {row}
+      </Dropdown>
+    );
+  }
+  return (
+    <Tooltip content={name} position='right' disabled={!collapsed || isMobile}>
+      {row}
+    </Tooltip>
+  );
+};
+
+/**
+ * The sidebar block for a split group: one row per member — its grab handle,
+ * its leading icon and its full title — sitting where the group's first member
+ * used to sit. The block is one unit: clicking any row opens the columns with
+ * that member focused, the whole block is the drop target for a conversation
+ * joining the group, and a member leaves it through the remove button in its
+ * icon slot, its right-click menu, or by being dragged out.
  */
 const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   group,
@@ -57,111 +273,24 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   getJobStatus,
   onOpen,
   onRemoveMember,
+  getMemberRowProps,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { dropTarget } = useConversationDrag();
+  const { activeConversation, dropTarget } = useConversationDrag();
   const dropId = splitGroupDropId(group.id);
   const { setNodeRef } = useDroppable({
     id: dropId,
     disabled: batchMode,
     data: { kind: 'split_group', group_id: group.id },
   });
-  const dropTargeted = dropTarget?.id === dropId;
+  // One of this block's own members is being dragged: releasing here changes
+  // nothing, so the block must not offer itself as a target.
+  const draggingOwnMember = group.members.some((member) => member.id === activeConversation?.id);
+  const dropTargeted = dropTarget?.id === dropId && !draggingOwnMember;
   const names = group.members.map((member) => member.name || t('conversation.welcome.newConversation'));
   const label = t('conversation.splitGroup.tooltip', { names: names.join(' · ') });
-
-  const openMember = (member_id: string) => {
-    cleanupSiderTooltips();
-    if (batchMode) return;
-    onOpen(group, member_id);
-  };
-
-  const memberRow = (member: TChatConversation) => {
-    const name = member.name || t('conversation.welcome.newConversation');
-    const unread = hasUnread(member.id) && !isGenerating(member.id) && !isWaitingConfirmation(member.id);
-    return (
-      <Tooltip key={member.id} content={name} position='right' disabled={!collapsed || isMobile}>
-        <div
-          role='button'
-          tabIndex={batchMode ? -1 : 0}
-          aria-disabled={batchMode || undefined}
-          aria-label={t('conversation.splitGroup.focusMember', { name })}
-          data-testid={`split-group-member-${member.id}`}
-          className={classNames(
-            'group/member relative flex items-center h-28px rd-6px min-w-0 transition-colors',
-            collapsed ? 'justify-center px-0' : 'gap-8px ps-4px pe-6px',
-            // A primary wash, not a grey fill: over the block's own tint a
-            // heavier grey would read as a second container.
-            batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-[rgba(var(--primary-6),0.06)]'
-          )}
-          onClick={(event) => {
-            event.stopPropagation();
-            openMember(member.id);
-          }}
-          onKeyDown={(event) => {
-            if (batchMode) return;
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              event.stopPropagation();
-              openMember(member.id);
-            }
-          }}
-        >
-          <span className='size-22px flex items-center justify-center shrink-0 relative'>
-            <ConversationLeadingIcon
-              conversation={member}
-              cronStatus={getJobStatus(member.id)}
-              isGenerating={isGenerating(member.id) && !batchMode}
-              isWaitingConfirmation={isWaitingConfirmation(member.id) && !batchMode}
-              className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
-            />
-            {unread && (
-              <span
-                className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
-                data-testid={`split-group-member-unread-${member.id}`}
-              />
-            )}
-          </span>
-          {!collapsed && (
-            <span
-              className='chat-history__item-name flex-1 min-w-0 truncate text-14px font-[500] lh-24px text-t-primary'
-              data-testid={`split-group-title-${member.id}`}
-            >
-              {name}
-            </span>
-          )}
-          {!collapsed && !batchMode && (
-            <span
-              role='button'
-              tabIndex={0}
-              aria-label={t('conversation.splitGroup.removeMember', { name })}
-              data-testid={`split-group-remove-${member.id}`}
-              className={classNames(
-                'flex items-center justify-center size-18px rd-4px shrink-0 cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3 transition-opacity',
-                isMobile ? 'opacity-100' : 'opacity-0 group-hover/member:opacity-100 focus-visible:opacity-100'
-              )}
-              onClick={(event) => {
-                event.stopPropagation();
-                cleanupSiderTooltips();
-                onRemoveMember(group, member.id);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onRemoveMember(group, member.id);
-                }
-              }}
-            >
-              <CloseSmall theme='outline' size='12' fill='currentColor' />
-            </span>
-          )}
-        </div>
-      </Tooltip>
-    );
-  };
 
   return (
     <Tooltip {...getSiderTooltipProps(tooltipEnabled)} content={label} position='right' disabled={!collapsed}>
@@ -182,7 +311,11 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
             'cursor-pointer': !batchMode,
           }
         )}
-        onClick={() => {
+        onClick={(event) => {
+          // A member's menu is portalled to the body but still bubbles through
+          // this block in the React tree; a click inside it is not a click on
+          // the block, and must not open the group behind the menu.
+          if (!event.currentTarget.contains(event.target as Node)) return;
           cleanupSiderTooltips();
           if (batchMode) return;
           onOpen(group);
@@ -208,7 +341,23 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         )}
         {/* Indented under the header, so the block has an inside. */}
         <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-4px')}>
-          {group.members.map(memberRow)}
+          {group.members.map((member) => (
+            <SplitGroupMemberRow
+              key={member.id}
+              member={member}
+              collapsed={collapsed}
+              dimIcon={dimIcon}
+              batchMode={batchMode}
+              isMobile={isMobile}
+              isGenerating={isGenerating(member.id)}
+              isWaitingConfirmation={isWaitingConfirmation(member.id)}
+              unread={hasUnread(member.id) && !isGenerating(member.id) && !isWaitingConfirmation(member.id)}
+              jobStatus={getJobStatus(member.id)}
+              onOpen={(member_id) => onOpen(group, member_id)}
+              onRemove={(member_id) => onRemoveMember(group, member_id)}
+              rowProps={getMemberRowProps?.(member)}
+            />
+          ))}
         </div>
       </div>
     </Tooltip>

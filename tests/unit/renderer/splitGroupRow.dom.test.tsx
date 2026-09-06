@@ -5,11 +5,16 @@
  */
 
 /**
- * The split-group block in the sidebar: a labelled container with one leading
- * icon per member, one × per member, and three distinct clicks — the block
- * opens the group, a member row opens it with that member focused, a × removes
- * only that member. The container has to read as one group at a glance, so its
- * header line, its accent bar and its tint are part of the contract.
+ * The split-group block in the sidebar: a labelled container with one row per
+ * member, and three distinct clicks — the block opens the group, a member row
+ * opens it with that member focused, the remove button takes only that member
+ * out. The container has to read as one group at a glance, so its header line,
+ * its accent bar and its tint are part of the contract.
+ *
+ * A member row is a browser tab: its icon slot becomes the remove button while
+ * the pointer or the keyboard is on it, and its grab handle keeps a slot of its
+ * own so a working row is still draggable — the gesture that takes it out of
+ * the group.
  */
 
 import React from 'react';
@@ -37,7 +42,9 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/ConversationLeadingIcon', 
   ),
 }));
 
+import { ConversationRowMenu } from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
 import SplitGroupRow from '@/renderer/pages/conversation/GroupedHistory/SplitGroupRow';
+import type { ConversationRowProps } from '@/renderer/pages/conversation/GroupedHistory/types';
 import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
 
 const member = (id: string, order: number): TChatConversation =>
@@ -51,6 +58,10 @@ const member = (id: string, order: number): TChatConversation =>
   }) as TChatConversation;
 
 const group: SplitGroup = { id: 'g1', members: [member('a', 0), member('b', 1), member('c', 2)] };
+
+/** The pointer arriving on a member row, which is what reveals its remove button. */
+const engage = (id: string) => fireEvent.mouseEnter(screen.getByTestId(`split-group-member-${id}`));
+const disengage = (id: string) => fireEvent.mouseLeave(screen.getByTestId(`split-group-member-${id}`));
 
 const renderPill = (overrides: Partial<React.ComponentProps<typeof SplitGroupRow>> = {}) => {
   const onOpen = vi.fn();
@@ -144,13 +155,47 @@ describe('SplitGroupRow', () => {
     expect(open.className).not.toContain('bg-fill-3');
   });
 
-  it('renders one × per member, each naming its member', () => {
+  it('keeps the icon slot to itself until the row is engaged, then swaps it for the remove button', () => {
     renderPill();
-    expect(screen.getByTestId('split-group-remove-a')).toHaveAttribute(
-      'aria-label',
-      'conversation.splitGroup.removeMember:Conversation a'
-    );
-    expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(3);
+    expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+
+    engage('a');
+    const remove = screen.getByTestId('split-group-remove-a');
+    expect(remove).toHaveAttribute('aria-label', 'conversation.splitGroup.removeMember:Conversation a');
+    // Only the engaged row swaps: the block is not a row of × buttons.
+    expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(1);
+    // The icon it replaced is still mounted, just out of sight.
+    expect(screen.getByTestId('leading-icon-a').parentElement?.className).toContain('opacity-0');
+
+    disengage('a');
+    expect(screen.queryByTestId('split-group-remove-a')).toBeNull();
+    expect(screen.getByTestId('leading-icon-a').parentElement?.className).not.toContain('opacity-0');
+  });
+
+  it('swaps the slot for a row that is working too, and keeps its grab handle', () => {
+    renderPill();
+    // Member b is the generating one.
+    expect(screen.getByTestId('leading-icon-b')).toHaveAttribute('data-generating', 'true');
+    expect(screen.getByTestId('split-group-drag-handle-b')).toBeInTheDocument();
+
+    engage('b');
+    expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+    // The handle has a slot of its own, so it never contends with the spinner.
+    expect(screen.getByTestId('split-group-drag-handle-b')).toBeInTheDocument();
+  });
+
+  it('reveals the remove button for the keyboard too, and hides it again on the way out', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-c');
+    fireEvent.focus(row);
+    expect(screen.getByTestId('split-group-remove-c')).toBeInTheDocument();
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-c')).toBeNull();
+  });
+
+  it('gives every member a grab handle, so any of them can be dragged out', () => {
+    renderPill();
+    expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
   });
 
   it('passes each member its own live state', () => {
@@ -176,14 +221,16 @@ describe('SplitGroupRow', () => {
 
   it('removes only the clicked member and does not open the group', () => {
     const { onOpen, onRemoveMember } = renderPill();
+    engage('c');
     fireEvent.click(screen.getByTestId('split-group-remove-c'));
     expect(onRemoveMember).toHaveBeenCalledTimes(1);
     expect(onRemoveMember).toHaveBeenCalledWith(group, 'c');
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('hides the × buttons and ignores clicks while batch-selecting', () => {
+  it('hides the remove buttons and ignores clicks while batch-selecting', () => {
     const { onOpen } = renderPill({ batchMode: true });
+    engage('b');
     expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
     fireEvent.click(screen.getByTestId('split-group-row-g1'));
     fireEvent.click(screen.getByTestId('leading-icon-b'));
@@ -191,8 +238,58 @@ describe('SplitGroupRow', () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it('hides the × buttons in the collapsed rail', () => {
+  it('hides the remove buttons and the handles in the collapsed rail, where there is no room', () => {
     renderPill({ collapsed: true });
+    engage('a');
     expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+    expect(screen.queryAllByTestId(/^split-group-drag-handle-/)).toHaveLength(0);
+  });
+});
+
+/**
+ * A member row's right-click menu is the plain row's menu plus one item that
+ * only a member has any use for. Everything else a conversation can do it can
+ * still do from inside a split group.
+ */
+describe('SplitGroupRow member menu', () => {
+  const menuProps = (conversation: TChatConversation, menuVisible: boolean): ConversationRowProps =>
+    ({
+      conversation,
+      isGenerating: false,
+      isWaitingConfirmation: false,
+      hasUnread: false,
+      isManualUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible,
+      onToggleChecked: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: vi.fn(),
+      onEditStart: vi.fn(),
+      onCreateCronTask: vi.fn(),
+      onArchive: vi.fn(),
+      onTogglePin: vi.fn(),
+      onToggleManualUnread: vi.fn(),
+      getJobStatus: () => 'none',
+    }) as ConversationRowProps;
+
+  it('offers "remove from split" alongside the usual row actions, and removes that member', async () => {
+    const { onRemoveMember, onOpen } = renderPill({
+      getMemberRowProps: (conversation) => menuProps(conversation, conversation.id === 'b'),
+    });
+    expect(await screen.findByText('conversation.history.rename')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('conversation.splitGroup.removeFromSplit'));
+    expect(onRemoveMember).toHaveBeenCalledWith(group, 'b');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("leaves the item out of a plain row's menu, which has no group to leave", async () => {
+    render(<ConversationRowMenu {...menuProps(member('z', 0), true)} />);
+    expect(await screen.findByText('conversation.history.rename')).toBeInTheDocument();
+    expect(screen.queryByText('conversation.splitGroup.removeFromSplit')).toBeNull();
   });
 });
