@@ -96,6 +96,7 @@
     "blockLabel": "Bölme · {{count}}",
     "open": "Bölünmüş görünümü aç",
     "focusMember": "“{{name}}” sohbetini bölünmüş görünümde göster",
+    "memberActions": "“{{name}}” için eylemler",
     "removeMember": "“{{name}}” sohbetini bölünmüş görünümden çıkar",
     "removeFromSplit": "Bölünmüş görünümden kaldır",
     "dragToSplit": "Yan yana açmak için başka bir sohbetin üzerine sürükleyin",

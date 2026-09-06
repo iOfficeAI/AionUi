@@ -96,6 +96,7 @@
     "blockLabel": "تقسیم · {{count}}",
     "open": "باز کردن نمای تقسیم‌شده",
     "focusMember": "نمایش «{{name}}» در نمای تقسیم‌شده",
+    "memberActions": "اقدام‌ها برای «{{name}}»",
     "removeMember": "حذف «{{name}}» از نمای تقسیم‌شده",
     "removeFromSplit": "حذف از نمای تقسیم‌شده",
     "dragToSplit": "روی گفتگوی دیگری بکشید تا کنار هم باز شوند",

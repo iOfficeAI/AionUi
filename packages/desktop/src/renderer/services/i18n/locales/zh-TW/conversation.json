@@ -96,6 +96,7 @@
     "blockLabel": "分割 · {{count}}",
     "open": "開啟分割檢視",
     "focusMember": "在分割檢視中顯示「{{name}}」",
+    "memberActions": "「{{name}}」的操作",
     "removeMember": "將「{{name}}」移出分割檢視",
     "removeFromSplit": "移出分割檢視",
     "dragToSplit": "拖到另一個會話上可並排開啟",

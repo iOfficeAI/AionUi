@@ -8,7 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Dropdown, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, Drag } from '@icon-park/react';
+import { CloseSmall, Drag, MoreOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
 import React, { useState } from 'react';
@@ -98,6 +98,8 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   });
 
   const name = member.name || t('conversation.welcome.newConversation');
+  /** The row offers a menu only where there is room for one and something to put in it. */
+  const menu = rowProps && !batchMode && !collapsed ? rowProps : null;
   // The swap is a pointer affordance: a touch screen never hovers, so it would
   // strand the remove button behind a gesture that does not exist there.
   const swapped = engaged && !isMobile && !collapsed && !batchMode && !isDragging;
@@ -175,7 +177,14 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label={t('conversation.splitGroup.dragMember', { name })}
+          // Only a PointerSensor is registered, so the handle can be grabbed
+          // but never driven from the keyboard. Leaving it in the tab order
+          // gave keyboard users a stop that does nothing — worse, Enter on it
+          // bubbled to the row and opened the conversation. It is a pointer
+          // affordance and is now marked as one; the keyboard leaves a group
+          // through the remove button in the icon slot or the row's menu.
+          tabIndex={-1}
+          aria-hidden='true'
           data-testid={`split-group-drag-handle-${member.id}`}
           className={classNames(
             'size-14px flex items-center justify-center shrink-0 text-t-tertiary transition-opacity',
@@ -183,6 +192,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           )}
           style={{ lineHeight: 0, touchAction: 'none' }}
           onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
         >
           <Drag theme='outline' size='12' fill='currentColor' />
         </span>
@@ -223,6 +233,37 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           )}
         </span>
       )}
+      {/* The same "…" a plain row carries. Right-clicking the row opens the
+          same menu, but that gesture is pointer-only on macOS, and nothing on
+          the row said a menu existed at all — the actions behind it were out
+          of reach for anyone not using a mouse. */}
+      {menu && (
+        <span
+          role='button'
+          tabIndex={0}
+          aria-label={t('conversation.splitGroup.memberActions', { name })}
+          aria-haspopup='menu'
+          data-testid={`split-group-member-menu-${member.id}`}
+          className={classNames(
+            'flex items-center justify-center size-18px rd-4px shrink-0 cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3 transition-opacity',
+            isMobile || menu.menuVisible ? 'opacity-100' : engaged ? 'opacity-100' : 'opacity-0'
+          )}
+          onClick={(event) => {
+            event.stopPropagation();
+            cleanupSiderTooltips();
+            menu.onOpenMenu(member);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              menu.onOpenMenu(member);
+            }
+          }}
+        >
+          <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
+        </span>
+      )}
     </div>
   );
 
@@ -230,14 +271,14 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   // title is hidden by the collapsed rail, and that rail has no room for a
   // menu. Nesting one Arco trigger directly inside another stops the inner one
   // from ever opening, so the row picks exactly one.
-  if (rowProps && !batchMode && !collapsed) {
+  if (menu) {
     return (
       <Dropdown
-        droplist={<ConversationRowMenu {...rowProps} onRemoveFromSplit={() => onRemove(member.id)} />}
+        droplist={<ConversationRowMenu {...menu} onRemoveFromSplit={() => onRemove(member.id)} />}
         trigger='contextMenu'
         position='br'
-        popupVisible={rowProps.menuVisible}
-        onVisibleChange={(visible) => rowProps.onMenuVisibleChange(member.id, visible)}
+        popupVisible={menu.menuVisible}
+        onVisibleChange={(visible) => menu.onMenuVisibleChange(member.id, visible)}
         getPopupContainer={() => document.body}
         unmountOnExit={false}
       >
