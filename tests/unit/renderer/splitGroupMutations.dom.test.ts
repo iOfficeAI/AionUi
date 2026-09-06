@@ -1059,6 +1059,26 @@ describe('useSplitGroupMutations: a refused mutation is reported, not dropped', 
     }
   });
 
+  it('answers true for a conversation that was never in a group', async () => {
+    // Every archive is gated on this answer, so a no-op leave that read as a
+    // failure would block archiving *every ordinary conversation* — and the
+    // archive-path tests could not see it, because they stub this call. The
+    // ungrouped arm returns a noop result, not a null one, and a noop is not a
+    // refusal.
+    wire({ z: row('z') }, true);
+    vi.mocked(ipcBridge.conversation.update.invoke).mockClear();
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await expect(result.current.leaveOwnGroup('z')).resolves.toBe(true);
+    // Nothing to write, so nothing is written and the list is not reloaded.
+    expect(vi.mocked(ipcBridge.conversation.update.invoke)).not.toHaveBeenCalled();
+  });
+
+  it('answers true for a conversation the backend no longer has', async () => {
+    wire({}, true);
+    const { result } = renderHook(() => useSplitGroupMutations());
+    await expect(result.current.leaveOwnGroup('gone')).resolves.toBe(true);
+  });
+
   it('answers true when the leave lands', async () => {
     wire({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, true);
     vi.mocked(ipcBridge.conversation.update.invoke).mockResolvedValue(true);
