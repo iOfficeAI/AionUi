@@ -44,6 +44,17 @@ describe('resolveDropIntent', () => {
     expect(resolveDropIntent({ ...row, pointerY: 139, canReorder: false })).toBe('onto');
   });
 
+  it('reads a release in the gap beside a target as "between", whatever the target and whether it can be reordered', () => {
+    // Above the target's middle is "before" it, below is "after" — the
+    // collision picked the nearer row, so the pointer is just outside it.
+    expect(resolveDropIntent({ pointerY: 96, targetTop: 100, targetHeight: 34, canReorder: false, inGap: true })).toBe(
+      'before'
+    );
+    expect(resolveDropIntent({ pointerY: 140, targetTop: 100, targetHeight: 34, canReorder: false, inGap: true })).toBe(
+      'after'
+    );
+  });
+
   it('never divides by a zero height', () => {
     expect(resolveDropIntent({ targetTop: 0, targetHeight: 0, pointerY: 0, canReorder: true })).toBe('onto');
   });
@@ -155,6 +166,80 @@ describe('resolveConversationDropAction', () => {
     expect(
       resolveConversationDropAction({ dragged_id: 'm1', target: row('z'), intent: 'before', groups, pinnedIds: [] })
     ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
+  it('takes a member out of its group when it lands in the gap beside an unpinned row', () => {
+    // Nothing here can be reordered, so the old code read the gap as "onto"
+    // and moved the member onto the row it was merely beside.
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: row('z'),
+        intent: 'onto',
+        inGap: true,
+        groups,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
+  it('takes a member out of its group when it lands in the gap beside another block', () => {
+    const two: SplitGroup[] = [...groups, { id: 'g2', members: [member('n1', 'g2', 0), member('n2', 'g2', 1)] }];
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: { kind: 'split_group', group_id: 'g2' },
+        intent: 'before',
+        inGap: true,
+        groups: two,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+    // Beside a member of that block means the same thing.
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: row('n2'),
+        intent: 'after',
+        inGap: true,
+        groups: two,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+    // And beside its own block: still out, not "self".
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: { kind: 'split_group', group_id: 'g1' },
+        intent: 'after',
+        inGap: true,
+        groups: two,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
+  it('does nothing with a plain row released in the gap beside a block or beside one of its members', () => {
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'a',
+        target: { kind: 'split_group', group_id: 'g1' },
+        intent: 'after',
+        inGap: true,
+        groups,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'none', reason: 'between' });
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'a',
+        target: row('m2'),
+        intent: 'before',
+        inGap: true,
+        groups,
+        pinnedIds: [],
+      })
+    ).toEqual({ type: 'none', reason: 'between' });
   });
 
   it('moves a member onto a plain row it is dropped on', () => {
