@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
+import ConversationDropZone from '@/renderer/pages/split/ConversationDropZone';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { setCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
@@ -107,7 +108,15 @@ const ChatConversationIndex: React.FC = () => {
   }, [id, isLoading, data, navigate, t]);
 
   if (isLoading) return <Spin loading></Spin>;
-  return <ChatConversation conversation={data ?? undefined}></ChatConversation>;
+  if (!data) return <ChatConversation conversation={undefined}></ChatConversation>;
+  // Dropping a sidebar row on the open conversation fuses the two into a split
+  // group and opens its columns — the same gesture as drop-on-row, from the
+  // other side.
+  return (
+    <ConversationDropZone conversation_id={data.id} mode='split'>
+      <ChatConversation conversation={data}></ChatConversation>
+    </ConversationDropZone>
+  );
 };
 
 export default ChatConversationIndex;
