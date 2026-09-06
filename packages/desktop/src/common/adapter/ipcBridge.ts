@@ -1407,6 +1407,9 @@ export const database = {
 
 // Preview panel
 export const preview = {
+  // Backend → renderer. `conversation_id` is optional because aioncore does not
+  // send one yet; when it does, the renderer gives the shared preview panel only
+  // to the focused conversation instead of letting any agent take it over.
   open: wsEmitter<{
     content: string;
     content_type: import('../types/office/preview').PreviewContentType;
@@ -1414,6 +1417,7 @@ export const preview = {
       title?: string;
       file_name?: string;
     };
+    conversation_id?: string;
   }>('preview.open'),
 };
 
@@ -1484,7 +1488,11 @@ export const windowControls = {
   unmaximize: bridge.buildProvider<void, void>('window-controls:unmaximize'),
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
-  maximizedChanged: bridge.buildEmitter<{ is_maximized: boolean }>('window-controls:maximized-changed'),
+  // `web_contents_id` identifies the window whose state changed. The emit
+  // reaches every renderer, so each one keeps only its own window's events.
+  maximizedChanged: bridge.buildEmitter<{ is_maximized: boolean; web_contents_id: number }>(
+    'window-controls:maximized-changed'
+  ),
 };
 
 // ---------------------------------------------------------------------------
