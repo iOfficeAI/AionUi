@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "분할 보기: {{names}}",
     "blockLabel": "분할 · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "분할 보기 열기",
+    "rename": "분할 보기 이름 변경",
+    "renamePlaceholder": "이 분할 보기의 이름",
     "focusMember": "분할 보기에서 “{{name}}” 표시",
     "removeMember": "분할 보기에서 “{{name}}” 제거",
     "removeFromSplit": "분할 보기에서 제거",

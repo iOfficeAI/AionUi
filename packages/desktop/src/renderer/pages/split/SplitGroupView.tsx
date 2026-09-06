@@ -18,6 +18,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { previewScopeKey } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { Tabs } from '@arco-design/web-react';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { SplitGroupColumn } from './SplitGroupColumn';
 import { SplitGroupColumnFrame } from './SplitGroupColumnFrame';
@@ -25,6 +26,28 @@ import styles from './SplitGroupView.module.css';
 
 const conversationWorkspace = (conversation: TChatConversation): string | null =>
   (conversation.extra as { workspace?: string } | undefined)?.workspace ?? null;
+
+/**
+ * The one line that says which split this is, in the same words the sidebar
+ * block uses: the group's name and its size, or just its size while it is
+ * unnamed. The app titles no route after its content — a single conversation
+ * leaves the window saying "AionUi" — so this stays inside the view rather
+ * than inventing a window-title mechanism the rest of the app does not have.
+ */
+const SplitGroupTitle: React.FC<{ group: SplitGroup }> = ({ group }) => {
+  const { t } = useTranslation();
+  const count = group.members.length;
+  return (
+    <div
+      data-testid={`split-group-view-title-${group.id}`}
+      className='shrink-0 flex items-center h-24px px-12px text-12px font-[600] lh-16px text-t-tertiary tracking-[0.04em] select-none truncate'
+    >
+      {group.name
+        ? t('conversation.splitGroup.blockLabelNamed', { name: group.name, count })
+        : t('conversation.splitGroup.blockLabel', { count })}
+    </div>
+  );
+};
 
 /**
  * An open split group: one live conversation per member. Desktop shows them
@@ -105,6 +128,7 @@ export const SplitGroupView: React.FC<{
     const activeMember = group.members.find((member) => member.id === activeTab) ?? group.members[0];
     return (
       <div className='flex flex-col h-full min-h-0' data-testid={`split-group-view-${group.id}`} data-layout='tabs'>
+        <SplitGroupTitle group={group} />
         <Tabs
           activeTab={activeMember.id}
           onChange={(member_id) => {
@@ -167,24 +191,26 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
 
   return (
     <div
-      ref={ref}
-      className='flex h-full w-full min-h-0 overflow-x-auto overflow-y-hidden'
+      className='flex flex-col h-full w-full min-h-0'
       data-testid={`split-group-view-${group.id}`}
       data-layout='columns'
     >
-      {containerWidth !== null &&
-        group.members.map((member, index) => (
-          <SplitGroupColumnFrame
-            key={member.id}
-            group={group}
-            member={member}
-            focused={member.id === focusedId}
-            isLast={index === count - 1}
-            containerWidth={containerWidth}
-            columnCount={count}
-            trailingCount={count - 1 - index}
-          />
-        ))}
+      <SplitGroupTitle group={group} />
+      <div ref={ref} className='flex flex-1 w-full min-h-0 overflow-x-auto overflow-y-hidden'>
+        {containerWidth !== null &&
+          group.members.map((member, index) => (
+            <SplitGroupColumnFrame
+              key={member.id}
+              group={group}
+              member={member}
+              focused={member.id === focusedId}
+              isLast={index === count - 1}
+              containerWidth={containerWidth}
+              columnCount={count}
+              trailingCount={count - 1 - index}
+            />
+          ))}
+      </div>
     </div>
   );
 };

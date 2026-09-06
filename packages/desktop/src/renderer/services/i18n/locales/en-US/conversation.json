@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Split view: {{names}}",
     "blockLabel": "Split · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Open split view",
+    "rename": "Rename split view",
+    "renamePlaceholder": "Name this split view",
     "focusMember": "Show “{{name}}” in the split view",
     "removeMember": "Remove “{{name}}” from the split view",
     "removeFromSplit": "Remove from split view",

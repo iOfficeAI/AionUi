@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Vue partagée : {{names}}",
     "blockLabel": "Division · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Ouvrir la vue partagée",
+    "rename": "Renommer la vue divisée",
+    "renamePlaceholder": "Nommez cette vue divisée",
     "focusMember": "Afficher « {{name}} » dans la vue partagée",
     "removeMember": "Retirer « {{name}} » de la vue partagée",
     "removeFromSplit": "Retirer de la vue divisée",

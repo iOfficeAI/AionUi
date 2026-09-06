@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "分屏视图：{{names}}",
     "blockLabel": "分屏 · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "打开分屏视图",
+    "rename": "重命名分屏视图",
+    "renamePlaceholder": "为该分屏视图命名",
     "focusMember": "在分屏视图中显示“{{name}}”",
     "removeMember": "将“{{name}}”移出分屏视图",
     "removeFromSplit": "移出分屏视图",

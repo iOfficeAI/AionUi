@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Geteilte Ansicht: {{names}}",
     "blockLabel": "Split · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Geteilte Ansicht öffnen",
+    "rename": "Geteilte Ansicht umbenennen",
+    "renamePlaceholder": "Diese geteilte Ansicht benennen",
     "focusMember": "„{{name}}“ in der geteilten Ansicht anzeigen",
     "removeMember": "„{{name}}“ aus der geteilten Ansicht entfernen",
     "removeFromSplit": "Aus geteilter Ansicht entfernen",

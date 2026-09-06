@@ -293,3 +293,57 @@ describe('SplitGroupRow member menu', () => {
     expect(screen.queryByText('conversation.splitGroup.removeFromSplit')).toBeNull();
   });
 });
+
+/**
+ * A split group can be named. The header carries the name and the size
+ * together, falls back to the size alone while it is unnamed, and offers the
+ * rename two ways: a pencil that appears with the pointer, and its own
+ * right-click menu.
+ */
+describe('SplitGroupRow rename', () => {
+  const namedGroup: SplitGroup = { ...group, name: 'Research' };
+
+  it('falls back to the size alone while the group is unnamed', () => {
+    renderPill({ onRenameGroup: vi.fn() });
+    expect(screen.getByTestId('split-group-label-g1').textContent).toContain('conversation.splitGroup.blockLabel:3');
+  });
+
+  it('shows the name and the size together once the group is named', () => {
+    renderPill({ group: namedGroup, onRenameGroup: vi.fn() });
+    expect(screen.getByTestId('split-group-label-g1').textContent).toContain(
+      'conversation.splitGroup.blockLabelNamed:Research'
+    );
+  });
+
+  it('offers no pencil at all when renaming is not wired up', () => {
+    renderPill();
+    expect(screen.queryByTestId('split-group-rename-g1')).toBeNull();
+  });
+
+  it('opens the rename box on the current name and saves the new one', async () => {
+    const onRenameGroup = vi.fn();
+    const { onOpen } = renderPill({ group: namedGroup, onRenameGroup });
+    fireEvent.click(screen.getByTestId('split-group-rename-g1'));
+
+    const input = (await screen.findByTestId(`split-group-rename-input-g1`)) as HTMLInputElement;
+    expect(input.value).toBe('Research');
+    // Sixty characters is the ceiling: past that a name stops being a label.
+    expect(input.maxLength).toBe(60);
+
+    fireEvent.change(input, { target: { value: 'Weekly review' } });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    expect(onRenameGroup).toHaveBeenCalledWith(namedGroup, 'Weekly review');
+    // Renaming from the header must not open the group behind the box.
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('hands an emptied box straight through, so the name can be cleared', async () => {
+    const onRenameGroup = vi.fn();
+    renderPill({ group: namedGroup, onRenameGroup });
+    fireEvent.click(screen.getByTestId('split-group-rename-g1'));
+    const input = await screen.findByTestId('split-group-rename-input-g1');
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    expect(onRenameGroup).toHaveBeenCalledWith(namedGroup, '   ');
+  });
+});

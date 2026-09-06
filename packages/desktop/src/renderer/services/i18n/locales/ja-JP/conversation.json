@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "分割ビュー: {{names}}",
     "blockLabel": "分割 · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "分割ビューを開く",
+    "rename": "分割ビューの名前を変更",
+    "renamePlaceholder": "この分割ビューに名前を付けます",
     "focusMember": "分割ビューで「{{name}}」を表示",
     "removeMember": "「{{name}}」を分割ビューから外す",
     "removeFromSplit": "分割ビューから外す",

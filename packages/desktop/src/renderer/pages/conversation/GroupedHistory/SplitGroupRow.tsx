@@ -7,8 +7,8 @@
 import type { TChatConversation } from '@/common/config/storage';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { Dropdown, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, Drag } from '@icon-park/react';
+import { Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
+import { CloseSmall, Drag, EditOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
 import React, { useState } from 'react';
@@ -21,6 +21,7 @@ import { useConversationDrag } from './hooks/ConversationDragContext';
 import type { ConversationRowProps } from './types';
 import { splitGroupDropId } from './utils/conversationDropTargets';
 import type { SplitGroup } from './utils/splitGroupHelpers';
+import { SPLIT_GROUP_NAME_MAX } from './utils/splitGroupHelpers';
 
 export type SplitGroupRowProps = {
   group: SplitGroup;
@@ -37,6 +38,8 @@ export type SplitGroupRowProps = {
   /** Open the group; `member_id` asks for that column to take the focus. */
   onOpen: (group: SplitGroup, member_id?: string) => void;
   onRemoveMember: (group: SplitGroup, member_id: string) => void;
+  /** Name the group, or clear its name when the input is blank. Omitted means the header cannot be renamed. */
+  onRenameGroup?: (group: SplitGroup, name: string | null) => void;
   /**
    * The props a member's row would have as a plain sidebar row, so its
    * right-click menu offers the same actions. Omitted means the member rows
@@ -253,6 +256,83 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
 };
 
 /**
+ * The line that names the block: the group's own name when it has one, its
+ * size when it does not, and both once it is named — "Research · 3" says which
+ * split this is and how much of it there is in the same breath.
+ *
+ * Renaming is offered the two ways a name is usually changed: a pencil that
+ * appears with the pointer (a touch screen has no pointer, so there it stays)
+ * and the header's own right-click menu.
+ */
+const SplitGroupHeader: React.FC<{
+  group: SplitGroup;
+  isMobile: boolean;
+  onRename?: () => void;
+}> = ({ group, isMobile, onRename }) => {
+  const { t } = useTranslation();
+  const count = group.members.length;
+  const label = group.name
+    ? t('conversation.splitGroup.blockLabelNamed', { name: group.name, count })
+    : t('conversation.splitGroup.blockLabel', { count });
+
+  const line = (
+    <div
+      data-testid={`split-group-label-${group.id}`}
+      className='group/header flex items-center gap-4px h-16px ps-4px pe-2px text-11px font-[600] lh-16px text-t-tertiary tracking-[0.04em] select-none shrink-0 min-w-0'
+    >
+      <span className='truncate min-w-0'>{label}</span>
+      {onRename && (
+        <span
+          role='button'
+          tabIndex={0}
+          aria-label={t('conversation.splitGroup.rename')}
+          data-testid={`split-group-rename-${group.id}`}
+          className={classNames(
+            'flex items-center justify-center size-14px rd-4px shrink-0 cursor-pointer hover:text-t-primary transition-opacity',
+            isMobile ? 'opacity-100' : 'opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100'
+          )}
+          onClick={(event) => {
+            event.stopPropagation();
+            cleanupSiderTooltips();
+            onRename();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              onRename();
+            }
+          }}
+        >
+          <EditOne theme='outline' size='11' fill='currentColor' />
+        </span>
+      )}
+    </div>
+  );
+
+  if (!onRename) return line;
+  return (
+    <Dropdown
+      droplist={
+        <Menu onClickMenuItem={() => onRename()}>
+          <Menu.Item key='rename'>
+            <div className='flex items-center gap-8px'>
+              <EditOne theme='outline' size='14' />
+              <span>{t('conversation.splitGroup.rename')}</span>
+            </div>
+          </Menu.Item>
+        </Menu>
+      }
+      trigger='contextMenu'
+      position='br'
+      getPopupContainer={() => document.body}
+    >
+      {line}
+    </Dropdown>
+  );
+};
+
+/**
  * The sidebar block for a split group: one row per member — its grab handle,
  * its leading icon and its full title — sitting where the group's first member
  * used to sit. The block is one unit: clicking any row opens the columns with
@@ -273,9 +353,11 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   getJobStatus,
   onOpen,
   onRemoveMember,
+  onRenameGroup,
   getMemberRowProps,
 }) => {
   const { t } = useTranslation();
+  const [renameDraft, setRenameDraft] = useState<string | null>(null);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { activeConversation, dropTarget } = useConversationDrag();
@@ -292,7 +374,7 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
   const names = group.members.map((member) => member.name || t('conversation.welcome.newConversation'));
   const label = t('conversation.splitGroup.tooltip', { names: names.join(' · ') });
 
-  return (
+  const block = (
     <Tooltip {...getSiderTooltipProps(tooltipEnabled)} content={label} position='right' disabled={!collapsed}>
       <div
         ref={setNodeRef}
@@ -332,12 +414,11 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
             read before any of the text is. */}
         <span aria-hidden='true' className='absolute inset-y-0 start-0 w-2px bg-[rgba(var(--primary-6),1)]' />
         {!collapsed && (
-          <div
-            data-testid={`split-group-label-${group.id}`}
-            className='flex items-center h-16px ps-4px text-11px font-[600] lh-16px text-t-tertiary tracking-[0.04em] select-none shrink-0'
-          >
-            {t('conversation.splitGroup.blockLabel', { count: group.members.length })}
-          </div>
+          <SplitGroupHeader
+            group={group}
+            isMobile={isMobile}
+            onRename={onRenameGroup && (() => setRenameDraft(group.name ?? ''))}
+          />
         )}
         {/* Indented under the header, so the block has an inside. */}
         <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-4px')}>
@@ -361,6 +442,42 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
         </div>
       </div>
     </Tooltip>
+  );
+
+  if (!onRenameGroup) return block;
+  return (
+    <>
+      {block}
+      <Modal
+        visible={renameDraft !== null}
+        title={t('conversation.splitGroup.rename')}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        onOk={() => {
+          onRenameGroup(group, renameDraft);
+          setRenameDraft(null);
+        }}
+        onCancel={() => setRenameDraft(null)}
+        afterClose={() => setRenameDraft(null)}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
+        <Input
+          autoFocus
+          value={renameDraft ?? ''}
+          maxLength={SPLIT_GROUP_NAME_MAX}
+          showWordLimit
+          placeholder={t('conversation.splitGroup.renamePlaceholder')}
+          data-testid={`split-group-rename-input-${group.id}`}
+          onChange={setRenameDraft}
+          onPressEnter={() => {
+            onRenameGroup(group, renameDraft);
+            setRenameDraft(null);
+          }}
+        />
+      </Modal>
+    </>
   );
 };
 

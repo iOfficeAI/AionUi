@@ -46,7 +46,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { dropTarget } = useConversationDrag();
-  const { removeMember: removeSplitGroupMember } = useSplitGroupMutations();
+  const { removeMember: removeSplitGroupMember, renameGroup: renameSplitGroup } = useSplitGroupMutations();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   const {
@@ -299,6 +299,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           getJobStatus={getJobStatus}
           onOpen={handleSplitGroupOpen}
           onRemoveMember={(target, member_id) => void removeSplitGroupMember(target.id, member_id)}
+          onRenameGroup={(target, name) => void renameSplitGroup(target.id, name)}
           getMemberRowProps={getConversationRowProps}
         />
       );

@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Visualização dividida: {{names}}",
     "blockLabel": "Divisão · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Abrir visualização dividida",
+    "rename": "Renomear visualização dividida",
+    "renamePlaceholder": "Dê um nome a esta visualização dividida",
     "focusMember": "Mostrar “{{name}}” na visualização dividida",
     "removeMember": "Remover “{{name}}” da visualização dividida",
     "removeFromSplit": "Remover da visualização dividida",

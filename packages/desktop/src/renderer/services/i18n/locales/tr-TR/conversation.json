@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Bölünmüş görünüm: {{names}}",
     "blockLabel": "Bölme · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Bölünmüş görünümü aç",
+    "rename": "Bölünmüş görünümü yeniden adlandır",
+    "renamePlaceholder": "Bu bölünmüş görünüme bir ad verin",
     "focusMember": "“{{name}}” sohbetini bölünmüş görünümde göster",
     "removeMember": "“{{name}}” sohbetini bölünmüş görünümden çıkar",
     "removeFromSplit": "Bölünmüş görünümden kaldır",

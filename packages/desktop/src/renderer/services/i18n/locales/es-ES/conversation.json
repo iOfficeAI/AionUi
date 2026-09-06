@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "Vista dividida: {{names}}",
     "blockLabel": "División · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Abrir vista dividida",
+    "rename": "Cambiar el nombre de la vista dividida",
+    "renamePlaceholder": "Ponle nombre a esta vista dividida",
     "focusMember": "Mostrar “{{name}}” en la vista dividida",
     "removeMember": "Quitar “{{name}}” de la vista dividida",
     "removeFromSplit": "Quitar de la vista dividida",

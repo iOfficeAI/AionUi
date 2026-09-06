@@ -36,7 +36,12 @@ const { layoutState, closePreviewIfScopeChanged, mountCounts, markAsRead } = vi.
 
 vi.mock('@/renderer/pages/cron', () => ({ useCronJobsMap: () => ({ markAsRead }) }));
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      typeof options?.name === 'string' ? `${key}:${options.name}:${String(options.count)}` : key,
+  }),
+}));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: layoutState.isMobile, siderCollapsed: false, setSiderCollapsed: () => {} }),
 }));
@@ -277,5 +282,25 @@ describe('SplitGroupView on a narrow viewport (tabs)', () => {
     render(<SplitGroupView group={trio} />);
     expect(getMountedConversationIds()).toEqual(['a']);
     expect(getFocusedConversation()).toBe('a');
+  });
+});
+
+describe('SplitGroupView title', () => {
+  it('names the split by its size while it is unnamed', () => {
+    render(<SplitGroupView group={trio} />);
+    expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe('conversation.splitGroup.blockLabel');
+  });
+
+  it('shows the name and the size once the group is named, on both layouts', () => {
+    render(<SplitGroupView group={{ ...trio, name: 'Research' }} />);
+    expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe(
+      'conversation.splitGroup.blockLabelNamed:Research:3'
+    );
+    cleanup();
+    layoutState.isMobile = true;
+    render(<SplitGroupView group={{ ...trio, name: 'Research' }} />);
+    expect(screen.getByTestId('split-group-view-title-g1').textContent).toBe(
+      'conversation.splitGroup.blockLabelNamed:Research:3'
+    );
   });
 });

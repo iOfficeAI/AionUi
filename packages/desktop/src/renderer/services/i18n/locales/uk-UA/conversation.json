@@ -98,7 +98,10 @@
   "splitGroup": {
     "tooltip": "Розділений вигляд: {{names}}",
     "blockLabel": "Поділ · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "Відкрити розділений вигляд",
+    "rename": "Перейменувати розділений вигляд",
+    "renamePlaceholder": "Назвіть цей розділений вигляд",
     "focusMember": "Показати «{{name}}» у розділеному вигляді",
     "removeMember": "Прибрати «{{name}}» з розділеного вигляду",
     "removeFromSplit": "Прибрати з розділеного вигляду",

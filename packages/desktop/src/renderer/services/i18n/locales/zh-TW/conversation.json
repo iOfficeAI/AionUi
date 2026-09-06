@@ -94,7 +94,10 @@
   "splitGroup": {
     "tooltip": "分割檢視：{{names}}",
     "blockLabel": "分割 · {{count}}",
+    "blockLabelNamed": "{{name}} · {{count}}",
     "open": "開啟分割檢視",
+    "rename": "重新命名分割檢視",
+    "renamePlaceholder": "為此分割檢視命名",
     "focusMember": "在分割檢視中顯示「{{name}}」",
     "removeMember": "將「{{name}}」移出分割檢視",
     "removeFromSplit": "移出分割檢視",
