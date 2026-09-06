@@ -581,9 +581,15 @@ export const useSplitGroupMutations = () => {
    * ordinary removal.
    */
   const leaveOwnGroup = useCallback(
-    async (conversation_id: string): Promise<void> => {
+    async (conversation_id: string): Promise<boolean> => {
       const result = await enqueue('leave own group', { type: 'leave-own-group', conversation_id });
-      if (result?.group_id) leaveDissolvedGroup(result.group_id, result);
+      // The queue turns a refused write into `null` and says so on screen. The
+      // caller still has to hear it: archiving a member whose tag could not be
+      // cleared is exactly the dead end this call exists to prevent, and
+      // reporting the archive as done would hide it.
+      if (!result) return false;
+      if (result.group_id) leaveDissolvedGroup(result.group_id, result);
+      return true;
     },
     [enqueue, leaveDissolvedGroup]
   );

@@ -107,9 +107,11 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const name = member.name || t('conversation.welcome.newConversation');
   /** The row offers a menu only where there is room for one and something to put in it. */
   const menu = rowProps && !batchMode && !collapsed ? rowProps : null;
-  // The swap is a pointer affordance: a touch screen never hovers, so it would
-  // strand the remove button behind a gesture that does not exist there.
-  const swapped = engaged && !isMobile && !collapsed && !batchMode && !isDragging;
+  // Whether anything here can be revealed by hovering. Width does not answer
+  // that — a touch-capable desktop is not "mobile" — and a control that only
+  // appears on hover is, without one, a control nobody can reach.
+  const canHover = !isMobile && !isNoHoverPointer();
+  const swapped = engaged && canHover && !collapsed && !batchMode && !isDragging;
   const removeLabel = t('conversation.splitGroup.removeMember', { name });
 
   const remove = () => {
@@ -118,35 +120,23 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   };
 
   const removeButton = (className: string) => (
-    <span
-      role='button'
-      tabIndex={0}
+    <Button
+      type='text'
+      size='mini'
       aria-label={removeLabel}
       data-testid={`split-group-remove-${member.id}`}
-      className={className}
+      icon={<CloseSmall theme='outline' size='12' fill='currentColor' />}
+      className={classNames('!p-0 !min-w-0 flex items-center justify-center', className)}
       onClick={(event) => {
         event.stopPropagation();
         remove();
       }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          event.stopPropagation();
-          remove();
-        }
-      }}
-    >
-      <CloseSmall theme='outline' size='12' fill='currentColor' />
-    </span>
+    />
   );
 
   const row = (
     <div
       ref={setNodeRef}
-      role='button'
-      tabIndex={batchMode ? -1 : 0}
-      aria-disabled={batchMode || undefined}
-      aria-label={t('conversation.splitGroup.focusMember', { name })}
       data-testid={`split-group-member-${member.id}`}
       style={isDragging ? { opacity: 0.4 } : undefined}
       className={classNames(
@@ -163,20 +153,17 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         if (event.currentTarget.contains(event.relatedTarget)) return;
         setEngaged(false);
       }}
+      // A pointer shortcut over the whole row, redundant with the control
+      // inside it: the keyboard and assistive tech reach the member through
+      // that control, so the row itself is not one. It used to be — a
+      // role='button' row with focusable buttons inside it, which is a control
+      // nested in a control, and neither ARIA nor a screen reader has a way to
+      // read that.
       onClick={(event) => {
         event.stopPropagation();
         cleanupSiderTooltips();
         if (batchMode) return;
         onOpen(member.id);
-      }}
-      onKeyDown={(event) => {
-        if (batchMode) return;
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          event.stopPropagation();
-          cleanupSiderTooltips();
-          onOpen(member.id);
-        }
       }}
     >
       {draggable && !isMobile && (
@@ -205,7 +192,10 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         </span>
       )}
       <span className='size-22px flex items-center justify-center shrink-0 relative'>
-        <span className={classNames('flex items-center justify-center', swapped && 'opacity-0')} aria-hidden={swapped}>
+        <span
+          className={classNames('flex items-center justify-center size-full', swapped && 'opacity-0')}
+          aria-hidden={swapped}
+        >
           <ConversationLeadingIcon
             conversation={member}
             cronStatus={jobStatus}
@@ -225,19 +215,33 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
             'absolute inset-0 flex items-center justify-center rd-4px cursor-pointer text-t-secondary hover:text-t-primary hover:bg-fill-3 transition-colors'
           )}
       </span>
-      {!collapsed && (
-        <span
-          className='chat-history__item-name flex-1 min-w-0 truncate text-14px font-[500] lh-24px text-t-primary'
-          data-testid={`split-group-title-${member.id}`}
-        >
-          {name}
-        </span>
-      )}
-      {!collapsed && !batchMode && isMobile && (
+      {!collapsed &&
+        (batchMode ? (
+          <span
+            className='chat-history__item-name flex-1 min-w-0 truncate text-14px font-[500] lh-24px text-t-primary'
+            data-testid={`split-group-title-${member.id}`}
+          >
+            {name}
+          </span>
+        ) : (
+          <Button
+            type='text'
+            size='mini'
+            aria-label={t('conversation.splitGroup.focusMember', { name })}
+            data-testid={`split-group-title-${member.id}`}
+            className='chat-history__item-name flex-1 min-w-0 !h-24px !p-0 !bg-transparent hover:!bg-transparent !text-t-primary !text-14px !font-[500] !lh-24px text-start'
+            onClick={(event) => {
+              event.stopPropagation();
+              cleanupSiderTooltips();
+              onOpen(member.id);
+            }}
+          >
+            <span className='block w-full truncate text-start'>{name}</span>
+          </Button>
+        ))}
+      {!collapsed && !batchMode && !canHover && (
         <span className='size-18px flex items-center justify-center shrink-0'>
-          {removeButton(
-            'flex items-center justify-center size-18px rd-4px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3'
-          )}
+          {removeButton('!size-18px !rd-4px !text-t-tertiary hover:!text-t-primary')}
         </span>
       )}
       {/* The same "…" a plain row carries. Right-clicking the row opens the
@@ -245,31 +249,26 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           the row said a menu existed at all — the actions behind it were out
           of reach for anyone not using a mouse. */}
       {menu && (
-        <span
-          role='button'
-          tabIndex={0}
+        <Button
+          type='text'
+          size='mini'
           aria-label={t('conversation.splitGroup.memberActions', { name })}
           aria-haspopup='menu'
           data-testid={`split-group-member-menu-${member.id}`}
+          icon={<MoreOne theme='outline' size='14' fill='currentColor' />}
           className={classNames(
-            'flex items-center justify-center size-18px rd-4px shrink-0 cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-3 transition-opacity',
-            isMobile || menu.menuVisible ? 'opacity-100' : engaged ? 'opacity-100' : 'opacity-0'
+            '!size-18px !min-w-18px !p-0 !rd-4px shrink-0 flex items-center justify-center !text-t-tertiary hover:!text-t-primary transition-opacity',
+            // `engaged` is set by the row's own focus handler, which fires when
+            // any child takes focus, so tabbing here reveals it rather than
+            // landing on an invisible stop.
+            !canHover || menu.menuVisible || engaged ? 'opacity-100' : 'opacity-0'
           )}
           onClick={(event) => {
             event.stopPropagation();
             cleanupSiderTooltips();
             menu.onOpenMenu(member);
           }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              event.stopPropagation();
-              menu.onOpenMenu(member);
-            }
-          }}
-        >
-          <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
-        </span>
+        />
       )}
     </div>
   );

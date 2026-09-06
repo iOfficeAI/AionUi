@@ -13,7 +13,7 @@ const { navigateMock, requestPrefillMock, routeState, archiveMock, leaveOwnGroup
   requestPrefillMock: vi.fn(),
   routeState: { id: 'current-conversation' as string | undefined },
   archiveMock: vi.fn(async () => true),
-  leaveOwnGroupMock: vi.fn(async () => {}),
+  leaveOwnGroupMock: vi.fn(async () => true),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -52,7 +52,13 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useSplitGroupMutatio
 // reach it, and what they show is not what these tests are about.
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
-  return { ...actual, Message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } };
+  return {
+    ...actual,
+    Message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+    // The batch archive asks for confirmation; these tests are about what it
+    // does once confirmed.
+    Modal: { ...actual.Modal, confirm: (config: { onOk?: () => unknown }) => void config.onOk?.() },
+  };
 });
 
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
@@ -85,12 +91,12 @@ const makeConversation = (id: string, type: TChatConversation['type']): TChatCon
     model: {},
   }) as TChatConversation;
 
-const renderActions = (onSessionClick?: () => void) =>
+const renderActions = (onSessionClick?: () => void, selectedConversationIds = new Set<string>()) =>
   renderHook(() =>
     useConversationActions({
       batchMode: false,
       onSessionClick,
-      selectedConversationIds: new Set(),
+      selectedConversationIds,
       setSelectedConversationIds: vi.fn(),
       toggleSelectedConversation: vi.fn(),
       markAsRead: vi.fn(),
@@ -180,5 +186,57 @@ describe('archiving takes a conversation out of its split group first', () => {
     // know which rows are members.
     expect(leaveOwnGroupMock).toHaveBeenCalledWith('loner');
     expect(archiveMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * A conversation that could not leave its group must not be archived. The
+ * archive drops it out of the active list while the census still counts it, so
+ * the tag it kept would be one no later read can clear — the dead end the
+ * leave-first order exists to avoid. Reporting the archive as done on top of
+ * that would hide it.
+ */
+describe('a refused leave stops the archive', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leaveOwnGroupMock.mockResolvedValue(true);
+    archiveMock.mockResolvedValue(true);
+    routeState.id = 'current-conversation';
+  });
+
+  it('archives nothing when the conversation could not leave its group', async () => {
+    leaveOwnGroupMock.mockResolvedValue(false);
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    expect(leaveOwnGroupMock).toHaveBeenCalledWith('member-a');
+    expect(archiveMock).not.toHaveBeenCalled();
+  });
+
+  it('archives normally once the leave lands', async () => {
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    expect(archiveMock).toHaveBeenCalledWith({ item_type: 'conversation', item_id: 'member-a' });
+  });
+
+  it('lets the rest of a batch through when one row cannot leave', async () => {
+    // The old shape awaited every leave together, so one refusal vetoed the
+    // whole selection; each row now stands on its own.
+    leaveOwnGroupMock.mockImplementation(async (id: string) => id !== 'bad');
+    const { result } = renderActions(undefined, new Set(['good-1', 'bad', 'good-2']));
+    await act(async () => {
+      result.current.handleBatchArchive();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const archived = archiveMock.mock.calls.map((call) => (call[0] as { item_id: string }).item_id);
+    expect(archived).toContain('good-1');
+    expect(archived).toContain('good-2');
+    expect(archived).not.toContain('bad');
   });
 });
