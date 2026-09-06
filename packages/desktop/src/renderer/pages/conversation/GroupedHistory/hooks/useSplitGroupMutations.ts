@@ -396,6 +396,10 @@ export const runSplitGroupMutation = async (
     }
     if (dissolved) {
       for (const member of staying) patches.push({ conversation_id: member.id, split_group: null });
+    } else if (source.complete) {
+      // Same rule on the way out as on the way in: the group being left keeps
+      // the name it had, even when the member who carried it is the one going.
+      patches.push(...reconcileNamePatches(staying, readSplitGroupName(source.members)));
     }
     await applySplitGroupPatches(patches, previous, deps);
     return { group_id: destination_id, dissolved, survivor: dissolved ? (staying[0]?.id ?? null) : null };
@@ -425,6 +429,13 @@ export const runSplitGroupMutation = async (
   }
   const cleared = [...(leaving ? [leaving] : []), ...(dissolved ? remaining : [])];
   const patches = cleared.map((member): SplitGroupPatch => ({ conversation_id: member.id, split_group: null }));
+  // Taking a member out can change what the group is called: readers take the
+  // name from the first member by order, so removing that first member hands
+  // the group whatever the next one happens to carry. The name the group had
+  // before this write is the name it keeps, and the members that stay are put
+  // back in step with it here — a group does not get renamed by someone
+  // leaving it. Only a complete count can say who "the members that stay" are.
+  if (!dissolved && complete) patches.push(...reconcileNamePatches(remaining, readSplitGroupName(members)));
   await applySplitGroupPatches(patches, previous, deps);
   return { group_id: mutation.group_id, dissolved, survivor: dissolved ? (remaining[0]?.id ?? null) : null };
 };

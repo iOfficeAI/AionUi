@@ -508,6 +508,97 @@ describe("runSplitGroupMutation: keeping a group's members in step on its name",
     }));
 });
 
+describe('runSplitGroupMutation: a group keeps its name when someone leaves it', () => {
+  // Readers take the name from the first member by column order. A group whose
+  // members disagree — a rename that half-landed — therefore changes what it is
+  // called the moment its first member walks out, which is not something
+  // leaving a group is allowed to do.
+  it('holds the name when the member carrying it is removed', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', tag('g', 1)),
+      c: row('c', tag('g', 2)),
+    });
+    await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+    expect(writes).toEqual([
+      ['a', null],
+      ['b', { id: 'g', order: 1, name: 'Research' }],
+      ['c', { id: 'g', order: 2, name: 'Research' }],
+    ]);
+  });
+
+  it('does not let a stale name surface when the unnamed first member leaves', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', { id: 'g', order: 1, name: 'Stale' }),
+      c: row('c', tag('g', 2)),
+    });
+    await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+    // The group went by no name; it still does.
+    expect(writes).toEqual([
+      ['a', null],
+      ['b', { id: 'g', order: 1 }],
+    ]);
+  });
+
+  it('holds the name of the group a member is moved out of', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g1', order: 0, name: 'Research' }),
+      b: row('b', tag('g1', 1)),
+      c: row('c', tag('g1', 2)),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+    });
+    await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'a', to: { kind: 'group', group_id: 'g2' } },
+      deps
+    );
+    const bySource = writes.filter(([id]) => id === 'b' || id === 'c');
+    expect(bySource).toEqual([
+      ['b', { id: 'g1', order: 1, name: 'Research' }],
+      ['c', { id: 'g1', order: 2, name: 'Research' }],
+    ]);
+  });
+
+  it('writes nothing extra when the members already agree', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      c: row('c', { id: 'g', order: 2, name: 'Research' }),
+    });
+    await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+    expect(writes).toEqual([['a', null]]);
+  });
+
+  it('leaves the survivors alone when the count could not be read whole', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps(
+        {
+          a: row('a', { id: 'g', order: 0, name: 'Research' }),
+          b: row('b', tag('g', 1)),
+          c: row('c', tag('g', 2)),
+        },
+        { incomplete: true }
+      );
+      await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+      // A short count cannot say who the members that stay are, so it repairs
+      // nobody rather than repairing them towards a name it half-read.
+      expect(writes).toEqual([['a', null]]);
+    }));
+
+  it('has nothing to hold when the group dissolves', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', tag('g', 1)),
+    });
+    await runSplitGroupMutation({ type: 'remove', group_id: 'g', conversation_id: 'a' }, deps);
+    expect(writes).toEqual([
+      ['a', null],
+      ['b', null],
+    ]);
+  });
+});
+
 describe('runSplitGroupMutation: a tag naming a group that is gone', () => {
   it('clears it rather than failing, so archiving a stale-tagged row still works', async () => {
     // The row insists it is in group `ghost`; nobody else carries that tag.
