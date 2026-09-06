@@ -335,6 +335,18 @@ describe('runSplitGroupMutation: remove', () => {
   });
 });
 
+describe('runSplitGroupMutation: a tag naming a group that is gone', () => {
+  it('clears it rather than failing, so archiving a stale-tagged row still works', async () => {
+    // The row insists it is in group `ghost`; nobody else carries that tag.
+    // The desired end state — no membership — is one write away, and refusing
+    // would fail an archive that had nothing wrong with it.
+    const { deps, writes } = makeDeps({ z: row('z', tag('ghost', 0)) });
+    const result = await runSplitGroupMutation({ type: 'leave-own-group', conversation_id: 'z' }, deps);
+    expect(result.group_id).toBe('ghost');
+    expect(writes).toEqual([['z', null]]);
+  });
+});
+
 describe('runSplitGroupMutation: move', () => {
   it('leaves one group and joins another as a single batch', async () => {
     const { deps, writes, refresh } = makeDeps({

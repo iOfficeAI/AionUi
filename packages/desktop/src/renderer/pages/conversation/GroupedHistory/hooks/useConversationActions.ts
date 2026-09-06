@@ -146,8 +146,9 @@ export const useConversationActions = ({
    * what went wrong, so this adds no second message of its own.
    */
   const archiveConversation = useCallback(
-    async (item_id: string): Promise<void> => {
-      if (!(await leaveOwnGroup(item_id))) throw new Error(`${item_id} could not leave its split group`);
+    async (item_id: string, { moveToSurvivor = true }: { moveToSurvivor?: boolean } = {}): Promise<void> => {
+      if (!(await leaveOwnGroup(item_id, { moveToSurvivor })))
+        throw new Error(`${item_id} could not leave its split group`);
       await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
     },
     [leaveOwnGroup]
@@ -173,7 +174,12 @@ export const useConversationActions = ({
           // Each row leaves its group and then archives, on its own. One row
           // that cannot leave is one row that does not archive — it is not a
           // reason to leave the rest of the selection where it was.
-          const results = await Promise.allSettled(selectedIds.map((item_id) => archiveConversation(item_id)));
+          // A dissolve here must not move the user onto the survivor: the
+          // survivor may be further down this very selection, and landing on a
+          // row moments before archiving it is worse than not moving at all.
+          const results = await Promise.allSettled(
+            selectedIds.map((item_id) => archiveConversation(item_id, { moveToSurvivor: false }))
+          );
           const successCount = results.filter((r) => r.status === 'fulfilled').length;
           emitter.emit('chat.history.refresh');
           if (successCount > 0) {
@@ -336,7 +342,7 @@ export const useConversationActions = ({
     setArchiveProjectLoading(true);
     try {
       const results = await Promise.allSettled(
-        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id))
+        archiveProjectTarget.conversations.map((c) => archiveConversation(c.id, { moveToSurvivor: false }))
       );
       const successCount = results.filter((r) => r.status === 'fulfilled').length;
       emitter.emit('chat.history.refresh');
