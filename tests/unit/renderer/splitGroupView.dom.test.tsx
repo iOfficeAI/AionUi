@@ -112,6 +112,13 @@ describe('SplitGroupView focus wiring (desktop columns)', () => {
   it('draws a divider between every pair of adjacent columns, and none after the last', () => {
     render(<SplitGroupView group={trio} />);
     const dividers = screen.getAllByTestId(/^split-column-divider-/);
+    // A neutral hairline, with a neutral grab affordance under the pointer only.
+    for (const divider of dividers) {
+      const line = divider.querySelector('span') as HTMLElement;
+      expect(line.className).toContain('bg-[var(--border-base)]');
+      expect(line.className).not.toMatch(/aou-6|primary-6/);
+      expect(line.className).toContain('group-hover:');
+    }
     expect(dividers.map((divider) => divider.getAttribute('data-testid'))).toEqual([
       'split-column-divider-a',
       'split-column-divider-b',

@@ -8,7 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, Drag, EditOne, MoreOne } from '@icon-park/react';
+import { CloseSmall, Column, Drag, EditOne, MoreOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
 import React, { useState } from 'react';
@@ -381,6 +381,7 @@ const SplitGroupHeader: React.FC<{
       data-testid={`split-group-label-${group.id}`}
       className='group/header flex items-center gap-4px h-16px ps-4px pe-2px text-11px font-[600] lh-16px text-t-tertiary tracking-[0.04em] select-none shrink-0 min-w-0'
     >
+      <Column theme='outline' size='12' fill='currentColor' aria-hidden='true' />
       <span className='truncate min-w-0'>{label}</span>
       {onRename && (
         <Button
@@ -508,14 +509,13 @@ const SplitGroupRow: React.FC<SplitGroupRowProps> = ({
           }
         }}
       >
-        {/* The accent bar: the one mark that says "these belong together",
-            read before any of the text is. */}
-        <span aria-hidden='true' className='absolute inset-y-0 start-0 w-2px bg-[rgba(var(--primary-6),1)]' />
+        {/* What says "these belong together" is the tinted container and the
+            header's columns glyph — nothing painted on the edge. */}
         {!collapsed && (
           <SplitGroupHeader group={group} onRename={onRenameGroup && (() => setRenameDraft(group.name ?? ''))} />
         )}
-        {/* Indented under the header, so the block has an inside. */}
-        <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-4px')}>
+        {/* Indented under the header text — past the glyph — so the block has an inside. */}
+        <div className={classNames('flex flex-col gap-1px min-w-0', collapsed ? 'items-center' : 'ps-20px')}>
           {group.members.map((member) => (
             <SplitGroupMemberRow
               key={member.id}

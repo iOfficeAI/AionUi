@@ -9,7 +9,7 @@
  * member, and three distinct clicks — the block opens the group, a member row
  * opens it with that member focused, the remove button takes only that member
  * out. The container has to read as one group at a glance, so its header line,
- * its accent bar and its tint are part of the contract.
+ * its tint and its header glyph are part of the contract.
  *
  * A member row is a browser tab: its icon slot becomes the remove button while
  * the pointer or the keyboard is on it, and its grab handle keeps a slot of its
@@ -168,10 +168,13 @@ describe('SplitGroupRow', () => {
     expect(screen.getByTestId('leading-icon-a')).toBeInTheDocument();
   });
 
-  it('draws the accent bar and a tinted container, and deepens the tint when the group is open', () => {
+  it('draws a tinted container with a columns glyph in its header — no accent bar — and deepens the tint when the group is open', () => {
     renderPill();
     const block = screen.getByTestId('split-group-row-g1');
-    expect(block.querySelector('span[aria-hidden="true"].w-2px')).not.toBeNull();
+    // The coloured edge bar is gone; the glyph before the label carries the mark.
+    expect(block.querySelector('span[aria-hidden="true"].w-2px')).toBeNull();
+    expect(block.className).not.toMatch(/inset-y-0|start-0 w-2px/);
+    expect(screen.getByTestId('split-group-label-g1').querySelector('svg')).not.toBeNull();
     expect(block.className).toContain('bg-fill-2');
     cleanup();
     renderPill({ selected: true });
