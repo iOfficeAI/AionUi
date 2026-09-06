@@ -848,6 +848,86 @@ describe('runSplitGroupMutation: joining a group that could not be read whole', 
   });
 });
 
+/**
+ * The column order lives on every member's tag, so a reorder is one batch that
+ * rewrites every member's slot from the new sequence — and, like the other
+ * writes, refuses a count read short rather than numbering only the members it
+ * could see.
+ */
+describe('runSplitGroupMutation: reorder', () => {
+  it('rewrites the slot of every member whose slot changed, keeping the name', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      c: row('c', { id: 'g', order: 2, name: 'Research' }),
+    });
+    const result = await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['c', 'a', 'b'] }, deps);
+    expect(result).toMatchObject({ group_id: 'g', dissolved: false });
+    expect(writes).toEqual([
+      ['c', { id: 'g', order: 0, name: 'Research' }],
+      ['a', { id: 'g', order: 1, name: 'Research' }],
+      ['b', { id: 'g', order: 2, name: 'Research' }],
+    ]);
+  });
+
+  it('writes nothing when the order is already that', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) });
+    const result = await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['a', 'b'] }, deps);
+    expect(result.noop).toBe('the order is already that');
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses a count read short, so no member is numbered against one it could not see', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, { incomplete: true });
+    await expect(runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['b', 'a'] }, deps)).rejects.toThrow(
+      /could not be read whole/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('keeps a member the sequence missed at the tail, and skips an id that left', async () => {
+    // d joined since the drag started; z left. The named ones come first in
+    // the sequence's order, d keeps the tail.
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', tag('g', 1)),
+      d: row('d', tag('g', 2)),
+    });
+    await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['b', 'z', 'a'] }, deps);
+    expect(writes).toEqual([
+      ['b', { id: 'g', order: 0 }],
+      ['a', { id: 'g', order: 1 }],
+    ]);
+  });
+
+  it('refuses to order one leftover tag', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)) });
+    await expect(runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['a'] }, deps)).rejects.toThrow(
+      /no longer exists/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('rolls the whole reorder back when one member refuses it', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps(
+        { a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), c: row('c', tag('g', 2)) },
+        { refuse: ['a'] }
+      );
+      await expect(
+        runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['c', 'a', 'b'] }, deps)
+      ).rejects.toThrow();
+      // Every slot that did land is put back; a is never touched.
+      const rolledBack = writes.filter(([id, value]) => id !== 'a' && value !== null);
+      expect(rolledBack.map(([id, value]) => [id, (value as { order: number }).order])).toEqual(
+        expect.arrayContaining([
+          ['c', 2],
+          ['b', 1],
+        ])
+      );
+    }));
+});
+
 describe('runSplitGroupMutation: leave-own-group', () => {
   // Archiving takes a conversation out of the active list but leaves its tag
   // behind, so the group folds to a plain row while the census — which counts

@@ -62,6 +62,12 @@ export type SplitGroupMutation =
   | { type: 'remove'; group_id: string; conversation_id: string }
   /** Name the group, or clear the name when it is blank. Written onto every member. */
   | { type: 'rename'; group_id: string; name: string | null }
+  /**
+   * Put the members in this column order. Every member's `order` is rewritten
+   * from the sequence; a member the sequence does not name keeps its place
+   * after the named ones, an id that is no longer a member is skipped.
+   */
+  | { type: 'reorder'; group_id: string; order: string[] }
   /** Leave one group and join another (or fuse with a plain row) as a single batch. */
   | {
       type: 'move';
@@ -325,6 +331,38 @@ export const runSplitGroupMutation = async (
     return { group_id: mutation.group_id, dissolved: false, survivor: null };
   }
 
+  if (mutation.type === 'reorder') {
+    const census = await readGroup(mutation.group_id, deps);
+    // The order lives on every member, so it is only an order once every
+    // member carries its slot. A count read short would number the members it
+    // could see and leave the rest colliding with them — so it refuses,
+    // loudly, the way the join and rename paths do.
+    if (!census.complete) throw new Error(`group ${mutation.group_id} could not be read whole`);
+    if (census.members.length < 2) throw new Error(`group ${mutation.group_id} no longer exists`);
+    census.members.forEach(remember);
+    const byId = new Map(census.members.map((member) => [member.id, member]));
+    // Named first, in the sequence's order; anyone the sequence missed (joined
+    // since the drag started) keeps the tail in the order they had.
+    const named = mutation.order.filter((id) => byId.has(id));
+    const rest = census.members
+      .filter((member) => !named.includes(member.id))
+      .toSorted((a, b) => (readSplitGroupTag(a)?.order ?? 0) - (readSplitGroupTag(b)?.order ?? 0))
+      .map((member) => member.id);
+    const sequence = [...named, ...rest];
+    const patches: SplitGroupPatch[] = [];
+    sequence.forEach((id, index) => {
+      const member = byId.get(id);
+      const tag = member ? readSplitGroupTag(member) : null;
+      if (!member || !tag || tag.order === index) return;
+      patches.push({ conversation_id: id, split_group: splitGroupTag(tag.id, index, tag.name) });
+    });
+    if (patches.length === 0) {
+      return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'the order is already that' };
+    }
+    await applySplitGroupPatches(patches, previous, deps);
+    return { group_id: mutation.group_id, dissolved: false, survivor: null };
+  }
+
   if (mutation.type === 'leave-own-group') {
     const row = await deps.read(mutation.conversation_id);
     if (!row) return { group_id: null, dissolved: false, survivor: null, noop: 'no longer exists' };
@@ -569,6 +607,14 @@ export const useSplitGroupMutations = () => {
    * the write landed, so the box the name was typed into can keep it when it
    * did not — the queue has already said what went wrong.
    */
+  /** Put the group's columns in this order. Answers whether the write landed. */
+  const reorderMembers = useCallback(
+    async (group_id: string, order: string[]): Promise<boolean> => {
+      return (await enqueue('reorder group', { type: 'reorder', group_id, order })) !== null;
+    },
+    [enqueue]
+  );
+
   const renameGroup = useCallback(
     async (group_id: string, name: string | null): Promise<boolean> => {
       return (await enqueue('rename group', { type: 'rename', group_id, name })) !== null;
@@ -672,6 +718,7 @@ export const useSplitGroupMutations = () => {
     removeMember,
     moveMember,
     renameGroup,
+    reorderMembers,
     leaveOwnGroup,
     reconcileDeleted,
     dissolveIfAlone,
