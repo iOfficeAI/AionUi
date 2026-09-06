@@ -86,6 +86,7 @@
     "batchArchive": "批量归档",
     "batchArchiveConfirm": "确定归档已选的 {{count}} 个话题吗？归档后可在设置的归档页恢复或删除。",
     "batchArchiveSuccess": "已归档 {{count}} 个话题",
+    "batchArchivePartial": "已归档 {{total}} 个中的 {{count}} 个，其余归档失败",
     "archiveProject": "归档项目",
     "archiveProjectTitle": "归档项目",
     "archiveProjectConfirm": "确定归档项目「{{name}}」吗？项目下的 {{count}} 个对话也会一起归档。归档后可在设置的归档页恢复或删除。",

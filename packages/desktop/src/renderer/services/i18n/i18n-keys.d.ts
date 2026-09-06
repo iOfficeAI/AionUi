@@ -694,6 +694,7 @@ export type I18nKey =
   | 'conversation.history.archiving'
   | 'conversation.history.batchArchive'
   | 'conversation.history.batchArchiveConfirm'
+  | 'conversation.history.batchArchivePartial'
   | 'conversation.history.batchArchiveSuccess'
   | 'conversation.history.batchDelete'
   | 'conversation.history.batchDeleteConfirm'

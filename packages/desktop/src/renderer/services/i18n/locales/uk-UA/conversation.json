@@ -90,6 +90,7 @@
     "batchArchive": "Batch archive",
     "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
     "batchArchiveSuccess": "Archived {{count}} topics",
+    "batchArchivePartial": "Заархівовано {{count}} із {{total}}; решту заархівувати не вдалося",
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",

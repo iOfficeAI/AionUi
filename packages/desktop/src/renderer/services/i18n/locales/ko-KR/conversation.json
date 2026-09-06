@@ -86,6 +86,7 @@
     "batchArchive": "Batch archive",
     "batchArchiveConfirm": "Archive {{count}} selected topics? You can restore or delete them from Archived in Settings.",
     "batchArchiveSuccess": "Archived {{count}} topics",
+    "batchArchivePartial": "{{total}}개 중 {{count}}개를 보관했습니다. 나머지는 보관하지 못했습니다",
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",

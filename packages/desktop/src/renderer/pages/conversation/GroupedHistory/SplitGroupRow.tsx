@@ -11,18 +11,44 @@ import { Button, Dropdown, Input, Menu, Modal, Tooltip } from '@arco-design/web-
 import { CloseSmall, Drag, EditOne, MoreOne } from '@icon-park/react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import classNames from 'classnames';
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationLeadingIcon from './ConversationLeadingIcon';
 import type { CronJobStatus } from './ConversationLeadingIcon';
 import { ConversationRowMenu } from './ConversationRow';
-import { isNoHoverPointer } from '@/renderer/pages/conversation/utils/detectPlatform';
 import { useConversationDrag } from './hooks/ConversationDragContext';
 import type { ConversationRowProps } from './types';
 import { splitGroupDropId } from './utils/conversationDropTargets';
 import type { SplitGroup } from './utils/splitGroupHelpers';
 import { SPLIT_GROUP_NAME_MAX } from './utils/splitGroupHelpers';
+
+const NO_HOVER_QUERIES = ['(hover: none)', '(pointer: coarse)'];
+
+const readCanHover = (): boolean => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+  return !NO_HOVER_QUERIES.some((query) => window.matchMedia(query).matches);
+};
+
+const subscribeToPointer = (onChange: () => void): (() => void) => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
+  const lists = NO_HOVER_QUERIES.map((query) => window.matchMedia(query));
+  for (const list of lists) list.addEventListener?.('change', onChange);
+  return () => {
+    for (const list of lists) list.removeEventListener?.('change', onChange);
+  };
+};
+
+/**
+ * Whether the pointer can hover, kept current rather than sampled once.
+ *
+ * Viewport width does not answer this — a touch-capable desktop is not
+ * "mobile", and a narrow window on a mouse-driven one is not a touch screen —
+ * and the answer can change under a running window when a laptop is switched
+ * between its touchscreen and its trackpad. Read once and it goes stale until
+ * some unrelated state change happens to re-render the row.
+ */
+const useCanHover = (): boolean => useSyncExternalStore(subscribeToPointer, readCanHover, () => true);
 
 export type SplitGroupRowProps = {
   group: SplitGroup;
@@ -96,7 +122,13 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   rowProps,
 }) => {
   const { t } = useTranslation();
-  const [engaged, setEngaged] = useState(false);
+  // Tracked apart and combined on read. Sharing one flag meant the pointer
+  // leaving the row hid a control the keyboard was still inside — and, for the
+  // remove button in the leading slot, unmounted the very element that held
+  // the focus.
+  const [hovered, setHovered] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const engaged = hovered || focusWithin;
   const draggable = !batchMode && !collapsed;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: member.id,
@@ -107,10 +139,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   const name = member.name || t('conversation.welcome.newConversation');
   /** The row offers a menu only where there is room for one and something to put in it. */
   const menu = rowProps && !batchMode && !collapsed ? rowProps : null;
-  // Whether anything here can be revealed by hovering. Width does not answer
-  // that — a touch-capable desktop is not "mobile" — and a control that only
-  // appears on hover is, without one, a control nobody can reach.
-  const canHover = !isMobile && !isNoHoverPointer();
+  const canHover = useCanHover();
   const swapped = engaged && canHover && !collapsed && !batchMode && !isDragging;
   const removeLabel = t('conversation.splitGroup.removeMember', { name });
 
@@ -134,6 +163,57 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
     />
   );
 
+  const mark = (
+    <>
+      <span
+        className={classNames('flex items-center justify-center size-full', swapped && 'opacity-0')}
+        aria-hidden={swapped}
+      >
+        <ConversationLeadingIcon
+          conversation={member}
+          cronStatus={jobStatus}
+          isGenerating={isGenerating && !batchMode}
+          isWaitingConfirmation={isWaitingConfirmation && !batchMode}
+          className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
+        />
+      </span>
+      {unread && !swapped && (
+        <span
+          className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
+          data-testid={`split-group-member-unread-${member.id}`}
+        />
+      )}
+      {swapped &&
+        removeButton(
+          'absolute inset-0 flex items-center justify-center rd-4px text-t-secondary hover:!text-t-primary transition-colors'
+        )}
+    </>
+  );
+
+  // The collapsed rail has no title, no remove button and no menu — the mark
+  // is all there is, so the mark is the control. Expanded, the title is the
+  // control and this stays a plain slot, because a button holding the remove
+  // button would be a control inside a control again.
+  const leadingSlot =
+    collapsed && !batchMode ? (
+      <Button
+        type='text'
+        size='mini'
+        aria-label={t('conversation.splitGroup.focusMember', { name })}
+        data-testid={`split-group-open-${member.id}`}
+        className='!size-22px !min-w-22px !p-0 !bg-transparent hover:!bg-transparent shrink-0 relative flex items-center justify-center'
+        onClick={(event) => {
+          event.stopPropagation();
+          cleanupSiderTooltips();
+          onOpen(member.id);
+        }}
+      >
+        {mark}
+      </Button>
+    ) : (
+      <span className='size-22px flex items-center justify-center shrink-0 relative'>{mark}</span>
+    );
+
   const row = (
     <div
       ref={setNodeRef}
@@ -146,12 +226,12 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         // heavier grey would read as a second container.
         batchMode ? 'cursor-default' : 'cursor-pointer hover:bg-[rgba(var(--primary-6),0.06)]'
       )}
-      onMouseEnter={() => setEngaged(true)}
-      onMouseLeave={() => setEngaged(false)}
-      onFocus={() => setEngaged(true)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocusWithin(true)}
       onBlur={(event) => {
         if (event.currentTarget.contains(event.relatedTarget)) return;
-        setEngaged(false);
+        setFocusWithin(false);
       }}
       // A pointer shortcut over the whole row, redundant with the control
       // inside it: the keyboard and assistive tech reach the member through
@@ -191,30 +271,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
           <Drag theme='outline' size='12' fill='currentColor' />
         </span>
       )}
-      <span className='size-22px flex items-center justify-center shrink-0 relative'>
-        <span
-          className={classNames('flex items-center justify-center size-full', swapped && 'opacity-0')}
-          aria-hidden={swapped}
-        >
-          <ConversationLeadingIcon
-            conversation={member}
-            cronStatus={jobStatus}
-            isGenerating={isGenerating && !batchMode}
-            isWaitingConfirmation={isWaitingConfirmation && !batchMode}
-            className={dimIcon ? 'opacity-60 group-hover/member:opacity-100' : undefined}
-          />
-        </span>
-        {unread && !swapped && (
-          <span
-            className='absolute -top-1px -start-1px h-6px w-6px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)] pointer-events-none'
-            data-testid={`split-group-member-unread-${member.id}`}
-          />
-        )}
-        {swapped &&
-          removeButton(
-            'absolute inset-0 flex items-center justify-center rd-4px cursor-pointer text-t-secondary hover:text-t-primary hover:bg-fill-3 transition-colors'
-          )}
-      </span>
+      {leadingSlot}
       {!collapsed &&
         (batchMode ? (
           <span

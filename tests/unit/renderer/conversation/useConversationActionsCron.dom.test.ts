@@ -8,11 +8,23 @@ import type { TChatConversation } from '@/common/config/storage';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { navigateMock, requestPrefillMock, routeState, archiveMock, leaveOwnGroupMock } = vi.hoisted(() => ({
+const {
+  navigateMock,
+  requestPrefillMock,
+  routeState,
+  archiveMock,
+  leaveOwnGroupMock,
+  messageSuccess,
+  messageError,
+  messageWarning,
+} = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   requestPrefillMock: vi.fn(),
   routeState: { id: 'current-conversation' as string | undefined },
   archiveMock: vi.fn(async () => true),
+  messageSuccess: vi.fn(),
+  messageError: vi.fn(),
+  messageWarning: vi.fn(),
   leaveOwnGroupMock: vi.fn(async () => true),
 }));
 
@@ -54,7 +66,7 @@ vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
   return {
     ...actual,
-    Message: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+    Message: { success: messageSuccess, error: messageError, warning: messageWarning },
     // The batch archive asks for confirmation; these tests are about what it
     // does once confirmed.
     Modal: { ...actual.Modal, confirm: (config: { onOk?: () => unknown }) => void config.onOk?.() },
@@ -265,5 +277,118 @@ describe('a refused leave stops the archive', () => {
     expect(archived).toContain('good-1');
     expect(archived).toContain('good-2');
     expect(archived).not.toContain('bad');
+  });
+});
+
+/**
+ * Which step failed decides what the user is told. It used to be read back out
+ * of the error's text, so an archive failing while echoing a conversation's own
+ * words could be mistaken for a failed leave and say nothing at all.
+ */
+describe('archive failure is reported for the step that actually failed', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leaveOwnGroupMock.mockResolvedValue(true);
+    archiveMock.mockResolvedValue(true);
+    routeState.id = 'current-conversation';
+  });
+
+  it('says the archive failed when the archive is the thing that failed', async () => {
+    archiveMock.mockRejectedValue(new Error('backend refused'));
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    expect(messageError).toHaveBeenCalledWith('conversation.history.archiveFailed');
+  });
+
+  it('stays quiet when the leave failed, because the write path already spoke', async () => {
+    leaveOwnGroupMock.mockResolvedValue(false);
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    expect(messageError).not.toHaveBeenCalled();
+  });
+
+  it('treats a leave that throws as a failed leave, not a failed archive', async () => {
+    // The queue normally answers false; anything that gets past it is still a
+    // failure of the same step, and must not be reported as the next one.
+    leaveOwnGroupMock.mockRejectedValue(new Error('ipc exploded'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { result } = renderActions();
+      await act(async () => {
+        await result.current.handleArchive(makeConversation('member-a', 'acp'));
+      });
+      expect(archiveMock).not.toHaveBeenCalled();
+      expect(messageError).not.toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('does not mistake an archive error that quotes the leave wording', async () => {
+    // The old check matched this message as a leave failure and swallowed the
+    // toast for a real archive failure.
+    archiveMock.mockRejectedValue(new Error('a conversation named "could not leave its split group"'));
+    const { result } = renderActions();
+    await act(async () => {
+      await result.current.handleArchive(makeConversation('member-a', 'acp'));
+    });
+    expect(messageError).toHaveBeenCalledWith('conversation.history.archiveFailed');
+  });
+});
+
+/**
+ * A batch settles row by row, so "some worked" is a real outcome. It used to be
+ * reported as plain success, and the rows that failed said nothing at all.
+ */
+describe('a partly archived batch says so', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leaveOwnGroupMock.mockResolvedValue(true);
+    archiveMock.mockResolvedValue(true);
+    routeState.id = 'current-conversation';
+  });
+
+  const runBatch = async (ids: string[]) => {
+    const { result } = renderActions(undefined, new Set(ids));
+    await act(async () => {
+      result.current.handleBatchArchive();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
+  it('warns with the counts when only some rows archived', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      leaveOwnGroupMock.mockImplementation(async (id: string) => id !== 'bad');
+      await runBatch(['good-1', 'bad', 'good-2']);
+      expect(messageWarning).toHaveBeenCalledWith('conversation.history.batchArchivePartial');
+      expect(messageSuccess).not.toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('reports plain success only when every row archived', async () => {
+    await runBatch(['good-1', 'good-2']);
+    expect(messageSuccess).toHaveBeenCalledWith('conversation.history.batchArchiveSuccess');
+    expect(messageWarning).not.toHaveBeenCalled();
+  });
+
+  it('reports failure when no row archived', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      leaveOwnGroupMock.mockResolvedValue(false);
+      await runBatch(['a', 'b']);
+      expect(messageError).toHaveBeenCalledWith('conversation.history.archiveFailed');
+    } finally {
+      error.mockRestore();
+    }
   });
 });

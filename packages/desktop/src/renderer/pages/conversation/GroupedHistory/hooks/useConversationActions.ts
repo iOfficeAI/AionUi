@@ -35,6 +35,13 @@ type UseConversationActionsParams = {
   isManualUnread: (conversation_id: string) => boolean;
 };
 
+/** Marks the step that failed, so the caller does not have to read the message. */
+const LEAVE_FAILED = 'split-group-leave-failed';
+type StagedError = Error & { code?: string };
+const leaveFailed = (item_id: string): StagedError =>
+  Object.assign(new Error(`${item_id} could not leave its split group`), { code: LEAVE_FAILED });
+const isLeaveFailure = (error: unknown): boolean => (error as StagedError | null)?.code === LEAVE_FAILED;
+
 export const useConversationActions = ({
   batchMode,
   onSessionClick,
@@ -147,11 +154,48 @@ export const useConversationActions = ({
    */
   const archiveConversation = useCallback(
     async (item_id: string, { moveToSurvivor = true }: { moveToSurvivor?: boolean } = {}): Promise<void> => {
-      if (!(await leaveOwnGroup(item_id, { moveToSurvivor })))
-        throw new Error(`${item_id} could not leave its split group`);
+      // Which step failed decides what the user is told, so it is carried on
+      // the error rather than read back out of its text: an archive that fails
+      // while echoing a conversation's own words must not be mistaken for a
+      // failed leave, and renaming the message must not silently change which
+      // branch runs.
+      let left = false;
+      try {
+        left = await leaveOwnGroup(item_id, { moveToSurvivor });
+      } catch (error) {
+        // The queue normally answers `false` rather than throwing; anything
+        // that gets past it is still a failure of the same step.
+        console.error(`Failed to take ${item_id} out of its split group:`, error);
+        throw leaveFailed(item_id);
+      }
+      if (!left) throw leaveFailed(item_id);
       await ipcBridge.sidebar.archive.invoke({ item_type: 'conversation', item_id });
     },
     [leaveOwnGroup]
+  );
+
+  /**
+   * Say what actually happened to a batch. Rows are settled one by one, so
+   * "some worked" is a real outcome and used to be reported as plain success —
+   * the rows that failed said nothing at all.
+   */
+  const reportArchived = useCallback(
+    (results: PromiseSettledResult<void>[]) => {
+      const count = results.filter((result) => result.status === 'fulfilled').length;
+      for (const result of results) {
+        if (result.status === 'rejected') console.error('Failed to archive a conversation:', result.reason);
+      }
+      if (count === results.length) {
+        Message.success(t('conversation.history.batchArchiveSuccess', { count }));
+        return;
+      }
+      if (count === 0) {
+        Message.error(t('conversation.history.archiveFailed'));
+        return;
+      }
+      Message.warning(t('conversation.history.batchArchivePartial', { count, total: results.length }));
+    },
+    [t]
   );
 
   const handleBatchArchive = useCallback(() => {
@@ -180,13 +224,8 @@ export const useConversationActions = ({
           const results = await Promise.allSettled(
             selectedIds.map((item_id) => archiveConversation(item_id, { moveToSurvivor: false }))
           );
-          const successCount = results.filter((r) => r.status === 'fulfilled').length;
           emitter.emit('chat.history.refresh');
-          if (successCount > 0) {
-            Message.success(t('conversation.history.batchArchiveSuccess', { count: successCount }));
-          } else {
-            Message.error(t('conversation.history.archiveFailed'));
-          }
+          reportArchived(results);
         } catch (error) {
           console.error('Failed to batch archive conversations:', error);
           Message.error(t('conversation.history.archiveFailed'));
@@ -199,7 +238,7 @@ export const useConversationActions = ({
       alignCenter: true,
       getPopupContainer: () => document.body,
     });
-  }, [archiveConversation, onBatchModeChange, selectedConversationIds, t, setSelectedConversationIds]);
+  }, [archiveConversation, onBatchModeChange, reportArchived, selectedConversationIds, t, setSelectedConversationIds]);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -344,13 +383,8 @@ export const useConversationActions = ({
       const results = await Promise.allSettled(
         archiveProjectTarget.conversations.map((c) => archiveConversation(c.id, { moveToSurvivor: false }))
       );
-      const successCount = results.filter((r) => r.status === 'fulfilled').length;
       emitter.emit('chat.history.refresh');
-      if (successCount > 0) {
-        Message.success(t('conversation.history.batchArchiveSuccess', { count: successCount }));
-      } else {
-        Message.error(t('conversation.history.archiveFailed'));
-      }
+      reportArchived(results);
       setArchiveProjectTarget(null);
     } catch (error) {
       console.error('Failed to archive project:', error);
@@ -358,7 +392,7 @@ export const useConversationActions = ({
     } finally {
       setArchiveProjectLoading(false);
     }
-  }, [archiveConversation, archiveProjectTarget, t]);
+  }, [archiveConversation, archiveProjectTarget, reportArchived, t]);
 
   const handleArchive = useCallback(
     async (conversation: TChatConversation) => {
@@ -375,7 +409,7 @@ export const useConversationActions = ({
         console.error('Failed to archive conversation:', error);
         // A refused leave has already been reported by the write path; only a
         // refused archive needs saying here.
-        if (!(error instanceof Error) || !error.message.includes('could not leave its split group')) {
+        if (!isLeaveFailure(error)) {
           Message.error(t('conversation.history.archiveFailed'));
         }
         emitter.emit('chat.history.refresh');

@@ -33,8 +33,9 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
+const { layoutState } = vi.hoisted(() => ({ layoutState: { isMobile: false } }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
-  useLayoutContext: () => ({ isMobile: false, siderCollapsed: false, setSiderCollapsed: () => {} }),
+  useLayoutContext: () => ({ isMobile: layoutState.isMobile, siderCollapsed: false, setSiderCollapsed: () => {} }),
 }));
 vi.mock('@/renderer/pages/conversation/GroupedHistory/ConversationLeadingIcon', () => ({
   default: ({ conversation, isGenerating }: { conversation: TChatConversation; isGenerating?: boolean }) => (
@@ -89,7 +90,28 @@ const renderPill = (overrides: Partial<React.ComponentProps<typeof SplitGroupRow
 
 afterEach(() => {
   cleanup();
+  layoutState.isMobile = false;
 });
+
+/** Answer the hover media queries for one test. */
+const withPointer = (canHover: boolean, body: () => void) => {
+  const original = window.matchMedia;
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: canHover ? false : query.includes('hover: none') || query.includes('pointer: coarse'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
+  });
+  try {
+    body();
+  } finally {
+    Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+  }
+};
 
 describe('SplitGroupRow', () => {
   it('renders one leading icon per member, in column order', () => {
@@ -544,5 +566,85 @@ describe('SplitGroupRow keyboard reach', () => {
     cleanup();
     renderPill({ batchMode: true, getMemberRowProps: (conversation) => menuProps(conversation, false) });
     expect(screen.queryAllByTestId(/^split-group-member-menu-/)).toHaveLength(0);
+  });
+});
+
+/**
+ * The collapsed rail. It has no title, no remove button and no menu, so when
+ * the row stopped being a control itself there was nothing left to focus — a
+ * member could be opened with a mouse and by no other means. The mark is the
+ * control there.
+ */
+describe('SplitGroupRow collapsed rail', () => {
+  it('gives the mark a focusable opener carrying the member name', () => {
+    const { onOpen } = renderPill({ collapsed: true });
+    const opener = screen.getByTestId('split-group-open-b');
+    expect(opener.tagName).toBe('BUTTON');
+    expect(opener).toHaveAttribute('aria-label', 'conversation.splitGroup.focusMember:Conversation b');
+    fireEvent.click(opener);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it('leaves one control per row and no nesting', () => {
+    renderPill({ collapsed: true });
+    const row = screen.getByTestId('split-group-member-b');
+    expect(row.querySelectorAll('button')).toHaveLength(1);
+    expect(row).not.toHaveAttribute('role');
+  });
+
+  it('offers no opener while batch-selecting, where the row is not interactive', () => {
+    renderPill({ collapsed: true, batchMode: true });
+    expect(screen.queryAllByTestId(/^split-group-open-/)).toHaveLength(0);
+  });
+
+  it('still shows every member and no title', () => {
+    renderPill({ collapsed: true });
+    expect(screen.getAllByTestId(/^split-group-open-/)).toHaveLength(3);
+    expect(screen.queryAllByTestId(/^split-group-title-/)).toHaveLength(0);
+  });
+});
+
+/**
+ * Hover and focus are two ways to engage a row and they end independently.
+ * Sharing one flag meant moving the pointer away hid a control the keyboard was
+ * still inside — and the remove button lives in the leading slot, so hiding it
+ * unmounted the element holding the focus.
+ */
+describe('SplitGroupRow engagement', () => {
+  it('keeps the remove button up when the pointer leaves but focus stays', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-a');
+    fireEvent.mouseEnter(row);
+    fireEvent.focus(row);
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(row);
+    // Focus is still inside; the control it is on must not vanish underneath it.
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-a')).toBeNull();
+  });
+
+  it('keeps it up when focus leaves but the pointer stays', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-a');
+    fireEvent.mouseEnter(row);
+    fireEvent.focus(row);
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+  });
+
+  it('asks the pointer, not the viewport, whether anything can be hovered', () => {
+    // A narrow window on a mouse-driven desktop is "mobile" by width and has a
+    // hover all the same; it should keep the leading-slot swap rather than
+    // being handed the touch layout.
+    layoutState.isMobile = true;
+    withPointer(true, () => {
+      renderPill();
+      expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+      fireEvent.mouseEnter(screen.getByTestId('split-group-member-a'));
+      expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+    });
   });
 });
