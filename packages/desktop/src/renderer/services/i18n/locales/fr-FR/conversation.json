@@ -97,9 +97,13 @@
     "open": "Ouvrir la vue partagée",
     "focusMember": "Afficher « {{name}} » dans la vue partagée",
     "removeMember": "Retirer « {{name}} » de la vue partagée",
+    "removeFromSplit": "Retirer de la vue divisée",
     "dragToSplit": "Faites glisser sur une autre conversation pour les ouvrir côte à côte",
+    "dragMember": "Faites glisser « {{name}} » hors de la vue divisée, ou sur une autre conversation",
     "dropToSplit": "Relâchez pour ouvrir côte à côte",
     "dropToAdd": "Relâchez pour ajouter à cette vue partagée",
+    "dropToRemove": "Relâchez pour la retirer de la vue divisée",
+    "dropToMove": "Relâchez pour la déplacer ici",
     "notFound": "Cette vue partagée n’existe plus.",
     "updateFailed": "Impossible de mettre à jour la vue partagée",
     "memberUnavailable": "Impossible de charger « {{name}} »."

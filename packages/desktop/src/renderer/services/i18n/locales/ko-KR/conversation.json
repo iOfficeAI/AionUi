@@ -97,9 +97,13 @@
     "open": "분할 보기 열기",
     "focusMember": "분할 보기에서 “{{name}}” 표시",
     "removeMember": "분할 보기에서 “{{name}}” 제거",
+    "removeFromSplit": "분할 보기에서 제거",
     "dragToSplit": "다른 대화 위로 끌어다 놓으면 나란히 열립니다",
+    "dragMember": "“{{name}}”을(를) 분할 보기 밖으로 또는 다른 대화 위로 끕니다",
     "dropToSplit": "놓으면 나란히 열립니다",
     "dropToAdd": "놓으면 이 분할 보기에 추가됩니다",
+    "dropToRemove": "놓으면 분할 보기에서 제외됩니다",
+    "dropToMove": "놓으면 여기로 이동합니다",
     "notFound": "이 분할 보기는 더 이상 존재하지 않습니다.",
     "updateFailed": "분할 보기를 업데이트할 수 없습니다",
     "memberUnavailable": "“{{name}}”을(를) 불러올 수 없습니다."

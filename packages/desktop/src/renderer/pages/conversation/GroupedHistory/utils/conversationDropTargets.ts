@@ -7,11 +7,14 @@
 /**
  * What a dropped sidebar conversation does, decided from where it landed.
  *
- * Two gestures share one drag: dropping a row *between* pinned rows reorders
+ * Three gestures share one drag: dropping a row *between* pinned rows reorders
  * them (the behaviour that existed before split groups), dropping it *onto*
- * something fuses. The pointer's vertical position inside the target row tells
- * the two apart; the drop target's kind tells what "fuse" means. Pure so the
- * decision table is testable without a DndContext.
+ * something fuses, and dropping a row that is already a split-group member
+ * anywhere else takes it out of its group. The pointer's vertical position
+ * inside the target row tells the first two apart; the drop target's kind
+ * tells what "fuse" means; whether the dragged row is already a member decides
+ * between fusing and leaving. Pure so the decision table is testable without a
+ * DndContext.
  */
 
 import type { SplitGroup } from './splitGroupHelpers';
@@ -52,11 +55,21 @@ export type ConversationDropTarget =
 /** Payload the dragged row carries. */
 export type ConversationDragSource = { kind: 'conversation'; conversation_id: string };
 
+/** Where a member being moved out of its group lands. */
+export type SplitGroupMoveTarget =
+  | { kind: 'group'; group_id: string }
+  /** A plain conversation: the two of them become a new group. */
+  | { kind: 'conversation'; conversation_id: string };
+
 export type ConversationDropAction =
   | { type: 'reorder-pinned'; active_id: string; over_id: string }
   | { type: 'create-group'; target_id: string; dragged_id: string }
   | { type: 'add-member'; group_id: string; dragged_id: string }
-  | { type: 'none'; reason: 'self' | 'between' | 'already-member' | 'dragged-grouped' | 'unknown-group' };
+  /** A member let go somewhere that is not a fuse target: it leaves its group. */
+  | { type: 'remove-member'; group_id: string; dragged_id: string }
+  /** A member let go on another group or another row: it leaves and joins in one batch. */
+  | { type: 'move-member'; from_group_id: string; dragged_id: string; to: SplitGroupMoveTarget }
+  | { type: 'none'; reason: 'self' | 'between' | 'nowhere' | 'already-member' | 'unknown-group' };
 
 export const resolveConversationDropAction = ({
   dragged_id,
@@ -66,14 +79,45 @@ export const resolveConversationDropAction = ({
   pinnedIds,
 }: {
   dragged_id: string;
-  target: ConversationDropTarget;
+  /** `null` when the pointer was over nothing a drop could mean anything on. */
+  target: ConversationDropTarget | null;
   intent: DropIntent;
   groups: SplitGroup[];
   pinnedIds: readonly string[];
 }): ConversationDropAction => {
-  // A row that is already a column somewhere is never a drag source in the UI
-  // (its row is folded into a pill), so this is a guard, not a feature.
-  if (findSplitGroupOf(groups, dragged_id)) return { type: 'none', reason: 'dragged-grouped' };
+  const sourceGroup = findSplitGroupOf(groups, dragged_id);
+
+  // A member of a group is the one row whose drag can *undo* something:
+  // anywhere that is not a fuse target means "take me out of here", and a
+  // fuse target means "take me out of here and put me there".
+  if (sourceGroup) {
+    const leave = (to: SplitGroupMoveTarget): ConversationDropAction => ({
+      type: 'move-member',
+      from_group_id: sourceGroup.id,
+      dragged_id,
+      to,
+    });
+    if (!target) return { type: 'remove-member', group_id: sourceGroup.id, dragged_id };
+    if (target.kind === 'split_group') {
+      if (target.group_id === sourceGroup.id) return { type: 'none', reason: 'self' };
+      const group = groups.find((candidate) => candidate.id === target.group_id);
+      if (!group) return { type: 'none', reason: 'unknown-group' };
+      return leave({ kind: 'group', group_id: group.id });
+    }
+    if (target.conversation_id === dragged_id) return { type: 'none', reason: 'self' };
+    const targetGroup = findSplitGroupOf(groups, target.conversation_id);
+    if (targetGroup) {
+      return targetGroup.id === sourceGroup.id
+        ? { type: 'none', reason: 'self' }
+        : leave({ kind: 'group', group_id: targetGroup.id });
+    }
+    // Between two plain rows is not a fuse either: the member still leaves.
+    if (intent !== 'onto') return { type: 'remove-member', group_id: sourceGroup.id, dragged_id };
+    return leave({ kind: 'conversation', conversation_id: target.conversation_id });
+  }
+
+  // A plain row released over nothing keeps the old behaviour: nothing happens.
+  if (!target) return { type: 'none', reason: 'nowhere' };
 
   if (target.kind === 'split_group') {
     const group = groups.find((candidate) => candidate.id === target.group_id);

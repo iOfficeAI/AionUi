@@ -97,9 +97,13 @@
     "open": "Geteilte Ansicht öffnen",
     "focusMember": "„{{name}}“ in der geteilten Ansicht anzeigen",
     "removeMember": "„{{name}}“ aus der geteilten Ansicht entfernen",
+    "removeFromSplit": "Aus geteilter Ansicht entfernen",
     "dragToSplit": "Auf eine andere Unterhaltung ziehen, um beide nebeneinander zu öffnen",
+    "dragMember": "„{{name}}“ aus der geteilten Ansicht ziehen oder auf eine andere Unterhaltung ziehen",
     "dropToSplit": "Loslassen, um nebeneinander zu öffnen",
     "dropToAdd": "Loslassen, um zu dieser geteilten Ansicht hinzuzufügen",
+    "dropToRemove": "Loslassen, um sie aus der geteilten Ansicht zu nehmen",
+    "dropToMove": "Loslassen, um sie hierher zu verschieben",
     "notFound": "Diese geteilte Ansicht existiert nicht mehr.",
     "updateFailed": "Die geteilte Ansicht konnte nicht aktualisiert werden",
     "memberUnavailable": "„{{name}}“ konnte nicht geladen werden."

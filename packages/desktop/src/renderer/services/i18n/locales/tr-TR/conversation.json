@@ -97,9 +97,13 @@
     "open": "Bölünmüş görünümü aç",
     "focusMember": "“{{name}}” sohbetini bölünmüş görünümde göster",
     "removeMember": "“{{name}}” sohbetini bölünmüş görünümden çıkar",
+    "removeFromSplit": "Bölünmüş görünümden kaldır",
     "dragToSplit": "Yan yana açmak için başka bir sohbetin üzerine sürükleyin",
+    "dragMember": "“{{name}}” öğesini bölünmüş görünümden dışarı veya başka bir sohbetin üzerine sürükleyin",
     "dropToSplit": "Yan yana açmak için bırakın",
     "dropToAdd": "Bu bölünmüş görünüme eklemek için bırakın",
+    "dropToRemove": "Bölünmüş görünümden çıkarmak için bırakın",
+    "dropToMove": "Buraya taşımak için bırakın",
     "notFound": "Bu bölünmüş görünüm artık yok.",
     "updateFailed": "Bölünmüş görünüm güncellenemedi",
     "memberUnavailable": "“{{name}}” yüklenemedi."

@@ -127,7 +127,7 @@ describe('resolveConversationDropAction', () => {
     ).toEqual({ type: 'none', reason: 'self' });
   });
 
-  it('ignores a drop onto a group the row already belongs to', () => {
+  it('does nothing when a member is dropped back onto its own block', () => {
     expect(
       resolveConversationDropAction({
         dragged_id: 'm1',
@@ -136,13 +136,69 @@ describe('resolveConversationDropAction', () => {
         groups,
         pinnedIds: [],
       })
-    ).toEqual({ type: 'none', reason: 'dragged-grouped' });
+    ).toEqual({ type: 'none', reason: 'self' });
   });
 
-  it('refuses to move a grouped conversation into another group', () => {
+  it('does nothing when a member is dropped onto one of its own peers', () => {
+    expect(
+      resolveConversationDropAction({ dragged_id: 'm1', target: row('m2'), intent: 'onto', groups, pinnedIds: [] })
+    ).toEqual({ type: 'none', reason: 'self' });
+  });
+
+  it('takes a member out of its group when it lands on nothing', () => {
+    expect(
+      resolveConversationDropAction({ dragged_id: 'm1', target: null, intent: 'onto', groups, pinnedIds: [] })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
+  it('takes a member out of its group when it lands between two rows', () => {
+    expect(
+      resolveConversationDropAction({ dragged_id: 'm1', target: row('z'), intent: 'before', groups, pinnedIds: [] })
+    ).toEqual({ type: 'remove-member', group_id: 'g1', dragged_id: 'm1' });
+  });
+
+  it('moves a member onto a plain row it is dropped on', () => {
     expect(
       resolveConversationDropAction({ dragged_id: 'm1', target: row('z'), intent: 'onto', groups, pinnedIds: [] })
-    ).toEqual({ type: 'none', reason: 'dragged-grouped' });
+    ).toEqual({
+      type: 'move-member',
+      from_group_id: 'g1',
+      dragged_id: 'm1',
+      to: { kind: 'conversation', conversation_id: 'z' },
+    });
+  });
+
+  it('moves a member onto another group it is dropped on', () => {
+    const two: SplitGroup[] = [...groups, { id: 'g2', members: [member('n1', 'g2', 0), member('n2', 'g2', 1)] }];
+    expect(
+      resolveConversationDropAction({
+        dragged_id: 'm1',
+        target: { kind: 'split_group', group_id: 'g2' },
+        intent: 'onto',
+        groups: two,
+        pinnedIds: [],
+      })
+    ).toEqual({
+      type: 'move-member',
+      from_group_id: 'g1',
+      dragged_id: 'm1',
+      to: { kind: 'group', group_id: 'g2' },
+    });
+    // Landing on a member of the other group means the same thing.
+    expect(
+      resolveConversationDropAction({ dragged_id: 'm1', target: row('n2'), intent: 'onto', groups: two, pinnedIds: [] })
+    ).toEqual({
+      type: 'move-member',
+      from_group_id: 'g1',
+      dragged_id: 'm1',
+      to: { kind: 'group', group_id: 'g2' },
+    });
+  });
+
+  it('leaves a plain row alone when it lands on nothing', () => {
+    expect(
+      resolveConversationDropAction({ dragged_id: 'a', target: null, intent: 'onto', groups, pinnedIds: [] })
+    ).toEqual({ type: 'none', reason: 'nowhere' });
   });
 
   it('ignores a pill that no longer exists', () => {

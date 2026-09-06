@@ -33,7 +33,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { SplitGroupCensus } from '../utils/splitGroupCensus';
 import { readSplitGroupCensus } from '../utils/splitGroupCensus';
 import type { SplitGroupPatch, SplitGroupTag } from '../utils/splitGroupHelpers';
-import { planCreateSplitGroup, readSplitGroupTag } from '../utils/splitGroupHelpers';
+import { newSplitGroupId, planCreateSplitGroup, readSplitGroupTag } from '../utils/splitGroupHelpers';
 import { refreshConversationList } from './useConversationListSync';
 
 export const splitGroupRoute = (group_id: string): string => `/split/${group_id}`;
@@ -53,6 +53,13 @@ export type SplitGroupMutation =
   | { type: 'create'; target_id: string; dragged_id: string }
   | { type: 'add'; group_id: string; conversation_id: string }
   | { type: 'remove'; group_id: string; conversation_id: string }
+  /** Leave one group and join another (or fuse with a plain row) as a single batch. */
+  | {
+      type: 'move';
+      from_group_id: string;
+      conversation_id: string;
+      to: { kind: 'group'; group_id: string } | { kind: 'conversation'; conversation_id: string };
+    }
   /** A backend "deleted" event: remove the member only if its own read confirms it is gone. */
   | { type: 'remove-if-deleted'; group_id: string; conversation_id: string }
   /** Clear a tag left behind by a group that no longer has anyone else — proven, not assumed. */
@@ -240,6 +247,59 @@ export const runSplitGroupMutation = async (
     return { group_id: mutation.group_id, dissolved: true, survivor: members[0].id };
   }
 
+  if (mutation.type === 'move') {
+    const row = await deps.read(mutation.conversation_id);
+    if (!row) throw new Error(`${mutation.conversation_id} no longer exists`);
+    const source = await readGroup(mutation.from_group_id, deps, [row]);
+    source.members.forEach(remember);
+    if (!source.members.some((member) => member.id === row.id)) {
+      return { group_id: mutation.from_group_id, dissolved: false, survivor: null, noop: 'not a member' };
+    }
+    const staying = source.members.filter((member) => member.id !== row.id);
+
+    // Where it is going, resolved now rather than when the drag started: the
+    // destination may have joined a group, or become one, in between.
+    let destination_id: string;
+    const patches: SplitGroupPatch[] = [];
+    if (mutation.to.kind === 'group') {
+      const { members } = await readGroup(mutation.to.group_id, deps);
+      if (members.length === 0) throw new Error(`group ${mutation.to.group_id} no longer exists`);
+      destination_id = mutation.to.group_id;
+      patches.push({ conversation_id: row.id, split_group: { id: destination_id, order: nextOrder(members) } });
+    } else {
+      const target = await deps.read(mutation.to.conversation_id);
+      if (!target) throw new Error(`${mutation.to.conversation_id} no longer exists`);
+      remember(target);
+      const targetTag = readSplitGroupTag(target);
+      if (targetTag && targetTag.id === mutation.from_group_id) {
+        return { group_id: mutation.from_group_id, dissolved: false, survivor: null, noop: 'the same group' };
+      }
+      if (targetTag) {
+        const { members } = await readGroup(targetTag.id, deps, [target]);
+        destination_id = targetTag.id;
+        patches.push({ conversation_id: row.id, split_group: { id: destination_id, order: nextOrder(members) } });
+      } else {
+        destination_id = newSplitGroupId();
+        patches.push(...planCreateSplitGroup(target.id, row.id, destination_id));
+      }
+    }
+
+    // The group it leaves dissolves under the same rule a plain removal uses:
+    // a survivor's tag is cleared only when a complete count proves the group
+    // is too small to exist.
+    const dissolved = staying.length < 2 && source.complete;
+    if (staying.length < 2 && !source.complete) {
+      console.error(
+        `[SplitGroup] Could not read every conversation, so group ${mutation.from_group_id} was not dissolved; ${staying.map((member) => member.id).join(', ')} keeps its tag.`
+      );
+    }
+    if (dissolved) {
+      for (const member of staying) patches.push({ conversation_id: member.id, split_group: null });
+    }
+    await applySplitGroupPatches(patches, previous, deps);
+    return { group_id: destination_id, dissolved, survivor: dissolved ? (staying[0]?.id ?? null) : null };
+  }
+
   // remove / remove-if-deleted
   const row = await deps.read(mutation.conversation_id);
   if (mutation.type === 'remove-if-deleted' && row !== null) {
@@ -371,6 +431,25 @@ export const useSplitGroupMutations = () => {
     [enqueue, leaveDissolvedGroup]
   );
 
+  /**
+   * Drag a member onto another group or another row: it leaves where it was
+   * and joins where it landed as one reconciled batch, so it is never briefly
+   * in both places or in neither.
+   */
+  const moveMember = useCallback(
+    async (
+      from_group_id: string,
+      conversation_id: string,
+      to: { kind: 'group'; group_id: string } | { kind: 'conversation'; conversation_id: string }
+    ): Promise<void> => {
+      leaveDissolvedGroup(
+        from_group_id,
+        await enqueue('move member', { type: 'move', from_group_id, conversation_id, to })
+      );
+    },
+    [enqueue, leaveDissolvedGroup]
+  );
+
   /** A backend "deleted" event for a member: reconcile the group, but only once the member's own read confirms it is gone. */
   const reconcileDeleted = useCallback(
     async (group_id: string, conversation_id: string): Promise<void> => {
@@ -397,5 +476,5 @@ export const useSplitGroupMutations = () => {
     [enqueue]
   );
 
-  return { createGroup, addMember, removeMember, reconcileDeleted, dissolveIfAlone };
+  return { createGroup, addMember, removeMember, moveMember, reconcileDeleted, dissolveIfAlone };
 };

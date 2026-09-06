@@ -97,9 +97,13 @@
     "open": "Abrir visualização dividida",
     "focusMember": "Mostrar “{{name}}” na visualização dividida",
     "removeMember": "Remover “{{name}}” da visualização dividida",
+    "removeFromSplit": "Remover da visualização dividida",
     "dragToSplit": "Arraste sobre outra conversa para abri-las lado a lado",
+    "dragMember": "Arraste “{{name}}” para fora da visualização dividida ou sobre outra conversa",
     "dropToSplit": "Solte para abrir lado a lado",
     "dropToAdd": "Solte para adicionar a esta visualização dividida",
+    "dropToRemove": "Solte para tirá-la da visualização dividida",
+    "dropToMove": "Solte para movê-la para cá",
     "notFound": "Esta visualização dividida não existe mais.",
     "updateFailed": "Não foi possível atualizar a visualização dividida",
     "memberUnavailable": "Não foi possível carregar “{{name}}”."

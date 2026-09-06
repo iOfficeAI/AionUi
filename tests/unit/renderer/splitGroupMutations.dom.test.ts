@@ -316,6 +316,135 @@ describe('runSplitGroupMutation: remove', () => {
   });
 });
 
+describe('runSplitGroupMutation: move', () => {
+  it('leaves one group and joins another as a single batch', async () => {
+    const { deps, writes, refresh } = makeDeps({
+      a: row('a', tag('g1', 0)),
+      b: row('b', tag('g1', 1)),
+      c: row('c', tag('g1', 2)),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+    });
+    const result = await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'c', to: { kind: 'group', group_id: 'g2' } },
+      deps
+    );
+    expect(result.group_id).toBe('g2');
+    expect(result.dissolved).toBe(false);
+    // One write, one reload: the member is never briefly in both groups or in neither.
+    expect(writes).toEqual([['c', tag('g2', 2)]]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('fuses with a plain row it is dropped on, and dissolves the pair it leaves', async () => {
+    const { deps, writes, refresh } = makeDeps({ a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)), z: row('z') });
+    const result = await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'b', to: { kind: 'conversation', conversation_id: 'z' } },
+      deps
+    );
+    expect(result.dissolved).toBe(true);
+    expect(result.survivor).toBe('a');
+    const written = writes.map(([id, value]) => [id, value?.id === result.group_id ? value.order : value]);
+    // z and b get the new group in column order; a, left alone, loses its tag.
+    expect(written).toEqual([
+      ['z', 0],
+      ['b', 1],
+      ['a', null],
+    ]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("joins the target's group when the target was grouped after the drag started", async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g1', 0)),
+      b: row('b', tag('g1', 1)),
+      c: row('c', tag('g1', 2)),
+      z: row('z', tag('g2', 0)),
+      w: row('w', tag('g2', 1)),
+    });
+    const result = await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'c', to: { kind: 'conversation', conversation_id: 'z' } },
+      deps
+    );
+    expect(result.group_id).toBe('g2');
+    expect(writes).toEqual([['c', tag('g2', 2)]]);
+  });
+
+  it('writes nothing when the target turns out to be in the same group', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)) });
+    const result = await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'b', to: { kind: 'conversation', conversation_id: 'a' } },
+      deps
+    );
+    expect(result.noop).toBe('the same group');
+    expect(writes).toEqual([]);
+  });
+
+  it('writes nothing when the member already left the group', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g1', 0)),
+      b: row('b', tag('g1', 1)),
+      c: row('c'),
+      z: row('z'),
+    });
+    const result = await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g1', conversation_id: 'c', to: { kind: 'conversation', conversation_id: 'z' } },
+      deps
+    );
+    expect(result.noop).toBe('not a member');
+    expect(writes).toEqual([]);
+  });
+
+  it('keeps the survivor tagged when the count of the group it leaves could not be read whole', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps(
+        { a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)), z: row('z') },
+        { incomplete: true }
+      );
+      const result = await runSplitGroupMutation(
+        { type: 'move', from_group_id: 'g1', conversation_id: 'b', to: { kind: 'conversation', conversation_id: 'z' } },
+        deps
+      );
+      expect(result.dissolved).toBe(false);
+      expect(writes.map(([id]) => id)).toEqual(['z', 'b']);
+    }));
+
+  it('rolls the whole move back when any write in it is refused', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps(
+        { a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)), z: row('z') },
+        { refuse: ['a'] }
+      );
+      await expect(
+        runSplitGroupMutation(
+          {
+            type: 'move',
+            from_group_id: 'g1',
+            conversation_id: 'b',
+            to: { kind: 'conversation', conversation_id: 'z' },
+          },
+          deps
+        )
+      ).rejects.toThrow(/rejected/);
+      // z and b are put back to the tags they had before the batch.
+      expect(writes.slice(3)).toEqual([
+        ['z', null],
+        ['b', tag('g1', 1)],
+      ]);
+    }));
+
+  it('propagates a vanished destination group without writing anything', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g1', 0)), b: row('b', tag('g1', 1)) });
+    await expect(
+      runSplitGroupMutation(
+        { type: 'move', from_group_id: 'g1', conversation_id: 'b', to: { kind: 'group', group_id: 'gone' } },
+        deps
+      )
+    ).rejects.toThrow(/no longer exists/);
+    expect(writes).toEqual([]);
+  });
+});
+
 describe('runSplitGroupMutation: dissolve-if-alone', () => {
   it('clears a tag nobody else carries', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b') });

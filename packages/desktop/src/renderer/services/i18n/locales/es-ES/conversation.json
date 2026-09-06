@@ -97,9 +97,13 @@
     "open": "Abrir vista dividida",
     "focusMember": "Mostrar “{{name}}” en la vista dividida",
     "removeMember": "Quitar “{{name}}” de la vista dividida",
+    "removeFromSplit": "Quitar de la vista dividida",
     "dragToSplit": "Arrastra sobre otra conversación para abrirlas una al lado de la otra",
+    "dragMember": "Arrastra «{{name}}» fuera de la vista dividida o sobre otra conversación",
     "dropToSplit": "Suelta para abrir una al lado de la otra",
     "dropToAdd": "Suelta para añadir a esta vista dividida",
+    "dropToRemove": "Suelta para sacarla de la vista dividida",
+    "dropToMove": "Suelta para moverla aquí",
     "notFound": "Esta vista dividida ya no existe.",
     "updateFailed": "No se pudo actualizar la vista dividida",
     "memberUnavailable": "No se pudo cargar “{{name}}”."

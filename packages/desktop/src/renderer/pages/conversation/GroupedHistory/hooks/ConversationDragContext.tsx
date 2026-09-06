@@ -28,9 +28,10 @@ import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSe
 import { getEventCoordinates } from '@dnd-kit/utilities';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import ConversationLeadingIcon from '../ConversationLeadingIcon';
-import type { ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
+import type { ConversationDropAction, ConversationDropTarget, DropIntent } from '../utils/conversationDropTargets';
 import { pickRowInGap, resolveConversationDropAction, resolveDropIntent } from '../utils/conversationDropTargets';
 import type { RowRect } from '../utils/conversationDropTargets';
 import { readSplitGroupTag } from '../utils/splitGroupHelpers';
@@ -43,13 +44,21 @@ export type ConversationDropTargetState = {
   intent: DropIntent;
 } | null;
 
+/**
+ * What releasing right now would do to a split-group member: shown on the
+ * ghost that follows the pointer, so leaving a group — which highlights no
+ * target of its own — is visible before the user lets go.
+ */
+export type ConversationDropHint = 'remove-member' | 'move-member' | null;
+
 export type ConversationDragValue = {
   /** The conversation being dragged, or null when nothing is. */
   activeConversation: TChatConversation | null;
   dropTarget: ConversationDropTargetState;
+  dropHint: ConversationDropHint;
 };
 
-const idleValue: ConversationDragValue = { activeConversation: null, dropTarget: null };
+const idleValue: ConversationDragValue = { activeConversation: null, dropTarget: null, dropHint: null };
 
 const ConversationDragContext = createContext<ConversationDragValue>(idleValue);
 
@@ -81,22 +90,36 @@ const collisionDetection: CollisionDetection = (args) => {
   return container ? [{ id: container.id, data: { droppableContainer: container, value: 0 } }] : [];
 };
 
-const ConversationDragGhost: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => (
-  <div className='flex items-center gap-8px h-34px ps-10px pe-14px rd-8px bg-2 shadow-lg border border-solid border-b-base max-w-260px cursor-grabbing'>
-    <span className='size-22px flex items-center justify-center shrink-0'>
-      <ConversationLeadingIcon conversation={conversation} />
-    </span>
-    <span className='text-14px font-[500] text-t-primary truncate'>{conversation.name}</span>
+const ConversationDragGhost: React.FC<{ conversation: TChatConversation; hint?: string }> = ({
+  conversation,
+  hint,
+}) => (
+  <div className='flex flex-col gap-2px ps-10px pe-14px py-4px rd-8px bg-2 shadow-lg border border-solid border-b-base max-w-260px cursor-grabbing'>
+    <div className='flex items-center gap-8px h-24px'>
+      <span className='size-22px flex items-center justify-center shrink-0'>
+        <ConversationLeadingIcon conversation={conversation} />
+      </span>
+      <span className='text-14px font-[500] text-t-primary truncate'>{conversation.name}</span>
+    </div>
+    {hint && (
+      <span
+        className='ps-30px text-11px lh-14px text-[rgb(var(--primary-6))] truncate'
+        data-testid='conversation-drag-hint'
+      >
+        {hint}
+      </span>
+    )}
   </div>
 );
 
 export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const { t } = useTranslation();
   const {
     conversations,
     groupedHistory: { pinnedConversations, splitGroups },
   } = useConversationHistoryContext();
   const { reorderPinned } = usePinnedReorder();
-  const { createGroup, addMember, reconcileDeleted } = useSplitGroupMutations();
+  const { createGroup, addMember, moveMember, removeMember, reconcileDeleted } = useSplitGroupMutations();
 
   // A member deleted anywhere (its own row menu, the archive page, another
   // device) reaches every window as a backend "deleted" event. Reconcile its
@@ -130,6 +153,7 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
   }, []);
   const [activeConversation, setActiveConversation] = useState<TChatConversation | null>(null);
   const [dropTarget, setDropTarget] = useState<ConversationDropTargetState>(null);
+  const [dropHint, setDropHint] = useState<ConversationDropHint>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const pinnedIds = useMemo(() => pinnedConversations.map((conversation) => conversation.id), [pinnedConversations]);
@@ -158,11 +182,25 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
     [pinnedIds]
   );
 
+  /** What releasing where the pointer is would do. `null` target means "over nothing". */
+  const resolveAction = useCallback(
+    (event: DragMoveEvent | DragEndEvent, resolved: ReturnType<typeof resolveOver>): ConversationDropAction =>
+      resolveConversationDropAction({
+        dragged_id: String(event.active.id),
+        target: resolved?.target ?? null,
+        intent: resolved?.intent ?? 'onto',
+        groups: splitGroups,
+        pinnedIds,
+      }),
+    [pinnedIds, splitGroups]
+  );
+
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const id = String(event.active.id);
       setActiveConversation(conversations.find((conversation) => conversation.id === id) ?? null);
       setDropTarget(null);
+      setDropHint(null);
     },
     [conversations]
   );
@@ -175,32 +213,29 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
         if (previous && previous.id === resolved.id && previous.intent === resolved.intent) return previous;
         return { id: resolved.id, intent: resolved.intent };
       });
+      const action = resolveAction(event, resolved);
+      const hint: ConversationDropHint =
+        action.type === 'remove-member' || action.type === 'move-member' ? action.type : null;
+      setDropHint((previous) => (previous === hint ? previous : hint));
     },
-    [resolveOver]
+    [resolveAction, resolveOver]
   );
 
   const reset = useCallback(() => {
     setActiveConversation(null);
     setDropTarget(null);
+    setDropHint(null);
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       reset();
       const resolved = resolveOver(event);
-      if (!resolved) return;
-
       const dragged_id = String(event.active.id);
-      const action = resolveConversationDropAction({
-        dragged_id,
-        target: resolved.target,
-        intent: resolved.intent,
-        groups: splitGroups,
-        pinnedIds,
-      });
+      const action = resolveAction(event, resolved);
       // A drop on the open chat area is the user asking to see the columns;
       // a drop in the sidebar only builds the pill and leaves the view alone.
-      const open = resolved.target.kind === 'conversation' && resolved.target.surface === 'chat';
+      const open = resolved?.target.kind === 'conversation' && resolved.target.surface === 'chat';
 
       switch (action.type) {
         case 'reorder-pinned':
@@ -212,18 +247,24 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
         case 'add-member':
           void addMember(action.group_id, action.dragged_id, { open });
           return;
+        case 'remove-member':
+          void removeMember(action.group_id, action.dragged_id);
+          return;
+        case 'move-member':
+          void moveMember(action.from_group_id, action.dragged_id, action.to);
+          return;
         case 'none':
-          if (action.reason !== 'self' && action.reason !== 'between') {
+          if (action.reason !== 'self' && action.reason !== 'between' && action.reason !== 'nowhere') {
             console.warn(`[SplitGroup] Ignored a drop of ${dragged_id}: ${action.reason}.`);
           }
       }
     },
-    [addMember, createGroup, pinnedIds, reorderPinned, reset, resolveOver, splitGroups]
+    [addMember, createGroup, moveMember, removeMember, reorderPinned, reset, resolveAction, resolveOver]
   );
 
   const value = useMemo<ConversationDragValue>(
-    () => ({ activeConversation, dropTarget }),
-    [activeConversation, dropTarget]
+    () => ({ activeConversation, dropTarget, dropHint }),
+    [activeConversation, dropHint, dropTarget]
   );
 
   return (
@@ -240,7 +281,18 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
         {typeof document !== 'undefined' &&
           createPortal(
             <DragOverlay dropAnimation={null} zIndex={1000}>
-              {activeConversation && <ConversationDragGhost conversation={activeConversation} />}
+              {activeConversation && (
+                <ConversationDragGhost
+                  conversation={activeConversation}
+                  hint={
+                    dropHint === 'remove-member'
+                      ? t('conversation.splitGroup.dropToRemove')
+                      : dropHint === 'move-member'
+                        ? t('conversation.splitGroup.dropToMove')
+                        : undefined
+                  }
+                />
+              )}
             </DragOverlay>,
             document.body
           )}

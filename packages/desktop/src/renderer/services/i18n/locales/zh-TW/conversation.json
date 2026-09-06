@@ -97,9 +97,13 @@
     "open": "開啟分割檢視",
     "focusMember": "在分割檢視中顯示「{{name}}」",
     "removeMember": "將「{{name}}」移出分割檢視",
+    "removeFromSplit": "移出分割檢視",
     "dragToSplit": "拖到另一個會話上可並排開啟",
+    "dragMember": "將「{{name}}」拖出分割檢視，或拖到其他對話上",
     "dropToSplit": "放開以並排開啟",
     "dropToAdd": "放開以加入此分割檢視",
+    "dropToRemove": "放開即可將其移出分割檢視",
+    "dropToMove": "放開即可移動到這裡",
     "notFound": "此分割檢視已不存在。",
     "updateFailed": "無法更新分割檢視",
     "memberUnavailable": "無法載入「{{name}}」。"

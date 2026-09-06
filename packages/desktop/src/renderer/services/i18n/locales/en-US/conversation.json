@@ -97,9 +97,13 @@
     "open": "Open split view",
     "focusMember": "Show “{{name}}” in the split view",
     "removeMember": "Remove “{{name}}” from the split view",
+    "removeFromSplit": "Remove from split view",
     "dragToSplit": "Drag onto another conversation to open them side by side",
+    "dragMember": "Drag “{{name}}” out of the split view, or onto another conversation",
     "dropToSplit": "Drop to open side by side",
     "dropToAdd": "Drop to add to this split view",
+    "dropToRemove": "Release to take it out of the split view",
+    "dropToMove": "Release to move it here",
     "notFound": "This split view no longer exists.",
     "updateFailed": "Could not update the split view",
     "memberUnavailable": "“{{name}}” could not be loaded."
