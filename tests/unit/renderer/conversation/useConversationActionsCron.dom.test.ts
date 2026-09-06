@@ -451,6 +451,29 @@ describe('a partly archived batch says so', () => {
     }
   });
 
+  it('says the step that failed once per row and the batch outcome once, never the archive message for a leave', async () => {
+    // A leave that throws inside a batch is told twice, on purpose: the row's
+    // own message names the step (the split view could not be updated), and
+    // the batch summary counts the outcome — exactly the pair a *refused*
+    // leave has produced since the summary existed, where the queue names the
+    // step. What must never appear is the archive-failed message for a leave.
+    leaveOwnGroupMock.mockImplementation(async (id: string) => {
+      if (id === 'bad') throw new Error('ipc exploded');
+      return true;
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await runBatch(['good-1', 'bad', 'good-2']);
+      expect(messageError).toHaveBeenCalledTimes(1);
+      expect(messageError).toHaveBeenCalledWith('conversation.splitGroup.updateFailed');
+      expect(messageError).not.toHaveBeenCalledWith('conversation.history.archiveFailed');
+      expect(messageWarning).toHaveBeenCalledTimes(1);
+      expect(messageWarning).toHaveBeenCalledWith('conversation.history.batchArchivePartial');
+    } finally {
+      error.mockRestore();
+    }
+  });
+
   it('refuses an empty selection before anything settles, so nothing is ever reported for it', () => {
     // `Promise.allSettled([])` would resolve to zero results and read as
     // "archived 0" success; the flow never gets that far.
