@@ -343,8 +343,12 @@ export const runSplitGroupMutation = async (
     const byId = new Map(census.members.map((member) => [member.id, member]));
     // Named first, in the sequence's order; anyone the sequence missed (joined
     // since the drag started) keeps the tail in the order they had.
-    // A repeated id would hand one member two slots; it keeps the first.
-    const named = Array.from(new Set(mutation.order)).filter((id) => byId.has(id));
+    // A sequence that names a member twice is not an order; nothing of it is
+    // written, and the refusal is loud like every other one on this boundary.
+    if (new Set(mutation.order).size !== mutation.order.length) {
+      throw new Error(`reorder of group ${mutation.group_id} names a member twice: ${mutation.order.join(', ')}`);
+    }
+    const named = mutation.order.filter((id) => byId.has(id));
     const rest = census.members
       .filter((member) => !named.includes(member.id))
       .toSorted((a, b) => (readSplitGroupTag(a)?.order ?? 0) - (readSplitGroupTag(b)?.order ?? 0))
