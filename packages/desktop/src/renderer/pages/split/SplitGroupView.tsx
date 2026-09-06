@@ -318,10 +318,13 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         }
         setDraggingId(current.id);
       };
+      // On the window, not the header: before the drag is active nothing has
+      // captured the pointer, and a header is narrow — the first move is often
+      // already outside it.
       const cleanup = () => {
-        element.removeEventListener('pointermove', onMove);
-        element.removeEventListener('pointerup', onUp);
-        element.removeEventListener('pointercancel', onUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
         if (current.holdTimer) clearTimeout(current.holdTimer);
         if (!current.active) drag.current = null;
       };
@@ -346,9 +349,9 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         cleanup();
         endDrag(up.type === 'pointerup' ? up.clientX : null);
       };
-      element.addEventListener('pointermove', onMove);
-      element.addEventListener('pointerup', onUp);
-      element.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
       if (event.pointerType === 'touch') current.holdTimer = setTimeout(activate, TOUCH_HOLD_MS);
     },
     [endDrag, slotAt]
