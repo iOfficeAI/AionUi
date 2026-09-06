@@ -105,6 +105,7 @@
     "dropToSplit": "Loslassen, um nebeneinander zu öffnen",
     "dropToAdd": "Loslassen, um zu dieser geteilten Ansicht hinzuzufügen",
     "dropToRemove": "Loslassen, um sie aus der geteilten Ansicht zu nehmen",
+    "emptyColumnPanel": "In dieser Spalte sind keine Dateien geöffnet",
     "dropToMove": "Loslassen, um sie hierher zu verschieben",
     "notFound": "Diese geteilte Ansicht existiert nicht mehr.",
     "updateFailed": "Die geteilte Ansicht konnte nicht aktualisiert werden",

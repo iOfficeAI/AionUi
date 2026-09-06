@@ -153,6 +153,31 @@ describe('PreviewContext scope isolation (closePreviewIfScopeChanged)', () => {
  * write into a single global handler ref, so whichever send box mounted last
  * received the text regardless of which column the user was working in.
  */
+/**
+ * Layout keeps the split-route preview region mounted across scope swaps; the
+ * counter is how it tells a real close apart from a swap.
+ */
+describe('PreviewContext deliberate close counter', () => {
+  it('counts a deliberate close', () => {
+    mount();
+    openADoc();
+    expect(ctx.deliberateCloseCount).toBe(0);
+    act(() => ctx.closePreview());
+    expect(ctx.isOpen).toBe(false);
+    expect(ctx.deliberateCloseCount).toBe(1);
+  });
+
+  it('does not count a scope swap that merely finds the other scope closed', () => {
+    mount();
+    act(() => ctx.closePreviewIfScopeChanged('projA'));
+    openADoc();
+    expect(ctx.isOpen).toBe(true);
+    act(() => ctx.closePreviewIfScopeChanged('projB'));
+    expect(ctx.isOpen).toBe(false);
+    expect(ctx.deliberateCloseCount).toBe(0);
+  });
+});
+
 describe('PreviewContext add-to-chat targets the focused conversation', () => {
   it('writes into the focused conversation send box', () => {
     mount();

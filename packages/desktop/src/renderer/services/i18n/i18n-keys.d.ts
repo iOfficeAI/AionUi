@@ -833,6 +833,7 @@ export type I18nKey =
   | 'conversation.splitGroup.dropToMove'
   | 'conversation.splitGroup.dropToRemove'
   | 'conversation.splitGroup.dropToSplit'
+  | 'conversation.splitGroup.emptyColumnPanel'
   | 'conversation.splitGroup.focusMember'
   | 'conversation.splitGroup.memberActions'
   | 'conversation.splitGroup.memberUnavailable'

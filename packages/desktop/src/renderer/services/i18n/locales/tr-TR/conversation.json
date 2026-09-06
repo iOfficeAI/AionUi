@@ -105,6 +105,7 @@
     "dropToSplit": "Yan yana açmak için bırakın",
     "dropToAdd": "Bu bölünmüş görünüme eklemek için bırakın",
     "dropToRemove": "Bölünmüş görünümden çıkarmak için bırakın",
+    "emptyColumnPanel": "Bu sütunda açık dosya yok",
     "dropToMove": "Buraya taşımak için bırakın",
     "notFound": "Bu bölünmüş görünüm artık yok.",
     "updateFailed": "Bölünmüş görünüm güncellenemedi",
