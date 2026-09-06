@@ -641,10 +641,11 @@ describe('SplitGroupRow collapsed rail', () => {
     expect(screen.getByTestId('leading-icon-b').parentElement?.className).not.toContain('opacity-0');
   });
 
-  it('does not open the member from a click on the handle', () => {
+  it('opens the member from a plain click on the handle — the row is a pointer shortcut and the handle lies on it', () => {
     const { onOpen } = renderPill({ collapsed: true });
     fireEvent.click(screen.getByTestId('split-group-drag-handle-b'));
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
   });
 
   it('reveals a remove button beside the mark on hover, as a sibling of the opener, and it removes', () => {

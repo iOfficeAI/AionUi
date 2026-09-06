@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import ConversationLeadingIcon from './ConversationLeadingIcon';
 import type { CronJobStatus } from './ConversationLeadingIcon';
 import { ConversationRowMenu } from './ConversationRow';
+import { useSwallowClickAfterDrag } from './SortableConversationRow';
 import { useConversationDrag } from './hooks/ConversationDragContext';
 import { useCanHover } from './hooks/useCanHover';
 import type { ConversationRowProps } from './types';
@@ -164,6 +165,8 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
   // rather than `none`: the browser keeps panning from a touch that starts
   // here, and the touch sensor only takes over once the finger has held still.
   const handleShown = isDragging || engaged || !canHover;
+  // A click on the handle that is not the tail of a drag is the row's click.
+  const onHandleClick = useSwallowClickAfterDrag(isDragging);
   const dragHandle = (
     <span
       ref={setActivatorNodeRef}
@@ -176,7 +179,7 @@ const SplitGroupMemberRow: React.FC<SplitGroupMemberRowProps> = ({
         handleShown ? 'opacity-100' : 'opacity-0'
       )}
       style={{ lineHeight: 0, touchAction: 'manipulation' }}
-      onClick={(event) => event.stopPropagation()}
+      onClick={onHandleClick}
     >
       <Drag theme='outline' size='12' fill='currentColor' />
     </span>

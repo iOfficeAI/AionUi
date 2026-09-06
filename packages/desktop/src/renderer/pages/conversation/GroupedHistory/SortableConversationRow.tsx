@@ -9,7 +9,7 @@ import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Drag } from '@icon-park/react';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationRow from './ConversationRow';
@@ -18,36 +18,62 @@ import type { ConversationRowProps } from './types';
 import type { ConversationDragSource, ConversationDropTarget } from './utils/conversationDropTargets';
 
 /**
- * Hover-reveal drag handle overlaying the leading icon (same affordance as
- * assistant / draft-box sorting). The handle is the only drag activator so
- * clicks elsewhere on the row keep their normal meaning.
+ * A click on a drag handle is the row's click unless it is the tail of a drag.
+ *
+ * The handle lies over the row's icon, and in the collapsed rail the icon is
+ * the whole row: swallowing every click there meant a tap on a conversation's
+ * icon opened nothing. Only the click a drag ends with (the pointer let go over
+ * the very element it started on) must not fall through, or a drag returned to
+ * its origin would open the row it was merely moving. Dragging is remembered
+ * until the next click has been swallowed.
  */
-const DragHandle: React.FC<{
+export const useSwallowClickAfterDrag = (isDragging: boolean): ((event: React.MouseEvent) => void) => {
+  const dragged = useRef(false);
+  useEffect(() => {
+    if (isDragging) dragged.current = true;
+  }, [isDragging]);
+  return (event) => {
+    if (!dragged.current) return;
+    dragged.current = false;
+    event.stopPropagation();
+  };
+};
+
+/**
+ * Hover-reveal drag handle overlaying the leading icon (same affordance as
+ * assistant / draft-box sorting). The handle is the only drag activator; a
+ * click that is not a drag still reaches the row, so the icon under it opens
+ * the conversation as it always did.
+ */
+export const DragHandle: React.FC<{
   conversation_id: string;
   label: string;
   isDragging: boolean;
   setActivatorNodeRef: (element: HTMLElement | null) => void;
   attributes: DraggableAttributes;
   listeners: DraggableSyntheticListeners;
-}> = ({ conversation_id, label, isDragging, setActivatorNodeRef, attributes, listeners }) => (
-  <span
-    ref={setActivatorNodeRef}
-    {...attributes}
-    {...listeners}
-    role='button'
-    aria-label={label}
-    data-testid={`conversation-drag-handle-${conversation_id}`}
-    className={`absolute inset-0 flex-center text-t-secondary transition-opacity ${
-      isDragging ? 'opacity-100 cursor-grabbing' : 'opacity-0 group-hover:opacity-100 cursor-grab'
-    }`}
-    // `manipulation`, not `none`: a swipe that starts on the handle must still
-    // scroll the list; the touch sensor only takes over after a hold.
-    style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'manipulation' }}
-    onClick={(event) => event.stopPropagation()}
-  >
-    <Drag theme='outline' size='14' fill='currentColor' />
-  </span>
-);
+}> = ({ conversation_id, label, isDragging, setActivatorNodeRef, attributes, listeners }) => {
+  const onClick = useSwallowClickAfterDrag(isDragging);
+  return (
+    <span
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      role='button'
+      aria-label={label}
+      data-testid={`conversation-drag-handle-${conversation_id}`}
+      className={`absolute inset-0 flex-center text-t-secondary transition-opacity ${
+        isDragging ? 'opacity-100 cursor-grabbing' : 'opacity-0 group-hover:opacity-100 cursor-grab'
+      }`}
+      // `manipulation`, not `none`: a swipe that starts on the handle must still
+      // scroll the list; the touch sensor only takes over after a hold.
+      style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'manipulation' }}
+      onClick={onClick}
+    >
+      <Drag theme='outline' size='14' fill='currentColor' />
+    </span>
+  );
+};
 
 const dragSource = (conversation_id: string): ConversationDragSource => ({ kind: 'conversation', conversation_id });
 const rowTarget = (conversation_id: string): ConversationDropTarget => ({

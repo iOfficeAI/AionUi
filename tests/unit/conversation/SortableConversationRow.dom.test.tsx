@@ -32,7 +32,9 @@ vi.mock('@/renderer/pages/conversation/utils/conversationAssistantIdentity', () 
   resolveConversationLeadingMark: () => ({ kind: 'default' }),
 }));
 
-import SortableConversationRow from '@/renderer/pages/conversation/GroupedHistory/SortableConversationRow';
+import SortableConversationRow, {
+  DragHandle,
+} from '@/renderer/pages/conversation/GroupedHistory/SortableConversationRow';
 import type { ConversationRowProps } from '@/renderer/pages/conversation/GroupedHistory/types';
 
 const pinnedConversation = {
@@ -45,6 +47,7 @@ const pinnedConversation = {
 } as unknown as TChatConversation;
 
 const onConversationClick = vi.fn();
+const setNoRef = () => {};
 
 const rowProps: ConversationRowProps = {
   conversation: pinnedConversation,
@@ -82,10 +85,38 @@ describe('SortableConversationRow', () => {
     expect(screen.getByTestId('conversation-drag-handle-conv-1')).toBeInTheDocument();
   });
 
-  it('does not open the conversation when the drag handle is clicked', () => {
+  it('swallows only the click that ends a drag, and lets a plain click on the handle open the row', () => {
+    const onClick = vi.fn();
+    const handle = (isDragging: boolean) => (
+      <div onClick={onClick}>
+        <DragHandle
+          conversation_id='conv-1'
+          label='drag'
+          isDragging={isDragging}
+          setActivatorNodeRef={setNoRef}
+          attributes={{} as never}
+          listeners={{}}
+        />
+      </div>
+    );
+    const view = render(handle(false));
+    fireEvent.click(view.getByTestId('conversation-drag-handle-conv-1'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    // A drag happens, then the pointer lets go over the handle: that click is not the row's.
+    view.rerender(handle(true));
+    view.rerender(handle(false));
+    fireEvent.click(view.getByTestId('conversation-drag-handle-conv-1'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    // And the next plain click is the row's again.
+    fireEvent.click(view.getByTestId('conversation-drag-handle-conv-1'));
+    expect(onClick).toHaveBeenCalledTimes(2);
+  });
+
+  it('opens the conversation from a plain click on the drag handle, which lies over the icon', () => {
+    // In the collapsed rail the icon is the whole row; a tap there must open.
     renderRow();
     fireEvent.click(screen.getByTestId('conversation-drag-handle-conv-1'));
-    expect(onConversationClick).not.toHaveBeenCalled();
+    expect(onConversationClick).toHaveBeenCalledTimes(1);
   });
 
   it('still offers the drag handle while the conversation is generating', () => {
