@@ -39,7 +39,7 @@ import {
   resolveDropIntent,
 } from '../utils/conversationDropTargets';
 import type { RowRect } from '../utils/conversationDropTargets';
-import { readSplitGroupTag } from '../utils/splitGroupHelpers';
+import { findSplitGroupOf, readSplitGroupTag } from '../utils/splitGroupHelpers';
 import { usePinnedReorder } from './useDragAndDrop';
 import { useSplitGroupMutations } from './useSplitGroupMutations';
 
@@ -197,20 +197,26 @@ export const ConversationDragProvider: React.FC<React.PropsWithChildren> = ({ ch
       if (inGap || (target.kind === 'conversation' && target.surface === 'row')) {
         const origin = getEventCoordinates(event.activatorEvent);
         const pointerY = (origin?.y ?? over.rect.top) + event.delta.y;
+        // A row has "between" bands at its top and bottom when a release there
+        // can mean between: two pinned rows reordering, or a group member —
+        // whose drag can end between any two rows — leaving. The 2px gap alone
+        // is too narrow to be the only way out of a group.
+        const activeIsMember = findSplitGroupOf(splitGroups, String(active.id)) !== undefined;
         intent = resolveDropIntent({
           pointerY,
           targetTop: over.rect.top,
           targetHeight: over.rect.height,
           canReorder:
-            target.kind === 'conversation' &&
-            pinnedIds.includes(String(active.id)) &&
-            pinnedIds.includes(target.conversation_id),
+            activeIsMember ||
+            (target.kind === 'conversation' &&
+              pinnedIds.includes(String(active.id)) &&
+              pinnedIds.includes(target.conversation_id)),
           inGap,
         });
       }
       return { id: String(over.id), target, intent, inGap };
     },
-    [pinnedIds]
+    [pinnedIds, splitGroups]
   );
 
   /** What releasing where the pointer is would do. `null` target means "over nothing". */

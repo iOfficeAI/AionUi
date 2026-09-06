@@ -75,6 +75,14 @@ export const DragHandle: React.FC<{
   );
 };
 
+/**
+ * The 2px between consecutive sidebar entries, the same rule the rows and the
+ * split-group blocks carry. The droppable wrapper sits between the row and its
+ * siblings, so it has to carry the rule too, or the rows inside touch and the
+ * gap a member is dropped into to leave its group does not exist.
+ */
+export const ROW_SPACING = 'conversation-item [&.conversation-item+&.conversation-item]:mt-2px';
+
 const dragSource = (conversation_id: string): ConversationDragSource => ({ kind: 'conversation', conversation_id });
 const rowTarget = (conversation_id: string): ConversationDropTarget => ({
   kind: 'conversation',
@@ -105,7 +113,9 @@ const SortableConversationRow: React.FC<ConversationRowProps> = (props) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    // The wrapper is the list's sibling, not the row inside it, so it carries
+    // the row spacing: without it rows touch and there is no gap to drop into.
+    <div ref={setNodeRef} style={style} className={ROW_SPACING}>
       <ConversationRow
         {...props}
         dropTargeted={dropTarget?.id === props.conversation.id && dropTarget.intent === 'onto'}
@@ -147,6 +157,7 @@ export const DraggableConversationRow: React.FC<ConversationRowProps> = (props) 
         setDroppableRef(element);
       }}
       style={{ opacity: isDragging ? 0.4 : undefined, position: 'relative' }}
+      className={ROW_SPACING}
     >
       <ConversationRow
         {...props}
