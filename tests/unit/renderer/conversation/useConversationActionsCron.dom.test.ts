@@ -20,7 +20,7 @@ const {
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   requestPrefillMock: vi.fn(),
-  routeState: { id: 'current-conversation' as string | undefined },
+  routeState: { id: 'current-conversation' as string | undefined, groupId: undefined as string | undefined },
   archiveMock: vi.fn(async () => true),
   messageSuccess: vi.fn(),
   messageError: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => navigateMock,
-    useParams: () => ({ id: routeState.id }),
+    useParams: () => ({ id: routeState.id, groupId: routeState.groupId }),
   };
 });
 
@@ -115,7 +115,7 @@ const renderActions = (onSessionClick?: () => void, selectedConversationIds = ne
     })
   );
 
-type LeaveOptions = { moveToSurvivor: (survivor_id: string) => boolean };
+type LeaveOptions = { moveToSurvivor: (survivor_id: string, group_id: string) => boolean };
 
 /** The leave options a given row was handed, by the row's id. */
 const leaveOptionsFor = (item_id: string): LeaveOptions => {
@@ -446,6 +446,107 @@ describe('a partly archived batch says so', () => {
       leaveOwnGroupMock.mockResolvedValue(false);
       await runBatch(['a', 'b']);
       expect(messageError).toHaveBeenCalledWith('conversation.history.archiveFailed');
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('refuses an empty selection before anything settles, so nothing is ever reported for it', () => {
+    // `Promise.allSettled([])` would resolve to zero results and read as
+    // "archived 0" success; the flow never gets that far.
+    const { result } = renderActions(undefined, new Set());
+    act(() => {
+      result.current.handleBatchArchive();
+    });
+    expect(messageWarning).toHaveBeenCalledWith('conversation.history.batchNoSelection');
+    expect(archiveMock).not.toHaveBeenCalled();
+    expect(messageSuccess).not.toHaveBeenCalled();
+    expect(messageError).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A batch decides not to follow a dissolve onto its survivor because it is about
+ * to archive the survivor too — before that archive has run. If it then fails,
+ * the survivor is still in the sidebar and the user is on the dissolved group's
+ * route, which now shows nothing.
+ */
+describe('a batch that fails to take the survivor lands the user on it', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    archiveMock.mockResolvedValue(true);
+    routeState.id = undefined;
+    routeState.groupId = 'g';
+    // Archiving member-a dissolves the pair; the write reports member-b as the survivor of group g.
+    leaveOwnGroupMock.mockImplementation(async (item_id: string, options?: LeaveOptions) => {
+      if (item_id === 'member-a') options?.moveToSurvivor('member-b', 'g');
+      return true;
+    });
+  });
+
+  const runBatch = async (ids: string[]) => {
+    const { result } = renderActions(undefined, new Set(ids));
+    await act(async () => {
+      result.current.handleBatchArchive();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
+  it("navigates to the survivor when the survivor's own archive was refused and its group is the open route", async () => {
+    archiveMock.mockImplementation(async ({ item_id }: { item_id: string }) => {
+      if (item_id === 'member-b') throw new Error('backend refused');
+      return true;
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await runBatch(['member-a', 'member-b']);
+      expect(navigateMock).toHaveBeenCalledWith('/conversation/member-b', { replace: true });
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('stays put when the survivor was archived as planned', async () => {
+    await runBatch(['member-a', 'member-b']);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('stays put when the open route is not that group', async () => {
+    routeState.groupId = 'some-other-group';
+    archiveMock.mockImplementation(async ({ item_id }: { item_id: string }) => {
+      if (item_id === 'member-b') throw new Error('backend refused');
+      return true;
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await runBatch(['member-a', 'member-b']);
+      expect(navigateMock).not.toHaveBeenCalled();
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('does the same for a folder archive', async () => {
+    archiveMock.mockImplementation(async ({ item_id }: { item_id: string }) => {
+      if (item_id === 'member-b') throw new Error('backend refused');
+      return true;
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { result } = renderActions();
+      act(() => {
+        result.current.handleArchiveProject('folder', [
+          makeConversation('member-a', 'acp'),
+          makeConversation('member-b', 'acp'),
+        ]);
+      });
+      await act(async () => {
+        await result.current.handleArchiveProjectConfirm();
+      });
+      expect(navigateMock).toHaveBeenCalledWith('/conversation/member-b', { replace: true });
     } finally {
       error.mockRestore();
     }
