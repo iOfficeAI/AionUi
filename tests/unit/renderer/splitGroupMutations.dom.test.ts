@@ -870,6 +870,20 @@ describe('runSplitGroupMutation: reorder', () => {
     ]);
   });
 
+  it('writes the name the group goes by onto a member a half-landed rename left behind', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      c: row('c', { id: 'g', order: 2, name: 'Old name' }),
+    });
+    await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['c', 'a', 'b'] }, deps);
+    expect(writes).toEqual([
+      ['c', { id: 'g', order: 0, name: 'Research' }],
+      ['a', { id: 'g', order: 1, name: 'Research' }],
+      ['b', { id: 'g', order: 2, name: 'Research' }],
+    ]);
+  });
+
   it('gives a member named twice the first of its slots', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), c: row('c', tag('g', 2)) });
     await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['c', 'a', 'c', 'b'] }, deps);

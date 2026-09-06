@@ -350,12 +350,16 @@ export const runSplitGroupMutation = async (
       .toSorted((a, b) => (readSplitGroupTag(a)?.order ?? 0) - (readSplitGroupTag(b)?.order ?? 0))
       .map((member) => member.id);
     const sequence = [...named, ...rest];
+    // The name rides along: readers take it from the first member by order,
+    // so a member a half-landed rename left behind, moved first, would rename
+    // the group. Every member is written with the name the group goes by now.
+    const name = readSplitGroupName(census.members);
     const patches: SplitGroupPatch[] = [];
     sequence.forEach((id, index) => {
       const member = byId.get(id);
       const tag = member ? readSplitGroupTag(member) : null;
-      if (!member || !tag || tag.order === index) return;
-      patches.push({ conversation_id: id, split_group: splitGroupTag(tag.id, index, tag.name) });
+      if (!member || !tag || (tag.order === index && tag.name === name)) return;
+      patches.push({ conversation_id: id, split_group: splitGroupTag(tag.id, index, name) });
     });
     if (patches.length === 0) {
       return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'the order is already that' };
