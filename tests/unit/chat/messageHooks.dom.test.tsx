@@ -47,7 +47,7 @@ const existingTextMessage: TMessage = {
 };
 
 const MessageListProbe: React.FC<{ message: TMessage; add?: boolean }> = ({ message, add = false }) => {
-  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const addOrUpdateMessage = useAddOrUpdateMessage(message.conversation_id ?? 'probe-conversation');
   const messages = useMessageList();
 
   useEffect(() => {

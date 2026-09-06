@@ -120,16 +120,18 @@ function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
   );
 }
 
+const HARNESS_CONVERSATION_ID = 'message-merging-conversation';
+
 function useMessageHarness() {
   return {
-    addOrUpdateMessage: useAddOrUpdateMessage(),
+    addOrUpdateMessage: useAddOrUpdateMessage(HARNESS_CONVERSATION_ID),
     messages: useMessageList(),
   };
 }
 
 function useAnchorMessageHarness() {
   return {
-    addOrUpdateMessage: useAddOrUpdateMessage(),
+    addOrUpdateMessage: useAddOrUpdateMessage(HARNESS_CONVERSATION_ID),
     replaceWithAnchorWindow: useReplaceWithAnchorWindow(),
     messages: useMessageList(),
   };
