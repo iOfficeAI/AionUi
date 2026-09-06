@@ -125,7 +125,9 @@ export const SplitGroupColumnFrame: React.FC<{
           onPointerDown={handleDividerPointerDown}
           onDoubleClick={unpin}
         >
-          <span className='pointer-events-none block h-full w-1px bg-bg-3 transition-all duration-150 group-hover:w-4px group-hover:bg-aou-6 group-active:w-4px group-active:bg-aou-6' />
+          {/* A neutral hairline at rest; the grab affordance only shows under
+              the pointer, and stays neutral — no coloured or glowing edge. */}
+          <span className='pointer-events-none block h-full w-1px bg-[var(--border-base)] transition-all duration-150 group-hover:w-3px group-hover:bg-fill-4 group-active:w-3px group-active:bg-fill-4' />
         </div>
       )}
     </div>
