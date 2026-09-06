@@ -870,6 +870,16 @@ describe('runSplitGroupMutation: reorder', () => {
     ]);
   });
 
+  it('gives a member named twice the first of its slots', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)), c: row('c', tag('g', 2)) });
+    await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['c', 'a', 'c', 'b'] }, deps);
+    expect(writes).toEqual([
+      ['c', { id: 'g', order: 0 }],
+      ['a', { id: 'g', order: 1 }],
+      ['b', { id: 'g', order: 2 }],
+    ]);
+  });
+
   it('writes nothing when the order is already that', async () => {
     const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) });
     const result = await runSplitGroupMutation({ type: 'reorder', group_id: 'g', order: ['a', 'b'] }, deps);

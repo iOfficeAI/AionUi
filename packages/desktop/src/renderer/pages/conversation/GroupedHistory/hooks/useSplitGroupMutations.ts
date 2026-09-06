@@ -343,7 +343,8 @@ export const runSplitGroupMutation = async (
     const byId = new Map(census.members.map((member) => [member.id, member]));
     // Named first, in the sequence's order; anyone the sequence missed (joined
     // since the drag started) keeps the tail in the order they had.
-    const named = mutation.order.filter((id) => byId.has(id));
+    // A repeated id would hand one member two slots; it keeps the first.
+    const named = Array.from(new Set(mutation.order)).filter((id) => byId.has(id));
     const rest = census.members
       .filter((member) => !named.includes(member.id))
       .toSorted((a, b) => (readSplitGroupTag(a)?.order ?? 0) - (readSplitGroupTag(b)?.order ?? 0))
