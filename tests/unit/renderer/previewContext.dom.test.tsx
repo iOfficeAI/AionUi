@@ -167,6 +167,23 @@ describe('PreviewContext deliberate close counter', () => {
     expect(ctx.deliberateCloseCount).toBe(1);
   });
 
+  it('counts closing the last tab, which is the user dismissing the panel', () => {
+    mount();
+    openADoc();
+    const tabId = ctx.activeTabId as string;
+    act(() => ctx.closeTab(tabId));
+    expect(ctx.isOpen).toBe(false);
+    expect(ctx.deliberateCloseCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("counts discarding the scope's files", () => {
+    mount();
+    openADoc();
+    act(() => ctx.clearPreviewForScope());
+    expect(ctx.isOpen).toBe(false);
+    expect(ctx.deliberateCloseCount).toBeGreaterThanOrEqual(1);
+  });
+
   it('does not count a scope swap that merely finds the other scope closed', () => {
     mount();
     act(() => ctx.closePreviewIfScopeChanged('projA'));
