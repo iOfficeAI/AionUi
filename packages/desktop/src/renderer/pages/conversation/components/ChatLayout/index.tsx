@@ -2,8 +2,8 @@ import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { ColumnHeaderActivator } from './ColumnHeaderActivator';
 import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
-import { Drag } from '@icon-park/react';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
@@ -22,7 +22,7 @@ import {
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { Button, Layout as ArcoLayout } from '@arco-design/web-react';
+import { Layout as ArcoLayout } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
@@ -249,37 +249,8 @@ const ChatLayout: React.FC<{
         // right edge). Short of room, the picker gives way first, down to its
         // icon, and only then does the title truncate.
         // In a split, the title area is also what you grab to reorder the
-        // columns: a grip glyph shows under the pointer (pinned visible where
-        // nothing hovers), and the view only turns a pointer-down into a drag
-        // after a small move or a hold, so the title's own click-to-rename
-        // still works.
-        <div
-          onPointerDown={headerDragHandle?.onPointerDown}
-          onClickCapture={headerDragHandle?.onClickCapture}
-          className={classNames('group/title h-full min-w-0 flex items-center gap-4px rd-4px transition-colors', {
-            // A grab must not paint the title as selected text on its way out;
-            // the rename field keeps its own selection.
-            'select-none [&_input]:select-text': headerDragHandle,
-            'cursor-grab': headerDragHandle && !headerDragHandle.isDragging,
-            'cursor-grabbing bg-[rgba(var(--primary-6),0.08)]': headerDragHandle?.isDragging,
-          })}
-          style={{ flex: '0 1 auto', touchAction: headerDragHandle ? 'manipulation' : undefined }}
-          data-testid='chat-header-title'
-          data-column-dragging={headerDragHandle?.isDragging ? 'true' : undefined}
-        >
-          {headerDragHandle && (
-            <Button
-              type='text'
-              size='mini'
-              aria-label={headerDragHandle.label}
-              data-testid='chat-header-grip'
-              icon={<Drag theme='outline' size='14' fill='currentColor' />}
-              className='!size-22px !min-w-22px !p-0 !rd-4px shrink-0 flex items-center justify-center !text-t-tertiary opacity-0 group-hover/title:opacity-100 focus-visible:opacity-100 [@media(any-hover:none)]:opacity-100 transition-opacity'
-              onKeyDown={headerDragHandle.onKeyDown}
-            />
-          )}
-          {titleEditor}
-        </div>
+        // columns; see ColumnHeaderActivator.
+        <ColumnHeaderActivator handle={headerDragHandle}>{titleEditor}</ColumnHeaderActivator>
       ) : (
         <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
           {titleEditor}

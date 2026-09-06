@@ -12,7 +12,7 @@
  * not be what stops the confirming re-read from ever landing.
  */
 
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -125,5 +125,46 @@ describe('SplitGroupColumn: confirming a deleted member', () => {
     const view = render(<SplitGroupColumn group={group} member={member} focused={false} />);
     expect(view.getByTestId('split-column-focus-ring-b').className).not.toContain('shadow-[inset');
     view.unmount();
+  });
+});
+
+describe('SplitGroupColumn: the header a column keeps while it has no conversation to show', () => {
+  const handle = () => ({
+    onPointerDown: vi.fn(),
+    onClickCapture: vi.fn(),
+    isDragging: false,
+    label: 'conversation.splitGroup.reorderHandle',
+    onKeyDown: vi.fn(),
+  });
+
+  it('keeps the grip on the name while the read is still loading', () => {
+    swrState = { data: undefined, isLoading: true, isValidating: true };
+    const h = handle();
+    render(<SplitGroupColumn group={group} member={member} focused headerDragHandle={h} />);
+    const header = screen.getByTestId('split-column-placeholder-header');
+    expect(header.getAttribute('data-column-header')).toBe('true');
+    expect(header.textContent).toContain('B');
+    expect(screen.getByTestId('chat-header-grip')).toHaveAttribute(
+      'aria-label',
+      'conversation.splitGroup.reorderHandle'
+    );
+    fireEvent.pointerDown(screen.getByTestId('chat-header-title'));
+    expect(h.onPointerDown).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('chat-header-actions').contains(screen.getByTestId('split-column-remove-b'))).toBe(true);
+  });
+
+  it('keeps the grip on the name when the conversation could not be loaded', () => {
+    settleOnce({ data: null });
+    render(<SplitGroupColumn group={group} member={member} focused headerDragHandle={handle()} />);
+    expect(screen.getByTestId('split-column-placeholder-header')).toBeInTheDocument();
+    expect(screen.getByTestId('chat-header-grip')).toBeInTheDocument();
+    expect(screen.getByTestId('split-column-remove-b')).toBeInTheDocument();
+  });
+
+  it('shows the band without a grip when there is nothing to reorder', () => {
+    swrState = { data: undefined, isLoading: true, isValidating: true };
+    render(<SplitGroupColumn group={group} member={member} focused />);
+    expect(screen.getByTestId('split-column-placeholder-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-header-grip')).toBeNull();
   });
 });

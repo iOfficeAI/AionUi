@@ -72,8 +72,8 @@ export const SplitGroupColumnFrame: React.FC<{
   onHeaderPointerDown?: (conversation_id: string, event: React.PointerEvent<HTMLElement>) => void;
   /** The click that follows a drag on the header is the view's to swallow. */
   onHeaderClickCapture?: (event: React.MouseEvent<HTMLElement>) => void;
-  /** Alt+Arrow on the grip moves this column one slot. */
-  onMoveColumn?: (conversation_id: string, delta: -1 | 1) => void;
+  /** Alt+Arrow on the grip moves this column one slot toward that side of the screen. */
+  onMoveColumn?: (conversation_id: string, toward: 'left' | 'right') => void;
   /** The view keeps every frame's element, to tell which column is under the pointer. */
   registerFrame?: (conversation_id: string, element: HTMLDivElement | null) => void;
 }> = ({
@@ -110,7 +110,7 @@ export const SplitGroupColumnFrame: React.FC<{
               if (!event.altKey || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
               event.preventDefault();
               event.stopPropagation();
-              onMoveColumn?.(member.id, event.key === 'ArrowLeft' ? -1 : 1);
+              onMoveColumn?.(member.id, event.key === 'ArrowLeft' ? 'left' : 'right');
             },
           }
         : undefined,

@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { SplitGroupColumn } from './SplitGroupColumn';
 import { SplitGroupColumnFrame } from './SplitGroupColumnFrame';
 import styles from './SplitGroupView.module.css';
-import { moveColumn, reorderColumns, resolveColumnDropIndex } from './columnReorder';
+import { arrowStep, columnsRunRightToLeft, moveColumn, reorderColumns, resolveColumnDropIndex } from './columnReorder';
 
 const conversationWorkspace = (conversation: TChatConversation): string | null =>
   (conversation.extra as { workspace?: string } | undefined)?.workspace ?? null;
@@ -288,22 +288,29 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
     return () => clearTimeout(timer);
   }, [announcement]);
 
+  /** Which way the columns run, read when it matters: the locale can change under an open split. */
+  const rightToLeft = useCallback(() => (ref.current ? columnsRunRightToLeft(ref.current) : false), [ref]);
+
   /** The slot the dragged column would take with the pointer here; none while it is off the columns. */
-  const slotAt = useCallback((activeId: string, point: Point): number | null => {
-    for (const [id, element] of frames.current) {
-      const rect = element.getBoundingClientRect();
-      if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) continue;
-      return resolveColumnDropIndex({
-        activeId,
-        overId: id,
-        pointerX: point.x,
-        overLeft: rect.left,
-        overWidth: rect.width,
-        order: orderRef.current,
-      });
-    }
-    return null;
-  }, []);
+  const slotAt = useCallback(
+    (activeId: string, point: Point): number | null => {
+      for (const [id, element] of frames.current) {
+        const rect = element.getBoundingClientRect();
+        if (point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) continue;
+        return resolveColumnDropIndex({
+          activeId,
+          overId: id,
+          pointerX: point.x,
+          overLeft: rect.left,
+          overWidth: rect.width,
+          order: orderRef.current,
+          rtl: rightToLeft(),
+        });
+      }
+      return null;
+    },
+    [rightToLeft]
+  );
 
   const drag = useRef<HeaderDrag | null>(null);
   const justDragged = useRef(false);
@@ -355,6 +362,14 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         },
       };
       drag.current = current;
+      // Once a finger has the column, the page must not pan under it: the
+      // header allows panning (`touch-action: manipulation`, so a swipe still
+      // scrolls), and a pan that started after the hold would cancel the
+      // pointer before the drop. The first touch move after the hold is the
+      // one that decides, and it is told no.
+      const keepFromPanning = (touch: TouchEvent) => {
+        if (touch.cancelable) touch.preventDefault();
+      };
       const activate = () => {
         if (drag.current !== current || current.active) return;
         current.active = true;
@@ -364,6 +379,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
           // The listeners are on the window, so the moves keep arriving either
           // way; capture only keeps them coming while the pointer leaves it.
         }
+        if (event.pointerType === 'touch') window.addEventListener('touchmove', keepFromPanning, { passive: false });
         setDraggingId(current.id);
       };
       // On the window, not the header: before the drag is active nothing has
@@ -373,6 +389,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('pointercancel', onUp);
+        window.removeEventListener('touchmove', keepFromPanning);
         if (current.holdTimer) clearTimeout(current.holdTimer);
         if (!current.active) drag.current = null;
       };
@@ -412,10 +429,10 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
   }, []);
 
   const handleMoveColumn = useCallback(
-    (conversation_id: string, delta: -1 | 1) => {
+    (conversation_id: string, toward: 'left' | 'right') => {
       // The pointer has the columns; the keyboard waits for it to let go.
       if (drag.current?.active) return;
-      const next = moveColumn(orderRef.current, conversation_id, delta);
+      const next = moveColumn(orderRef.current, conversation_id, arrowStep(toward, rightToLeft()));
       if (next.join('|') === orderRef.current.join('|')) return;
       // Said once the write has landed, or refused: not before.
       void commit(next).then((landed) => {
@@ -429,7 +446,7 @@ const SplitGroupColumns: React.FC<{ group: SplitGroup; focusedId: string }> = ({
         );
       });
     },
-    [commit, t]
+    [commit, rightToLeft, t]
   );
 
   const members = order

@@ -101,6 +101,13 @@ vi.mock('@/renderer/pages/split/SplitGroupColumn', () => {
 });
 
 import { SplitGroupView } from '@/renderer/pages/split/SplitGroupView';
+import {
+  arrowStep,
+  columnsRunRightToLeft,
+  moveColumn,
+  reorderColumns,
+  resolveColumnDropIndex,
+} from '@/renderer/pages/split/columnReorder';
 
 const member = (id: string, order: number, project_id?: string): TChatConversation =>
   ({
@@ -681,10 +688,134 @@ describe('SplitGroupView column reorder', () => {
     }
   });
 
+  it('under an RTL locale, drops by the half toward the end and moves with the arrow that points there', async () => {
+    document.documentElement.dir = 'rtl';
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        // Over a's right half — toward the start of an RTL row: slot 0.
+        fireEvent.pointerDown(header, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 1000, clientY: 20 });
+        fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 380, clientY: 20 });
+        expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('0');
+        // Over a's left half — toward the end: the slot after a.
+        fireEvent.pointerMove(header, { pointerId: 1, pointerType: 'mouse', clientX: 20, clientY: 20 });
+        expect(screen.getByTestId('split-group-view-g1').getAttribute('data-drop-slot')).toBe('1');
+        fireEvent.pointerUp(header, { pointerId: 1, pointerType: 'mouse', clientX: 380, clientY: 20 });
+        expect(columnOrder()).toBe('c|a|b');
+      });
+      // ArrowLeft points toward the end of an RTL row: c, now first, moves to second.
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId('split-column-grip-c'), { key: 'ArrowLeft', altKey: true });
+      });
+      expect(columnOrder()).toBe('a|c|b');
+    } finally {
+      document.documentElement.removeAttribute('dir');
+    }
+  });
+
+  it('tells the page not to pan once a finger has a column', () => {
+    vi.useFakeTimers();
+    try {
+      withFrameRects(() => {
+        render(<SplitGroupView group={trio} />);
+        const header = screen.getByTestId('split-column-header-c');
+        fireEvent.pointerDown(header, { pointerId: 7, pointerType: 'touch', clientX: 1000, clientY: 20 });
+        // Before the hold a touch move is the page's: it may scroll.
+        expect(fireEvent.touchMove(window, { touches: [{ clientX: 1000, clientY: 25 }] })).toBe(true);
+        act(() => {
+          vi.advanceTimersByTime(250);
+        });
+        expect(header.getAttribute('data-dragging')).toBe('true');
+        expect(fireEvent.touchMove(window, { touches: [{ clientX: 900, clientY: 25 }] })).toBe(false);
+        fireEvent.pointerUp(header, { pointerId: 7, pointerType: 'touch', clientX: 100, clientY: 20 });
+        expect(fireEvent.touchMove(window, { touches: [{ clientX: 100, clientY: 25 }] })).toBe(true);
+        expect(columnOrder()).toBe('c|a|b');
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('follows the group when its order changes underneath, as after the write lands', () => {
     const view = render(<SplitGroupView group={trio} />);
     const reordered: SplitGroup = { id: 'g1', members: [trio.members[2], trio.members[0], trio.members[1]] };
     view.rerender(<SplitGroupView group={reordered} />);
     expect(columnOrder()).toBe('c|a|b');
+  });
+});
+
+/** Three columns, and a pointer over one of them: `overLeft` 100, `overWidth` 200. */
+const order = ['a', 'b', 'c'];
+const over = (overId: string, pointerX: number) => ({ overId, pointerX, overLeft: 100, overWidth: 200 });
+
+describe('columnReorder: where a dragged column lands', () => {
+  it('lands before the column under the pointer when the pointer is in its left half', () => {
+    expect(resolveColumnDropIndex({ activeId: 'c', ...over('a', 120), order })).toBe(0);
+  });
+
+  it('lands after the column under the pointer when the pointer is in its right half', () => {
+    expect(resolveColumnDropIndex({ activeId: 'c', ...over('a', 280), order })).toBe(1);
+  });
+
+  it('reads the halves the other way round when the columns run right to left', () => {
+    // Under RTL the first column is on the right; its left half is the slot after it.
+    expect(resolveColumnDropIndex({ activeId: 'c', ...over('a', 120), order, rtl: true })).toBe(1);
+    expect(resolveColumnDropIndex({ activeId: 'c', ...over('a', 280), order, rtl: true })).toBe(0);
+    expect(resolveColumnDropIndex({ activeId: 'b', ...over('b', 120), order, rtl: true })).toBeNull();
+  });
+
+  it('is a no-op on its own slot, from either side', () => {
+    // Left half of b when dragging b: the slot before b is where b is.
+    expect(resolveColumnDropIndex({ activeId: 'b', ...over('b', 120), order })).toBeNull();
+    // Right half of b: the slot after b, minus b itself, is still where b is.
+    expect(resolveColumnDropIndex({ activeId: 'b', ...over('b', 280), order })).toBeNull();
+    // The right half of a is the slot before b — b's own place.
+    expect(resolveColumnDropIndex({ activeId: 'b', ...over('a', 280), order })).toBeNull();
+    // And the left half of c is the slot after b — also b's own place.
+    expect(resolveColumnDropIndex({ activeId: 'b', ...over('c', 120), order })).toBeNull();
+  });
+
+  it('answers nothing for a column or target it does not know', () => {
+    expect(resolveColumnDropIndex({ activeId: 'z', ...over('a', 120), order })).toBeNull();
+    expect(resolveColumnDropIndex({ activeId: 'a', ...over('z', 120), order })).toBeNull();
+  });
+
+  it('puts the column at the slot: third to first, first to last, first after second, unknown alone', () => {
+    expect(reorderColumns(order, 'c', 0)).toEqual(['c', 'a', 'b']);
+    expect(reorderColumns(order, 'a', 3)).toEqual(['b', 'c', 'a']);
+    expect(reorderColumns(order, 'a', 2)).toEqual(['b', 'a', 'c']);
+    expect(reorderColumns(order, 'z', 0)).toEqual(order);
+  });
+
+  it('moves one slot either way and stays put at the edges', () => {
+    expect(moveColumn(order, 'b', -1)).toEqual(['b', 'a', 'c']);
+    expect(moveColumn(order, 'b', 1)).toEqual(['a', 'c', 'b']);
+    expect(moveColumn(order, 'a', -1)).toEqual(order);
+    expect(moveColumn(order, 'c', 1)).toEqual(order);
+  });
+
+  it('turns an arrow into a step toward the end or the start, whichever way the columns run', () => {
+    expect(arrowStep('right', false)).toBe(1);
+    expect(arrowStep('left', false)).toBe(-1);
+    expect(arrowStep('right', true)).toBe(-1);
+    expect(arrowStep('left', true)).toBe(1);
+  });
+
+  it('reads the direction from the nearest dir, the document included', () => {
+    const root = document.createElement('div');
+    const inner = document.createElement('div');
+    root.appendChild(inner);
+    document.body.appendChild(root);
+    try {
+      expect(columnsRunRightToLeft(inner)).toBe(false);
+      document.documentElement.dir = 'rtl';
+      expect(columnsRunRightToLeft(inner)).toBe(true);
+      root.dir = 'ltr';
+      expect(columnsRunRightToLeft(inner)).toBe(false);
+    } finally {
+      document.documentElement.removeAttribute('dir');
+      root.remove();
+    }
   });
 });

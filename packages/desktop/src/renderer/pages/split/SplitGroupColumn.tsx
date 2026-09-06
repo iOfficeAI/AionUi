@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
 import ConversationDropZone from './ConversationDropZone';
+import { SplitColumnPlaceholderHeader } from './SplitColumnPlaceholderHeader';
 
 /**
  * One member of an open split group: a full, live conversation view with a ×
@@ -124,16 +125,21 @@ export const SplitGroupColumn: React.FC<{
         data-focused={focused ? 'true' : 'false'}
       >
         {isLoading ? (
-          <Spin loading className='flex-1' />
+          <>
+            <SplitColumnPlaceholderHeader name={name} headerDragHandle={headerDragHandle} actions={removeButton} />
+            <Spin loading className='flex-1' />
+          </>
         ) : conversation ? (
           <ChatColumnProvider value={chatColumn}>
             <ChatConversation conversation={conversation} previewHosted headerActions={removeButton} />
           </ChatColumnProvider>
         ) : (
-          <div className='flex flex-col items-center justify-center gap-12px flex-1'>
-            <Empty description={t('conversation.splitGroup.memberUnavailable', { name })} />
-            {removeButton}
-          </div>
+          <>
+            <SplitColumnPlaceholderHeader name={name} headerDragHandle={headerDragHandle} actions={removeButton} />
+            <div className='flex flex-col items-center justify-center gap-12px flex-1'>
+              <Empty description={t('conversation.splitGroup.memberUnavailable', { name })} />
+            </div>
+          </>
         )}
         {/* The focused column is outlined by a hairline in the border token,
             painted above the chat and never in the way of it. The wash that
