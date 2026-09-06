@@ -195,6 +195,29 @@ const nextOrderIn = (group_id: string, census: SplitGroupCensus): number => {
 };
 
 /**
+ * The patches that put a group's members back in step with the name the group
+ * goes by.
+ *
+ * Readers take the name from the first member by column order, so a member a
+ * half-landed rename left behind shows nothing wrong until it becomes the
+ * first one — at which point the group silently changes its name. Every write
+ * that touches the group carries the repair, which is what "the next
+ * successful write reconciles them" has to mean: a rename is not the only
+ * write, and waiting for one would leave a divergence nobody can see.
+ *
+ * Members already carrying the name produce no patch, so the common case adds
+ * nothing to the batch.
+ */
+const reconcileNamePatches = (members: TChatConversation[], name: string | undefined): SplitGroupPatch[] =>
+  members.flatMap((member): SplitGroupPatch[] => {
+    const tag = readSplitGroupTag(member);
+    // `readGroup` only ever returns rows whose tag parsed and named this
+    // group, so this narrows the type — it never skips a member.
+    if (!tag || tag.name === name) return [];
+    return [{ conversation_id: member.id, split_group: splitGroupTag(tag.id, tag.order, name) }];
+  });
+
+/**
  * Carry out one mutation against the backend as it is right now. Pure with
  * respect to its dependencies, so the decision table is testable without the
  * IPC bridge or the queue.
@@ -221,15 +244,13 @@ export const runSplitGroupMutation = async (
       // The target joined a group since the drag started: add to that group.
       const census = await readGroup(targetTag.id, deps, [target]);
       census.members.forEach(remember);
+      const groupName = readSplitGroupName(census.members);
       const patches: SplitGroupPatch[] = [
         {
           conversation_id: dragged.id,
-          split_group: splitGroupTag(
-            targetTag.id,
-            nextOrderIn(targetTag.id, census),
-            readSplitGroupName(census.members)
-          ),
+          split_group: splitGroupTag(targetTag.id, nextOrderIn(targetTag.id, census), groupName),
         },
+        ...reconcileNamePatches(census.members, groupName),
       ];
       await applySplitGroupPatches(patches, previous, deps);
       return { group_id: targetTag.id, dissolved: false, survivor: null };
@@ -249,15 +270,14 @@ export const runSplitGroupMutation = async (
     const rowTag = readSplitGroupTag(row);
     if (rowTag && !(await isLeftoverTag(rowTag, row, deps))) throw new Error(`${row.id} already belongs to a group`);
     remember(row);
+    census.members.forEach(remember);
+    const groupName = readSplitGroupName(census.members);
     const patches: SplitGroupPatch[] = [
       {
         conversation_id: row.id,
-        split_group: splitGroupTag(
-          mutation.group_id,
-          nextOrderIn(mutation.group_id, census),
-          readSplitGroupName(census.members)
-        ),
+        split_group: splitGroupTag(mutation.group_id, nextOrderIn(mutation.group_id, census), groupName),
       },
+      ...reconcileNamePatches(census.members, groupName),
     ];
     await applySplitGroupPatches(patches, previous, deps);
     return { group_id: mutation.group_id, dissolved: false, survivor: null };
@@ -285,18 +305,16 @@ export const runSplitGroupMutation = async (
   }
 
   if (mutation.type === 'rename') {
-    const { members } = await readGroup(mutation.group_id, deps);
-    if (members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
-    members.forEach(remember);
+    const census = await readGroup(mutation.group_id, deps);
+    if (census.members.length === 0) throw new Error(`group ${mutation.group_id} no longer exists`);
+    // Every member carries the name, so a rename is only a rename once it has
+    // reached all of them. A count read short would name the members it could
+    // see and report success, leaving the group disagreeing with itself — so
+    // it refuses instead, loudly, the way the join paths do.
+    if (!census.complete) throw new Error(`group ${mutation.group_id} could not be read whole`);
+    census.members.forEach(remember);
     const name = normalizeSplitGroupName(mutation.name);
-    // Every member carries the name, so every member is rewritten — a group
-    // half-renamed by a refused write is rolled back whole, and a group whose
-    // members disagree is put back in step by the next successful rename.
-    const patches = members.flatMap((member): SplitGroupPatch[] => {
-      const tag = readSplitGroupTag(member);
-      if (!tag || tag.name === name) return [];
-      return [{ conversation_id: member.id, split_group: splitGroupTag(tag.id, tag.order, name) }];
-    });
+    const patches = reconcileNamePatches(census.members, name);
     if (patches.length === 0) {
       return { group_id: mutation.group_id, dissolved: false, survivor: null, noop: 'the name is already that' };
     }
@@ -332,14 +350,15 @@ export const runSplitGroupMutation = async (
       const census = await readGroup(mutation.to.group_id, deps);
       if (census.members.length === 0) throw new Error(`group ${mutation.to.group_id} no longer exists`);
       destination_id = mutation.to.group_id;
-      patches.push({
-        conversation_id: row.id,
-        split_group: splitGroupTag(
-          destination_id,
-          nextOrderIn(destination_id, census),
-          readSplitGroupName(census.members)
-        ),
-      });
+      census.members.forEach(remember);
+      const groupName = readSplitGroupName(census.members);
+      patches.push(
+        {
+          conversation_id: row.id,
+          split_group: splitGroupTag(destination_id, nextOrderIn(destination_id, census), groupName),
+        },
+        ...reconcileNamePatches(census.members, groupName)
+      );
     } else {
       const target = await deps.read(mutation.to.conversation_id);
       if (!target) throw new Error(`${mutation.to.conversation_id} no longer exists`);
@@ -351,14 +370,15 @@ export const runSplitGroupMutation = async (
       if (targetTag) {
         const census = await readGroup(targetTag.id, deps, [target]);
         destination_id = targetTag.id;
-        patches.push({
-          conversation_id: row.id,
-          split_group: splitGroupTag(
-            destination_id,
-            nextOrderIn(destination_id, census),
-            readSplitGroupName(census.members)
-          ),
-        });
+        census.members.forEach(remember);
+        const groupName = readSplitGroupName(census.members);
+        patches.push(
+          {
+            conversation_id: row.id,
+            split_group: splitGroupTag(destination_id, nextOrderIn(destination_id, census), groupName),
+          },
+          ...reconcileNamePatches(census.members, groupName)
+        );
       } else {
         destination_id = newSplitGroupId();
         patches.push(...planCreateSplitGroup(target.id, row.id, destination_id));
@@ -512,10 +532,14 @@ export const useSplitGroupMutations = () => {
     [enqueue, leaveDissolvedGroup]
   );
 
-  /** Name the group, or clear its name when the input is blank. */
+  /**
+   * Name the group, or clear its name when the input is blank. Answers whether
+   * the write landed, so the box the name was typed into can keep it when it
+   * did not — the queue has already said what went wrong.
+   */
   const renameGroup = useCallback(
-    async (group_id: string, name: string | null): Promise<void> => {
-      await enqueue('rename group', { type: 'rename', group_id, name });
+    async (group_id: string, name: string | null): Promise<boolean> => {
+      return (await enqueue('rename group', { type: 'rename', group_id, name })) !== null;
     },
     [enqueue]
   );

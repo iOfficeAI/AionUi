@@ -421,6 +421,88 @@ describe('runSplitGroupMutation: rename', () => {
   });
 });
 
+describe("runSplitGroupMutation: keeping a group's members in step on its name", () => {
+  it('refuses a rename it cannot deliver to everyone', async () => {
+    const { deps, writes } = makeDeps({ a: row('a', tag('g', 0)), b: row('b', tag('g', 1)) }, { incomplete: true });
+    // Naming only the members it could see would report success on a group
+    // that now disagrees with itself.
+    await expect(runSplitGroupMutation({ type: 'rename', group_id: 'g', name: 'Research' }, deps)).rejects.toThrow(
+      /could not be read whole/
+    );
+    expect(writes).toEqual([]);
+  });
+
+  it('repairs a divergent member when a conversation joins the group', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', tag('g', 1)),
+      z: row('z'),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps);
+    // The newcomer is named, and so is the member a half-landed rename left
+    // behind — it would otherwise rename the group the day it became first.
+    expect(writes).toEqual([
+      ['z', { id: 'g', order: 2, name: 'Research' }],
+      ['b', { id: 'g', order: 1, name: 'Research' }],
+    ]);
+  });
+
+  it('repairs a divergent member when one is moved into the group', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', tag('g', 1)),
+      x: row('x', tag('g2', 0)),
+      y: row('y', tag('g2', 1)),
+      z: row('z', tag('g2', 2)),
+    });
+    await runSplitGroupMutation(
+      { type: 'move', from_group_id: 'g2', conversation_id: 'z', to: { kind: 'group', group_id: 'g' } },
+      deps
+    );
+    expect(writes).toEqual([
+      ['z', { id: 'g', order: 2, name: 'Research' }],
+      ['b', { id: 'g', order: 1, name: 'Research' }],
+    ]);
+  });
+
+  it('clears a stale name off a member when the group goes by none', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', tag('g', 0)),
+      b: row('b', { id: 'g', order: 1, name: 'Stale' }),
+      z: row('z'),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps);
+    // The first member by order decides, and it has no name.
+    expect(writes).toEqual([
+      ['z', { id: 'g', order: 2 }],
+      ['b', { id: 'g', order: 1 }],
+    ]);
+  });
+
+  it('adds nothing to the batch when the members already agree', async () => {
+    const { deps, writes } = makeDeps({
+      a: row('a', { id: 'g', order: 0, name: 'Research' }),
+      b: row('b', { id: 'g', order: 1, name: 'Research' }),
+      z: row('z'),
+    });
+    await runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps);
+    expect(writes).toEqual([['z', { id: 'g', order: 2, name: 'Research' }]]);
+  });
+
+  it('rolls a repaired member back with the rest when a write is refused', async () =>
+    silenced(async () => {
+      const { deps, writes } = makeDeps(
+        { a: row('a', { id: 'g', order: 0, name: 'Research' }), b: row('b', tag('g', 1)), z: row('z') },
+        { refuse: ['z'] }
+      );
+      await expect(runSplitGroupMutation({ type: 'add', group_id: 'g', conversation_id: 'z' }, deps)).rejects.toThrow(
+        /rejected/
+      );
+      // b was remembered before the batch, so the repair is undone too.
+      expect(writes.slice(2)).toEqual([['b', tag('g', 1)]]);
+    }));
+});
+
 describe('runSplitGroupMutation: move', () => {
   it('leaves one group and joins another as a single batch', async () => {
     const { deps, writes, refresh } = makeDeps({

@@ -58,6 +58,23 @@ describe('readSplitGroupCensus', () => {
     expect(census.complete).toBe(true);
   });
 
+  it('leaves out a conversation whose tag is malformed, so no write can act on it', async () => {
+    // A tag that will not parse is not a membership. The row never reaches a
+    // group mutation at all, which is why the rename batch cannot "silently
+    // skip" it — there is nothing to skip. It stays a plain row, reported once
+    // by readSplitGroupTag, until something rewrites its tag.
+    const broken = { ...row('b'), extra: { split_group: { id: 'g', order: 'first' } } } as unknown as TChatConversation;
+    getUserConversations.mockResolvedValue({ items: [row('a', 'g'), broken], total: 2, has_more: false });
+    sidebarGet.mockResolvedValue(noArchive);
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect((await readSplitGroupCensus('g')).members.map((member) => member.id)).toEqual(['a']);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('leaves out conversations carrying another group tag, or none', async () => {
     getUserConversations.mockResolvedValue({
       items: [row('a', 'g'), row('b', 'other'), row('c')],
