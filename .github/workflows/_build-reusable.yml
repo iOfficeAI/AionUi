@@ -59,9 +59,6 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
-  AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
-  AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
-  AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}
 
 jobs:
   validate-inputs:
@@ -129,6 +126,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [validate-inputs, code-quality]
     if: ${{ always() && needs.validate-inputs.result == 'success' && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
+    env:
+      AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
+      AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
+      AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}
 
     outputs:
       commit-short: ${{ steps.commit.outputs.short }}

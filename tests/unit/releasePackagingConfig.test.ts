@@ -72,12 +72,17 @@ describe('release packaging configuration', () => {
   it('gates packaged GEA acceptance behind explicit internal build inputs', () => {
     const workflow = readProjectFile('.github/workflows/_build-reusable.yml');
     const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
+    const codeQualityBlock = workflow.slice(workflow.indexOf('  code-quality:'), workflow.indexOf('  build:'));
+    const buildBlock = workflow.slice(workflow.indexOf('  build:'));
 
     expect(manualWorkflow).toContain('gea_packaged_acceptance: ${{ inputs.gea_packaged_acceptance }}');
     expect(manualWorkflow).toContain('gea_version_code: ${{ inputs.gea_version_code }}');
-    expect(workflow).toContain("AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
-    expect(workflow).toContain("AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
-    expect(workflow).toContain('AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}');
+    expect(codeQualityBlock).not.toContain('AIONUI_GEA_CLIENT_INTEGRATION');
+    expect(codeQualityBlock).not.toContain('AIONUI_GEA_PACKAGED_ACCEPTANCE');
+    expect(codeQualityBlock).not.toContain('AIONUI_GEA_VERSION_CODE');
+    expect(buildBlock).toContain("AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
+    expect(buildBlock).toContain("AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
+    expect(buildBlock).toContain('AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}');
     expect(workflow).toContain('if [ "$INTERNAL_TEST_BUILD" != "true" ]; then');
     expect(workflow).toContain('if ! [[ "$GEA_VERSION_CODE" =~ ^[1-9][0-9]*$ ]]; then');
   });
