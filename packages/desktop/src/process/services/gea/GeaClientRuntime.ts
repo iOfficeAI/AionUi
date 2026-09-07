@@ -43,8 +43,12 @@ export function getGeaClientVersion(): ClientVersion {
 }
 
 export function createGeaClientAdapter(): GeaClientAdapter {
-  return new GeaClientAdapter(getGeaEnvironment().baseUrl, (input, init) =>
-    net.fetch(input instanceof URL ? input.toString() : input, init)
+  return new GeaClientAdapter(
+    getGeaEnvironment().baseUrl,
+    (input, init) => net.fetch(input instanceof URL ? input.toString() : input, init),
+    // Electron net.fetch rejects manual redirects. Package transfers are anonymous
+    // and must expose each Location to the adapter before following it.
+    (input, init) => globalThis.fetch(input, init)
   );
 }
 

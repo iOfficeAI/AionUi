@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { GeaClientError } from '@/common/adapter/geaClient';
 import { ipcBridge } from '@/common';
 import { GEA_REMOTE_SERVICE_POLICY } from '@/common/config/geaManagedServices';
 import type {
@@ -796,13 +797,13 @@ export function initUpdateBridge(): void {
                   percent: 100,
                 });
             })
-            .catch(async () => {
+            .catch(async (error: unknown) => {
               if (!abortController.signal.aborted)
                 emitProgress({
                   downloadId,
                   status: 'error',
                   receivedBytes: 0,
-                  error: (await getI18n()).t('update.downloadFailed'),
+                  error: `${(await getI18n()).t('update.downloadFailed')}${error instanceof GeaClientError ? ` (${error.code})` : ''}`,
                 });
             })
             .finally(() => {

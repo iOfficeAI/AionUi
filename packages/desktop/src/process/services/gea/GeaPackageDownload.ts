@@ -38,7 +38,11 @@ export async function downloadGeaPackage(options: {
   );
   let partial: string | undefined;
   try {
-    const extension = getGeaPackageExtension(response.headers.get('content-disposition') ?? '', version.platform);
+    const extension = getGeaPackageExtension(
+      response.headers.get('content-disposition') ?? '',
+      version.platform,
+      response.url
+    );
     if (!response.body) throw new GeaClientError('CLIENT_PACKAGE_TYPE_UNAVAILABLE');
     const target = path.join(directory, `GEAUi-${fresh.versionCode}-${randomUUID()}${extension}`);
     partial = target + '.part';

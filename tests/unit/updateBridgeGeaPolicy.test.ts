@@ -26,7 +26,13 @@ vi.mock('@/common/platform/bridge', () => ({
 const desktop = vi.hoisted(() => ({ isPackaged: true, directory: '/tmp' }));
 
 vi.mock('electron', () => ({
-  net: { fetch: (...args: Parameters<typeof fetch>) => fetch(...args) },
+  net: {
+    fetch: (...args: Parameters<typeof fetch>) => {
+      // Match Electron's real net.fetch behavior: manual redirects are cancelled.
+      if (args[1]?.redirect === 'manual') throw new Error('Redirect was cancelled');
+      return fetch(...args);
+    },
+  },
   app: {
     getPath: vi.fn(() => desktop.directory),
     getVersion: vi.fn(() => '1.0.0'),
@@ -313,11 +319,14 @@ describe('GEA update bridge policy', () => {
 
     await expect(check({})).resolves.toMatchObject({ success: false, msg: 'update.checkFailed' });
   });
-  it('downloads a verified uploaded package through the existing manual download entry', async () => {
+  it.each([false, true])('downloads a verified uploaded package (private OSS: %s)', async (privateOss) => {
     desktop.isPackaged = false;
     vi.stubEnv('AIONUI_GEA_CLIENT_INTEGRATION', '1');
     vi.stubEnv('AIONUI_GEA_VERSION_CODE', '100');
-    initializeGeaEnvironment({ isPackaged: false, env: { AIONUI_GEA_BASE_URL: 'http://127.0.0.1:1234/gea-boot' } });
+    initializeGeaEnvironment({
+      isPackaged: false,
+      env: { AIONUI_GEA_BASE_URL: privateOss ? 'https://gea.synear.cn/gea-boot' : 'http://127.0.0.1:1234/gea-boot' },
+    });
     const contents = Buffer.alloc(512);
     contents.write('koly');
     const checksum = createHash('sha256').update(contents).digest('hex');
@@ -341,7 +350,18 @@ describe('GEA update bridge policy', () => {
                 },
               })
             )
-          : new Response(contents, { headers: { 'Content-Disposition': "attachment; filename*=UTF-8''test.dmg" } })
+          : privateOss && url.includes('/api/v1/public/')
+            ? new Response(null, {
+                status: 302,
+                headers: {
+                  location: 'https://synear-gea.oss-cn-hangzhou.aliyuncs.com/client-release/test.dmg?signature=test',
+                },
+              })
+            : privateOss
+              ? Object.defineProperty(new Response(contents), 'url', {
+                  value: 'https://synear-gea.oss-cn-hangzhou.aliyuncs.com/client-release/test.dmg?signature=test',
+                })
+              : new Response(contents, { headers: { 'Content-Disposition': "attachment; filename*=UTF-8''test.dmg" } })
       )
     );
     initUpdateBridge();
@@ -350,7 +370,7 @@ describe('GEA update bridge policy', () => {
     const result = await check({});
     const asset = result.data!.latest!.recommendedAsset!;
     expect(asset).toBeDefined();
-    const started = await download({ url: asset.url, downloadId: 'gea-test-download' });
+    const started = await download({ url: asset.url, downloadId: `gea-test-download-${privateOss}` });
     expect(started.success).toBe(true);
     let file = '';
     try {

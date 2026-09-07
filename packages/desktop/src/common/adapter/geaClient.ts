@@ -40,7 +40,8 @@ export class GeaClientError extends Error {
 export class GeaClientAdapter {
   constructor(
     private readonly baseUrl: string,
-    private readonly fetchImpl: typeof fetch
+    private readonly fetchImpl: typeof fetch,
+    private readonly downloadFetchImpl: typeof fetch = fetchImpl
   ) {}
 
   async check(version: ClientVersion, signal?: AbortSignal): Promise<GeaClientRelease> {
@@ -100,6 +101,12 @@ export class GeaClientAdapter {
 
   async download(url: string, allowedHosts: string[], signal: AbortSignal): Promise<Response> {
     const base = new URL(this.baseUrl);
+    // This private bucket belongs only to the default GEA deployment. Other
+    // environments must configure their own exact hosts; never allow an OSS suffix.
+    const trustedHosts = new Set(allowedHosts);
+    if (base.origin === 'https://gea.synear.cn' && base.pathname.replace(/\/$/, '') === '/gea-boot') {
+      trustedHosts.add('synear-gea.oss-cn-hangzhou.aliyuncs.com');
+    }
     let target = new URL(url);
     for (let redirects = 0; redirects <= 5; redirects++) {
       const sameOrigin = target.origin === base.origin;
@@ -107,11 +114,15 @@ export class GeaClientAdapter {
         target.username ||
         target.password ||
         target.hash ||
-        (!sameOrigin && (target.protocol !== 'https:' || !allowedHosts.includes(target.hostname)))
+        (!sameOrigin && (target.protocol !== 'https:' || !trustedHosts.has(target.hostname)))
       ) {
         throw new GeaClientError('CLIENT_DOWNLOAD_TARGET_INVALID');
       }
-      const response = await this.fetchImpl(target.toString(), { redirect: 'manual', credentials: 'omit', signal });
+      const response = await this.downloadFetchImpl(target.toString(), {
+        redirect: 'manual',
+        credentials: 'omit',
+        signal,
+      });
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         await response.body?.cancel();
@@ -194,9 +205,25 @@ export function requireSameUploadedPackage(
   return { ...fresh, sha256: fresh.sha256, fileSize: fresh.fileSize };
 }
 
-export function getGeaPackageExtension(disposition: string, platform: ClientVersion['platform']): string {
-  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  const name = encoded ? decodeURIComponent(encoded) : disposition.match(/filename="([^"]+)"/i)?.[1];
+export function getGeaPackageExtension(
+  disposition: string,
+  platform: ClientVersion['platform'],
+  responseUrl?: string
+): string {
+  let name: string | undefined;
+  try {
+    const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    name = encoded
+      ? decodeURIComponent(encoded)
+      : (disposition.match(/filename="([^"]+)"/i)?.[1] ?? disposition.match(/filename=([^;\s]+)/i)?.[1]);
+    // The adapter already verified every redirect. OSS can omit Content-Disposition;
+    // use only the final pathname, never query parameters or the opaque ticket URL.
+    if (!name && !/filename\*?\s*=/i.test(disposition) && responseUrl) {
+      name = decodeURIComponent(new URL(responseUrl).pathname);
+    }
+  } catch {
+    throw new GeaClientError('CLIENT_PACKAGE_TYPE_UNAVAILABLE');
+  }
   const extension = name?.match(/\.[a-z0-9]+$/i)?.[0].toLowerCase();
   if (!extension || !(platform === 'MACOS' ? ['.dmg', '.pkg'] : ['.exe', '.msi']).includes(extension)) {
     throw new GeaClientError('CLIENT_PACKAGE_TYPE_UNAVAILABLE');
