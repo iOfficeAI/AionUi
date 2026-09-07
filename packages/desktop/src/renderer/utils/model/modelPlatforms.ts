@@ -134,6 +134,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://api.minimaxi.com/v1',
   },
   {
+    name: 'Nebius Token Factory',
+    value: 'Nebius',
+    logo: null,
+    platform: 'custom',
+    base_url: 'https://api.tokenfactory.nebius.com/v1',
+  },
+  {
     name: 'Novita',
     value: 'Novita',
     logo: buildLogoAssetUrl('ai-cloud/novita.svg'),
