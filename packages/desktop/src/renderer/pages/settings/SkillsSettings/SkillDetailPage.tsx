@@ -29,6 +29,7 @@ import useSWR, { mutate as swrMutate } from 'swr';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import SkillFileBrowser from './SkillFileBrowser';
 import { getAssistantsUsingSkill } from './SkillUsedByStack';
+import { getSkillDescriptionEnglish, getSkillDescriptionForLocale } from './officialSkillDescriptions';
 
 interface SkillInfo {
   name: string;
@@ -219,8 +220,11 @@ const SkillDetailPage: React.FC = () => {
                       {sourceLabel(skill)}
                     </span>
                   </div>
-                  <p className='m-0 text-13px leading-relaxed text-t-secondary'>
-                    {skill.description ||
+                  <p
+                    className='m-0 text-13px leading-relaxed text-t-secondary'
+                    title={getSkillDescriptionEnglish(skill.name) ?? undefined}
+                  >
+                    {(getSkillDescriptionForLocale(skill.name, i18n.language) ?? skill.description) ||
                       t('settings.skillsHub.detailNoDescription', { defaultValue: 'No description.' })}
                   </p>
                 </div>
