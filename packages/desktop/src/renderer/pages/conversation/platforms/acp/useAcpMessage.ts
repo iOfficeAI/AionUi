@@ -741,9 +741,12 @@ export const useAcpMessage = (
 
   // Populate the slash command palette on mount so existing ACP conversations
   // show agent commands immediately, not only after a live stream event.
+  // The warmup effect above already fetches on mount; only fetch here when
+  // warmup was skipped to avoid a duplicate prepareRuntime + IPC round-trip.
   useEffect(() => {
+    if (!options?.skipWarmup || options?.prepareRuntime) return;
     fetchSlashCommands();
-  }, [fetchSlashCommands]);
+  }, [fetchSlashCommands, options?.prepareRuntime, options?.skipWarmup]);
 
   return {
     thought,
