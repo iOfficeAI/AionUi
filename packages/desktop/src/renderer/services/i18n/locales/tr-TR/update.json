@@ -1,5 +1,10 @@
 {
   "modalTitle": "Güncelleme hazır",
+  "mandatory": {
+    "title": "Güncelleme gerekli",
+    "description": "GEAUi'yi kullanmaya devam etmek için bu sürümü güncellemeniz gerekir.",
+    "downloadUnavailable": "İndirme bilgileri kullanılamıyor. Ağ bağlantınızı kontrol edip tekrar deneyin."
+  },
   "checking": "Güncellemeler kontrol ediliyor...",
   "checkFailed": "Güncellemeler kontrol edilemedi",
   "upToDateTitle": "Güncelsiniz",

@@ -102,6 +102,35 @@ describe('updateNotificationReducer', () => {
     expect(result.effects).toEqual([]);
   });
 
+  it('does not dismiss, minimize, or cancel a mandatory update', () => {
+    const mandatoryState: UpdateNotificationState = {
+      ...initialUpdateNotificationState,
+      visible: true,
+      status: 'downloading',
+      updateInfo: {
+        tagName: '2.2.0',
+        version: '2.2.0',
+        versionCode: 120,
+        mandatory: true,
+        htmlUrl: '',
+        prerelease: false,
+        draft: false,
+        assets: [],
+      },
+      activeTask: { kind: 'manual', id: 'mandatory-download' },
+    };
+
+    for (const event of [
+      { type: 'dismissRequested', reason: 'later' },
+      { type: 'minimizeRequested' },
+      { type: 'cancelDownloadRequested' },
+    ] as const) {
+      const result = updateNotificationReducer(mandatoryState, event);
+      expect(result.state).toBe(mandatoryState);
+      expect(result.effects).toEqual([]);
+    }
+  });
+
   it('cancels an active download and restores the available update state', () => {
     const downloadingState: UpdateNotificationState = {
       ...initialUpdateNotificationState,

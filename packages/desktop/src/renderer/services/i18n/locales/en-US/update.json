@@ -1,5 +1,10 @@
 {
   "modalTitle": "Update Ready",
+  "mandatory": {
+    "title": "Update required",
+    "description": "You must update this version before you can continue using GEAUi.",
+    "downloadUnavailable": "Download information is unavailable. Check your network connection and try again."
+  },
   "checking": "Checking for updates...",
   "checkFailed": "Failed to check for updates",
   "upToDateTitle": "You're up to date",

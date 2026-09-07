@@ -103,6 +103,8 @@ import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 import BackendStartingView from './components/layout/BackendStartingView';
 import BackendStartupGate from './components/layout/BackendStartupGate';
 import GpuAutoDisableNotice from './components/layout/GpuAutoDisableNotice';
+import UpdateNotificationCard from './components/settings/UpdateNotificationCard';
+import { isElectronDesktop } from './utils/platform';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
@@ -325,6 +327,7 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
               null,
               React.createElement(RuntimeFailureDialogs, null),
               React.createElement(GpuAutoDisableNotice, null),
+              isElectronDesktop() ? React.createElement(UpdateNotificationCard, null) : null,
               children
             )
           )

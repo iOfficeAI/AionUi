@@ -26,10 +26,11 @@ const UpdateNotificationCard: React.FC = () => {
   const { state, versionLabel, actions } = useUpdateNotificationController();
   const { openFeedback } = useFeedback();
   const [releaseLogVisible, setReleaseLogVisible] = React.useState(false);
+  const mandatory = state.updateInfo?.mandatory === true;
 
   if (!state.visible) return null;
 
-  if (state.presentation === 'mini') {
+  if (!mandatory && state.presentation === 'mini') {
     const miniPercent = state.status === 'downloaded' ? 100 : state.progress.percent;
     const miniColor =
       state.status === 'downloaded'
@@ -107,17 +108,25 @@ const UpdateNotificationCard: React.FC = () => {
         );
       case 'available':
         return (
-          <div className='flex items-center gap-10px text-13px text-t-secondary'>
-            <span>
-              {state.currentVersion} → {versionLabel}
-            </span>
-            <button
-              type='button'
-              className='bg-transparent border-none p-0 cursor-pointer text-inherit underline underline-offset-2'
-              onClick={() => setReleaseLogVisible(true)}
-            >
-              {t('update.releaseLog')}
-            </button>
+          <div className='flex flex-col gap-10px text-13px text-t-secondary'>
+            <div className='flex items-center gap-10px'>
+              <span>
+                {state.currentVersion} → {versionLabel}
+              </span>
+              <button
+                type='button'
+                className='bg-transparent border-none p-0 cursor-pointer text-inherit underline underline-offset-2'
+                onClick={() => setReleaseLogVisible(true)}
+              >
+                {t('update.releaseLog')}
+              </button>
+            </div>
+            {mandatory && <div className='leading-relaxed text-t-primary'>{t('update.mandatory.description')}</div>}
+            {mandatory && !state.updateInfo?.recommendedAsset && (
+              <div className='leading-relaxed text-[rgb(var(--danger-6))]'>
+                {t('update.mandatory.downloadUnavailable')}
+              </div>
+            )}
           </div>
         );
       case 'downloading':
@@ -165,9 +174,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'downloaded') {
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {!mandatory && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.quitAndInstall}>
             {t('update.restartNow')}
           </Button>
@@ -177,9 +188,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'success') {
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {!mandatory && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.openFile}>
             {t('update.installNow')}
           </Button>
@@ -192,7 +205,7 @@ const UpdateNotificationCard: React.FC = () => {
           <Button size='small' className={ACTION_BTN_CLASS} onClick={() => void actions.checkForUpdates()}>
             {t('common.retry')}
           </Button>
-          {state.releasePageUrl && (
+          {!mandatory && state.releasePageUrl && (
             <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.openReleasePage}>
               {t('update.goToRelease')}
             </Button>
@@ -235,17 +248,32 @@ const UpdateNotificationCard: React.FC = () => {
       );
     }
     if (state.status === 'available') {
+      if (mandatory && !state.updateInfo?.recommendedAsset) {
+        return (
+          <Button
+            type='primary'
+            size='small'
+            className={ACTION_BTN_CLASS}
+            onClick={() => void actions.checkForUpdates()}
+          >
+            {t('common.retry')}
+          </Button>
+        );
+      }
       return (
         <>
-          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
-            {t('update.later')}
-          </Button>
+          {!mandatory && (
+            <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
+              {t('update.later')}
+            </Button>
+          )}
           <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.startDownload}>
             {t('update.downloadButton')}
           </Button>
         </>
       );
     }
+    if (mandatory) return null;
     return (
       <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
         {t('update.later')}
@@ -254,13 +282,16 @@ const UpdateNotificationCard: React.FC = () => {
   };
 
   const releaseNotes = state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes || '';
-
-  return renderNotificationLayer(
-    <>
-      <section
-        data-testid='update-notification-card'
-        className='fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
-      >
+  const card = (
+    <section
+      data-testid='update-notification-card'
+      className={
+        mandatory
+          ? 'w-full min-w-0'
+          : 'fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+      }
+    >
+      {!mandatory && (
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download
             size='18'
@@ -292,15 +323,43 @@ const UpdateNotificationCard: React.FC = () => {
             </div>
           )}
         </div>
-        {state.status === 'downloading' ? (
-          <div className='px-16px pt-6px pb-12px'>{renderBody()}</div>
-        ) : (
-          <>
-            <div className='px-16px py-6px'>{renderBody()}</div>
-            <div className='flex justify-start gap-8px px-16px pt-6px pb-12px'>{renderActions()}</div>
-          </>
-        )}
-      </section>
+      )}
+      {state.status === 'downloading' ? (
+        <div className={mandatory ? 'py-6px' : 'px-16px pt-6px pb-12px'}>{renderBody()}</div>
+      ) : (
+        <>
+          <div className={mandatory ? 'py-6px' : 'px-16px py-6px'}>{renderBody()}</div>
+          <div
+            className={
+              mandatory ? 'flex justify-end gap-8px pt-12px' : 'flex justify-start gap-8px px-16px pt-6px pb-12px'
+            }
+          >
+            {renderActions()}
+          </div>
+        </>
+      )}
+    </section>
+  );
+
+  return renderNotificationLayer(
+    <>
+      {mandatory ? (
+        <Modal
+          title={t('update.mandatory.title')}
+          visible
+          style={{ width: '520px', maxWidth: 'calc(100vw - 32px)' }}
+          footer={null}
+          closable={false}
+          maskClosable={false}
+          escToExit={false}
+          focusLock
+          autoFocus
+        >
+          {card}
+        </Modal>
+      ) : (
+        card
+      )}
       <Modal
         title={t('update.releaseLog')}
         visible={releaseLogVisible}

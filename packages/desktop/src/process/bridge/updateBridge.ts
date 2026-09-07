@@ -25,6 +25,14 @@ import { load as loadYaml } from 'js-yaml';
 import * as path from 'path';
 import semver from 'semver';
 import { consumeInstallerLastFailure } from '../services/installerLastFailure';
+import {
+  checkGeaClientRelease,
+  isGeaClientIntegrationEnabled,
+  getCheckedGeaRelease,
+  createGeaClientAdapter,
+  getGeaClientVersion,
+} from '../services/gea/GeaClientRuntime';
+import { downloadGeaPackage } from '../services/gea/GeaPackageDownload';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
 let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
@@ -666,6 +674,10 @@ export function createAutoUpdateStatusBroadcast(): (
 }
 
 export function initUpdateBridge(): void {
+  ipcBridge.update.getStartupCheckEnabled.provider(
+    async () => isGeaClientIntegrationEnabled() && process.env.AIONUI_DISABLE_AUTO_UPDATE !== '1'
+  );
+
   ipcBridge.update.consumeInstallerLastFailure.provider(
     async (): Promise<{ success: boolean; data: InstallerLastFailureMarker | null; msg?: string }> => {
       try {
@@ -681,6 +693,13 @@ export function initUpdateBridge(): void {
 
   ipcBridge.update.check.provider(
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
+      if (isGeaClientIntegrationEnabled()) {
+        try {
+          return { success: true, data: await checkGeaClientRelease() };
+        } catch {
+          return { success: false, msg: (await getI18n()).t('update.checkFailed') };
+        }
+      }
       if (!GEA_REMOTE_SERVICE_POLICY.autoUpdateEnabled) {
         return { success: false, msg: GEA_UPDATE_CHANNEL_UNAVAILABLE };
       }
@@ -735,6 +754,66 @@ export function initUpdateBridge(): void {
 
   ipcBridge.update.download.provider(
     async (params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
+      if (isGeaClientIntegrationEnabled()) {
+        try {
+          const release = getCheckedGeaRelease(params.url);
+          const key = `gea:${release.versionCode}:${release.sha256}`;
+          const active = activeManualDownloads.get(key);
+          if (active) return { success: true, data: active };
+          const downloadId = params.downloadId || uuid();
+          if (downloads.has(downloadId)) return { success: false, msg: (await getI18n()).t('update.downloadFailed') };
+          const abortController = new AbortController();
+          downloads.set(downloadId, { abortController, file_path: '' });
+          activeManualDownloads.set(key, { downloadId, file_path: '' });
+          manualDownloadKeysById.set(downloadId, key);
+          void downloadGeaPackage({
+            adapter: createGeaClientAdapter(),
+            release,
+            version: getGeaClientVersion(),
+            directory: app.getPath('downloads'),
+            signal: abortController.signal,
+            allowedHosts: (process.env.AIONUI_GEA_DOWNLOAD_HOSTS ?? '')
+              .split(',')
+              .map((host) => host.trim().toLowerCase())
+              .filter(Boolean),
+            onProgress: (receivedBytes, totalBytes) =>
+              emitProgress({
+                downloadId,
+                status: 'downloading',
+                receivedBytes,
+                totalBytes,
+                percent: (receivedBytes / totalBytes) * 100,
+              }),
+          })
+            .then((file_path) => {
+              if (!abortController.signal.aborted)
+                emitProgress({
+                  downloadId,
+                  status: 'completed',
+                  file_path,
+                  receivedBytes: release.fileSize!,
+                  totalBytes: release.fileSize!,
+                  percent: 100,
+                });
+            })
+            .catch(async () => {
+              if (!abortController.signal.aborted)
+                emitProgress({
+                  downloadId,
+                  status: 'error',
+                  receivedBytes: 0,
+                  error: (await getI18n()).t('update.downloadFailed'),
+                });
+            })
+            .finally(() => {
+              cancelledManualDownloadIds.delete(downloadId);
+              cleanupManualDownload(downloadId);
+            });
+          return { success: true, data: { downloadId, file_path: '' } };
+        } catch {
+          return { success: false, msg: (await getI18n()).t('update.downloadFailed') };
+        }
+      }
       if (!GEA_REMOTE_SERVICE_POLICY.autoUpdateEnabled) {
         return { success: false, msg: GEA_UPDATE_CHANNEL_UNAVAILABLE };
       }

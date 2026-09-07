@@ -87,7 +87,11 @@ export const runUpdateCheck = async (opts: {
     // newer than the installed build; comparing here prevents downgrade offers.
     const autoUpdateAvailable = isNewerVersion(autoUpdateInfo?.version, currentVersion);
     const manualUpdateAvailable = Boolean(
-      res.data?.updateAvailable && latest && isNewerVersion(latest.version, currentVersion)
+      res.data?.updateAvailable &&
+      latest &&
+      (res.data.currentVersionCode !== undefined
+        ? Number.isSafeInteger(latest.versionCode) && latest.versionCode! > res.data.currentVersionCode
+        : isNewerVersion(latest.version, currentVersion))
     );
 
     if (autoUpdateAvailable || manualUpdateAvailable) {

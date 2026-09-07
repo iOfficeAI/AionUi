@@ -1,5 +1,10 @@
 {
   "modalTitle": "업데이트 준비 완료",
+  "mandatory": {
+    "title": "업데이트 필요",
+    "description": "GEAUi를 계속 사용하려면 이 버전을 업데이트해야 합니다.",
+    "downloadUnavailable": "다운로드 정보를 가져올 수 없습니다. 네트워크를 확인한 후 다시 시도하세요."
+  },
   "checking": "업데이트 확인 중...",
   "checkFailed": "업데이트 확인에 실패했습니다",
   "upToDateTitle": "최신 버전입니다",

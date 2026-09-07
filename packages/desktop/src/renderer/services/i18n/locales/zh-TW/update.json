@@ -1,5 +1,10 @@
 {
   "modalTitle": "發現新版本",
+  "mandatory": {
+    "title": "必須更新",
+    "description": "目前版本必須完成更新後才能繼續使用 GEAUi。",
+    "downloadUnavailable": "暫時無法取得下載資訊，請檢查網路後重試。"
+  },
   "checking": "正在檢查更新...",
   "checkFailed": "檢查更新失敗",
   "upToDateTitle": "已是最新版本",

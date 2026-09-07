@@ -1,5 +1,10 @@
 {
   "modalTitle": "Software-Update",
+  "mandatory": {
+    "title": "Update erforderlich",
+    "description": "Sie müssen diese Version aktualisieren, bevor Sie GEAUi weiter verwenden können.",
+    "downloadUnavailable": "Downloadinformationen sind nicht verfügbar. Prüfen Sie Ihre Netzwerkverbindung und versuchen Sie es erneut."
+  },
   "checking": "Auf Updates wird geprüft...",
   "checkFailed": "Update-Prüfung fehlgeschlagen",
   "upToDateTitle": "Du bist aktuell",

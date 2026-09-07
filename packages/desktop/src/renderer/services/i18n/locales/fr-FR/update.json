@@ -1,5 +1,10 @@
 {
   "modalTitle": "Mise à jour du logiciel",
+  "mandatory": {
+    "title": "Mise à jour obligatoire",
+    "description": "Vous devez mettre à jour cette version avant de continuer à utiliser GEAUi.",
+    "downloadUnavailable": "Les informations de téléchargement sont indisponibles. Vérifiez votre connexion et réessayez."
+  },
   "checking": "Vérification des mises à jour...",
   "checkFailed": "Échec de la vérification des mises à jour",
   "upToDateTitle": "Vous êtes à jour",

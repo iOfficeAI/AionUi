@@ -335,6 +335,7 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'dismissRequested':
+      if (state.updateInfo?.mandatory) return { state, effects: [] };
       return {
         state: {
           ...state,
@@ -344,7 +345,7 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'minimizeRequested':
-      if (state.status !== 'downloading') {
+      if (state.updateInfo?.mandatory || state.status !== 'downloading') {
         return { state, effects: [] };
       }
       return {
@@ -365,7 +366,7 @@ export const updateNotificationReducer = (
         effects: [],
       };
     case 'cancelDownloadRequested':
-      if (!state.activeTask) {
+      if (state.updateInfo?.mandatory || !state.activeTask) {
         return { state, effects: [] };
       }
       return {

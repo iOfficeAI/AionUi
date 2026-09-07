@@ -1,5 +1,10 @@
 {
   "modalTitle": "アップデートがあります",
+  "mandatory": {
+    "title": "更新が必要です",
+    "description": "GEAUi を引き続き使用するには、このバージョンを更新する必要があります。",
+    "downloadUnavailable": "ダウンロード情報を取得できません。ネットワークを確認して再試行してください。"
+  },
   "checking": "更新を確認しています...",
   "checkFailed": "更新の確認に失敗しました",
   "upToDateTitle": "最新です",

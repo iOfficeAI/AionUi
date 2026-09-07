@@ -36,6 +36,16 @@ on:
         required: false
         type: boolean
         default: false
+      gea_packaged_acceptance:
+        description: 'Internal test only: enable packaged GEA client presence and mandatory updates'
+        required: false
+        type: boolean
+        default: false
+      gea_version_code:
+        description: 'Required positive integer versionCode when packaged GEA acceptance is enabled'
+        required: false
+        type: string
+        default: ''
       aioncore_run_id:
         description: 'Optional AionCore Manual Build workflow run id to bundle instead of the pinned release'
         required: false
@@ -109,6 +119,8 @@ jobs:
       ref: ${{ inputs.branch }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
       internal_test_build: ${{ inputs.internal_test_build }}
+      gea_packaged_acceptance: ${{ inputs.gea_packaged_acceptance }}
+      gea_version_code: ${{ inputs.gea_version_code }}
       aioncore_run_id: ${{ inputs.aioncore_run_id }}
       aioncore_repository: ${{ inputs.aioncore_repository }}
       aioncore_expected_head_sha: ${{ inputs.aioncore_expected_head_sha }}

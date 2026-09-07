@@ -19,6 +19,14 @@ on:
         description: 'Allow non-Developer-ID macOS signing for explicitly requested internal prereleases only'
         type: boolean
         default: false
+      gea_packaged_acceptance:
+        description: 'Enable packaged GEA client presence and mandatory updates for an internal test build'
+        type: boolean
+        default: false
+      gea_version_code:
+        description: 'Positive integer versionCode assigned to the packaged GEA client'
+        type: string
+        default: ''
       append_commit_hash:
         description: 'Append short commit hash to artifact names'
         type: boolean
@@ -51,8 +59,32 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
+  AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}
+  AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}
 
 jobs:
+  validate-inputs:
+    name: Validate Build Inputs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate packaged GEA acceptance inputs
+        if: ${{ inputs.gea_packaged_acceptance }}
+        shell: bash
+        env:
+          INTERNAL_TEST_BUILD: ${{ inputs.internal_test_build }}
+          GEA_VERSION_CODE: ${{ inputs.gea_version_code }}
+        run: |
+          if [ "$INTERNAL_TEST_BUILD" != "true" ]; then
+            echo "::error::Packaged GEA acceptance is restricted to internal test builds."
+            exit 1
+          fi
+          if ! [[ "$GEA_VERSION_CODE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::gea_version_code must be a positive integer when packaged GEA acceptance is enabled."
+            exit 1
+          fi
+
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -95,8 +127,8 @@ jobs:
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: code-quality
-    if: ${{ always() && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
+    needs: [validate-inputs, code-quality]
+    if: ${{ always() && needs.validate-inputs.result == 'success' && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
 
     outputs:
       commit-short: ${{ steps.commit.outputs.short }}

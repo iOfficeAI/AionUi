@@ -25,6 +25,20 @@ describe('runUpdateCheck downgrade guard', () => {
     manualCheck.mockReset();
   });
 
+  it('uses GEA build codes rather than display SemVer for the release decision', async () => {
+    autoCheck.mockResolvedValue({ success: false });
+    manualCheck.mockResolvedValue({
+      success: true,
+      data: {
+        currentVersion: '1.0.0',
+        currentVersionCode: 100,
+        updateAvailable: true,
+        latest: { version: '1.0.0', versionCode: 101, htmlUrl: '' },
+      },
+    });
+    expect((await runUpdateCheck(opts)).kind).toBe('available');
+  });
+
   it('does not offer an older auto-update version as available', async () => {
     // Installed 2.1.54, auto-updater reports an older 2.1.53 feed version.
     autoCheck.mockResolvedValue({ success: true, data: { updateInfo: { version: '2.1.53' } } });

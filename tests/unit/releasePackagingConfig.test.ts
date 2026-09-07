@@ -69,6 +69,19 @@ describe('release packaging configuration', () => {
     );
   });
 
+  it('gates packaged GEA acceptance behind explicit internal build inputs', () => {
+    const workflow = readProjectFile('.github/workflows/_build-reusable.yml');
+    const manualWorkflow = readProjectFile('.github/workflows/build-manual.yml');
+
+    expect(manualWorkflow).toContain('gea_packaged_acceptance: ${{ inputs.gea_packaged_acceptance }}');
+    expect(manualWorkflow).toContain('gea_version_code: ${{ inputs.gea_version_code }}');
+    expect(workflow).toContain("AIONUI_GEA_CLIENT_INTEGRATION: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
+    expect(workflow).toContain("AIONUI_GEA_PACKAGED_ACCEPTANCE: ${{ inputs.gea_packaged_acceptance && '1' || '' }}");
+    expect(workflow).toContain('AIONUI_GEA_VERSION_CODE: ${{ inputs.gea_version_code }}');
+    expect(workflow).toContain('if [ "$INTERNAL_TEST_BUILD" != "true" ]; then');
+    expect(workflow).toContain('if ! [[ "$GEA_VERSION_CODE" =~ ^[1-9][0-9]*$ ]]; then');
+  });
+
   it('keeps mac zip artifacts enabled', () => {
     const config = readProjectFile('packages/desktop/electron-builder.yml');
     const macBlock = yamlBlock(config, 'mac');

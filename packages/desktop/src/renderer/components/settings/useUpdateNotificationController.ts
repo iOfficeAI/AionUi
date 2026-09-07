@@ -164,6 +164,31 @@ export const useUpdateNotificationController = () => {
     });
   }, []);
 
+  const startupCheckFailedLabel = useRef(t('update.checkFailed'));
+
+  // Query Main only after this UI has mounted, so a slow startup cannot lose an update event.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!(await ipcBridge.update.getStartupCheckEnabled.invoke()) || cancelled) return;
+      const outcome = await runUpdateCheck({
+        includePrerelease: getIncludePrerelease(),
+        fallbackVersion: __APP_VERSION__,
+        checkFailedLabel: startupCheckFailedLabel.current,
+      });
+      if (cancelled) return;
+      if (outcome.kind === 'available') presentAvailableOutcome(outcome);
+      else if (
+        outcome.kind === 'error' &&
+        !['downloading', 'downloaded', 'preparing-install'].includes(stateRef.current.status)
+      )
+        dispatch({ type: 'checkError', message: outcome.message });
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [presentAvailableOutcome]);
+
   const restoreDownloadedUpdate = useCallback(async () => {
     try {
       const res = await ipcBridge.autoUpdate.restoreDownloaded.invoke();

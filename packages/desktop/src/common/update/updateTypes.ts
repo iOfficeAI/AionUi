@@ -15,6 +15,9 @@ export interface GitHubReleaseAsset {
 }
 
 export interface UpdateReleaseInfo {
+  /** GEA compares monotonic build codes, independently of display versions. */
+  versionCode?: number;
+  mandatory?: boolean;
   tagName: string;
   version: string;
   name?: string;
@@ -28,6 +31,7 @@ export interface UpdateReleaseInfo {
 }
 
 export interface UpdateCheckResult {
+  currentVersionCode?: number;
   currentVersion: string;
   updateAvailable: boolean;
   latest?: UpdateReleaseInfo;

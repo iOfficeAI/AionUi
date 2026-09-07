@@ -1481,6 +1481,7 @@ export const larkAuth = {
 // ---------------------------------------------------------------------------
 
 export const update = {
+  getStartupCheckEnabled: bridge.buildProvider<boolean>('update.getStartupCheckEnabled'),
   open: bridge.buildEmitter<{ source?: 'menu' | 'about' | 'tray' }>('update.open'),
   check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
   consumeInstallerLastFailure: bridge.buildProvider<IBridgeResponse<InstallerLastFailureMarker | null>, void>(
