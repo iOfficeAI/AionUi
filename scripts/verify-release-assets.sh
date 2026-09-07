@@ -5,7 +5,7 @@ set -euo pipefail
 OUTPUT_DIR="${1:-release-assets}"
 ERRORS=0
 
-for f in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
+for f in latest.yml latest-win-arm64.yml; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing canonical metadata: $f"
     ERRORS=$((ERRORS + 1))
@@ -51,12 +51,10 @@ assert_metadata_points_to_existing_file() {
   echo "PASS: $metadata_name -> $ref_file"
 }
 
-assert_metadata_points_to_existing_file "latest.yml" "(win-x64|win32-x64|x64)"
-assert_metadata_points_to_existing_file "latest-mac.yml" "(mac-x64|darwin-x64|x64)"
-assert_metadata_points_to_existing_file "latest-linux.yml" "(linux|AppImage|deb)"
-assert_metadata_points_to_existing_file "latest-linux-arm64.yml" "(arm64|aarch64)"
+assert_metadata_points_to_existing_file "latest.yml" "win-x64\.exe$"
+assert_metadata_points_to_existing_file "latest-win-arm64.yml" "win-arm64\.exe$"
 
-for f in latest-win-arm64.yml latest-arm64-mac.yml; do
+for f in latest-win-arm64.yml; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing arch-specific updater metadata: $f"
     ERRORS=$((ERRORS + 1))
@@ -65,7 +63,7 @@ for f in latest-win-arm64.yml latest-arm64-mac.yml; do
   fi
 done
 
-for f in GEAUi-1.0.0-win-x64.exe GEAUi-1.0.0-win-arm64.exe GEAUi-1.0.0-mac-x64.dmg GEAUi-1.0.0-mac-arm64.dmg GEAUi-1.0.0.deb GEAUi-1.0.0-arm64.deb; do
+for f in GEAUi-1.0.0-win-x64.exe GEAUi-1.0.0-win-arm64.exe GEAUi-1.0.0-mac-x64.dmg GEAUi-1.0.0-mac-arm64.dmg; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing distributable: $f"
     ERRORS=$((ERRORS + 1))
@@ -74,24 +72,28 @@ for f in GEAUi-1.0.0-win-x64.exe GEAUi-1.0.0-win-arm64.exe GEAUi-1.0.0-mac-x64.d
   fi
 done
 
-# Web-CLI tarballs + checksums
-for plat in darwin-arm64 darwin-x86_64 linux-arm64 linux-x86_64 win-x86_64; do
-  tarball="aionui-web-1.0.0-${plat}.tar.gz"
-  for f in "$tarball" "${tarball}.sha256"; do
-    if [ ! -f "$OUTPUT_DIR/$f" ]; then
-      echo "FAIL: missing web-cli asset: $f"
-      ERRORS=$((ERRORS + 1))
-    else
-      echo "PASS: $f exists"
-    fi
-  done
+# The release contains only installers and Windows updater metadata.
+for file in "$OUTPUT_DIR"/*; do
+  case "${file##*/}" in
+    *.dmg|*.exe|latest.yml|latest-win-arm64.yml|SHA256SUMS.txt) ;;
+    *) echo "FAIL: unexpected release asset: $file"; ERRORS=$((ERRORS + 1)) ;;
+  esac
 done
 
-if [ ! -f "$OUTPUT_DIR/install-web.sh" ]; then
-  echo "FAIL: missing install-web.sh"
+if ! node - "$OUTPUT_DIR" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const dir = process.argv[2];
+const names = fs.readdirSync(dir).filter(name => name !== 'SHA256SUMS.txt').sort();
+const expected = names.map(name => `${crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, name))).digest('hex')}  ${name}`).join('\n') + '\n';
+if (fs.readFileSync(path.join(dir, 'SHA256SUMS.txt'), 'utf8') !== expected) {
+  throw new Error('Release checksum content or file set mismatch');
+}
+NODE
+then
+  echo "FAIL: release checksums"
   ERRORS=$((ERRORS + 1))
-else
-  echo "PASS: install-web.sh exists"
 fi
 
 echo ""

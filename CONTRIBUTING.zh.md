@@ -132,3 +132,9 @@ bunx vitest run         # 复现单元测试失败
 2. **Cherry-pick 有价值的部分** —— 你的作者信息保留在 git 历史中，但原 PR 显示为 "Closed" 而非 "Merged"。
 
 代码风格、依赖选择、文档润色由维护者在合并后处理。你的 PR 只需聚焦功能变更本身。
+
+## 本地构建与发布产物
+
+日常使用 `bun run build` 只编译客户端，不生成安装包。需要 Mac 安装包时使用 `bun run dist:mac`，默认只生成本机架构的 DMG；可用 `build-mac:arm64` 或 `build-mac:x64` 指定架构。Windows 使用 `build-win:x64` 或 `build-win:arm64` 生成 EXE。
+
+正式发布只构建 macOS、Windows 的 x64 和 arm64 安装包（DMG / EXE），不附带 ZIP、Linux 包或 Web CLI 包。保留 Windows 更新元数据；macOS 通过 DMG 手动安装，不发布依赖 ZIP 的自动更新元数据。GEA 自动更新仍由现有服务策略关闭。构建失败后的重试沿用原始目标，避免额外生成 ZIP。

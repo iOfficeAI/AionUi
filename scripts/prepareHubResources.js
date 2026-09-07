@@ -14,9 +14,12 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const os = require('os');
+const crypto = require('node:crypto');
+const { pipeline } = require('stream');
+const { sha256, restoreDownload, saveDownload } = require('../packages/shared-scripts/src/build-cache');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
 
 const DEFAULT_TAG = 'dist-latest';
 const BASE_URLS = [
@@ -32,6 +35,19 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
+}
+
+function parseIntegrity(value) {
+  if (!value) return null;
+  // Keep the legacy hex form and support the SHA512 SRI used by the published Hub index.
+  if (/^sha256-[a-fA-F0-9]{64}$/.test(value)) return { algorithm: 'sha256', hex: value.slice(7).toLowerCase() };
+  const match = /^(sha256|sha512)-([A-Za-z0-9+/]+={0,2})$/.exec(value);
+  if (match) {
+    const bytes = Buffer.from(match[2], 'base64');
+    if (bytes.length === (match[1] === 'sha256' ? 32 : 64) && bytes.toString('base64') === match[2])
+      return { algorithm: match[1], hex: bytes.toString('hex') };
+  }
+  throw new Error('Unsupported Hub integrity format');
 }
 
 /**
@@ -62,7 +78,8 @@ function downloadUrl(url, destPath) {
       const get = url.startsWith('https') ? https.get : require('http').get;
       get(url, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          follow(res.headers.location, redirectCount + 1);
+          res.resume();
+          follow(new URL(res.headers.location, url).toString(), redirectCount + 1);
           return;
         }
 
@@ -73,14 +90,13 @@ function downloadUrl(url, destPath) {
         }
 
         const file = fs.createWriteStream(destPath);
-        res.pipe(file);
-        file.on('finish', () => {
-          file.close();
-          resolve();
-        });
-        file.on('error', (err) => {
-          fs.unlinkSync(destPath);
-          reject(err);
+        pipeline(res, file, (error) => {
+          if (error) {
+            fs.rmSync(destPath, { force: true });
+            reject(error);
+          } else {
+            resolve();
+          }
         });
       }).on('error', reject);
     };
@@ -93,66 +109,106 @@ function downloadUrl(url, destPath) {
 // Main
 // ---------------------------------------------------------------------------
 
-async function prepareHubResources() {
+async function prepareHubResources({
+  root = PROJECT_ROOT,
+  download = downloadFile,
+  cacheDir = path.join(os.homedir(), '.cache', 'aionui-build', 'hub-v1'),
+} = {}) {
   if (process.env.AIONUI_HUB_SKIP === '1') {
     console.log('[hub] Skipping hub resource preparation (AIONUI_HUB_SKIP=1)');
     return { skipped: true };
   }
-
   const tag = process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
-  console.log(`[hub] Preparing hub resources from tag: ${tag}`);
-
-  // Clean and create target directory
-  if (fs.existsSync(HUB_DIR)) {
-    fs.rmSync(HUB_DIR, { recursive: true, force: true });
-  }
-  ensureDir(HUB_DIR);
-
-  // Step 1: Download index.json
-  const indexPath = path.join(HUB_DIR, 'index.json');
-  console.log('[hub] Downloading index.json...');
-  const indexUrl = await downloadFile('index.json', indexPath);
-  console.log(`[hub] index.json downloaded from ${indexUrl}`);
-
-  // Step 2: Parse index and download all extension zips
-  const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-  const extensions = index.extensions || {};
-  const names = Object.keys(extensions);
-
-  console.log(`[hub] Found ${names.length} extensions to bundle`);
-
-  const results = [];
-  for (const name of names) {
-    const ext = extensions[name];
-    const tarball = ext.dist?.tarball;
-    if (!tarball) {
-      console.warn(`[hub] Skipping ${name}: no dist.tarball`);
-      continue;
-    }
-
-    const zipPath = path.join(HUB_DIR, path.basename(tarball));
+  const hubDir = path.join(root, 'resources', 'hub');
+  ensureDir(path.dirname(hubDir));
+  const staging = fs.mkdtempSync(path.join(path.dirname(hubDir), '.hub-'));
+  const indexPath = path.join(staging, 'index.json');
+  const indexSource = `https://raw.githubusercontent.com/iOfficeAI/AionHub/${tag}/index.json`;
+  let offline = false;
+  try {
+    let indexUrl;
     try {
-      const url = await downloadFile(tarball, zipPath);
-      const size = fs.statSync(zipPath).size;
-      console.log(`[hub] ${name} -> ${path.basename(tarball)} (${(size / 1024).toFixed(1)} KB)`);
-      results.push({ name, file: path.basename(tarball), size, url });
+      indexUrl = await download('index.json', indexPath);
     } catch (error) {
-      console.error(`[hub] Failed to download ${name}: ${error.message}`);
-      // Non-fatal: continue with other extensions
+      if (!restoreDownload(cacheDir, indexSource, indexPath)) throw error;
+      offline = true;
+      indexUrl = indexSource;
+      console.log('[hub-cache] offline: using last complete cached index');
     }
+    const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+    const extensions = Object.entries(index.extensions || {});
+    const results = [];
+    const filenames = new Set();
+    for (const [name, ext] of extensions) {
+      const tarball = ext.dist?.tarball;
+      if (!tarball) continue;
+      const filename = path.basename(tarball);
+      if (filenames.has(filename)) throw new Error(`Duplicate Hub archive filename: ${filename}`);
+      filenames.add(filename);
+      const zipPath = path.join(staging, filename);
+      const integrity = ext.dist?.integrity || '';
+      // No checksum means no reuse: a mutable tag or URL alone is not a content identity.
+      const source = `${indexSource}#${tarball}#${integrity}`;
+      try {
+        const expected = parseIntegrity(integrity);
+        const cached =
+          expected &&
+          restoreDownload(cacheDir, source, zipPath, expected.algorithm === 'sha256' ? expected.hex : undefined);
+        if (offline && !cached) throw new Error('Incomplete offline Hub cache');
+        const url = cached ? new URL(tarball, indexSource).toString() : await download(tarball, zipPath);
+        const digest = sha256(zipPath);
+        if (
+          expected &&
+          crypto.createHash(expected.algorithm).update(fs.readFileSync(zipPath)).digest('hex') !== expected.hex
+        )
+          throw new Error('Hub archive integrity mismatch');
+        if (expected && !cached) saveDownload(cacheDir, source, zipPath);
+        results.push({ name, file: filename, size: fs.statSync(zipPath).size, url, sha256: digest });
+        console.log(`[hub-cache] ${cached ? 'hit' : 'miss'}: ${name}`);
+      } catch (error) {
+        fs.rmSync(zipPath, { force: true });
+        if (offline) throw error;
+        console.error(`[hub] Failed to download ${name}: ${error.message}`);
+      }
+    }
+    const complete = results.length === extensions.length;
+    fs.writeFileSync(
+      path.join(staging, 'manifest.json'),
+      JSON.stringify(
+        {
+          tag,
+          generatedAt: new Date().toISOString(),
+          indexUrl,
+          indexSha256: sha256(indexPath),
+          complete,
+          extensions: results,
+        },
+        null,
+        2
+      ) + '\n'
+    );
+    if (complete && results.every((entry) => extensions.find(([name]) => name === entry.name)[1].dist?.integrity)) {
+      saveDownload(cacheDir, indexSource, indexPath);
+    }
+    // Keep the previous resource set on a partial refresh. The existing
+    // non-fatal online extension policy is retained, and reported explicitly.
+    if (!complete && fs.existsSync(hubDir)) {
+      console.warn('[hub] Partial refresh; preserving previous resources (not a cache success)');
+      return { skipped: false, count: results.length, total: extensions.length, complete, published: false };
+    }
+    const backup = `${staging}-previous`;
+    if (fs.existsSync(hubDir)) fs.renameSync(hubDir, backup);
+    try {
+      fs.renameSync(staging, hubDir);
+    } catch (error) {
+      if (fs.existsSync(backup)) fs.renameSync(backup, hubDir);
+      throw error;
+    }
+    fs.rmSync(backup, { recursive: true, force: true });
+    return { skipped: false, count: results.length, total: extensions.length, complete, published: true };
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
   }
-
-  // Step 3: Write manifest for debugging/verification
-  const manifest = {
-    tag,
-    generatedAt: new Date().toISOString(),
-    indexUrl,
-    extensions: results,
-  };
-  fs.writeFileSync(path.join(HUB_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-
-  console.log(`[hub] Done: ${results.length}/${names.length} extensions bundled in resources/hub/`);
-  return { skipped: false, count: results.length, total: names.length };
 }
 
 // Support both direct execution and require() from build-with-builder.js

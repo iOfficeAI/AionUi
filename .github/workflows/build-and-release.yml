@@ -28,12 +28,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
+
+      - name: Probe verified full unit evidence
+        id: unit-evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/quality-evidence.js probe
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -51,7 +57,22 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Run unit tests
+        if: steps.unit-evidence.outputs.reused != 'true'
         run: bunx vitest run
+
+      - name: Record completed full unit suite
+        id: unit-record
+        if: steps.unit-evidence.outputs.reused != 'true'
+        continue-on-error: true
+        run: node scripts/quality-evidence.js record "${{ runner.temp }}/unit-evidence.json"
+
+      - name: Upload full unit evidence
+        if: steps.unit-record.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-evidence-ubuntu
+          path: ${{ runner.temp }}/unit-evidence.json
+          retention-days: 7
 
   build-pipeline:
     name: Build Pipeline
@@ -63,28 +84,11 @@ jobs:
       skip_code_quality: true
       matrix: >-
         {"include":[
-          {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},
-          {"platform":"macos-x64","os":"macos-14","command":"node scripts/build-with-builder.js x64 --mac --x64","artifact-name":"macos-build-x64","arch":"x64"},
+          {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac dmg --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},
+          {"platform":"macos-x64","os":"macos-14","command":"node scripts/build-with-builder.js x64 --mac dmg --x64","artifact-name":"macos-build-x64","arch":"x64"},
           {"platform":"windows-x64","os":"windows-2022","command":"node scripts/build-with-builder.js x64 --win --x64","artifact-name":"windows-build-x64","arch":"x64"},
-          {"platform":"windows-arm64","os":"windows-11-arm","command":"node scripts/build-with-builder.js arm64 --win --arm64","artifact-name":"windows-build-arm64","arch":"arm64"},
-          {"platform":"linux-x64","os":"ubuntu-latest","command":"node scripts/build-with-builder.js x64 --linux --x64","artifact-name":"linux-build-x64","arch":"x64"},
-          {"platform":"linux-arm64","os":"ubuntu-24.04-arm","command":"node scripts/build-with-builder.js arm64 --linux --arm64","artifact-name":"linux-build-arm64","arch":"arm64"}
+          {"platform":"windows-arm64","os":"windows-11-arm","command":"node scripts/build-with-builder.js arm64 --win --arm64","artifact-name":"windows-build-arm64","arch":"arm64"}
         ]}
-      aioncore_run_id: ${{ vars.AIONCORE_STABLE_RUN_ID }}
-      aioncore_repository: 'CleverC2200/AionCore'
-      aioncore_source_policy: 'verified-actions'
-    secrets: inherit
-
-  pack-web-cli:
-    name: Pack Web CLI
-    uses: ./.github/workflows/pack-web-cli.yml
-    needs: code-quality
-    # 与桌面构建同频触发：dev 分支或正式 tag（排除 -dev- tag）
-    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
-    with:
-      ref: ''
-      append_commit_hash: false
-      skip_code_quality: true
       aioncore_run_id: ${{ vars.AIONCORE_STABLE_RUN_ID }}
       aioncore_repository: 'CleverC2200/AionCore'
       aioncore_source_policy: 'verified-actions'
@@ -260,9 +264,9 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [code-quality, build-pipeline, create-tag, pack-web-cli]
+    needs: [code-quality, build-pipeline, create-tag]
     # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.code-quality.result == 'success' && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    if: always() && needs.code-quality.result == 'success' && needs.build-pipeline.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 
@@ -305,14 +309,9 @@ jobs:
           name: ${{ steps.version.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
             release-assets/**/*.exe
-            release-assets/**/*.msi
             release-assets/**/*.dmg
-            release-assets/**/*.deb
-            release-assets/**/*.zip
             release-assets/**/*.yml
-            release-assets/**/*.tar.gz
-            release-assets/**/*.sha256
-            release-assets/install-web.sh
+            release-assets/SHA256SUMS.txt
           generate_release_notes: true
           draft: true
           prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}

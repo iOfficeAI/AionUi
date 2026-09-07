@@ -16,7 +16,11 @@ on:
         type: boolean
         default: false
       internal_test_build:
-        description: 'Allow non-Developer-ID macOS signing for explicitly requested internal prereleases only'
+        description: 'Allow non-Developer-ID macOS signing and skip Sentry uploads for internal tests only'
+        type: boolean
+        default: false
+      profile_windows_compression:
+        description: 'Compare supported NSIS compression settings without recompiling the app'
         type: boolean
         default: false
       gea_packaged_acceptance:
@@ -32,7 +36,7 @@ on:
         type: boolean
         default: false
       upload_installers_only:
-        description: 'Only upload primary installers (exe/msi/dmg/deb), skip zip/yml/blockmap'
+        description: 'Only upload primary installers (exe/dmg), skip updater metadata/blockmap'
         type: boolean
         default: false
       aioncore_run_id:
@@ -94,16 +98,32 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Setup Node.js
+        id: node-runtime
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
+        id: bun-runtime
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
+
+      - name: Probe verified full unit evidence
+        id: unit-evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/quality-evidence.js probe
+
+      - name: Cache quality dependency downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun-runtime.outputs.bun-version }}-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
+        # This is a download cache, never a replacement for a frozen install.
+        id: quality-install
         run: bun install --frozen-lockfile
 
       - name: Run postinstall
@@ -119,7 +139,22 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Run unit tests
+        if: steps.unit-evidence.outputs.reused != 'true'
         run: bunx vitest run
+
+      - name: Record completed full unit suite
+        id: unit-record
+        if: steps.unit-evidence.outputs.reused != 'true'
+        continue-on-error: true
+        run: node scripts/quality-evidence.js record "${{ runner.temp }}/unit-evidence.json"
+
+      - name: Upload full unit evidence
+        if: steps.unit-record.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-evidence-ubuntu
+          path: ${{ runner.temp }}/unit-evidence.json
+          retention-days: 7
 
   build:
     name: Build ${{ matrix.platform }}
@@ -139,6 +174,10 @@ jobs:
       matrix: ${{ fromJSON(inputs.matrix) }}
 
     steps:
+      - name: Configure build timing report
+        shell: bash
+        run: echo "BUILD_STAGE_REPORT=${RUNNER_TEMP}/build-stages.jsonl" >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -153,14 +192,16 @@ jobs:
           echo "Commit: $SHORT"
 
       - name: Setup Node.js
+        id: node-runtime
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
+        id: bun-runtime
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -185,6 +226,28 @@ jobs:
 
       - name: Cache status
         run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
+
+      # Only reusable downloads; prepared binaries and signed outputs are verified afresh.
+      - name: Cache verified resource downloads
+        id: resource-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/aionui-build/node-v1
+            ~/.cache/aionui-build/hub-v1
+          key: resource-downloads-v1-${{ matrix.platform }}-${{ hashFiles('package.json', '.github/workflows/_build-reusable.yml', 'scripts/prepareHubResources.js', 'packages/shared-scripts/src/prepare-aioncore.js', 'packages/shared-scripts/src/build-cache.js') }}
+          restore-keys: |
+            resource-downloads-v1-${{ matrix.platform }}-
+
+      - name: Cache build dependency downloads
+        # Windows restores measured 95-123 s before install, slower than direct install.
+        # Keep the smaller effective platform caches; frozen dependency installation remains mandatory.
+        if: ${{ !startsWith(matrix.platform, 'windows') }}
+        id: bun-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun-runtime.outputs.bun-version }}-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
         uses: nick-fields/retry@v3
@@ -272,16 +335,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${{ matrix.platform }}" == "linux-x64" ]]; then
+          if [[ "${{ matrix.platform }}" == "macos-arm64" && "${{ inputs.internal_test_build }}" != "true" ]]; then
             echo "SENTRY_UPLOAD_SOURCE_MAPS=true" >> "$GITHUB_ENV"
-            echo "Sentry source maps will be uploaded by linux-x64"
+            echo "Sentry source maps will be uploaded by macos-arm64"
           else
             echo "SENTRY_UPLOAD_SOURCE_MAPS=false" >> "$GITHUB_ENV"
             echo "Sentry source map upload skipped for ${{ matrix.platform }}"
           fi
 
       - name: Validate Sentry source map upload configuration
-        if: matrix.platform == 'linux-x64'
+        if: matrix.platform == 'macos-arm64' && !inputs.internal_test_build
         shell: bash
         run: |
           set -euo pipefail
@@ -421,14 +484,35 @@ jobs:
         env:
           # Version is pinned in repo-root package.json (aioncoreVersion).
           # Set AIONUI_BACKEND_VERSION here only to override for ad-hoc builds.
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          AIONUI_BACKEND_RUN_ID: ${{ matrix.core-run-id || inputs.aioncore_run_id }}
           AIONUI_BACKEND_ACTIONS_REPOSITORY: ${{ inputs.aioncore_repository }}
           AIONUI_BACKEND_EXPECTED_HEAD_SHA: ${{ inputs.aioncore_expected_head_sha }}
           AIONUI_BACKEND_SHA256S: ${{ inputs.aioncore_sha256s }}
-          AIONUI_BACKEND_SOURCE_POLICY: ${{ inputs.aioncore_source_policy }}
+          AIONUI_BACKEND_SOURCE_POLICY: ${{ matrix.core-run-id != '' && 'verified-actions' || inputs.aioncore_source_policy }}
           AIONUI_BACKEND_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Only unsigned compilation outputs. The build entry validates content and
+      # input identity again, and always performs required source map uploads.
+      - name: Resolve compilation cache identity
+        id: compilation-identity
+        shell: bash
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image=$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      - name: Cache unsigned compilation outputs
+        id: compilation-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            out/main
+            out/preload
+            out/renderer
+            out/.vite-build-cache.json
+            out/.mcp-build-cache.json
+          key: compilation-v2-${{ matrix.platform }}-${{ steps.compilation-identity.outputs.image }}-${{ steps.node-runtime.outputs.node-version }}-${{ steps.bun-runtime.outputs.bun-version }}-${{ inputs.internal_test_build }}-${{ steps.compilation-identity.outputs.sha }}
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
@@ -442,25 +526,27 @@ jobs:
           try {
             Write-Host "Running Windows build command: $Command"
             iex $Command
+            if ($LASTEXITCODE -ne 0) { throw "Packaging exited with code $LASTEXITCODE" }
             Write-Host "Windows build completed successfully"
           } catch {
             $BuildFailed = $true
-            Write-Warning "${{ matrix.platform }} build failed but will not block the workflow"
-            Write-Host "::notice title=Windows build skipped::${{ matrix.platform }} build failed (see logs above) but workflow is allowed to continue."
+            Write-Warning "${{ matrix.platform }} build failed; other platforms continue independently"
           }
 
           if ($BuildFailed) {
             "result=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 1
           } else {
             "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          PROFILE_WINDOWS_COMPRESSION: ${{ inputs.profile_windows_compression }}
+          AIONUI_BACKEND_RUN_ID: ${{ matrix.core-run-id || inputs.aioncore_run_id }}
           AIONUI_BACKEND_ACTIONS_REPOSITORY: ${{ inputs.aioncore_repository }}
           AIONUI_BACKEND_EXPECTED_HEAD_SHA: ${{ inputs.aioncore_expected_head_sha }}
           AIONUI_BACKEND_SHA256S: ${{ inputs.aioncore_sha256s }}
-          AIONUI_BACKEND_SOURCE_POLICY: ${{ inputs.aioncore_source_policy }}
+          AIONUI_BACKEND_SOURCE_POLICY: ${{ matrix.core-run-id != '' && 'verified-actions' || inputs.aioncore_source_policy }}
           # Node.js memory limit for vite bundling (prevents OOM during build)
           # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: '--max-old-space-size=8192'
@@ -563,11 +649,11 @@ jobs:
           exit 1
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          AIONUI_BACKEND_RUN_ID: ${{ matrix.core-run-id || inputs.aioncore_run_id }}
           AIONUI_BACKEND_ACTIONS_REPOSITORY: ${{ inputs.aioncore_repository }}
           AIONUI_BACKEND_EXPECTED_HEAD_SHA: ${{ inputs.aioncore_expected_head_sha }}
           AIONUI_BACKEND_SHA256S: ${{ inputs.aioncore_sha256s }}
-          AIONUI_BACKEND_SOURCE_POLICY: ${{ inputs.aioncore_source_policy }}
+          AIONUI_BACKEND_SOURCE_POLICY: ${{ matrix.core-run-id != '' && 'verified-actions' || inputs.aioncore_source_policy }}
           npm_config_arch: ${{ matrix.arch }}
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
@@ -606,11 +692,11 @@ jobs:
           command: ${{ matrix.command }}
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
-          AIONUI_BACKEND_RUN_ID: ${{ inputs.aioncore_run_id }}
+          AIONUI_BACKEND_RUN_ID: ${{ matrix.core-run-id || inputs.aioncore_run_id }}
           AIONUI_BACKEND_ACTIONS_REPOSITORY: ${{ inputs.aioncore_repository }}
           AIONUI_BACKEND_EXPECTED_HEAD_SHA: ${{ inputs.aioncore_expected_head_sha }}
           AIONUI_BACKEND_SHA256S: ${{ inputs.aioncore_sha256s }}
-          AIONUI_BACKEND_SOURCE_POLICY: ${{ inputs.aioncore_source_policy }}
+          AIONUI_BACKEND_SOURCE_POLICY: ${{ matrix.core-run-id != '' && 'verified-actions' || inputs.aioncore_source_policy }}
           npm_config_arch: ${{ matrix.arch }}
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
@@ -685,17 +771,36 @@ jobs:
           set -euo pipefail
           ASAR=$(find out -type f -name 'app.asar' -not -path '*node_modules*' | head -n 1 || true)
           if [ -z "$ASAR" ]; then
-            echo "::notice::No app.asar found for ${{ matrix.platform }}, skipping isolation check"
-            exit 0
+            echo "::error::No app.asar found for ${{ matrix.platform }}"
+            exit 1
           fi
           echo "Inspecting $ASAR for web-cli leakage..."
-          LEAK_COUNT=$(bunx @electron/asar list "$ASAR" 2>/dev/null | grep -cE '^/packages/web-cli(/|$)' || true)
+          ASAR_LIST=$(bunx @electron/asar list "$ASAR")
+          LEAK_COUNT=$(printf '%s\n' "$ASAR_LIST" | grep -cE '^/packages/web-cli(/|$)' || true)
           if [ "$LEAK_COUNT" != "0" ]; then
             echo "::error::Desktop asar contains $LEAK_COUNT web-cli entries:"
             bunx @electron/asar list "$ASAR" | grep -E '^/packages/web-cli(/|$)' | head -20
             exit 1
           fi
           echo "✅ asar isolation verified: no packages/web-cli entries"
+
+      - name: Verify packaged schema dependencies
+        if: >-
+          success() &&
+          (matrix.platform == 'macos-arm64' || matrix.platform == 'windows-x64')
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.platform }}" == windows-* ]]; then
+            APP="out/win-unpacked"
+            EXECUTABLE="$APP/GEAUi.exe"
+            ASAR="$APP/resources/app.asar"
+          else
+            APP="out/mac-arm64/GEAUi.app"
+            EXECUTABLE="$APP/Contents/MacOS/GEAUi"
+            ASAR="$APP/Contents/Resources/app.asar"
+          fi
+          ELECTRON_RUN_AS_NODE=1 "$EXECUTABLE" scripts/packaging/dependency-smoke.cjs "$ASAR" out/packaged-dependency-smoke.json
 
       # Upload artifacts when:
       # - Build succeeded (all platforms)
@@ -716,6 +821,39 @@ jobs:
           echo "Remaining artifacts:"
           ls -lh out/ || true
 
+      - name: Record installer provenance
+        if: >-
+          success() &&
+          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
+        env:
+          BUILD_PLATFORM: ${{ matrix.platform }}
+          CORE_RUN_ID: ${{ matrix.core-run-id || inputs.aioncore_run_id }}
+          CORE_REPOSITORY: ${{ inputs.aioncore_repository }}
+          CORE_HEAD_SHA: ${{ inputs.aioncore_expected_head_sha }}
+        run: node scripts/stage-release-draft.js record
+
+      - name: Record cloud build evidence
+        if: always()
+        env:
+          BUILD_PLATFORM: ${{ matrix.platform }}
+          BUN_CACHE_HIT: ${{ startsWith(matrix.platform, 'windows') && 'disabled-after-cost-measurement' || steps.bun-cache.outputs.cache-hit }}
+          ELECTRON_CACHE_HIT: ${{ steps.electron-cache.outputs.cache-hit }}
+          RESOURCE_CACHE_HIT: ${{ steps.resource-cache.outputs.cache-hit }}
+          COMPILATION_CACHE_HIT: ${{ steps.compilation-cache.outputs.cache-hit }}
+        run: node scripts/packaging/cloud-report.js
+
+      - name: Upload cloud build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-build-report-${{ matrix.platform }}-${{ steps.commit.outputs.short }}
+          path: |
+            out/cloud-build-report.json
+            out/compression-profile.json
+            out/packaged-dependency-smoke.json
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
@@ -725,13 +863,11 @@ jobs:
           name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
           path: |
             out/*.exe
-            out/*.msi
             out/*.dmg
-            out/*.deb
-            out/GEAUi-*-mac-*.zip
-            out/*.yml
+            out/latest.yml
+            out/package-evidence.json
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 30
 
   build-summary:
     name: Build Summary

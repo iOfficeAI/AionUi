@@ -1,0 +1,56 @@
+name: Stage verified installer draft
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
+      mac_run_id:
+        required: true
+        type: string
+      windows_run_id:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact prerelease version tag matching both installers
+        required: true
+        type: string
+      sha:
+        description: Exact AionUi commit of both manual build runs
+        required: true
+        type: string
+      mac_run_id:
+        description: Completed manual run with successful macOS ARM64 job (may be a partially failed matrix)
+        required: true
+        type: string
+      windows_run_id:
+        description: Completed manual run with successful Windows x64 job (may be a replacement run)
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: stage-release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.23.2'
+      - name: Verify and upload draft installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ inputs.sha }}
+          MAC_RUN_ID: ${{ inputs.mac_run_id }}
+          WINDOWS_RUN_ID: ${{ inputs.windows_run_id }}
+        run: node scripts/stage-release-draft.js

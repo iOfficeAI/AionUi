@@ -13,7 +13,8 @@
 const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
+const { buildInputHash } = require('./build-inputs');
+const { timed, inputHash } = require('../packages/shared-scripts/src/build-cache');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -25,7 +26,7 @@ const DMG_RETRY_MAX = 3;
 const DMG_RETRY_DELAY_SEC = 30;
 
 // Incremental build: hash of source files to detect changes
-const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
+const INCREMENTAL_CACHE_FILE = 'out/.vite-build-cache.json';
 const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
 
 function patchElectronBuilderNsisInstaller() {
@@ -172,68 +173,15 @@ function patchElectronBuilderNsisInstaller() {
   }
 }
 
-function walkFiles(dir, acc = []) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === '.git') continue;
-      walkFiles(fullPath, acc);
-    } else if (entry.isFile()) {
-      acc.push(fullPath);
-    }
-  }
-  return acc;
-}
-
 function computeSourceHash() {
-  const hash = crypto.createHash('md5');
-  const rootDir = path.resolve(__dirname, '..');
-  const filesToHash = [
-    'package.json',
-    'package-lock.json',
-    'bun.lock',
-    'tsconfig.json',
-    'packages/desktop/electron.vite.config.ts',
-    'packages/desktop/electron-builder.yml',
-    'justfile',
-  ];
-
-  for (const file of filesToHash) {
-    const filePath = path.resolve(rootDir, file);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath);
-      hash.update(file + ':');
-      hash.update(content);
-    }
-  }
-
-  const hashDirs = ['packages/desktop/src', 'packages', 'public', 'scripts'];
-  for (const dir of hashDirs) {
-    const dirPath = path.resolve(rootDir, dir);
-    if (!fs.existsSync(dirPath)) continue;
-
-    const files = walkFiles(dirPath)
-      .map((file) => path.relative(rootDir, file).replace(/\\/g, '/'))
-      .sort();
-
-    for (const relPath of files) {
-      const absolutePath = path.resolve(rootDir, relPath);
-      const stat = fs.statSync(absolutePath);
-      hash.update(relPath + ':');
-      hash.update(String(stat.size));
-      hash.update(String(stat.mtimeMs));
-    }
-  }
-
-  return hash.digest('hex');
+  return buildInputHash(path.resolve(__dirname, '..'), { ...process.env, ELECTRON_BUILDER_ARCH: targetArch });
 }
 
 function loadCachedHash() {
   try {
     const cacheFile = path.resolve(__dirname, '..', INCREMENTAL_CACHE_FILE);
     if (fs.existsSync(cacheFile)) {
-      return fs.readFileSync(cacheFile, 'utf8').trim();
+      return JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
     }
   } catch {}
   return null;
@@ -246,7 +194,10 @@ function saveCurrentHash(hash) {
     if (!fs.existsSync(viteDir)) {
       fs.mkdirSync(viteDir, { recursive: true });
     }
-    fs.writeFileSync(cacheFile, hash);
+    const outputHash = inputHash(path.resolve(__dirname, '..'), ['out/main', 'out/preload', 'out/renderer']);
+    const temporary = `${cacheFile}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify({ key: hash, outputHash }));
+    fs.renameSync(temporary, cacheFile);
   } catch {}
 }
 
@@ -360,30 +311,24 @@ function validateViteBuildOutput() {
   return { valid: problems.length === 0, problems };
 }
 
-function shouldSkipViteBuild(skipViteFlag, forceFlag) {
-  if (forceFlag) return false;
-  if (skipViteFlag) return true;
-
-  // Auto-detect: skip if build exists and hash matches
-  const currentHash = computeSourceHash();
-  const cachedHash = loadCachedHash();
-
-  if (cachedHash && currentHash === cachedHash && viteBuildExists()) {
-    console.log('📦 Incremental build: Vite output unchanged, skipping compilation');
-    return true;
+function shouldSkipViteBuild(skipViteFlag, forceFlag, currentHash = computeSourceHash()) {
+  function decision(hit, reason) {
+    console.log(
+      `[build-cache] ${JSON.stringify({ stage: 'vite', target: buildTarget, hit, reason, inputHash: currentHash })}`
+    );
+    return hit;
   }
-
-  if (cachedHash && currentHash === cachedHash) {
-    const validation = validateViteBuildOutput();
-    if (!validation.valid) {
-      console.warn('Incremental build cache matched but output is incomplete; rebuilding.');
-      for (const problem of validation.problems.slice(0, 5)) {
-        console.warn(`   ${problem}`);
-      }
-    }
-  }
-
-  return false;
+  if (forceFlag) return decision(false, 'forced');
+  if (skipViteFlag) return decision(true, 'explicit-skip-still-validates-output');
+  // A cached compilation does not prove that release source maps were uploaded.
+  if (process.env.SENTRY_AUTH_TOKEN && (process.env.CI !== 'true' || process.env.SENTRY_UPLOAD_SOURCE_MAPS === 'true'))
+    return decision(false, 'source-map-upload-required');
+  const cached = loadCachedHash();
+  if (!cached || cached.key !== currentHash) return decision(false, 'input-identity-mismatch');
+  if (!viteBuildExists()) return decision(false, 'incomplete-output');
+  const outputHash = inputHash(path.resolve(__dirname, '..'), ['out/main', 'out/preload', 'out/renderer']);
+  if (cached.outputHash !== outputHash) return decision(false, 'output-content-mismatch');
+  return decision(true, 'verified-inputs-and-outputs');
 }
 
 function cleanupDiskImages() {
@@ -524,22 +469,19 @@ function applyDebugAutoUpdateVersionOverride(packageJsonPath) {
 }
 
 // Create macOS distributables using electron-builder --prepackaged with .app path.
-// This preserves DMG styling and still emits the zip required by MacUpdater.
-function createMacArtifactsWithPrepackaged(appDir, targetArch) {
+// Preserve the requested DMG targets during retries without adding ZIPs.
+function createMacArtifactsWithPrepackaged(appDir, command) {
   const appName = fs.readdirSync(appDir).find((f) => f.endsWith('.app'));
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
-  execSync(
-    `bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg zip --${targetArch} --prepackaged "${appPath}" --publish=never`,
-    {
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-    }
-  );
+  execSync(`${command} --prepackaged "${appPath}"`, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 }
 
-function buildWithDmgRetry(cmd, targetArch) {
+function buildWithDmgRetry(cmd) {
   const isMac = process.platform === 'darwin';
   const outDir = path.resolve(__dirname, '../out');
 
@@ -561,7 +503,7 @@ function buildWithDmgRetry(cmd, targetArch) {
 
       try {
         console.log(`\n📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
-        createMacArtifactsWithPrepackaged(appDir, targetArch);
+        createMacArtifactsWithPrepackaged(appDir, cmd);
         console.log('✅ macOS distributables created successfully on retry');
         return;
       } catch (retryError) {
@@ -697,6 +639,7 @@ if (skipNative) console.log('⚡ --skip-native: Will skip native module rebuildi
 if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distributable creation');
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
 
+const buildTarget = `${builderArgs.includes('--win') ? 'win32' : builderArgs.includes('--mac') ? 'darwin' : builderArgs.includes('--linux') ? 'linux' : process.platform}-${targetArch}`;
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 let restorePackageVersionOverride = () => {};
 let buildFailed = false;
@@ -712,24 +655,27 @@ try {
   }
 
   // 2. Check if we can skip Vite build (incremental build)
-  const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
+  const viteInputHash = timed('vite-cache-key', computeSourceHash, { target: buildTarget });
+  const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild, viteInputHash);
 
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
-    execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-      env: {
-        ...process.env,
-        ELECTRON_BUILDER_ARCH: targetArch,
-      },
-    });
-
-    // Save hash after successful build
-    saveCurrentHash(computeSourceHash());
+    timed(
+      'vite',
+      () =>
+        execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+          env: {
+            ...process.env,
+            ELECTRON_BUILDER_ARCH: targetArch,
+          },
+        }),
+      { target: buildTarget }
+    );
   } else {
-    console.log('📦 Using cached Vite build output');
+    timed('vite', () => console.log('📦 Using cached Vite build output'), { target: buildTarget, cache: 'hit' });
   }
 
   // Re-bundle builtin MCP server as a fully self-contained CJS bundle so it can
@@ -739,10 +685,15 @@ try {
   // Uses a dedicated script (build-mcp-servers.js) to avoid shell-quoting issues
   // with special characters in esbuild --define values.
   console.log('📦 Bundling builtin MCP servers (self-contained)...');
-  execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"`, {
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
+  timed(
+    'mcp',
+    () =>
+      execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"${forceBuild ? ' --force' : ''}`, {
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+      }),
+    { target: buildTarget }
+  );
 
   // 3. Verify electron-vite output
   const outDir = path.resolve(__dirname, '../out');
@@ -756,6 +707,9 @@ try {
   if (!viteOutputValidation.valid) {
     throw new Error(`Vite build output is incomplete:\n${viteOutputValidation.problems.join('\n')}`);
   }
+
+  // Record the final self-contained outputs only after every output check succeeds.
+  if (!skipViteBuild) saveCurrentHash(viteInputHash);
 
   // If --pack-only, skip electron-builder distributable creation
   if (packOnly) {
@@ -775,15 +729,22 @@ try {
         ? 'linux'
         : process.platform;
   writeGeneratedSentryDsnInclude(projectRoot);
-  prepareAioncore({
-    projectRoot,
-    platform: targetPlatform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+  timed(
+    'aioncore',
+    () =>
+      prepareAioncore({
+        projectRoot,
+        platform: targetPlatform,
+        arch: targetArch,
+        version: resolveAioncoreVersion(projectRoot),
+      }),
+    { target: buildTarget }
+  );
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
-  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  timed('hub', () => execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env }), {
+    target: buildTarget,
+  });
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
@@ -794,7 +755,7 @@ try {
   // Set compression level based on environment
   // 7za -mx accepts numeric values: 0 (store) to 9 (ultra)
   // CI builds use 9 (maximum) for smallest size
-  // Local builds use 7 (normal) for 30-50% faster ASAR packing
+  // Local builds use 7; measure installer compression separately from ASAR assembly
   const isCI = process.env.CI === 'true';
   if (!process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL) {
     process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7';
@@ -871,8 +832,13 @@ try {
   }
 
   const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  if (isWindowsBuild && process.env.BUILD_STAGE_REPORT) {
+    const preload = path.join(__dirname, 'packaging/process-timings.js');
+    process.env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ''} --require=${JSON.stringify(preload)}`.trim();
+    process.env.BUILDER_PROCESS_TIMINGS = 'true';
+  }
   try {
-    buildWithDmgRetry(builderCommand, targetArch);
+    timed('builder-including-signing-and-retries', () => buildWithDmgRetry(builderCommand), { target: buildTarget });
   } catch (error) {
     const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
     const firstError = formatExecError(error);
@@ -900,7 +866,9 @@ try {
     cleanupWindowsPackOutput();
 
     try {
-      buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`, targetArch);
+      timed('builder-executable-edit-retry', () =>
+        buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`)
+      );
     } catch (retryError) {
       const retryFailure = formatExecError(retryError);
       throw new Error(
@@ -915,6 +883,15 @@ try {
     }
   }
 
+  if (process.env.PROFILE_WINDOWS_COMPRESSION === 'true' && process.platform === 'win32' && targetArch === 'x64') {
+    const { compareCompression } = require('./packaging/compression-profile');
+    const report = compareCompression({
+      prepackaged: path.join(outDir, 'win-unpacked'),
+      destination: fs.mkdtempSync(path.join(outDir, 'compression-profile-')),
+      command: builderCommand,
+    });
+    fs.writeFileSync(path.join(outDir, 'compression-profile.json'), JSON.stringify(report, null, 2));
+  }
   console.log('✅ Build completed!');
 } catch (error) {
   buildFailed = true;

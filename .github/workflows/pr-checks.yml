@@ -102,12 +102,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
           cache: true
 
       - name: Install dependencies
@@ -149,13 +149,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest' || needs.classify-changes.outputs.cross_platform_tests == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         if: matrix.os == 'ubuntu-latest' || needs.classify-changes.outputs.cross_platform_tests == 'true'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
           cache: true
 
       - name: Disable Windows Defender (Windows only)
@@ -177,6 +177,20 @@ jobs:
       - name: Run extension system tests
         if: matrix.os == 'ubuntu-latest' || needs.classify-changes.outputs.cross_platform_tests == 'true'
         run: bunx vitest run
+
+      - name: Record completed full unit suite
+        id: unit-record
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: node scripts/quality-evidence.js record "${{ runner.temp }}/unit-evidence.json"
+
+      - name: Upload full unit evidence
+        if: matrix.os == 'ubuntu-latest' && steps.unit-record.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-evidence-ubuntu
+          path: ${{ runner.temp }}/unit-evidence.json
+          retention-days: 7
 
       - name: Record lightweight platform pass
         if: matrix.os != 'ubuntu-latest' && needs.classify-changes.outputs.cross_platform_tests != 'true'
@@ -202,12 +216,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
           cache: true
 
       - name: Install dependencies
@@ -288,12 +302,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
           cache: true
 
       - name: Install dependencies
@@ -330,6 +344,8 @@ jobs:
   # Job 4: Build test across representative PR platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
+    env:
+      AIONUI_HUB_TAG: 'dist-ebc6a2b'
     needs: classify-changes
     if: (github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)) && inputs.skip_build_test != true && needs.classify-changes.outputs.docs_only != 'true'
     runs-on: ${{ matrix.os }}
@@ -373,13 +389,13 @@ jobs:
         if: matrix.platform == 'linux-x64' || needs.classify-changes.outputs.installer_smoke == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.23.2'
 
       - name: Setup bun
         if: matrix.platform == 'linux-x64' || needs.classify-changes.outputs.installer_smoke == 'true'
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
           cache: true
 
       - name: Setup Python
@@ -513,7 +529,7 @@ jobs:
               ls out/*.exe out/*latest*.yml >/dev/null
               ;;
             macos-*)
-              ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
+              ls out/*.dmg out/*latest*.yml >/dev/null
               ;;
             linux-x64)
               ls out/*.deb out/*latest*.yml >/dev/null

@@ -132,3 +132,9 @@ When these rules are not followed, maintainers may:
 2. **Cherry-pick valuable portions** — your authorship is preserved in git history, but the original PR shows as "Closed" rather than "Merged".
 
 Code style, dependency choices, and documentation polish are handled by maintainers post-merge. Focus your PR on the functional change.
+
+## Local builds and release artifacts
+
+Use `bun run build` to compile the client without creating installers. Use `bun run dist:mac` for a DMG targeting the host architecture, or `build-mac:arm64` / `build-mac:x64` for an explicit architecture. Use `build-win:x64` or `build-win:arm64` for Windows EXE installers.
+
+Formal releases build only macOS and Windows x64/arm64 installers (DMG / EXE), without ZIP, Linux, or Web CLI packages. Windows updater metadata is retained. macOS uses manual DMG installation and does not publish ZIP-based updater metadata. GEA automatic updates remain disabled by the existing service policy. Packaging retries preserve the original targets without adding ZIPs.

@@ -11,7 +11,7 @@
  * shell-quoting issues with special characters in --define values.
  */
 
-const esbuild = require('esbuild');
+const { inputHash, outputsMatch, saveOutputs } = require('../packages/shared-scripts/src/build-cache');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -25,27 +25,49 @@ const SHARED_OPTIONS = {
   loader: { '.wasm': 'empty' },
 };
 
-async function main() {
-  await Promise.all([
-    esbuild.build({
-      ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/imageGenServer.ts')],
-      outfile: path.join(ROOT, 'out/main/builtin-mcp-image-gen.js'),
-    }),
-    esbuild.build({
-      ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/browserServer.ts')],
-      outfile: path.join(ROOT, 'out/main/builtin-mcp-browser.js'),
-    }),
-    esbuild.build({
-      ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/larkCliServer.ts')],
-      outfile: path.join(ROOT, 'out/main/builtin-mcp-lark-cli.js'),
-    }),
-  ]);
+async function main({ root = ROOT, esbuild = require('esbuild'), force = process.argv.includes('--force') } = {}) {
+  const outputs = ['image-gen', 'browser', 'lark-cli'].map((name) =>
+    path.join(root, `out/main/builtin-mcp-${name}.js`)
+  );
+  const manifest = path.join(root, 'out/.mcp-build-cache.json');
+  const key = inputHash(
+    root,
+    [
+      'packages',
+      'scripts/build-mcp-servers.js',
+      'packages/shared-scripts/src/build-cache.js',
+      'package.json',
+      'bun.lock',
+      'package-lock.json',
+      'tsconfig.json',
+      'patches',
+    ],
+    { schema: 1, node: process.version, esbuild: esbuild.version }
+  );
+  if (!force && outputsMatch(manifest, key, outputs)) {
+    console.log('[mcp-cache] hit: inputs and outputs verified');
+    return { cached: true };
+  }
+  console.log('[mcp-cache] miss: forced, changed inputs, or missing/corrupt outputs');
+  await Promise.all(
+    ['imageGenServer', 'browserServer', 'larkCliServer'].map((name, index) =>
+      esbuild.build({
+        ...SHARED_OPTIONS,
+        tsconfig: path.join(root, 'tsconfig.json'),
+        entryPoints: [path.join(root, `packages/desktop/src/process/resources/builtinMcp/${name}.ts`)],
+        outfile: outputs[index],
+      })
+    )
+  );
+  saveOutputs(manifest, key, outputs);
+  return { cached: false };
 }
 
-main().catch((err) => {
-  console.error('MCP server build failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('MCP server build failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { main };

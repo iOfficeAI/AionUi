@@ -30,6 +30,8 @@ const DEFAULT_RELEASE_REPOSITORY = 'iOfficeAI/AionCore';
 const DEFAULT_ACTIONS_REPOSITORY = 'CleverC2200/AionCore';
 const VERIFIED_ACTIONS_POLICY = 'verified-actions';
 
+const { restoreDownload, saveDownload } = require('./build-cache');
+
 const MANAGED_NODE_TARGETS = {
   'darwin-arm64': { folderSuffix: 'darwin-arm64', archiveExt: 'tar.gz', executable: 'bin/node' },
   'darwin-x64': { folderSuffix: 'darwin-x64', archiveExt: 'tar.gz', executable: 'bin/node' },
@@ -228,7 +230,17 @@ function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtif
   ].join(' ');
 }
 
-function prepareCrossTargetManagedResources(binaryPath, targetDir, platform, arch) {
+function prepareCrossTargetManagedResources(
+  binaryPath,
+  targetDir,
+  platform,
+  arch,
+  {
+    download = downloadFile,
+    extract = extractArchive,
+    cacheDir = path.join(os.homedir(), '.cache', 'aionui-build', 'node-v1'),
+  } = {}
+) {
   const runtimeKey = `${platform}-${arch}`;
   const target = MANAGED_NODE_TARGETS[runtimeKey];
   if (!target) throw new Error(`Unsupported managed Node target: ${runtimeKey}`);
@@ -244,20 +256,22 @@ function prepareCrossTargetManagedResources(binaryPath, targetDir, platform, arc
   const bundleOut = path.join(targetDir, 'managed-resources');
   const nodeDirName = `node-v${version}-${target.folderSuffix}`;
   const archiveName = `${nodeDirName}.${target.archiveExt}`;
-  const tempDir = path.join(os.tmpdir(), 'aioncore-managed-node', runtimeKey, version);
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aioncore-managed-node-'));
   const archivePath = path.join(tempDir, archiveName);
   const checksumsPath = path.join(tempDir, 'SHASUMS256.txt');
 
   removeDirectorySafe(bundleOut);
-  removeDirectorySafe(tempDir);
   ensureDirectory(path.join(bundleOut, 'node'));
   ensureDirectory(tempDir);
 
   try {
     const releaseUrl = `https://nodejs.org/dist/v${version}`;
     console.log(`  Preparing ${runtimeKey} managed Node ${version} from nodejs.org`);
-    downloadFile(`${releaseUrl}/${archiveName}`, archivePath);
-    downloadFile(`${releaseUrl}/SHASUMS256.txt`, checksumsPath);
+    const checksumsUrl = `${releaseUrl}/SHASUMS256.txt`;
+    const cachedChecksums = restoreDownload(cacheDir, checksumsUrl, checksumsPath);
+    if (!cachedChecksums) {
+      download(checksumsUrl, checksumsPath);
+    }
     const checksumLine = fs
       .readFileSync(checksumsPath, 'utf8')
       .split(/\r?\n/)
@@ -265,13 +279,21 @@ function prepareCrossTargetManagedResources(binaryPath, targetDir, platform, arc
     if (!checksumLine || !/^[a-f0-9]{64}  /.test(checksumLine)) {
       throw new Error(`Node checksum missing for ${archiveName}`);
     }
-    verifyFileSha256(archivePath, checksumLine.slice(0, 64), archiveName);
-    extractArchive(archivePath, path.join(bundleOut, 'node'), platform);
+    const expected = checksumLine.slice(0, 64);
+    const archiveUrl = `${releaseUrl}/${archiveName}`;
+    const source = `${archiveUrl}#sha256=${expected}`;
+    const cached = restoreDownload(cacheDir, source, archivePath, expected);
+    if (!cached) download(archiveUrl, archivePath);
+    verifyFileSha256(archivePath, expected, archiveName);
+    console.log(`[node-cache] ${cached ? 'hit' : 'miss'}: ${runtimeKey} ${version}`);
+    extract(archivePath, path.join(bundleOut, 'node'), platform);
 
     const nodeRoot = path.join(bundleOut, 'node', nodeDirName);
     if (!fs.existsSync(path.join(nodeRoot, ...target.executable.split('/')))) {
       throw new Error(`Managed Node executable missing after extracting ${archiveName}`);
     }
+    if (!cached) saveDownload(cacheDir, source, archivePath);
+    if (!cachedChecksums) saveDownload(cacheDir, checksumsUrl, checksumsPath);
     writeJson(path.join(bundleOut, 'manifest.json'), {
       schemaVersion: 2,
       runtimeKey,
@@ -525,6 +547,7 @@ function getActionsRunProvenance(runId, repository, expectedHeadSha = null) {
   return {
     repository: sourceRepository,
     runId,
+    runAttempt: Number(run.run_attempt),
     runUrl: String(run.html_url || `https://github.com/${repository}/actions/runs/${runId}`),
     workflowName: String(run.name || ''),
     workflowPath,
@@ -606,6 +629,50 @@ function validateActionsArtifactMetadata(artifact, runId, expectedArtifactName, 
   return artifact.digest ? normalizeSha256(artifact.digest, `artifact ${expectedArtifactName}`) : null;
 }
 
+function isLegacyActionsSource(provenance) {
+  // Explicitly retained, previously verified baseline. No date-based exemption
+  // or arbitrary old run can bypass the new build identity requirement.
+  return (
+    provenance.repository === 'CleverC2200/AionCore' &&
+    provenance.actualHeadSha === '6fc8ddf5fb6b55ec75c6d59647910439db69d727'
+  );
+}
+
+function validateActionsBuildManifest(record, provenance, artifactName, archiveName, archiveSha256) {
+  const targets = {
+    'macos-arm64': 'aarch64-apple-darwin',
+    'macos-x64': 'x86_64-apple-darwin',
+    'windows-x64': 'x86_64-pc-windows-msvc',
+    'windows-arm64': 'aarch64-pc-windows-msvc',
+    'linux-x64': 'x86_64-unknown-linux-gnu',
+    'linux-arm64': 'aarch64-unknown-linux-gnu',
+  };
+  if (
+    record.schema !== 1 ||
+    record.repository !== provenance.repository ||
+    String(record.runId) !== provenance.runId ||
+    record.attempt !== provenance.runAttempt ||
+    record.headSha !== provenance.actualHeadSha ||
+    record.artifact !== artifactName ||
+    `aioncore-manual-${record.platform}` !== artifactName ||
+    record.target !== targets[record.platform] ||
+    record.archive !== archiveName ||
+    record.sha256 !== archiveSha256
+  )
+    throw new Error('Core build manifest source or archive mismatch');
+  if (
+    (!record.build && !isLegacyActionsSource(provenance)) ||
+    (record.build &&
+      (record.build.profile !== 'release' ||
+        !record.build.rustc?.startsWith('rustc ') ||
+        !['cargoLockSha256', 'toolchainSha256', 'workflowSha256'].every((key) =>
+          /^[a-f0-9]{64}$/.test(record.build[key])
+        )))
+  )
+    throw new Error('Core build manifest has incomplete toolchain identity');
+  return record;
+}
+
 function downloadAndExtractActionsArtifact(platform, arch, runId, { verifiedActions = false } = {}) {
   const expectedArtifactName = getActionsArtifactName(platform, arch);
   if (!expectedArtifactName) {
@@ -660,6 +727,23 @@ function downloadAndExtractActionsArtifact(platform, arch, runId, { verifiedActi
     ? verifyFileSha256(archivePath, expectedArchiveSha256, `AionCore archive from ${expectedArtifactName}`)
     : sha256File(archivePath);
 
+  // Legacy pinned builds may predate this sidecar. When present, it must agree
+  // with independently verified run metadata and archive content.
+  const manifestPath = path.join(artifactExtractDir, 'aioncore-manifest.json');
+  if (verifiedActions && !fs.existsSync(manifestPath) && !isLegacyActionsSource(runProvenance))
+    throw new Error(
+      'Core build manifest required for this source; rebuild the exact trusted source with build identity'
+    );
+  const buildManifest = fs.existsSync(manifestPath)
+    ? validateActionsBuildManifest(
+        JSON.parse(fs.readFileSync(manifestPath, 'utf8')),
+        runProvenance,
+        expectedArtifactName,
+        path.basename(archivePath),
+        archiveSha256
+      )
+    : null;
+
   extractArchive(archivePath, binaryExtractDir, platform);
 
   const binaryName = getBinaryName(platform);
@@ -681,6 +765,7 @@ function downloadAndExtractActionsArtifact(platform, arch, runId, { verifiedActi
     artifactDigest,
     artifactZipSha256,
     provenance: runProvenance,
+    buildManifest,
   };
 }
 
@@ -839,6 +924,7 @@ function prepareAioncore(options) {
       expectedHeadSha: result.provenance.expectedHeadSha,
       actualHeadSha: result.provenance.actualHeadSha,
       provenance: result.provenance,
+      buildManifest: result.buildManifest,
       url: result.url,
     };
     console.log(`  Downloaded from GitHub Actions artifact`);
@@ -915,6 +1001,7 @@ function prepareAioncore(options) {
 }
 
 module.exports = {
+  prepareCrossTargetManagedResources,
   downloadAndExtractActionsArtifact,
   downloadFileWithAuth,
   extractArchive,
@@ -929,6 +1016,7 @@ module.exports = {
   prepareManagedResources,
   prepareAioncore,
   validateActionsArtifactMetadata,
+  validateActionsBuildManifest,
   verifyFileSha256,
   verifyPreparedAioncoreBundle,
 };
