@@ -166,6 +166,7 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - deb
+    - rpm
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
@@ -180,6 +181,21 @@ linux:
       Icon: AionUi
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
+
+rpm:
+  compression: xz
+  packageCategory: Applications/Internet
+  depends:
+    - gtk3
+    - nss
+    - libnotify
+    - libappindicator-gtk3
+    - libXScrnSaver
+    - alsa-lib
+    - at-spi2-core
+    - libdrm
+    - mesa-libgbm
+    - libxshmfence
 
 npmRebuild: false
 buildDependenciesFromSource: false
