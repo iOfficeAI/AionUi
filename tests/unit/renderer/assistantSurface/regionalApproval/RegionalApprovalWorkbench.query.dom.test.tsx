@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as XLSX from 'xlsx-republish';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   GeaSalesPlanListItem,
@@ -131,6 +132,152 @@ const listMockFor = (rows: readonly GeaSalesPlanListItem[]) =>
 describe('RegionalApprovalWorkbench live sales-plan query', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+  });
+
+  it('exports a readable workbook with business headers and exact identifiers and amounts', async () => {
+    const row = {
+      ...liveRow('plan-export', 5),
+      dealerCode: '0009007199254740997',
+      targetQty: '123456789012345.6',
+      currentAmount: '2064404.28',
+    };
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([row]) },
+    };
+    let exported: Blob | undefined;
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      exported = blob as Blob;
+      return 'blob:export';
+    });
+    const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    try {
+      render(
+        <RegionalApprovalWorkbench stateScope='export-test' t={t} onContextChange={vi.fn()} queryClient={client} />
+      );
+      await screen.findAllByText('plan-export 基地');
+      fireEvent.click(screen.getByRole('combobox', { name: '大区' }));
+      fireEvent.click(await screen.findByRole('option', { name: '华东大区' }));
+      fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+      await waitFor(() => expect(exported).toBeDefined());
+      const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener('load', () => resolve(reader.result as ArrayBuffer));
+        reader.addEventListener('error', reject);
+        reader.readAsArrayBuffer(exported!);
+      });
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      expect(XLSX.utils.sheet_to_json(sheet, { header: 1 })[0]).toEqual([
+        '计划单号',
+        '版本号',
+        '计划周期',
+        '经销商编码',
+        '审批状态',
+        '目标数量',
+        '目标金额',
+        '当前数量',
+        '当前金额',
+      ]);
+      expect(sheet.D2).toMatchObject({ t: 's', v: '0009007199254740997' });
+      expect(sheet.F2).toMatchObject({ t: 's', v: '123456789012345.6' });
+      expect(sheet.G2).toMatchObject({ t: 's', v: '9999999999999999.99' });
+      expect(sheet.I2).toMatchObject({ t: 'n', v: 2064404.28 });
+      expect(sheet.E2.v).not.toBe(5);
+      const scope = XLSX.utils.sheet_to_json(workbook.Sheets['导出说明'], { header: 1 });
+      expect(scope).toEqual(
+        expect.arrayContaining([
+          ['导出范围', '仅当前页'],
+          ['计划月份', '2026-09'],
+          ['页码', 1],
+          ['导出条数', 1],
+          ['数据版本', '当前有效版本'],
+          ['大区编码', '全部'],
+        ])
+      );
+    } finally {
+      createUrl.mockRestore();
+      revokeUrl.mockRestore();
+      click.mockRestore();
+    }
+  });
+
+  it('explains missing export data instead of generating an incomplete workbook', async () => {
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([{ ...liveRow('missing-export'), targetAmount: '' }]) },
+    };
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
+    try {
+      render(
+        <RegionalApprovalWorkbench stateScope='missing-export' t={t} onContextChange={vi.fn()} queryClient={client} />
+      );
+      await screen.findAllByText('missing-export 基地');
+      fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+      expect(await screen.findByText('当前页缺少有效编码或数量金额数据，请刷新后重试。')).toBeVisible();
+      expect(createUrl).not.toHaveBeenCalled();
+    } finally {
+      createUrl.mockRestore();
+    }
+  });
+
+  it('reports download failures without reporting a successful export', async () => {
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([liveRow('failed-export')]) },
+    };
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+      throw new Error('download failed');
+    });
+    try {
+      render(
+        <RegionalApprovalWorkbench stateScope='failed-export' t={t} onContextChange={vi.fn()} queryClient={client} />
+      );
+      await screen.findAllByText('failed-export 基地');
+      fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+      expect(await screen.findByText('导出失败，请重试；未产生文件。')).toBeVisible();
+      expect(screen.queryByText(/已导出当前页/)).not.toBeInTheDocument();
+    } finally {
+      createUrl.mockRestore();
+    }
+  });
+
+  it('does not export the previous scope when a node changes during workbook preparation', async () => {
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([liveRow('scope-export', 2)]) },
+    };
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
+    try {
+      render(
+        <RegionalApprovalWorkbench stateScope='scope-export' t={t} onContextChange={vi.fn()} queryClient={client} />
+      );
+      await screen.findAllByText('scope-export 基地');
+      await waitFor(() => expect(screen.getByTestId('regional-approval-stage-category')).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+      fireEvent.click(screen.getByTestId('regional-approval-stage-category'));
+      await waitFor(() =>
+        expect(screen.getByTestId('regional-approval-stage-category')).toHaveAttribute('aria-pressed', 'true')
+      );
+      expect(await screen.findByText('当前账户在本周期没有可见审批数据。')).toBeVisible();
+      expect(createUrl).not.toHaveBeenCalled();
+    } finally {
+      createUrl.mockRestore();
+    }
+  });
+
+  it('explains an empty current-page export', async () => {
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([]) },
+    };
+    render(
+      <RegionalApprovalWorkbench stateScope='empty-export' t={t} onContextChange={vi.fn()} queryClient={client} />
+    );
+    await screen.findByText('当前账户在本周期没有可见审批数据。');
+    fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+    expect(await screen.findByText('当前版本和已应用筛选范围没有可导出数据。')).toBeVisible();
   });
 
   it('keeps the production workbench fail-closed while preserving readable GEA evidence and Context', async () => {

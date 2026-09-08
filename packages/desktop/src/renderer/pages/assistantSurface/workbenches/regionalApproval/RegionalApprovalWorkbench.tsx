@@ -16,7 +16,7 @@ import {
 import type { TableColumnProps } from '@arco-design/web-react';
 import { CheckOne, Download, Info, Refresh } from '@icon-park/react';
 import type { TFunction } from 'i18next';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useBusinessSurfaceSession } from '../../components/BusinessSurfaceShell';
 import {
   getAssistantSurfaceWorkbenchScope,
@@ -1079,9 +1079,27 @@ const RegionalApprovalWorkbench: React.FC<{
     openLiveVersionComparison(primary && primary.seq >= compare.seq ? primary.id : compare.id, compare.id);
   };
 
-  const exportQueue = () => {
+  const exportScope = JSON.stringify([
+    liveQueryScope,
+    liveQuery.selectedPeriod?.periodId,
+    liveStageFilter,
+    page,
+    pageSize,
+  ]);
+  const exportScopeRef = useRef(exportScope);
+  const exportRowsRef = useRef(liveRows);
+  const exportMountedRef = useRef(true);
+  exportScopeRef.current = exportScope;
+  exportRowsRef.current = liveRows;
+  useEffect(() => {
+    exportMountedRef.current = true;
+    return () => {
+      exportMountedRef.current = false;
+    };
+  }, []);
+  const exportQueue = async () => {
     if (liveQuery.enabled) {
-      if (liveRows.length === 0) {
+      if (liveQuery.queueState.status !== 'success' || liveRows.length === 0) {
         setExportFeedback({
           type: 'warning',
           message: t('common.assistantSurface.regionalApproval.exportFeedback.empty'),
@@ -1089,24 +1107,96 @@ const RegionalApprovalWorkbench: React.FC<{
         return;
       }
       try {
-        const csv = [
-          csvCells(['planId', 'versionId', 'periodId', 'dealerCode', 'status', 'currentQty', 'currentAmount']),
-          ...liveRows.map((row) =>
-            csvCells([
-              row.planId,
-              row.versionId,
-              row.periodId,
-              row.dealerCode,
-              row.status,
-              row.currentQty,
-              row.currentAmount,
-            ])
-          ),
-        ].join('\n');
-        const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+        const XLSX = await import('xlsx-republish');
+        if (!exportMountedRef.current || exportScopeRef.current !== exportScope || exportRowsRef.current !== liveRows)
+          return;
+        if (
+          liveRows.some(
+            (row) =>
+              [row.planId, row.versionId, row.periodId, row.dealerCode].some((value) => !String(value ?? '').trim()) ||
+              [row.targetQty, row.targetAmount, row.currentQty, row.currentAmount].some(
+                (value) => !/^-?\d+(?:\.\d+)?$/.test(value)
+              )
+          )
+        ) {
+          setExportFeedback({
+            type: 'error',
+            message: t('common.assistantSurface.regionalApproval.exportFeedback.missingData'),
+          });
+          return;
+        }
+        const numericValue = (value: string) => {
+          const numeric = Number(value);
+          return Number.isFinite(numeric) &&
+            Math.abs(numeric) <= Number.MAX_SAFE_INTEGER &&
+            value.replace(/[-.]/g, '').replace(/^0+/, '').replace(/0+$/, '').length <= 15 &&
+            !String(numeric).includes('e') &&
+            isExactZero(subtractExactDecimals(String(numeric), value))
+            ? numeric
+            : value;
+        };
+        const headers = [
+          'planId',
+          'versionId',
+          'periodId',
+          'dealerCode',
+          'status',
+          'targetQty',
+          'targetAmount',
+          'currentQty',
+          'currentAmount',
+        ] as const;
+        const sheet = XLSX.utils.aoa_to_sheet([
+          headers.map((field) => t(`common.assistantSurface.regionalApproval.exportColumns.${field}`)),
+          ...liveRows.map((row) => [
+            row.planId,
+            row.versionId,
+            row.periodId,
+            row.dealerCode,
+            t(`common.assistantSurface.regionalApproval.query.status.${row.status}`),
+            numericValue(row.targetQty),
+            numericValue(row.targetAmount),
+            numericValue(row.currentQty),
+            numericValue(row.currentAmount),
+          ]),
+        ]);
+        sheet['!cols'] = headers.map(() => ({ wch: 24 }));
+        for (let row = 2; row <= liveRows.length + 1; row++) {
+          for (const column of ['G', 'I'])
+            if (sheet[`${column}${row}`]?.t === 'n') sheet[`${column}${row}`].z = '#,##0.00';
+        }
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(
+          workbook,
+          sheet,
+          t('common.assistantSurface.regionalApproval.exportColumns.sheet')
+        );
+        const exportLabel = (key: string) => t(`common.assistantSurface.regionalApproval.exportScope.${key}`);
+        const metadata = [
+          [exportLabel('scope'), exportLabel('currentPage')],
+          [exportLabel('month'), liveQuery.selectedPeriod?.periodMonth ?? '—'],
+          [exportLabel('planType'), liveQuery.selectedPeriod?.planTypeCode ?? '—'],
+          [exportLabel('version'), exportLabel('currentVersion')],
+          [exportLabel('page'), liveQuery.queueState.data.current],
+          [exportLabel('pageSize'), liveQuery.queueState.data.size],
+          [exportLabel('exported'), liveRows.length],
+          [exportLabel('total'), liveQuery.queueState.data.total],
+          [exportLabel('stage'), t(`common.assistantSurface.regionalApproval.stages.${liveStageFilter ?? 'all'}`)],
+          ...(['areaCode', 'provinceCode', 'orgCode', 'dealerCode', 'status'] as const).map((field) => [
+            exportLabel(field),
+            String(liveQueryScope[field] ?? exportLabel('all')),
+          ]),
+        ];
+        const scopeSheet = XLSX.utils.aoa_to_sheet(metadata);
+        scopeSheet['!cols'] = [{ wch: 20 }, { wch: 42 }];
+        XLSX.utils.book_append_sheet(workbook, scopeSheet, exportLabel('sheet'));
+        const data = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+        const url = URL.createObjectURL(
+          new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        );
         const link = document.createElement('a');
         link.href = url;
-        link.download = `sales-plan-approval-${liveQuery.selectedPeriod?.periodMonth ?? 'period'}-${currentStage}.csv`;
+        link.download = `sales-plan-approval-${liveQuery.selectedPeriod?.periodMonth ?? 'period'}-${liveStageFilter ?? 'all'}-page-${liveQuery.queueState.data.current}.xlsx`;
         link.click();
         URL.revokeObjectURL(url);
         setExportFeedback({
@@ -1861,8 +1951,12 @@ const RegionalApprovalWorkbench: React.FC<{
                     {t('common.assistantSurface.regionalApproval.toolbar.refreshData')}
                   </Button>
                 ) : null}
-                <Button size='small' icon={<Download size={14} />} onClick={exportQueue}>
-                  {t('common.assistantSurface.regionalApproval.toolbar.export')}
+                <Button size='small' icon={<Download size={14} />} onClick={() => void exportQueue()}>
+                  {t(
+                    liveQuery.enabled
+                      ? 'common.assistantSurface.regionalApproval.toolbar.exportPage'
+                      : 'common.assistantSurface.regionalApproval.toolbar.export'
+                  )}
                 </Button>
                 <div className={styles.approvalToolbarActions}>{approvalActionButtons}</div>
               </div>

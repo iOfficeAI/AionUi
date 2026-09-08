@@ -357,13 +357,15 @@
         "progress": "View submission progress",
         "refreshData": "Refresh data",
         "export": "Export current scope",
-        "compareVersions": "Compare versions"
+        "compareVersions": "Compare versions",
+        "exportPage": "Export current page"
       },
       "exportFeedback": {
         "success": "Exported {{count}} {{version}} sample rows",
         "successLive": "Exported {{count}} GEA rows from the current page",
         "empty": "No data exists for the current version and applied filter scope.",
-        "failed": "CSV export failed. No file was created; try again."
+        "failed": "Export failed. No file was created; try again.",
+        "missingData": "The current page has missing identifiers or invalid quantities or amounts. Refresh and retry."
       },
       "pagination": {
         "pageSize": "Rows per page",
@@ -837,6 +839,38 @@
         "zhejiang": "Zhejiang Province",
         "henan": "Henan Province",
         "sichuan": "Sichuan Province"
+      },
+      "exportColumns": {
+        "planId": "Plan number",
+        "versionId": "Version",
+        "periodId": "Plan period",
+        "dealerCode": "Dealer code",
+        "status": "Approval status",
+        "targetQty": "Target quantity",
+        "targetAmount": "Target amount",
+        "currentQty": "Current quantity",
+        "currentAmount": "Current amount",
+        "sheet": "Current page plans"
+      },
+      "exportScope": {
+        "sheet": "Export scope",
+        "scope": "Export coverage",
+        "currentPage": "Current page only",
+        "month": "Plan month",
+        "planType": "Plan type",
+        "version": "Data version",
+        "currentVersion": "Current effective versions",
+        "page": "Page",
+        "pageSize": "Page size",
+        "exported": "Exported rows",
+        "total": "Filtered total rows",
+        "stage": "Node filter",
+        "areaCode": "Area code",
+        "provinceCode": "Province code",
+        "orgCode": "Organization code",
+        "dealerCode": "Dealer code",
+        "status": "Status code",
+        "all": "All"
       }
     },
     "contract": {

@@ -357,13 +357,15 @@
         "progress": "查看提报进度",
         "refreshData": "刷新数据",
         "export": "导出当前范围",
-        "compareVersions": "版本对比"
+        "compareVersions": "版本对比",
+        "exportPage": "导出当前页"
       },
       "exportFeedback": {
         "success": "已导出 {{count}} 条 {{version}} 样例数据",
         "successLive": "已导出当前页 {{count}} 条 GEA 队列数据",
         "empty": "当前版本和已应用筛选范围没有可导出数据。",
-        "failed": "CSV 导出失败，请重试；未产生文件。"
+        "failed": "导出失败，请重试；未产生文件。",
+        "missingData": "当前页缺少有效编码或数量金额数据，请刷新后重试。"
       },
       "pagination": {
         "pageSize": "每页条数",
@@ -826,6 +828,38 @@
         "zhejiang": "浙江省区",
         "henan": "河南省区",
         "sichuan": "四川省区"
+      },
+      "exportColumns": {
+        "planId": "计划单号",
+        "versionId": "版本号",
+        "periodId": "计划周期",
+        "dealerCode": "经销商编码",
+        "status": "审批状态",
+        "targetQty": "目标数量",
+        "targetAmount": "目标金额",
+        "currentQty": "当前数量",
+        "currentAmount": "当前金额",
+        "sheet": "当前页计划"
+      },
+      "exportScope": {
+        "sheet": "导出说明",
+        "scope": "导出范围",
+        "currentPage": "仅当前页",
+        "month": "计划月份",
+        "planType": "计划类型",
+        "version": "数据版本",
+        "currentVersion": "当前有效版本",
+        "page": "页码",
+        "pageSize": "每页条数",
+        "exported": "导出条数",
+        "total": "筛选结果总条数",
+        "stage": "节点筛选",
+        "areaCode": "大区编码",
+        "provinceCode": "省区编码",
+        "orgCode": "区域编码",
+        "dealerCode": "经销商编码",
+        "status": "状态编码",
+        "all": "全部"
       }
     },
     "contract": {
