@@ -737,6 +737,13 @@
         "rowStatus": { "return": "Returned · local sample", "submit": "Submitted · local sample" }
       },
       "progressDialog": {
+        "organization": "Organization",
+        "completion": "Completed / Submitted",
+        "pendingCount": "Pending",
+        "status": "Status",
+        "awaitingReview": "Pending",
+        "inProgress": "In review",
+        "completed": "Completed",
         "title": "Submission progress · {{stage}}",
         "description": "Matches the applied organization filters and {{version}} results: {{count}} rows.",
         "allStages": "five independent nodes",

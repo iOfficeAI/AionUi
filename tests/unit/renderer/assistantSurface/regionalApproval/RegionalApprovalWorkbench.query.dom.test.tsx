@@ -683,7 +683,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     );
     fireEvent.click(await screen.findByRole('button', { name: '查看提报进度' }));
     const tree = await screen.findByRole('region', { name: '组织审核进度' });
-    expect((await within(tree).findAllByText('已提报 2 · 未审核 1 · 已完成 1'))[0]).toBeVisible();
+    expect((await within(tree).findAllByLabelText('已提报 2 · 未审核 1 · 已完成 1'))[0]).toBeVisible();
     const callsBeforeExpansion = list.mock.calls.length;
     fireEvent.click(within(tree).getByText('华东大区'));
     fireEvent.click(await within(tree).findByText('浙江省区'));

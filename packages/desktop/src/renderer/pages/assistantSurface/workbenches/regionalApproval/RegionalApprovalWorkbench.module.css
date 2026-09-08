@@ -593,7 +593,7 @@
 }
 
 .progressModal {
-  width: min(720px, calc(100vw - 32px));
+  width: min(960px, calc(100vw - 32px));
 }
 
 .progressModal :global(.arco-modal-content) {
@@ -831,5 +831,158 @@
   }
   .fieldControl > span {
     white-space: nowrap;
+  }
+}
+
+/* Shared right-hand columns keep metrics aligned across every organization depth. */
+.progressTreeSection {
+  --progress-completion-width: 220px;
+  --progress-pending-width: 72px;
+  --progress-status-width: 80px;
+  min-width: 0;
+}
+
+.progressModal :global(.arco-modal-title) {
+  text-align: left;
+}
+
+.progressTreeScope {
+  margin: 0 0 16px;
+  color: var(--color-text-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.progressTreeToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.progressTreeHeader,
+.progressTreeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--progress-completion-width) var(--progress-pending-width) var(
+      --progress-status-width
+    );
+  align-items: center;
+  gap: 16px;
+}
+
+.progressTreeTable {
+  max-height: min(52vh, 480px);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.progressTreeHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px 10px 36px;
+  background: var(--color-fill-1);
+  color: var(--color-text-2);
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-border-2);
+}
+
+.progressTreeHeader > :nth-child(n + 3) {
+  text-align: center;
+}
+
+.progressTree :global(.arco-tree-node) {
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border-1);
+}
+
+.progressTree :global(.arco-tree-node:hover) {
+  background: var(--color-fill-1);
+}
+
+.progressTree :global(.arco-tree-node-title) {
+  min-width: 0;
+  padding: 10px 0;
+  margin: 0;
+}
+
+.progressTree :global(.arco-tree-node-title:hover) {
+  background: transparent;
+}
+
+.progressTree :global(.arco-tree-node-title-text) {
+  display: block;
+}
+
+.progressTreeName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--color-text-1);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.progressTreeName[data-level='customer'] {
+  font-weight: 400;
+}
+
+.progressTreeName small {
+  color: var(--color-text-2);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.progressTreeCompletion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.progressTreePending {
+  text-align: center;
+  color: var(--color-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressTreeStatus {
+  justify-self: center;
+}
+
+@media (max-width: 1000px) {
+  .progressTreeSection {
+    --progress-completion-width: 160px;
+    --progress-pending-width: 56px;
+    --progress-status-width: 72px;
+  }
+}
+
+@media (max-width: 600px) {
+  .progressTreeSection {
+    --progress-completion-width: 80px;
+    --progress-pending-width: 40px;
+    --progress-status-width: 60px;
+  }
+
+  .progressTreeHeader,
+  .progressTreeRow {
+    gap: 8px;
+  }
+
+  .progressTreeCompletion {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .progressTree :global(.arco-tree-node-indent-block) {
+    width: 4px;
+    margin-right: 4px;
   }
 }

@@ -2441,7 +2441,7 @@ const RegionalApprovalWorkbench: React.FC<{
         visible={progressOpen}
         title={t('common.assistantSurface.regionalApproval.progressDialog.title', {
           stage: liveQuery.enabled
-            ? t('common.assistantSurface.regionalApproval.progressDialog.allStages')
+            ? t(`common.assistantSurface.regionalApproval.stages.${liveStageFilter ?? 'all'}`)
             : t(stageLabelKey(currentStage)),
         })}
         footer={

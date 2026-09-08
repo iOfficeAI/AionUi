@@ -510,6 +510,8 @@ test.describe('Sales-plan approval query', () => {
     for (const theme of ['light', 'dark']) {
       await page.setViewportSize({ width: 1280, height: 1000 });
       await page.goto(`${page.url().split('#')[0]}#/settings/system`);
+      // Mobile layouts collapse the sidebar; restore the desktop host before switching themes.
+      await page.reload();
       const toggle = page.getByTestId('theme-toggle');
       await expect(toggle).toBeVisible();
       if ((await page.locator('html').getAttribute('data-theme')) !== theme) await toggle.click();
@@ -526,10 +528,14 @@ test.describe('Sales-plan approval query', () => {
       await tree.getByText('仅显示未审核', { exact: true }).click();
       await expect(tree.getByRole('checkbox')).not.toBeChecked();
       await expect(tree.getByText('E2E 客户 99', { exact: true })).toBeAttached();
-      for (const width of [1920, 1280, 900]) {
+      for (const width of [480, 1920, 1280, 900]) {
         await page.setViewportSize({ width, height: 1000 });
         const bounds = await tree.evaluate((element) => ({ scroll: element.scrollWidth, width: element.clientWidth }));
         expect(bounds.scroll - bounds.width).toBeLessThanOrEqual(1);
+        const metricColumns = await tree
+          .locator('[class*="progressTreeCompletion"]')
+          .evaluateAll((elements) => elements.slice(0, 5).map((element) => element.getBoundingClientRect().x));
+        expect(Math.max(...metricColumns) - Math.min(...metricColumns)).toBeLessThanOrEqual(1);
         await page.screenshot({ path: testInfo.outputPath(`progress-${theme}-${width}.png`) });
       }
       await page.getByRole('button', { name: '关闭', exact: true }).click();

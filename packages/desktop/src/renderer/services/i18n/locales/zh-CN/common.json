@@ -726,6 +726,13 @@
         "rowStatus": { "return": "已退回 · 本地样例", "submit": "已提交 · 本地样例" }
       },
       "progressDialog": {
+        "organization": "组织",
+        "completion": "完成 / 已提报",
+        "pendingCount": "未审核",
+        "status": "状态",
+        "awaitingReview": "待审核",
+        "inProgress": "审核中",
+        "completed": "已完成",
         "title": "提报进度 · {{stage}}",
         "description": "与当前已应用组织筛选和 {{version}} 结果一致，共 {{count}} 条。",
         "allStages": "五个独立节点",
