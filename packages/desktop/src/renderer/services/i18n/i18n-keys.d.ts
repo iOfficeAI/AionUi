@@ -1000,6 +1000,7 @@ export type I18nKey =
   | 'common.assistantSurface.regionalApproval.versions.primary'
   | 'common.assistantSurface.regionalApproval.versions.primaryCompact'
   | 'common.assistantSurface.regionalApproval.versions.unavailable'
+  | 'common.assistantSurface.resizeConversation'
   | 'common.assistantSurface.selectContractConversation'
   | 'common.assistantSurface.selectConversation'
   | 'common.assistantSurface.title'

@@ -66,6 +66,7 @@
   "refresh": "Refresh",
   "readOnly": "Read only",
   "assistantSurface": {
+    "resizeConversation": "Drag to resize the workbench and Agent; double-click to reset, or use arrow keys",
     "approvalAnalysis": {
       "configureModel": "Configure model",
       "title": "Approval advice",

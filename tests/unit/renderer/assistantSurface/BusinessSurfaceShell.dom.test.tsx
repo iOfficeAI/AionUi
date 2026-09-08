@@ -263,6 +263,7 @@ const automaticShell = (context: SurfaceContextSnapshot | undefined = snapshot, 
 describe('BusinessSurfaceShell context receipt', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     window.sessionStorage.clear();
     chatMountCounter.value = 0;
     runtimeViewMock.isProcessing = false;
@@ -281,6 +282,34 @@ describe('BusinessSurfaceShell context receipt', () => {
       id: 'conversation-new',
       name: 'Conversation New',
     });
+  });
+
+  it('resizes the Agent rail with pointer and keyboard, clamps widths, remembers the result and resets', async () => {
+    const view = renderShell();
+    const rail = await screen.findByTestId('forecast-conversation-region');
+    const handle = within(rail).getByRole('separator');
+    expect(rail.style.width).toBe('340px');
+    fireEvent.pointerDown(handle, { clientX: 800, button: 0, pointerType: 'mouse', pointerId: 1 });
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 640, buttons: 1 }));
+    act(() => window.dispatchEvent(new MouseEvent('pointerup', { clientX: 640 })));
+    expect(rail.style.width).toBe('500px');
+    expect(document.body.style.cursor).toBe('');
+    expect(localStorage.getItem('aionui:assistant-surface:forecast:conversation-width')).toBe('500');
+    view.unmount();
+    renderShell();
+    const restored = await screen.findByTestId('forecast-conversation-region');
+    const restoredHandle = within(restored).getByRole('separator');
+    expect(restored.style.width).toBe('500px');
+    fireEvent.keyDown(restoredHandle, { key: 'ArrowLeft' });
+    expect(restored.style.width).toBe('520px');
+    fireEvent.keyDown(restoredHandle, { key: 'Home' });
+    expect(restored.style.width).toBe('266px');
+    fireEvent.keyDown(restoredHandle, { key: 'ArrowRight' });
+    expect(restored.style.width).toBe('266px');
+    fireEvent.keyDown(restoredHandle, { key: 'End' });
+    expect(restored.style.width).toBe('720px');
+    fireEvent.doubleClick(restoredHandle);
+    expect(restored.style.width).toBe('340px');
   });
 
   it('automatically prepares a dedicated conversation with a frozen first-turn context exactly once', async () => {

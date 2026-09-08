@@ -472,6 +472,46 @@ test.describe('Sales-plan approval query', () => {
     expect(darkColors.foreground).toBeTruthy();
     expect(darkColors.foreground).not.toBe(darkColors.background);
   });
+  for (const theme of ['light', 'dark']) {
+    test(`resizes the Agent rail and fits narrow windows in ${theme}`, async ({ page }, testInfo) => {
+      await page.goto(`${page.url().split('#')[0]}#/assistant-surface/forecast`);
+      await page.reload();
+      const rail = page.getByTestId('forecast-conversation-region');
+      const handle = rail.getByRole('separator');
+      const board = page.getByTestId('regional-approval-workbench');
+      await expect(board).toBeVisible();
+      await page.evaluate((value) => {
+        document.documentElement.dataset.theme = value;
+        document.body.setAttribute('arco-theme', value);
+      }, theme);
+      await page.setViewportSize({ width: 1536, height: 1000 });
+      await expect(handle).toHaveAttribute('aria-valuemax', '720');
+      await handle.dblclick();
+      const before = (await rail.boundingBox())!;
+      const grip = (await handle.boundingBox())!;
+      await page.mouse.move(grip.x + 4, grip.y + grip.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(grip.x - 156, grip.y + grip.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await expect.poll(async () => (await rail.boundingBox())!.width).toBeCloseTo(before.width + 160, 0);
+      await page.screenshot({ path: testInfo.outputPath(`agent-resize-${theme}-1536.png`) });
+      await page.reload();
+      await expect.poll(async () => (await rail.boundingBox())!.width).toBeCloseTo(before.width + 160, 0);
+      await page.evaluate((value) => {
+        document.documentElement.dataset.theme = value;
+        document.body.setAttribute('arco-theme', value);
+      }, theme);
+      await page.setViewportSize({ width: 760, height: 900 });
+      await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(500);
+      const bounds = (await board.boundingBox())!;
+      expect(bounds.width).toBeGreaterThanOrEqual(320);
+      await page.setViewportSize({ width: 480, height: 900 });
+      await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(266);
+      expect((await board.boundingBox())!.width).toBeGreaterThan(150);
+      await page.screenshot({ path: testInfo.outputPath(`agent-resize-${theme}-480.png`) });
+    });
+  }
+
   for (const status of [5, 10]) {
     test(`standalone SAVE status ${status} preserves its version and approval state`, async ({ page }, testInfo) => {
       await page.goto(`${page.url().split('#')[0]}#/assistant-surface/forecast`);

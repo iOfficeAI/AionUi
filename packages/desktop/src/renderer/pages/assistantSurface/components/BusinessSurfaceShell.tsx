@@ -10,6 +10,7 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getAvailableModels } from '@/renderer/pages/guid/utils/modelUtils';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
+import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { Alert, Button, Drawer, Empty, Message, Spin, Steps, Tag, Tooltip } from '@arco-design/web-react';
 import { AddOne, Comments, Data, History, Refresh, Robot } from '@icon-park/react';
@@ -112,8 +113,70 @@ const DesktopConversationRail: React.FC<{
   header: React.ReactNode;
   body: React.ReactNode;
 }> = ({ surfaceId, title, header, body }) => {
+  const { t } = useTranslation();
+  const railRef = useRef<HTMLElement>(null);
+  const [maxWidth, setMaxWidth] = useState(720);
+  const minWidth = Math.min(266, maxWidth);
+  const {
+    splitRatio: width,
+    setSplitRatio: setWidth,
+    createDragHandle,
+  } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: Math.min(340, maxWidth),
+    minWidth,
+    maxWidth,
+    storageKey: `aionui:assistant-surface:${surfaceId}:conversation-width`,
+  });
+  useEffect(() => {
+    const container = railRef.current?.parentElement;
+    if (!container) return;
+    const update = () => {
+      const available = container.getBoundingClientRect().width;
+      if (available > 0) setMaxWidth(Math.min(720, available - Math.min(320, available * 0.55)));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (width > maxWidth || width < minWidth) setWidth(Math.max(minWidth, Math.min(maxWidth, width)));
+  }, [width, maxWidth, minWidth, setWidth]);
+  const resizeLabel = t('common.assistantSurface.resizeConversation');
   return (
-    <aside className={styles.conversationRegion} data-testid={`${surfaceId}-conversation-region`} aria-label={title}>
+    <aside
+      ref={railRef}
+      className={styles.conversationRegion}
+      style={{ width: Math.min(width, maxWidth), minWidth }}
+      data-testid={`${surfaceId}-conversation-region`}
+      aria-label={title}
+    >
+      {React.cloneElement(createDragHandle({ reverse: true, style: { left: 0, width: 8, touchAction: 'none' } }), {
+        role: 'separator',
+        tabIndex: 0,
+        'aria-label': resizeLabel,
+        'aria-orientation': 'vertical',
+        'aria-valuemin': Math.round(minWidth),
+        'aria-valuemax': Math.round(maxWidth),
+        'aria-valuenow': Math.round(Math.min(width, maxWidth)),
+        title: resizeLabel,
+        onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+          const next =
+            event.key === 'ArrowLeft'
+              ? width + 20
+              : event.key === 'ArrowRight'
+                ? width - 20
+                : event.key === 'Home'
+                  ? minWidth
+                  : event.key === 'End'
+                    ? maxWidth
+                    : undefined;
+          if (next === undefined) return;
+          event.preventDefault();
+          setWidth(Math.max(minWidth, Math.min(maxWidth, next)));
+        },
+      })}
       {header}
       <div className={styles.conversationBody}>{body}</div>
     </aside>
@@ -600,7 +663,6 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
         </section>
 
         <DesktopConversationRail
-          key={selectedConversationId ?? 'unbound'}
           surfaceId={surfaceId}
           title={conversationTitle}
           header={conversationHeader}

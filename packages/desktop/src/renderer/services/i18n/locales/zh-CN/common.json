@@ -66,6 +66,7 @@
   "refresh": "刷新",
   "readOnly": "只读",
   "assistantSurface": {
+    "resizeConversation": "拖动调整工作台与 Agent 宽度，双击恢复默认；方向键微调",
     "approvalAnalysis": {
       "configureModel": "配置模型",
       "title": "审批建议",
