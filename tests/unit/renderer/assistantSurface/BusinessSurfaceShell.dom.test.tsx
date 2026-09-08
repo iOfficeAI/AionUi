@@ -240,7 +240,11 @@ const setNarrowViewport = (narrow: boolean) => {
   }));
 };
 
-const automaticShell = (context: SurfaceContextSnapshot | undefined = snapshot, enabled = true) => (
+const nodeShell = (
+  context: SurfaceContextSnapshot | undefined = snapshot,
+  enabled = true,
+  nodeKey: string | undefined = '2026-09:Y:area'
+) => (
   <BusinessSurfaceShell
     surfaceId='forecast'
     stateScope='auto-test'
@@ -250,9 +254,9 @@ const automaticShell = (context: SurfaceContextSnapshot | undefined = snapshot, 
     boardLabel='Board'
     workflowSteps={[]}
     workflowCurrent={0}
-    automaticAnalysis={
+    nodeAnalysis={
       enabled
-        ? { snapshot: context, label: context?.summary ?? '', prompt: 'Analyze only', unavailable: !context }
+        ? { nodeKey, snapshot: context, label: context?.summary ?? '', prompt: 'Analyze only', unavailable: !context }
         : undefined
     }
   >
@@ -312,62 +316,84 @@ describe('BusinessSurfaceShell context receipt', () => {
     expect(restored.style.width).toBe('340px');
   });
 
-  it('automatically prepares a dedicated conversation with a frozen first-turn context exactly once', async () => {
-    const view = render(<React.StrictMode>{automaticShell()}</React.StrictMode>);
+  it('asks before creating a node conversation, freezes the first turn and does not restart on data changes', async () => {
+    const view = render(<React.StrictMode>{nodeShell()}</React.StrictMode>);
+    const resizeHandle = screen.getByRole('separator');
+    const start = await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    expect(createConversationMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'common.assistantSurface.approvalAnalysis.decline' }));
+    expect(screen.getByText('common.assistantSurface.approvalAnalysis.declined')).toBeVisible();
+    expect(createConversationMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: '新对话' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '历史对话' })).not.toBeInTheDocument();
+    fireEvent.click(start);
+    fireEvent.click(start);
     await screen.findByText('chat:Conversation New');
+    expect(screen.getByRole('separator')).toBe(resizeHandle);
     expect(createConversationMock).toHaveBeenCalledTimes(1);
-    expect(sessionStorage.getItem('acp_initial_message_conversation-a')).toBeNull();
     const first = JSON.parse(sessionStorage.getItem('acp_initial_message_conversation-new')!);
     expect(parseSurfaceContextBlock(first.input)).toEqual({
       text: 'Analyze only',
       snapshot: expect.objectContaining({ payload: snapshot.payload }),
     });
-    view.rerender(<React.StrictMode>{automaticShell({ ...snapshot, revision: 99 })}</React.StrictMode>);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 450));
-    });
-    expect(createConversationMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('hides previous advice immediately and rejects a stale preparation when scope changes', async () => {
-    let resolveFirst!: (value: TChatConversation) => void;
-    createConversationMock.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveFirst = resolve;
-        })
-    );
-    createConversationMock.mockResolvedValueOnce({ ...conversations[0], id: 'analysis-b', name: 'Scope B' });
-    const view = render(automaticShell());
-    await waitFor(() => expect(createConversationMock).toHaveBeenCalledTimes(1));
-    const next = { ...snapshot, payload: { query: 'second-scope' } };
-    view.rerender(automaticShell(next));
-    expect(screen.queryByTestId('real-conversation')).not.toBeInTheDocument();
-    await act(async () => {
-      resolveFirst({ ...conversations[0], id: 'stale-analysis' });
-    });
-    await screen.findByText('chat:Scope B');
-    expect(sessionStorage.getItem('acp_initial_message_stale-analysis')).toBeNull();
-    expect(
-      parseSurfaceContextBlock(JSON.parse(sessionStorage.getItem('acp_initial_message_analysis-b')!).input).snapshot
-        ?.payload
-    ).toEqual(next.payload);
-  });
-
-  it('opens history while the workbench has no usable snapshot', async () => {
-    const view = render(automaticShell());
-    await screen.findByText('chat:Conversation New');
+    sessionStorage.removeItem('acp_initial_message_conversation-new');
     view.rerender(
-      React.cloneElement(automaticShell(), {
-        automaticAnalysis: { snapshot: undefined, prompt: 'Analyze only', label: '', unavailable: true },
+      <React.StrictMode>
+        {nodeShell({ ...snapshot, revision: 99, payload: { query: 'different-filter' } })}
+      </React.StrictMode>
+    );
+    expect(await screen.findByText('chat:Conversation New')).toBeVisible();
+    expect(createConversationMock).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('acp_initial_message_conversation-new')).toBeNull();
+  });
+
+  it('returns to each node conversation and restores a binding outside the recent history after reload', async () => {
+    const createdA = { ...conversations[0], id: 'node-a', name: 'Node A' };
+    const createdB = { ...conversations[0], id: 'node-b', name: 'Node B' };
+    createConversationMock.mockResolvedValueOnce(createdA).mockResolvedValueOnce(createdB);
+    const view = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
+    await screen.findByText('chat:Node A');
+    view.rerender(nodeShell(snapshot, true, '2026-09:Y:category'));
+    expect(screen.queryByText('chat:Node A')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
+    await screen.findByText('chat:Node B');
+    view.rerender(nodeShell());
+    expect(await screen.findByText('chat:Node A')).toBeVisible();
+    expect(createConversationMock).toHaveBeenCalledTimes(2);
+    expect(sessionStorage.getItem('acp_initial_message_node-a')).toBeNull();
+    view.unmount();
+    sessionStorage.clear();
+    getConversationMock.mockResolvedValue(createdA);
+    render(nodeShell());
+    expect(await screen.findByText('chat:Node A')).toBeVisible();
+    expect(getConversationMock).toHaveBeenCalledWith({ id: 'node-a' });
+    expect(createConversationMock).toHaveBeenCalledTimes(2);
+    expect(sessionStorage.getItem('acp_initial_message_node-a')).toBeNull();
+  });
+
+  it('does not offer creation for an empty node or the all-node overview', async () => {
+    const view = render(
+      React.cloneElement(nodeShell(), {
+        nodeAnalysis: { nodeKey: 'empty', snapshot: undefined, prompt: 'Analyze only', label: '', unavailable: true },
       })
     );
-    fireEvent.click(screen.getByRole('button', { name: '历史对话' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Conversation A' }));
-    expect(await screen.findByText('chat:Conversation A')).toBeVisible();
+    await screen.findByText('common.assistantSurface.approvalAnalysis.unavailable');
+    expect(screen.queryByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' })).toBeNull();
+    view.rerender(
+      React.cloneElement(nodeShell(), {
+        nodeAnalysis: { snapshot, prompt: 'Analyze only', label: '', unavailable: false },
+      })
+    );
+    await screen.findByText('common.assistantSurface.approvalAnalysis.selectNode');
+    expect(createConversationMock).not.toHaveBeenCalled();
+    expect(directCreateMock).not.toHaveBeenCalled();
   });
 
-  it('can return to a scope whose in-flight preparation was discarded', async () => {
+  it('retains a late-created conversation on its original node without sending stale analysis', async () => {
     let release!: (value: TChatConversation) => void;
     createConversationMock.mockImplementationOnce(
       () =>
@@ -375,48 +401,38 @@ describe('BusinessSurfaceShell context receipt', () => {
           release = resolve;
         })
     );
-    const view = render(automaticShell());
+    const view = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
     await waitFor(() => expect(release).toBeDefined());
-    view.rerender(automaticShell({ ...snapshot, payload: { scope: 'B' } }));
-    await act(async () => release({ ...conversations[0], id: 'discarded-A' }));
-    view.rerender(automaticShell());
-    expect(await screen.findByText('chat:Conversation New')).toBeVisible();
+    view.rerender(nodeShell(snapshot, true, '2026-09:Y:category'));
+    const created = { ...conversations[0], id: 'late-node-a', name: 'Late Node A' };
+    getConversationMock.mockResolvedValue(created);
+    await act(async () => release(created));
+    expect(screen.queryByTestId('real-conversation')).toBeNull();
+    expect(sessionStorage.getItem('acp_initial_message_late-node-a')).toBeNull();
+    view.rerender(nodeShell());
+    expect(await screen.findByText('chat:Late Node A')).toBeVisible();
+    expect(createConversationMock).toHaveBeenCalledTimes(1);
   });
 
-  it('removes an unconsumed automatic first turn on scope change and unmount', async () => {
-    const view = render(automaticShell());
+  it('removes an unconsumed first turn on leaving the node and does not regenerate it', async () => {
+    const view = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
     await screen.findByText('chat:Conversation New');
     expect(sessionStorage.getItem('acp_initial_message_conversation-new')).not.toBeNull();
-    view.rerender(automaticShell({ ...snapshot, payload: { scope: 'B' } }));
+    view.rerender(nodeShell(snapshot, true, '2026-09:Y:category'));
     expect(sessionStorage.getItem('acp_initial_message_conversation-new')).toBeNull();
-    await screen.findByText('chat:Conversation New');
+    view.rerender(nodeShell());
+    expect(await screen.findByText('chat:Conversation New')).toBeVisible();
     view.unmount();
     expect(sessionStorage.getItem('acp_initial_message_conversation-new')).toBeNull();
-  });
-
-  it('preserves an explicit history choice when an automatic preparation finishes late', async () => {
-    let release!: (value: TChatConversation) => void;
-    createConversationMock.mockImplementationOnce(
-      () =>
-        new Promise((done) => {
-          release = done;
-        })
-    );
-    render(automaticShell());
-    await waitFor(() => expect(release).toBeDefined());
-    fireEvent.click(screen.getByRole('button', { name: '历史对话' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Conversation A' }));
-    await act(async () => release({ ...conversations[0], id: 'late-analysis' }));
-    await act(async () => {
-      await new Promise((done) => setTimeout(done, 500));
-    });
-    expect(screen.getByText('chat:Conversation A')).toBeVisible();
     expect(createConversationMock).toHaveBeenCalledTimes(1);
   });
 
   it('offers an explicit retry after preparation fails without looping', async () => {
     createConversationMock.mockRejectedValueOnce(new Error('offline'));
-    render(automaticShell());
+    render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
     await screen.findByText('common.assistantSurface.approvalAnalysis.failed');
     expect(createConversationMock).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
@@ -432,13 +448,53 @@ describe('BusinessSurfaceShell context receipt', () => {
           finish = resolve;
         })
     );
-    const view = render(automaticShell());
+    const view = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
     await waitFor(() => expect(createConversationMock).toHaveBeenCalledTimes(1));
-    view.rerender(automaticShell(undefined, false));
-    await act(async () => {
-      finish({ ...conversations[0], id: 'left-page' });
-    });
+    view.rerender(nodeShell(undefined, false));
+    await act(async () => finish({ ...conversations[0], id: 'left-page' }));
     expect(sessionStorage.getItem('acp_initial_message_left-page')).toBeNull();
+  });
+
+  it('does not replace an unavailable bound conversation with a duplicate', async () => {
+    const key = JSON.stringify(['auto-test', '2026-09:Y:area']);
+    localStorage.setItem(`aionui:assistant-surface:node-conversation:v1:forecast:${key}`, 'old-node');
+    render(nodeShell());
+    await screen.findByText('common.assistantSurface.approvalAnalysis.restoreFailed');
+    expect(createConversationMock).not.toHaveBeenCalled();
+    getConversationMock.mockResolvedValue({ ...conversations[0], id: 'old-node', name: 'Old Node' });
+    fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
+    expect(await screen.findByText('chat:Old Node')).toBeVisible();
+    expect(createConversationMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps another account from inheriting the current node conversation', async () => {
+    const view = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
+    await screen.findByText('chat:Conversation New');
+    view.rerender(React.cloneElement(nodeShell(), { stateScope: 'another-user' }));
+    await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' });
+    expect(screen.queryByTestId('real-conversation')).toBeNull();
+    expect(createConversationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an in-memory node binding if local storage is unavailable', async () => {
+    const originalSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+      if (key.startsWith('aionui:assistant-surface:node-conversation:')) throw new Error('storage full');
+      return originalSetItem.call(this, key, value);
+    });
+    try {
+      const view = render(nodeShell());
+      fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
+      await screen.findByText('chat:Conversation New');
+      view.rerender(nodeShell(snapshot, true, '2026-09:Y:category'));
+      view.rerender(nodeShell());
+      expect(await screen.findByText('chat:Conversation New')).toBeVisible();
+      expect(createConversationMock).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('prefers the packaged system Forecast Assistant over custom or generated skill matches', () => {
@@ -681,14 +737,15 @@ describe('BusinessSurfaceShell context receipt', () => {
     listConversations.mockResolvedValue({ items: [] });
     assistantCatalogMock.mockResolvedValue([builtinForecastAssistant]);
     providerCatalogMock.mockResolvedValue([]);
-    const { rerender } = render(automaticShell());
+    const { rerender } = render(nodeShell());
+    fireEvent.click(await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.start' }));
     const configure = await screen.findByRole('button', {
       name: 'common.assistantSurface.approvalAnalysis.configureModel',
     });
     fireEvent.click(configure);
     expect(navigateMock).toHaveBeenCalledWith('/settings/model');
-    rerender(automaticShell({ ...snapshot, payload: { query: 'FSKU002' } }));
-    await waitFor(() => expect(providerCatalogMock).toHaveBeenCalledTimes(2));
+    rerender(nodeShell({ ...snapshot, payload: { query: 'FSKU002' } }));
+    expect(providerCatalogMock).toHaveBeenCalledTimes(1);
     await screen.findByRole('button', { name: 'common.assistantSurface.approvalAnalysis.configureModel' });
     expect(messageErrorMock).not.toHaveBeenCalled();
     expect(directCreateMock).not.toHaveBeenCalled();

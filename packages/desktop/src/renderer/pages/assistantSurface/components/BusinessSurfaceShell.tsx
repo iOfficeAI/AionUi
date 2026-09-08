@@ -29,6 +29,22 @@ type SupportedConversation = Extract<TChatConversation, { type: 'aionrs' | 'acp'
 const RECENT_CONVERSATION_LIMIT = 50;
 const SALES_FORECAST_ASSISTANT_ID = 'sales-forecast-planning';
 const SALES_FORECAST_SKILL_ID = 'sales-forecast-submit';
+const nodeConversationStorageKey = (surfaceId: SpecializedSurfaceId, key: string) =>
+  `aionui:assistant-surface:node-conversation:v1:${surfaceId}:${key}`;
+const readNodeConversation = (surfaceId: SpecializedSurfaceId, key: string): string | null => {
+  try {
+    return localStorage.getItem(nodeConversationStorageKey(surfaceId, key));
+  } catch {
+    return null;
+  }
+};
+const writeNodeConversation = (surfaceId: SpecializedSurfaceId, key: string, conversationId: string) => {
+  try {
+    localStorage.setItem(nodeConversationStorageKey(surfaceId, key), conversationId);
+  } catch {
+    // The mounted surface retains its in-memory binding when browser storage is unavailable.
+  }
+};
 const createPreparationIdempotencyKey = (): string =>
   globalThis.crypto?.randomUUID?.() ?? `conversation-preparation-${Date.now()}`;
 
@@ -97,7 +113,13 @@ type BusinessSurfaceShellProps = React.PropsWithChildren<{
   stateScope: string;
   surfaceContext?: SurfaceContextSnapshot;
   surfaceContextConversationId?: string | null;
-  automaticAnalysis?: { snapshot?: SurfaceContextSnapshot; prompt: string; label: string; unavailable: boolean };
+  nodeAnalysis?: {
+    nodeKey?: string;
+    snapshot?: SurfaceContextSnapshot;
+    prompt: string;
+    label: string;
+    unavailable: boolean;
+  };
   agentName: string;
   conversationTitle: string;
   selectConversationLabel: string;
@@ -188,7 +210,7 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   stateScope,
   surfaceContext,
   surfaceContextConversationId,
-  automaticAnalysis,
+  nodeAnalysis,
   agentName,
   conversationTitle,
   selectConversationLabel,
@@ -209,15 +231,24 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   const [selectedConversationId, setSelectedConversationId] = useState(() =>
     readAssistantSurfaceState<string | null>(surfaceId, `${stateScope}:conversation-binding`, null)
   );
-  // Automatic analysis owns a fresh conversation; never send into a restored history binding.
-  const analysisKey = automaticAnalysis?.snapshot
-    ? `${stateScope}:${JSON.stringify(automaticAnalysis.snapshot.payload)}`
-    : undefined;
+  // Bind by node identity, not by the changing selection, filters or snapshot revision.
+  const nodeMode = Boolean(nodeAnalysis);
+  const analysisKey = nodeAnalysis?.nodeKey ? JSON.stringify([stateScope, nodeAnalysis.nodeKey]) : undefined;
+  const [nodeConversations, setNodeConversations] = useState<Record<string, string>>({});
+  const [declinedNodes, setDeclinedNodes] = useState<Record<string, boolean>>({});
+  const storedNodeId = analysisKey ? readNodeConversation(surfaceId, analysisKey) : null;
+  const boundNodeId =
+    (analysisKey ? nodeConversations[analysisKey] : undefined) ??
+    (typeof storedNodeId === 'string' && storedNodeId ? storedNodeId : null);
   const analysisKeyRef = useRef(analysisKey);
   analysisKeyRef.current = analysisKey;
+  const analysisSnapshotRef = useRef(nodeAnalysis?.snapshot);
+  analysisSnapshotRef.current = nodeAnalysis?.snapshot;
   const mountedRef = useRef(true);
   const selectionGenerationRef = useRef(0);
-  const attemptedAnalysisRef = useRef<string | undefined>(undefined);
+  const creationInFlightRef = useRef(false);
+  const creationNodeKeyRef = useRef<string | undefined>(undefined);
+  const [restoreRevision, setRestoreRevision] = useState(0);
   const pendingFirstTurnRef = useRef<{ storageKey: string; value: string } | undefined>(undefined);
   const clearPendingFirstTurn = useCallback(() => {
     const pending = pendingFirstTurnRef.current;
@@ -232,7 +263,8 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
     conversationId?: string;
     failed?: boolean;
     modelMissing?: boolean;
-    history?: boolean;
+    restoring?: boolean;
+    restoreFailed?: boolean;
   }>();
   useEffect(() => {
     mountedRef.current = true;
@@ -300,7 +332,6 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   }, [refreshConversations]);
 
   useEffect(() => {
-    writeAssistantSurfaceState(surfaceId, `${stateScope}:conversation-binding`, selectedConversationId);
     setLastSharedRevision(
       selectedConversationId
         ? readAssistantSurfaceState<number | null>(
@@ -331,9 +362,66 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
     [conversations, selectedConversationId]
   );
 
+  useEffect(() => {
+    if (!nodeMode) {
+      setSelectedConversationId(readAssistantSurfaceState(surfaceId, `${stateScope}:conversation-binding`, null));
+    } else {
+      setHistoryOpen(false);
+    }
+  }, [nodeMode, stateScope, surfaceId]);
+
+  useEffect(() => {
+    if (!nodeMode) return;
+    setSelectedConversationId(null);
+    if (!analysisKey || !boundNodeId) {
+      setAnalysisBinding((current) => (current?.key === analysisKey ? current : undefined));
+      return;
+    }
+    if (loadingConversations || loadError) return;
+    const cached = conversations.find((conversation) => conversation.id === boundNodeId);
+    if (cached) {
+      setSelectedConversationId(cached.id);
+      setAnalysisBinding({ key: analysisKey, conversationId: cached.id });
+      return;
+    }
+    let cancelled = false;
+    setAnalysisBinding({ key: analysisKey, restoring: true });
+    void getConversationOrNull(boundNodeId)
+      .then((conversation) => {
+        if (cancelled) return;
+        const assistant = preferredAssistantRef.current;
+        if (!conversation || !assistant || !isConversationForAssistant(conversation, assistant.id)) {
+          setAnalysisBinding({ key: analysisKey, restoreFailed: true });
+          return;
+        }
+        setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
+        setSelectedConversationId(conversation.id);
+        setAnalysisBinding({ key: analysisKey, conversationId: conversation.id });
+      })
+      .catch(() => {
+        if (!cancelled) setAnalysisBinding({ key: analysisKey, restoreFailed: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    analysisKey,
+    boundNodeId,
+    conversations,
+    loadError,
+    loadingConversations,
+    nodeMode,
+    restoreRevision,
+    stateScope,
+    surfaceId,
+  ]);
+
   const createConversation = useCallback(
     async (analysis?: { key: string; snapshot: SurfaceContextSnapshot; prompt: string }) => {
-      if (creatingConversation) return;
+      if (creationInFlightRef.current) return;
+      if (nodeMode && (!analysis || !analysisSnapshotRef.current || boundNodeId)) return;
+      creationInFlightRef.current = true;
+      creationNodeKeyRef.current = analysis?.key;
       const generation = ++selectionGenerationRef.current;
       const sourceConversation = selectedConversation ?? conversations[0];
       setCreatingConversation(true);
@@ -384,13 +472,15 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
         }
         if (!isConversationForAssistant(created, assistant.id)) return;
         if (analysis) {
+          // A late creation still belongs to its original node; returning must not create another one.
+          writeNodeConversation(surfaceId, analysis.key, created.id);
+          if (mountedRef.current) setNodeConversations((current) => ({ ...current, [analysis.key]: created.id }));
           if (
             !mountedRef.current ||
             analysisKeyRef.current !== analysis.key ||
-            selectionGenerationRef.current !== generation
+            !analysisSnapshotRef.current ||
+            JSON.stringify(analysisSnapshotRef.current.payload) !== JSON.stringify(analysis.snapshot.payload)
           ) {
-            if (analysisKeyRef.current !== analysis.key && attemptedAnalysisRef.current === analysis.key)
-              attemptedAnalysisRef.current = undefined;
             return;
           }
           const storageKey = `${created.type === 'aionrs' ? 'aionrs' : 'acp'}_initial_message_${created.id}`;
@@ -398,8 +488,9 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
           sessionStorage.setItem(storageKey, value);
           pendingFirstTurnRef.current = { storageKey, value };
           setAnalysisBinding({ key: analysis.key, conversationId: created.id });
-        } else if (analysisKeyRef.current) {
-          setAnalysisBinding({ key: analysisKeyRef.current, conversationId: created.id });
+        } else {
+          if (!mountedRef.current || selectionGenerationRef.current !== generation) return;
+          writeAssistantSurfaceState(surfaceId, `${stateScope}:conversation-binding`, created.id);
         }
         setConversations((current) => [created, ...current.filter((conversation) => conversation.id !== created.id)]);
         selectedConversationIdRef.current = created.id;
@@ -421,49 +512,42 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
               : { key: analysis.key, failed: true, modelMissing }
           );
         }
-        setCreatingConversation(false);
+        creationInFlightRef.current = false;
+        creationNodeKeyRef.current = undefined;
+        if (mountedRef.current) setCreatingConversation(false);
       }
     },
     [
       conversationTitle,
       conversations,
-      creatingConversation,
+      boundNodeId,
+      nodeMode,
       i18n.language,
       resolvePreferredAssistant,
       selectedConversation,
       surfaceId,
+      stateScope,
       t,
     ]
   );
-  useEffect(() => {
-    if (!analysisKey || !automaticAnalysis?.snapshot || loadingConversations || loadError || creatingConversation)
-      return;
-    if (attemptedAnalysisRef.current === analysisKey) return;
-    const snapshot = automaticAnalysis.snapshot;
-    const prompt = automaticAnalysis.prompt;
-    // Coalesce rapid scope changes before preparing a conversation.
-    const timer = window.setTimeout(() => {
-      attemptedAnalysisRef.current = analysisKey;
-      void createConversation({ key: analysisKey, snapshot, prompt });
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [
-    analysisKey,
-    automaticAnalysis,
-    loadingConversations,
-    loadError,
-    creatingConversation,
-    createConversation,
-    analysisBinding,
-  ]);
-
-  const showingAnalysisHistory = analysisBinding?.history && analysisBinding.key === analysisKey;
-  const analysisPending =
-    automaticAnalysis && !showingAnalysisHistory && (!analysisKey || analysisBinding?.key !== analysisKey);
-  const analysisFailed = automaticAnalysis && analysisBinding?.key === analysisKey && analysisBinding?.failed;
-  const activeSurfaceContext = automaticAnalysis
-    ? analysisBinding?.key === analysisKey && !analysisBinding?.history
-      ? automaticAnalysis.snapshot
+  const analysisFailed = nodeMode && analysisBinding?.key === analysisKey && analysisBinding?.failed;
+  const restoreFailed = nodeMode && analysisBinding?.key === analysisKey && analysisBinding?.restoreFailed;
+  const nodeReady =
+    nodeMode &&
+    analysisKey &&
+    boundNodeId &&
+    analysisBinding?.key === analysisKey &&
+    analysisBinding.conversationId === boundNodeId &&
+    selectedConversation?.id === boundNodeId;
+  const analysisPending = nodeMode && !nodeReady;
+  const startAnalysis = () => {
+    if (!analysisKey || !nodeAnalysis?.snapshot || boundNodeId) return;
+    setAnalysisBinding(undefined);
+    void createConversation({ key: analysisKey, snapshot: nodeAnalysis.snapshot, prompt: nodeAnalysis.prompt });
+  };
+  const activeSurfaceContext = nodeMode
+    ? nodeReady
+      ? nodeAnalysis?.snapshot
       : undefined
     : surfaceContext && surfaceContextConversationId === selectedConversationId
       ? surfaceContext
@@ -487,38 +571,55 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
     </div>
   ) : analysisPending || analysisFailed ? (
     <div className={styles.conversationState} role='status'>
-      {analysisFailed || automaticAnalysis?.unavailable ? (
-        <Alert
-          type={analysisFailed ? 'error' : 'info'}
-          content={t(
-            analysisFailed
-              ? analysisBinding?.modelMissing
-                ? 'conversation.noModelConfigured'
-                : 'common.assistantSurface.approvalAnalysis.failed'
-              : 'common.assistantSurface.approvalAnalysis.unavailable'
-          )}
-        />
-      ) : (
+      {(creatingConversation && creationNodeKeyRef.current === analysisKey) || (boundNodeId && !restoreFailed) ? (
         <>
           <Spin />
           <span>{t('common.assistantSurface.approvalAnalysis.loading')}</span>
         </>
+      ) : (
+        <>
+          <Alert
+            type={analysisFailed || restoreFailed ? 'error' : 'info'}
+            content={t(
+              restoreFailed
+                ? 'common.assistantSurface.approvalAnalysis.restoreFailed'
+                : analysisFailed
+                  ? analysisBinding?.modelMissing
+                    ? 'conversation.noModelConfigured'
+                    : 'common.assistantSurface.approvalAnalysis.failed'
+                  : !analysisKey
+                    ? 'common.assistantSurface.approvalAnalysis.selectNode'
+                    : nodeAnalysis?.snapshot
+                      ? analysisKey && declinedNodes[analysisKey]
+                        ? 'common.assistantSurface.approvalAnalysis.declined'
+                        : 'common.assistantSurface.approvalAnalysis.ask'
+                      : nodeAnalysis?.unavailable
+                        ? 'common.assistantSurface.approvalAnalysis.unavailable'
+                        : 'common.assistantSurface.approvalAnalysis.waitingForData'
+            )}
+          />
+          {nodeAnalysis?.snapshot && analysisKey && !boundNodeId ? (
+            <>
+              <Button type='primary' disabled={creatingConversation} onClick={startAnalysis}>
+                {t(analysisFailed ? 'common.retry' : 'common.assistantSurface.approvalAnalysis.start')}
+              </Button>
+              {!analysisFailed && !declinedNodes[analysisKey] ? (
+                <Button onClick={() => setDeclinedNodes((current) => ({ ...current, [analysisKey]: true }))}>
+                  {t('common.assistantSurface.approvalAnalysis.decline')}
+                </Button>
+              ) : null}
+            </>
+          ) : null}
+          {restoreFailed ? (
+            <Button onClick={() => setRestoreRevision((value) => value + 1)}>{t('common.retry')}</Button>
+          ) : null}
+          {analysisFailed && analysisBinding?.modelMissing ? (
+            <Button onClick={() => navigate('/settings/model')}>
+              {t('common.assistantSurface.approvalAnalysis.configureModel')}
+            </Button>
+          ) : null}
+        </>
       )}
-      {analysisFailed && analysisBinding?.modelMissing ? (
-        <Button type='primary' onClick={() => navigate('/settings/model')}>
-          {t('common.assistantSurface.approvalAnalysis.configureModel')}
-        </Button>
-      ) : null}
-      {analysisFailed ? (
-        <Button
-          onClick={() => {
-            attemptedAnalysisRef.current = undefined;
-            setAnalysisBinding(undefined);
-          }}
-        >
-          {t('common.retry')}
-        </Button>
-      ) : null}
     </div>
   ) : selectedConversation ? (
     <ChatConversation
@@ -577,10 +678,7 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
             selectionGenerationRef.current++;
             setSelectedConversationId(conversation.id);
             clearPendingFirstTurn();
-            if (automaticAnalysis) {
-              attemptedAnalysisRef.current = analysisKey;
-              setAnalysisBinding({ key: analysisKey, conversationId: conversation.id, history: true });
-            }
+            writeAssistantSurfaceState(surfaceId, `${stateScope}:conversation-binding`, conversation.id);
             setHistoryOpen(false);
           }}
         >
@@ -596,40 +694,40 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
         <div className={styles.conversationHeading}>
           <Robot size={16} />
           <span className={styles.agentName}>{agentName}</span>
-          {selectedConversationId ? (
+          {selectedConversationId && (!nodeMode || nodeReady) ? (
             <ActiveTurnTag surfaceId={surfaceId} conversationId={selectedConversationId} />
           ) : null}
         </div>
-        <div className={styles.conversationControls}>
-          <Tooltip content={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}>
-            <Button
-              type='text'
-              size='mini'
-              icon={<History size={15} />}
-              aria-label={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}
-              data-testid={`${surfaceId}-conversation-select`}
-              onClick={() => setHistoryOpen(true)}
-            />
-          </Tooltip>
-          <Tooltip content={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}>
-            <Button
-              type='text'
-              size='mini'
-              icon={<AddOne size={15} />}
-              loading={creatingConversation}
-              aria-label={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}
-              data-testid={`${surfaceId}-new-conversation`}
-              onClick={() => void createConversation()}
-            />
-          </Tooltip>
-        </div>
+        {!nodeMode ? (
+          <div className={styles.conversationControls}>
+            <Tooltip content={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}>
+              <Button
+                type='text'
+                size='mini'
+                icon={<History size={15} />}
+                aria-label={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}
+                data-testid={`${surfaceId}-conversation-select`}
+                onClick={() => setHistoryOpen(true)}
+              />
+            </Tooltip>
+            <Tooltip content={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}>
+              <Button
+                type='text'
+                size='mini'
+                icon={<AddOne size={15} />}
+                loading={creatingConversation}
+                aria-label={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}
+                data-testid={`${surfaceId}-new-conversation`}
+                onClick={() => void createConversation()}
+              />
+            </Tooltip>
+          </div>
+        ) : null}
       </header>
-      {automaticAnalysis ? (
+      {nodeAnalysis ? (
         <div className={styles.analysisScope}>
           <strong>{t('common.assistantSurface.approvalAnalysis.title')}</strong>
-          <span>
-            {showingAnalysisHistory ? t('common.assistantSurface.approvalAnalysis.history') : automaticAnalysis.label}
-          </span>
+          <span>{nodeAnalysis.label}</span>
         </div>
       ) : null}
     </>
@@ -651,7 +749,9 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
               </Steps>
             </div>
           ) : null}
-          <BusinessSurfaceSessionContext.Provider value={{ conversationId: selectedConversationId }}>
+          <BusinessSurfaceSessionContext.Provider
+            value={{ conversationId: nodeMode ? (nodeReady ? boundNodeId : null) : selectedConversationId }}
+          >
             <div className={styles.boardContent}>{children}</div>
           </BusinessSurfaceSessionContext.Provider>
           {fixtureBoundary ? (
@@ -673,7 +773,7 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
         wrapClassName={styles.historyDrawerWrapper}
         width={320}
         title={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}
-        visible={historyOpen}
+        visible={!nodeMode && historyOpen}
         footer={null}
         unmountOnExit
         onCancel={() => setHistoryOpen(false)}

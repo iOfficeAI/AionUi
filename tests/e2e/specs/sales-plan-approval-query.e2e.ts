@@ -66,14 +66,16 @@ test.describe('Sales-plan approval query', () => {
       'Run with the isolated Assistant Surface, E2E auth-bypass, and sales-plan query flags.'
     );
     await page.addInitScript(
-      ({ periodId, saveStatus }) => {
+      ({ periodId, saveStatus, nodeBindingsTest }) => {
         const originalFetch = window.fetch.bind(window);
         const e2eWindow = window as Window & {
           __salesPlanQueryRequests?: string[];
           __salesPlanActionBodies?: unknown[];
+          __nodeCreateRequests?: string[];
         };
         e2eWindow.__salesPlanQueryRequests = [];
         e2eWindow.__salesPlanActionBodies = [];
+        e2eWindow.__nodeCreateRequests = [];
         // oxlint-disable-next-line eslint-plugin-unicorn/consistent-function-scoping -- addInitScript serializes only this closure.
         const sku = (versionId: string, skuCode: string, qty: string) => ({
           id: `${versionId}-${skuCode}`,
@@ -90,6 +92,13 @@ test.describe('Sales-plan approval query', () => {
           const rawUrl =
             typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
           const url = new URL(rawUrl, window.location.href);
+          if (
+            nodeBindingsTest &&
+            (init?.method ?? (input instanceof Request ? input.method : 'GET')) === 'POST' &&
+            ['/api/conversations', '/api/conversations/clone', '/api/conversations/prepare'].includes(url.pathname)
+          ) {
+            e2eWindow.__nodeCreateRequests?.push(url.pathname);
+          }
           if (url.protocol === 'aionui-core:' || !url.pathname.startsWith('/api/gea/sales-plan/')) {
             return originalFetch(input, init);
           }
@@ -209,7 +218,8 @@ test.describe('Sales-plan approval query', () => {
               '9': 1,
               '10': 1,
             };
-            const isQueueRequest = requestedStatus === null;
+            const isQueueRequest =
+              requestedStatus === null || (nodeBindingsTest && (requestedStatus === '2' || requestedStatus === '5'));
             data = {
               records: isQueueRequest
                 ? [
@@ -224,7 +234,7 @@ test.describe('Sales-plan approval query', () => {
                       provinceCode: 'PROVINCE-E2E',
                       areaCode: 'AREA-E2E',
                       baseName: `E2E 第 ${requestedPage} 页基地`,
-                      status: saveStatus ?? 2,
+                      status: nodeBindingsTest && requestedStatus ? Number(requestedStatus) : (saveStatus ?? 2),
                       returnReason: null,
                       targetQty: '123456789012.345',
                       targetAmount: '9999999999999999.99',
@@ -234,12 +244,18 @@ test.describe('Sales-plan approval query', () => {
                     },
                   ]
                 : [],
-              total: isQueueRequest ? 100 : (statusTotals[requestedStatus] ?? 0),
+              total: nodeBindingsTest
+                ? isQueueRequest
+                  ? 1
+                  : 0
+                : isQueueRequest
+                  ? 100
+                  : (statusTotals[requestedStatus] ?? 0),
               size: Number(url.searchParams.get('pageSize') ?? '20'),
               current: requestedPage,
-              pages: isQueueRequest ? 5 : 1,
+              pages: !nodeBindingsTest && isQueueRequest ? 5 : 1,
             };
-            if (isQueueRequest && Number(url.searchParams.get('pageSize')) === 200) {
+            if (!nodeBindingsTest && isQueueRequest && Number(url.searchParams.get('pageSize')) === 200) {
               const summaryPage = data as { records: Array<Record<string, unknown>>; pages: number };
               const template = summaryPage.records[0];
               summaryPage.records = Array.from({ length: 100 }, (_, index) => ({
@@ -264,6 +280,7 @@ test.describe('Sales-plan approval query', () => {
       },
       {
         periodId: PERIOD_ID,
+        nodeBindingsTest: testInfo.title.includes('node-bound'),
         saveStatus: testInfo.title.includes('standalone SAVE status 5')
           ? 5
           : testInfo.title.includes('standalone SAVE status 10')
@@ -473,6 +490,41 @@ test.describe('Sales-plan approval query', () => {
     expect(darkColors.foreground).not.toBe(darkColors.background);
   });
   for (const theme of ['light', 'dark']) {
+    test(`asks before node-bound analysis and skips empty nodes in ${theme}`, async ({ page }, testInfo) => {
+      await page.goto(`${page.url().split('#')[0]}#/assistant-surface/forecast`);
+      await page.reload();
+      await page.setViewportSize({ width: 1536, height: 1000 });
+      await page.evaluate((value) => {
+        document.documentElement.dataset.theme = value;
+        document.body.setAttribute('arco-theme', value);
+      }, theme);
+      const board = page.getByTestId('regional-approval-workbench');
+      const rail = page.getByTestId('forecast-conversation-region');
+      await expect(board).toBeVisible();
+      await board.getByTestId('regional-approval-stage-region').click();
+      await expect(rail.getByText('是否需要对此节点的销售计划进行辅助分析？')).toBeVisible();
+      await expect(rail.getByRole('button', { name: '需要辅助分析', exact: true })).toBeVisible();
+      await rail.getByRole('button', { name: '暂不需要', exact: true }).click();
+      await expect(rail.getByText('暂不分析，需要时可在这里开始。')).toBeVisible();
+      await board.getByTestId('regional-approval-stage-customer').click();
+      await expect(rail.getByText('当前范围暂无可用数据或查询失败。请在左侧完成查询或重试。')).toBeVisible();
+      await expect(rail.getByRole('button', { name: '需要辅助分析', exact: true })).toHaveCount(0);
+      await board.getByTestId('regional-approval-stage-category').click();
+      await expect(rail.getByText('是否需要对此节点的销售计划进行辅助分析？')).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`node-bound-${theme}.png`) });
+      await page.setViewportSize({ width: 480, height: 900 });
+      await expect.poll(async () => (await rail.boundingBox())!.width).toBeLessThan(266);
+      await expect.poll(() => rail.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+      await expect(rail.getByRole('button', { name: '需要辅助分析', exact: true })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`node-bound-${theme}-480.png`) });
+      await page.setViewportSize({ width: 1536, height: 1000 });
+      await board.getByTestId('regional-approval-stage-region').click();
+      await expect(rail.getByText('暂不分析，需要时可在这里开始。')).toBeVisible();
+      expect(
+        await page.evaluate(() => (window as Window & { __nodeCreateRequests: string[] }).__nodeCreateRequests)
+      ).toEqual([]);
+    });
+
     test(`resizes the Agent rail and fits narrow windows in ${theme}`, async ({ page }, testInfo) => {
       await page.goto(`${page.url().split('#')[0]}#/assistant-surface/forecast`);
       await page.reload();

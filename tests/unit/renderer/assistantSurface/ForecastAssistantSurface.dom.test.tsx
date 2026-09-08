@@ -117,6 +117,44 @@ describe('ForecastAssistantSurface context revision', () => {
     delete window.__aionuiE2ESalesPlanQuery;
   });
 
+  it('keys conversations by month, plan type and node, while gating analysis on usable node data', () => {
+    render(<ForecastAssistantSurface stateScope='user:forecast-fixture-01' />);
+    const value = context('area');
+    value.visibleEntities = [
+      { source: 'fixture', id: 'plan', organizationKey: 'org', approvalState: 'pending', health: 'unknown' },
+    ];
+    const latestAnalysis = () => shellPropsSpy.mock.calls.at(-1)?.[0].nodeAnalysis;
+    act(() => contextChangeRef.current?.(value, null));
+    const initialKey = latestAnalysis().nodeKey;
+    expect(JSON.parse(initialKey)).toEqual(['2026-09', 'monthly', 'area']);
+    expect(latestAnalysis().snapshot).toBeDefined();
+    act(() =>
+      contextChangeRef.current?.(
+        {
+          ...value,
+          scope: { ...value.scope, appliedFilters: { ...value.scope.appliedFilters, customer: 'another' } },
+          pagination: { ...value.pagination, page: 2 },
+        },
+        null
+      )
+    );
+    expect(latestAnalysis().nodeKey).toBe(initialKey);
+    act(() => contextChangeRef.current?.({ ...value, scope: { ...value.scope, month: '2026-10' } }, null));
+    expect(latestAnalysis().nodeKey).not.toBe(initialKey);
+    act(() => contextChangeRef.current?.({ ...value, scope: { ...value.scope, approvalStage: 'category' } }, null));
+    expect(JSON.parse(latestAnalysis().nodeKey)).toEqual(['2026-09', 'monthly', 'category']);
+    act(() =>
+      contextChangeRef.current?.(
+        { ...value, visibleEntities: [], evidence: { ...value.evidence, queryState: 'empty' } },
+        null
+      )
+    );
+    expect(latestAnalysis().snapshot).toBeUndefined();
+    expect(latestAnalysis().unavailable).toBe(true);
+    act(() => contextChangeRef.current?.({ ...value, scope: { ...value.scope, approvalStage: 'all' } }, null));
+    expect(latestAnalysis().nodeKey).toBeUndefined();
+  });
+
   it('keeps Fixture queries disabled unless both dev E2E gates are present', () => {
     expect(
       shouldDisableFixtureSalesPlanQuery({

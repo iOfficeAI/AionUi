@@ -104,10 +104,20 @@ const ForecastAssistantSurface: React.FC<{
 
   return (
     <BusinessSurfaceShell
-      automaticAnalysis={
+      nodeAnalysis={
         showingMessages
           ? undefined
           : {
+              nodeKey:
+                analysisContext?.scope.month &&
+                analysisContext.scope.planType !== 'unknown' &&
+                analysisContext.scope.approvalStage !== 'all'
+                  ? JSON.stringify([
+                      analysisContext.scope.month,
+                      analysisContext.scope.planType,
+                      analysisContext.scope.approvalStage,
+                    ])
+                  : undefined,
               snapshot:
                 analysisContext &&
                 ['success', 'fixture'].includes(analysisContext.evidence.queryState) &&
@@ -121,6 +131,7 @@ const ForecastAssistantSurface: React.FC<{
               label: analysisContext
                 ? t('common.assistantSurface.approvalAnalysis.scope', {
                     month: analysisContext.scope.month,
+                    stage: t(`common.assistantSurface.regionalApproval.stages.${analysisContext.scope.approvalStage}`),
                     dimension: analysisContext.scope.dimension
                       ? t(`common.assistantSurface.regionalApproval.dimensions.${analysisContext.scope.dimension}`)
                       : '',
