@@ -65,6 +65,8 @@ CI will reject your PR if these checks fail. Run them locally **before pushing**
 
 ### Recommended workflow
 
+When an authorized push will use `just push`, do not manually run the same full suite immediately beforehand. The command still owns its required gates; a matching SHA alone does not authorize bypassing them. Reuse evidence only for unchanged code, dependencies, configuration, toolchain, environment, and baseline. Authorization for the same action and scope remains valid within the task.
+
 ```bash
 # Fast feedback while iterating
 just quick-check
@@ -116,7 +118,7 @@ When changing pull-request workflows:
 
 When the user explicitly asks an agent to submit a PR:
 
-1. Resolve and state the push remote and PR base. The default target is the user's personal fork; an official/upstream target requires explicit authorization in the current request.
+1. Resolve and state the push remote and PR base. The default target is the user's personal fork; an official/upstream target requires explicit user authorization.
 2. Commit and push only the intended files, then create the PR as **Ready for review**, not Draft, with its final title, description, linked Issue, and validation evidence.
 3. Monitor required checks, review findings, unresolved threads, conflicts, and mergeability. Apply focused fixes to the same branch and keep the same PR under review.
 4. Merge automatically when required checks pass, no blocking review finding or thread remains, the branch is current and mergeable, and the final diff has been audited.

@@ -65,6 +65,8 @@ CI 会在这些检查失败时拒绝你的 PR。**推送前**在本地运行，�
 
 ### 推荐流程
 
+已获同范围授权持续有效。计划执行 `just push` 时，不提前手动运行同一完整套件；该入口仍执行当前实现要求的门禁，不能仅凭同一 SHA 跳过检查。复用成功记录须满足全局约定的代码、依赖、配置、工具链、环境和基线条件。
+
 ```bash
 # 开发过程中快速反馈
 just quick-check
@@ -116,7 +118,7 @@ bunx vitest run         # 复现单元测试失败
 
 用户明确要求 Agent 提交 PR 时：
 
-1. 解析并说明 push remote 与 PR base。默认目标为用户个人 Fork；官方/upstream 目标必须由用户当轮明确授权。
+1. 解析并说明 push remote 与 PR base。默认目标为用户个人 Fork；官方/upstream 目标必须由用户明确授权。
 2. 只提交和推送本次目标文件，以 **Ready for review** 而非 Draft 状态创建 PR，并一次写好最终标题、说明、关联 Issue 和验证证据。
 3. 持续监控 required checks、审查意见、未解决 thread、冲突和可合并状态；有明确问题时在同一分支做聚焦修复，并持续更新同一 PR。
 4. Required checks 全部通过、没有未解决的阻断审查或 thread、分支已更新且可合并、最终 diff 已审计时，自动合并 PR。
