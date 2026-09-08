@@ -1,0 +1,6 @@
+mcp>=1.0.0,<2.0.0
+dashscope>=1.20.0
+pdfplumber>=0.11.0
+PyPDF2>=3.0.0
+python-dotenv>=1.0.0
+filelock>=3.0.0
