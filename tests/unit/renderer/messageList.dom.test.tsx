@@ -5,17 +5,29 @@
  */
 
 import React, { type PropsWithChildren } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ipcBridge } from '@/common';
 import type { IMessageAcpToolCall, IMessageText, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import type { MessageFileChangesProps } from '@/renderer/pages/conversation/Messages/MessageFileChanges';
 import {
   MessageListLoadingProvider,
   MessageListProvider,
   MessagePaginationProvider,
+  type MessagePaginationState,
   useUpdateMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    database: {
+      getConversationMessages: {
+        invoke: vi.fn(),
+      },
+    },
+  },
+}));
 
 const { parseDiffMock, useTeamPermissionMock } = vi.hoisted(() => ({
   parseDiffMock: vi.fn(),
@@ -156,6 +168,10 @@ vi.mock('@/renderer/pages/conversation/Messages/components/SelectionReplyButton'
   default: () => null,
 }));
 
+vi.mock('@/renderer/pages/conversation/Messages/anchorRail', () => ({
+  MessageAnchorRail: () => null,
+}));
+
 vi.mock('@icon-park/react', () => ({
   Down: () => <span>down</span>,
 }));
@@ -233,12 +249,11 @@ function Wrapper({
   children,
   messages = [createTextMessage()],
   loading = false,
-}: PropsWithChildren<{ messages?: TMessage[]; loading?: boolean }>): JSX.Element {
+  pagination = { hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false },
+}: PropsWithChildren<{ messages?: TMessage[]; loading?: boolean; pagination?: MessagePaginationState }>): JSX.Element {
   return (
     <MessageListLoadingProvider value={loading}>
-      <MessagePaginationProvider
-        value={{ hasMoreBefore: false, hasMoreAfter: false, isLoadingBefore: false, isLoadingAnchor: false }}
-      >
+      <MessagePaginationProvider value={pagination}>
         <MessageListProvider value={messages}>{children}</MessageListProvider>
       </MessagePaginationProvider>
     </MessageListLoadingProvider>
@@ -262,6 +277,7 @@ describe('MessageList', () => {
       diff: 'diff',
     });
     useTeamPermissionMock.mockReturnValue(null);
+    vi.mocked(ipcBridge.database.getConversationMessages.invoke).mockReset();
   });
 
   it('never renders a plan as a stream row (it belongs to ConversationPlanBar)', () => {
@@ -656,5 +672,53 @@ describe('MessageList', () => {
     expect(screen.getByTestId('tool-summary')).toHaveTextContent(message.id);
     expect(screen.queryByTestId('file-changes')).not.toBeInTheDocument();
     expect(screen.queryByTestId('tool-group')).not.toBeInTheDocument();
+  });
+
+  it('auto-loads more history to fill the viewport when the initial page does not overflow the scroller', async () => {
+    // A running turn folds tool calls into short summary cards, so a page can
+    // render without a scrollbar even though older history remains. Without
+    // this, scroll-triggered pagination never gets a scrollbar to trigger on.
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValueOnce({
+      items: [],
+      oldest_cursor: 'cursor-older',
+      newest_cursor: 'cursor-latest',
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => (
+        <Wrapper
+          pagination={{
+            hasMoreBefore: true,
+            hasMoreAfter: false,
+            isLoadingBefore: false,
+            isLoadingAnchor: false,
+            oldestCursor: 'cursor-latest',
+          }}
+        >
+          {children}
+        </Wrapper>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ before: 'cursor-latest' }));
+    });
+  });
+
+  it('does not auto-load history when there is no older page to fetch', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).not.toHaveBeenCalled();
   });
 });

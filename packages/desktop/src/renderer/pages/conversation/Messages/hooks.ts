@@ -943,26 +943,39 @@ export const useMessageLstCache = (key: string) => {
   useEffect(() => {
     listRef.current = list;
   }, [list]);
-  const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const result = await loadLatestConversationMessages(key, {
-      limit: DEFAULT_MESSAGE_PAGE_LIMIT,
-      contentMode: 'compact',
-    });
-    const messages = result?.items?.map(normalizeDbMessage);
-    if (messages && Array.isArray(messages)) {
-      update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
-      setPagination({
-        oldestCursor: result.oldest_cursor ?? undefined,
-        newestCursor: result.newest_cursor ?? undefined,
-        hasMoreBefore: result.has_more_before,
-        hasMoreAfter: result.has_more_after,
-        isLoadingBefore: false,
-        isLoadingAnchor: false,
+  const loadMessages = useCallback(
+    async (options?: { preservePaginationBefore?: boolean }): Promise<TMessage[]> => {
+      const result = await loadLatestConversationMessages(key, {
+        limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+        contentMode: 'compact',
       });
-      return messages;
-    }
-    return [];
-  }, [key, setPagination, update]);
+      const messages = result?.items?.map(normalizeDbMessage);
+      if (messages && Array.isArray(messages)) {
+        update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
+        setPagination((current) =>
+          options?.preservePaginationBefore
+            ? {
+                ...current,
+                newestCursor: result.newest_cursor ?? undefined,
+                hasMoreAfter: result.has_more_after,
+                isLoadingBefore: false,
+                isLoadingAnchor: false,
+              }
+            : {
+                oldestCursor: result.oldest_cursor ?? undefined,
+                newestCursor: result.newest_cursor ?? undefined,
+                hasMoreBefore: result.has_more_before,
+                hasMoreAfter: result.has_more_after,
+                isLoadingBefore: false,
+                isLoadingAnchor: false,
+              }
+        );
+        return messages;
+      }
+      return [];
+    },
+    [key, setPagination, update]
+  );
 
   useEffect(() => {
     if (!key) return;
@@ -1061,7 +1074,10 @@ export const useMessageLstCache = (key: string) => {
       );
 
       if (hasPendingDelivery) {
-        void loadMessages().catch((error) => {
+        // Preserve any older-page pagination progress the user already loaded by
+        // scrolling up — this reload is a reconciliation of the newest page, not
+        // a fresh mount, so it must not discard `oldestCursor`/`hasMoreBefore`.
+        void loadMessages({ preservePaginationBefore: true }).catch((error) => {
           console.error('[useMessageLstCache] Failed to reconcile pending messages after turn completion:', error);
         });
       }
