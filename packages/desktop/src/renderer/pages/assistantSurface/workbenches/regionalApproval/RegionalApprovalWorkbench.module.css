@@ -782,55 +782,146 @@
   }
 }
 
-/* Keep the wide desktop queue controls in two rows; wrap intact at smaller widths. */
+/* Two actual rows: summary/actions, then dimensions and applied filters. */
 .queueHeader {
+  box-sizing: border-box;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 12px;
+  min-height: 48px;
+  padding: 6px 10px;
 }
 .queueHeader > .controlToolbar {
   flex: 1 1 100%;
   min-width: 0;
-  flex-wrap: wrap;
+}
+.queueHeader h2 {
+  line-height: 20px;
+  margin-bottom: 0;
+}
+.queueHeader > div:first-child {
+  font-size: 12px;
+  line-height: 20px;
 }
 .queueMetrics {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1 1 300px;
+  min-width: 0;
   gap: 4px 0;
 }
-@container (min-width: 1280px) {
-  .queueHeader > .controlToolbar {
-    flex: 1 1 auto;
-  }
+.queueMetrics > span {
+  min-width: 0;
+}
+.queueMetrics strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queueMetrics strong:focus-visible {
+  outline: 2px solid rgb(var(--primary-6));
+  outline-offset: 2px;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  overflow-x: hidden;
+}
+.advancedToggle {
+  display: inline-flex;
+  margin-left: auto;
+}
+.advancedControls {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.advancedControls[data-expanded='false'] {
+  display: none;
+}
+.exportFeedback {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+@container (min-width: 1100px) {
   .queueHeader {
     flex-wrap: nowrap;
-    min-height: 52px;
-    padding: 5px 8px;
+  }
+  .queueHeader > .controlToolbar {
+    flex: 0 0 auto;
+  }
+  .queueHeader > div:first-child {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .queueMetrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex: 1 1 360px;
+    min-width: 0;
+  }
+  .queueMetrics strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .queueMetrics strong:focus-visible {
+    outline: 2px solid rgb(var(--primary-6));
+    outline-offset: 2px;
   }
   .queueMetrics > span {
-    min-width: 72px;
+    min-width: 0;
     padding-inline: 6px;
   }
-  .advancedControls {
+  .toolbarActions {
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .toolbarActions :global(.arco-btn) {
+    padding-inline: 8px;
+    font-size: 12px;
+    min-height: 28px;
+  }
+  .advancedToggle {
+    display: none;
+  }
+  .advancedControls,
+  .advancedControls[data-expanded='false'] {
     display: flex;
+    flex: 1 1 0;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding-top: 0;
   }
   .filterHeading {
     min-width: 0;
-    flex-wrap: wrap;
-    flex: 0 0 80px;
+    flex: 0 0 auto;
     margin: 0;
   }
-  .filterRow {
-    flex: 1;
-  }
-  .fieldControl {
-    flex-direction: row;
-    align-items: center;
-    gap: 5px;
-  }
+  .filterHeading > strong,
   .fieldControl > span {
-    white-space: nowrap;
+    display: none;
+  }
+  .filterRow {
+    min-width: 0;
+    flex: 1;
+    grid-template-columns: repeat(3, minmax(70px, 1fr)) minmax(110px, 1.4fr) repeat(2, minmax(70px, 1fr)) auto;
+  }
+  .liveFilterRow {
+    grid-template-columns: 96px 96px 96px minmax(120px, 1fr) 96px auto;
+  }
+  .filterRow :global(.arco-select-view) {
+    padding-inline: 8px;
+  }
+  .dimensionTabs :global(.arco-btn) {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+  .filterActions {
+    grid-column: auto;
   }
 }
 

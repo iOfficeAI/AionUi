@@ -2006,7 +2006,7 @@ const RegionalApprovalWorkbench: React.FC<{
           />
         ) : null}
         <section className={styles.queue} aria-label={t('common.assistantSurface.regionalApproval.queue.ariaLabel')}>
-          <header className={styles.queueHeader}>
+          <header className={styles.queueHeader} data-testid='regional-approval-compact-header'>
             <div>
               <h2>{t('common.assistantSurface.regionalApproval.queue.title')}</h2>
               <Typography.Text type='secondary'>
@@ -2021,18 +2021,22 @@ const RegionalApprovalWorkbench: React.FC<{
               role='region'
               aria-label={t('common.assistantSurface.regionalApproval.scopeTotals.title')}
             >
-              {(['targetQuantity', 'targetAmount', 'quantity', 'amount'] as const).map((field) => (
-                <span key={field}>
-                  <small>{t(`common.assistantSurface.regionalApproval.scopeTotals.${field}`)}</small>
-                  <strong>
-                    {(liveQuery.enabled && scopeSummary.status !== 'success') || metrics[field] === undefined
-                      ? '—'
-                      : field === 'amount' || field === 'targetAmount'
-                        ? exactMoney(metrics[field]!)
-                        : formatExactDecimal(metrics[field]!)}
-                  </strong>
-                </span>
-              ))}
+              {(['targetQuantity', 'targetAmount', 'quantity', 'amount'] as const).map((field) => {
+                const value =
+                  (liveQuery.enabled && scopeSummary.status !== 'success') || metrics[field] === undefined
+                    ? '—'
+                    : field === 'amount' || field === 'targetAmount'
+                      ? exactMoney(metrics[field]!)
+                      : formatExactDecimal(metrics[field]!);
+                return (
+                  <span key={field}>
+                    <small>{t(`common.assistantSurface.regionalApproval.scopeTotals.${field}`)}</small>
+                    <Tooltip content={value} trigger={['hover', 'focus']}>
+                      <strong tabIndex={0}>{value}</strong>
+                    </Tooltip>
+                  </span>
+                );
+              })}
               {liveQuery.enabled && scopeSummary.status === 'loading' ? <Spin size={14} /> : null}
               {historicalSummaryUnavailable ? (
                 <small>{t('common.assistantSurface.regionalApproval.scopeTotals.historicalUnavailable')}</small>
@@ -2043,40 +2047,6 @@ const RegionalApprovalWorkbench: React.FC<{
               ) : null}
             </div>
             <div className={styles.controlToolbar}>
-              <div className={styles.dimensionControls}>
-                <label className={styles.categorySwitch}>
-                  <Switch
-                    size='small'
-                    checked={categoryComparison}
-                    aria-label={t('common.assistantSurface.regionalApproval.categoryComparison')}
-                    onChange={setCategoryComparison}
-                  />
-                  <span>{t('common.assistantSurface.regionalApproval.categoryComparison')}</span>
-                </label>
-                <div
-                  className={styles.dimensionTabs}
-                  role='tablist'
-                  aria-label={t('common.assistantSurface.regionalApproval.dimensions.ariaLabel')}
-                >
-                  {availableDimensions.map((candidate) => (
-                    <Button
-                      key={candidate}
-                      size='small'
-                      type='text'
-                      role='tab'
-                      aria-selected={candidate === dimension}
-                      data-active={candidate === dimension}
-                      onClick={() => {
-                        setSelectedRowIds([]);
-                        setLiveAuthorityContext(undefined);
-                        setDimension(candidate);
-                      }}
-                    >
-                      {t(`common.assistantSurface.regionalApproval.dimensions.${candidate}`)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
               <div className={styles.toolbarActions} data-testid='regional-approval-toolbar-actions'>
                 <Button size='small' onClick={() => setProgressOpen(true)}>
                   {t('common.assistantSurface.regionalApproval.toolbar.progress')}
@@ -2115,8 +2085,43 @@ const RegionalApprovalWorkbench: React.FC<{
           </header>
           <section
             className={styles.controls}
+            data-testid='regional-approval-compact-filters'
             aria-label={t('common.assistantSurface.regionalApproval.filters.ariaLabel')}
           >
+            <div className={styles.dimensionControls}>
+              <label className={styles.categorySwitch}>
+                <Switch
+                  size='small'
+                  checked={categoryComparison}
+                  aria-label={t('common.assistantSurface.regionalApproval.categoryComparison')}
+                  onChange={setCategoryComparison}
+                />
+                <span>{t('common.assistantSurface.regionalApproval.categoryComparison')}</span>
+              </label>
+              <div
+                className={styles.dimensionTabs}
+                role='tablist'
+                aria-label={t('common.assistantSurface.regionalApproval.dimensions.ariaLabel')}
+              >
+                {availableDimensions.map((candidate) => (
+                  <Button
+                    key={candidate}
+                    size='small'
+                    type='text'
+                    role='tab'
+                    aria-selected={candidate === dimension}
+                    data-active={candidate === dimension}
+                    onClick={() => {
+                      setSelectedRowIds([]);
+                      setLiveAuthorityContext(undefined);
+                      setDimension(candidate);
+                    }}
+                  >
+                    {t(`common.assistantSurface.regionalApproval.dimensions.${candidate}`)}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <Button
               className={styles.advancedToggle}
               size='small'

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { invokeBridge } from '../helpers';
@@ -324,6 +324,8 @@ test.describe('Sales-plan approval query', () => {
     await expect(page.getByRole('button', { name: '通过' })).toBeDisabled();
     await expect(page.getByRole('columnheader', { name: '审批操作' })).toHaveCount(0);
     await expect(page.getByRole('tablist', { name: '审批队列维度' })).toBeVisible();
+    const filterToggle = page.getByRole('button', { name: '筛选条件' });
+    if (await filterToggle.isVisible()) await filterToggle.click();
     await expect(page.getByRole('combobox', { name: '大区' })).toBeEnabled();
     await expect(page.getByRole('button', { name: '查询' })).toBeDisabled();
     const requests = await page.evaluate(
@@ -451,7 +453,8 @@ test.describe('Sales-plan approval query', () => {
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(760);
     await expect(page.getByTestId('regional-approval-workbench')).toBeVisible();
     await expect(page.getByRole('navigation', { name: '各节点数据状态' })).toBeVisible();
-    await page.getByRole('button', { name: '筛选条件', exact: true }).click();
+    const narrowFilterToggle = page.getByRole('button', { name: '筛选条件', exact: true });
+    if ((await narrowFilterToggle.getAttribute('aria-expanded')) !== 'true') await narrowFilterToggle.click();
     await expect(page.getByRole('button', { name: '重置' })).toBeVisible();
     const narrowBounds = await page.getByTestId('regional-approval-workbench').boundingBox();
     expect(narrowBounds).not.toBeNull();
@@ -502,6 +505,66 @@ test.describe('Sales-plan approval query', () => {
       ).toEqual([]);
     });
   }
+
+  test('keeps queue controls compact at actual workbench widths', async ({ page }, testInfo) => {
+    /* oxlint-disable no-await-in-loop -- inspect one Electron host across responsive layouts. */
+    const measurements = [];
+    for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width: 1920, height: 1000 });
+      await page.goto(`${page.url().split('#')[0]}#/settings/system`);
+      await page.reload();
+      const themeToggle = page.getByTestId('theme-toggle');
+      await expect(themeToggle).toBeVisible();
+      if ((await page.locator('html').getAttribute('data-theme')) !== theme) await themeToggle.click();
+      await page.goto(`${page.url().split('#')[0]}#/assistant-surface/forecast`);
+      const board = page.getByTestId('regional-approval-workbench');
+      const header = page.getByTestId('regional-approval-compact-header');
+      const filters = page.getByTestId('regional-approval-compact-filters');
+      await expect(header).toBeVisible();
+      for (const width of [1920, 1840, 1536, 1280, 900]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await expect(board.getByRole('button', { name: '查看提报进度', exact: true })).toBeVisible();
+        await expect(board.getByRole('button', { name: '通过', exact: true })).toBeVisible();
+        const bounds = await board.evaluate((element) => {
+          const headerElement = element.querySelector('[data-testid="regional-approval-compact-header"]')!;
+          const filtersElement = element.querySelector('[data-testid="regional-approval-compact-filters"]')!;
+          return {
+            width: element.clientWidth,
+            header: headerElement.clientHeight,
+            filters: filtersElement.clientHeight,
+            headerOverflow: headerElement.scrollWidth - headerElement.clientWidth,
+            filterOverflow: filtersElement.scrollWidth - filtersElement.clientWidth,
+          };
+        });
+        await page.screenshot({ path: testInfo.outputPath(`compact-${theme}-${width}.png`) });
+        await testInfo.attach(`measure-${theme}-${width}`, {
+          body: JSON.stringify(bounds),
+          contentType: 'application/json',
+        });
+        expect(bounds.headerOverflow).toBeLessThanOrEqual(1);
+        expect(bounds.filterOverflow).toBeLessThanOrEqual(1);
+        if (bounds.width >= 1100) {
+          expect(bounds.header).toBeLessThanOrEqual(56);
+          expect(bounds.filters).toBeLessThanOrEqual(50);
+          await expect(filters.getByRole('combobox', { name: '大区' })).toBeVisible();
+        } else {
+          const toggle = filters.getByRole('button', { name: '筛选条件' });
+          await expect(toggle).toBeVisible();
+          await toggle.click();
+          await expect(filters.getByRole('combobox', { name: '大区' })).toBeVisible();
+          await expect(filters.getByRole('button', { name: '查询', exact: true })).toBeVisible();
+          await toggle.click();
+        }
+        measurements.push({ theme, viewport: width, ...bounds });
+      }
+    }
+    writeFileSync(testInfo.outputPath('control-height-measurements.json'), JSON.stringify(measurements, null, 2));
+    await testInfo.attach('control-height-measurements', {
+      body: JSON.stringify(measurements, null, 2),
+      contentType: 'application/json',
+    });
+    /* oxlint-enable no-await-in-loop */
+  });
 
   test('drills through the complete organization scope in both themes and all acceptance widths', async ({
     page,
