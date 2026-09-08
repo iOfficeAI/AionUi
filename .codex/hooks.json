@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.agents/skills/impeccable/scripts/hook.mjs\"",
+            "command": "\"$HOME/.agents/skills/impeccable/scripts/impeccable\" hook",
             "timeout": 5,
             "statusMessage": "Checking UI changes"
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.agents/skills/impeccable/scripts/hook.mjs\"",
+            "command": "\"$HOME/.agents/skills/impeccable/scripts/impeccable\" hook",
             "timeout": 30,
             "statusMessage": "Design deep pass"
           }
