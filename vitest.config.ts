@@ -61,8 +61,16 @@ export default defineConfig({
       // Cover ALL source code by default — new files are automatically included.
       // Only exclude files that genuinely cannot be unit-tested (entry points,
       // type-only files, static assets, etc.).
-      include: ['packages/desktop/src/**/*.{ts,tsx}', 'packages/**/src/**/*.{ts,tsx}', 'scripts/packaging/*.js'],
+      include: [
+        'packages/desktop/src/**/*.{ts,tsx}',
+        'packages/**/src/**/*.{ts,tsx}',
+        'scripts/packaging/*.js',
+        'scripts/api-docs/**/*.ts',
+      ],
       exclude: [
+        // CLI and browser acceptance are exercised through their process/browser entrypoints.
+        'scripts/api-docs/cli.ts',
+        'scripts/api-docs/smoke.ts',
         // Type declaration files (no runtime code)
         'packages/**/src/**/*.d.ts',
 
