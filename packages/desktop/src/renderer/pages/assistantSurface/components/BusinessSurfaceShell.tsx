@@ -15,10 +15,11 @@ import { Alert, Button, Drawer, Empty, Message, Spin, Steps, Tag, Tooltip } from
 import { AddOne, Comments, Data, History, Refresh, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import type { AssistantSurfaceId } from '../registry';
 import { readAssistantSurfaceState, writeAssistantSurfaceState } from '../storage';
-import type { SurfaceContextSnapshot } from '../surfaceContext';
+import { appendSurfaceContextBlock, type SurfaceContextSnapshot } from '../surfaceContext';
 import styles from './BusinessSurfaceShell.module.css';
 
 type SpecializedSurfaceId = Exclude<AssistantSurfaceId, 'general'>;
@@ -95,6 +96,7 @@ type BusinessSurfaceShellProps = React.PropsWithChildren<{
   stateScope: string;
   surfaceContext?: SurfaceContextSnapshot;
   surfaceContextConversationId?: string | null;
+  automaticAnalysis?: { snapshot?: SurfaceContextSnapshot; prompt: string; label: string; unavailable: boolean };
   agentName: string;
   conversationTitle: string;
   selectConversationLabel: string;
@@ -123,6 +125,7 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   stateScope,
   surfaceContext,
   surfaceContextConversationId,
+  automaticAnalysis,
   agentName,
   conversationTitle,
   selectConversationLabel,
@@ -133,6 +136,7 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   children,
 }) => {
   const { i18n, t } = useTranslation();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState<SupportedConversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [creatingConversation, setCreatingConversation] = useState(false);
@@ -142,6 +146,37 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   const [selectedConversationId, setSelectedConversationId] = useState(() =>
     readAssistantSurfaceState<string | null>(surfaceId, `${stateScope}:conversation-binding`, null)
   );
+  // Automatic analysis owns a fresh conversation; never send into a restored history binding.
+  const analysisKey = automaticAnalysis?.snapshot
+    ? `${stateScope}:${JSON.stringify(automaticAnalysis.snapshot.payload)}`
+    : undefined;
+  const analysisKeyRef = useRef(analysisKey);
+  analysisKeyRef.current = analysisKey;
+  const mountedRef = useRef(true);
+  const selectionGenerationRef = useRef(0);
+  const attemptedAnalysisRef = useRef<string | undefined>(undefined);
+  const pendingFirstTurnRef = useRef<{ storageKey: string; value: string } | undefined>(undefined);
+  const clearPendingFirstTurn = useCallback(() => {
+    const pending = pendingFirstTurnRef.current;
+    if (pending && sessionStorage.getItem(pending.storageKey) === pending.value) {
+      sessionStorage.removeItem(pending.storageKey);
+    }
+    pendingFirstTurnRef.current = undefined;
+  }, []);
+  useEffect(() => () => clearPendingFirstTurn(), [analysisKey, clearPendingFirstTurn]);
+  const [analysisBinding, setAnalysisBinding] = useState<{
+    key?: string;
+    conversationId?: string;
+    failed?: boolean;
+    modelMissing?: boolean;
+    history?: boolean;
+  }>();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const selectedConversationIdRef = useRef(selectedConversationId);
   const preferredAssistantRef = useRef<Assistant | undefined>(undefined);
   const conversationPreparationRef = useRef(
@@ -233,75 +268,143 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
     [conversations, selectedConversationId]
   );
 
-  const createConversation = useCallback(async () => {
-    if (creatingConversation) return;
-    const sourceConversation = selectedConversation ?? conversations[0];
-    setCreatingConversation(true);
-    try {
-      const assistant = preferredAssistantRef.current ?? (await resolvePreferredAssistant());
-      if (!assistant) {
-        Message.error(t('conversation.attention.salesForecast.assistantUnavailable'));
-        return;
-      }
-      let created: TChatConversation;
-      if (sourceConversation) {
-        created = await createConversationFromConversation(sourceConversation);
-      } else {
-        if (!assistant.enabled) {
-          await ipcBridge.assistants.setState.invoke({ id: assistant.id, enabled: true });
-          await swrMutate('assistants.list');
-        }
-        const preparationResult = await conversationPreparationRef.current.prepare({
-          assistant,
-          locale: i18n.language,
-          idempotencyKey: createPreparationIdempotencyKey(),
-          overrides: {},
-        });
-        if (preparationResult.status !== 'ready') {
-          Message.error(t('conversation.attention.salesForecast.startFailed'));
+  const createConversation = useCallback(
+    async (analysis?: { key: string; snapshot: SurfaceContextSnapshot; prompt: string }) => {
+      if (creatingConversation) return;
+      const generation = ++selectionGenerationRef.current;
+      const sourceConversation = selectedConversation ?? conversations[0];
+      setCreatingConversation(true);
+      let modelMissing = false;
+      try {
+        const assistant = preferredAssistantRef.current ?? (await resolvePreferredAssistant());
+        if (!assistant) {
+          Message.error(t('conversation.attention.salesForecast.assistantUnavailable'));
           return;
         }
-        const model = isAionrsAssistant(assistant)
-          ? findDefaultForecastModel(await ipcBridge.mode.listProviders.invoke())
-          : undefined;
-        if (isAionrsAssistant(assistant) && !model) {
-          Message.error(t('conversation.noModelConfigured'));
-          return;
+        let created: TChatConversation;
+        if (sourceConversation) {
+          created = await createConversationFromConversation(sourceConversation);
+        } else {
+          if (!assistant.enabled) {
+            await ipcBridge.assistants.setState.invoke({ id: assistant.id, enabled: true });
+            await swrMutate('assistants.list');
+          }
+          const preparationResult = await conversationPreparationRef.current.prepare({
+            assistant,
+            locale: i18n.language,
+            idempotencyKey: createPreparationIdempotencyKey(),
+            overrides: {},
+          });
+          if (preparationResult.status !== 'ready') {
+            Message.error(t('conversation.attention.salesForecast.startFailed'));
+            return;
+          }
+          const requiresLocalModel = preparationResult.mode === 'standard' && isAionrsAssistant(assistant);
+          const model = requiresLocalModel
+            ? findDefaultForecastModel(await ipcBridge.mode.listProviders.invoke())
+            : undefined;
+          if (requiresLocalModel && !model) {
+            modelMissing = true;
+            if (!analysis) Message.error(t('conversation.noModelConfigured'));
+            return;
+          }
+          created = await ipcBridge.conversation.create.invoke(
+            preparationResult.preparation
+              ? { preparation: preparationResult.preparation }
+              : {
+                  name: conversationTitle,
+                  model,
+                  assistant: { id: assistant.id, locale: i18n.language, conversation_overrides: {} },
+                  extra: {},
+                }
+          );
         }
-        created = await ipcBridge.conversation.create.invoke(
-          preparationResult.preparation
-            ? { preparation: preparationResult.preparation }
-            : {
-                name: conversationTitle,
-                model,
-                assistant: { id: assistant.id, locale: i18n.language, conversation_overrides: {} },
-                extra: {},
-              }
-        );
+        if (!isConversationForAssistant(created, assistant.id)) return;
+        if (analysis) {
+          if (
+            !mountedRef.current ||
+            analysisKeyRef.current !== analysis.key ||
+            selectionGenerationRef.current !== generation
+          ) {
+            if (analysisKeyRef.current !== analysis.key && attemptedAnalysisRef.current === analysis.key)
+              attemptedAnalysisRef.current = undefined;
+            return;
+          }
+          const storageKey = `${created.type === 'aionrs' ? 'aionrs' : 'acp'}_initial_message_${created.id}`;
+          const value = JSON.stringify({ input: appendSurfaceContextBlock(analysis.prompt, analysis.snapshot) });
+          sessionStorage.setItem(storageKey, value);
+          pendingFirstTurnRef.current = { storageKey, value };
+          setAnalysisBinding({ key: analysis.key, conversationId: created.id });
+        } else if (analysisKeyRef.current) {
+          setAnalysisBinding({ key: analysisKeyRef.current, conversationId: created.id });
+        }
+        setConversations((current) => [created, ...current.filter((conversation) => conversation.id !== created.id)]);
+        selectedConversationIdRef.current = created.id;
+        setSelectedConversationId(created.id);
+        if (!sourceConversation) emitter.emit('chat.history.refresh');
+      } catch (error) {
+        console.error(`[${surfaceId}AssistantSurface] Failed to create conversation:`, error);
+        Message.error(getConversationCreateErrorMessage(error, t));
+      } finally {
+        if (
+          analysis &&
+          mountedRef.current &&
+          analysisKeyRef.current === analysis.key &&
+          selectionGenerationRef.current === generation
+        ) {
+          setAnalysisBinding((current) =>
+            current?.key === analysis.key && current.conversationId
+              ? current
+              : { key: analysis.key, failed: true, modelMissing }
+          );
+        }
+        setCreatingConversation(false);
       }
-      if (!isConversationForAssistant(created, assistant.id)) return;
-      setConversations((current) => [created, ...current.filter((conversation) => conversation.id !== created.id)]);
-      selectedConversationIdRef.current = created.id;
-      setSelectedConversationId(created.id);
-      if (!sourceConversation) emitter.emit('chat.history.refresh');
-    } catch (error) {
-      console.error(`[${surfaceId}AssistantSurface] Failed to create conversation:`, error);
-      Message.error(getConversationCreateErrorMessage(error, t));
-    } finally {
-      setCreatingConversation(false);
-    }
+    },
+    [
+      conversationTitle,
+      conversations,
+      creatingConversation,
+      i18n.language,
+      resolvePreferredAssistant,
+      selectedConversation,
+      surfaceId,
+      t,
+    ]
+  );
+  useEffect(() => {
+    if (!analysisKey || !automaticAnalysis?.snapshot || loadingConversations || loadError || creatingConversation)
+      return;
+    if (attemptedAnalysisRef.current === analysisKey) return;
+    const snapshot = automaticAnalysis.snapshot;
+    const prompt = automaticAnalysis.prompt;
+    // Coalesce rapid scope changes before preparing a conversation.
+    const timer = window.setTimeout(() => {
+      attemptedAnalysisRef.current = analysisKey;
+      void createConversation({ key: analysisKey, snapshot, prompt });
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, [
-    conversationTitle,
-    conversations,
+    analysisKey,
+    automaticAnalysis,
+    loadingConversations,
+    loadError,
     creatingConversation,
-    i18n.language,
-    resolvePreferredAssistant,
-    selectedConversation,
-    surfaceId,
-    t,
+    createConversation,
+    analysisBinding,
   ]);
-  const activeSurfaceContext =
-    surfaceContext && surfaceContextConversationId === selectedConversationId ? surfaceContext : undefined;
+
+  const showingAnalysisHistory = analysisBinding?.history && analysisBinding.key === analysisKey;
+  const analysisPending =
+    automaticAnalysis && !showingAnalysisHistory && (!analysisKey || analysisBinding?.key !== analysisKey);
+  const analysisFailed = automaticAnalysis && analysisBinding?.key === analysisKey && analysisBinding?.failed;
+  const activeSurfaceContext = automaticAnalysis
+    ? analysisBinding?.key === analysisKey && !analysisBinding?.history
+      ? automaticAnalysis.snapshot
+      : undefined
+    : surfaceContext && surfaceContextConversationId === selectedConversationId
+      ? surfaceContext
+      : undefined;
 
   const conversationBody = loadingConversations ? (
     <div className={styles.conversationState}>
@@ -319,8 +422,44 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
         {t('common.retry')}
       </Button>
     </div>
+  ) : analysisPending || analysisFailed ? (
+    <div className={styles.conversationState} role='status'>
+      {analysisFailed || automaticAnalysis?.unavailable ? (
+        <Alert
+          type={analysisFailed ? 'error' : 'info'}
+          content={t(
+            analysisFailed
+              ? analysisBinding?.modelMissing
+                ? 'conversation.noModelConfigured'
+                : 'common.assistantSurface.approvalAnalysis.failed'
+              : 'common.assistantSurface.approvalAnalysis.unavailable'
+          )}
+        />
+      ) : (
+        <>
+          <Spin />
+          <span>{t('common.assistantSurface.approvalAnalysis.loading')}</span>
+        </>
+      )}
+      {analysisFailed && analysisBinding?.modelMissing ? (
+        <Button type='primary' onClick={() => navigate('/settings/model')}>
+          {t('common.assistantSurface.approvalAnalysis.configureModel')}
+        </Button>
+      ) : null}
+      {analysisFailed ? (
+        <Button
+          onClick={() => {
+            attemptedAnalysisRef.current = undefined;
+            setAnalysisBinding(undefined);
+          }}
+        >
+          {t('common.retry')}
+        </Button>
+      ) : null}
+    </div>
   ) : selectedConversation ? (
     <ChatConversation
+      key={selectedConversation.id}
       conversation={selectedConversation}
       embedded
       surfaceContext={activeSurfaceContext}
@@ -372,7 +511,13 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
           role='option'
           aria-selected={conversation.id === selectedConversationId}
           onClick={() => {
+            selectionGenerationRef.current++;
             setSelectedConversationId(conversation.id);
+            clearPendingFirstTurn();
+            if (automaticAnalysis) {
+              attemptedAnalysisRef.current = analysisKey;
+              setAnalysisBinding({ key: analysisKey, conversationId: conversation.id, history: true });
+            }
             setHistoryOpen(false);
           }}
         >
@@ -383,38 +528,48 @@ const BusinessSurfaceShell: React.FC<BusinessSurfaceShellProps> = ({
   );
 
   const conversationHeader = (
-    <header className={styles.conversationHeader}>
-      <div className={styles.conversationHeading}>
-        <Robot size={16} />
-        <span className={styles.agentName}>{agentName}</span>
-        {selectedConversationId ? (
-          <ActiveTurnTag surfaceId={surfaceId} conversationId={selectedConversationId} />
-        ) : null}
-      </div>
-      <div className={styles.conversationControls}>
-        <Tooltip content={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}>
-          <Button
-            type='text'
-            size='mini'
-            icon={<History size={15} />}
-            aria-label={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}
-            data-testid={`${surfaceId}-conversation-select`}
-            onClick={() => setHistoryOpen(true)}
-          />
-        </Tooltip>
-        <Tooltip content={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}>
-          <Button
-            type='text'
-            size='mini'
-            icon={<AddOne size={15} />}
-            loading={creatingConversation}
-            aria-label={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}
-            data-testid={`${surfaceId}-new-conversation`}
-            onClick={() => void createConversation()}
-          />
-        </Tooltip>
-      </div>
-    </header>
+    <>
+      <header className={styles.conversationHeader}>
+        <div className={styles.conversationHeading}>
+          <Robot size={16} />
+          <span className={styles.agentName}>{agentName}</span>
+          {selectedConversationId ? (
+            <ActiveTurnTag surfaceId={surfaceId} conversationId={selectedConversationId} />
+          ) : null}
+        </div>
+        <div className={styles.conversationControls}>
+          <Tooltip content={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}>
+            <Button
+              type='text'
+              size='mini'
+              icon={<History size={15} />}
+              aria-label={t('common.assistantSurface.conversationHistory', { defaultValue: '历史对话' })}
+              data-testid={`${surfaceId}-conversation-select`}
+              onClick={() => setHistoryOpen(true)}
+            />
+          </Tooltip>
+          <Tooltip content={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}>
+            <Button
+              type='text'
+              size='mini'
+              icon={<AddOne size={15} />}
+              loading={creatingConversation}
+              aria-label={t('common.assistantSurface.newConversation', { defaultValue: '新对话' })}
+              data-testid={`${surfaceId}-new-conversation`}
+              onClick={() => void createConversation()}
+            />
+          </Tooltip>
+        </div>
+      </header>
+      {automaticAnalysis ? (
+        <div className={styles.analysisScope}>
+          <strong>{t('common.assistantSurface.approvalAnalysis.title')}</strong>
+          <span>
+            {showingAnalysisHistory ? t('common.assistantSurface.approvalAnalysis.history') : automaticAnalysis.label}
+          </span>
+        </div>
+      ) : null}
+    </>
   );
 
   return (
