@@ -364,3 +364,60 @@ test('concurrent cache writers leave only complete readable entries', async (t) 
     assert.equal(cache.restoreDownload(dir, manifest.source, path.join(root, 'restored')), true);
   }
 });
+
+// Published Hub v1 hashes sorted relative paths and uncompressed file bytes.
+test('Hub accepts published content integrity and revalidates offline cache', async (t) => {
+  const data = hubFixture(t);
+  const content = require('node:crypto')
+    .createHash('sha256')
+    .update('aion-extension.json')
+    .update('{}')
+    .update('nested/adapter.js')
+    .update('export default 1;')
+    .digest('hex');
+  data.index.extensions.one.dist.integrity = `sha256-${content}`;
+  write(
+    data.archive,
+    Buffer.from(
+      'UEsDBBQAAAAAALuiKF2GbGocEQAAABEAAAARAAAAbmVzdGVkL2FkYXB0ZXIuanNleHBvcnQgZGVmYXVsdCAxO1BLAwQUAAAAAAC7oihdQ7+mowIAAAACAAAAEwAAAGFpb24tZXh0ZW5zaW9uLmpzb257fVBLAQIUAxQAAAAAALuiKF2GbGocEQAAABEAAAARAAAAAAAAAAAAAACAAQAAAABuZXN0ZWQvYWRhcHRlci5qc1BLAQIUAxQAAAAAALuiKF1Dv6ajAgAAAAIAAAATAAAAAAAAAAAAAACAAUAAAABhaW9uLWV4dGVuc2lvbi5qc29uUEsFBgAAAAACAAIAgAAAAHMAAAAAAA==',
+      'base64'
+    )
+  );
+  assert.equal((await prepareHubResources(data)).complete, true);
+  data.calls.length = 0;
+  assert.equal((await prepareHubResources(data)).complete, true);
+  assert.deepEqual(data.calls, ['index.json']);
+  assert.equal(
+    (
+      await prepareHubResources({
+        ...data,
+        download: async () => {
+          throw new Error('offline');
+        },
+      })
+    ).complete,
+    true
+  );
+  write(
+    data.archive,
+    Buffer.from(
+      'UEsDBBQAAAAAALuiKF21epkkCAAAAAgAAAARAAAAbmVzdGVkL2FkYXB0ZXIuanN0YW1wZXJlZFBLAwQUAAAAAAC7oihdQ7+mowIAAAACAAAAEwAAAGFpb24tZXh0ZW5zaW9uLmpzb257fVBLAQIUAxQAAAAAALuiKF21epkkCAAAAAgAAAARAAAAAAAAAAAAAACAAQAAAABuZXN0ZWQvYWRhcHRlci5qc1BLAQIUAxQAAAAAALuiKF1Dv6ajAgAAAAIAAAATAAAAAAAAAAAAAACAATcAAABhaW9uLWV4dGVuc2lvbi5qc29uUEsFBgAAAAACAAIAgAAAAGoAAAAAAA==',
+      'base64'
+    )
+  );
+  fs.rmSync(data.cacheDir, { recursive: true, force: true });
+  assert.equal((await prepareHubResources(data)).complete, false);
+});
+
+test('Hub content integrity rejects unsafe archive paths', async (t) => {
+  const data = hubFixture(t);
+  data.index.extensions.one.dist.integrity = `sha256-${require('node:crypto').createHash('sha256').update('adapter.js').update('payload').digest('hex')}`;
+  write(
+    data.archive,
+    Buffer.from(
+      'UEsDBBQAAAAAALuiKF0VaixCBwAAAAcAAAANAAAALi4vYWRhcHRlci5qc3BheWxvYWRQSwECFAMUAAAAAAC7oihdFWosQgcAAAAHAAAADQAAAAAAAAAAAAAAgAEAAAAALi4vYWRhcHRlci5qc1BLBQYAAAAAAQABADsAAAAyAAAAAAA=',
+      'base64'
+    )
+  );
+  assert.equal((await prepareHubResources(data)).complete, false);
+});

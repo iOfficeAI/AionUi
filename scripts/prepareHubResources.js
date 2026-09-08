@@ -40,7 +40,8 @@ function ensureDir(dir) {
 function parseIntegrity(value) {
   if (!value) return null;
   // Keep the legacy hex form and support the SHA512 SRI used by the published Hub index.
-  if (/^sha256-[a-fA-F0-9]{64}$/.test(value)) return { algorithm: 'sha256', hex: value.slice(7).toLowerCase() };
+  if (/^sha256-[a-fA-F0-9]{64}$/.test(value))
+    return { algorithm: 'sha256', hex: value.slice(7).toLowerCase(), legacyContent: true };
   const match = /^(sha256|sha512)-([A-Za-z0-9+/]+={0,2})$/.exec(value);
   if (match) {
     const bytes = Buffer.from(match[2], 'base64');
@@ -48,6 +49,59 @@ function parseIntegrity(value) {
       return { algorithm: match[1], hex: bytes.toString('hex') };
   }
   throw new Error('Unsupported Hub integrity format');
+}
+
+// Hub v1 publisher: iOfficeAI/AionHub/.github/scripts/build-extensions.js
+// Its legacy hex digest covers sorted (relative path, uncompressed bytes) pairs.
+// Read entries in memory without extracting untrusted archive paths to disk.
+function hashHubContent(zipPath) {
+  return new Promise((resolve, reject) => {
+    require('yauzl').open(zipPath, { lazyEntries: true, strictFileNames: true }, (error, zip) => {
+      if (error) return reject(error);
+      const files = new Map();
+      let totalSize = 0;
+      const fail = (error) => {
+        zip.close();
+        reject(error);
+      };
+      zip.on('error', fail);
+      zip.on('entry', (entry) => {
+        const name = entry.fileName;
+        if (((entry.externalFileAttributes >>> 16) & 0o170000) === 0o120000 || files.has(name)) {
+          return fail(new Error('Unsafe Hub archive entry'));
+        }
+        if (name.endsWith('/')) return zip.readEntry();
+        totalSize += entry.uncompressedSize;
+        if (totalSize > 32 * 1024 * 1024) return fail(new Error('Hub content exceeds verification limit'));
+        zip.openReadStream(entry, (error, stream) => {
+          if (error) return fail(error);
+          const chunks = [];
+          stream.on('error', fail);
+          stream.on('data', (chunk) => chunks.push(chunk));
+          stream.on('end', () => {
+            files.set(name, Buffer.concat(chunks));
+            zip.readEntry();
+          });
+        });
+      });
+      zip.on('end', () => {
+        const hash = crypto.createHash('sha256');
+        for (const name of [...files.keys()].sort()) {
+          hash.update(name);
+          hash.update(files.get(name));
+        }
+        resolve(hash.digest('hex'));
+      });
+      zip.readEntry();
+    });
+  });
+}
+
+async function verifyIntegrity(zipPath, expected) {
+  if (!expected) return;
+  if (crypto.createHash(expected.algorithm).update(fs.readFileSync(zipPath)).digest('hex') === expected.hex) return;
+  if (expected.legacyContent && (await hashHubContent(zipPath)) === expected.hex) return;
+  throw new Error('Hub archive integrity mismatch');
 }
 
 /**
@@ -153,15 +207,16 @@ async function prepareHubResources({
         const expected = parseIntegrity(integrity);
         const cached =
           expected &&
-          restoreDownload(cacheDir, source, zipPath, expected.algorithm === 'sha256' ? expected.hex : undefined);
+          restoreDownload(
+            cacheDir,
+            source,
+            zipPath,
+            expected.algorithm === 'sha256' && !expected.legacyContent ? expected.hex : undefined
+          );
         if (offline && !cached) throw new Error('Incomplete offline Hub cache');
         const url = cached ? new URL(tarball, indexSource).toString() : await download(tarball, zipPath);
         const digest = sha256(zipPath);
-        if (
-          expected &&
-          crypto.createHash(expected.algorithm).update(fs.readFileSync(zipPath)).digest('hex') !== expected.hex
-        )
-          throw new Error('Hub archive integrity mismatch');
+        await verifyIntegrity(zipPath, expected);
         if (expected && !cached) saveDownload(cacheDir, source, zipPath);
         results.push({ name, file: filename, size: fs.statSync(zipPath).size, url, sha256: digest });
         console.log(`[hub-cache] ${cached ? 'hit' : 'miss'}: ${name}`);
