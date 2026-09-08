@@ -1,4 +1,11 @@
 import {
+  readSalesPlanLocalDrafts,
+  writeSalesPlanLocalDrafts,
+  type SalesPlanLocalDraftStore,
+} from './models/salesPlanLocalDraftModel';
+import { useSalesPlanAccess } from './hooks/useSalesPlanAccess';
+import { salesPlanAccessForRow } from './models/salesPlanAccessModel';
+import {
   Alert,
   Button,
   Empty,
@@ -57,6 +64,7 @@ import RegionalApprovalLivePlanDetail, {
 import RegionalApprovalActionDialog from './RegionalApprovalActionDialog';
 import RegionalApprovalLiveActionDialog, { type LiveActionKind } from './RegionalApprovalLiveActionDialog';
 import RegionalApprovalLiveAdjustmentDialog from './RegionalApprovalLiveAdjustmentDialog';
+import RegionalApprovalLiveProgress from './RegionalApprovalLiveProgress';
 import {
   EMPTY_REGIONAL_APPROVAL_ACTION_STORE,
   regionalApprovalFixtureResults,
@@ -71,7 +79,7 @@ import {
 import {
   aggregateRegionalApprovalLiveCategories,
   addExactDecimals,
-  approvalStageForSalesPlanStatus,
+  SALES_PLAN_STATUS_BY_STAGE,
   clampSalesPlanPageNumber,
   formatExactDecimal,
   isOpenSalesPlanPeriod,
@@ -136,9 +144,16 @@ export type RegionalApprovalContextEntity = {
 };
 
 export type RegionalApprovalWorkbenchContext = {
+  analysisSummary?: ReturnType<typeof useRegionalApprovalQuery>['analysisSummary'];
   view: 'regional-approval';
   fixtureState: 'ready' | 'live' | 'mixed';
   scope: {
+    dimension?: ApprovalDimension;
+    categoryComparison?: boolean;
+    versionReferencePlanId?: string;
+    currentVersionId?: string;
+    primaryVersionId?: string;
+    compareVersionId?: string;
     planType: string;
     month: string;
     approvalStage: SalesPlanContextApprovalStage;
@@ -157,6 +172,8 @@ export type RegionalApprovalWorkbenchContext = {
     warningCount: number;
     quantity: string;
     amount: string;
+    targetQuantity?: string;
+    targetAmount?: string;
     savedAdjustmentCount: number;
     localApprovalResultCount: number;
   };
@@ -194,13 +211,13 @@ const money = (value: number) => `¥${value.toLocaleString()}`;
 const exactMoney = (value: string) => `¥${formatExactDecimal(value)}`;
 const isExactZero = (value: string) => /^-?0(?:\.0+)?$/.test(value);
 const formattedProgress = (value: number | undefined) => (value === undefined ? '—' : `${value.toFixed(1)}%`);
-const csvCells = (values: Array<string | number>) =>
-  values.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(',');
-
-const projectLiveContextEntity = (row: RegionalApprovalLiveRow): RegionalApprovalContextEntity => ({
+const projectLiveContextEntity = (
+  row: RegionalApprovalLiveRow,
+  dimension: ApprovalDimension
+): RegionalApprovalContextEntity => ({
   source: 'gea',
   id: row.planId,
-  organizationKey: row.baseName ?? row.orgCode ?? row.dealerCode,
+  organizationKey: projectRegionalApprovalLiveDimension(row, dimension).name ?? row.orgCode ?? row.dealerCode,
   approvalState: row.approvalState,
   health: 'unknown',
   versionId: row.versionId,
@@ -361,6 +378,10 @@ const RegionalApprovalWorkbench: React.FC<{
   detailClient?: SalesPlanDetailClient;
   liveActionClient?: SalesPlanActionClient;
   liveActionsEnabled?: boolean;
+  permissionCodes?: readonly string[];
+  draftStorageScope?: string;
+  onRefreshPermissions?: () => Promise<void>;
+  automaticAnalysisEnabled?: boolean;
 }> = ({
   stateScope,
   t,
@@ -370,6 +391,10 @@ const RegionalApprovalWorkbench: React.FC<{
   detailClient,
   liveActionClient,
   liveActionsEnabled = false,
+  permissionCodes = [],
+  draftStorageScope,
+  onRefreshPermissions,
+  automaticAnalysisEnabled = false,
 }) => {
   const { conversationId } = useBusinessSurfaceSession();
   const scopedState = getAssistantSurfaceWorkbenchScope(stateScope);
@@ -428,11 +453,26 @@ const RegionalApprovalWorkbench: React.FC<{
   const [liveStageFilter, setLiveStageFilter] = useState<ApprovalStageId>();
   const [selectedRowIds, setSelectedRowIds] = useState(initialState.selectedRowIds);
   const [progressOpen, setProgressOpen] = useState(false);
+  const [narrowFiltersExpanded, setNarrowFiltersExpanded] = useState(false);
+  const filterPanelId = React.useId();
   const [exportFeedback, setExportFeedback] = useState<ExportFeedback>();
   const [detailRowId, setDetailRowId] = useState<string>();
   const [liveDetailPlanId, setLiveDetailPlanId] = useState<string>();
   const [liveAdjustmentPlanId, setLiveAdjustmentPlanId] = useState<string>();
   const [liveAdjustmentDrafts, setLiveAdjustmentDrafts] = useState<Record<string, SalesPlanAdjustmentDraft>>({});
+  const [localDraftState, setLocalDraftState] = useState(() => ({
+    scope: draftStorageScope,
+    drafts: readSalesPlanLocalDrafts(draftStorageScope),
+  }));
+  const localDrafts = localDraftState.scope === draftStorageScope ? localDraftState.drafts : {};
+  useEffect(() => {
+    setLocalDraftState({ scope: draftStorageScope, drafts: readSalesPlanLocalDrafts(draftStorageScope) });
+  }, [draftStorageScope]);
+  const persistLocalDrafts = (drafts: SalesPlanLocalDraftStore) => {
+    if (!draftStorageScope) throw new Error('Draft identity unavailable');
+    writeSalesPlanLocalDrafts(draftStorageScope, drafts);
+    setLocalDraftState({ scope: draftStorageScope, drafts });
+  };
   const [focusedLivePlanId, setFocusedLivePlanId] = useState<string>();
   const [liveVersions, setLiveVersions] = useState<GeaSalesPlanVersion[]>([]);
   const [liveVersionsLoading, setLiveVersionsLoading] = useState(false);
@@ -475,6 +515,7 @@ const RegionalApprovalWorkbench: React.FC<{
     pageSize,
     scope: liveQueryScope,
     loadStageProgress: queryClient !== null,
+    loadAnalysisSummary: queryClient !== null,
     stageStatuses: liveStageFilter ? VISIBLE_SALES_PLAN_STATUSES_BY_STAGE[liveStageFilter] : undefined,
   });
   const stageRows = useMemo(() => approvalRowsForStage(REGIONAL_APPROVAL_ROWS, currentStage), [currentStage]);
@@ -622,8 +663,8 @@ const RegionalApprovalWorkbench: React.FC<{
     [selectedRowIds, visibleRows]
   );
   const selectedLiveRows = useMemo(
-    () => (liveActionsEnabled ? liveRows.filter((row) => selectedRowIds.includes(row.planId)) : []),
-    [liveActionsEnabled, liveRows, selectedRowIds]
+    () => liveRows.filter((row) => selectedRowIds.includes(row.planId)),
+    [liveRows, selectedRowIds]
   );
   const displayStage = liveQuery.enabled ? undefined : currentStage;
   const effectiveStage: SalesPlanContextApprovalStage = liveQuery.enabled ? (liveStageFilter ?? 'all') : currentStage;
@@ -645,6 +686,35 @@ const RegionalApprovalWorkbench: React.FC<{
   const activeLiveDetailRow = liveRows.find((row) => row.planId === liveDetailPlanId);
   const activeLiveAdjustmentRow = liveRows.find((row) => row.planId === liveAdjustmentPlanId);
   const focusedLiveRow = liveRows.find((row) => row.planId === focusedLivePlanId) ?? liveRows[0];
+  // Version responses can still belong to the previous plan while focus changes.
+  const scopedPrimaryVersionId = liveVersions.some(
+    (version) => version.planId === focusedLiveRow?.planId && version.id === livePrimaryVersionId
+  )
+    ? livePrimaryVersionId
+    : undefined;
+  const scopedCompareVersionId = liveVersions.some(
+    (version) => version.planId === focusedLiveRow?.planId && version.id === liveCompareVersionId
+  )
+    ? liveCompareVersionId
+    : undefined;
+  const historicalSummaryUnavailable = Boolean(
+    liveQuery.enabled && scopedPrimaryVersionId && scopedPrimaryVersionId !== focusedLiveRow?.versionId
+  );
+  const scopeSummary = useMemo<typeof liveQuery.analysisSummary>(
+    () => (historicalSummaryUnavailable ? { status: 'error', error: 'unavailable' } : liveQuery.analysisSummary),
+    [historicalSummaryUnavailable, liveQuery.analysisSummary]
+  );
+  const liveAccess = useSalesPlanAccess(
+    liveRows,
+    detailClient,
+    liveQuery.enabled && liveActionsEnabled && liveQuery.queueState.status === 'success'
+  );
+  const refreshLiveAuthority = () => {
+    void onRefreshPermissions?.();
+    setPermissionDeniedVersions(new Set());
+    liveAccess.refresh();
+    liveQuery.retryQueue();
+  };
   const activeLiveActionRow = liveRows.find((row) => row.planId === liveActionPlanId);
   const activeActionRow = visibleRows.find((row) => row.id === actionRowId);
   const contextFilterSummary = useMemo(
@@ -703,11 +773,15 @@ const RegionalApprovalWorkbench: React.FC<{
     return () => controller.abort();
   }, [detailClient, focusedLiveRow?.planId, focusedLiveRow?.versionId, liveQuery.enabled]);
 
-  const liveActionDisabledReason = (row: RegionalApprovalLiveRow) => {
+  const liveActionDisabledReason = (row: RegionalApprovalLiveRow, kind: LiveActionKind = 'APPROVE') => {
     if (!liveActionsEnabled) return 'missingAuthority';
     if (liveActionReceipts[row.versionId]?.fromStatus === row.status) return 'completed';
     if (permissionDeniedVersions.has(row.versionId)) return 'permission';
     if (liveQuery.queueState.status !== 'success') return 'queueNotFresh';
+    const detail = liveAccess.entries[row.versionId];
+    if (!detail || !salesPlanAccessForRow(row, detail, permissionCodes)?.allowedActions.includes(kind))
+      return 'missingAuthority';
+    if (kind === 'SAVE') return draftStorageScope ? undefined : 'missingAuthority';
     if (!isOpenSalesPlanPeriod(liveQuery.selectedPeriod)) return 'closedPeriod';
     if (salesPlanApprovalNodeForStatus(row.status) === undefined) return 'notCurrentStage';
     return undefined;
@@ -718,8 +792,10 @@ const RegionalApprovalWorkbench: React.FC<{
         visibleCount: liveRows.length,
         pendingCount: liveRows.filter((row) => row.approvalState === 'pending').length,
         warningCount: liveRows.filter((row) => row.approvalState === 'returned').length,
-        quantity: addExactDecimals(draftedLiveRows.map((row) => row.currentQty)),
-        amount: addExactDecimals(draftedLiveRows.map((row) => row.currentAmount)),
+        quantity: scopeSummary.data?.quantity ?? '—',
+        amount: scopeSummary.data?.amount ?? '—',
+        targetQuantity: scopeSummary.data?.targetQuantity,
+        targetAmount: scopeSummary.data?.targetAmount,
         savedAdjustmentCount: Object.keys(liveAdjustmentDrafts).length,
         localApprovalResultCount: 0,
       };
@@ -732,10 +808,13 @@ const RegionalApprovalWorkbench: React.FC<{
         visibleRows.map((row) => String(metricsForApprovalVersion(row, primaryVersion).quantity))
       ),
       amount: addExactDecimals(visibleRows.map((row) => String(metricsForApprovalVersion(row, primaryVersion).amount))),
+      targetQuantity: undefined,
+      targetAmount: undefined,
       savedAdjustmentCount: savedAdjustments.length,
       localApprovalResultCount: localApprovalResults.length,
     };
   }, [
+    scopeSummary,
     draftedLiveRows,
     liveAdjustmentDrafts,
     liveQuery.enabled,
@@ -782,7 +861,6 @@ const RegionalApprovalWorkbench: React.FC<{
   useEffect(() => {
     setLiveDetailPlanId(undefined);
     setLiveAdjustmentPlanId(undefined);
-    setLiveAdjustmentDrafts({});
     setLiveActionPlanId(undefined);
     setLiveAuthorityContext(undefined);
     setPermissionDeniedVersions(new Set());
@@ -869,20 +947,33 @@ const RegionalApprovalWorkbench: React.FC<{
     const usingLiveQueue = liveQuery.enabled;
     const selectedAuthority =
       usingLiveQueue && selectedLiveRows.length === 1
-        ? projectSalesPlanQueryContext(selectedLiveRows[0], contextFilterSummary)
+        ? liveAuthorityContext?.planId === selectedLiveRows[0].planId &&
+          liveAuthorityContext.source === 'gea-user-session-action'
+          ? liveAuthorityContext
+          : projectSalesPlanQueryContext(selectedLiveRows[0], contextFilterSummary)
         : undefined;
     const authority = usingLiveQueue
       ? (selectedAuthority ??
-        liveAuthorityContext ??
         (liveQuery.queueState.status === 'success'
           ? projectSalesPlanQueryContext(undefined, contextFilterSummary)
           : undefined))
       : projectFixtureSalesPlanContext(contextFilterSummary);
     onContextChange(
       {
+        ...(usingLiveQueue && automaticAnalysisEnabled ? { analysisSummary: scopeSummary } : {}),
         view: 'regional-approval',
         fixtureState: usingLiveQueue ? 'live' : 'ready',
         scope: {
+          dimension,
+          categoryComparison,
+          ...(usingLiveQueue
+            ? {
+                versionReferencePlanId: focusedLiveRow?.planId,
+                currentVersionId: focusedLiveRow?.versionId,
+                primaryVersionId: scopedPrimaryVersionId,
+                compareVersionId: scopedCompareVersionId,
+              }
+            : {}),
           planType: liveQuery.selectedPeriod?.planTypeCode ?? (usingLiveQueue ? 'unknown' : 'monthly'),
           month: liveQuery.selectedPeriod?.periodMonth ?? (usingLiveQueue ? '' : '2026-09'),
           approvalStage: effectiveStage,
@@ -892,10 +983,10 @@ const RegionalApprovalWorkbench: React.FC<{
           appliedFilters: contextAppliedFilters,
         },
         visibleEntities: usingLiveQueue
-          ? draftedLiveRows.map(projectLiveContextEntity)
+          ? draftedLiveRows.map((row) => projectLiveContextEntity(row, dimension))
           : visibleRows.map((row) => projectFixtureContextEntity(row, primaryVersion)),
         selectedEntities: usingLiveQueue
-          ? selectedLiveRows.map(projectLiveContextEntity)
+          ? selectedLiveRows.map((row) => projectLiveContextEntity(row, dimension))
           : selectedFixtureRows.map((row) => projectFixtureContextEntity(row, primaryVersion)),
         changes: usingLiveQueue ? [] : savedAdjustments,
         localApprovalResults: usingLiveQueue ? [] : localApprovalResults,
@@ -913,6 +1004,14 @@ const RegionalApprovalWorkbench: React.FC<{
       conversationId
     );
   }, [
+    automaticAnalysisEnabled,
+    scopeSummary,
+    dimension,
+    categoryComparison,
+    focusedLiveRow?.planId,
+    focusedLiveRow?.versionId,
+    scopedPrimaryVersionId,
+    scopedCompareVersionId,
     compareVersion,
     contextAppliedFilters,
     conversationId,
@@ -1025,6 +1124,7 @@ const RegionalApprovalWorkbench: React.FC<{
   };
 
   const changePrimaryVersion = (version: ApprovalVersion) => {
+    setSelectedRowIds([]);
     setPrimaryVersion(version);
     if (approvalVersionOffset(version) > approvalVersionOffset(compareVersion)) {
       setCompareVersion(version);
@@ -1035,6 +1135,7 @@ const RegionalApprovalWorkbench: React.FC<{
   };
 
   const changeCompareVersion = (version: ApprovalVersion) => {
+    setSelectedRowIds([]);
     setCompareVersion(version);
     if (approvalVersionOffset(primaryVersion) > approvalVersionOffset(version)) setPrimaryVersion(version);
     setPage(1);
@@ -1060,7 +1161,8 @@ const RegionalApprovalWorkbench: React.FC<{
     if (!row) return;
     setLivePrimaryVersionId(primaryVersionId);
     setLiveCompareVersionId(compareVersionId);
-    selectLivePlanContext(row);
+    setSelectedRowIds([]);
+    setLiveAuthorityContext(undefined);
     setLiveDetailInitialTab('compare');
     setLiveDetailPlanId(row.planId);
   };
@@ -1325,6 +1427,21 @@ const RegionalApprovalWorkbench: React.FC<{
             >
               {organizationName}
             </Button>
+            <Tag
+              color={
+                !liveActionDisabledReason(row, 'SAVE') || !liveActionDisabledReason(row, 'APPROVE')
+                  ? 'arcoblue'
+                  : 'gray'
+              }
+            >
+              {t(
+                !liveActionDisabledReason(row, 'SAVE')
+                  ? 'common.assistantSurface.regionalApproval.liveAction.canSave'
+                  : !liveActionDisabledReason(row, 'APPROVE')
+                    ? 'common.assistantSurface.regionalApproval.liveAction.canApprove'
+                    : 'common.assistantSurface.regionalApproval.liveAdjustment.readOnly'
+              )}
+            </Tag>
             <span data-testid={`regional-approval-scope-${row.planId}`} title={projection.context.join(' / ')}>
               {projection.context.length > 0
                 ? projection.context.map((name, index) => (
@@ -1602,11 +1719,27 @@ const RegionalApprovalWorkbench: React.FC<{
     <>
       <Button
         size='small'
+        disabled={
+          selectedLiveRows.length !== 1 ||
+          Boolean(selectedLiveRows[0] && liveActionDisabledReason(selectedLiveRows[0], 'SAVE'))
+        }
+        onClick={() => {
+          const row = selectedLiveRows[0];
+          if (!row || liveActionDisabledReason(row, 'SAVE')) return;
+          selectLivePlanContext(row);
+          setLiveActionKind('SAVE');
+          setLiveActionPlanId(row.planId);
+        }}
+      >
+        {t('common.assistantSurface.regionalApproval.liveAction.save')}
+      </Button>
+      <Button
+        size='small'
         status='danger'
         disabled={
           selectedLiveRows.length !== 1 ||
           selectedLiveRows[0]?.status === 5 ||
-          (selectedLiveRows[0] ? Boolean(liveActionDisabledReason(selectedLiveRows[0])) : true)
+          (selectedLiveRows[0] ? Boolean(liveActionDisabledReason(selectedLiveRows[0], 'REJECT')) : true)
         }
         onClick={() => {
           const row = selectedLiveRows[0];
@@ -1641,7 +1774,7 @@ const RegionalApprovalWorkbench: React.FC<{
       <Button
         size='small'
         status='danger'
-        disabled={selectedFixtureRows.length === 0}
+        disabled={selectedFixtureRows.length === 0 || !selectedFixtureRows.every(selectableFixtureRow)}
         onClick={() => selectedFixtureRows[0] && openAction(selectedFixtureRows[0])}
       >
         {t('common.assistantSurface.regionalApproval.footer.return')}
@@ -1649,7 +1782,11 @@ const RegionalApprovalWorkbench: React.FC<{
       <Button
         type='primary'
         size='small'
-        disabled={selectedFixtureRows.length === 0 || currentStage === 'category'}
+        disabled={
+          selectedFixtureRows.length === 0 ||
+          !selectedFixtureRows.every(selectableFixtureRow) ||
+          currentStage === 'category'
+        }
         onClick={() => selectedFixtureRows[0] && openAction(selectedFixtureRows[0])}
       >
         {t('common.assistantSurface.regionalApproval.footer.submit')}
@@ -1765,6 +1902,7 @@ const RegionalApprovalWorkbench: React.FC<{
                   aria-label={t('common.assistantSurface.regionalApproval.query.periodSelect')}
                   placeholder={t('common.assistantSurface.regionalApproval.query.noPeriod')}
                   onChange={(periodId) => {
+                    setSelectedRowIds([]);
                     setPage(1);
                     liveQuery.selectPeriod(periodId);
                   }}
@@ -1785,14 +1923,6 @@ const RegionalApprovalWorkbench: React.FC<{
               </Select>
             )}
           </span>
-          <span>
-            <small>{t('common.assistantSurface.regionalApproval.currentNode')}</small>
-            <strong data-testid='regional-approval-current-stage'>
-              {displayStage
-                ? t(stageLabelKey(displayStage))
-                : t('common.assistantSurface.regionalApproval.query.pendingStage')}
-            </strong>
-          </span>
         </div>
       </header>
 
@@ -1806,10 +1936,11 @@ const RegionalApprovalWorkbench: React.FC<{
             const state = liveQuery.enabled
               ? liveQuery.progressState.status !== 'success'
                 ? 'unavailable'
-                : liveStageProgress[stage.id] === 100
-                  ? 'completed'
-                  : liveStageProgress[stage.id] < 50
-                    ? 'critical'
+                : stage.id !== 'category' &&
+                    (liveQuery.progressState.statusTotals?.[SALES_PLAN_STATUS_BY_STAGE[stage.id] + 5] ?? 0) > 0
+                  ? 'critical'
+                  : liveStageProgress[stage.id] === 100
+                    ? 'completed'
                     : 'partial'
               : index < currentStageIndex
                 ? 'completed'
@@ -1885,25 +2016,32 @@ const RegionalApprovalWorkbench: React.FC<{
                 })}
               </Typography.Text>
             </div>
-            <div className={styles.queueMetrics}>
-              <span>
-                <small>{t('common.assistantSurface.regionalApproval.queue.quantity')}</small>
-                <strong>{formatExactDecimal(metrics.quantity)}</strong>
-              </span>
-              <span>
-                <small>{t('common.assistantSurface.regionalApproval.queue.amount')}</small>
-                <strong>{exactMoney(metrics.amount)}</strong>
-              </span>
-              <span>
-                <small>{t('common.assistantSurface.regionalApproval.queue.authority')}</small>
-                <strong>{t('common.assistantSurface.regionalApproval.queue.organization')}</strong>
-              </span>
+            <div
+              className={styles.queueMetrics}
+              role='region'
+              aria-label={t('common.assistantSurface.regionalApproval.scopeTotals.title')}
+            >
+              {(['targetQuantity', 'targetAmount', 'quantity', 'amount'] as const).map((field) => (
+                <span key={field}>
+                  <small>{t(`common.assistantSurface.regionalApproval.scopeTotals.${field}`)}</small>
+                  <strong>
+                    {(liveQuery.enabled && scopeSummary.status !== 'success') || metrics[field] === undefined
+                      ? '—'
+                      : field === 'amount' || field === 'targetAmount'
+                        ? exactMoney(metrics[field]!)
+                        : formatExactDecimal(metrics[field]!)}
+                  </strong>
+                </span>
+              ))}
+              {liveQuery.enabled && scopeSummary.status === 'loading' ? <Spin size={14} /> : null}
+              {historicalSummaryUnavailable ? (
+                <small>{t('common.assistantSurface.regionalApproval.scopeTotals.historicalUnavailable')}</small>
+              ) : liveQuery.enabled && scopeSummary.status === 'error' ? (
+                <Button size='mini' onClick={refreshLiveAuthority}>
+                  {t('common.assistantSurface.regionalApproval.scopeTotals.retry')}
+                </Button>
+              ) : null}
             </div>
-          </header>
-          <section
-            className={styles.controls}
-            aria-label={t('common.assistantSurface.regionalApproval.filters.ariaLabel')}
-          >
             <div className={styles.controlToolbar}>
               <div className={styles.dimensionControls}>
                 <label className={styles.categorySwitch}>
@@ -1928,7 +2066,11 @@ const RegionalApprovalWorkbench: React.FC<{
                       role='tab'
                       aria-selected={candidate === dimension}
                       data-active={candidate === dimension}
-                      onClick={() => setDimension(candidate)}
+                      onClick={() => {
+                        setSelectedRowIds([]);
+                        setLiveAuthorityContext(undefined);
+                        setDimension(candidate);
+                      }}
                     >
                       {t(`common.assistantSurface.regionalApproval.dimensions.${candidate}`)}
                     </Button>
@@ -1946,12 +2088,21 @@ const RegionalApprovalWorkbench: React.FC<{
                     loading={liveQuery.refreshing}
                     loadingFixedWidth
                     disabled={liveQuery.refreshing}
-                    onClick={liveQuery.refresh}
+                    onClick={() => {
+                      setPermissionDeniedVersions(new Set());
+                      liveAccess.refresh();
+                      liveQuery.refresh();
+                    }}
                   >
                     {t('common.assistantSurface.regionalApproval.toolbar.refreshData')}
                   </Button>
                 ) : null}
-                <Button size='small' icon={<Download size={14} />} onClick={() => void exportQueue()}>
+                <Button
+                  size='small'
+                  icon={<Download size={14} />}
+                  disabled={liveQuery.enabled && liveQuery.queueState.status !== 'success'}
+                  onClick={() => void exportQueue()}
+                >
                   {t(
                     liveQuery.enabled
                       ? 'common.assistantSurface.regionalApproval.toolbar.exportPage'
@@ -1961,8 +2112,29 @@ const RegionalApprovalWorkbench: React.FC<{
                 <div className={styles.approvalToolbarActions}>{approvalActionButtons}</div>
               </div>
             </div>
-
-            <div className={styles.advancedControls}>
+          </header>
+          <section
+            className={styles.controls}
+            aria-label={t('common.assistantSurface.regionalApproval.filters.ariaLabel')}
+          >
+            <Button
+              className={styles.advancedToggle}
+              size='small'
+              aria-label={t('common.assistantSurface.regionalApproval.filters.toggle')}
+              aria-controls={filterPanelId}
+              aria-expanded={narrowFiltersExpanded}
+              onClick={() => setNarrowFiltersExpanded((expanded) => !expanded)}
+            >
+              {t(
+                narrowFiltersExpanded
+                  ? 'common.assistantSurface.regionalApproval.filters.collapse'
+                  : 'common.assistantSurface.regionalApproval.filters.expand'
+              )}
+              {(liveQuery.enabled ? liveFiltersDirty : filtersDirty)
+                ? ` · ${t('common.assistantSurface.regionalApproval.filters.dirty')}`
+                : ''}
+            </Button>
+            <div id={filterPanelId} className={styles.advancedControls} data-expanded={narrowFiltersExpanded}>
               <div className={styles.filterHeading}>
                 <strong>{t('common.assistantSurface.regionalApproval.filters.title')}</strong>
                 {!liveQuery.enabled ? (
@@ -2171,7 +2343,7 @@ const RegionalApprovalWorkbench: React.FC<{
                     title={t('common.assistantSurface.regionalApproval.query.queueErrorTitle')}
                     content={t(queryErrorKey(liveQuery.queueState.error))}
                     action={
-                      <Button size='small' onClick={liveQuery.retryQueue}>
+                      <Button size='small' onClick={refreshLiveAuthority}>
                         {t('common.assistantSurface.regionalApproval.query.retry')}
                       </Button>
                     }
@@ -2195,13 +2367,11 @@ const RegionalApprovalWorkbench: React.FC<{
                     loading={liveCategoriesLoading}
                     rowClassName={(row) => (row.kind === 'category' ? styles.categoryComparisonRow : '')}
                     rowSelection={{
-                      type: 'radio',
-                      selectedRowKeys: liveActionsEnabled ? selectedRowIds : [],
+                      type: 'checkbox',
+                      checkAll: false,
+                      selectedRowKeys: selectedRowIds,
                       onChange: (keys) => setSelectedRowIds(keys.map(String).slice(-1)),
-                      checkboxProps: (row) =>
-                        row.kind === 'category'
-                          ? { disabled: true }
-                          : { disabled: Boolean(liveActionDisabledReason(row.plan)) },
+                      checkboxProps: (row) => (row.kind === 'category' ? { disabled: true } : { disabled: false }),
                     }}
                     pagination={false}
                     size='small'
@@ -2217,7 +2387,6 @@ const RegionalApprovalWorkbench: React.FC<{
                 rowSelection={{
                   selectedRowKeys: selectedRowIds,
                   onChange: (keys) => setSelectedRowIds(keys.map(String)),
-                  checkboxProps: (row) => ({ disabled: !selectableFixtureRow(row) }),
                 }}
                 pagination={false}
                 size='small'
@@ -2285,46 +2454,46 @@ const RegionalApprovalWorkbench: React.FC<{
       >
         <Typography.Paragraph type='secondary'>
           {liveQuery.enabled
-            ? t('common.assistantSurface.regionalApproval.progressDialog.liveDescription')
+            ? t('common.assistantSurface.regionalApproval.progressDialog.liveScope', {
+                month: liveQuery.selectedPeriod?.periodMonth ?? '—',
+                planType: liveQuery.selectedPeriod?.planType ?? '—',
+                stage: t(`common.assistantSurface.regionalApproval.stages.${liveStageFilter ?? 'all'}`),
+              })
             : t('common.assistantSurface.regionalApproval.progressDialog.description', {
                 version: versionLabel(primaryVersion),
                 count: metrics.visibleCount,
               })}
         </Typography.Paragraph>
         <div className={styles.progressList} data-testid='regional-approval-progress-results'>
-          {liveQuery.enabled
-            ? APPROVAL_STAGE_FIXTURES.map((stage) => (
-                <div className={styles.progressRow} key={stage.id}>
+          {liveQuery.enabled ? (
+            <RegionalApprovalLiveProgress
+              key={JSON.stringify([liveQuery.selectedPeriod?.periodId, liveQueryScope, liveStageFilter])}
+              records={liveQuery.analysisRecords}
+              status={liveQuery.analysisSummary.status}
+              error={liveQuery.analysisSummary.error}
+              t={t}
+              onRetry={liveQuery.retryQueue}
+            />
+          ) : (
+            visibleRows.map((row) => {
+              const versionMetrics = metricsForApprovalVersion(row, primaryVersion);
+              const progress = Math.round((row.quantityProgress + row.amountProgress) / 2);
+              return (
+                <div className={styles.progressRow} key={row.id}>
                   <span>
-                    <strong>{t(stageLabelKey(stage.id))}</strong>
-                    <small>{t('common.assistantSurface.regionalApproval.progressDialog.latestScope')}</small>
+                    <strong>{t(organizationLabelKey(row.organizationKey))}</strong>
+                    <small>
+                      {number(versionMetrics.quantity)} · {money(versionMetrics.amount)}
+                    </small>
                   </span>
-                  <Progress percent={liveStageProgress[stage.id]} size='small' />
-                  <Tag>
-                    {t('common.assistantSurface.regionalApproval.stageProgress', {
-                      progress: liveStageProgress[stage.id],
-                    })}
+                  <Progress percent={progress} size='small' />
+                  <Tag color={approvalColors[row.approvalState]}>
+                    {t(`common.assistantSurface.regionalApproval.status.${row.approvalState}`)}
                   </Tag>
                 </div>
-              ))
-            : visibleRows.map((row) => {
-                const versionMetrics = metricsForApprovalVersion(row, primaryVersion);
-                const progress = Math.round((row.quantityProgress + row.amountProgress) / 2);
-                return (
-                  <div className={styles.progressRow} key={row.id}>
-                    <span>
-                      <strong>{t(organizationLabelKey(row.organizationKey))}</strong>
-                      <small>
-                        {number(versionMetrics.quantity)} · {money(versionMetrics.amount)}
-                      </small>
-                    </span>
-                    <Progress percent={progress} size='small' />
-                    <Tag color={approvalColors[row.approvalState]}>
-                      {t(`common.assistantSurface.regionalApproval.status.${row.approvalState}`)}
-                    </Tag>
-                  </div>
-                );
-              })}
+              );
+            })
+          )}
         </div>
       </Modal>
 
@@ -2385,28 +2554,67 @@ const RegionalApprovalWorkbench: React.FC<{
               ...nextDraftById,
             }));
           }}
+          onEdit={
+            !liveActionDisabledReason(activeLiveAdjustmentRow, 'SAVE')
+              ? () => {
+                  setLiveActionKind('SAVE');
+                  setLiveActionPlanId(activeLiveAdjustmentRow.planId);
+                  setLiveAdjustmentPlanId(undefined);
+                }
+              : undefined
+          }
           onClose={() => setLiveAdjustmentPlanId(undefined)}
         />
       ) : null}
 
       {activeLiveActionRow && liveActionsEnabled ? (
         <RegionalApprovalLiveActionDialog
-          key={activeLiveActionRow.versionId}
+          key={`${activeLiveActionRow.versionId}:${liveActionKind}`}
           visible
           row={activeLiveActionRow}
-          approvalStage={approvalStageForSalesPlanStatus(activeLiveActionRow.status) ?? 'customer'}
+          approvalStage={
+            (['customer', 'region', 'province', 'area', 'category'] as const)[
+              (activeLiveActionRow.status === 10
+                ? 5
+                : (salesPlanApprovalNodeForStatus(activeLiveActionRow.status) ?? 1)) - 1
+            ] ?? 'customer'
+          }
           initialAction={liveActionKind}
           t={t}
           client={liveActionClient}
+          evidence={liveAccess.entries[activeLiveActionRow.versionId]}
           onPermissionDenied={(versionId) => setPermissionDeniedVersions((current) => new Set(current).add(versionId))}
-          onSucceeded={(receipt) => {
+          permissionCodes={permissionCodes}
+          readCurrentDetail={
+            detailClient ? () => detailClient.detail.invoke({ planId: activeLiveActionRow.planId }) : undefined
+          }
+          initialDraft={
+            localDrafts[activeLiveActionRow.versionId]?.status === activeLiveActionRow.status
+              ? localDrafts[activeLiveActionRow.versionId]
+              : undefined
+          }
+          onSaveDraft={(draft) => {
+            persistLocalDrafts({ ...readSalesPlanLocalDrafts(draftStorageScope), [draft.versionId]: draft });
+            setExportFeedback({
+              type: 'success',
+              message: t('common.assistantSurface.regionalApproval.detail.savedFeedback'),
+            });
+          }}
+          onSucceeded={async (receipt) => {
             setLiveActionReceipts((current) => ({ ...current, [receipt.versionId]: receipt }));
+            const remaining = { ...readSalesPlanLocalDrafts(draftStorageScope) };
+            delete remaining[receipt.versionId];
+            try {
+              persistLocalDrafts(remaining);
+            } catch {
+              /* A confirmed approval must not become a retryable error. Stale drafts fail freshness validation. */
+            }
             setLiveAuthorityContext(projectSalesPlanActionContext(activeLiveActionRow, receipt, contextFilterSummary));
             setSelectedRowIds([]);
             setLiveActionPlanId(undefined);
-            liveQuery.retryQueue();
+            refreshLiveAuthority();
           }}
-          onRefresh={liveQuery.retryQueue}
+          onRefresh={refreshLiveAuthority}
           onClose={() => setLiveActionPlanId(undefined)}
         />
       ) : null}

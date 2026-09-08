@@ -2,10 +2,11 @@ import type { TFunction } from 'i18next';
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as XLSX from 'xlsx-republish';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   GeaSalesPlanListItem,
+  GeaSalesPlanDetail,
+  GeaSalesPlanSku,
   GeaSalesPlanPage,
   GeaSalesPlanPageQuery,
   GeaSalesPlanVersion,
@@ -16,6 +17,7 @@ import RegionalApprovalWorkbench, {
 import type { SalesPlanQueryClient } from '@/renderer/pages/assistantSurface/workbenches/regionalApproval/useRegionalApprovalQuery';
 import type { SalesPlanDetailClient } from '@/renderer/pages/assistantSurface/workbenches/regionalApproval/hooks/useSalesPlanDetail';
 import zhCN from '@/renderer/services/i18n/locales/zh-CN/common.json';
+import * as XLSX from 'xlsx-republish';
 
 vi.mock('@/renderer/pages/assistantSurface/components/BusinessSurfaceShell', () => ({
   useBusinessSurfaceSession: () => ({ conversationId: 'conversation-query' }),
@@ -132,6 +134,124 @@ const listMockFor = (rows: readonly GeaSalesPlanListItem[]) =>
 describe('RegionalApprovalWorkbench live sales-plan query', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+  });
+
+  it('persists a local draft across remounts, isolates users and submits it only with APPROVE', async () => {
+    window.localStorage.clear();
+    const row = liveRow('draft-plan', 5);
+    const sku = {
+      id: 'sku',
+      versionId: row.versionId,
+      skuCode: '10001',
+      qty: '10',
+      areaConfirmedQty: '12',
+      price: '2',
+    } as GeaSalesPlanSku;
+    const version = { ...liveVersion(row.planId, row.versionId, 3), status: 5 };
+    const detail = { currentVersion: version, skus: [sku], versions: [version], logs: [] } as GeaSalesPlanDetail;
+    const queryClient: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: { invoke: listMockFor([row]) },
+    };
+    const detailClient: SalesPlanDetailClient = {
+      detail: { invoke: vi.fn().mockResolvedValue(detail) },
+      versions: { invoke: vi.fn().mockResolvedValue([version]) },
+      logs: { invoke: vi.fn().mockResolvedValue([]) },
+      versionSkus: { invoke: vi.fn().mockResolvedValue([sku]) },
+      compare: { invoke: vi.fn().mockResolvedValue([]) },
+    };
+    const invoke = vi.fn(async (params) => ({
+      planId: row.planId,
+      versionId: row.versionId,
+      fromStatus: 5,
+      toStatus: 10,
+      requestId: params.requestId,
+      traceId: 'trace',
+      auditId: 'audit',
+      replayed: false,
+    }));
+    const props = {
+      stateScope: 'draft-integration',
+      t,
+      onContextChange: vi.fn(),
+      queryClient,
+      detailClient,
+      liveActionClient: { action: { invoke } },
+      liveActionsEnabled: true,
+      permissionCodes: ['sales-plan:plan:category-approve', 'sales-plan:plan:approve'],
+    };
+    const openSave = async () => {
+      await screen.findAllByText('draft-plan 基地');
+      const selection = screen.getByRole('checkbox');
+      if (!(selection as HTMLInputElement).checked) fireEvent.click(selection);
+      const button = screen.getByRole('button', { name: '保存调整' });
+      await waitFor(() => expect(button).toBeEnabled());
+      fireEvent.click(button);
+      return screen.findByRole('textbox', { name: 'SKU 10001 调整量' });
+    };
+    let view = render(<RegionalApprovalWorkbench {...props} draftStorageScope='env:tenant:user-a' />);
+    fireEvent.change(await openSave(), { target: { value: '2.125' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存到本地' }));
+    await screen.findByText('调整已保存到本地看板草稿；尚未发送或提交。');
+    expect(invoke).not.toHaveBeenCalled();
+    view.unmount();
+    view = render(<RegionalApprovalWorkbench {...props} draftStorageScope='env:tenant:user-b' />);
+    expect(await openSave()).toHaveValue('');
+    view.unmount();
+    view = render(<RegionalApprovalWorkbench {...props} draftStorageScope='env:tenant:user-a' />);
+    expect(await openSave()).toHaveValue('2.125');
+    fireEvent.click(screen.getByRole('button', { name: '保存到本地' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const approve = screen.getByRole('button', { name: '通过' });
+    fireEvent.click(approve);
+    expect(await screen.findByRole('textbox', { name: 'SKU 10001 调整量' })).toHaveValue('2.125');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '确认通过' }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    expect(invoke.mock.calls[0][0].request).toEqual({
+      action: 'APPROVE',
+      expectedStatus: 5,
+      adjustments: [{ skuCode: '10001', adjustQty: '2.125' }],
+    });
+    await waitFor(() =>
+      expect(window.localStorage.getItem('aionui:sales-plan-local-drafts:v1:env%3Atenant%3Auser-a')).toBe('{}')
+    );
+  });
+
+  it('shows all four filtered-scope totals including records beyond the visible page', async () => {
+    const first = {
+      ...liveRow('summary-a'),
+      targetQty: '10',
+      targetAmount: '100.01',
+      currentQty: '3',
+      currentAmount: '30.01',
+    };
+    const second = {
+      ...liveRow('summary-b'),
+      targetQty: '20',
+      targetAmount: '200.02',
+      currentQty: '4',
+      currentAmount: '40.02',
+    };
+    const client: SalesPlanQueryClient = {
+      periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+      list: {
+        invoke: vi.fn(async (query) =>
+          query?.pageSize === 200
+            ? queuePage(query.pageNo === 2 ? [second] : [first], { total: 2, size: 1, current: query.pageNo, pages: 2 })
+            : queuePage([first], { total: 2 })
+        ),
+      },
+    };
+    render(
+      <RegionalApprovalWorkbench stateScope='scope-totals' t={t} onContextChange={vi.fn()} queryClient={client} />
+    );
+    const totals = await screen.findByRole('region', { name: '当前筛选范围统计' });
+    await waitFor(() => expect(totals).toHaveTextContent('目标数量30'));
+    expect(totals).toHaveTextContent('目标金额¥300.03');
+    expect(totals).toHaveTextContent('当前数量7');
+    expect(totals).toHaveTextContent('当前金额¥70.03');
+    expect(within(totals).queryByText('审批权威')).not.toBeInTheDocument();
   });
 
   it('exports a readable workbook with business headers and exact identifiers and amounts', async () => {
@@ -330,7 +450,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     );
 
     expect((await screen.findAllByText('plan-live 基地'))[0]).toBeVisible();
-    expect(screen.getByTestId('regional-approval-current-stage')).toHaveTextContent('待服务端确认职责节点');
+    expect(screen.queryByTestId('regional-approval-current-stage')).not.toBeInTheDocument();
     expect(screen.queryByText('审批操作已安全关闭')).not.toBeInTheDocument();
     const toolbarActions = screen.getByTestId('regional-approval-toolbar-actions');
     expect(within(toolbarActions).getByRole('button', { name: '通过' })).toBeDisabled();
@@ -347,8 +467,34 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     expect(screen.getByTestId('regional-approval-scope-plan-live')).toHaveTextContent('华东大区 / plan-live 基地');
     expect(screen.queryByText('AREA-01')).not.toBeInTheDocument();
     expect(screen.queryByText('PROVINCE-01 · ORG-001')).not.toBeInTheDocument();
-    expect(screen.getByRole('radio')).toBeDisabled();
+    const analysisSelection = screen.getByRole('checkbox');
+    expect(analysisSelection).toBeEnabled();
+    fireEvent.click(analysisSelection);
+    await waitFor(() =>
+      expect(onContextChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          selectedEntities: [expect.objectContaining({ id: 'plan-live' })],
+        }),
+        'conversation-query'
+      )
+    );
+    expect(within(toolbarActions).getByRole('button', { name: '通过' })).toBeDisabled();
+    expect(within(toolbarActions).getByRole('button', { name: '退回' })).toBeDisabled();
+    fireEvent.click(analysisSelection);
+    await waitFor(() =>
+      expect(onContextChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ selectedEntities: [] }),
+        'conversation-query'
+      )
+    );
+    fireEvent.click(analysisSelection);
     fireEvent.click(within(dimensionTabs).getByRole('tab', { name: '按区域' }));
+    await waitFor(() =>
+      expect(onContextChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ selectedEntities: [], scope: expect.objectContaining({ dimension: 'region' }) }),
+        'conversation-query'
+      )
+    );
     const adjustmentTrigger = screen.getByRole('button', { name: '打开 plan-live 经销分区 调整明细' });
     expect(adjustmentTrigger).toBeEnabled();
     fireEvent.click(adjustmentTrigger);
@@ -360,9 +506,10 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     expect(screen.getByRole('columnheader', { name: '原计划量' })).toBeVisible();
     expect(screen.getByRole('columnheader', { name: '新计划量' })).toBeVisible();
     const quantityInput = screen.getByRole('spinbutton', { name: '10001 新计划量' });
+    expect(quantityInput).toBeDisabled();
     fireEvent.change(quantityInput, { target: { value: '6' } });
-    expect(screen.getByText(/整体差异 \+5 件/)).toBeVisible();
-    fireEvent.change(quantityInput, { target: { value: '1' } });
+    expect(screen.queryByText(/整体差异 \+5 件/)).not.toBeInTheDocument();
+    expect(screen.getByText('当前节点仅可查看；服务端尚未确认调整权限。')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '关闭' }));
     fireEvent.click(within(dimensionTabs).getByRole('tab', { name: '按客户' }));
     expect(screen.getByText('plan-live 经销商')).toBeVisible();
@@ -380,6 +527,10 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     fireEvent.click(await screen.findByRole('option', { name: '-1 版' }));
     await waitFor(() => expect(screen.getByRole('combobox', { name: '当前查看版本' })).toHaveTextContent('-1 版'));
     expect(screen.getByRole('combobox', { name: '对比版本' })).toHaveTextContent('-1 版');
+    const totals = screen.getByRole('region', { name: '当前筛选范围统计' });
+    expect(totals).toHaveTextContent('历史版本汇总暂不可用');
+    expect(within(totals).getAllByText('—')).toHaveLength(4);
+    expect(totals).not.toHaveTextContent('123,456,789,012');
     expect(await screen.findByText('销售计划详情与版本证据')).toBeVisible();
     expect(screen.getByRole('switch', { name: '品类维度' })).toBeVisible();
     fireEvent.click(screen.getByRole('switch', { name: '品类维度' }));
@@ -406,7 +557,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
           visibleEntities: [
             expect.objectContaining({
               id: 'plan-live',
-              organizationKey: 'plan-live 基地',
+              organizationKey: 'plan-live 经销商',
               currentQty: '123456789012.340',
               currentAmount: '9999999999999999.90',
               targetQty: '123456789012.345',
@@ -422,7 +573,12 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
           }),
           changes: [],
           localApprovalResults: [],
-          metrics: expect.objectContaining({ savedAdjustmentCount: 0, localApprovalResultCount: 0 }),
+          metrics: expect.objectContaining({
+            quantity: '—',
+            amount: '—',
+            savedAdjustmentCount: 0,
+            localApprovalResultCount: 0,
+          }),
           authority: expect.objectContaining({
             source: 'gea-user-session-query',
             filterSummary: expect.objectContaining({
@@ -436,14 +592,116 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
         'conversation-query'
       )
     );
+    fireEvent.click(screen.getByRole('combobox', { name: '当前查看版本' }));
+    fireEvent.click(await screen.findByRole('option', { name: '最新版' }));
+    await waitFor(() => expect(totals).not.toHaveTextContent('历史版本汇总暂不可用'));
+    expect(totals).toHaveTextContent('123,456,789,012.345');
+  });
+
+  it('binds version selectors to their plan while retaining each plan current version in aggregate evidence', async () => {
+    const records = [liveRow('plan-a', 2), { ...liveRow('plan-b', 2), dealerCode: '102' }];
+    const context = vi.fn<(value: RegionalApprovalWorkbenchContext) => void>();
+    let resolveVersions!: (versions: GeaSalesPlanVersion[]) => void;
+    const unused = vi.fn().mockResolvedValue([]);
+    const detailClient: SalesPlanDetailClient = {
+      detail: { invoke: unused },
+      logs: { invoke: unused },
+      versionSkus: { invoke: unused },
+      compare: { invoke: unused },
+      versions: {
+        invoke: vi.fn(({ planId }) =>
+          planId === 'plan-a'
+            ? Promise.resolve([liveVersion(planId, 'plan-a-version', 3), liveVersion(planId, 'plan-a-old', 2)])
+            : new Promise<GeaSalesPlanVersion[]>((resolve) => {
+                resolveVersions = resolve;
+              })
+        ),
+      },
+    };
+    render(
+      <RegionalApprovalWorkbench
+        stateScope='version-owner-regression'
+        automaticAnalysisEnabled
+        t={t}
+        onContextChange={context}
+        queryClient={{
+          periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+          list: { invoke: listMockFor(records) },
+        }}
+        detailClient={detailClient}
+      />
+    );
+    await waitFor(() =>
+      expect(context.mock.calls.at(-1)?.[0].scope).toMatchObject({
+        versionReferencePlanId: 'plan-a',
+        currentVersionId: 'plan-a-version',
+        primaryVersionId: 'plan-a-version',
+        compareVersionId: 'plan-a-old',
+      })
+    );
+    expect(context.mock.calls.at(-1)?.[0].visibleEntities).toEqual([
+      expect.objectContaining({ id: 'plan-a', versionId: 'plan-a-version' }),
+      expect.objectContaining({ id: 'plan-b', versionId: 'plan-b-version' }),
+    ]);
+    await waitFor(() => expect(context.mock.calls.at(-1)?.[0].analysisSummary?.status).toBe('success'));
+    fireEvent.click(screen.getByRole('combobox', { name: '当前查看版本' }));
+    fireEvent.click(await screen.findByRole('option', { name: '-1 版' }));
+    await waitFor(() => expect(context.mock.calls.at(-1)?.[0].analysisSummary?.status).toBe('error'));
+    expect(context.mock.calls.at(-1)?.[0].scope).toMatchObject({
+      versionReferencePlanId: 'plan-a',
+      currentVersionId: 'plan-a-version',
+      primaryVersionId: 'plan-a-old',
+    });
+    fireEvent.click(screen.getByRole('tab', { name: '按客户' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开 plan-b 经销商 调整明细' }));
+    await waitFor(() => expect(context.mock.calls.at(-1)?.[0].scope.versionReferencePlanId).toBe('plan-b'));
+    expect(context.mock.calls.at(-1)?.[0].scope.primaryVersionId).toBeUndefined();
+    resolveVersions([liveVersion('plan-b', 'plan-b-version', 3)]);
+    await waitFor(() => expect(context.mock.calls.at(-1)?.[0].scope.primaryVersionId).toBe('plan-b-version'));
+    expect(
+      context.mock.calls
+        .filter(([value]) => value.scope.versionReferencePlanId === 'plan-b')
+        .every(([value]) => !value.scope.primaryVersionId?.startsWith('plan-a'))
+    ).toBe(true);
+  });
+
+  it('drills into real organizations using the complete current list scope and only status 10 as complete', async () => {
+    const records = [
+      { ...liveRow('pending', 5), dealerCode: '101', orgName: '区域一' },
+      { ...liveRow('done', 10), dealerCode: '102', orgName: '区域一' },
+    ];
+    const list = listMockFor(records);
+    const context = vi.fn<(value: RegionalApprovalWorkbenchContext) => void>();
+    render(
+      <RegionalApprovalWorkbench
+        stateScope='user:progress-tree'
+        automaticAnalysisEnabled
+        t={t}
+        onContextChange={context}
+        queryClient={{ periods: { invoke: vi.fn().mockResolvedValue(periodPage) }, list: { invoke: list } }}
+      />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '查看提报进度' }));
+    const tree = await screen.findByRole('region', { name: '组织审核进度' });
+    expect((await within(tree).findAllByText('已提报 2 · 未审核 1 · 已完成 1'))[0]).toBeVisible();
+    const callsBeforeExpansion = list.mock.calls.length;
+    fireEvent.click(within(tree).getByText('华东大区'));
+    fireEvent.click(await within(tree).findByText('浙江省区'));
+    fireEvent.click(await within(tree).findByText('区域一'));
+    expect(await within(tree).findByText('pending 经销商')).toBeVisible();
+    expect(within(tree).queryByText('done 经销商')).not.toBeInTheDocument();
+    fireEvent.click(within(tree).getByRole('checkbox', { name: '仅显示未审核' }));
+    expect(await within(tree).findByText('done 经销商')).toBeVisible();
+    expect(list).toHaveBeenCalledTimes(callsBeforeExpansion);
+    expect(context.mock.calls.at(-1)?.[0].analysisSummary).not.toHaveProperty('records');
   });
 
   it('treats the five progress nodes as independent aggregate filters', async () => {
     const rows = [
-      liveRow('region-pending', 1),
+      liveRow('region-pending', 2),
       liveRow('region-returned', 7),
       liveRow('customer-returned', 6),
-      liveRow('category-pending', 4),
+      liveRow('category-pending', 5),
     ];
     const list = listMockFor(rows);
     const client: SalesPlanQueryClient = {
@@ -460,14 +718,13 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     );
 
     expect((await screen.findAllByText('region-pending 基地'))[0]).toBeVisible();
-    await waitFor(() => expect(screen.getByTestId('regional-approval-stage-region')).toHaveTextContent('进度 50%'));
-    expect(screen.getByTestId('regional-approval-stage-region')).toHaveAttribute('data-state', 'partial');
-    expect(screen.getByTestId('regional-approval-stage-province')).toHaveTextContent('进度 100%');
+    await waitFor(() => expect(screen.getByTestId('regional-approval-stage-region')).toHaveTextContent('进度 25%'));
+    expect(screen.getByTestId('regional-approval-stage-region')).toHaveAttribute('data-state', 'critical');
+    expect(screen.getByTestId('regional-approval-stage-province')).toHaveTextContent('进度 25%');
 
     fireEvent.click(screen.getByTestId('regional-approval-stage-region'));
     await waitFor(() => {
-      expect(list.mock.calls.some(([query]) => query?.status === 1 && query.pageSize === 20)).toBe(true);
-      expect(list.mock.calls.some(([query]) => query?.status === 7 && query.pageSize === 20)).toBe(true);
+      expect(list.mock.calls.some(([query]) => query?.status === 2 && query.pageSize === 20)).toBe(true);
     });
     expect(screen.getByTestId('regional-approval-stage-region')).toHaveAttribute('aria-pressed', 'true');
     await waitFor(() => {
@@ -475,7 +732,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
       expect(tabs.map((tab) => tab.textContent)).toEqual(['按区域', '按客户']);
     });
     expect(screen.getAllByText('region-pending 基地')[0]).toBeVisible();
-    expect(screen.getAllByText('region-returned 基地')[0]).toBeVisible();
+    expect(screen.queryByText('region-returned 基地')).not.toBeInTheDocument();
     expect(screen.queryByText('customer-returned 基地')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('regional-approval-stage-region'));
@@ -513,7 +770,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
         )
       ).toBe(true)
     );
-    expect(screen.getByTestId('regional-approval-current-stage')).toHaveTextContent('待服务端确认职责节点');
+    expect(screen.queryByTestId('regional-approval-current-stage')).not.toBeInTheDocument();
   });
 
   it('normalizes numeric decimal fields returned by the live list response', async () => {
@@ -569,7 +826,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
   it('keeps a loaded period on queue failure and retries only the queue', async () => {
     let mainCalls = 0;
     const list = vi.fn(async (query?: GeaSalesPlanPageQuery) => {
-      if (query?.pageSize === 1) return queuePage([], { total: 0, size: 1 });
+      if (query?.pageSize === 1 || query?.pageSize === 200) return queuePage([], { total: 0, size: query.pageSize });
       mainCalls += 1;
       if (mainCalls === 1) throw new TypeError('network disconnected');
       return queuePage([]);

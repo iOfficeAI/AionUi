@@ -285,7 +285,7 @@
           "2": "区域审批",
           "3": "省区审批",
           "4": "大区审批",
-          "5": "审批完成",
+          "5": "品类审批",
           "6": "销售退回",
           "7": "区域退回",
           "8": "省区退回",
@@ -351,7 +351,10 @@
         "allHealth": "全部健康度",
         "query": "查询",
         "apply": "查询",
-        "reset": "重置"
+        "reset": "重置",
+        "expand": "展开筛选",
+        "collapse": "收起筛选",
+        "toggle": "筛选条件"
       },
       "toolbar": {
         "progress": "查看提报进度",
@@ -513,7 +516,11 @@
           "deltaQty": "调整量",
           "deltaAmount": "调整金额",
           "aiAdvice": "AI 建议"
-        }
+        },
+        "editCurrent": "编辑并保存当前计划",
+        "readOnlyReason": "当前节点仅可查看；服务端尚未确认调整权限。",
+        "editScope": "此处查看汇总；编辑仅作用于当前选中的一个计划。",
+        "readOnly": "只读模式"
       },
       "liveSubmit": {
         "title": "真实销售计划退回重提",
@@ -553,7 +560,7 @@
           "completed": "该退回版本已收到服务端重提回执，已阻止重复操作。",
           "channelMissing": "计划 ID 不符合 p-{渠道}-{YYYY-MM}-{5位流水号} 业务编码，无法安全确定重提渠道。",
           "serviceBoundary": "业务版未开放服务账号提交或退回重提。",
-          "readOnly": "当前业务版仅开放真实 GEA 数据查询；审批、退回和提交均未启用。",
+          "readOnly": "当前版本仅可查看，服务端尚未授予可执行操作。",
           "queueNotFresh": "队列正在刷新或读取失败；必须先获得成功的权威队列响应。",
           "closedPeriod": "只有 OPEN 周期可以重提。",
           "notReturned": "只有状态 6–9 的退回版本可以重提。"
@@ -597,29 +604,29 @@
           "unknown": "未知",
           "executionBoundary": "审批成功回执不可在客户端撤销；冲突或明确失败只刷新权威状态，不生成成功结果；结果未知时仅以原幂等键重试同一意图。"
         },
-        "action": "审批决定",
+        "action": "操作类型",
         "approve": "通过",
         "reject": "退回",
         "finalNode": "该计划已完成品类审批，不能重复通过或退回；最终状态仍由服务端校验。",
         "approveRemark": "审批备注（可选）",
         "rejectRemark": "退回原因（必填）",
-        "remarkPlaceholder": "填写不超过 1000 字的审批说明",
+        "remarkPlaceholder": "填写不超过 1000 字的操作说明",
         "noAdjustments": "当前真实详情为只读，本操作不会发送样例调整量；仅在接入真实版本 SKU 差量后才会携带合法调整。",
         "adjustments": {
           "title": "节点调整明细",
           "summary": "本节点已调整 {{count}} 个 SKU",
-          "help": "以上一审批节点的确认量为基准填写正负差量；本节点确认数量与金额会实时计算，金额仍由服务端按固化单价校验。留空或 0 表示沿用上一节点。",
+          "help": "调整量以上一节点数量为基准；审批完成后本地草稿以品类确认数量为基准。输入正负增量，0 表示不调整。",
           "loading": "正在读取正式版本 SKU…",
           "loadFailed": "正式 SKU 明细读取失败；本次仍可不带调整量审批，修改前请先刷新数据。",
           "unavailable": "当前审批客户端未接入 SKU 明细，无法填写调整量。",
           "nodeBoundary": "区域首节点只确认提交数据，不允许携带 SKU 调整量；后续审批节点才可填写调整。",
           "rejectBoundary": "退回操作不允许携带 SKU 调整量；请在退回原因中说明需要修改的内容。",
           "sku": "SKU / 品类",
-          "previousNode": "上一节点确认",
+          "previousNode": "当前基准数量 / 金额",
           "adjustQty": "调整量（+/-）",
           "currentNode": "本节点确认 / 变化",
           "nodeSummary": "审批节点差异汇总",
-          "previousTotal": "上一节点数量 / 金额",
+          "previousTotal": "当前基准数量 / 金额",
           "changeTotal": "本节点变化数量 / 金额",
           "confirmedTotal": "本节点确认数量 / 金额",
           "discardTitle": "放弃未提交的调整？",
@@ -630,8 +637,8 @@
           "inputLabel": "SKU {{sku}} 调整量"
         },
         "confirmation": "我已核对当前计划、版本和状态，并确认以当前登录用户执行本次审批。",
-        "required": "请确认审批范围；退回时必须填写原因。",
-        "loading": "正在提交审批；结果返回前不能关闭或发起第二次操作…",
+        "required": "请确认操作范围和调整内容；退回时必须填写原因。",
+        "loading": "正在提交操作；结果返回前不能关闭或发起第二次操作…",
         "close": "关闭",
         "retry": "以原幂等键重试",
         "refresh": "刷新权威状态",
@@ -645,7 +652,7 @@
           "completed": "该版本已收到服务端回执，已阻止重复操作。",
           "permission": "服务端已拒绝当前用户权限；该版本在本轮已禁用。",
           "readOnly": "当前业务版仅开放真实 GEA 数据查询；审批、退回和提交均未启用。",
-          "missingAuthority": "服务端尚未返回职责节点、流程节点、任务状态和 actionable 权威字段；客户端不会用计划状态推断审批权限。",
+          "missingAuthority": "服务端未返回与当前版本匹配的操作授权；客户端不会用计划状态推断权限。",
           "queueNotFresh": "审批队列正在刷新或已读取失败；保留的行可能陈旧，必须刷新成功后才能操作。",
           "closedPeriod": "只有 OPEN 周期可以发起审批。",
           "notCurrentStage": "该计划已不在当前审批节点，请刷新队列。"
@@ -653,12 +660,27 @@
         "errors": {
           "validation": "请求内容不合法；请核对状态和退回原因后重新发起。",
           "authentication": "GEA 用户会话已过期；重新登录后刷新队列再操作。",
-          "permission": "服务端确认当前用户无权审批该版本；本轮已禁用此操作。",
+          "permission": "服务端确认当前用户无权操作该版本；本轮已禁用此操作。",
           "conflict": "版本状态已变化或存在并发操作；未修改本地状态，请刷新权威队列。",
           "rateLimited": "请求过于频繁；可稍后使用原幂等键重试，不会创建第二个动作。",
-          "unavailable": "结果暂时未知；可关闭弹窗后刷新权威状态，或在此处使用原幂等键重试。请勿重新发起新的审批意图。",
-          "failed": "审批请求失败且未更新本地状态；请刷新权威队列后再决定。"
-        }
+          "unavailable": "结果暂时未知；可关闭弹窗后刷新权威状态，或在此处使用原幂等键重试。请勿重新发起新的操作意图。",
+          "failed": "操作请求失败且未更新本地状态；请刷新权威队列后再决定。"
+        },
+        "staleDraft": "计划内容已变化，旧草稿不能直接提交。请重新编辑并保存本地草稿。",
+        "saveRemark": "保存备注（可选）",
+        "freshnessFailed": "未能读取最新计划，尚未提交审批。请检查连接后重试。",
+        "canApprove": "可审批",
+        "saveBoundary": "仅保存在本机，不写入 GEA、不改变审批状态；通过审批时再提交调整。",
+        "confirmSave": "保存到本地",
+        "save": "保存调整",
+        "saveChecksumTitle": "保存核对摘要",
+        "saveConfirmation": "我已核对当前计划、版本和调整，确认保存且不改变审批状态。",
+        "canSave": "可保存本地草稿",
+        "saveRefreshFailed": "保存回执已收到，但重新读取的结果尚未核验通过。请重新核验，不要重复提交调整。",
+        "saveReceipt": "保存回执已收到，正在核验同一版本的保存结果。审计编号：{{auditId}}",
+        "localSaveFailed": "本地存储写入失败，草稿尚未保存。请保留当前页面并重试。",
+        "verifySave": "重新核验保存结果",
+        "saveTitle": "保存本地调整草稿"
       },
       "action": {
         "title": "区域计划审批操作",
@@ -709,7 +731,21 @@
         "allStages": "五个独立节点",
         "liveDescription": "基于当前用户可见、当前月份与计划类型下的去重有效计划计算；不受临时组织筛选、分页或选中行影响。",
         "latestScope": "当前权限、月份与计划类型",
-        "close": "关闭"
+        "close": "关闭",
+        "counts": "已提报 {{total}} · 未审核 {{pending}} · 已完成 {{completed}}",
+        "missingNode": "未提供{{level}}信息",
+        "levels": {
+          "area": "大区",
+          "province": "省区",
+          "region": "区域",
+          "customer": "客户"
+        },
+        "treeScope": "按当前用户可读、当前生效版本的全部匹配计划汇总，不限当前页。未审核指已提报但尚未达到状态 10；不推算未提报客户。",
+        "pendingOnly": "仅显示未审核",
+        "empty": "当前范围没有匹配的已提报计划。",
+        "codedNode": "{{level}}编码：{{code}}",
+        "treeLabel": "组织审核进度",
+        "liveScope": "{{month}} · {{planType}} · {{stage}} · 当前已应用筛选"
       },
       "stages": {
         "all": "全部节点",
@@ -860,6 +896,15 @@
         "dealerCode": "经销商编码",
         "status": "状态编码",
         "all": "全部"
+      },
+      "scopeTotals": {
+        "historicalUnavailable": "历史版本汇总暂不可用",
+        "title": "当前筛选范围统计",
+        "targetQuantity": "目标数量",
+        "targetAmount": "目标金额",
+        "quantity": "当前数量",
+        "amount": "当前金额",
+        "retry": "汇总失败，重试"
       }
     },
     "contract": {

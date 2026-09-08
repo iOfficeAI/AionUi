@@ -36,6 +36,7 @@ const signed = (value: string, currency = false) => {
 
 const RegionalApprovalLiveAdjustmentDialog: React.FC<{
   visible: boolean;
+  readOnly?: boolean;
   rows: readonly RegionalApprovalLiveRow[];
   row: RegionalApprovalLiveRow;
   initialDimension: ApprovalDimension;
@@ -43,8 +44,21 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
   t: TFunction;
   client?: SalesPlanDetailClient;
   onDraftsChange: (recordIds: string[], drafts: SalesPlanAdjustmentDraft[]) => void;
+  onEdit?: () => void;
   onClose: () => void;
-}> = ({ visible, rows, row, initialDimension, drafts, t, client, onDraftsChange, onClose }) => {
+}> = ({
+  visible,
+  readOnly = true,
+  rows,
+  row,
+  initialDimension,
+  drafts,
+  t,
+  client,
+  onDraftsChange,
+  onEdit,
+  onClose,
+}) => {
   const dimensions = useMemo(() => adjustmentDimensionsFrom(initialDimension), [initialDimension]);
   const [initialDrafts] = useState(drafts);
   const [dimension, setDimension] = useState<ApprovalDimension>(dimensions[0]);
@@ -71,7 +85,7 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
         if (controller.signal.aborted) return;
         const records = createSalesPlanAdjustmentRecords(entries).map((record) => {
           const draft = initialDrafts[record.recordId];
-          if (draft) {
+          if (draft && !readOnly) {
             record.qty = draft.qty;
             record.amount = draft.amount;
           }
@@ -83,13 +97,14 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
         if (!controller.signal.aborted) setState({ status: 'error' });
       });
     return () => controller.abort();
-  }, [client, initialDrafts, scopedRows, visible]);
+  }, [client, initialDrafts, scopedRows, visible, readOnly]);
 
   const records = state.status === 'success' ? state.records : [];
   const groups = useMemo(() => groupSalesPlanAdjustmentRecords(records, dimension), [dimension, records]);
   const totalDelta = addExactDecimals(groups.map((group) => group.quantityDelta));
 
   const commit = (next: SalesPlanAdjustmentRecord[]) => {
+    if (readOnly) return;
     setState({ status: 'success', records: next });
     onDraftsChange(
       next.map((record) => record.recordId),
@@ -144,6 +159,7 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
       width: 130,
       render: (_, group) => (
         <InputNumber
+          disabled={readOnly}
           min={0}
           precision={0}
           value={Number(group.qty)}
@@ -163,6 +179,7 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
       width: 140,
       render: (_, group) => (
         <InputNumber
+          disabled={readOnly}
           min={0}
           precision={0}
           value={Number(group.amount)}
@@ -207,7 +224,20 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
       })}
       footer={
         <div className={styles.footer}>
-          <span>{t('common.assistantSurface.regionalApproval.liveAdjustment.footer')}</span>
+          <span>
+            {t(
+              onEdit
+                ? 'common.assistantSurface.regionalApproval.liveAdjustment.editScope'
+                : readOnly
+                  ? 'common.assistantSurface.regionalApproval.liveAdjustment.readOnlyReason'
+                  : 'common.assistantSurface.regionalApproval.liveAdjustment.footer'
+            )}
+          </span>
+          {onEdit ? (
+            <Button type='primary' onClick={onEdit}>
+              {t('common.assistantSurface.regionalApproval.liveAdjustment.editCurrent')}
+            </Button>
+          ) : null}
           <Button onClick={onClose}>{t('common.assistantSurface.regionalApproval.liveAdjustment.close')}</Button>
         </div>
       }
@@ -230,7 +260,13 @@ const RegionalApprovalLiveAdjustmentDialog: React.FC<{
               dimension: t(`common.assistantSurface.regionalApproval.liveAdjustment.dimensions.${dimension}`),
             })}
           </span>
-          <Tag color='arcoblue'>{t('common.assistantSurface.regionalApproval.liveAdjustment.localDraft')}</Tag>
+          <Tag color={readOnly ? 'gray' : 'arcoblue'}>
+            {t(
+              readOnly
+                ? 'common.assistantSurface.regionalApproval.liveAdjustment.readOnly'
+                : 'common.assistantSurface.regionalApproval.liveAdjustment.localDraft'
+            )}
+          </Tag>
         </div>
         {state.status === 'loading' ? (
           <div className={styles.loading}>

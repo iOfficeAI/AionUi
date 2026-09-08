@@ -101,7 +101,7 @@ export const projectSalesPlanActionContext = (
     receipt.fromStatus !== row.status ||
     !Number.isSafeInteger(receipt.toStatus) ||
     receipt.toStatus < 1 ||
-    receipt.toStatus > 9 ||
+    receipt.toStatus > 10 ||
     typeof receipt.replayed !== 'boolean' ||
     !safeOpaqueId(receipt.requestId) ||
     !safeOpaqueId(receipt.traceId) ||

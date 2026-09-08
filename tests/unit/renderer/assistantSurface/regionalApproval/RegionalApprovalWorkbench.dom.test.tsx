@@ -81,7 +81,8 @@ describe('RegionalApprovalWorkbench', () => {
     expect(screen.getByRole('main', { name: '需求预测区域经理审批工作台' })).toBeVisible();
     expect(screen.getByText('样例数据 · 不连接生产')).toBeVisible();
     expect(within(screen.getByRole('navigation', { name: '各节点数据状态' })).getAllByRole('button')).toHaveLength(5);
-    expect(screen.getByTestId('regional-approval-current-stage')).toHaveTextContent('大区审批');
+    expect(screen.queryByTestId('regional-approval-current-stage')).not.toBeInTheDocument();
+    expect(screen.getByTestId('regional-approval-stage-area')).toHaveAttribute('aria-current', 'step');
     expect(screen.getByRole('region', { name: '审批核对队列' })).toBeVisible();
     expect(screen.queryByText('当前节点核对建议')).not.toBeInTheDocument();
     expect(screen.queryByTestId('regional-approval-primary-task')).not.toBeInTheDocument();
@@ -89,7 +90,7 @@ describe('RegionalApprovalWorkbench', () => {
 
     fireEvent.click(screen.getByTestId('regional-approval-stage-category'));
     await waitFor(() =>
-      expect(screen.getByTestId('regional-approval-current-stage')).toHaveTextContent('品类计划审核')
+      expect(screen.getByTestId('regional-approval-stage-category')).toHaveAttribute('aria-current', 'step')
     );
     expect.soft(screen.getByTestId('regional-approval-stage-province')).toHaveAttribute('data-state', 'completed');
     expect.soft(screen.getByTestId('regional-approval-stage-area')).toHaveAttribute('data-state', 'completed');
@@ -117,7 +118,7 @@ describe('RegionalApprovalWorkbench', () => {
         queryClient={null}
       />
     );
-    expect(screen.getByTestId('regional-approval-current-stage')).toHaveTextContent('品类计划审核');
+    expect(screen.getByTestId('regional-approval-stage-category')).toHaveAttribute('aria-current', 'step');
     expect(screen.getAllByText('华东大区', { exact: true }).length).toBeGreaterThan(0);
   });
 

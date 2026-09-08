@@ -461,6 +461,15 @@ function sanitizeUser(user: WebHostLarkAuthUser): WebHostLarkAuthUser {
     ...(user.avatar ? { avatar: user.avatar } : {}),
     ...(user.email ? { email: user.email } : {}),
     ...(user.phone ? { phone: user.phone } : {}),
+    ...(Array.isArray(user.permissionCodes)
+      ? {
+          permissionCodes: user.permissionCodes.filter(
+            (code) => typeof code === 'string' && code.startsWith('sales-plan:plan:')
+          ),
+        }
+      : {}),
+    ...(typeof user.tenantId === 'string' ? { tenantId: user.tenantId } : {}),
+    ...(typeof user.environmentId === 'string' ? { environmentId: user.environmentId } : {}),
   };
 }
 

@@ -406,6 +406,55 @@ export class GeaLarkAuthService {
       : { authenticated: false };
   }
 
+  /** Read the signed-in user's existing role grants. Failure leaves actions read-only, not login blocked. */
+  async getStatusWithPermissions(
+    expectedIdentity?: WebHostLarkExternalIdentity
+  ): Promise<{ authenticated: boolean; user?: WebHostLarkAuthUser }> {
+    const status = this.getStatus();
+    const token = this.accessToken;
+    const generation = this.authGeneration;
+    if (
+      expectedIdentity &&
+      (status.user?.id !== expectedIdentity.subject ||
+        this.currentTenantId !== expectedIdentity.tenant_id ||
+        this.baseUrl !== expectedIdentity.issuer)
+    ) {
+      throw new GeaLarkAuthServiceError('invalidResponse');
+    }
+    if (!status.authenticated || !status.user || !token) return status;
+    let permissionCodes: string[] | undefined;
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/sys/permission/getUserPermissionByToken`, {
+        headers: { Accept: 'application/json', 'X-Access-Token': token, 'X-Tenant-Id': this.currentTenantId },
+        redirect: 'error',
+        signal: AbortSignal.timeout(15_000),
+      });
+      const payload = await readJson<{ codeList?: unknown }>(response);
+      if (
+        payload.success === true &&
+        Array.isArray(payload.result?.codeList) &&
+        payload.result.codeList.every((code) => typeof code === 'string')
+      ) {
+        permissionCodes = [
+          ...new Set((payload.result.codeList as string[]).filter((code) => code.startsWith('sales-plan:plan:'))),
+        ];
+      }
+    } catch {
+      // Query/login remain available when permission discovery is unavailable.
+    }
+    if (this.authGeneration !== generation || this.accessToken !== token)
+      throw new GeaLarkAuthServiceError('invalidResponse');
+    return {
+      authenticated: true,
+      user: {
+        ...status.user,
+        permissionCodes,
+        tenantId: this.currentTenantId,
+        environmentId: createGeaEnvironmentId(this.baseUrl),
+      },
+    };
+  }
+
   async logout(): Promise<void> {
     await this.sessionStore?.clear();
     this.accessToken = null;
@@ -1104,7 +1153,13 @@ export function createGeaLarkAuth(): WebHostLarkAuth {
           ? 'legacyEnvironment'
           : 'default',
     }),
-    pollQrSession: (qrcodeId) => asWebHostPoll(() => service.pollQrSessionWithIdentity(qrcodeId)),
+    pollQrSession: (qrcodeId) =>
+      asWebHostPoll(async () => {
+        const verified = await service.pollQrSessionWithIdentity(qrcodeId);
+        if (verified.result.status !== 'authenticated') return verified;
+        const status = await service.getStatusWithPermissions(verified.identity);
+        return { ...verified, result: { ...verified.result, user: status.user } };
+      }),
   };
 }
 

@@ -103,7 +103,7 @@ const latestShellContext = () => {
 
 const expectedWorkbenchFocus = {
   target: 'current-workbench',
-  priority: ['selectedEntities', 'visibleEntities', 'metrics', 'scope'],
+  priority: ['selectedEntities', 'analysisSummary', 'visibleEntities', 'metrics', 'scope'],
   constrainToSnapshot: true,
 };
 
@@ -153,7 +153,7 @@ describe('ForecastAssistantSurface context revision', () => {
     delete window.__aionuiAssistantSurfaceFixtures;
     render(<ForecastAssistantSurface stateScope='user:forecast-live-01' />);
     expect(workbenchPropsSpy.mock.calls.at(-1)?.[0]).toEqual(
-      expect.objectContaining({ queryClient: undefined, liveActionsEnabled: false })
+      expect.objectContaining({ queryClient: undefined, liveActionsEnabled: true })
     );
     expect(shellPropsSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('fixtureBoundary');
   });

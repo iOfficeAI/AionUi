@@ -147,7 +147,7 @@ export function initApplicationBridge(): void {
     withLarkAuthResult(async () => {
       const backendSessionReady = await syncSharedGeaSessionToBackend().catch(() => false);
       if (backendSessionReady) await ensureSharedPersonalModels().catch(() => {});
-      return resolveDesktopLarkAuthStatus(app.isPackaged, getSharedLarkAuthService().getStatus());
+      return resolveDesktopLarkAuthStatus(app.isPackaged, await getSharedLarkAuthService().getStatusWithPermissions());
     })
   );
   ipcBridge.larkAuth.logout.provider(() =>

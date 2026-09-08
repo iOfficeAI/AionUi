@@ -68,6 +68,105 @@ afterEach(() => {
 });
 
 describe('LarkAuthService', () => {
+  it('reads only role-granted sales-plan permission codes without exposing credentials or allAuth', async () => {
+    const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      if (String(input).endsWith('/sys/user/getUserInfo')) return jsonResponse(verifiedUserInfoResponse('1001'));
+      expect(String(input)).toBe('https://gea.example/gea-boot/sys/permission/getUserPermissionByToken');
+      expect(init?.headers).toMatchObject({ 'X-Access-Token': 'private-token', 'X-Tenant-Id': '1001' });
+      return jsonResponse({
+        success: true,
+        result: {
+          codeList: ['sales-plan:plan:category-approve', 'sys:user:edit', 'sales-plan:plan:category-approve'],
+          allAuth: [{ action: 'sales-plan:plan:approve' }],
+        },
+      });
+    });
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.initializeSession({
+      load: async () => ({ accessToken: 'private-token' }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    const result = await service.getStatusWithPermissions();
+    expect(result.user).toMatchObject({
+      id: '10086',
+      tenantId: '1001',
+      permissionCodes: ['sales-plan:plan:category-approve'],
+    });
+    expect(JSON.stringify(result)).not.toContain('private-token');
+    expect(JSON.stringify(result)).not.toContain('allAuth');
+  });
+
+  it('rejects permission reads for a different verified identity before returning the current user', async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(verifiedUserInfoResponse('1001')));
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.initializeSession({
+      load: async () => ({ accessToken: 'private-token' }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    for (const identity of [
+      { provider: 'lark' as const, issuer: 'https://gea.example/gea-boot', tenant_id: '1001', subject: 'other-user' },
+      {
+        provider: 'lark' as const,
+        issuer: 'https://gea.example/gea-boot',
+        tenant_id: 'other-tenant',
+        subject: '10086',
+      },
+      { provider: 'lark' as const, issuer: 'https://other.example/gea-boot', tenant_id: '1001', subject: '10086' },
+    ]) {
+      // oxlint-disable-next-line no-await-in-loop -- independently exercise each rejected identity against one service.
+      await expect(service.getStatusWithPermissions(identity)).rejects.toThrow();
+    }
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops previously granted permissions when a fresh permission read fails', async () => {
+    let fail = false;
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).endsWith('/sys/user/getUserInfo')) return jsonResponse(verifiedUserInfoResponse('1001'));
+      if (fail) throw new TypeError('offline');
+      return jsonResponse({ success: true, result: { codeList: ['sales-plan:plan:category-approve'] } });
+    });
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.initializeSession({
+      load: async () => ({ accessToken: 'private-token' }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    expect((await service.getStatusWithPermissions()).user?.permissionCodes).toEqual([
+      'sales-plan:plan:category-approve',
+    ]);
+    fail = true;
+    expect(await service.getStatusWithPermissions()).toMatchObject({
+      authenticated: true,
+      user: { permissionCodes: undefined },
+    });
+  });
+
+  it('does not return an old user permission result after logout during the read', async () => {
+    let resolvePermission!: (value: Response) => void;
+    const service = new LarkAuthService({
+      baseUrl: 'https://gea.example/gea-boot',
+      fetchImpl: async (input) => {
+        if (String(input).endsWith('/sys/user/getUserInfo')) return jsonResponse(verifiedUserInfoResponse('1001'));
+        return new Promise<Response>((resolve) => {
+          resolvePermission = resolve;
+        });
+      },
+    });
+    await service.initializeSession({
+      load: async () => ({ accessToken: 'private-token' }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    const pending = service.getStatusWithPermissions();
+    await service.logout();
+    resolvePermission(jsonResponse({ success: true, result: { codeList: ['sales-plan:plan:category-approve'] } }));
+    await expect(pending).rejects.toThrow();
+    expect(service.getStatus().authenticated).toBe(false);
+  });
+
   it.each([
     'http://gea.example/gea-boot',
     'https://user:password@gea.example/gea-boot',
@@ -135,6 +234,9 @@ describe('LarkAuthService', () => {
       result: { status: 'authenticated', user },
     });
     const statusSpy = vi.spyOn(service, 'getStatus').mockReturnValue({ authenticated: true, user });
+    const permissionSpy = vi
+      .spyOn(service, 'getStatusWithPermissions')
+      .mockResolvedValue({ authenticated: true, user });
     const forwardSpy = vi.spyOn(service, 'forwardGatewayAuthSession').mockImplementation(async (forward) => {
       await forward({ accessToken: 'sensitive-token', tenantId: 'tenant-1' });
       return true;
@@ -154,6 +256,7 @@ describe('LarkAuthService', () => {
     });
     pollSpy.mockRestore();
     statusSpy.mockRestore();
+    permissionSpy.mockRestore();
     forwardSpy.mockRestore();
   });
 
@@ -409,12 +512,17 @@ describe('LarkAuthService', () => {
       },
     };
     const pollSpy = vi.spyOn(service, 'pollQrSessionWithIdentity').mockResolvedValue(verified);
+    const permissionSpy = vi
+      .spyOn(service, 'getStatusWithPermissions')
+      .mockResolvedValue({ authenticated: true, user: verified.result.user });
 
     await expect(createSharedWebHostLarkAuth().pollQrSession('qr-1')).resolves.toEqual({
       identity: verified.identity,
       publicResult: { success: true, data: verified.result },
     });
     expect(httpRequestMock).not.toHaveBeenCalled();
+    expect(permissionSpy).toHaveBeenCalledWith(verified.identity);
+    permissionSpy.mockRestore();
     pollSpy.mockRestore();
   });
 

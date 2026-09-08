@@ -1,4 +1,5 @@
 import http from 'node:http';
+import https from 'node:https';
 import type { AddressInfo } from 'node:net';
 
 export type MockGeaLarkServer = {
@@ -14,13 +15,16 @@ export type MockGeaLarkServer = {
   tokenSentinel: string;
 };
 
-export async function startMockGeaLarkServer(): Promise<MockGeaLarkServer> {
+export async function startMockGeaLarkServer(
+  permissionCodes: string[] = [],
+  tls?: { key: string; cert: string }
+): Promise<MockGeaLarkServer> {
   const tokenSentinel = 'issue133-desktop-platform-token-must-stay-encrypted';
   const counters = { qrRequests: 0, tokenPolls: 0, userInfoRequests: 0 };
   let tokenValid = true;
   let qrAuthenticationEnabled = true;
 
-  const server = http.createServer((req, res) => {
+  const handler: http.RequestListener = (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const json = (status: number, body: unknown) => {
       res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -60,17 +64,26 @@ export async function startMockGeaLarkServer(): Promise<MockGeaLarkServer> {
       });
       return;
     }
+    if (url.pathname === '/gea-boot/sys/permission/getUserPermissionByToken' && req.method === 'GET') {
+      if (!tokenValid || req.headers['x-access-token'] !== tokenSentinel) {
+        json(401, { success: false });
+      } else {
+        json(200, { success: true, result: { codeList: permissionCodes } });
+      }
+      return;
+    }
     if (url.pathname === '/gea-boot/aidata/user-agent-credential/my/list' && req.method === 'GET') {
       json(200, { success: true, result: { records: [], total: 0 } });
       return;
     }
     json(404, { success: false, code: 'NOT_FOUND' });
-  });
+  };
+  const server = tls ? https.createServer(tls, handler) : http.createServer(handler);
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = (server.address() as AddressInfo).port;
   return {
-    baseUrl: `http://127.0.0.1:${port}/gea-boot`,
+    baseUrl: `${tls ? 'https' : 'http'}://127.0.0.1:${port}/gea-boot`,
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
     counters,
     invalidateAccessToken: () => {

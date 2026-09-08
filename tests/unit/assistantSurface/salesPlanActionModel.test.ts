@@ -29,6 +29,17 @@ const receipt = {
 };
 
 describe('sales plan action model', () => {
+  it('rejects any accidental remote SAVE before calling GEA', async () => {
+    const invoke = vi.fn();
+    const action = new SalesPlanActionAttempt({ action: { invoke } });
+    for (const status of [5, 10]) {
+      const save = { ...input, request: { action: 'SAVE', expectedStatus: status } } as unknown as SalesPlanActionInput;
+      expect(salesPlanActionTargetStatus(save.request.action, status)).toBeUndefined();
+      expect(() => action.submit(save)).toThrow(SalesPlanActionError);
+    }
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it('shares one in-flight action for double clicks and caches the authoritative receipt', async () => {
     let resolve!: (value: typeof receipt) => void;
     const invoke = vi.fn(
@@ -217,10 +228,17 @@ describe('sales plan action model', () => {
     ).toThrow(SalesPlanActionError);
   });
 
-  it('treats status 5 as completed and rejects adjustments at the first regional approval node', () => {
-    expect(salesPlanApprovalNodeForStatus(5)).toBeUndefined();
-    expect(salesPlanActionTargetStatus('APPROVE', 5)).toBeUndefined();
+  it('supports category approval 5 to 10 and disallows adjustments at sales confirmation', () => {
+    expect(salesPlanApprovalNodeForStatus(5)).toBe(5);
+    expect(salesPlanActionTargetStatus('APPROVE', 5)).toBe(10);
     expect(salesPlanActionTargetStatus('REJECT', 5)).toBeUndefined();
+    expect(() =>
+      validateSalesPlanActionInput({
+        ...input,
+        request: { action: 'APPROVE', expectedStatus: 5, adjustments: [{ skuCode: '42', adjustQty: '1' }] },
+      })
+    ).not.toThrow();
+    expect(salesPlanActionTargetStatus('APPROVE', 10)).toBeUndefined();
     expect(() =>
       validateSalesPlanActionInput({
         ...input,

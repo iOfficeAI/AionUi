@@ -7,18 +7,18 @@ import type {
 import type { ApprovalDimension, ApprovalStageId } from './regionalApprovalFixture';
 
 export const SALES_PLAN_STATUS_BY_STAGE: Record<ApprovalStageId, number> = {
-  customer: 6,
-  region: 1,
-  province: 2,
-  area: 3,
-  category: 4,
+  customer: 1,
+  region: 2,
+  province: 3,
+  area: 4,
+  category: 5,
 };
 
 const APPROVAL_STAGE_BY_SALES_PLAN_STATUS: Record<number, ApprovalStageId> = {
-  1: 'region',
-  2: 'province',
-  3: 'area',
-  4: 'category',
+  1: 'customer',
+  2: 'region',
+  3: 'province',
+  4: 'area',
   5: 'category',
   6: 'customer',
   7: 'region',
@@ -31,12 +31,14 @@ export const approvalStageForSalesPlanStatus = (status: number): ApprovalStageId
   APPROVAL_STAGE_BY_SALES_PLAN_STATUS[status];
 
 export const VISIBLE_SALES_PLAN_STATUSES_BY_STAGE: Record<ApprovalStageId, readonly number[]> = {
-  customer: [6],
-  region: [1, 7],
-  province: [2, 8],
-  area: [3, 9],
-  category: [4],
+  customer: [1],
+  region: [2],
+  province: [3],
+  area: [4],
+  category: [5, 10],
 };
+
+export const SALES_PLAN_PROGRESS_STATUSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 export const approvalStageProgressForSalesPlanStatusTotals = (
   total: number,
@@ -45,11 +47,14 @@ export const approvalStageProgressForSalesPlanStatusTotals = (
   if (!Number.isSafeInteger(total) || total <= 0) {
     return { customer: 0, region: 0, province: 0, area: 0, category: 0 };
   }
-
+  // V1.11: 1..5 are pending nodes, 10 is complete; a return retains the earlier confirmations.
   return Object.fromEntries(
-    Object.entries(VISIBLE_SALES_PLAN_STATUSES_BY_STAGE).map(([stage, statuses]) => {
-      const unreachedCount = statuses.reduce((sum, status) => sum + Math.max(0, statusTotals[status] ?? 0), 0);
-      return [stage, Math.max(0, Math.min(100, Math.round((1 - unreachedCount / total) * 100)))];
+    Object.entries(SALES_PLAN_STATUS_BY_STAGE).map(([stage, order]) => {
+      const completed = SALES_PLAN_PROGRESS_STATUSES.reduce((count, status) => {
+        const completedOrder = status === 10 ? 5 : status >= 6 ? status - 6 : status - 1;
+        return count + (completedOrder >= order ? Math.max(0, statusTotals[status] ?? 0) : 0);
+      }, 0);
+      return [stage, Math.max(0, Math.min(completed >= total ? 100 : 99, Math.round((completed / total) * 100)))];
     })
   ) as Record<ApprovalStageId, number>;
 };
@@ -77,8 +82,7 @@ export const toRegionalApprovalLiveRow = (row: GeaSalesPlanListItem): RegionalAp
   currentQty: normalizeSalesPlanDecimal(row.currentQty),
   currentAmount: normalizeSalesPlanDecimal(row.currentAmount),
   source: 'gea',
-  approvalState:
-    row.status === 5 || row.status === 10 ? 'approved' : row.status >= 6 && row.status <= 9 ? 'returned' : 'pending',
+  approvalState: row.status === 10 ? 'approved' : row.status >= 6 && row.status <= 9 ? 'returned' : 'pending',
 });
 
 export type RegionalApprovalLiveDimensionProjection = {
@@ -275,3 +279,29 @@ export const formatExactDecimal = (value: string | number): string => {
 
 export const clampSalesPlanPageNumber = (value: number, fallback = 1): number =>
   Number.isSafeInteger(value) && value >= 1 ? value : fallback;
+
+const parseExactDecimal = (value: string) => {
+  const match = value.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
+  if (!match) return undefined;
+  const fraction = match[3] ?? '';
+  const coefficient = BigInt(`${match[2]}${fraction}`) * (match[1] === '-' ? BigInt(-1) : BigInt(1));
+  return { coefficient, scale: fraction.length };
+};
+
+export const multiplyExactDecimals = (left: string, right: string, targetScale = 2): string | undefined => {
+  const leftDecimal = parseExactDecimal(left);
+  const rightDecimal = parseExactDecimal(right);
+  if (!leftDecimal || !rightDecimal) return undefined;
+  const product = leftDecimal.coefficient * rightDecimal.coefficient;
+  const productScale = leftDecimal.scale + rightDecimal.scale;
+  const scaleFactor = BigInt(`1${'0'.repeat(Math.max(0, productScale - targetScale))}`);
+  const absolute = product < 0 ? -product : product;
+  const rounded =
+    productScale > targetScale
+      ? absolute / scaleFactor + ((absolute % scaleFactor) * BigInt(2) >= scaleFactor ? BigInt(1) : BigInt(0))
+      : absolute * BigInt(`1${'0'.repeat(targetScale - productScale)}`);
+  const signed = product < 0 ? -rounded : rounded;
+  const negative = signed < 0;
+  const raw = (negative ? -signed : signed).toString().padStart(targetScale + 1, '0');
+  return `${negative ? '-' : ''}${raw.slice(0, -targetScale)}.${raw.slice(-targetScale)}`;
+};

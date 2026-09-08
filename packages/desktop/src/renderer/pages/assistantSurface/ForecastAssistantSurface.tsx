@@ -16,7 +16,7 @@ import {
 
 const CURRENT_WORKBENCH_FOCUS = {
   target: 'current-workbench',
-  priority: ['selectedEntities', 'visibleEntities', 'metrics', 'scope'],
+  priority: ['selectedEntities', 'analysisSummary', 'visibleEntities', 'metrics', 'scope'],
   constrainToSnapshot: true,
 } as const;
 
@@ -41,16 +41,21 @@ export const shouldDisableFixtureSalesPlanQuery = ({
   e2eSalesPlanQuery: boolean;
 }) => fixtureEnvironment && !(e2eEnvironment && e2eSalesPlanQuery);
 
-const ForecastAssistantSurface: React.FC<{ stateScope: string; businessView?: string }> = ({
-  stateScope,
-  businessView,
-}) => {
+const ForecastAssistantSurface: React.FC<{
+  stateScope: string;
+  businessView?: string;
+  permissionCodes?: readonly string[];
+  draftStorageScope?: string;
+  onRefreshPermissions?: () => Promise<void>;
+}> = ({ stateScope, businessView, permissionCodes, draftStorageScope, onRefreshPermissions }) => {
   const { t } = useTranslation();
+  const [analysisContext, setAnalysisContext] = useState<RegionalApprovalWorkbenchContext>();
   const [surfaceContext, setSurfaceContext] = useState<SurfaceContextSnapshot>();
   const [surfaceContextConversationId, setSurfaceContextConversationId] = useState<string | null>();
 
   const handleBoardContextChange = useCallback(
     (context: RegionalApprovalWorkbenchContext, conversationId: string | null) => {
+      setAnalysisContext(context);
       if (!context.authority) {
         setSurfaceContext(undefined);
         setSurfaceContextConversationId(conversationId);
@@ -94,13 +99,55 @@ const ForecastAssistantSurface: React.FC<{ stateScope: string; businessView?: st
   })
     ? null
     : undefined;
-  // The ordinary list contract does not expose responsibility node, workflow
-  // node, task state or actionability. Keep production actions fail-closed
-  // until those authoritative fields are available from GEA.
-  const liveActionsEnabled = false;
+  // Each object remains read-only unless its authenticated detail grants the action.
+  const liveActionsEnabled = queryClient !== null;
 
   return (
     <BusinessSurfaceShell
+      automaticAnalysis={
+        showingMessages
+          ? undefined
+          : {
+              snapshot:
+                analysisContext &&
+                ['success', 'fixture'].includes(analysisContext.evidence.queryState) &&
+                (analysisContext.selectedEntities.length > 0 ||
+                  !analysisContext.analysisSummary ||
+                  analysisContext.analysisSummary.status === 'success') &&
+                analysisContext.visibleEntities.length > 0
+                  ? surfaceContext
+                  : undefined,
+              prompt: t('common.assistantSurface.approvalAnalysis.prompt'),
+              label: analysisContext
+                ? t('common.assistantSurface.approvalAnalysis.scope', {
+                    month: analysisContext.scope.month,
+                    dimension: analysisContext.scope.dimension
+                      ? t(`common.assistantSurface.regionalApproval.dimensions.${analysisContext.scope.dimension}`)
+                      : '',
+                    target: analysisContext.selectedEntities.length
+                      ? analysisContext.selectedEntities
+                          .map((entity) =>
+                            entity.source === 'fixture'
+                              ? t(`common.assistantSurface.regionalApproval.organizations.${entity.organizationKey}`)
+                              : entity.organizationKey
+                          )
+                          .join('、')
+                      : t('common.assistantSurface.approvalAnalysis.summary'),
+                    count:
+                      analysisContext.selectedEntities.length ||
+                      analysisContext.analysisSummary?.data?.count ||
+                      analysisContext.visibleEntities.length,
+                    total: analysisContext.pagination.total,
+                  })
+                : '',
+              unavailable: Boolean(
+                analysisContext &&
+                (['error', 'stale-error', 'empty', 'empty-periods'].includes(analysisContext.evidence.queryState) ||
+                  (analysisContext.selectedEntities.length === 0 &&
+                    analysisContext.analysisSummary?.status === 'error'))
+              ),
+            }
+      }
       surfaceId='forecast'
       stateScope={stateScope}
       surfaceContext={showingMessages ? undefined : surfaceContext}
@@ -127,6 +174,10 @@ const ForecastAssistantSurface: React.FC<{ stateScope: string; businessView?: st
           queryClient={queryClient}
           detailClient={salesPlan}
           liveActionsEnabled={liveActionsEnabled}
+          permissionCodes={permissionCodes}
+          draftStorageScope={draftStorageScope}
+          onRefreshPermissions={onRefreshPermissions}
+          automaticAnalysisEnabled
         />
       )}
     </BusinessSurfaceShell>

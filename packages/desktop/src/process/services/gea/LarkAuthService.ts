@@ -205,13 +205,15 @@ export async function pollSharedLarkAuthSession(qrcodeId: string): Promise<LarkQ
 async function pollSharedLarkAuthSessionWithIdentity(qrcodeId: string) {
   const service = getSharedLarkAuthService();
   const verified = await service.pollQrSessionWithIdentity(qrcodeId);
-  const result = verified.result;
+  let result = verified.result;
   if (result.status !== 'authenticated' || !result.user) return verified;
   stopGeaClientPresence();
   await syncSharedGeaSessionToBackend({ replaceInvalidated: true });
+  const permissionStatus = await service.getStatusWithPermissions(verified.identity);
+  if (permissionStatus.user) result = { ...result, user: permissionStatus.user };
   if (!personalModelGateway) {
     void startGeaClientPresence(service, logoutSharedLarkAuthSession);
-    return verified;
+    return { ...verified, result };
   }
   let personalModelSync: PersonalModelSyncResult;
   try {
@@ -317,8 +319,17 @@ export function createSharedWebHostLarkAuth(): WebHostLarkAuth {
     getEnvironment: () => ({ ...getGeaEnvironment(), editable: false }),
     pollQrSession: async (qrcodeId) => {
       try {
-        const { identity, result } = await getSharedLarkAuthService().pollQrSessionWithIdentity(qrcodeId);
-        return { ...(identity ? { identity } : {}), publicResult: { success: true, data: result } };
+        const service = getSharedLarkAuthService();
+        const verified = await service.pollQrSessionWithIdentity(qrcodeId);
+        const status =
+          verified.result.status === 'authenticated'
+            ? await service.getStatusWithPermissions(verified.identity)
+            : undefined;
+        const result = status?.user ? { ...verified.result, user: status.user } : verified.result;
+        return {
+          ...(verified.identity ? { identity: verified.identity } : {}),
+          publicResult: { success: true, data: result },
+        };
       } catch (error) {
         return {
           publicResult: {

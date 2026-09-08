@@ -285,7 +285,7 @@
           "2": "Region approval",
           "3": "Province approval",
           "4": "Area approval",
-          "5": "Approval complete",
+          "5": "Category approval",
           "6": "Sales return",
           "7": "Region return",
           "8": "Province return",
@@ -351,7 +351,10 @@
         "allHealth": "All health states",
         "query": "Query",
         "apply": "Query",
-        "reset": "Reset"
+        "reset": "Reset",
+        "expand": "Show filters",
+        "collapse": "Hide filters",
+        "toggle": "Filter controls"
       },
       "toolbar": {
         "progress": "View submission progress",
@@ -524,7 +527,11 @@
           "deltaQty": "Quantity delta",
           "deltaAmount": "Amount delta",
           "aiAdvice": "AI guidance"
-        }
+        },
+        "editCurrent": "Edit and save current plan",
+        "readOnlyReason": "This node is read-only; adjustment permission has not been confirmed by the server.",
+        "editScope": "This view shows aggregates. Editing applies only to the currently selected plan.",
+        "readOnly": "Read-only"
       },
       "liveSubmit": {
         "title": "Live sales plan resubmission",
@@ -564,7 +571,7 @@
           "completed": "This returned version already has a server receipt, so duplicate resubmission is blocked.",
           "channelMissing": "The plan ID does not match the p-{channel}-{YYYY-MM}-{5-digit sequence} business format, so the resubmit channel cannot be verified safely.",
           "serviceBoundary": "Service-account submission and returned-plan resubmission are not enabled in the business surface.",
-          "readOnly": "This business surface only queries live GEA data. Approval, rejection, and submission are disabled.",
+          "readOnly": "This version is read-only. The server has not granted an available action.",
           "queueNotFresh": "The queue is refreshing or failed to load. A successful authoritative queue response is required.",
           "closedPeriod": "Resubmission is available only for an OPEN period.",
           "notReturned": "Only returned statuses 6–9 can be resubmitted."
@@ -608,29 +615,29 @@
           "unknown": "Unknown",
           "executionBoundary": "A successful approval receipt cannot be undone in the client. Conflicts and explicit failures only refresh authoritative state and do not create success. For an unknown result, retry only the same intent with the original idempotency key."
         },
-        "action": "Approval decision",
+        "action": "Action type",
         "approve": "Approve",
         "reject": "Reject",
         "finalNode": "Category approval is complete, so this plan cannot be approved or rejected again. The server remains authoritative.",
         "approveRemark": "Approval remark (optional)",
         "rejectRemark": "Reject reason (required)",
-        "remarkPlaceholder": "Enter an approval note of at most 1,000 characters",
+        "remarkPlaceholder": "Enter an action note of at most 1,000 characters",
         "noAdjustments": "The live detail is currently read-only, so this action sends no sample adjustments. Valid adjustments will be sent only after real version-SKU deltas are connected.",
         "adjustments": {
           "title": "Approval-node changes",
           "summary": "{{count}} SKUs changed at this node",
-          "help": "Enter a signed delta from the previous approval node. This node's confirmed quantity and amount update immediately, while the server still validates amount against the fixed SKU price. Blank or zero keeps the previous-node value.",
+          "help": "Use the preceding node’s quantity as the baseline; completed plans use the category-confirmed quantity for local drafts. Enter a signed delta; 0 makes no adjustment.",
           "loading": "Loading live version SKUs…",
           "loadFailed": "Live SKU details failed to load. Approval without adjustments remains available; refresh before editing.",
           "unavailable": "This approval client has no SKU-detail source, so adjustments cannot be entered.",
           "nodeBoundary": "The first regional node confirms submitted data and cannot include SKU adjustments. Adjustments are available at later approval nodes.",
           "rejectBoundary": "A reject action cannot include SKU adjustments. Describe the required changes in the reject reason.",
           "sku": "SKU / category",
-          "previousNode": "Previous node",
+          "previousNode": "Current baseline quantity / amount",
           "adjustQty": "Quantity delta (+/-)",
           "currentNode": "This node / change",
           "nodeSummary": "Approval-node change summary",
-          "previousTotal": "Previous-node quantity / amount",
+          "previousTotal": "Current baseline quantity / amount",
           "changeTotal": "This-node quantity / amount change",
           "confirmedTotal": "This-node confirmed quantity / amount",
           "discardTitle": "Discard unsubmitted changes?",
@@ -641,8 +648,8 @@
           "inputLabel": "SKU {{sku}} quantity adjustment"
         },
         "confirmation": "I reviewed the plan, version, and status and confirm this action will run as the signed-in user.",
-        "required": "Confirm the approval scope. A reject action also requires a reason.",
-        "loading": "Submitting approval. You cannot close this dialog or start another action until the result returns…",
+        "required": "Confirm the action scope and adjustments. A reject action also requires a reason.",
+        "loading": "Submitting the action. You cannot close this dialog or start another action until the result returns…",
         "close": "Close",
         "retry": "Retry with the same idempotency key",
         "refresh": "Refresh authoritative state",
@@ -656,7 +663,7 @@
           "completed": "This version already has a server receipt, so duplicate actions are blocked.",
           "permission": "The server denied this user. This version is disabled for the current round.",
           "readOnly": "This business surface only queries live GEA data. Approval, rejection, and submission are disabled.",
-          "missingAuthority": "GEA has not returned authoritative responsibility node, workflow node, task state, and actionability fields. The client will not infer approval permission from plan status.",
+          "missingAuthority": "The server has not returned action authority matching this version. The client will not infer permission from plan status.",
           "queueNotFresh": "The approval queue is refreshing or failed to load. Retained rows may be stale; wait for a successful refresh before acting.",
           "closedPeriod": "Approval is available only for an OPEN period.",
           "notCurrentStage": "This plan is no longer at the selected approval node. Refresh the queue."
@@ -664,12 +671,27 @@
         "errors": {
           "validation": "The request is invalid. Verify the status and reject reason, then start again.",
           "authentication": "The GEA user session expired. Sign in again and refresh the queue before acting.",
-          "permission": "The server confirmed that this user cannot approve this version. It is disabled for this round.",
+          "permission": "The server confirmed that this user cannot act on this version. It is disabled for this round.",
           "conflict": "The version changed or another action won the race. Local state was not changed; refresh the authoritative queue.",
           "rateLimited": "Too many requests. Retry later with the same idempotency key; no second action will be created.",
-          "unavailable": "The result is unknown. Close and refresh authoritative state, or retry here with the same idempotency key. Do not start a new approval intent.",
+          "unavailable": "The result is unknown. Close and refresh authoritative state, or retry here with the same idempotency key. Do not start a new action intent.",
           "failed": "The request failed and local state was not changed. Refresh the authoritative queue before deciding."
-        }
+        },
+        "staleDraft": "The plan has changed. Edit and save a fresh local draft before approving.",
+        "saveRemark": "Save note (optional)",
+        "freshnessFailed": "The latest plan could not be read. No approval was submitted. Check the connection and retry.",
+        "canApprove": "Can approve",
+        "saveBoundary": "Save on this device only. GEA and the approval status remain unchanged; adjustments are sent when you approve.",
+        "confirmSave": "Save locally",
+        "save": "Save adjustments",
+        "saveChecksumTitle": "Save review",
+        "saveConfirmation": "I have checked the plan, version and adjustments. Save without changing the approval status.",
+        "canSave": "Can save adjustments",
+        "saveRefreshFailed": "Save receipt received, but readback verification has not passed. Verify again without resubmitting adjustments.",
+        "saveReceipt": "Save receipt received. Verifying the saved result on the same version. Audit ID: {{auditId}}",
+        "localSaveFailed": "Local storage failed. Your draft has not been saved. Keep this page open and retry.",
+        "verifySave": "Verify saved result again",
+        "saveTitle": "Save local adjustment draft"
       },
       "action": {
         "title": "Regional plan approval action",
@@ -720,7 +742,21 @@
         "allStages": "five independent nodes",
         "liveDescription": "Calculated from deduplicated effective plans visible to the current user for the current month and plan type. Temporary organization filters, pagination, and row selection do not affect these values.",
         "latestScope": "Current visibility, month, and plan type",
-        "close": "Close"
+        "close": "Close",
+        "counts": "Submitted {{total}} · Pending {{pending}} · Completed {{completed}}",
+        "missingNode": "{{level}} information unavailable",
+        "levels": {
+          "area": "Area",
+          "province": "Province",
+          "region": "Region",
+          "customer": "Customer"
+        },
+        "treeScope": "All matching effective plans readable by the current user, across every page. Pending means submitted but not at status 10; unsubmitted customers are not inferred.",
+        "pendingOnly": "Show pending only",
+        "empty": "No matching submitted plans in this scope.",
+        "codedNode": "{{level}} code: {{code}}",
+        "treeLabel": "Organization approval progress",
+        "liveScope": "{{month}} · {{planType}} · {{stage}} · Applied filters"
       },
       "stages": {
         "all": "All nodes",
@@ -871,6 +907,15 @@
         "dealerCode": "Dealer code",
         "status": "Status code",
         "all": "All"
+      },
+      "scopeTotals": {
+        "historicalUnavailable": "Historical version totals are unavailable",
+        "title": "Applied filter scope totals",
+        "targetQuantity": "Target quantity",
+        "targetAmount": "Target amount",
+        "quantity": "Current quantity",
+        "amount": "Current amount",
+        "retry": "Totals failed, retry"
       }
     },
     "contract": {

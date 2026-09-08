@@ -13,12 +13,12 @@ import {
 
 describe('regionalApprovalQueryModel', () => {
   it('maps all five approval stages to the frozen GEA page status semantics', () => {
-    expect(SALES_PLAN_STATUS_BY_STAGE).toEqual({ customer: 6, region: 1, province: 2, area: 3, category: 4 });
+    expect(SALES_PLAN_STATUS_BY_STAGE).toEqual({ customer: 1, region: 2, province: 3, area: 4, category: 5 });
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(approvalStageForSalesPlanStatus)).toEqual([
+      'customer',
       'region',
       'province',
       'area',
-      'category',
       'category',
       'customer',
       'region',
@@ -28,24 +28,46 @@ describe('regionalApprovalQueryModel', () => {
     ]);
   });
 
-  it('calculates each node arrival ratio from permission-scoped status totals', () => {
+  it('does not mark a node complete while one plan remains pending', () => {
+    expect(approvalStageProgressForSalesPlanStatusTotals(201, { 10: 200, 5: 1 }).category).toBe(99);
+    expect(approvalStageProgressForSalesPlanStatusTotals(201, { 10: 201 }).category).toBe(100);
+  });
+
+  it('counts completed nodes cumulatively using V1.11 statuses within the readable scope', () => {
     expect(
       approvalStageProgressForSalesPlanStatusTotals(10, {
-        6: 1,
         1: 2,
-        7: 1,
         2: 2,
-        8: 0,
         3: 1,
+        4: 1,
+        5: 1,
+        6: 1,
+        7: 0,
+        8: 0,
         9: 0,
-        4: 4,
+        10: 2,
       })
-    ).toEqual({
-      customer: 90,
-      region: 70,
-      province: 80,
-      area: 90,
-      category: 60,
+    ).toEqual({ customer: 70, region: 50, province: 40, area: 30, category: 20 });
+    expect(approvalStageProgressForSalesPlanStatusTotals(1, { 1: 1 })).toEqual({
+      customer: 0,
+      region: 0,
+      province: 0,
+      area: 0,
+      category: 0,
+    });
+    expect(approvalStageProgressForSalesPlanStatusTotals(1, { 5: 1 })).toEqual({
+      customer: 100,
+      region: 100,
+      province: 100,
+      area: 100,
+      category: 0,
+    });
+    expect(approvalStageProgressForSalesPlanStatusTotals(1, { 10: 1 })).toEqual({
+      customer: 100,
+      region: 100,
+      province: 100,
+      area: 100,
+      category: 100,
     });
     expect(approvalStageProgressForSalesPlanStatusTotals(0, {})).toEqual({
       customer: 0,
@@ -54,6 +76,25 @@ describe('regionalApprovalQueryModel', () => {
       area: 0,
       category: 0,
     });
+  });
+
+  it('keeps category approval pending until status 10', () => {
+    const source = {
+      planId: 'plan',
+      versionId: 'v1',
+      seq: 1,
+      periodId: 'period',
+      planTypeCode: 'Y',
+      dealerCode: '1',
+      status: 5,
+      targetQty: '1',
+      targetAmount: '1',
+      skuCount: 1,
+      currentQty: '1',
+      currentAmount: '1',
+    };
+    expect(toRegionalApprovalLiveRow(source).approvalState).toBe('pending');
+    expect(toRegionalApprovalLiveRow({ ...source, status: 10 }).approvalState).toBe('approved');
   });
 
   it('chooses an open period without coercing its Long identifiers', () => {
@@ -235,7 +276,7 @@ describe('regionalApprovalQueryModel', () => {
     });
   });
 
-  it('treats status 5 as category approval completed under the latest business mapping', () => {
+  it('treats status 5 as pending category approval under V1.11', () => {
     const row = toRegionalApprovalLiveRow({
       planId: 'plan-1',
       versionId: 'version-1',
@@ -251,7 +292,7 @@ describe('regionalApprovalQueryModel', () => {
       currentAmount: '1',
     });
 
-    expect(row.approvalState).toBe('approved');
+    expect(row.approvalState).toBe('pending');
   });
 
   it('keeps legacy completed status 10 visible and read-only', () => {

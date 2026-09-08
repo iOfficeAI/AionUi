@@ -31,6 +31,10 @@ export type GeaEnvironmentUpdateResult = {
 };
 
 export type LarkAuthUser = {
+  /** Existing GEA role grants, used for UI affordances only. No credentials. */
+  permissionCodes?: string[];
+  tenantId?: string;
+  environmentId?: string;
   avatar?: string;
   email?: string;
   id: string;

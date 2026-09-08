@@ -1,7 +1,12 @@
-import { salesPlan, type GeaSalesPlanActionReceipt, type GeaSalesPlanSku } from '@/common/adapter/ipcBridge';
+import {
+  type GeaSalesPlanActionReceipt,
+  type GeaSalesPlanActionRequest,
+  type GeaSalesPlanDetail,
+  type GeaSalesPlanSku,
+} from '@/common/adapter/ipcBridge';
 import { Alert, Button, Checkbox, Input, Modal, Radio, Spin } from '@arco-design/web-react';
 import type { TFunction } from 'i18next';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSalesPlanAction } from './hooks/useSalesPlanAction';
 import {
   salesPlanActionTargetStatus,
@@ -9,12 +14,23 @@ import {
   type SalesPlanActionClient,
   type SalesPlanActionErrorKind,
 } from './models/salesPlanActionModel';
-import { salesPlanSkuNodeComparison, salesPlanSkusMatchVersion } from './models/salesPlanDetailModel';
-import { addExactDecimals, formatExactDecimal, type RegionalApprovalLiveRow } from './regionalApprovalQueryModel';
+import { salesPlanSkusMatchVersion } from './models/salesPlanDetailModel';
+import {
+  addExactDecimals,
+  multiplyExactDecimals,
+  formatExactDecimal,
+  type RegionalApprovalLiveRow,
+} from './regionalApprovalQueryModel';
 import type { ApprovalStageId } from './regionalApprovalFixture';
+import { salesPlanAccessForRow, salesPlanEditableQuantity } from './models/salesPlanAccessModel';
+import {
+  salesPlanDraftMatches,
+  salesPlanDraftSnapshot,
+  type SalesPlanLocalDraft,
+} from './models/salesPlanLocalDraftModel';
 import styles from './RegionalApprovalActionDialog.module.css';
 
-export type LiveActionKind = 'APPROVE' | 'REJECT';
+export type LiveActionKind = 'APPROVE' | 'REJECT' | 'SAVE';
 
 const SIGNED_DECIMAL_PATTERN = /^[+-]?\d+(?:\.\d{1,3})?$/;
 const ZERO_DECIMAL_PATTERN = /^[+-]?0+(?:\.0{1,3})?$/;
@@ -28,32 +44,6 @@ const decimalText = (value: unknown): string | undefined => {
   if (typeof value === 'string' && /^[+-]?\d+(?:\.\d+)?$/.test(value.trim())) return value.trim();
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return undefined;
-};
-
-const parseExactDecimal = (value: string) => {
-  const match = value.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
-  if (!match) return undefined;
-  const fraction = match[3] ?? '';
-  const coefficient = BigInt(`${match[2]}${fraction}`) * (match[1] === '-' ? BigInt(-1) : BigInt(1));
-  return { coefficient, scale: fraction.length };
-};
-
-const multiplyExactDecimals = (left: string, right: string, targetScale = 2): string | undefined => {
-  const leftDecimal = parseExactDecimal(left);
-  const rightDecimal = parseExactDecimal(right);
-  if (!leftDecimal || !rightDecimal) return undefined;
-  const product = leftDecimal.coefficient * rightDecimal.coefficient;
-  const productScale = leftDecimal.scale + rightDecimal.scale;
-  const scaleFactor = BigInt(`1${'0'.repeat(Math.max(0, productScale - targetScale))}`);
-  const absolute = product < 0 ? -product : product;
-  const rounded =
-    productScale > targetScale
-      ? absolute / scaleFactor + ((absolute % scaleFactor) * BigInt(2) >= scaleFactor ? BigInt(1) : BigInt(0))
-      : absolute * BigInt(`1${'0'.repeat(targetScale - productScale)}`);
-  const signed = product < 0 ? -rounded : rounded;
-  const negative = signed < 0;
-  const raw = (negative ? -signed : signed).toString().padStart(targetScale + 1, '0');
-  return `${negative ? '-' : ''}${raw.slice(0, -targetScale)}.${raw.slice(-targetScale)}`;
 };
 
 const signedDecimal = (value: string, currency = false) => {
@@ -73,8 +63,13 @@ const RegionalApprovalLiveActionDialog: React.FC<{
   initialAction?: LiveActionKind;
   t: TFunction;
   client?: SalesPlanActionClient;
+  evidence?: GeaSalesPlanDetail;
+  readCurrentDetail?: () => Promise<GeaSalesPlanDetail>;
+  permissionCodes?: readonly string[];
+  initialDraft?: SalesPlanLocalDraft;
+  onSaveDraft?: (draft: SalesPlanLocalDraft) => void;
   onPermissionDenied: (versionId: string) => void;
-  onSucceeded: (receipt: GeaSalesPlanActionReceipt) => void | Promise<void>;
+  onSucceeded: (receipt: GeaSalesPlanActionReceipt, request: GeaSalesPlanActionRequest) => void | Promise<void>;
   onRefresh: () => void;
   onClose: () => void;
 }> = ({
@@ -84,26 +79,52 @@ const RegionalApprovalLiveActionDialog: React.FC<{
   initialAction = 'APPROVE',
   t,
   client,
+  evidence,
+  readCurrentDetail,
+  permissionCodes,
+  initialDraft,
+  onSaveDraft,
   onPermissionDenied,
   onSucceeded,
   onRefresh,
   onClose,
 }) => {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [snapshot] = useState(evidence);
+  const access = snapshot && salesPlanAccessForRow(row, snapshot, permissionCodes);
+  const [restoredDraft] = useState(() =>
+    snapshot && salesPlanDraftMatches(initialDraft, row, snapshot) ? initialDraft : undefined
+  );
+  const [freshnessState, setFreshnessState] = useState<'idle' | 'checking' | 'stale' | 'failed'>('idle');
+  const staleDraft = freshnessState === 'stale' || (initialDraft !== undefined && restoredDraft === undefined);
+  const [localSaveFailed, setLocalSaveFailed] = useState(false);
+  const submittedRequest = useRef<GeaSalesPlanActionRequest | undefined>(undefined);
   const [kind, setKind] = useState<LiveActionKind>(initialAction);
-  const [remark, setRemark] = useState('');
+  const [remark, setRemark] = useState(restoredDraft?.remark ?? '');
   const [confirmed, setConfirmed] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [discardConfirmVisible, setDiscardConfirmVisible] = useState(false);
-  const [adjustmentValues, setAdjustmentValues] = useState<Record<string, string>>({});
+  const [adjustmentValues, setAdjustmentValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(restoredDraft?.adjustments.map((item) => [item.skuCode, item.adjustQty]) ?? [])
+  );
   const [adjustmentSkus, setAdjustmentSkus] = useState<AdjustmentSkuState>({ status: 'idle' });
   const action = useSalesPlanAction({ client });
-  const loading = action.state.status === 'loading';
+  const loading = action.state.status === 'loading' || freshnessState === 'checking';
   const canClose = !loading;
-  const targetStatus = salesPlanActionTargetStatus(kind, row.status);
-  const approvalNodeOrder = salesPlanApprovalNodeForStatus(row.status);
+  const intentLocked =
+    loading ||
+    action.state.status === 'success' ||
+    (action.state.status === 'error' && action.state.error.retrySameIntent);
+  const targetStatus = kind === 'SAVE' ? row.status : salesPlanActionTargetStatus(kind, row.status);
+  const approvalNodeOrder = row.status === 10 ? 5 : salesPlanApprovalNodeForStatus(row.status);
   const supportsAdjustments = approvalNodeOrder !== undefined && approvalNodeOrder >= 2;
-  const adjustmentSource = client?.versionSkus ?? (client ? undefined : salesPlan.versionSkus);
   const adjustments = useMemo(
     () =>
       Object.entries(adjustmentValues)
@@ -122,12 +143,9 @@ const RegionalApprovalLiveActionDialog: React.FC<{
       const input = adjustmentValues[skuCode]?.trim() ?? '';
       const adjustmentQty = input || '0';
       const adjustmentValid = SIGNED_DECIMAL_PATTERN.test(adjustmentQty);
-      const nodeComparison = salesPlanSkuNodeComparison(sku, approvalStage);
-      const previousQty = decimalText(nodeComparison.previousQty);
+      const previousQty = salesPlanEditableQuantity(sku, row.status);
       const price = decimalText(sku.price);
-      const storedPreviousAmount = decimalText(nodeComparison.previousAmount);
-      const previousAmount =
-        storedPreviousAmount ?? (previousQty && price ? multiplyExactDecimals(previousQty, price) : undefined);
+      const previousAmount = previousQty && price ? multiplyExactDecimals(previousQty, price) : undefined;
       const confirmedQty = previousQty && adjustmentValid ? addExactDecimals([previousQty, adjustmentQty]) : undefined;
       const normalizedConfirmedQty = confirmedQty === '—' ? undefined : confirmedQty;
       return {
@@ -143,7 +161,7 @@ const RegionalApprovalLiveActionDialog: React.FC<{
         amountDelta: adjustmentValid && price ? multiplyExactDecimals(adjustmentQty, price) : undefined,
       };
     });
-  }, [adjustmentSkus, adjustmentValues, approvalStage]);
+  }, [adjustmentSkus, adjustmentValues, row.status]);
   const nodeTotals = useMemo(() => {
     if (nodeComparisons.length === 0) return undefined;
     const total = (values: Array<string | undefined>) => {
@@ -161,11 +179,15 @@ const RegionalApprovalLiveActionDialog: React.FC<{
     };
   }, [nodeComparisons]);
   const invalid =
-    !confirmed ||
+    (kind !== 'SAVE' && !confirmed) ||
+    (kind === 'APPROVE' && staleDraft) ||
+    !access?.allowedActions.includes(kind) ||
+    (kind === 'SAVE' && (!onSaveDraft || adjustmentSkus.status !== 'success')) ||
     targetStatus === undefined ||
     (kind === 'REJECT' && !remark.trim()) ||
     Array.from(remark.trim()).length > 1000 ||
-    (kind === 'APPROVE' && adjustmentsInvalid);
+    (kind !== 'REJECT' &&
+      (adjustmentsInvalid || nodeComparisons.some((item) => !item.confirmedQty || item.confirmedQty.startsWith('-'))));
   const unknown = t('common.assistantSurface.regionalApproval.liveAction.checksum.unknown');
   const hasAdjustmentDraft = Object.values(adjustmentValues).some((value) => value.trim().length > 0);
   const displayDecimal = (value: unknown, currency = false) =>
@@ -211,9 +233,11 @@ const RegionalApprovalLiveActionDialog: React.FC<{
       label: t('common.assistantSurface.regionalApproval.liveAction.checksum.decision'),
       value: t('common.assistantSurface.regionalApproval.liveAction.checksum.decisionValue', {
         action: t(
-          kind === 'APPROVE'
-            ? 'common.assistantSurface.regionalApproval.liveAction.approve'
-            : 'common.assistantSurface.regionalApproval.liveAction.reject'
+          kind === 'SAVE'
+            ? 'common.assistantSurface.regionalApproval.liveAction.save'
+            : kind === 'APPROVE'
+              ? 'common.assistantSurface.regionalApproval.liveAction.approve'
+              : 'common.assistantSurface.regionalApproval.liveAction.reject'
         ),
         target:
           targetStatus === undefined
@@ -223,36 +247,32 @@ const RegionalApprovalLiveActionDialog: React.FC<{
     },
     {
       label: t('common.assistantSurface.regionalApproval.liveAction.checksum.identity'),
-      value: t('common.assistantSurface.regionalApproval.liveAction.checksum.identityValue'),
+      value:
+        kind === 'SAVE'
+          ? t('common.assistantSurface.regionalApproval.liveAction.saveBoundary')
+          : t('common.assistantSurface.regionalApproval.liveAction.checksum.identityValue'),
     },
   ];
 
   useEffect(() => {
-    if (!visible || !supportsAdjustments || !adjustmentSource) {
+    if (!visible || !supportsAdjustments) {
       setAdjustmentSkus({ status: 'idle' });
       return;
     }
-    const controller = new AbortController();
-    setAdjustmentSkus({ status: 'loading' });
-    void adjustmentSource
-      .invoke({ versionId: row.versionId, signal: controller.signal })
-      .then((skus) => {
-        if (controller.signal.aborted) return;
-        setAdjustmentSkus(
-          salesPlanSkusMatchVersion(row.versionId, skus) ? { status: 'success', data: skus } : { status: 'error' }
-        );
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAdjustmentSkus({ status: 'error' });
-      });
-    return () => controller.abort();
-  }, [adjustmentSource, row.versionId, supportsAdjustments, visible]);
+    setAdjustmentSkus(
+      snapshot && salesPlanSkusMatchVersion(row.versionId, snapshot.skus)
+        ? { status: 'success', data: snapshot.skus }
+        : { status: 'error' }
+    );
+  }, [snapshot, row.versionId, supportsAdjustments, visible]);
 
   const complete = async (promise: Promise<GeaSalesPlanActionReceipt>) => {
     try {
       const receipt = await promise;
       try {
-        await onSucceeded(receipt);
+        if (!submittedRequest.current) throw new Error('Missing submitted request');
+        await onSucceeded(receipt, submittedRequest.current);
+        setRefreshFailed(false);
       } catch {
         setRefreshFailed(true);
       }
@@ -263,21 +283,52 @@ const RegionalApprovalLiveActionDialog: React.FC<{
     }
   };
 
-  const submit = () => {
+  const submit = async () => {
     setAttempted(true);
     if (invalid || loading || action.state.status === 'success') return;
-    void complete(
-      action.execute({
-        planId: row.planId,
-        versionId: row.versionId,
-        request: {
-          action: kind,
-          expectedStatus: row.status,
-          ...(remark.trim() ? { remark: remark.trim() } : {}),
-          ...(kind === 'APPROVE' && adjustments.length > 0 ? { adjustments } : {}),
-        },
-      })
-    );
+    if (kind === 'SAVE') {
+      const sourceSnapshot = snapshot && salesPlanDraftSnapshot(row, snapshot);
+      if (!sourceSnapshot || !onSaveDraft) return;
+      try {
+        onSaveDraft({
+          planId: row.planId,
+          versionId: row.versionId,
+          status: row.status,
+          sourceSnapshot,
+          adjustments,
+          remark: remark.trim(),
+        });
+        onClose();
+      } catch {
+        setLocalSaveFailed(true);
+      }
+      return;
+    }
+    if (kind === 'APPROVE' && readCurrentDetail) {
+      setFreshnessState('checking');
+      try {
+        const current = await readCurrentDetail();
+        if (!mounted.current) return;
+        if (!snapshot || salesPlanDraftSnapshot(row, current) !== salesPlanDraftSnapshot(row, snapshot)) {
+          setFreshnessState('stale');
+          return;
+        }
+      } catch {
+        if (!mounted.current) return;
+        setFreshnessState('failed');
+        return;
+      }
+      setFreshnessState('idle');
+    }
+    if (!mounted.current) return;
+    const request: GeaSalesPlanActionRequest = {
+      action: kind,
+      expectedStatus: row.status,
+      ...(remark.trim() ? { remark: remark.trim() } : {}),
+      ...(kind !== 'REJECT' && adjustments.length > 0 ? { adjustments } : {}),
+    };
+    submittedRequest.current = request;
+    void complete(action.execute({ planId: row.planId, versionId: row.versionId, request }));
   };
 
   const retry = () => {
@@ -299,7 +350,11 @@ const RegionalApprovalLiveActionDialog: React.FC<{
       <Modal
         visible={visible}
         className={styles.liveModal}
-        title={t('common.assistantSurface.regionalApproval.liveAction.title')}
+        title={t(
+          kind === 'SAVE'
+            ? 'common.assistantSurface.regionalApproval.liveAction.saveTitle'
+            : 'common.assistantSurface.regionalApproval.liveAction.title'
+        )}
         maskClosable={false}
         closable={canClose}
         focusLock
@@ -310,7 +365,16 @@ const RegionalApprovalLiveActionDialog: React.FC<{
               <Button disabled={!canClose} onClick={requestClose}>
                 {t('common.assistantSurface.regionalApproval.liveAction.close')}
               </Button>
-              {action.state.status === 'error' && action.state.error.retrySameIntent ? (
+              {refreshFailed && action.state.status === 'success' ? (
+                <Button
+                  type='primary'
+                  onClick={() =>
+                    action.state.status === 'success' && void complete(Promise.resolve(action.state.receipt))
+                  }
+                >
+                  {t('common.assistantSurface.regionalApproval.liveAction.verifySave')}
+                </Button>
+              ) : action.state.status === 'error' && action.state.error.retrySameIntent ? (
                 <Button type='primary' disabled={loading} onClick={retry}>
                   {t('common.assistantSurface.regionalApproval.liveAction.retry')}
                 </Button>
@@ -333,9 +397,11 @@ const RegionalApprovalLiveActionDialog: React.FC<{
                   {t(
                     action.state.status === 'success'
                       ? 'common.assistantSurface.regionalApproval.liveAction.completed'
-                      : kind === 'APPROVE'
-                        ? 'common.assistantSurface.regionalApproval.liveAction.confirmApprove'
-                        : 'common.assistantSurface.regionalApproval.liveAction.confirmReject'
+                      : kind === 'SAVE'
+                        ? 'common.assistantSurface.regionalApproval.liveAction.confirmSave'
+                        : kind === 'APPROVE'
+                          ? 'common.assistantSurface.regionalApproval.liveAction.confirmApprove'
+                          : 'common.assistantSurface.regionalApproval.liveAction.confirmReject'
                   )}
                 </Button>
               )}
@@ -345,7 +411,13 @@ const RegionalApprovalLiveActionDialog: React.FC<{
       >
         <div className={styles.body} data-testid='regional-approval-live-action-dialog'>
           <section className={styles.businessChecksum} data-testid='regional-approval-live-action-checksum'>
-            <h3>{t('common.assistantSurface.regionalApproval.liveAction.checksum.title')}</h3>
+            <h3>
+              {t(
+                kind === 'SAVE'
+                  ? 'common.assistantSurface.regionalApproval.liveAction.saveChecksumTitle'
+                  : 'common.assistantSurface.regionalApproval.liveAction.checksum.title'
+              )}
+            </h3>
             <dl>
               {checksum.map((item) => (
                 <div key={String(item.label)}>
@@ -359,18 +431,32 @@ const RegionalApprovalLiveActionDialog: React.FC<{
           <div className={styles.form}>
             <div className={styles.formControl}>
               <span>{t('common.assistantSurface.regionalApproval.liveAction.action')}</span>
-              <Radio.Group
-                value={kind}
-                aria-label={t('common.assistantSurface.regionalApproval.liveAction.action')}
-                disabled={targetStatus === undefined || loading || action.state.status === 'success'}
-                onChange={(value) => {
-                  setKind(value as LiveActionKind);
-                  setAttempted(false);
-                }}
-              >
-                <Radio value='APPROVE'>{t('common.assistantSurface.regionalApproval.liveAction.approve')}</Radio>
-                <Radio value='REJECT'>{t('common.assistantSurface.regionalApproval.liveAction.reject')}</Radio>
-              </Radio.Group>
+              {initialAction === 'SAVE' ? (
+                <span>{t('common.assistantSurface.regionalApproval.liveAction.saveBoundary')}</span>
+              ) : (
+                <Radio.Group
+                  value={kind}
+                  aria-label={t('common.assistantSurface.regionalApproval.liveAction.action')}
+                  disabled={approvalNodeOrder === undefined || intentLocked}
+                  onChange={(value) => {
+                    setKind(value as LiveActionKind);
+                    setAttempted(false);
+                  }}
+                >
+                  <Radio value='APPROVE' disabled={!access?.allowedActions.includes('APPROVE')}>
+                    {t('common.assistantSurface.regionalApproval.liveAction.approve')}
+                  </Radio>
+                  <Radio
+                    value='REJECT'
+                    disabled={
+                      !access?.allowedActions.includes('REJECT') ||
+                      salesPlanActionTargetStatus('REJECT', row.status) === undefined
+                    }
+                  >
+                    {t('common.assistantSurface.regionalApproval.liveAction.reject')}
+                  </Radio>
+                </Radio.Group>
+              )}
             </div>
             {targetStatus === undefined ? (
               <Alert
@@ -379,7 +465,7 @@ const RegionalApprovalLiveActionDialog: React.FC<{
                 content={t('common.assistantSurface.regionalApproval.liveAction.finalNode')}
               />
             ) : null}
-            {kind === 'APPROVE' && supportsAdjustments ? (
+            {kind !== 'REJECT' && supportsAdjustments ? (
               <section
                 className={styles.adjustments}
                 aria-label={t('common.assistantSurface.regionalApproval.liveAction.adjustments.title')}
@@ -472,7 +558,7 @@ const RegionalApprovalLiveActionDialog: React.FC<{
                                 size='small'
                                 value={value}
                                 status={invalidValue ? 'error' : undefined}
-                                disabled={loading || action.state.status === 'success'}
+                                disabled={intentLocked}
                                 aria-label={inputLabel}
                                 placeholder={t(
                                   'common.assistantSurface.regionalApproval.liveAction.adjustments.placeholder'
@@ -518,35 +604,62 @@ const RegionalApprovalLiveActionDialog: React.FC<{
             <div className={styles.formControl}>
               <span>
                 {t(
-                  kind === 'REJECT'
-                    ? 'common.assistantSurface.regionalApproval.liveAction.rejectRemark'
-                    : 'common.assistantSurface.regionalApproval.liveAction.approveRemark'
+                  kind === 'SAVE'
+                    ? 'common.assistantSurface.regionalApproval.liveAction.saveRemark'
+                    : kind === 'REJECT'
+                      ? 'common.assistantSurface.regionalApproval.liveAction.rejectRemark'
+                      : 'common.assistantSurface.regionalApproval.liveAction.approveRemark'
                 )}
               </span>
               <Input.TextArea
                 value={remark}
                 maxLength={1000}
                 showWordLimit
-                disabled={loading || action.state.status === 'success'}
+                disabled={intentLocked}
                 status={attempted && kind === 'REJECT' && !remark.trim() ? 'error' : undefined}
                 aria-label={t(
-                  kind === 'REJECT'
-                    ? 'common.assistantSurface.regionalApproval.liveAction.rejectRemark'
-                    : 'common.assistantSurface.regionalApproval.liveAction.approveRemark'
+                  kind === 'SAVE'
+                    ? 'common.assistantSurface.regionalApproval.liveAction.saveRemark'
+                    : kind === 'REJECT'
+                      ? 'common.assistantSurface.regionalApproval.liveAction.rejectRemark'
+                      : 'common.assistantSurface.regionalApproval.liveAction.approveRemark'
                 )}
                 placeholder={t('common.assistantSurface.regionalApproval.liveAction.remarkPlaceholder')}
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 onChange={setRemark}
               />
             </div>
-            <Checkbox
-              checked={confirmed}
-              disabled={loading || action.state.status === 'success'}
-              aria-label={t('common.assistantSurface.regionalApproval.liveAction.confirmation')}
-              onChange={setConfirmed}
-            >
-              {t('common.assistantSurface.regionalApproval.liveAction.confirmation')}
-            </Checkbox>
+            {kind !== 'SAVE' ? (
+              <Checkbox
+                checked={confirmed}
+                disabled={intentLocked}
+                aria-label={t('common.assistantSurface.regionalApproval.liveAction.confirmation')}
+                onChange={setConfirmed}
+              >
+                {t('common.assistantSurface.regionalApproval.liveAction.confirmation')}
+              </Checkbox>
+            ) : null}
+            {staleDraft ? (
+              <Alert
+                type='warning'
+                showIcon
+                content={t('common.assistantSurface.regionalApproval.liveAction.staleDraft')}
+              />
+            ) : null}
+            {freshnessState === 'failed' ? (
+              <Alert
+                type='error'
+                showIcon
+                content={t('common.assistantSurface.regionalApproval.liveAction.freshnessFailed')}
+              />
+            ) : null}
+            {localSaveFailed ? (
+              <Alert
+                type='error'
+                showIcon
+                content={t('common.assistantSurface.regionalApproval.liveAction.localSaveFailed')}
+              />
+            ) : null}
             {attempted && invalid ? (
               <Alert
                 type='error'
@@ -569,18 +682,27 @@ const RegionalApprovalLiveActionDialog: React.FC<{
             <Alert
               type='success'
               showIcon
-              content={t('common.assistantSurface.regionalApproval.liveAction.success', {
-                from: action.state.receipt.fromStatus,
-                to: action.state.receipt.toStatus,
-                auditId: action.state.receipt.auditId,
-              })}
+              content={t(
+                kind === 'SAVE'
+                  ? 'common.assistantSurface.regionalApproval.liveAction.saveReceipt'
+                  : 'common.assistantSurface.regionalApproval.liveAction.success',
+                {
+                  from: action.state.receipt.fromStatus,
+                  to: action.state.receipt.toStatus,
+                  auditId: action.state.receipt.auditId,
+                }
+              )}
             />
           ) : null}
           {refreshFailed ? (
             <Alert
               type='warning'
               showIcon
-              content={t('common.assistantSurface.regionalApproval.liveAction.refreshFailed')}
+              content={t(
+                kind === 'SAVE'
+                  ? 'common.assistantSurface.regionalApproval.liveAction.saveRefreshFailed'
+                  : 'common.assistantSurface.regionalApproval.liveAction.refreshFailed'
+              )}
             />
           ) : null}
         </div>

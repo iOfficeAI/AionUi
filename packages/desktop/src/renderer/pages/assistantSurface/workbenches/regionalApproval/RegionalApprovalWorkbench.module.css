@@ -417,6 +417,7 @@
 }
 
 .advancedToggle {
+  display: none;
   min-height: 32px;
 }
 
@@ -595,6 +596,11 @@
   width: min(720px, calc(100vw - 32px));
 }
 
+.progressModal :global(.arco-modal-content) {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
 .progressRow {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) auto;
@@ -717,6 +723,13 @@
 }
 
 @container (max-width: 620px) {
+  .advancedToggle {
+    display: inline-flex;
+  }
+  .advancedControls[data-expanded='false'] {
+    display: none;
+  }
+
   .header {
     align-items: flex-start;
     flex-direction: column;
@@ -725,8 +738,7 @@
   }
 
   .fixtureTag,
-  .scope small,
-  .queueMetrics > span:last-child {
+  .scope small {
     display: none;
   }
 
@@ -767,5 +779,57 @@
 @media (prefers-reduced-motion: reduce) {
   .stageButton {
     transition: none;
+  }
+}
+
+/* Keep the wide desktop queue controls in two rows; wrap intact at smaller widths. */
+.queueHeader {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.queueHeader > .controlToolbar {
+  flex: 1 1 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.queueMetrics {
+  flex-wrap: wrap;
+  gap: 4px 0;
+}
+@container (min-width: 1280px) {
+  .queueHeader > .controlToolbar {
+    flex: 1 1 auto;
+  }
+  .queueHeader {
+    flex-wrap: nowrap;
+    min-height: 52px;
+    padding: 5px 8px;
+  }
+  .queueMetrics > span {
+    min-width: 72px;
+    padding-inline: 6px;
+  }
+  .advancedControls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 0;
+  }
+  .filterHeading {
+    min-width: 0;
+    flex-wrap: wrap;
+    flex: 0 0 80px;
+    margin: 0;
+  }
+  .filterRow {
+    flex: 1;
+  }
+  .fieldControl {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+  .fieldControl > span {
+    white-space: nowrap;
   }
 }

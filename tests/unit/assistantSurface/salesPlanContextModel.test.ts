@@ -75,6 +75,12 @@ describe('sales plan Context projection', () => {
     expect(JSON.stringify(context)).not.toMatch(/secret|token|authorization|items|sku|permission/i);
   });
 
+  it('preserves a valid category approval receipt that completes status 10', () => {
+    expect(
+      projectSalesPlanActionContext({ ...row, status: 5 }, { ...actionReceipt, fromStatus: 5, toStatus: 10 }, filters)
+    ).toMatchObject({ source: 'gea-user-session-action', status: 10, versionId: row.versionId });
+  });
+
   it('projects replayed approval receipts without their request payloads', () => {
     expect(projectSalesPlanActionContext(row, actionReceipt, filters)).toEqual({
       source: 'gea-user-session-action',

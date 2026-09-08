@@ -495,7 +495,18 @@ export type GeaSalesPlanApprovalLog = {
   actionAt: string;
 };
 
+export type GeaSalesPlanActionContext = {
+  versionId: string;
+  status: number;
+  nodeOrder?: number | null;
+  allowedActions: GeaSalesPlanAction[];
+  snapshotHash: string;
+  reason?: 'MISSING_PERMISSION' | 'NOT_CANDIDATE' | 'UNAVAILABLE' | null;
+};
+
 export type GeaSalesPlanDetail = {
+  actionContext?: GeaSalesPlanActionContext;
+
   currentVersion: GeaSalesPlanVersion;
   skus: GeaSalesPlanSku[];
   versions: GeaSalesPlanVersion[];
@@ -691,6 +702,9 @@ const normalizeSalesPlanApprovalLog = (log: GeaSalesPlanApprovalLog): GeaSalesPl
 });
 
 const normalizeSalesPlanDetail = (detail: GeaSalesPlanDetail): GeaSalesPlanDetail => ({
+  ...(detail.actionContext
+    ? { actionContext: { ...detail.actionContext, versionId: normalizeSalesPlanId(detail.actionContext.versionId) } }
+    : {}),
   currentVersion: normalizeSalesPlanVersion(detail.currentVersion),
   skus: detail.skus.map(normalizeSalesPlanSku),
   versions: detail.versions.map(normalizeSalesPlanVersion),

@@ -9,10 +9,11 @@ import {
 } from '@/common/adapter/ipcBridge';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  addExactDecimals,
   approvalStageProgressForSalesPlanStatusTotals,
   chooseInitialSalesPlanPeriod,
   clampSalesPlanPageNumber,
-  VISIBLE_SALES_PLAN_STATUSES_BY_STAGE,
+  SALES_PLAN_PROGRESS_STATUSES,
   type RegionalApprovalQueryScope,
 } from './regionalApprovalQueryModel';
 import type { ApprovalStageId } from './regionalApprovalFixture';
@@ -31,6 +32,17 @@ type QueryState<T> =
   | { status: 'loading'; data?: T; error?: undefined }
   | { status: 'success'; data: T; error?: undefined }
   | { status: 'error'; data?: T; error: RegionalApprovalQueryError };
+
+export type SalesPlanAnalysisSummary = {
+  source: 'gea-user-session';
+  completeness: 'filtered-scope';
+  version: 'current';
+  count: number;
+  quantity: string;
+  amount: string;
+  targetQuantity: string;
+  targetAmount: string;
+};
 
 const idle = { status: 'idle' } as const;
 
@@ -71,6 +83,7 @@ export const useRegionalApprovalQuery = ({
   pageSize,
   scope,
   loadStageProgress = false,
+  loadAnalysisSummary = false,
   stageStatuses,
 }: {
   client?: SalesPlanQueryClient | null;
@@ -78,11 +91,25 @@ export const useRegionalApprovalQuery = ({
   pageSize: number;
   scope?: RegionalApprovalQueryScope;
   loadStageProgress?: boolean;
+  loadAnalysisSummary?: boolean;
   stageStatuses?: readonly number[];
 }) => {
+  const [analysisResult, setAnalysisResult] =
+    useState<QueryState<{ summary: SalesPlanAnalysisSummary; records: GeaSalesPlanListItem[] }>>(idle);
+  const analysisSummary = useMemo<QueryState<SalesPlanAnalysisSummary>>(
+    () =>
+      analysisResult.status === 'success'
+        ? { status: 'success', data: analysisResult.data.summary }
+        : analysisResult.status === 'error'
+          ? { status: 'error', error: analysisResult.error }
+          : { status: analysisResult.status },
+    [analysisResult]
+  );
   const [periodsState, setPeriodsState] = useState<QueryState<GeaSalesPlanPeriod[]>>(idle);
   const [queueState, setQueueState] = useState<QueryState<GeaSalesPlanPage<GeaSalesPlanListItem>>>(idle);
-  const [progressState, setProgressState] = useState<QueryState<Record<ApprovalStageId, number>>>(idle);
+  const [progressState, setProgressState] = useState<
+    QueryState<Record<ApprovalStageId, number>> & { statusTotals?: Partial<Record<number, number>> }
+  >(idle);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>();
   const [queueSettledPage, setQueueSettledPage] = useState<number>();
   const [periodRevision, setPeriodRevision] = useState(0);
@@ -253,12 +280,15 @@ export const useRegionalApprovalQuery = ({
     const requestId = ++progressRequest.current;
     const request = beginTimedRequest();
     setProgressState((current) => ({ status: 'loading', data: current.data }));
-    const statuses = [...new Set(Object.values(VISIBLE_SALES_PLAN_STATUSES_BY_STAGE).flat())];
+    const statuses = SALES_PLAN_PROGRESS_STATUSES.filter(
+      (status) => stableScope.status === undefined || status === stableScope.status
+    );
     const baseQuery = {
       periodId: selectedPeriodId,
       planTypeCode: selectedPeriodPlanTypeCode,
       pageNo: 1,
       pageSize: 1,
+      ...stableScope,
       signal: request.signal,
     };
 
@@ -274,6 +304,7 @@ export const useRegionalApprovalQuery = ({
         setProgressState({
           status: 'success',
           data: approvalStageProgressForSalesPlanStatusTotals(allRows.total, statusTotals),
+          statusTotals,
         });
       })
       .catch((error: unknown) => {
@@ -285,7 +316,120 @@ export const useRegionalApprovalQuery = ({
       })
       .finally(request.finish);
     return request.cancel;
-  }, [client, loadStageProgress, queueRevision, selectedPeriodId, selectedPeriodPlanTypeCode]);
+  }, [client, loadStageProgress, queueRevision, selectedPeriodId, selectedPeriodPlanTypeCode, stableScope]);
+
+  useEffect(() => {
+    if (!client || !loadAnalysisSummary || !selectedPeriodId || !selectedPeriodPlanTypeCode) {
+      setAnalysisResult(idle);
+      return;
+    }
+    const request = beginTimedRequest();
+    let active = true;
+    setAnalysisResult({ status: 'loading' });
+    request.signal.addEventListener(
+      'abort',
+      () => {
+        if (active && request.didTimeOut()) setAnalysisResult({ status: 'error', error: 'timeout' });
+      },
+      { once: true }
+    );
+    const collect = async () => {
+      const rows = new Map<string, GeaSalesPlanListItem>();
+      let expectedTotal = 0;
+      // Read pages sequentially so entering the workbench cannot fan out an unbounded set of requests.
+      for (const status of stableStageStatuses?.length ? stableStageStatuses : [stableScope.status]) {
+        let pageCount = 1;
+        let statusTotal = 0;
+        let serverPageSize = 0;
+        for (let pageNo = 1; pageNo <= pageCount; pageNo++) {
+          request.signal.throwIfAborted();
+          // oxlint-disable-next-line no-await-in-loop -- next page depends on the server page size; bound request concurrency.
+          const response = await client.list.invoke({
+            ...stableScope,
+            status,
+            periodId: selectedPeriodId,
+            planTypeCode: selectedPeriodPlanTypeCode,
+            pageNo,
+            pageSize: 200,
+            signal: request.signal,
+          });
+          request.signal.throwIfAborted();
+          if (
+            response.current !== pageNo ||
+            !Number.isSafeInteger(response.total) ||
+            response.total < 0 ||
+            !Number.isSafeInteger(response.size) ||
+            response.size <= 0
+          ) {
+            throw new Error('Invalid analysis pagination');
+          }
+          if (pageNo === 1) {
+            statusTotal = response.total;
+            serverPageSize = response.size;
+            expectedTotal += statusTotal;
+            pageCount = Math.max(1, Math.ceil(statusTotal / response.size));
+          } else if (response.total !== statusTotal || response.size !== serverPageSize) {
+            throw new Error('Analysis scope changed during pagination');
+          }
+          if (
+            response.records.length !==
+            Math.min(serverPageSize, Math.max(0, statusTotal - (pageNo - 1) * serverPageSize))
+          ) {
+            throw new Error('Incomplete analysis page');
+          }
+          for (const row of response.records) {
+            if (
+              [row.currentQty, row.currentAmount, row.targetQty, row.targetAmount].some(
+                (value) => !/^-?\d+(?:\.\d+)?$/.test(String(value))
+              )
+            ) {
+              throw new Error('Invalid analysis decimal');
+            }
+            if (rows.has(row.planId) || row.periodId !== selectedPeriodId) {
+              throw new Error('Inconsistent analysis records');
+            }
+            rows.set(row.planId, row);
+          }
+        }
+      }
+      if (rows.size !== expectedTotal) throw new Error('Incomplete analysis scope');
+      const records = [...rows.values()];
+      return {
+        records,
+        summary: {
+          source: 'gea-user-session',
+          completeness: 'filtered-scope',
+          version: 'current',
+          count: records.length,
+          quantity: addExactDecimals(records.map((row) => String(row.currentQty))),
+          amount: addExactDecimals(records.map((row) => String(row.currentAmount))),
+          targetQuantity: addExactDecimals(records.map((row) => String(row.targetQty))),
+          targetAmount: addExactDecimals(records.map((row) => String(row.targetAmount))),
+        } satisfies SalesPlanAnalysisSummary,
+      };
+    };
+    void collect()
+      .then((data) => {
+        if (active && !request.signal.aborted) setAnalysisResult({ status: 'success', data });
+      })
+      .catch((error: unknown) => {
+        if (!active || (request.signal.aborted && !request.didTimeOut())) return;
+        setAnalysisResult({ status: 'error', error: classifyRegionalApprovalQueryError(error, request.didTimeOut()) });
+      })
+      .finally(request.finish);
+    return () => {
+      active = false;
+      request.cancel();
+    };
+  }, [
+    client,
+    loadAnalysisSummary,
+    selectedPeriodId,
+    selectedPeriodPlanTypeCode,
+    stableScope,
+    stableStageStatuses,
+    queueRevision,
+  ]);
 
   const refreshing =
     periodsState.status === 'loading' ||
@@ -293,6 +437,8 @@ export const useRegionalApprovalQuery = ({
     (loadStageProgress && progressState.status === 'loading');
 
   return {
+    analysisSummary,
+    analysisRecords: analysisResult.status === 'success' ? analysisResult.data.records : undefined,
     enabled: client !== null,
     periodsState,
     queueState,

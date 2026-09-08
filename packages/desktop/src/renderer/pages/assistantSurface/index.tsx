@@ -7,7 +7,7 @@ import AssistantSurfaceErrorBoundary from './shell/AssistantSurfaceErrorBoundary
 import ForecastAssistantSurface from './ForecastAssistantSurface';
 
 const AssistantSurfacePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const { surfaceId, businessView } = useParams<{ surfaceId: string; businessView?: string }>();
   const surface = getAssistantSurface(surfaceId);
 
@@ -26,9 +26,21 @@ const AssistantSurfacePage: React.FC = () => {
     window.__aionuiAssistantSurfaceFixtures === true
   );
 
+  const draftStorageScope =
+    user?.id && user.environmentId && user.tenantId
+      ? JSON.stringify([user.environmentId, user.tenantId, user.id])
+      : undefined;
+
   return (
     <AssistantSurfaceErrorBoundary fallback={<Navigate to='/guid' replace />}>
-      <ForecastAssistantSurface stateScope={stateScope} businessView={businessView} />
+      <ForecastAssistantSurface
+        key={draftStorageScope ?? stateScope}
+        stateScope={stateScope}
+        businessView={businessView}
+        permissionCodes={user?.permissionCodes}
+        draftStorageScope={draftStorageScope}
+        onRefreshPermissions={refresh}
+      />
     </AssistantSurfaceErrorBoundary>
   );
 };

@@ -647,4 +647,57 @@ test.describe('Regional Approval Business', () => {
       })().catch(() => {});
     }
   });
+
+  test('keeps compact approval controls and all four totals usable across widths and themes', async ({
+    page,
+  }, testInfo) => {
+    /* oxlint-disable no-await-in-loop -- exercise one shared Electron window serially across themes and sizes. */
+    for (const theme of ['light', 'dark']) {
+      await page.goto(`${page.url().split('#')[0]}#/settings/system`);
+      const toggle = page.getByTestId('theme-toggle');
+      await expect(toggle).toBeVisible();
+      if ((await page.locator('html').getAttribute('data-theme')) !== theme) await toggle.click();
+      await page.goto(`${page.url().split('#')[0]}#/guid`);
+      if (!(await page.getByTestId('assistant-surface-navigation').isVisible())) {
+        await page.getByTestId('assistant-surface-switcher').click();
+        await page.getByTestId('assistant-surface-option-business').click();
+      }
+      await page.getByTestId('assistant-surface-navigation-forecast').click();
+      for (const width of [1920, 1280, 900]) {
+        await page.setViewportSize({ width, height: 1000 });
+        const board = page.getByTestId('regional-approval-workbench');
+        await expect(board).toBeVisible();
+        await expect(page.getByRole('button', { name: '配置模型', exact: true })).toBeVisible();
+        await expect(page.locator('.arco-message-error').filter({ hasText: '未配置模型' })).toHaveCount(0);
+        await expect(page.getByTestId('regional-approval-current-stage')).toHaveCount(0);
+        const totals = page.getByRole('region', { name: '当前筛选范围统计' });
+        for (const label of ['目标数量', '目标金额', '当前数量', '当前金额']) {
+          await expect(totals.getByText(label, { exact: true })).toBeVisible();
+        }
+        const filterToggle = page.getByRole('button', { name: '筛选条件', exact: true });
+        if (width === 900) {
+          await expect(filterToggle).toBeVisible();
+          await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
+          const table = await page.getByRole('region', { name: '审批核对队列' }).locator('.arco-table').boundingBox();
+          expect(table!.y).toBeLessThan(817);
+          await filterToggle.click();
+          await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
+        }
+        await selectOption(page, '健康度', '预警');
+        const query = page.getByRole('button', { name: '查询', exact: true });
+        await query.focus();
+        await expect(query).toBeFocused();
+        await page.keyboard.press('Tab');
+        await expect(page.getByRole('button', { name: '重置', exact: true })).toBeFocused();
+        await selectOption(page, '健康度', '全部健康度');
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+        );
+        expect(overflow).toBeLessThanOrEqual(1);
+        if (width === 900) await filterToggle.click();
+        await page.screenshot({ path: testInfo.outputPath(`approval-${theme}-${width}.png`), fullPage: true });
+      }
+    }
+    /* oxlint-enable no-await-in-loop */
+  });
 });

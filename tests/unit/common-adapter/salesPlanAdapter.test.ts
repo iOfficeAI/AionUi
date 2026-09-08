@@ -174,6 +174,13 @@ describe('sales-plan user query adapter', () => {
         targetAmount: 127145.49,
         targetQty: 1458,
       },
+      actionContext: {
+        versionId: 'p-jxs-2026-09-00017-1',
+        status: 7,
+        nodeOrder: 2,
+        allowedActions: ['SAVE'],
+        snapshotHash: 'a'.repeat(64),
+      },
       skus: [],
       versions: [],
       logs: [],
@@ -218,6 +225,7 @@ describe('sales-plan user query adapter', () => {
     const skuResult = await salesPlan.versionSkus.invoke({ versionId: numericSku.versionId });
 
     expect(periodResult.records[0]).toMatchObject({ periodId: '20260901', tenantId: '1' });
+    expect(detailResult.actionContext).toEqual(numericDetail.actionContext);
     expect(detailResult.currentVersion).toMatchObject({
       periodId: '20260901',
       dealerCode: '10151759',
