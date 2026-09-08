@@ -131,6 +131,37 @@ const listMockFor = (rows: readonly GeaSalesPlanListItem[]) =>
     });
   });
 
+const exportSkus = (versionId: string): GeaSalesPlanSku[] =>
+  ['01', '02', '03'].map((code, index) => ({
+    id: `${versionId}-${code}`,
+    versionId,
+    skuCode: code,
+    productCategName: '导出测试',
+    baseQty: '0',
+    price: '10',
+    amtBase: '0',
+    qty: ['0.1', '0.2', '0'][index],
+    amt: ['2064404.26', '0.01', '0.01'][index],
+    regionConfirmedQty: ['1.125', '2.125', '0'][index],
+    regionConfirmedAmount: ['10', '20.01', '0'][index],
+    provinceConfirmedQty: ['3', '4', '0'][index],
+    provinceConfirmedAmount: ['30', '40', '0'][index],
+    areaConfirmedQty: '0',
+    areaConfirmedAmount: '0',
+    categoryConfirmedQty: null,
+    categoryConfirmedAmount: null,
+  }));
+
+const exportDetailClient = (
+  versionSkus: SalesPlanDetailClient['versionSkus']['invoke'] = async ({ versionId }) => exportSkus(versionId)
+): SalesPlanDetailClient => ({
+  detail: { invoke: vi.fn().mockRejectedValue(new Error('unused')) },
+  versions: { invoke: vi.fn().mockResolvedValue([]) },
+  logs: { invoke: vi.fn().mockResolvedValue([]) },
+  compare: { invoke: vi.fn().mockResolvedValue([]) },
+  versionSkus: { invoke: versionSkus },
+});
+
 describe('RegionalApprovalWorkbench live sales-plan query', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -258,6 +289,19 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     const row = {
       ...liveRow('plan-export', 5),
       dealerCode: '0009007199254740997',
+      areaCode: '0001',
+      areaName: '华东大区',
+      provinceCode: '0002',
+      provinceName: undefined,
+      provinceRegionName: '历史省区名称',
+      orgCode: '0003',
+      orgName: undefined,
+      salesGroupName: '历史区域名称',
+      submitter: '导出测试人',
+      submitTime: '2026-09-08T09:00:00+08:00',
+      finishedAt: null,
+      updatedAt: '2026-09-08T09:30:00+08:00',
+      returnReason: '=1+1',
       targetQty: '123456789012345.6',
       currentAmount: '2064404.28',
     };
@@ -274,7 +318,13 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
       render(
-        <RegionalApprovalWorkbench stateScope='export-test' t={t} onContextChange={vi.fn()} queryClient={client} />
+        <RegionalApprovalWorkbench
+          detailClient={exportDetailClient()}
+          stateScope='export-test'
+          t={t}
+          onContextChange={vi.fn()}
+          queryClient={client}
+        />
       );
       await screen.findAllByText('plan-export 基地');
       fireEvent.click(screen.getByRole('combobox', { name: '大区' }));
@@ -287,7 +337,7 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
         reader.addEventListener('error', reject);
         reader.readAsArrayBuffer(exported!);
       });
-      const workbook = XLSX.read(buffer, { type: 'array' });
+      const workbook = XLSX.read(buffer, { type: 'array', cellNF: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       expect(XLSX.utils.sheet_to_json(sheet, { header: 1 })[0]).toEqual([
         '计划单号',
@@ -295,16 +345,81 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
         '计划周期',
         '经销商编码',
         '审批状态',
+        '版本序号',
+        '计划类型',
+        '大区编码',
+        '大区名称',
+        '省区编码',
+        '省区名称',
+        '区域编码',
+        '区域名称',
+        '基地名称',
+        '客户名称',
+        'SKU 数量',
         '目标数量',
         '目标金额',
-        '当前数量',
-        '当前金额',
+        '销售提报数量',
+        '销售提报金额',
+        '区域确认数量',
+        '区域确认金额',
+        '省区确认数量',
+        '省区确认金额',
+        '大区确认数量',
+        '大区确认金额',
+        '品类确认数量',
+        '品类确认金额',
+        '提报人',
+        '提报时间',
+        '完成时间',
+        '更新时间',
+        '退回原因',
+        '审批状态编码',
       ]);
       expect(sheet.D2).toMatchObject({ t: 's', v: '0009007199254740997' });
-      expect(sheet.F2).toMatchObject({ t: 's', v: '123456789012345.6' });
-      expect(sheet.G2).toMatchObject({ t: 's', v: '9999999999999999.99' });
-      expect(sheet.I2).toMatchObject({ t: 'n', v: 2064404.28 });
+      expect(sheet.Q2).toMatchObject({ t: 's', v: '123456789012345.6' });
+      expect(sheet.R2).toMatchObject({ t: 's', v: '9999999999999999.99' });
+      expect(sheet.T2).toMatchObject({ t: 'n', v: 2064404.28 });
       expect(sheet.E2.v).not.toBe(5);
+      const record = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)[0];
+      expect(record).toMatchObject({
+        计划单号: row.planId,
+        版本号: row.versionId,
+        计划周期: row.periodId,
+        经销商编码: row.dealerCode,
+        销售提报数量: 0.3,
+        销售提报金额: 2064404.28,
+        区域确认数量: 3.25,
+        区域确认金额: 30.01,
+        省区确认数量: 7,
+        省区确认金额: 70,
+        大区确认数量: 0,
+        大区确认金额: 0,
+        版本序号: 3,
+        计划类型: row.planTypeCode,
+        大区编码: '0001',
+        大区名称: '华东大区',
+        省区编码: '0002',
+        省区名称: '历史省区名称',
+        区域编码: '0003',
+        区域名称: '历史区域名称',
+        基地名称: row.baseName,
+        客户名称: row.dealerName,
+        'SKU 数量': 3,
+        提报人: row.submitter,
+        提报时间: row.submitTime,
+        完成时间: '',
+        更新时间: row.updatedAt,
+        退回原因: '=1+1',
+        审批状态编码: 5,
+      });
+      expect(sheet.AG2).toMatchObject({ t: 's', v: '=1+1' });
+      expect(sheet.AG2.f).toBeUndefined();
+      expect(record).not.toHaveProperty('当前数量');
+      expect(record).not.toHaveProperty('当前金额');
+      expect(record).not.toHaveProperty('品类确认数量');
+      expect(record).not.toHaveProperty('品类确认金额');
+      for (const cell of ['T2', 'V2', 'X2', 'Z2']) expect(sheet[cell].z).toBe('#,##0.00');
+
       const scope = XLSX.utils.sheet_to_json(workbook.Sheets['导出说明'], { header: 1 });
       expect(scope).toEqual(
         expect.arrayContaining([
@@ -352,11 +467,84 @@ describe('RegionalApprovalWorkbench live sales-plan query', () => {
     });
     try {
       render(
-        <RegionalApprovalWorkbench stateScope='failed-export' t={t} onContextChange={vi.fn()} queryClient={client} />
+        <RegionalApprovalWorkbench
+          detailClient={exportDetailClient()}
+          stateScope='failed-export'
+          t={t}
+          onContextChange={vi.fn()}
+          queryClient={client}
+        />
       );
       await screen.findAllByText('failed-export 基地');
       fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
       expect(await screen.findByText('导出失败，请重试；未产生文件。')).toBeVisible();
+      expect(screen.queryByText(/已导出当前页/)).not.toBeInTheDocument();
+    } finally {
+      createUrl.mockRestore();
+    }
+  });
+
+  it('rejects incomplete version details without creating a partial workbook', async () => {
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
+    const row = liveRow('incomplete-export');
+    try {
+      render(
+        <RegionalApprovalWorkbench
+          stateScope='incomplete-export'
+          t={t}
+          onContextChange={vi.fn()}
+          queryClient={{
+            periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+            list: { invoke: listMockFor([row]) },
+          }}
+          detailClient={exportDetailClient(async ({ versionId }) => exportSkus(versionId).slice(0, 2))}
+        />
+      );
+      await screen.findAllByText('incomplete-export 基地');
+      fireEvent.click(screen.getByRole('button', { name: '导出当前页' }));
+      expect(await screen.findByText('版本明细读取失败或数据不完整，请刷新后重试；未产生文件。')).toBeVisible();
+      expect(createUrl).not.toHaveBeenCalled();
+    } finally {
+      createUrl.mockRestore();
+    }
+  });
+
+  it('cancels delayed detail reads when the scope changes and ignores their late results', async () => {
+    const row = liveRow('delayed-export', 2);
+    let resolveSkus!: (skus: GeaSalesPlanSku[]) => void;
+    let signal: AbortSignal | undefined;
+    const versionSkus = vi.fn<SalesPlanDetailClient['versionSkus']['invoke']>((query) => {
+      signal = query.signal;
+      return new Promise((resolve) => {
+        resolveSkus = resolve;
+      });
+    });
+    const createUrl = vi.spyOn(URL, 'createObjectURL');
+    try {
+      render(
+        <RegionalApprovalWorkbench
+          stateScope='delayed-export'
+          t={t}
+          onContextChange={vi.fn()}
+          queryClient={{
+            periods: { invoke: vi.fn().mockResolvedValue(periodPage) },
+            list: { invoke: listMockFor([row]) },
+          }}
+          detailClient={exportDetailClient(versionSkus)}
+        />
+      );
+      await screen.findAllByText('delayed-export 基地');
+      await waitFor(() => expect(screen.getByTestId('regional-approval-stage-category')).toBeEnabled());
+      const button = screen.getByRole('button', { name: '导出当前页' });
+      fireEvent.click(button);
+      await waitFor(() => expect(versionSkus).toHaveBeenCalledTimes(1));
+      fireEvent.click(button);
+      expect(versionSkus).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByTestId('regional-approval-stage-category'));
+      await waitFor(() => expect(signal?.aborted).toBe(true));
+      resolveSkus(exportSkus(row.versionId));
+      await waitFor(() => expect(button).not.toHaveClass('arco-btn-loading'));
+      expect(createUrl).not.toHaveBeenCalled();
       expect(screen.queryByText(/已导出当前页/)).not.toBeInTheDocument();
     } finally {
       createUrl.mockRestore();

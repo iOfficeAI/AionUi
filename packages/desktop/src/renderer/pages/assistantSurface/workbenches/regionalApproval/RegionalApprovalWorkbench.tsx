@@ -99,7 +99,12 @@ import {
 import type { SalesPlanDetailClient } from './hooks/useSalesPlanDetail';
 import { salesPlanApprovalNodeForStatus, type SalesPlanActionClient } from './models/salesPlanActionModel';
 import type { SalesPlanAdjustmentDraft } from './models/salesPlanAdjustmentModel';
-import type { GeaSalesPlanActionReceipt, GeaSalesPlanVersion } from '@/common/adapter/ipcBridge';
+import { salesPlan, type GeaSalesPlanActionReceipt, type GeaSalesPlanVersion } from '@/common/adapter/ipcBridge';
+import {
+  aggregateSalesPlanExportAmounts,
+  SALES_PLAN_EXPORT_AMOUNT_PAIRS,
+  type SalesPlanExportAmounts,
+} from './models/salesPlanExportModel';
 import {
   buildSalesPlanFilterSummary,
   projectFixtureSalesPlanContext,
@@ -1182,6 +1187,7 @@ const RegionalApprovalWorkbench: React.FC<{
   };
 
   const exportScope = JSON.stringify([
+    scopedState,
     liveQueryScope,
     liveQuery.selectedPeriod?.periodId,
     liveStageFilter,
@@ -1191,6 +1197,9 @@ const RegionalApprovalWorkbench: React.FC<{
   const exportScopeRef = useRef(exportScope);
   const exportRowsRef = useRef(liveRows);
   const exportMountedRef = useRef(true);
+  const exportRequestRef = useRef<AbortController | null>(null);
+  const [exporting, setExporting] = useState(false);
+  useEffect(() => () => exportRequestRef.current?.abort(), [exportScope, liveRows]);
   exportScopeRef.current = exportScope;
   exportRowsRef.current = liveRows;
   useEffect(() => {
@@ -1200,6 +1209,7 @@ const RegionalApprovalWorkbench: React.FC<{
     };
   }, []);
   const exportQueue = async () => {
+    if (exportRequestRef.current) return;
     if (liveQuery.enabled) {
       if (liveQuery.queueState.status !== 'success' || liveRows.length === 0) {
         setExportFeedback({
@@ -1208,6 +1218,13 @@ const RegionalApprovalWorkbench: React.FC<{
         });
         return;
       }
+      const request = new AbortController();
+      exportRequestRef.current = request;
+      setExporting(true);
+      const timeout = window.setTimeout(() => request.abort(), 30_000);
+      let readingDetails = false;
+      const scopeChanged = () =>
+        !exportMountedRef.current || exportScopeRef.current !== exportScope || exportRowsRef.current !== liveRows;
       try {
         const XLSX = await import('xlsx-republish');
         if (!exportMountedRef.current || exportScopeRef.current !== exportScope || exportRowsRef.current !== liveRows)
@@ -1216,9 +1233,7 @@ const RegionalApprovalWorkbench: React.FC<{
           liveRows.some(
             (row) =>
               [row.planId, row.versionId, row.periodId, row.dealerCode].some((value) => !String(value ?? '').trim()) ||
-              [row.targetQty, row.targetAmount, row.currentQty, row.currentAmount].some(
-                (value) => !/^-?\d+(?:\.\d+)?$/.test(value)
-              )
+              [row.targetQty, row.targetAmount].some((value) => !/^-?\d+(?:\.\d+)?$/.test(value))
           )
         ) {
           setExportFeedback({
@@ -1227,6 +1242,27 @@ const RegionalApprovalWorkbench: React.FC<{
           });
           return;
         }
+        readingDetails = true;
+        const amounts: SalesPlanExportAmounts[] = [];
+        let nextRow = 0;
+        await Promise.all(
+          Array.from({ length: Math.min(4, liveRows.length) }, async () => {
+            while (nextRow < liveRows.length) {
+              request.signal.throwIfAborted();
+              const index = nextRow++;
+              const row = liveRows[index];
+              // oxlint-disable-next-line no-await-in-loop -- bound detail reads to four concurrent requests.
+              const skus = await (detailClient ?? salesPlan).versionSkus.invoke({
+                versionId: row.versionId,
+                signal: request.signal,
+              });
+              amounts[index] = aggregateSalesPlanExportAmounts(row, skus);
+            }
+          })
+        );
+        request.signal.throwIfAborted();
+        if (scopeChanged()) return;
+        readingDetails = false;
         const numericValue = (value: string) => {
           const numeric = Number(value);
           return Number.isFinite(numeric) &&
@@ -1243,29 +1279,74 @@ const RegionalApprovalWorkbench: React.FC<{
           'periodId',
           'dealerCode',
           'status',
+          'seq',
+          'planTypeCode',
+          'areaCode',
+          'areaName',
+          'provinceCode',
+          'provinceName',
+          'orgCode',
+          'orgName',
+          'baseName',
+          'dealerName',
+          'skuCount',
           'targetQty',
           'targetAmount',
-          'currentQty',
-          'currentAmount',
+          'qty',
+          'amt',
+          'regionConfirmedQty',
+          'regionConfirmedAmount',
+          'provinceConfirmedQty',
+          'provinceConfirmedAmount',
+          'areaConfirmedQty',
+          'areaConfirmedAmount',
+          'categoryConfirmedQty',
+          'categoryConfirmedAmount',
+          'submitter',
+          'submitTime',
+          'finishedAt',
+          'updatedAt',
+          'returnReason',
+          'statusCode',
         ] as const;
         const sheet = XLSX.utils.aoa_to_sheet([
           headers.map((field) => t(`common.assistantSurface.regionalApproval.exportColumns.${field}`)),
-          ...liveRows.map((row) => [
+          ...liveRows.map((row, index) => [
             row.planId,
             row.versionId,
             row.periodId,
             row.dealerCode,
             t(`common.assistantSurface.regionalApproval.query.status.${row.status}`),
+            row.seq,
+            row.planTypeCode,
+            row.areaCode ?? '',
+            row.areaName ?? row.regionName ?? '',
+            row.provinceCode ?? '',
+            row.provinceName ?? row.provinceRegionName ?? '',
+            row.orgCode ?? '',
+            row.orgName ?? row.salesGroupName ?? '',
+            row.baseName ?? '',
+            row.dealerName ?? '',
+            row.skuCount,
             numericValue(row.targetQty),
             numericValue(row.targetAmount),
-            numericValue(row.currentQty),
-            numericValue(row.currentAmount),
+            ...SALES_PLAN_EXPORT_AMOUNT_PAIRS.flatMap((fields) =>
+              fields.map((field) => (amounts[index][field] == null ? null : numericValue(amounts[index][field])))
+            ),
+            row.submitter ?? '',
+            row.submitTime ?? '',
+            row.finishedAt ?? '',
+            row.updatedAt ?? '',
+            row.returnReason ?? '',
+            row.status,
           ]),
         ]);
         sheet['!cols'] = headers.map(() => ({ wch: 24 }));
         for (let row = 2; row <= liveRows.length + 1; row++) {
-          for (const column of ['G', 'I'])
+          for (const field of ['targetAmount', ...SALES_PLAN_EXPORT_AMOUNT_PAIRS.map((pair) => pair[1])] as const) {
+            const column = XLSX.utils.encode_col(headers.indexOf(field));
             if (sheet[`${column}${row}`]?.t === 'n') sheet[`${column}${row}`].z = '#,##0.00';
+          }
         }
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(
@@ -1306,10 +1387,23 @@ const RegionalApprovalWorkbench: React.FC<{
           message: t('common.assistantSurface.regionalApproval.exportFeedback.successLive', { count: liveRows.length }),
         });
       } catch {
-        setExportFeedback({
-          type: 'error',
-          message: t('common.assistantSurface.regionalApproval.exportFeedback.failed'),
-        });
+        request.abort();
+        if (!scopeChanged()) {
+          setExportFeedback({
+            type: 'error',
+            message: t(
+              readingDetails
+                ? 'common.assistantSurface.regionalApproval.exportFeedback.detailsFailed'
+                : 'common.assistantSurface.regionalApproval.exportFeedback.failed'
+            ),
+          });
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        if (exportRequestRef.current === request) {
+          exportRequestRef.current = null;
+          if (exportMountedRef.current) setExporting(false);
+        }
       }
       return;
     }
@@ -2070,6 +2164,8 @@ const RegionalApprovalWorkbench: React.FC<{
                 <Button
                   size='small'
                   icon={<Download size={14} />}
+                  loading={exporting}
+                  loadingFixedWidth
                   disabled={liveQuery.enabled && liveQuery.queueState.status !== 'success'}
                   onClick={() => void exportQueue()}
                 >
