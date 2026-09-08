@@ -54,6 +54,14 @@ export function createGeaClientAdapter(): GeaClientAdapter {
 
 let checking: Promise<UpdateCheckResult> | undefined;
 let checkedRelease: GeaClientRelease | undefined;
+let releaseGeneration = 0;
+
+export function resetGeaClientEnvironment(): void {
+  stopGeaClientPresence();
+  releaseGeneration += 1;
+  checking = undefined;
+  checkedRelease = undefined;
+}
 export function getCheckedGeaRelease(url: string): GeaClientRelease {
   if (!checkedRelease || checkedRelease.downloadUrl !== url || checkedRelease.distributionType !== 'UPLOAD')
     throw new GeaClientError('CLIENT_RELEASE_UNCHECKED');
@@ -110,6 +118,10 @@ const mapPersistedRequirement = (
 
 export async function checkGeaClientRelease(): Promise<UpdateCheckResult> {
   if (checking) return checking;
+  const generation = releaseGeneration;
+  const assertCurrent = () => {
+    if (generation !== releaseGeneration) throw new GeaClientError('CLIENT_ENVIRONMENT_CHANGED');
+  };
   checking = (async () => {
     const version = getGeaClientVersion();
     const environment = getGeaEnvironment();
@@ -126,13 +138,16 @@ export async function checkGeaClientRelease(): Promise<UpdateCheckResult> {
     }
 
     let release: GeaClientRelease;
+    assertCurrent();
     try {
       release = await createGeaClientAdapter().check(version);
     } catch (error) {
+      assertCurrent();
       checkedRelease = undefined;
       if (requirement) return mapPersistedRequirement(version, requirement);
       throw error;
     }
+    assertCurrent();
     const confirmedRequirement = release.mandatory
       ? {
           versionCode: release.versionCode!,
@@ -154,12 +169,13 @@ export async function checkGeaClientRelease(): Promise<UpdateCheckResult> {
     } catch {
       console.warn('[GEA] Mandatory update requirement could not be persisted');
     }
+    assertCurrent();
     return mapRelease(version, release);
   })();
   try {
     return await checking;
   } finally {
-    checking = undefined;
+    if (generation === releaseGeneration) checking = undefined;
   }
 }
 

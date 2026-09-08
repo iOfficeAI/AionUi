@@ -49,6 +49,7 @@ export type PersonalModelSyncResult = {
   configured: number;
   failed: number;
   reason?:
+    | 'agentSelectionRequired'
     | 'credentialListFailed'
     | 'credentialClaimFailed'
     | 'credentialRecoveryRequired'

@@ -86,6 +86,7 @@ import {
   syncSharedPersonalModels,
 } from './process/services/gea/LarkAuthService';
 import { getPersonalModelGatewayRuntime } from './process/services/gea/PersonalModelGatewayRuntime';
+import { configureGeaEnvironmentSwitch } from './process/services/gea/GeaEnvironmentSwitch';
 import {
   initializeCoreSessionBootstrap,
   registerTrustedSalesPlanScheme,
@@ -250,6 +251,10 @@ const backendManager = new BackendLifecycleManager(
   resolveBinaryPath,
   coreSessionBootstrapSecret
 );
+configureGeaEnvironmentSwitch(async (baseUrl) => {
+  const port = await backendManager.restartForGeaEnvironment(baseUrl);
+  exposeBackendPort(port);
+});
 let disposeCronResumeListener: (() => void) | null = null;
 
 // Flag tracking whether the backend subprocess started successfully. Read by

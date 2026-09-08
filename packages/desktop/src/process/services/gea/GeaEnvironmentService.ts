@@ -71,9 +71,15 @@ export function initializeGeaEnvironment(options: {
     isPackaged: options.isPackaged,
     profile: options.profile,
   });
-  process.env[GEA_BASE_URL_ENV] = activeEnvironment.baseUrl;
-  process.env[PUBLISHED_SOURCE_ENV] = activeEnvironment.source;
+  activateGeaEnvironment(activeEnvironment);
   return activeEnvironment;
+}
+
+/** Publish only after the runtime owner has replaced every environment-bound service. */
+export function activateGeaEnvironment(environment: GeaEnvironmentStatus): void {
+  activeEnvironment = environment;
+  process.env[GEA_BASE_URL_ENV] = environment.baseUrl;
+  process.env[PUBLISHED_SOURCE_ENV] = environment.source;
 }
 
 export function getGeaEnvironment(): GeaEnvironmentStatus {

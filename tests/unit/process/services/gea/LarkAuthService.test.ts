@@ -25,6 +25,7 @@ import {
   resolveDesktopLarkAuthStatus,
   resolveLarkAuthSessionFileName,
   syncSharedGeaSessionToBackend,
+  syncSharedPersonalModels,
 } from '@/process/services/gea/LarkAuthService';
 import { initializeGeaEnvironment, resetGeaEnvironmentForTests } from '@/process/services/gea/GeaEnvironmentService';
 
@@ -249,7 +250,7 @@ describe('LarkAuthService', () => {
       user,
       personalModelSync: { configured: 1, failed: 0, skipped: 0, status: 'completed' },
     });
-    expect(sync).toHaveBeenCalledWith(user, service);
+    expect(sync).toHaveBeenCalledWith(user, service, ['sales_forecast']);
     expect(httpRequestMock).toHaveBeenCalledWith('PUT', '/api/gea/auth/session', {
       accessToken: 'sensitive-token',
       tenantId: 'tenant-1',
@@ -326,8 +327,18 @@ describe('LarkAuthService', () => {
       skipped: 0,
       status: 'completed',
     });
-    expect(sync).toHaveBeenCalledWith(user, service);
+    expect(sync).toHaveBeenCalledWith(user, service, ['sales_forecast']);
     statusSpy.mockRestore();
+  });
+
+  it('passes explicit Agent selection to the gateway without deriving it from credentials', async () => {
+    const service = getSharedLarkAuthService();
+    const user = { id: '10086', username: 'user', realname: 'user' };
+    vi.spyOn(service, 'getStatus').mockReturnValue({ authenticated: true, user });
+    const sync = vi.fn().mockResolvedValue({ configured: 2, failed: 0, skipped: 0, status: 'completed' });
+    configureSharedPersonalModelGateway({ deactivate: vi.fn(), sync });
+    await syncSharedPersonalModels(['sales_forecast', 'finance']);
+    expect(sync).toHaveBeenCalledExactlyOnceWith(user, service, ['sales_forecast', 'finance']);
   });
 
   it('retries an incomplete personal model restore and stops once the gateway is ready', async () => {
@@ -902,6 +913,67 @@ describe('LarkAuthService', () => {
     await expect(gatewaySession.listTools()).rejects.toMatchObject({ code: 'GEA_LOGIN_REQUIRED' });
   });
 
+  it('accepts the deployed shared ENABLED credential without treating an Agent-bound key as shared', async () => {
+    let bound = false;
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      if (String(input).endsWith('/sys/user/getUserInfo')) return jsonResponse(verifiedUserInfoResponse('0'));
+      return jsonResponse({
+        success: true,
+        result: {
+          records: [
+            {
+              id: 'shared-key',
+              accessKeyId: 'ak-shared',
+              status: 'ENABLED',
+              ...(bound ? { agentId: 'sales', agentKeyId: 'legacy-key' } : {}),
+            },
+          ],
+          total: 1,
+        },
+      });
+    });
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example:4443/gea-boot', fetchImpl });
+    await service.initializeSession({
+      load: async () => ({ accessToken: 'synthetic-platform-token' }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    await expect(service.listPersonalModelCredentials()).resolves.toEqual([
+      { credentialId: 'shared-key', accessKeyId: 'ak-shared', status: 'ENABLED' },
+    ]);
+    bound = true;
+    await expect(service.listPersonalModelCredentials()).rejects.toMatchObject({
+      code: 'GEA_PERSONAL_CREDENTIAL_AGENT_BOUND',
+    });
+  });
+
+  it('does not accept a late QR login response after the environment auth service is disposed', async () => {
+    let release!: (response: Response) => void;
+    const store = {
+      load: async () => null,
+      save: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    };
+    const service = new LarkAuthService({
+      baseUrl: 'https://gea.example/gea-boot',
+      sessionStore: store,
+      fetchImpl: async (input) => {
+        if (String(input).includes('/sys/getQrcodeToken'))
+          return new Promise<Response>((resolve) => {
+            release = resolve;
+          });
+        return jsonResponse(verifiedUserInfoResponse('0'));
+      },
+    });
+    const pending = service.pollQrSession('qr-old');
+    const rejected = expect(pending).rejects.toBeDefined();
+    await service.dispose();
+    release(jsonResponse({ success: true, result: { success: true, token: 'synthetic-old-token' } }));
+    await rejected;
+    expect(service.getStatus().authenticated).toBe(false);
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
   it('uses the platform token to claim a personal credential and the personal secret only for model discovery', async () => {
     const fetchImpl = vi
       .fn()
@@ -919,9 +991,7 @@ describe('LarkAuthService', () => {
             records: [
               {
                 id: 'credential-1',
-                tenantId: 1,
                 accessKeyId: 'uk-gea-1',
-                agentId: 'sales-forecast',
                 status: 'PENDING_CLAIM',
               },
             ],
@@ -935,10 +1005,9 @@ describe('LarkAuthService', () => {
           result: {
             credentialId: 'credential-1',
             accessKeyId: 'uk-gea-1',
-            agentCode: 'sales-forecast',
             baseUrl: 'https://model.example/v1',
             secret: 'sk-user-sensitive',
-            status: 'ENABLED',
+            status: 'ACTIVE',
           },
         })
       )
@@ -949,29 +1018,107 @@ describe('LarkAuthService', () => {
     await expect(service.listPersonalModelCredentials()).resolves.toEqual([
       {
         credentialId: 'credential-1',
-        tenantId: '1',
         accessKeyId: 'uk-gea-1',
-        agentCode: 'sales-forecast',
         status: 'PENDING_CLAIM',
       },
     ]);
-    const claimed = await service.claimPersonalModelCredential('credential-1', '1');
-    await expect(service.listPersonalModels(claimed.baseUrl, claimed.secret)).resolves.toEqual(['deepseek-v4-flash']);
+    const claimed = await service.claimPersonalModelCredential('credential-1');
+    await expect(service.listPersonalModels(claimed.baseUrl, claimed.secret, 'sales-forecast')).resolves.toEqual([
+      'deepseek-v4-flash',
+    ]);
 
     expect(fetchImpl.mock.calls[2][1]?.headers).toMatchObject({
       'X-Access-Token': 'platform-token',
-      'X-Tenant-Id': '1',
     });
     expect(fetchImpl.mock.calls[3][0]).toContain('/my/claim?id=credential-1');
     expect(fetchImpl.mock.calls[3][1]).toMatchObject({
       method: 'POST',
       headers: expect.objectContaining({
         'X-Access-Token': 'platform-token',
-        'X-Tenant-Id': '1',
       }),
     });
-    expect(fetchImpl.mock.calls[4][1]?.headers).toMatchObject({ Authorization: 'Bearer sk-user-sensitive' });
+    expect(fetchImpl.mock.calls[4][1]?.headers).toMatchObject({
+      Authorization: 'Bearer sk-user-sensitive',
+      'X-GEA-Agent-Code': 'sales-forecast',
+    });
+    for (const call of fetchImpl.mock.calls.slice(2))
+      expect(new Headers(call[1]?.headers).has('X-Tenant-Id')).toBe(false);
+    expect(fetchImpl.mock.calls[2][0]).toContain('pageNo=1&pageSize=10');
     expect(fetchImpl.mock.calls.every(([, init]) => init?.redirect === 'error')).toBe(true);
     expect(JSON.stringify(fetchImpl.mock.calls.slice(0, 4))).not.toContain('sk-user-sensitive');
+  });
+  it('refreshes credential state after a lost claim response without replaying the claim', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { success: true, token: 'platform-token' } }))
+      .mockResolvedValueOnce(jsonResponse(verifiedUserInfoResponse('0')))
+      .mockRejectedValueOnce(new Error('lost response with secret in unsafe message'))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          result: { records: [{ id: 'credential-1', accessKeyId: 'ak-user-1', status: 'ACTIVE' }], total: 1 },
+        })
+      );
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.pollQrSession('QR:1');
+    await expect(service.claimPersonalModelCredential('credential-1')).rejects.toMatchObject({
+      code: 'GEA_PERSONAL_NETWORK_ERROR',
+    });
+    expect(fetchImpl.mock.calls.slice(2).map(([url]) => new URL(url).pathname)).toEqual([
+      '/gea-boot/aidata/user-agent-credential/my/claim',
+      '/gea-boot/aidata/user-agent-credential/my/list',
+    ]);
+    expect(fetchImpl.mock.calls.filter(([, init]) => init.method === 'POST')).toHaveLength(1);
+  });
+
+  it('refreshes state once on claim CAS conflict without interpreting localized messages', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { success: true, token: 'platform-token' } }))
+      .mockResolvedValueOnce(jsonResponse(verifiedUserInfoResponse('0')))
+      .mockResolvedValueOnce(
+        jsonResponse({ success: false, code: 500, message: 'localized unsafe detail', result: null })
+      )
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { records: [], total: 0 } }));
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.pollQrSession('QR:1');
+    await expect(service.claimPersonalModelCredential('credential-1')).rejects.toMatchObject({
+      code: 'GEA_PERSONAL_CREDENTIAL_CLAIM_REJECTED',
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    expect(fetchImpl.mock.calls[3][0]).toContain('/my/list?');
+  });
+
+  it.each([
+    [401, 'invalid_api_key'],
+    [403, 'permission_denied'],
+    [404, 'model_not_found'],
+    [429, 'rate_limit_exceeded'],
+    [429, 'insufficient_quota'],
+    [503, 'authorization_unavailable'],
+    [503, 'model_gateway_unavailable'],
+  ])('preserves HTTP %s and fixed code %s without exposing messages or replaying requests', async (status, code) => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, result: { success: true, token: 'platform-token' } }))
+      .mockResolvedValueOnce(jsonResponse(verifiedUserInfoResponse('0')))
+      .mockResolvedValueOnce(jsonResponse({ error: { code, message: 'sk-user-sensitive' } }, status));
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await service.pollQrSession('QR:1');
+    const error = await service
+      .listPersonalModels('https://gea.example/gea-boot/ai/v1', 'sk-user-sensitive', 'finance')
+      .catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ code, httpStatus: status, message: code });
+    expect(JSON.stringify(error)).not.toContain('sk-user-sensitive');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects a missing Agent before sending a model request', async () => {
+    const fetchImpl = vi.fn();
+    const service = new LarkAuthService({ baseUrl: 'https://gea.example/gea-boot', fetchImpl });
+    await expect(service.listPersonalModels('https://gea.example/ai/v1', 'test', '')).rejects.toMatchObject({
+      code: 'missing_agent_code',
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

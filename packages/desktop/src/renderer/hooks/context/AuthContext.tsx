@@ -231,11 +231,18 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   );
 
   const updateGeaEnvironment = useCallback(
-    (baseUrl: string) =>
-      isDesktopRuntime
-        ? ipcBridge.larkAuth.updateEnvironment.invoke({ baseUrl })
-        : Promise.resolve<LarkAuthResult<GeaEnvironmentUpdateResult>>({ success: false, code: 'invalidResponse' }),
-    []
+    async (baseUrl: string): Promise<LarkAuthResult<GeaEnvironmentUpdateResult>> => {
+      if (!isDesktopRuntime) return { success: false, code: 'invalidResponse' };
+      const epoch = invalidateAuthOperations();
+      publishAuthState('unauthenticated', null);
+      clearAuthCache();
+      setReady(true);
+      const result = await ipcBridge.larkAuth.updateEnvironment.invoke({ baseUrl });
+      if (authOperationEpochRef.current !== epoch) return { success: false, code: 'invalidResponse' };
+      // Polls started before the switch may finish later, but cannot republish the old identity.
+      return result;
+    },
+    [invalidateAuthOperations, publishAuthState]
   );
 
   const pollLarkQrLogin = useCallback(

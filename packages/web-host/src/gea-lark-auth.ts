@@ -25,7 +25,7 @@ const QR_CODE_EXPIRES_IN_SECONDS = 300;
 const SESSION_RESTORE_ATTEMPTS = 2;
 const SESSION_RESTORE_RETRY_DELAY_MS = 100;
 const SESSION_RESTORE_TIMEOUT_MS = 2_500;
-const PERSONAL_CREDENTIAL_PAGE_SIZE = 100;
+const PERSONAL_CREDENTIAL_PAGE_SIZE = 10;
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type FetchLike = typeof fetch;
@@ -166,6 +166,7 @@ type UserInfoResponse = {
 
 export type GeaPersonalModelCredentialStatus =
   | 'PENDING_CLAIM'
+  | 'ACTIVE'
   | 'ENABLED'
   | 'ROTATION_PENDING'
   | 'DISABLED'
@@ -173,13 +174,11 @@ export type GeaPersonalModelCredentialStatus =
 
 export type GeaPersonalModelCredential = {
   accessKeyId: string;
-  agentCode: string;
   credentialId: string;
   status: GeaPersonalModelCredentialStatus;
-  tenantId: string;
 };
 
-export type GeaClaimedPersonalModelCredential = Omit<GeaPersonalModelCredential, 'tenantId'> & {
+export type GeaClaimedPersonalModelCredential = GeaPersonalModelCredential & {
   baseUrl: string;
   secret: string;
 };
@@ -191,7 +190,6 @@ type PersonalCredentialListResponse = {
 
 type PersonalCredentialClaimResponse = {
   accessKeyId?: unknown;
-  agentCode?: unknown;
   baseUrl?: unknown;
   credentialId?: unknown;
   secret?: unknown;
@@ -227,13 +225,27 @@ export class GeaMcpGatewayError extends Error {
   }
 }
 
+const PERSONAL_MODEL_ERROR_CODES = new Set([
+  'missing_agent_code',
+  'invalid_request',
+  'invalid_api_key',
+  'permission_denied',
+  'model_not_found',
+  'rate_limit_exceeded',
+  'insufficient_quota',
+  'authorization_unavailable',
+  'model_gateway_unavailable',
+]);
+
 export class GeaPersonalModelError extends Error {
   readonly code: string;
+  readonly httpStatus?: number;
 
-  constructor(code: string) {
+  constructor(code: string, httpStatus?: number) {
     super(code);
     this.name = 'GeaPersonalModelError';
     this.code = code;
+    this.httpStatus = httpStatus;
   }
 }
 
@@ -281,6 +293,8 @@ export class GeaLarkAuthService {
   private sessionStore: GeaLarkAuthSessionStore | null;
   private accessToken: string | null = null;
   private authGeneration = 0;
+  private disposed = false;
+  private requests = new AbortController();
   private currentTenantId = DEFAULT_GEA_TENANT_ID;
   private currentUser: WebHostLarkAuthUser | null = null;
 
@@ -296,7 +310,14 @@ export class GeaLarkAuthService {
       options.baseUrl ?? process.env.AIONUI_GEA_BASE_URL ?? process.env.AUTH_BROKER_PUBLIC_URL ?? DEFAULT_GEA_BASE_URL,
       { allowLoopbackHttp: options.allowLoopbackHttp }
     );
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    const fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = (input, init) => {
+      if (this.disposed) return Promise.reject(new GeaLarkAuthServiceError('invalidResponse'));
+      return fetchImpl(input, {
+        ...init,
+        signal: init?.signal ? AbortSignal.any([init.signal, this.requests.signal]) : this.requests.signal,
+      });
+    };
     this.sessionStore = options.sessionStore ?? null;
   }
 
@@ -313,7 +334,7 @@ export class GeaLarkAuthService {
     }
     if (!session) return;
 
-    await this.restoreSession(session, store, SESSION_RESTORE_ATTEMPTS);
+    if (!this.disposed) await this.restoreSession(session, store, SESSION_RESTORE_ATTEMPTS, this.authGeneration);
   }
 
   getBaseUrl(): string {
@@ -321,6 +342,7 @@ export class GeaLarkAuthService {
   }
 
   async createQrSession(): Promise<WebHostLarkQrLoginSession> {
+    const generation = this.authGeneration;
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.baseUrl}/sys/getLoginQrcode`, {
@@ -332,6 +354,7 @@ export class GeaLarkAuthService {
     }
 
     const payload = await readJson<QrCodeResponse>(response);
+    this.assertAuthGeneration(generation);
     const qrcodeId = payload.success === true ? payload.result?.qrcodeId?.trim() : '';
     if (!qrcodeId) {
       throw new GeaLarkAuthServiceError('invalidResponse');
@@ -360,6 +383,7 @@ export class GeaLarkAuthService {
       throw new GeaLarkAuthServiceError('invalidResponse');
     }
 
+    const generation = this.authGeneration;
     const url = new URL(`${this.baseUrl}/sys/getQrcodeToken`);
     url.searchParams.set('qrcodeId', qrcodeId);
     let response: Response;
@@ -370,6 +394,7 @@ export class GeaLarkAuthService {
     }
 
     const payload = await readJson<QrTokenResponse>(response);
+    this.assertAuthGeneration(generation);
     const result = payload.result;
     const token = result?.token;
     if (payload.success !== true || typeof token !== 'string') {
@@ -385,12 +410,14 @@ export class GeaLarkAuthService {
     if (requireVerifiedTenant && tenantId === undefined) {
       throw new GeaLarkAuthServiceError('invalidResponse');
     }
+    this.assertAuthGeneration(generation);
     const acceptedTenantId = tenantId ?? DEFAULT_GEA_TENANT_ID;
     try {
       await this.sessionStore?.save({ accessToken: token });
     } catch (error) {
       if (!(error instanceof GeaLarkAuthServiceError) || error.code !== 'secureStorageUnavailable') throw error;
     }
+    this.assertAuthGeneration(generation);
     this.acceptAuthenticatedSession(token, acceptedTenantId, user);
     return {
       ...(requireVerifiedTenant
@@ -402,7 +429,7 @@ export class GeaLarkAuthService {
 
   getStatus(): { authenticated: boolean; user?: WebHostLarkAuthUser } {
     return this.accessToken && this.currentUser
-      ? { authenticated: true, user: this.currentUser }
+      ? { authenticated: true, user: { ...this.currentUser, tenantId: this.currentTenantId } }
       : { authenticated: false };
   }
 
@@ -457,10 +484,27 @@ export class GeaLarkAuthService {
 
   async logout(): Promise<void> {
     await this.sessionStore?.clear();
+    this.invalidateSession();
+  }
+
+  /** An environment switch permanently retires this instance and its pending requests. */
+  async dispose(): Promise<void> {
+    this.disposed = true;
+    this.invalidateSession();
+    await this.sessionStore?.clear();
+  }
+
+  private invalidateSession(): void {
     this.accessToken = null;
     this.authGeneration += 1;
     this.currentTenantId = DEFAULT_GEA_TENANT_ID;
     this.currentUser = null;
+    this.requests.abort();
+    this.requests = new AbortController();
+  }
+
+  private assertAuthGeneration(generation: number): void {
+    if (this.disposed || generation !== this.authGeneration) throw new GeaLarkAuthServiceError('invalidResponse');
   }
 
   /**
@@ -480,60 +524,56 @@ export class GeaLarkAuthService {
   async listPersonalModelCredentials(): Promise<GeaPersonalModelCredential[]> {
     const generation = this.authGeneration;
     const accessToken = this.requireAccessToken(generation);
-    const credentials: GeaPersonalModelCredential[] = [];
-    let pageNo = 1;
-
-    while (true) {
-      const query = new URLSearchParams({
-        pageNo: String(pageNo),
-        pageSize: String(PERSONAL_CREDENTIAL_PAGE_SIZE),
-      });
-      const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialListResponse>>(
-        `/aidata/user-agent-credential/my/list?${query.toString()}`,
-        accessToken,
-        'GET',
-        this.currentTenantId
-      );
-      if (payload.success !== true || !Array.isArray(payload.result?.records)) {
-        throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_LIST_INVALID');
-      }
-
-      credentials.push(...payload.result.records.map(parsePersonalCredential));
-      const total = typeof payload.result.total === 'number' ? payload.result.total : credentials.length;
-      if (credentials.length >= total || payload.result.records.length < PERSONAL_CREDENTIAL_PAGE_SIZE) break;
-      pageNo += 1;
+    const query = new URLSearchParams({ pageNo: '1', pageSize: String(PERSONAL_CREDENTIAL_PAGE_SIZE) });
+    const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialListResponse>>(
+      `/aidata/user-agent-credential/my/list?${query.toString()}`,
+      accessToken
+    );
+    if (
+      payload.success !== true ||
+      !Array.isArray(payload.result?.records) ||
+      payload.result.records.length > 1 ||
+      (typeof payload.result.total === 'number' && payload.result.total > 1)
+    ) {
+      throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_LIST_INVALID');
     }
-
+    const credentials = payload.result.records.map(parsePersonalCredential);
     this.requireAccessToken(generation);
     return credentials;
   }
 
-  async claimPersonalModelCredential(
-    credentialId: string,
-    tenantId: string
-  ): Promise<GeaClaimedPersonalModelCredential> {
+  async claimPersonalModelCredential(credentialId: string): Promise<GeaClaimedPersonalModelCredential> {
     const normalizedCredentialId = credentialId.trim();
-    const normalizedTenantId = normalizeTenantId(tenantId);
     if (!normalizedCredentialId) {
       throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_ID_MISSING');
     }
     const generation = this.authGeneration;
     const accessToken = this.requireAccessToken(generation);
     const query = new URLSearchParams({ id: normalizedCredentialId });
-    const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialClaimResponse>>(
-      `/aidata/user-agent-credential/my/claim?${query.toString()}`,
-      accessToken,
-      'POST',
-      normalizedTenantId
-    );
-    this.requireAccessToken(generation);
-    if (payload.success !== true || !payload.result) {
-      throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_CLAIM_REJECTED');
+    try {
+      const payload = await this.requestPersonalModelJson<GeaResponse<PersonalCredentialClaimResponse>>(
+        `/aidata/user-agent-credential/my/claim?${query.toString()}`,
+        accessToken,
+        'POST'
+      );
+      this.requireAccessToken(generation);
+      if (payload.success !== true || !payload.result) {
+        throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_CLAIM_REJECTED');
+      }
+      return parseClaimedPersonalCredential(payload.result);
+    } catch (error) {
+      // A CAS conflict or lost response may have consumed the one-time secret.
+      // Refresh state, but never replay claim automatically or parse its message.
+      await this.listPersonalModelCredentials().catch(() => {});
+      throw error;
     }
-    return parseClaimedPersonalCredential(payload.result);
   }
 
-  async listPersonalModels(baseUrl: string, secret: string): Promise<string[]> {
+  async listPersonalModels(baseUrl: string, secret: string, agentCode: string): Promise<string[]> {
+    const normalizedAgentCode = agentCode.trim();
+    if (!normalizedAgentCode || normalizedAgentCode.length > 100 || /[\r\n]/.test(normalizedAgentCode)) {
+      throw new GeaPersonalModelError('missing_agent_code');
+    }
     const normalizedSecret = secret.trim();
     if (!normalizedSecret) {
       throw new GeaPersonalModelError('GEA_PERSONAL_SECRET_MISSING');
@@ -547,6 +587,7 @@ export class GeaLarkAuthService {
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${normalizedSecret}`,
+          'X-GEA-Agent-Code': normalizedAgentCode,
         },
         redirect: 'error',
       });
@@ -554,7 +595,16 @@ export class GeaLarkAuthService {
       throw new GeaPersonalModelError('GEA_PERSONAL_MODELS_NETWORK_ERROR');
     }
     if (!response.ok) {
-      throw new GeaPersonalModelError(`GEA_PERSONAL_MODELS_HTTP_${response.status}`);
+      let code = `GEA_PERSONAL_MODELS_HTTP_${response.status}`;
+      try {
+        const payload = (await response.json()) as { error?: { code?: unknown } };
+        if (typeof payload.error?.code === 'string' && PERSONAL_MODEL_ERROR_CODES.has(payload.error.code)) {
+          code = payload.error.code;
+        }
+      } catch {
+        // Never expose arbitrary upstream bodies or messages containing credentials.
+      }
+      throw new GeaPersonalModelError(code, response.status);
     }
     let payload: OpenAiModelsResponse;
     try {
@@ -811,8 +861,7 @@ export class GeaLarkAuthService {
   private async requestPersonalModelJson<T>(
     path: string,
     accessToken: string,
-    method: 'GET' | 'POST' = 'GET',
-    tenantId: string = DEFAULT_GEA_TENANT_ID
+    method: 'GET' | 'POST' = 'GET'
   ): Promise<T> {
     let response: Response;
     try {
@@ -822,7 +871,6 @@ export class GeaLarkAuthService {
           Accept: 'application/json',
           'Cache-Control': 'no-store',
           'X-Access-Token': accessToken,
-          'X-Tenant-Id': tenantId,
         },
         redirect: 'error',
       });
@@ -883,13 +931,16 @@ export class GeaLarkAuthService {
   private async restoreSession(
     session: GeaLarkAuthSession,
     sessionStore: GeaLarkAuthSessionStore,
-    attemptsRemaining: number
+    attemptsRemaining: number,
+    generation: number
   ): Promise<void> {
     try {
+      this.assertAuthGeneration(generation);
       const { tenantId, user } = await this.fetchCurrentUser(
         session.accessToken,
         AbortSignal.timeout(SESSION_RESTORE_TIMEOUT_MS)
       );
+      this.assertAuthGeneration(generation);
       this.acceptAuthenticatedSession(session.accessToken, tenantId ?? DEFAULT_GEA_TENANT_ID, user);
     } catch (error) {
       if (error instanceof GeaLarkAuthServiceError && (error.httpStatus === 401 || error.httpStatus === 403)) {
@@ -898,7 +949,7 @@ export class GeaLarkAuthService {
       }
       if (!isRetryableSessionRestoreError(error) || attemptsRemaining <= 1) return;
       await new Promise((resolve) => setTimeout(resolve, SESSION_RESTORE_RETRY_DELAY_MS));
-      await this.restoreSession(session, sessionStore, attemptsRemaining - 1);
+      await this.restoreSession(session, sessionStore, attemptsRemaining - 1, generation);
     }
   }
 
@@ -920,15 +971,16 @@ function parsePersonalCredential(value: unknown): GeaPersonalModelCredential {
     throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_INVALID');
   }
   const raw = value as Record<string, unknown>;
+  if (raw.agentId || raw.agentKeyId || raw.agentCode) {
+    throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_AGENT_BOUND');
+  }
   const credentialId = typeof raw.id === 'string' ? raw.id.trim() : '';
-  const tenantId = normalizeTenantId(raw.tenantId);
   const accessKeyId = typeof raw.accessKeyId === 'string' ? raw.accessKeyId.trim() : '';
-  const agentCode = typeof raw.agentId === 'string' ? raw.agentId.trim() : '';
   const status = parsePersonalCredentialStatus(raw.status);
-  if (!credentialId || !accessKeyId || !agentCode) {
+  if (!credentialId || !accessKeyId) {
     throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_INVALID');
   }
-  return { credentialId, accessKeyId, agentCode, status, tenantId };
+  return { credentialId, accessKeyId, status };
 }
 
 function normalizeTenantId(value: unknown): string {
@@ -952,19 +1004,19 @@ function resolveUserTenantId(value: UserInfoResponse['userInfo']): string | unde
 function parseClaimedPersonalCredential(value: PersonalCredentialClaimResponse): GeaClaimedPersonalModelCredential {
   const credentialId = typeof value.credentialId === 'string' ? value.credentialId.trim() : '';
   const accessKeyId = typeof value.accessKeyId === 'string' ? value.accessKeyId.trim() : '';
-  const agentCode = typeof value.agentCode === 'string' ? value.agentCode.trim() : '';
   const secret = typeof value.secret === 'string' ? value.secret.trim() : '';
   const baseUrl = typeof value.baseUrl === 'string' ? normalizePersonalModelBaseUrl(value.baseUrl) : '';
   const status = parsePersonalCredentialStatus(value.status);
-  if (!credentialId || !accessKeyId || !agentCode || !secret || !baseUrl || status !== 'ENABLED') {
+  if (!credentialId || !accessKeyId || !secret || !baseUrl || (status !== 'ACTIVE' && status !== 'ENABLED')) {
     throw new GeaPersonalModelError('GEA_PERSONAL_CREDENTIAL_CLAIM_INVALID');
   }
-  return { credentialId, accessKeyId, agentCode, secret, baseUrl, status };
+  return { credentialId, accessKeyId, secret, baseUrl, status };
 }
 
 function parsePersonalCredentialStatus(value: unknown): GeaPersonalModelCredentialStatus {
   if (
     value === 'PENDING_CLAIM' ||
+    value === 'ACTIVE' ||
     value === 'ENABLED' ||
     value === 'ROTATION_PENDING' ||
     value === 'DISABLED' ||

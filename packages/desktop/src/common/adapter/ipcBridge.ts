@@ -1483,7 +1483,7 @@ export const larkAuth = {
   pollQrSession: bridge.buildProvider<LarkAuthResult<LarkQrLoginPollResult>, { qrcodeId: string }>(
     'lark-auth.poll-qr-session'
   ),
-  syncPersonalModels: bridge.buildProvider<LarkAuthResult<PersonalModelSyncResult>, void>(
+  syncPersonalModels: bridge.buildProvider<LarkAuthResult<PersonalModelSyncResult>, { agentCodes: string[] } | void>(
     'lark-auth.sync-personal-models'
   ),
   status: bridge.buildProvider<LarkAuthResult<LarkAuthStatus>, void>('lark-auth.status'),

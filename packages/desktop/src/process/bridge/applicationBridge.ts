@@ -27,7 +27,8 @@ import {
   syncSharedPersonalModels,
 } from '@process/services/gea/LarkAuthService';
 import type { LarkAuthErrorCode, LarkAuthResult } from '@/common/types/platform/larkAuth';
-import { getGeaEnvironment, saveGeaEnvironment } from '@process/services/gea/GeaEnvironmentService';
+import { getGeaEnvironment } from '@process/services/gea/GeaEnvironmentService';
+import { switchGeaEnvironment } from '@process/services/gea/GeaEnvironmentSwitch';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -130,7 +131,7 @@ export function initApplicationBridge(): void {
   ipcBridge.larkAuth.environment.provider(() => withLarkAuthResult(getGeaEnvironment));
   ipcBridge.larkAuth.updateEnvironment.provider(({ baseUrl }) =>
     withLarkAuthResult(() =>
-      saveGeaEnvironment(baseUrl, {
+      switchGeaEnvironment(baseUrl, {
         isPackaged: app.isPackaged,
         persist: (profile) => ProcessConfig.setAtomic('gea.endpointProfile', profile),
       })
@@ -142,7 +143,9 @@ export function initApplicationBridge(): void {
   ipcBridge.larkAuth.pollQrSession.provider(({ qrcodeId }) =>
     withLarkAuthResult(() => pollSharedLarkAuthSession(qrcodeId))
   );
-  ipcBridge.larkAuth.syncPersonalModels.provider(() => withLarkAuthResult(syncSharedPersonalModels));
+  ipcBridge.larkAuth.syncPersonalModels.provider((input) =>
+    withLarkAuthResult(() => syncSharedPersonalModels(input ? input.agentCodes : undefined))
+  );
   ipcBridge.larkAuth.status.provider(() =>
     withLarkAuthResult(async () => {
       const backendSessionReady = await syncSharedGeaSessionToBackend().catch(() => false);

@@ -1088,6 +1088,45 @@ describe('BackendLifecycleManager.start (AIONCORE_READY consumption)', () => {
   }, 15_000);
 });
 
+describe('BackendLifecycleManager environment switch', () => {
+  it('restarts only the backend on the same port with the new GEA address', async () => {
+    const platform = vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin');
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    const health = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const firstChild = makeFakeChild();
+    const secondChild = makeFakeChild();
+    vi.mocked(spawn).mockReturnValueOnce(firstChild).mockReturnValueOnce(secondChild);
+    const manager = new BackendLifecycleManager(APP_META, () => '/x');
+    try {
+      const starting = manager.start(
+        '/db',
+        '/logs',
+        { workDir: '/work' },
+        { geaBaseUrl: 'https://old.example/gea-boot', local: true }
+      );
+      await Promise.resolve();
+      emitListening(firstChild, 24567);
+      await starting;
+      const switching = manager.restartForGeaEnvironment('https://new.example:4443/gea-boot');
+      firstChild.emit('exit', 0);
+      await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2));
+      emitListening(secondChild, 24567);
+      await expect(switching).resolves.toBe(24567);
+      expect(vi.mocked(spawn).mock.calls[1][1]).toEqual(
+        expect.arrayContaining(['--port', '24567', '--data-dir', '/db', '--local'])
+      );
+      expect(vi.mocked(spawn).mock.calls[1][2]?.env).toMatchObject({
+        AIONUI_GEA_BASE_URL: 'https://new.example:4443/gea-boot',
+      });
+      expect(cleanupRegisteredAgentProcesses).toHaveBeenCalledWith('/db');
+    } finally {
+      health.mockRestore();
+      kill.mockRestore();
+      platform.mockRestore();
+    }
+  });
+});
+
 describe('BackendLifecycleManager.stop', () => {
   it('rejects startup as cancelled when stopped before health check passes', async () => {
     vi.mocked(createServer).mockImplementation(

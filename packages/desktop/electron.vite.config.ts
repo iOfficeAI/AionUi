@@ -122,18 +122,6 @@ export default defineConfig(({ mode }) => {
         // are bundled by esbuild rather than left as `require('@aionui/web-host')`, which Node
         // cannot resolve because the package ships no compiled .js files (workspace-only).
         externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'] }),
-        ...(isDevelopment
-          ? [
-              {
-                name: 'dev-build-mcp-servers',
-                closeBundle() {
-                  execSync(`node "${resolve(__dirname, '../../scripts/build-mcp-servers.js')}"`, {
-                    stdio: 'inherit',
-                  });
-                },
-              },
-            ]
-          : []),
         ...(!isDevelopment
           ? [
               viteStaticCopy({
@@ -150,7 +138,7 @@ export default defineConfig(({ mode }) => {
             ]
           : []),
         ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
-        ...(isDevelopment ? [buildMcpServersPlugin()] : []),
+        buildMcpServersPlugin(),
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {

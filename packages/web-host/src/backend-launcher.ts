@@ -926,6 +926,22 @@ export class BackendLifecycleManager {
     return this._port;
   }
 
+  /** Rebind the environment without replacing Electron's window or its fixed preload port. */
+  async restartForGeaEnvironment(baseUrl: string): Promise<number> {
+    if (!this._lastDbPath || !this._port) throw new Error('GEA_BACKEND_NOT_INITIALIZED');
+    const port = this._port;
+    const options: BackendStartOptions = {
+      ...this._lastOptions,
+      geaBaseUrl: baseUrl,
+      allowPendingOnHealthTimeout: false,
+      onHealthTimeout: undefined,
+      onPendingExit: undefined,
+      onReady: undefined,
+    };
+    await this.stop();
+    return this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, options, port);
+  }
+
   async stop(): Promise<void> {
     if (!this.childProcess) return;
     const childProcess = this.childProcess;

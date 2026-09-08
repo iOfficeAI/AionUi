@@ -89,7 +89,7 @@ describe('LarkQrLogin', () => {
     expect(authMocks.pollLarkQrLogin).toHaveBeenCalledWith('QRCODELOGIN:1');
   });
 
-  it('saves a changed GEA address and requires a restart before starting another login', async () => {
+  it('switches the GEA environment and starts its login without restarting Electron', async () => {
     render(<LarkQrLogin />);
     await act(async () => Promise.resolve());
 
@@ -100,9 +100,27 @@ describe('LarkQrLogin', () => {
     await act(async () => Promise.resolve());
 
     expect(authMocks.updateGeaEnvironment).toHaveBeenCalledWith('https://gea-test.example');
-    expect(bridgeMocks.restart).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('login.lark.environment.restartRequired')).toBeInTheDocument();
-    expect(authMocks.startLarkQrLogin).not.toHaveBeenCalled();
+    expect(bridgeMocks.restart).not.toHaveBeenCalled();
+    expect(screen.queryByText('login.lark.environment.restartRequired')).not.toBeInTheDocument();
+    expect(authMocks.startLarkQrLogin).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('login.lark.qrCodeLabel')).toBeInTheDocument();
+  });
+
+  it('retires the displayed QR code and permits another switch when its address is edited', async () => {
+    render(<LarkQrLogin />);
+    await act(async () => Promise.resolve());
+    fireEvent.click(screen.getByText('login.lark.environment.continue'));
+    await act(async () => Promise.resolve());
+    expect(screen.getByLabelText('login.lark.qrCodeLabel')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('login.lark.environment.label'), {
+      target: { value: 'https://other.example/gea-boot' },
+    });
+    expect(screen.queryByLabelText('login.lark.qrCodeLabel')).not.toBeInTheDocument();
+    expect(screen.getByText('login.lark.environment.apply')).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(authMocks.pollLarkQrLogin).not.toHaveBeenCalled();
   });
 
   it('keeps a managed GEA address read-only', async () => {

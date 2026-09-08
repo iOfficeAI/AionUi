@@ -44,7 +44,7 @@ describe('ElectronSafeStorageVault', () => {
       userId: 'user-1',
       credentialId: 'credential-1',
       accessKeyId: 'uk-gea-1',
-      agentCode: 'sales-forecast',
+      tenantId: '0',
       baseUrl: 'https://gea.example/v1',
       proxyKey: 'local-proxy-key',
       secret: 'sk-user-sensitive',
@@ -54,7 +54,7 @@ describe('ElectronSafeStorageVault', () => {
 
     const persisted = await readFile(filePath);
     expect(persisted.toString('utf8')).not.toContain(record.secret);
-    await expect(vault.get(record.environmentId, record.userId, record.credentialId)).resolves.toEqual(record);
+    await expect(vault.get(record.environmentId, record.userId, record.credentialId, '0')).resolves.toEqual(record);
   });
 
   it('falls back to process memory when encryption is unavailable', async () => {
@@ -70,7 +70,7 @@ describe('ElectronSafeStorageVault', () => {
       userId: 'user-1',
       credentialId: 'credential-1',
       accessKeyId: 'uk-gea-1',
-      agentCode: 'sales-forecast',
+      tenantId: '0',
       baseUrl: 'https://gea.example/v1',
       proxyKey: 'local-proxy-key',
       secret: 'sk-user-sensitive',
@@ -78,7 +78,7 @@ describe('ElectronSafeStorageVault', () => {
 
     expect(vault.isAvailable()).toBe(true);
     await vault.put(record);
-    await expect(vault.get(record.environmentId, record.userId, record.credentialId)).resolves.toEqual(record);
+    await expect(vault.get(record.environmentId, record.userId, record.credentialId, '0')).resolves.toEqual(record);
     expect(storage.encryptString).not.toHaveBeenCalled();
     expect(storage.decryptString).not.toHaveBeenCalled();
   });
@@ -96,15 +96,13 @@ describe('ElectronSafeStorageVault', () => {
         {
           credentialId: 'credential-1',
           accessKeyId: 'uk-gea-1',
-          agentCode: 'sales-forecast',
           status: 'PENDING_CLAIM',
-          tenantId: '1',
         },
       ]),
       claimPersonalModelCredential: vi.fn().mockResolvedValue({
         credentialId: 'credential-1',
         accessKeyId: 'uk-gea-1',
-        agentCode: 'sales-forecast',
+        status: 'ACTIVE',
         baseUrl: 'https://gea.example/v1',
         secret: 'sk-user-sensitive',
       }),
@@ -126,10 +124,14 @@ describe('ElectronSafeStorageVault', () => {
     );
 
     await expect(
-      service.sync({ id: 'user-1', username: 'zhangsan', realname: '张三' }, authClient)
+      service.sync({ id: 'user-1', username: 'zhangsan', realname: '张三' }, authClient, ['sales-forecast'])
     ).resolves.toMatchObject({ configured: 1, failed: 0, status: 'completed' });
     expect(authClient.claimPersonalModelCredential).toHaveBeenCalledOnce();
-    expect(authClient.listPersonalModels).toHaveBeenCalledWith('https://gea.example/v1', 'sk-user-sensitive');
+    expect(authClient.listPersonalModels).toHaveBeenCalledWith(
+      'https://gea.example/v1',
+      'sk-user-sensitive',
+      'sales-forecast'
+    );
   });
 
   it('keeps credentials in memory without probing secure storage when persistence is disabled', async () => {
@@ -145,7 +147,7 @@ describe('ElectronSafeStorageVault', () => {
       userId: 'user-1',
       credentialId: 'credential-1',
       accessKeyId: 'uk-gea-1',
-      agentCode: 'sales-forecast',
+      tenantId: '0',
       baseUrl: 'https://gea.example/v1',
       proxyKey: 'local-proxy-key',
       secret: 'sk-user-sensitive',
@@ -153,16 +155,16 @@ describe('ElectronSafeStorageVault', () => {
 
     expect(vault.isAvailable()).toBe(true);
     await vault.put(record);
-    await expect(vault.get(record.environmentId, record.userId, record.credentialId)).resolves.toEqual(record);
-    await vault.delete(record.environmentId, record.userId, record.credentialId);
-    await expect(vault.get(record.environmentId, record.userId, record.credentialId)).resolves.toBeNull();
+    await expect(vault.get(record.environmentId, record.userId, record.credentialId, '0')).resolves.toEqual(record);
+    await vault.delete(record.environmentId, record.userId, record.credentialId, '0');
+    await expect(vault.get(record.environmentId, record.userId, record.credentialId, '0')).resolves.toBeNull();
     expect(storage.isEncryptionAvailable).not.toHaveBeenCalled();
     expect(storage.getSelectedStorageBackend).not.toHaveBeenCalled();
     expect(storage.encryptString).not.toHaveBeenCalled();
     expect(storage.decryptString).not.toHaveBeenCalled();
   });
 
-  it('does not reuse legacy vault records that lack a GEA environment identity', async () => {
+  it.each([1, 2])('does not reuse version %s legacy per-Agent vault records', async (version) => {
     tempDir = await mkdtemp(path.join(os.tmpdir(), 'aionui-personal-vault-'));
     const filePath = path.join(tempDir, 'vault.bin');
     const storage: SafeStorageAdapter = {
@@ -175,13 +177,13 @@ describe('ElectronSafeStorageVault', () => {
       filePath,
       storage.encryptString(
         JSON.stringify({
-          version: 1,
+          version,
           entries: {
             legacy: {
               userId: 'user-1',
               credentialId: 'credential-1',
               accessKeyId: 'uk-gea-1',
-              agentCode: 'sales-forecast',
+              tenantId: '0',
               baseUrl: 'https://gea.example/v1',
               proxyKey: 'local-proxy-key',
               secret: 'sk-user-sensitive',
@@ -192,6 +194,6 @@ describe('ElectronSafeStorageVault', () => {
     );
     const vault = new ElectronSafeStorageVault(filePath, storage);
 
-    await expect(vault.get('gea-env-a', 'user-1', 'credential-1')).resolves.toBeNull();
+    await expect(vault.get('gea-env-a', 'user-1', 'credential-1', '0')).resolves.toBeNull();
   });
 });

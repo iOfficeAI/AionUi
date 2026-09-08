@@ -44,6 +44,7 @@ const DEVELOPMENT_LOCAL_AUTH_STATUS: LarkAuthStatus = {
   },
 };
 let sharedLarkAuthService: GeaLarkAuthService | null = null;
+let environmentSwitching = false;
 let sharedLarkAuthSessionStore: ElectronLarkAuthSessionStore | null = null;
 
 type StoredLarkAuthSession = GeaLarkAuthSession & { version: 1 };
@@ -159,7 +160,11 @@ function isStoredLarkAuthSession(value: unknown): value is StoredLarkAuthSession
 
 type PersonalModelGatewayLifecycle = {
   deactivate: () => Promise<void>;
-  sync: (user: LarkAuthUser, authClient: PersonalModelAuthClient) => Promise<PersonalModelSyncResult>;
+  sync: (
+    user: LarkAuthUser,
+    authClient: PersonalModelAuthClient,
+    agentCodes: readonly string[]
+  ) => Promise<PersonalModelSyncResult>;
 };
 
 let personalModelGateway: PersonalModelGatewayLifecycle | null = null;
@@ -205,11 +210,14 @@ export async function pollSharedLarkAuthSession(qrcodeId: string): Promise<LarkQ
 async function pollSharedLarkAuthSessionWithIdentity(qrcodeId: string) {
   const service = getSharedLarkAuthService();
   const verified = await service.pollQrSessionWithIdentity(qrcodeId);
+  assertCurrentSharedAuth(service);
   let result = verified.result;
   if (result.status !== 'authenticated' || !result.user) return verified;
   stopGeaClientPresence();
   await syncSharedGeaSessionToBackend({ replaceInvalidated: true });
+  assertCurrentSharedAuth(service);
   const permissionStatus = await service.getStatusWithPermissions(verified.identity);
+  assertCurrentSharedAuth(service);
   if (permissionStatus.user) result = { ...result, user: permissionStatus.user };
   if (!personalModelGateway) {
     void startGeaClientPresence(service, logoutSharedLarkAuthSession);
@@ -221,11 +229,14 @@ async function pollSharedLarkAuthSessionWithIdentity(qrcodeId: string) {
   } catch {
     personalModelSync = { configured: 0, failed: 1, skipped: 0, status: 'partial' };
   }
+  assertCurrentSharedAuth(service);
   void startGeaClientPresence(service, logoutSharedLarkAuthSession);
   return { ...verified, result: { ...result, personalModelSync } };
 }
 
-export async function syncSharedPersonalModels(): Promise<PersonalModelSyncResult> {
+export async function syncSharedPersonalModels(
+  agentCodes: readonly string[] = [process.env.GEA_AGENT_CODE?.trim() || 'sales_forecast']
+): Promise<PersonalModelSyncResult> {
   const service = getSharedLarkAuthService();
   const status = service.getStatus();
   if (!status.authenticated || !status.user) {
@@ -248,7 +259,10 @@ export async function syncSharedPersonalModels(): Promise<PersonalModelSyncResul
     };
   }
   personalModelGatewayReady = false;
-  const result = await personalModelGateway.sync(status.user, service);
+  const gateway = personalModelGateway;
+  const result = await gateway.sync(status.user, service, agentCodes);
+  assertCurrentSharedAuth(service);
+  if (gateway !== personalModelGateway) throw new GeaLarkAuthServiceError('invalidResponse');
   personalModelGatewayReady = result.status === 'completed';
   return result;
 }
@@ -271,12 +285,43 @@ export function resolveDesktopLarkAuthStatus(isPackaged: boolean, status: LarkAu
     : DEVELOPMENT_LOCAL_AUTH_STATUS;
 }
 
+function assertCurrentSharedAuth(service: GeaLarkAuthService): void {
+  if (environmentSwitching || sharedLarkAuthService !== service) throw new GeaLarkAuthServiceError('invalidResponse');
+}
+
+/** Block new auth work before draining and retiring the previous environment. */
+export async function suspendSharedGeaEnvironment(): Promise<void> {
+  environmentSwitching = true;
+  stopGeaClientPresence();
+  personalModelGatewayReady = false;
+  const auth = sharedLarkAuthService;
+  const gateway = personalModelGateway;
+  sharedLarkAuthService = null;
+  sharedLarkAuthSessionStore = null;
+  personalModelGateway = null;
+  const results = await Promise.allSettled([
+    auth?.dispose(),
+    gateway?.deactivate(),
+    httpRequest<void>('DELETE', '/api/gea/auth/session').catch(() => {}),
+  ]);
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed?.status === 'rejected') throw failed.reason;
+}
+
+export function resumeSharedGeaEnvironment(lifecycle: PersonalModelGatewayLifecycle): void {
+  configureSharedPersonalModelGateway(lifecycle);
+  sharedLarkAuthSessionStore = getSharedLarkAuthSessionStore() ?? null;
+  environmentSwitching = false;
+}
+
 export function getSharedLarkAuthService(): GeaLarkAuthService {
+  if (environmentSwitching) throw new GeaLarkAuthServiceError('serverError');
   sharedLarkAuthService ??= new GeaLarkAuthService({
     // The Main-owned environment resolver already enforces packaged HTTPS.
     // Preserve loopback HTTP only for the validated development/E2E profile.
     allowLoopbackHttp: true,
     baseUrl: getGeaEnvironment().baseUrl,
+    sessionStore: sharedLarkAuthSessionStore ?? undefined,
     // Keep desktop traffic on Chromium's network stack so Windows system
     // proxy and trust-store settings are honored.
     fetchImpl: (input, init) => net.fetch(input instanceof URL ? input.toString() : input, init),
@@ -321,10 +366,12 @@ export function createSharedWebHostLarkAuth(): WebHostLarkAuth {
       try {
         const service = getSharedLarkAuthService();
         const verified = await service.pollQrSessionWithIdentity(qrcodeId);
+        assertCurrentSharedAuth(service);
         const status =
           verified.result.status === 'authenticated'
             ? await service.getStatusWithPermissions(verified.identity)
             : undefined;
+        assertCurrentSharedAuth(service);
         const result = status?.user ? { ...verified.result, user: status.user } : verified.result;
         return {
           ...(verified.identity ? { identity: verified.identity } : {}),
@@ -347,6 +394,7 @@ export function resetSharedLarkAuthServiceForTests(): void {
   sharedLarkAuthService = null;
   sharedLarkAuthSessionStore = null;
   personalModelGatewayReady = false;
+  environmentSwitching = false;
 }
 
 async function deactivateSharedPersonalModels(): Promise<void> {

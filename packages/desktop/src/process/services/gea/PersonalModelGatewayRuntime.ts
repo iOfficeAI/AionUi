@@ -23,7 +23,7 @@ const VAULT_FILE_NAME = 'personal-model-vault.bin';
 
 type VaultContents = {
   entries: Record<string, PersonalModelSecretRecord>;
-  version: 2;
+  version: 3;
 };
 
 export type SafeStorageAdapter = Pick<
@@ -47,38 +47,49 @@ export class ElectronSafeStorageVault implements PersonalModelSecretVault {
     return true;
   }
 
-  async get(environmentId: string, userId: string, credentialId: string): Promise<PersonalModelSecretRecord | null> {
+  async get(
+    environmentId: string,
+    userId: string,
+    credentialId: string,
+    tenantId: string
+  ): Promise<PersonalModelSecretRecord | null> {
     if (!this.canPersist()) {
-      return this.volatileEntries.get(vaultKey(environmentId, userId, credentialId)) ?? null;
+      return this.volatileEntries.get(vaultKey(environmentId, userId, credentialId, tenantId)) ?? null;
     }
     await this.mutation;
     const contents = await this.readContents();
-    const record = contents.entries[vaultKey(environmentId, userId, credentialId)] ?? null;
-    return record?.environmentId === environmentId && record.userId === userId && record.credentialId === credentialId
+    const record = contents.entries[vaultKey(environmentId, userId, credentialId, tenantId)] ?? null;
+    return record?.environmentId === environmentId &&
+      record.userId === userId &&
+      record.credentialId === credentialId &&
+      record.tenantId === tenantId
       ? record
       : null;
   }
 
   put(record: PersonalModelSecretRecord): Promise<void> {
     if (!this.canPersist()) {
-      this.volatileEntries.set(vaultKey(record.environmentId, record.userId, record.credentialId), record);
+      this.volatileEntries.set(
+        vaultKey(record.environmentId, record.userId, record.credentialId, record.tenantId),
+        record
+      );
       return Promise.resolve();
     }
     return this.enqueueMutation(async () => {
       const contents = await this.readContents();
-      contents.entries[vaultKey(record.environmentId, record.userId, record.credentialId)] = record;
+      contents.entries[vaultKey(record.environmentId, record.userId, record.credentialId, record.tenantId)] = record;
       await this.writeContents(contents);
     });
   }
 
-  delete(environmentId: string, userId: string, credentialId: string): Promise<void> {
+  delete(environmentId: string, userId: string, credentialId: string, tenantId: string): Promise<void> {
     if (!this.canPersist()) {
-      this.volatileEntries.delete(vaultKey(environmentId, userId, credentialId));
+      this.volatileEntries.delete(vaultKey(environmentId, userId, credentialId, tenantId));
       return Promise.resolve();
     }
     return this.enqueueMutation(async () => {
       const contents = await this.readContents();
-      delete contents.entries[vaultKey(environmentId, userId, credentialId)];
+      delete contents.entries[vaultKey(environmentId, userId, credentialId, tenantId)];
       await this.writeContents(contents);
     });
   }
@@ -107,14 +118,14 @@ export class ElectronSafeStorageVault implements PersonalModelSecretVault {
       encrypted = await readFile(this.filePath);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return { version: 2, entries: {} };
+        return { version: 3, entries: {} };
       }
       throw error;
     }
     const parsed = JSON.parse(this.storage.decryptString(encrypted)) as unknown;
     if (isLegacyVaultContents(parsed)) {
-      // V1 records did not identify their GEA environment and cannot be safely reused.
-      return { version: 2, entries: {} };
+      // V1 lacked environment identity; V2 held legacy per-Agent secrets. Neither can be reused as a user key.
+      return { version: 3, entries: {} };
     }
     if (!isVaultContents(parsed)) {
       throw new Error('GEA_PERSONAL_VAULT_INVALID');
@@ -151,8 +162,15 @@ class AionCoreProviderStore implements PersonalModelProviderStore {
 }
 
 let runtime: PersonalModelGatewayService | null = null;
+let runtimeEnvironmentId: string | null = null;
 
 export function getPersonalModelGatewayRuntime(): PersonalModelGatewayService {
+  const environmentId = getGeaEnvironment().environmentId;
+  if (runtimeEnvironmentId !== environmentId) {
+    // The environment switch owner has already deactivated the previous runtime.
+    runtime = null;
+    runtimeEnvironmentId = environmentId;
+  }
   runtime ??= new PersonalModelGatewayService(
     new ElectronSafeStorageVault(
       path.join(app.getPath('userData'), VAULT_FILE_NAME),
@@ -165,27 +183,32 @@ export function getPersonalModelGatewayRuntime(): PersonalModelGatewayService {
   return runtime;
 }
 
-function vaultKey(environmentId: string, userId: string, credentialId: string): string {
-  return createHash('sha256').update(`${environmentId}\0${userId}\0${credentialId}`).digest('hex');
+function vaultKey(environmentId: string, userId: string, credentialId: string, tenantId: string): string {
+  return createHash('sha256').update(`${environmentId}\0${tenantId}\0${userId}\0${credentialId}`).digest('hex');
 }
 
 function isVaultContents(value: unknown): value is VaultContents {
   if (!value || typeof value !== 'object') return false;
   const raw = value as { entries?: unknown; version?: unknown };
-  if (raw.version !== 2 || !raw.entries || typeof raw.entries !== 'object' || Array.isArray(raw.entries)) return false;
+  if (raw.version !== 3 || !raw.entries || typeof raw.entries !== 'object' || Array.isArray(raw.entries)) return false;
   return Object.values(raw.entries as Record<string, unknown>).every(isSecretRecord);
 }
 
 function isLegacyVaultContents(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
   const raw = value as { entries?: unknown; version?: unknown };
-  return raw.version === 1 && raw.entries !== null && typeof raw.entries === 'object' && !Array.isArray(raw.entries);
+  return (
+    (raw.version === 1 || raw.version === 2) &&
+    raw.entries !== null &&
+    typeof raw.entries === 'object' &&
+    !Array.isArray(raw.entries)
+  );
 }
 
 function isSecretRecord(value: unknown): value is PersonalModelSecretRecord {
   if (!value || typeof value !== 'object') return false;
   const raw = value as Record<string, unknown>;
-  return ['accessKeyId', 'agentCode', 'baseUrl', 'credentialId', 'environmentId', 'proxyKey', 'secret', 'userId'].every(
+  return ['accessKeyId', 'tenantId', 'baseUrl', 'credentialId', 'environmentId', 'proxyKey', 'secret', 'userId'].every(
     (key) => typeof raw[key] === 'string' && (raw[key] as string).length > 0
   );
 }
