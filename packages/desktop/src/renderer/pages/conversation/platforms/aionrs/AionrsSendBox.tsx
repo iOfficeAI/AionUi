@@ -48,6 +48,13 @@ import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/c
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
+import {
+  applyAutoModelForTurn,
+  chatFileRefsRequireVision,
+  conversationHasUserTurns,
+  persistAutoModelConversationState,
+} from '@/renderer/utils/autoModel';
+import { useMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -140,7 +147,9 @@ const AionrsSendBox: React.FC<{
     }));
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const { current_model } = modelSelection;
+  const { current_model, autoEnabled, syncAutoResolved, providers, getAvailableModels } = modelSelection;
+  const messageList = useMessageList();
+  const messageListRef = useLatestRef(messageList);
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
@@ -263,6 +272,27 @@ const AionrsSendBox: React.FC<{
       // ChatFileRef to an absolute path and injects the [[AION_FILES]] marker at
       // the send edge — the front-end no longer builds paths nor the marker.
       try {
+        if (autoEnabled && !teamSendMessage) {
+          try {
+            const applied = await applyAutoModelForTurn({
+              conversationId: conversation_id,
+              userInput: input,
+              hasPriorUserTurns: conversationHasUserTurns(messageListRef.current),
+              requireVision: chatFileRefsRequireVision(files),
+              currentModel: current_model,
+              providers,
+              getAvailableModels,
+              setConfigOption: (optionId, value) => runtimeConfig.setConfigOption(optionId, value),
+              persistModel: (model, phase) => persistAutoModelConversationState(conversation_id, model, phase),
+            });
+            syncAutoResolved(applied.model, applied.phase);
+          } catch (error) {
+            console.error('[AionrsSendBox] Auto phase routing failed:', error);
+            Message.warning(t('conversation.autoModel.noCandidates', { defaultValue: 'No available models for Auto' }));
+            throw error;
+          }
+        }
+
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
           await teamSendMessage({ input, files });
@@ -311,14 +341,19 @@ const AionrsSendBox: React.FC<{
       }
     },
     [
+      autoEnabled,
       checkAndUpdateTitle,
       conversation_id,
-      current_model?.use_model,
+      current_model,
+      getAvailableModels,
       markSendAccepted,
       markSendFailed,
       markSendStarted,
+      providers,
+      runtimeConfig,
       setActiveMsgId,
       setWaitingResponse,
+      syncAutoResolved,
       t,
       teamPermission,
       teamSendMessage,
@@ -503,6 +538,10 @@ const AionrsSendBox: React.FC<{
   const handleSheetModelSelect = useCallback(
     (value: string) => {
       if (runtimeConfig.isConfigOptionBlocked?.('model')) return;
+      if (value === '__aionui_auto__::auto') {
+        void modelSelection.handleSelectAuto();
+        return;
+      }
       // value format: `${providerId}::${modelName}`
       const [providerId, modelName] = value.split('::');
       const provider = modelSelection.providers.find((p) => p.id === providerId);
@@ -535,19 +574,35 @@ const AionrsSendBox: React.FC<{
       active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
     }));
 
-    const modelOptions: MobileActionSheetOption[] = modelSelection.providers.flatMap((provider) =>
-      modelSelection.getAvailableModels(provider).map((modelName) => ({
-        key: `${provider.id}::${modelName}`,
-        label: modelName,
-        description: provider.name,
-        active:
-          modelSelection.current_model?.id === provider.id && modelSelection.current_model?.use_model === modelName,
-      }))
-    );
+    const modelOptions: MobileActionSheetOption[] = [
+      {
+        key: '__aionui_auto__::auto',
+        label: t('conversation.autoModel.optionLabel', { defaultValue: 'Auto (planner/worker routing)' }),
+        description: t('conversation.autoModel.groupTitle', { defaultValue: 'Auto' }),
+        active: Boolean(modelSelection.autoEnabled),
+      },
+      ...modelSelection.providers.flatMap((provider) =>
+        modelSelection.getAvailableModels(provider).map((modelName) => ({
+          key: `${provider.id}::${modelName}`,
+          label: modelName,
+          description: provider.name,
+          active:
+            !modelSelection.autoEnabled &&
+            modelSelection.current_model?.id === provider.id &&
+            modelSelection.current_model?.use_model === modelName,
+        }))
+      ),
+    ];
 
     const currentModeLabel =
       modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
-    const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
+    const currentModelLabel = modelSelection.autoEnabled
+      ? t('conversation.autoModel.pill', {
+          phase: modelSelection.autoPhase || 'worker',
+          model: modelSelection.current_model?.use_model || '',
+          defaultValue: `Auto · ${modelSelection.autoPhase || 'worker'}/${modelSelection.current_model?.use_model || ''}`,
+        })
+      : modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
 
     const entries: MobileActionSheetEntry[] = [
       {

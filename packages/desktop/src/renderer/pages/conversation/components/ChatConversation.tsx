@@ -152,9 +152,10 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
-    async (_provider: IProvider, modelName: string) => {
+    async (_provider: IProvider, modelName: string, meta?: { autoEnabled: boolean }) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
-      // Kill running agent on model switch — will be rebuilt with new model on next message
+      // Always stop an active turn when the user changes model manually. Same-provider
+      // hot-swap (Core #923) is only used on the Auto per-turn routing path.
       if (runtimeView.activeTurnId) {
         const result = await ipcBridge.conversation.stop.invoke({
           conversation_id: conversation.id,
@@ -162,14 +163,37 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         });
         runtimeView.markStopAcknowledged(runtimeView.activeTurnId, result.runtime);
       }
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      const autoEnabled = Boolean(meta?.autoEnabled);
+      const ok = await ipcBridge.conversation.update.invoke({
+        id: conversation.id,
+        updates: {
+          model: selected,
+          // merge_extra patch — same cast pattern as useAionrsMessage token usage.
+          extra: {
+            auto_model: autoEnabled
+              ? {
+                  enabled: true,
+                  phase: 'worker',
+                  last_resolved: {
+                    provider_id: selected.id,
+                    model: selected.use_model,
+                    slot: 'worker',
+                  },
+                }
+              : { enabled: false },
+          } as TChatConversation['extra'],
+        },
+        merge_extra: true,
+      });
       return Boolean(ok);
     },
-    [conversation.id, runtimeView]
+    [conversation.id, conversation.model?.id, runtimeView]
   );
 
   const modelSelection = useAionrsModelSelection({
     initialModel: conversation.model,
+    initialAutoEnabled: Boolean(conversation.extra?.auto_model?.enabled),
+    initialAutoPhase: conversation.extra?.auto_model?.phase,
     onSelectModel,
   });
   // Project conversations get the Layout-level Explorer column (stage3 FULL);

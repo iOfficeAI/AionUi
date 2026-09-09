@@ -7,7 +7,18 @@
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
 import { supportsOpenAiApiMode } from '@/common/utils/modelCapabilities';
-import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Button,
+  Divider,
+  Message,
+  Popconfirm,
+  Collapse,
+  Tag,
+  Switch,
+  Tooltip,
+  Select,
+  Typography,
+} from '@arco-design/web-react';
 import {
   DeleteFour,
   Heartbeat,
@@ -19,7 +30,7 @@ import {
   SettingTwo,
   Write,
 } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -28,7 +39,9 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/mod
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { useModelProviderList, useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { listSlotModelOptions, useAutoModelSettings } from '@/renderer/hooks/agent/useAutoModelSettings';
+import type { AutoModelSlotBinding, AutoModelSlots } from '@/renderer/utils/autoModel';
 import { useSettingsViewMode } from '../settingsViewContext';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
@@ -104,6 +117,73 @@ const getProviderState = (platform: IProvider): { checked: boolean; indeterminat
 const isModelEnabled = (platform: IProvider, model: string): boolean => {
   if (!platform.model_enabled) return true; // 默认启用
   return platform.model_enabled[model] !== false;
+};
+
+const AUTO_SLOT_KEYS: Array<keyof AutoModelSlots> = ['planner', 'worker', 'utility'];
+
+const bindingToSelectValue = (binding: AutoModelSlotBinding): string => {
+  if (binding.mode === 'automatic') return 'automatic';
+  return `${binding.provider_id}::${binding.model}`;
+};
+
+const parseSelectValue = (value: string): AutoModelSlotBinding => {
+  if (value === 'automatic') return { mode: 'automatic' };
+  const [provider_id, ...rest] = value.split('::');
+  return { mode: 'fixed', provider_id, model: rest.join('::') };
+};
+
+/** Phase-1 Auto planner/worker slot bindings (issue #4143). */
+const AutoModelSettingsBlock: React.FC = () => {
+  const { t } = useTranslation();
+  const { settings, setPreference, setSlot } = useAutoModelSettings();
+  const { providers, getAvailableModels } = useModelProviderList();
+  const modelOptions = useMemo(
+    () => listSlotModelOptions(providers, getAvailableModels),
+    [getAvailableModels, providers]
+  );
+
+  return (
+    <div className='mb-16px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-14px py-12px'>
+      <Typography.Title heading={6} className='!mt-0 !mb-4px'>
+        {t('settings.autoModel.title')}
+      </Typography.Title>
+      <Typography.Paragraph className='!mb-12px text-12px text-t-secondary'>
+        {t('settings.autoModel.description')}
+      </Typography.Paragraph>
+      <div className='mb-12px'>
+        <div className='mb-6px text-12px text-t-secondary'>{t('settings.autoModel.preference')}</div>
+        <Select
+          value={settings.preference}
+          onChange={(value) => void setPreference(value)}
+          options={[
+            { label: t('settings.autoModel.preferenceCost'), value: 'cost' },
+            { label: t('settings.autoModel.preferenceBalance'), value: 'balance' },
+            { label: t('settings.autoModel.preferenceQuality'), value: 'quality' },
+          ]}
+        />
+      </div>
+      {AUTO_SLOT_KEYS.map((slot) => (
+        <div key={slot} className='mb-10px last:mb-0'>
+          <div className='mb-6px text-12px text-t-secondary'>{t(`settings.autoModel.slot.${slot}`)}</div>
+          <Select
+            value={bindingToSelectValue(settings.slots[slot])}
+            onChange={(value) => void setSlot(slot, parseSelectValue(String(value)))}
+            showSearch
+            options={[
+              { label: t('settings.autoModel.automatic'), value: 'automatic' },
+              ...modelOptions.map((option) => ({
+                label: `${option.provider.name} / ${option.modelName}`,
+                value: option.value,
+              })),
+            ]}
+          />
+        </div>
+      ))}
+      <Typography.Paragraph className='!mb-0 !mt-10px text-12px text-t-secondary'>
+        {t('settings.autoModel.phaseNote')}
+      </Typography.Paragraph>
+    </div>
+  );
 };
 
 const ModelModalContent: React.FC = () => {
@@ -402,289 +482,295 @@ const ModelModalContent: React.FC = () => {
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {!data || data.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-40px'>
-            <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
-            <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
-            <p className='text-14px text-t-secondary text-center max-w-400px'>
-              {t('settings.needHelpConfigGuide')}
-              <a
-                href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ms-4px'
-              >
-                {t('settings.configGuide')}
-              </a>
-              {t('settings.configGuideSuffix')}
-            </p>
-          </div>
-        ) : (
-          <div className='space-y-16px'>
-            {(data || []).map((platform: IProvider) => {
-              const key = platform.id;
-              const isExpanded = collapseKey[platform.id] ?? false;
-              return (
-                <Collapse
-                  activeKey={isExpanded ? ['image-generation'] : []}
-                  onChange={(_, activeKeys) => {
-                    const expanded = activeKeys.includes('image-generation');
-                    setCollapseKey((prev) => ({ ...prev, [platform.id]: expanded }));
-                  }}
-                  key={key}
-                  bordered
-                  expandIconPosition='left'
-                  className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-12px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!ps-36px [&_.arco-collapse-item-header]:!pe-12px [&_.arco-collapse-item-header]:!py-8px [&_.arco-collapse-item-header]:transition-colors [&_.arco-collapse-item-header]:hover:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-10px [&_.arco-collapse-item-content-box]:!py-8px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
-                    isExpanded
-                      ? '[&_.arco-collapse-item-header]:!rounded-t-12px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-12px'
-                      : '[&_.arco-collapse-item-header]:!rounded-12px'
-                  }`}
+        <div className='space-y-16px'>
+          {!data || data.length === 0 ? (
+            <div className='flex flex-col items-center justify-center py-40px'>
+              <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
+              <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
+              <p className='text-14px text-t-secondary text-center max-w-400px'>
+                {t('settings.needHelpConfigGuide')}
+                <a
+                  href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ms-4px'
                 >
-                  <Collapse.Item
-                    name='image-generation'
-                    className='[&_.arco-collapse-item-header-title]:flex-1 group'
-                    header={
-                      <div className='group flex items-center justify-between w-full min-h-32px gap-8px min-w-0'>
-                        <span
-                          className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
-                        >
-                          {platform.name}
-                        </span>
-                        <div
-                          className='flex items-center gap-8px shrink-0'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <span className='text-12px text-t-secondary whitespace-nowrap hidden md:inline-flex items-center overflow-hidden max-w-0 opacity-0 group-hover:max-w-320px group-hover:opacity-100 transition-all duration-180'>
-                            <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
-                            >
-                              {t('settings.modelCount')}（{(platform.models ?? []).length}）
-                            </span>
-                            <span className='mx-6px'>|</span>
-                            <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            >
-                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
-                            </span>
+                  {t('settings.configGuide')}
+                </a>
+                {t('settings.configGuideSuffix')}
+              </p>
+            </div>
+          ) : (
+            <>
+              <AutoModelSettingsBlock />
+              {(data || []).map((platform: IProvider) => {
+                const key = platform.id;
+                const isExpanded = collapseKey[platform.id] ?? false;
+                return (
+                  <Collapse
+                    activeKey={isExpanded ? ['image-generation'] : []}
+                    onChange={(_, activeKeys) => {
+                      const expanded = activeKeys.includes('image-generation');
+                      setCollapseKey((prev) => ({ ...prev, [platform.id]: expanded }));
+                    }}
+                    key={key}
+                    bordered
+                    expandIconPosition='left'
+                    className={`[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-12px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!ps-36px [&_.arco-collapse-item-header]:!pe-12px [&_.arco-collapse-item-header]:!py-8px [&_.arco-collapse-item-header]:transition-colors [&_.arco-collapse-item-header]:hover:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!gap-8px [&_.arco-collapse-item-header-title]:!min-w-0 [&_.arco-collapse-item-header-icon]:!text-2 [&_.arco-collapse-item-header:hover_.arco-collapse-item-header-icon]:!text-1 [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-10px [&_.arco-collapse-item-content-box]:!py-8px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-[var(--color-border-2)] ${
+                      isExpanded
+                        ? '[&_.arco-collapse-item-header]:!rounded-t-12px [&_.arco-collapse-item-header]:!rounded-b-0 [&_.arco-collapse-item-content]:!rounded-b-12px'
+                        : '[&_.arco-collapse-item-header]:!rounded-12px'
+                    }`}
+                  >
+                    <Collapse.Item
+                      name='image-generation'
+                      className='[&_.arco-collapse-item-header-title]:flex-1 group'
+                      header={
+                        <div className='group flex items-center justify-between w-full min-h-32px gap-8px min-w-0'>
+                          <span
+                            className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
+                          >
+                            {platform.name}
                           </span>
-                          <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
-                          </span>
-                          {/* 供应商启用开关 / Provider enable switch */}
-                          <Switch
-                            size='small'
-                            checked={getProviderState(platform).checked}
-                            onChange={() => toggleProviderEnabled(platform)}
-                          />
-                          <div className='flex items-center gap-4px'>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Plus size='14' />}
-                              onClick={() => addModelModalCtrl.open({ data: platform })}
+                          <div
+                            className='flex items-center gap-8px shrink-0'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <span className='text-12px text-t-secondary whitespace-nowrap hidden md:inline-flex items-center overflow-hidden max-w-0 opacity-0 group-hover:max-w-320px group-hover:opacity-100 transition-all duration-180'>
+                              <span
+                                className='cursor-pointer hover:text-t-primary transition-colors'
+                                onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
+                              >
+                                {t('settings.modelCount')}（{(platform.models ?? []).length}）
+                              </span>
+                              <span className='mx-6px'>|</span>
+                              <span
+                                className='cursor-pointer hover:text-t-primary transition-colors'
+                                onClick={() => editModalCtrl.open({ data: platform })}
+                              >
+                                {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
+                              </span>
+                            </span>
+                            <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
+                              {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
+                            </span>
+                            {/* 供应商启用开关 / Provider enable switch */}
+                            <Switch
+                              size='small'
+                              checked={getProviderState(platform).checked}
+                              onChange={() => toggleProviderEnabled(platform)}
                             />
-                            <Popconfirm
-                              title={t('settings.deleteAllModelConfirm')}
-                              onOk={() => removePlatform(platform.id)}
-                            >
+                            <div className='flex items-center gap-4px'>
                               <Button
                                 size='mini'
                                 className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                                icon={<Minus size='14' />}
+                                icon={<Plus size='14' />}
+                                onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
-                            </Popconfirm>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Write size='14' />}
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  >
-                    {(platform.models ?? []).map((model: string, index: number, arr: string[]) => {
-                      const isNewApiProvider = isNewApiPlatform(platform.platform);
-                      const modelProtocol = platform.model_protocols?.[model] || 'openai';
-                      const modelSettings = platform.model_settings?.[model];
-                      const imageInput = modelSettings?.image_input ?? 'auto';
-                      const showOpenAiApiMode = supportsOpenAiApiMode(platform.platform, modelProtocol);
-                      const model_health = platform.model_health?.[model];
-                      const healthStatus = model_health?.status || 'unknown';
-
-                      return (
-                        <div key={model}>
-                          <div className='flex items-center justify-between gap-8px px-8px py-12px transition-colors hover:bg-[var(--fill-0)]'>
-                            <div className='flex min-w-0 flex-1 items-center gap-8px'>
-                              {/* 健康状态指示器 / Health status indicator */}
-                              {healthStatus !== 'unknown' && (
-                                <Tooltip
-                                  content={
-                                    <div>
-                                      <div className='flex items-center gap-4px'>
-                                        <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
-                                        <span>
-                                          {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
-                                        </span>
-                                      </div>
-                                      {model_health?.latency && (
-                                        <div className='text-12px mt-4px'>
-                                          {t('settings.latency')}: {model_health.latency}ms
-                                        </div>
-                                      )}
-                                      {model_health?.error && (
-                                        <div className='text-12px mt-4px'>{model_health.error}</div>
-                                      )}
-                                      {model_health?.last_check && (
-                                        <div className='text-12px mt-4px'>
-                                          {t('mcp.lastCheck')}: {formatDateTime(model_health.last_check, i18n.language)}
-                                        </div>
-                                      )}
-                                    </div>
-                                  }
-                                >
-                                  <div
-                                    className={`h-8px w-8px shrink-0 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}
-                                  />
-                                </Tooltip>
-                              )}
-
-                              <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{model}</span>
-
-                              {/* New API 协议标签（点击循环切换）/ New API protocol badge (click to cycle) */}
-                              {isNewApiProvider && (
-                                <Tag
-                                  size='small'
-                                  color={getProtocolColor(modelProtocol)}
-                                  className='shrink-0 cursor-pointer select-none'
-                                  onClick={() => {
-                                    const nextProtocol = getNextProtocol(modelProtocol);
-                                    const newProtocols = { ...platform.model_protocols };
-                                    newProtocols[model] = nextProtocol;
-                                    updatePlatform({ ...platform, model_protocols: newProtocols }, () => {});
-                                  }}
-                                >
-                                  {getProtocolLabel(modelProtocol)}
-                                </Tag>
-                              )}
-
-                              <Tooltip
-                                content={
-                                  imageInput === 'supported'
-                                    ? t('settings.imageInputSupported')
-                                    : imageInput === 'unsupported'
-                                      ? t('settings.imageInputUnsupported')
-                                      : t('settings.imageInputAuto')
-                                }
-                              >
-                                <span
-                                  className={`inline-flex h-20px w-20px shrink-0 items-center justify-center ${
-                                    imageInput === 'supported' ? 'text-success-6' : 'text-t-secondary'
-                                  }`}
-                                >
-                                  {imageInput !== 'unsupported' ? (
-                                    <PreviewOpen theme='outline' size='15' />
-                                  ) : (
-                                    <PreviewClose theme='outline' size='15' />
-                                  )}
-                                </span>
-                              </Tooltip>
-
-                              {showOpenAiApiMode && (
-                                <Tag size='small' className='hidden shrink-0 md:inline-flex'>
-                                  {modelSettings?.openai_api_mode === 'responses'
-                                    ? t('settings.openAiApiModeResponses')
-                                    : modelSettings?.openai_api_mode === 'chat_completions'
-                                      ? t('settings.openAiApiModeChatCompletions')
-                                      : t('settings.openAiApiModeAuto')}
-                                </Tag>
-                              )}
-
-                              {/* 模型启用开关 / Model enable switch */}
-                              <Switch
-                                className='shrink-0'
-                                size='small'
-                                checked={isModelEnabled(platform, model)}
-                                onChange={(checked) => toggleModelEnabled(platform, model, checked)}
-                              />
-                            </div>
-
-                            <div className='flex items-center gap-6px shrink-0'>
-                              <Tooltip content={t('settings.configureModel')}>
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<SettingTwo theme='outline' size='16' />}
-                                  onClick={() => addModelModalCtrl.open({ data: platform, model })}
-                                />
-                              </Tooltip>
-
-                              {/* 心跳检测按钮 / Health check button */}
-                              <Tooltip content={t('settings.healthCheck')}>
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<Heartbeat theme='outline' size='16' />}
-                                  loading={healthCheckLoading[`${platform.id}-${model}`]}
-                                  onClick={() => performHealthCheck(platform, model)}
-                                />
-                              </Tooltip>
-
                               <Popconfirm
-                                title={t('settings.deleteModelConfirm')}
-                                onOk={() => {
-                                  const newModels = platform.models.filter((item: string) => item !== model);
-                                  // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
-                                  // Clean all per-model state to avoid stale state on re-add.
-                                  const newProtocols = { ...platform.model_protocols };
-                                  const newModelEnabled = { ...platform.model_enabled };
-                                  const newModelHealth = { ...platform.model_health };
-                                  const newModelSettings = { ...platform.model_settings };
-                                  delete newProtocols[model];
-                                  delete newModelEnabled[model];
-                                  delete newModelHealth[model];
-                                  delete newModelSettings[model];
-
-                                  updatePlatform(
-                                    {
-                                      ...platform,
-                                      models: newModels,
-                                      model_protocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
-                                      model_enabled:
-                                        Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
-                                      model_health: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
-                                      model_settings: newModelSettings,
-                                    },
-                                    () => {}
-                                  );
-                                }}
+                                title={t('settings.deleteAllModelConfirm')}
+                                onOk={() => removePlatform(platform.id)}
                               >
                                 <Button
                                   size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
+                                  className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                  icon={<Minus size='14' />}
                                 />
                               </Popconfirm>
+                              <Button
+                                size='mini'
+                                className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                icon={<Write size='14' />}
+                                onClick={() => editModalCtrl.open({ data: platform })}
+                              />
                             </div>
                           </div>
-                          {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}
                         </div>
-                      );
-                    })}
-                  </Collapse.Item>
-                </Collapse>
-              );
-            })}
-          </div>
-        )}
+                      }
+                    >
+                      {(platform.models ?? []).map((model: string, index: number, arr: string[]) => {
+                        const isNewApiProvider = isNewApiPlatform(platform.platform);
+                        const modelProtocol = platform.model_protocols?.[model] || 'openai';
+                        const modelSettings = platform.model_settings?.[model];
+                        const imageInput = modelSettings?.image_input ?? 'auto';
+                        const showOpenAiApiMode = supportsOpenAiApiMode(platform.platform, modelProtocol);
+                        const model_health = platform.model_health?.[model];
+                        const healthStatus = model_health?.status || 'unknown';
+
+                        return (
+                          <div key={model}>
+                            <div className='flex items-center justify-between gap-8px px-8px py-12px transition-colors hover:bg-[var(--fill-0)]'>
+                              <div className='flex min-w-0 flex-1 items-center gap-8px'>
+                                {/* 健康状态指示器 / Health status indicator */}
+                                {healthStatus !== 'unknown' && (
+                                  <Tooltip
+                                    content={
+                                      <div>
+                                        <div className='flex items-center gap-4px'>
+                                          <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
+                                          <span>
+                                            {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
+                                          </span>
+                                        </div>
+                                        {model_health?.latency && (
+                                          <div className='text-12px mt-4px'>
+                                            {t('settings.latency')}: {model_health.latency}ms
+                                          </div>
+                                        )}
+                                        {model_health?.error && (
+                                          <div className='text-12px mt-4px'>{model_health.error}</div>
+                                        )}
+                                        {model_health?.last_check && (
+                                          <div className='text-12px mt-4px'>
+                                            {t('mcp.lastCheck')}:{' '}
+                                            {formatDateTime(model_health.last_check, i18n.language)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    }
+                                  >
+                                    <div
+                                      className={`h-8px w-8px shrink-0 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}
+                                    />
+                                  </Tooltip>
+                                )}
+
+                                <span className='min-w-0 flex-1 truncate text-14px text-t-primary'>{model}</span>
+
+                                {/* New API 协议标签（点击循环切换）/ New API protocol badge (click to cycle) */}
+                                {isNewApiProvider && (
+                                  <Tag
+                                    size='small'
+                                    color={getProtocolColor(modelProtocol)}
+                                    className='shrink-0 cursor-pointer select-none'
+                                    onClick={() => {
+                                      const nextProtocol = getNextProtocol(modelProtocol);
+                                      const newProtocols = { ...platform.model_protocols };
+                                      newProtocols[model] = nextProtocol;
+                                      updatePlatform({ ...platform, model_protocols: newProtocols }, () => {});
+                                    }}
+                                  >
+                                    {getProtocolLabel(modelProtocol)}
+                                  </Tag>
+                                )}
+
+                                <Tooltip
+                                  content={
+                                    imageInput === 'supported'
+                                      ? t('settings.imageInputSupported')
+                                      : imageInput === 'unsupported'
+                                        ? t('settings.imageInputUnsupported')
+                                        : t('settings.imageInputAuto')
+                                  }
+                                >
+                                  <span
+                                    className={`inline-flex h-20px w-20px shrink-0 items-center justify-center ${
+                                      imageInput === 'supported' ? 'text-success-6' : 'text-t-secondary'
+                                    }`}
+                                  >
+                                    {imageInput !== 'unsupported' ? (
+                                      <PreviewOpen theme='outline' size='15' />
+                                    ) : (
+                                      <PreviewClose theme='outline' size='15' />
+                                    )}
+                                  </span>
+                                </Tooltip>
+
+                                {showOpenAiApiMode && (
+                                  <Tag size='small' className='hidden shrink-0 md:inline-flex'>
+                                    {modelSettings?.openai_api_mode === 'responses'
+                                      ? t('settings.openAiApiModeResponses')
+                                      : modelSettings?.openai_api_mode === 'chat_completions'
+                                        ? t('settings.openAiApiModeChatCompletions')
+                                        : t('settings.openAiApiModeAuto')}
+                                  </Tag>
+                                )}
+
+                                {/* 模型启用开关 / Model enable switch */}
+                                <Switch
+                                  className='shrink-0'
+                                  size='small'
+                                  checked={isModelEnabled(platform, model)}
+                                  onChange={(checked) => toggleModelEnabled(platform, model, checked)}
+                                />
+                              </div>
+
+                              <div className='flex items-center gap-6px shrink-0'>
+                                <Tooltip content={t('settings.configureModel')}>
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<SettingTwo theme='outline' size='16' />}
+                                    onClick={() => addModelModalCtrl.open({ data: platform, model })}
+                                  />
+                                </Tooltip>
+
+                                {/* 心跳检测按钮 / Health check button */}
+                                <Tooltip content={t('settings.healthCheck')}>
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<Heartbeat theme='outline' size='16' />}
+                                    loading={healthCheckLoading[`${platform.id}-${model}`]}
+                                    onClick={() => performHealthCheck(platform, model)}
+                                  />
+                                </Tooltip>
+
+                                <Popconfirm
+                                  title={t('settings.deleteModelConfirm')}
+                                  onOk={() => {
+                                    const newModels = platform.models.filter((item: string) => item !== model);
+                                    // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
+                                    // Clean all per-model state to avoid stale state on re-add.
+                                    const newProtocols = { ...platform.model_protocols };
+                                    const newModelEnabled = { ...platform.model_enabled };
+                                    const newModelHealth = { ...platform.model_health };
+                                    const newModelSettings = { ...platform.model_settings };
+                                    delete newProtocols[model];
+                                    delete newModelEnabled[model];
+                                    delete newModelHealth[model];
+                                    delete newModelSettings[model];
+
+                                    updatePlatform(
+                                      {
+                                        ...platform,
+                                        models: newModels,
+                                        model_protocols:
+                                          Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
+                                        model_enabled:
+                                          Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
+                                        model_health:
+                                          Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                        model_settings: newModelSettings,
+                                      },
+                                      () => {}
+                                    );
+                                  }}
+                                >
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
+                                  />
+                                </Popconfirm>
+                              </div>
+                            </div>
+                            {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}
+                          </div>
+                        );
+                      })}
+                    </Collapse.Item>
+                  </Collapse>
+                );
+              })}
+            </>
+          )}
+        </div>
       </AionScrollArea>
     </div>
   );

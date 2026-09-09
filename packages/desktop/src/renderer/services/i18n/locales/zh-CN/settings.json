@@ -1415,5 +1415,20 @@
   "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
   "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
   "crossSessionMessageResume": "重新开启",
-  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败",
+  "autoModel": {
+    "title": "Auto 模型路由",
+    "description": "为长时间运行的 aionrs 智能体绑定规划、执行与辅助模型槽位。第一阶段在选择 Auto 时解析为具体模型；第二阶段将在不重建智能体的情况下切换槽位。",
+    "preference": "槽位设为自动时",
+    "preferenceCost": "优先更低成本",
+    "preferenceBalance": "平衡成本与质量",
+    "preferenceQuality": "优先更高质量",
+    "automatic": "自动",
+    "slot": {
+      "planner": "规划模型",
+      "worker": "执行模型",
+      "utility": "辅助模型"
+    },
+    "phaseNote": "同一供应商下 Auto 会在发送前按规划/执行阶段热切换模型，无需重建智能体。跨供应商仍会重建。"
+  }
 }

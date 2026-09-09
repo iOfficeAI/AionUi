@@ -788,5 +788,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expandir plano",
     "collapse": "Recolher plano"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (roteamento planner/worker)",
+    "pill": "Auto · {{phase}}/{{model}}",
+    "noCandidates": "Nenhum modelo disponível para Auto"
   }
 }
