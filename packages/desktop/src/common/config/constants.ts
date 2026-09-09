@@ -72,6 +72,9 @@ export const AIONUI_SESSION_MESSAGE_END_MARKER = '[[/AION_SESSION_MESSAGE]]';
 /** 支持的图片文件扩展名 */
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg'] as const;
 
+/** 支持的视频文件扩展名（媒体生成输出 / 附件识别共用） */
+export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v'] as const;
+
 /** 文件扩展名到MIME类型的映射 */
 export const MIME_TYPE_MAP: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -96,8 +99,27 @@ export const MIME_TO_EXT_MAP: Record<string, string> = {
   'svg+xml': '.svg',
 };
 
+/** 文件扩展名到MIME类型的映射（视频） */
+export const VIDEO_MIME_TYPE_MAP: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/x-m4v',
+};
+
+/** 视频MIME类型到文件扩展名的映射 */
+export const VIDEO_MIME_TO_EXT_MAP: Record<string, string> = {
+  mp4: '.mp4',
+  webm: '.webm',
+  quicktime: '.mov',
+  'x-m4v': '.m4v',
+};
+
 /** 默认图片文件扩展名 */
 export const DEFAULT_IMAGE_EXTENSION = '.png';
+
+/** 默认视频文件扩展名 */
+export const DEFAULT_VIDEO_EXTENSION = '.mp4';
 
 // ===== WebUI 相关常量 =====
 

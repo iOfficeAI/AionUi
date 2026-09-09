@@ -537,6 +537,7 @@ const ToolsModalContent: React.FC = () => {
                       <li>{t('settings.imageGenSupportedTooltipGemini')}</li>
                       <li>{t('settings.imageGenSupportedTooltipOpenRouter')}</li>
                       <li>{t('settings.imageGenSupportedTooltipAntigravity')}</li>
+                      <li>{t('settings.imageGenSupportedTooltipImagesApi')}</li>
                     </ul>
                     <div>{t('settings.imageGenUnsupportedTooltip')}</div>
                   </div>

@@ -2061,6 +2061,7 @@ export type I18nKey =
   | 'settings.helpDocumentation'
   | 'settings.imageGenSupportedTooltipAntigravity'
   | 'settings.imageGenSupportedTooltipGemini'
+  | 'settings.imageGenSupportedTooltipImagesApi'
   | 'settings.imageGenSupportedTooltipOpenRouter'
   | 'settings.imageGenSupportedTooltipTitle'
   | 'settings.imageGenUnsupportedTooltip'
