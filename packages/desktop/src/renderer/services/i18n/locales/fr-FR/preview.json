@@ -176,5 +176,8 @@
   "zoomIn": "Zoom avant",
   "zoomOut": "Zoom arrière",
   "zoomReset": "Réinitialiser la vue",
-  "diagramZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer"
+  "diagramZoomHint": "Molette pour zoomer • Glisser pour déplacer • Échap pour fermer",
+  "addToChatUnavailable": "Rien où ajouter : la conversation active n’a pas de champ de saisie pour le moment.",
+  "openFromOtherColumn": "Un aperçu de « {{name}} » n’a pas été affiché car cette colonne n’est pas active.",
+  "openUnattributed": "Un aperçu n’a pas été affiché : plusieurs conversations sont actives et il n’a pas pu être attribué à l’une d’elles."
 }
