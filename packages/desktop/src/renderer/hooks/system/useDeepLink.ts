@@ -5,8 +5,9 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ipcBridge } from '@/common';
+import { isDetachedWindowSearch } from '@/common/platform/detachedWindow';
 
 /**
  * Deep link event payload from main process
@@ -49,11 +50,14 @@ const ALLOWED_NAVIGATE_PATTERNS = [/^\/team\/[^/]+$/, /^\/conversation\/[^/]+$/]
  * The pre-fill data is stored in a module-level variable and consumed
  * by ModelModalContent on mount via consumePendingDeepLink().
  */
-export const useDeepLink = () => {
+export const useDeepLink = (detachedWindow = false) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDetached = detachedWindow || isDetachedWindowSearch(location.search);
 
   const handler = useCallback(
     (payload: DeepLinkPayload) => {
+      if (isDetached) return;
       // Support both formats: "add-provider" and "provider/add" (one-api style)
       if (payload.action === 'add-provider' || payload.action === 'provider/add') {
         pendingDeepLinkData = {
@@ -84,7 +88,7 @@ export const useDeepLink = () => {
         void navigate(route);
       }
     },
-    [navigate]
+    [isDetached, navigate]
   );
 
   useEffect(() => {

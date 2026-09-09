@@ -8,9 +8,20 @@ import { renderHook } from '@testing-library/react';
 
 const streamHandlers: Array<(e: unknown) => void> = [];
 const showInvoke = vi.fn();
+const { navigateMock, focusConversation } = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+  focusConversation: vi.fn(() => Promise.resolve(false)),
+}));
+let clickedHandler: ((payload: { conversation_id?: string }) => void) | undefined;
 let isDesktop = true;
 let settingEnabled = true;
 let snapshotName: string | undefined;
+let locationSearch = '';
+
+vi.mock('react-router-dom', () => ({
+  useLocation: () => ({ search: locationSearch }),
+  useNavigate: () => navigateMock,
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -24,10 +35,17 @@ vi.mock('@/common', () => ({
     },
     notification: {
       show: { invoke: (...args: unknown[]) => showInvoke(...args) },
+      clicked: {
+        on: (handler: (payload: { conversation_id?: string }) => void) => {
+          clickedHandler = handler;
+          return () => {};
+        },
+      },
     },
   },
 }));
-vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => isDesktop }));
+vi.mock('@/renderer/utils/platform', () => ({ getWindowId: () => 7, isElectronDesktop: () => isDesktop }));
+vi.mock('@/renderer/utils/ui/detachedWindow', () => ({ detachedWindowActions: { focusConversation } }));
 vi.mock('@/common/config/configService', () => ({ configService: { get: () => settingEnabled } }));
 vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
   getSnapshotConversationName: () => snapshotName,
@@ -38,6 +56,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { useDesktopTurnNotification } from '@/renderer/hooks/system/notification/useDesktopTurnNotification';
+import { useNotificationClick } from '@/renderer/hooks/system/notification/useNotificationClick';
 
 const emitStream = (message: unknown) => streamHandlers.forEach((h) => h(message));
 
@@ -47,6 +66,11 @@ beforeEach(() => {
   isDesktop = true;
   settingEnabled = true;
   snapshotName = undefined;
+  locationSearch = '';
+  navigateMock.mockClear();
+  focusConversation.mockReset();
+  focusConversation.mockResolvedValue(false);
+  clickedHandler = undefined;
 });
 
 describe('useDesktopTurnNotification', () => {
@@ -58,6 +82,7 @@ describe('useDesktopTurnNotification', () => {
       title: 'AionUi',
       body: 'settings.browserNotification.bodyTurnCompleted',
       conversation_id: 's1',
+      source_web_contents_id: 7,
     });
   });
 
@@ -68,6 +93,7 @@ describe('useDesktopTurnNotification', () => {
       title: 'AionUi',
       body: 'settings.browserNotification.bodyConfirmation',
       conversation_id: 's1',
+      source_web_contents_id: 7,
     });
   });
 
@@ -78,6 +104,7 @@ describe('useDesktopTurnNotification', () => {
       title: 'AionUi',
       body: 'settings.browserNotification.bodyConfirmation',
       conversation_id: 's1',
+      source_web_contents_id: 7,
     });
   });
 
@@ -89,6 +116,7 @@ describe('useDesktopTurnNotification', () => {
       title: 'AionUi',
       body: 'settings.browserNotification.bodyConfirmationNamed::My Chat',
       conversation_id: 's1',
+      source_web_contents_id: 7,
     });
   });
 
@@ -105,5 +133,33 @@ describe('useDesktopTurnNotification', () => {
     expect(streamHandlers).toHaveLength(0);
     emitStream({ type: 'finish', conversation_id: 's1', turn_id: 't1' });
     expect(showInvoke).not.toHaveBeenCalled();
+  });
+
+  it('keeps a detached renderer eligible when it becomes the only notification producer', () => {
+    locationSearch = '?window=detached';
+    renderHook(() => useDesktopTurnNotification());
+    expect(streamHandlers).toHaveLength(1);
+  });
+
+  it('focuses a popped-out conversation instead of duplicating it in the main window', async () => {
+    focusConversation.mockResolvedValue(true);
+    renderHook(() => useNotificationClick());
+
+    clickedHandler?.({ conversation_id: 'popped-out' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(focusConversation).toHaveBeenCalledWith('popped-out');
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('navigates after a notification click when no pop-out exists', async () => {
+    renderHook(() => useNotificationClick());
+
+    clickedHandler?.({ conversation_id: 'main-only' });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(navigateMock).toHaveBeenCalledWith('/conversation/main-only');
   });
 });

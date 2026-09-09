@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import { Button, Message, Trigger } from '@arco-design/web-react';
 import { FolderOpen, Lightning, Paperclip, Plus, Right, Shield } from '@icon-park/react';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { resolveAnnouncementTarget } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
@@ -97,10 +98,13 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   );
   const descriptionByName = new Map((skillIndex ?? []).map((s) => [s.name, s.description]));
 
-  const handleSkillClick = useCallback((name: string) => {
-    setOpen(false);
-    emitter.emit('sendbox.fill', `/${name} `);
-  }, []);
+  const handleSkillClick = useCallback(
+    (name: string) => {
+      setOpen(false);
+      emitter.emit('sendbox.fill', `/${name} `, resolveAnnouncementTarget(conversationContext?.conversation_id));
+    },
+    [conversationContext?.conversation_id]
+  );
 
   const handleOpenMcpSettings = useCallback(() => {
     setOpen(false);

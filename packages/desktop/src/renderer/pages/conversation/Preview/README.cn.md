@@ -290,20 +290,18 @@ closePreviewByIdentity('markdown', undefined, {
 ### 集成发送框
 
 ```tsx
-function SendBox() {
+function SendBox({ conversation_id }) {
   const { setSendBoxHandler } = usePreviewContext();
   const [text, setText] = useState('');
 
   useEffect(() => {
-    // 注册处理器
-    setSendBoxHandler((content) => {
+    // 按会话注册处理器；返回的注销函数只移除本次注册，
+    // 同一会话的其他输入框仍可接收内容。
+    // 不属于任何会话的输入框可省略 conversation_id。
+    return setSendBoxHandler((content) => {
       setText((prev) => prev + content);
-    });
-
-    return () => {
-      setSendBoxHandler(null);
-    };
-  }, [setSendBoxHandler]);
+    }, conversation_id);
+  }, [setSendBoxHandler, conversation_id]);
 
   return <textarea value={text} onChange={(e) => setText(e.target.value)} />;
 }

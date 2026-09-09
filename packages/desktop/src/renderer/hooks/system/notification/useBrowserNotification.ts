@@ -5,10 +5,11 @@
  */
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
+import { isDetachedWindowSearch } from '@/common/platform/detachedWindow';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { getSnapshotConversationName } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import {
@@ -23,12 +24,13 @@ import {
  * confirmation or finishes a turn, while the tab is hidden. No-op in
  * Electron, in non-secure contexts, or where the Notification API is absent.
  */
-export const useBrowserNotification = (): void => {
+export const useBrowserNotification = (detachedWindow = false): void => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (isElectronDesktop()) return;
+    if (isElectronDesktop() || detachedWindow || isDetachedWindowSearch(location.search)) return;
     if (typeof window === 'undefined' || !('Notification' in window) || !window.isSecureContext) return;
 
     // Both signals (turn finish, permission request) ride the conversation
@@ -79,5 +81,5 @@ export const useBrowserNotification = (): void => {
     return () => {
       disposeStream();
     };
-  }, [navigate, t]);
+  }, [detachedWindow, location.search, navigate, t]);
 };
