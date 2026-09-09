@@ -1,25 +1,32 @@
-"""LLM 客户端 - 调用通义千问"""
+"""LLM 客户端 - 调用通义千问（通过 DashScope OpenAI 兼容模式）"""
 
 import sys
 import time
 import logging
 from typing import Optional
-import dashscope
-from dashscope import Generation
+from openai import OpenAI
 from config import Config
 
 # 日志输出到 stderr
 logger = logging.getLogger(__name__)
 
+# DashScope OpenAI 兼容 endpoint
+# 注意：推理模型（如 qwen3.7-plus）不支持原生 SDK endpoint（会返回 400 url error），
+# 必须通过兼容模式调用
+COMPATIBLE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
 
 class LLMClient:
-    """通义千问 LLM 客户端"""
+    """通义千问 LLM 客户端（OpenAI 兼容模式）"""
 
     def __init__(self):
         """初始化 LLM 客户端"""
-        dashscope.api_key = Config.DASHSCOPE_API_KEY
         self.model = Config.LLM_MODEL
-        logger.info(f"LLMClient 初始化完成，使用模型: {self.model}")
+        self.client = OpenAI(
+            api_key=Config.DASHSCOPE_API_KEY,
+            base_url=COMPATIBLE_BASE_URL,
+        )
+        logger.info(f"LLMClient 初始化完成，使用模型: {self.model} (兼容模式)")
 
     def generate(self, system_prompt: str, user_prompt: str, timeout: int = 120) -> dict:
         """
@@ -35,42 +42,23 @@ class LLMClient:
         """
         try:
             logger.info(f"LLM 调用开始 (model={self.model}, prompt长度={len(user_prompt)})")
-            response = Generation.call(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                result_format="message",
+                # 关闭思考模式：加快响应、降低 token 消耗，且输出更干净（直接给 JSON）
+                extra_body={"enable_thinking": False},
                 timeout=timeout,
             )
 
-            if response.status_code != 200:
-                logger.error(f"LLM API 调用失败 (status={response.status_code}): {response.message}")
-                return {
-                    "content": f"LLM API 调用失败 (status={response.status_code}): {response.message}",
-                    "success": False,
-                }
+            if not response.choices:
+                logger.error("LLM 返回 choices 为空")
+                return {"content": "LLM 返回 choices 为空", "success": False}
 
-            # 安全检查：确保 output、choices 存在且非空
-            output = getattr(response, "output", None)
-            if output is None:
-                logger.error("LLM 返回 output 为 None")
-                return {"content": "LLM 返回 output 为 None", "success": False}
-
-            choices = getattr(output, "choices", None)
-            if not choices:
-                logger.error(f"LLM 返回 choices 为空 (choices={choices!r})")
-                return {"content": f"LLM 返回 choices 为空", "success": False}
-
-            first_choice = choices[0]
-            message = getattr(first_choice, "message", None)
-            if message is None:
-                logger.error("LLM 返回 message 为 None")
-                return {"content": "LLM 返回 message 为 None", "success": False}
-
-            content = getattr(message, "content", "")
-            if not content:
+            content = response.choices[0].message.content or ""
+            if not content.strip():
                 logger.warning("LLM 返回 content 为空字符串")
                 return {"content": "", "success": False}
 

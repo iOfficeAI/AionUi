@@ -16,7 +16,7 @@ from llm_client import LLMClient
 
 
 class PolicyParser:
-    """政策文档解析器：从 PDF/文本中提取结构化政策信息"""
+    """政策文档解析器：从 PDF/DOCX/HTML/Excel/文本中提取结构化政策信息"""
 
     def __init__(self):
         """初始化解析器"""
@@ -72,7 +72,7 @@ class PolicyParser:
 
     def load_document(self, document_path: str) -> str:
         """
-        读取文档内容（PDF 或纯文本）
+        读取文档内容（PDF、DOCX、HTML、Excel 或纯文本）
 
         Returns:
             文档全文文本（已清理编码）
@@ -87,8 +87,19 @@ class PolicyParser:
         elif ext in (".txt", ".md", ".text"):
             # 尝试多种编码读取文本文件
             raw_text = self._read_text_file(document_path)
+        elif ext == ".docx":
+            raw_text = self._extract_docx_text(document_path)
+        elif ext in (".html", ".htm"):
+            raw_text = self._extract_html_text(document_path)
+        elif ext in (".xlsx", ".xls"):
+            raw_text = self._extract_excel_text(document_path)
+        elif ext == ".doc":
+            raise ValueError(
+                f"不支持 .doc 格式（旧版 Word 二进制格式），请将文件另存为 .docx 后重新上传。"
+                f"\n提示：在 Word 中打开文件 → 文件 → 另存为 → 选择 .docx 格式"
+            )
         else:
-            raise ValueError(f"不支持的文件格式: {ext}，仅支持 .pdf, .txt, .md")
+            raise ValueError(f"不支持的文件格式: {ext}，仅支持 .pdf, .docx, .html, .xlsx, .txt, .md")
 
         # 清理并规范化文本
         return self.sanitize_text(raw_text)
@@ -130,6 +141,139 @@ class PolicyParser:
             return text
 
         raise ValueError(f"无法从 PDF 中提取文本: {pdf_path}")
+
+    def _extract_docx_text(self, docx_path: str) -> str:
+        """
+        从 .docx 文件提取文本
+
+        使用 python-docx 库，按段落顺序提取全部文本内容。
+        """
+        try:
+            from docx import Document
+            doc = Document(docx_path)
+            text_parts = []
+
+            # 提取正文段落
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    text_parts.append(para.text)
+
+            # 提取表格内容（政策文件常将条件放在表格中）
+            for table in doc.tables:
+                for row in table.rows:
+                    row_cells = []
+                    for cell in row.cells:
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            row_cells.append(cell_text)
+                    if row_cells:
+                        text_parts.append(" | ".join(row_cells))
+
+            full_text = "\n\n".join(text_parts)
+            if full_text.strip():
+                logger.info(f"docx 提取成功，文本长度: {len(full_text)}")
+                return full_text
+            else:
+                raise ValueError(f"从 docx 文件中未提取到有效文本: {docx_path}")
+        except ImportError:
+            raise ImportError(
+                "python-docx 未安装，无法解析 .docx 文件。"
+                "请运行: pip install python-docx"
+            )
+        except Exception as e:
+            raise ValueError(f"无法从 docx 文件中提取文本: {docx_path}，错误: {e}")
+
+    def _extract_html_text(self, html_path: str) -> str:
+        """
+        从 HTML 文件提取文本
+
+        使用 BeautifulSoup 提取网页文本，保留段落结构。
+        """
+        try:
+            from bs4 import BeautifulSoup
+            
+            # 尝试多种编码读取
+            encodings = ['utf-8', 'utf-8-sig', 'gbk', 'gb2312', 'gb18030', 'latin-1']
+            html_content = None
+            for enc in encodings:
+                try:
+                    with open(html_path, 'r', encoding=enc) as f:
+                        html_content = f.read()
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
+            
+            if not html_content:
+                with open(html_path, 'r', encoding='utf-8', errors='replace') as f:
+                    html_content = f.read()
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # 移除 script 和 style 标签
+            for script in soup(['script', 'style']):
+                script.decompose()
+            
+            # 提取文本，保留段落结构
+            text_parts = []
+            for element in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th']):
+                text = element.get_text(strip=True)
+                if text:
+                    text_parts.append(text)
+            
+            full_text = "\n\n".join(text_parts)
+            
+            if full_text.strip():
+                logger.info(f"HTML 提取成功，文本长度: {len(full_text)}")
+                return full_text
+            else:
+                raise ValueError(f"从 HTML 文件中未提取到有效文本: {html_path}")
+                
+        except ImportError:
+            raise ImportError(
+                "beautifulsoup4 未安装，无法解析 HTML 文件。"
+                "请运行: pip install beautifulsoup4"
+            )
+        except Exception as e:
+            raise ValueError(f"无法从 HTML 文件中提取文本: {html_path}，错误: {e}")
+
+    def _extract_excel_text(self, excel_path: str) -> str:
+        """
+        从 Excel 文件提取文本
+
+        使用 openpyxl 提取所有工作表的表格数据，按行组织。
+        """
+        try:
+            from openpyxl import load_workbook
+            
+            wb = load_workbook(excel_path, read_only=True, data_only=True)
+            text_parts = []
+            
+            for sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                text_parts.append(f"=== {sheet_name} ===")
+                
+                for row in ws.iter_rows(values_only=True):
+                    # 过滤空行
+                    row_cells = [str(cell).strip() for cell in row if cell is not None]
+                    if row_cells:
+                        text_parts.append(" | ".join(row_cells))
+            
+            wb.close()
+            full_text = "\n".join(text_parts)
+            
+            if full_text.strip():
+                logger.info(f"Excel 提取成功，文本长度: {len(full_text)}")
+                return full_text
+            else:
+                raise ValueError(f"从 Excel 文件中未提取到有效文本: {excel_path}")
+                
+        except ImportError:
+            raise ImportError(
+                "openpyxl 未安装，无法解析 Excel 文件。"
+                "请运行: pip install openpyxl"
+            )
+        except Exception as e:
+            raise ValueError(f"无法从 Excel 文件中提取文本: {excel_path}，错误: {e}")
 
     def _extract_with_pypdf2(self, pdf_path: str) -> str:
         """使用 PyPDF2 提取 PDF 文本"""
@@ -174,6 +318,7 @@ class PolicyParser:
         策略：
         1. 先按章节标题切分（如 "第一章"、"一、" 等）
         2. 如果单个块仍然超过 CHUNK_SIZE，按段落进一步切分
+        3. 如果单个段落超长，强制按字符截断
         """
         # 尝试按章节标题切分
         chapter_pattern = r"(?:第[一二三四五六七八九十百千\d]+[章节条篇部]|^[一二三四五六七八九十\d]+[、.．]\s)"
@@ -182,7 +327,6 @@ class PolicyParser:
         # 过滤空块
         sections = [s.strip() for s in sections if s.strip()]
 
-        # 如果切分后块太大，进一步按段落切分
         final_chunks = []
         for section in sections:
             if len(section) <= Config.CHUNK_SIZE:
@@ -192,13 +336,41 @@ class PolicyParser:
                 paragraphs = re.split(r"\n\s*\n", section)
                 current_chunk = ""
                 for para in paragraphs:
-                    if len(current_chunk) + len(para) > Config.CHUNK_SIZE and current_chunk:
-                        final_chunks.append(current_chunk.strip())
-                        current_chunk = para
+                    para = para.strip()
+                    if not para:
+                        continue
+                    # 如果当前块加上新段落会超限，先保存当前块
+                    if current_chunk and len(current_chunk) + 2 + len(para) > Config.CHUNK_SIZE:
+                        final_chunks.append(current_chunk)
+                        current_chunk = ""
+                    # 如果单个段落本身就超长，强制按字符截断
+                    if len(para) > Config.CHUNK_SIZE:
+                        # 先保存已有的 chunk
+                        if current_chunk:
+                            final_chunks.append(current_chunk)
+                            current_chunk = ""
+                        # 按句号/分号截断超长段落
+                        sub_parts = re.split(r"(?<=[。；;！!])", para)
+                        sub_chunk = ""
+                        for sp in sub_parts:
+                            sp = sp.strip()
+                            if not sp:
+                                continue
+                            if sub_chunk and len(sub_chunk) + len(sp) > Config.CHUNK_SIZE:
+                                final_chunks.append(sub_chunk)
+                                sub_chunk = sp
+                            else:
+                                sub_chunk += sp
+                        if sub_chunk:
+                            current_chunk = sub_chunk
                     else:
-                        current_chunk += "\n\n" + para if current_chunk else para
+                        current_chunk = current_chunk + "\n\n" + para if current_chunk else para
                 if current_chunk.strip():
                     final_chunks.append(current_chunk.strip())
+
+        logger.info(f"切分完成: {len(sections)} 个章节 → {len(final_chunks)} 个块")
+        for i, c in enumerate(final_chunks):
+            logger.info(f"  块 {i+1}: {len(c)} 字符")
 
         return final_chunks
 
@@ -386,87 +558,31 @@ class PolicyParser:
         all_logic_groups = []
         all_important_dates = []
 
-        system_prompt = """你是一个高校政策文档分析专家。请从文档片段中提取所有申请条件和关键信息。
+        system_prompt = """你是高校政策分析专家。从以下政策文本中提取申请条件和关键日期，返回 JSON。
 
-**重要：每个条件必须标注所属分类（category）**
+【分类 category（选一个）】
+gpa=成绩要求 | foreign_language=外语 | academic=学业 | disciplinary=纪律品行
+research=科研论文 | competition=竞赛获奖 | bonus=加分项 | procedural=流程 | health=健康 | other=其他
 
-条件分类（category）必须从以下选项中选择：
-- gpa: 绩点/成绩要求（如 GPA、学分绩点排名、必修课成绩等）
-- foreign_language: 外语要求（如 CET4/6、TOEFL、IELTS、专业外语等）
-- academic: 学业表现要求（如课程完成情况、学术研究能力等）
-- disciplinary: 纪律/品行要求（如无处分记录、品行优良等）
-- research: 科研/论文要求（如发表论文数量、期刊级别等）
-- competition: 竞赛/获奖要求（如学科竞赛获奖级别等）
-- bonus: 加分项（如竞赛获奖加分、论文加分、志愿服务加分等）
-- procedural: 流程性要求（如提交申请表、参加面试等）
-- health: 健康要求（如身心健康标准等）
-- other: 其他要求
+【类型 type（选一个）】
+hard=硬性门槛 | scoring=评分项 | ranking=排名 | bonus=加分 | preference=优先 | procedural=流程 | qualitative=定性
 
-条件类型（type）必须从以下选项中选择：
-- hard: 硬性门槛（不满足则不符合，如 GPA ≥ 3.5）
-- scoring: 评分项（有具体分值，如学业成绩占80%）
-- ranking: 排名项（如成绩排名前30%）
-- bonus: 加分项（如 SCI 论文加5分）
-- preference: 优先条件（如学生干部优先）
-- procedural: 流程性要求（如需提交申请表）
-- qualitative: 模糊定性条件（如综合素质突出）
+【输出 JSON 格式，严格遵循】
+{"conditions":[{"id":"c001","category":"gpa","item":"GPA要求","description":"必修课加权平均成绩排名前50%","type":"hard","quantifiable":true,"requirement":"排名前50%","operator":"<=","value":50,"unit":"%","source_quote":"原文逐字引用","source_section":"第一章 第五条"}],"logic_groups":[{"group_id":"g1","description":"基本条件","logic":"AND","condition_ids":["c001"]}],"important_dates":[{"event":"申请截止","date":"2025-06-15","source_quote":"原文引用"}]}
 
-对每个条件，请提取：
-- id: 条件编号（如 condition_001）
-- category: 条件分类（从上述10个分类中选择）
-- item: 条件名称（如 "GPA要求"）
-- description: 条件描述
-- type: 条件类型
-- quantifiable: 是否可量化（true/false）
-- requirement: 要求描述（如 "GPA ≥ 3.5"）
-- operator: 比较运算符（>=, <=, >, <, ==, 或 "none"）
-- value: 数值（如果不可量化填 null）
-- unit: 单位（如 "GPA", "分", "%", 或 "none"）
-- source_quote: 原文引用（必须逐字引用，不得改写）
-- source_section: 来源章节（如 "第二章 第六条"）
-
-逻辑分组（logic_groups）：将相关条件分组，标注组内逻辑关系（AND/OR/SUM）。
-
-重要日期（important_dates）：提取所有关键时间节点。
-
-返回 JSON 格式：
-{
-    "conditions": [
-        {
-            "id": "condition_001",
-            "category": "gpa",
-            "item": "条件名称",
-            "description": "描述",
-            "type": "类型",
-            "quantifiable": true,
-            "requirement": "要求描述",
-            "operator": ">=",
-            "value": 3.5,
-            "unit": "GPA",
-            "source_quote": "原文引用",
-            "source_section": "章节"
-        }
-    ],
-    "logic_groups": [
-        {
-            "group_id": "group_basic",
-            "description": "基本申请条件",
-            "logic": "AND",
-            "condition_ids": ["condition_001", "condition_002"]
-        }
-    ],
-    "important_dates": [
-        {"event": "申请截止", "date": "2025-06-15", "source_quote": "原文引用"}
-    ]
-}
-
-只返回 JSON，不要其他内容。如果某个块中没有条件，返回空列表。"""
+【规则】
+1. 每个条件必须填 category 和 type，从上面选项中选
+2. source_quote 必须逐字引用原文，不可改写
+3. 不可量化时 value 填 null，operator 填 "none"，unit 填 "none"
+4. 没有条件的块返回 {"conditions":[],"logic_groups":[],"important_dates":[]}
+5. 只返回 JSON，不要任何解释文字"""
 
         condition_counter = 1
+        failed_chunks = []
 
         for i, chunk in enumerate(chunks):
             logger.info(f"解析第 {i + 1}/{len(chunks)} 块...")
-            result = self.llm.extract_json(system_prompt, chunk)
+            result = self.llm.extract_json(system_prompt, chunk, max_retries=3)
 
             if result["success"]:
                 data = result["data"]
@@ -508,6 +624,37 @@ class PolicyParser:
                 logger.info(f"第 {i + 1} 块提取 {len(conditions)} 个条件")
             else:
                 logger.warning(f"第 {i + 1} 块解析失败: {result.get('content', '')[:200]}")
+                failed_chunks.append((i, chunk))
+
+        # 如果有失败的块，尝试用更简单的 prompt 重试
+        if failed_chunks:
+            logger.info(f"重试 {len(failed_chunks)} 个失败的块...")
+            simple_prompt = """从以下文本中提取政策条件，返回 JSON 格式：
+{"conditions":[{"category":"gpa","item":"条件名","description":"描述","type":"hard","quantifiable":false,"requirement":"要求","operator":"none","value":null,"unit":"none","source_quote":"原文引用","source_section":"章节"}],"logic_groups":[],"important_dates":[]}
+只返回 JSON。"""
+            
+            for i, chunk in failed_chunks:
+                logger.info(f"重试第 {i + 1} 块（简化 prompt）...")
+                result = self.llm.extract_json(simple_prompt, chunk, max_retries=2)
+                
+                if result["success"]:
+                    data = result["data"]
+                    conditions = data.get("conditions") or []
+                    if not isinstance(conditions, list):
+                        conditions = [conditions] if isinstance(conditions, dict) else []
+                    
+                    for cond in conditions:
+                        if not isinstance(cond, dict):
+                            continue
+                        cond["id"] = f"condition_{condition_counter:03d}"
+                        if "category" not in cond:
+                            cond["category"] = "other"
+                        condition_counter += 1
+                        all_conditions.append(cond)
+                    
+                    logger.info(f"重试成功，第 {i + 1} 块提取 {len(conditions)} 个条件")
+                else:
+                    logger.error(f"重试仍然失败，第 {i + 1} 块条件丢失")
 
         # 按 category 分组
         requirements = self._group_conditions_by_category(all_conditions)
