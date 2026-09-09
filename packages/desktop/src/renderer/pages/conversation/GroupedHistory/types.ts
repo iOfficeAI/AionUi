@@ -7,6 +7,8 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { ReactNode } from 'react';
 
+import type { SplitGroup } from './utils/splitGroupHelpers';
+
 export type WorkspaceGroup = {
   workspace: string;
   display_name: string;
@@ -28,6 +30,8 @@ export type TimelineSection = {
 export type GroupedHistoryResult = {
   pinnedConversations: TChatConversation[];
   timelineSections: TimelineSection[];
+  /** Conversations fused into split groups; their rows collapse into one pill each. */
+  splitGroups: SplitGroup[];
 };
 
 export type ExportZipFile = {
@@ -72,8 +76,10 @@ export type ConversationRowProps = {
   resolveConversationName?: (conversation_id: string) => string | undefined;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
-  /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable (pinned) rows. */
+  /** Hover-reveal drag handle overlaying the leading icon; supplied by the draggable wrappers. */
   dragHandle?: ReactNode;
+  /** A dragged row is hovering over this one and would fuse with it on release. */
+  dropTargeted?: boolean;
 };
 
 export type WorkspaceGroupedHistoryProps = {
