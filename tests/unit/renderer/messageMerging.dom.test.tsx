@@ -14,8 +14,10 @@ import {
   MessageListProvider,
   MessagePaginationProvider,
   useAddOrUpdateMessage,
+  useLoadPreviousMessagePage,
   useMessageLstCache,
   useMessageList,
+  useMessagePaginationState,
   useReplaceWithAnchorWindow,
 } from '@/renderer/pages/conversation/Messages/hooks';
 
@@ -521,6 +523,108 @@ describe('message merging', () => {
     });
 
     expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('preserves older-page pagination progress across a turnCompleted reconciliation reload', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockResolvedValueOnce({
+      items: [],
+      oldest_cursor: 'cursor-latest',
+      newest_cursor: 'cursor-latest',
+      has_more_before: true,
+      has_more_after: false,
+    });
+
+    let emitUserCreated: ((payload: any) => void) | undefined;
+    let emitTurnCompleted: ((payload: any) => void) | undefined;
+    vi.mocked(ipcBridge.conversation.userCreated.on).mockImplementation((cb: any) => {
+      emitUserCreated = cb;
+      return () => {};
+    });
+    vi.mocked(ipcBridge.conversation.turnCompleted.on).mockImplementation((cb: any) => {
+      emitTurnCompleted = cb;
+      return () => {};
+    });
+
+    function useCacheAndPaginationHarness() {
+      useMessageLstCache(CONVERSATION_ID);
+      return {
+        messages: useMessageList(),
+        pagination: useMessagePaginationState(),
+        loadPreviousMessagePage: useLoadPreviousMessagePage(CONVERSATION_ID),
+      };
+    }
+
+    const { result } = renderHook(() => useCacheAndPaginationHarness(), { wrapper: CacheWrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.pagination.hasMoreBefore).toBe(true);
+
+    // User scrolls up and loads an older page before the turn finishes.
+    invoke.mockResolvedValueOnce({
+      items: [],
+      oldest_cursor: 'cursor-older',
+      newest_cursor: 'cursor-latest',
+      has_more_before: true,
+      has_more_after: false,
+    });
+
+    await act(async () => {
+      await result.current.loadPreviousMessagePage();
+    });
+
+    expect(result.current.pagination.oldestCursor).toBe('cursor-older');
+
+    act(() => {
+      emitUserCreated?.({
+        conversation_id: CONVERSATION_ID,
+        msg_id: 'msg-midturn-5',
+        content: 'sent mid-turn',
+        position: 'right',
+        status: 'pending',
+        hidden: false,
+        created_at: Date.now(),
+      });
+    });
+
+    // The reconcile reload only re-fetches the newest page, so taken alone it
+    // reports no older history. That must not clobber the older-page progress
+    // the user already loaded above.
+    invoke.mockResolvedValueOnce({
+      items: [
+        {
+          id: 'msg-midturn-5',
+          msg_id: 'msg-midturn-5',
+          conversation_id: CONVERSATION_ID,
+          type: 'text',
+          position: 'right',
+          status: 'finish',
+          hidden: false,
+          created_at: Date.now(),
+          content: { content: 'sent mid-turn' },
+        },
+      ],
+      oldest_cursor: 'cursor-latest',
+      newest_cursor: 'cursor-latest',
+      has_more_before: false,
+      has_more_after: false,
+    });
+
+    act(() => {
+      emitTurnCompleted?.({ session_id: CONVERSATION_ID, turn_id: 'turn-1' });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      (result.current.messages.find((m) => m.msg_id === 'msg-midturn-5') as IMessageText | undefined)?.status
+    ).toBe('finish');
+    expect(result.current.pagination.oldestCursor).toBe('cursor-older');
+    expect(result.current.pagination.hasMoreBefore).toBe(true);
   });
 
   it('ignores turnCompleted for a different conversation even with a pending row', async () => {

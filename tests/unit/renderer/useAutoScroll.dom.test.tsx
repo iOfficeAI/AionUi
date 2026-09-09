@@ -363,6 +363,41 @@ describe('useAutoScroll', () => {
     });
   });
 
+  it('does not force a bottom sync when older history is prepended ahead of an unread right-position message', () => {
+    const scroller = createScroller({ scrollTop: 80, scrollHeight: 1000, clientHeight: 400 });
+    const content = createContent();
+    const rightMessage = createRightMessage('question');
+    const { result, rerender } = renderHook(
+      ({ messages }) =>
+        useAutoScroll({
+          messages,
+          itemCount: messages.length,
+        }),
+      {
+        initialProps: {
+          messages: [rightMessage] as TMessage[],
+        },
+      }
+    );
+
+    attachElements(result, scroller, content);
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.mocked(scroller.scrollTo).mockClear();
+
+    act(() => {
+      rerender({
+        messages: [createLeftMessage('older context'), rightMessage],
+      });
+    });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(scroller.scrollTo).not.toHaveBeenCalled();
+  });
+
   it('scrolls a target element into view for explicit message jumps', () => {
     const { result } = renderHook(() =>
       useAutoScroll({

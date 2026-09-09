@@ -150,6 +150,14 @@ const highlightStyle: React.CSSProperties = {
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
 
+// A running turn folds consecutive tool calls into one summary card and drops
+// hidden/plan rows, so a 50-row DB page can render as just a few short cards —
+// too short to overflow the scroller. Without a scrollbar `onScroll` never
+// fires, so `handleMessageListScroll`'s older-page trigger can never run even
+// though more history exists. Cap how many pages we'll pull just to fill the
+// viewport so a pathological conversation can't trigger unbounded fetching.
+const MAX_VIEWPORT_FILL_PAGES = 5;
+
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
@@ -562,6 +570,24 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     },
     [handleScroll, loadPreviousMessagePage, pagination.hasMoreBefore, pagination.isLoadingBefore]
   );
+
+  const viewportFillPagesRef = useRef(0);
+
+  // See MAX_VIEWPORT_FILL_PAGES above: keep pulling older pages after mount
+  // (and after each prepend) as long as the rendered content still fits inside
+  // the scroller without a scrollbar, so scroll-triggered pagination has a
+  // scrollbar to trigger on.
+  useEffect(() => {
+    const scroller = scrollerElementRef.current;
+    const content = contentElementRef.current;
+    if (!scroller || !content) return;
+    if (!pagination.hasMoreBefore || pagination.isLoadingBefore) return;
+    if (viewportFillPagesRef.current >= MAX_VIEWPORT_FILL_PAGES) return;
+    if (content.scrollHeight > scroller.clientHeight) return;
+
+    viewportFillPagesRef.current += 1;
+    void loadPreviousMessagePage();
+  }, [pagination.hasMoreBefore, pagination.isLoadingBefore, processedList, loadPreviousMessagePage]);
 
   useEffect(() => {
     if (!targetMessageId || processedList.length === 0) {

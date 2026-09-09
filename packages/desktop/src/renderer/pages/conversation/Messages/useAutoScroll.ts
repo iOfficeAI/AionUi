@@ -53,7 +53,6 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
 
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
-  const previousListLengthRef = useRef(messages.length);
   const previousLastMessageRef = useRef<TMessage | undefined>(messages[messages.length - 1]);
   const lastProgrammaticScrollTimeRef = useRef(0);
   const initialScrollDoneRef = useRef(false);
@@ -200,17 +199,19 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   }, [itemCount, scrollerEl, scrollToBottom]);
 
   useEffect(() => {
-    const currentListLength = messages.length;
-    const previousLength = previousListLengthRef.current;
     const lastMessage = messages[messages.length - 1];
     const previousLastMessage = previousLastMessageRef.current;
-    const isNewMessage = currentListLength > previousLength;
-    const isLastMessageUpdated = currentListLength > 0 && lastMessage !== previousLastMessage;
+    // A prepended history page also grows `messages.length`, so length alone
+    // can't tell "a message arrived" from "older history loaded ahead of the
+    // unchanged tail". Identify the tail by id: a different id means a genuinely
+    // new message landed at the bottom; the same id with a different object means
+    // the existing tail was updated in place (e.g. streaming content).
+    const isNewTailMessage = lastMessage?.id !== previousLastMessage?.id;
+    const isLastMessageUpdated = !isNewTailMessage && lastMessage !== previousLastMessage;
 
-    previousListLengthRef.current = currentListLength;
     previousLastMessageRef.current = lastMessage;
 
-    if (!isNewMessage) {
+    if (!isNewTailMessage) {
       if (isLastMessageUpdated) {
         scheduleAutoFollow();
       }
