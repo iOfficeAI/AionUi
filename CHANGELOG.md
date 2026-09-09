@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.2.2](https://github.com/iOfficeAI/AionUi/compare/v2.2.1...v2.2.2) (2026-09-09)
+
+### Desktop
+
+#### Features
+
+- **explorer:** tab-scoped refresh with repo re-discovery and Collapse All (#4202)
+
+### Core ([v0.2.2](https://github.com/iOfficeAI/AionCore/releases/tag/v0.2.2))
+
+#### Features
+
+- **conversation:** add aioncore conversation create for agent-driven conversation creation (#977)
+
+---
+
 ## [2.2.1](https://github.com/iOfficeAI/AionUi/compare/v2.1.61...v2.2.1) (2026-09-01)
 
 ### Desktop
