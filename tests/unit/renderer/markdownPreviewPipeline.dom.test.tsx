@@ -1,4 +1,5 @@
 import {
+  DEFAULT_REHYPE_PLUGINS,
   MARKDOWN_REMARK_PLUGINS,
   SANITIZED_HTML_REHYPE_PLUGINS,
 } from '@/renderer/components/Markdown/markdownComponents';
@@ -70,6 +71,24 @@ describe('preview markdown pipeline — raw HTML sanitization', () => {
     const c = renderPreviewMarkdown('<b>bold</b> and <em>emph</em>');
     expect(c.querySelector('b')?.textContent).toBe('bold');
     expect(c.querySelector('em')?.textContent).toBe('emph');
+  });
+
+  it('renders <kbd> tags safely in preview and default markdown pipelines', () => {
+    const previewContainer = renderPreviewMarkdown('Press <kbd>Ctrl</kbd> + <kbd>C</kbd>');
+    const previewKbds = previewContainer.querySelectorAll('kbd');
+    expect(previewKbds).toHaveLength(2);
+    expect(previewKbds[0].textContent).toBe('Ctrl');
+    expect(previewKbds[1].textContent).toBe('C');
+
+    const { container: chatContainer } = render(
+      <ReactMarkdown remarkPlugins={MARKDOWN_REMARK_PLUGINS} rehypePlugins={DEFAULT_REHYPE_PLUGINS}>
+        {'Shortcut: <kbd>Cmd</kbd> + <kbd>K</kbd>'}
+      </ReactMarkdown>
+    );
+    const chatKbds = chatContainer.querySelectorAll('kbd');
+    expect(chatKbds).toHaveLength(2);
+    expect(chatKbds[0].textContent).toBe('Cmd');
+    expect(chatKbds[1].textContent).toBe('K');
   });
 
   it('preserves language-* class on code fences for highlighting', () => {
