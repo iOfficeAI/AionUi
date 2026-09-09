@@ -48,7 +48,13 @@ const EMPTY_MESSAGE_PAGINATION_STATE: MessagePaginationState = {
 const [useMessagePaginationState, MessagePaginationProvider, useUpdateMessagePaginationState] =
   createContext<MessagePaginationState>(EMPTY_MESSAGE_PAGINATION_STATE);
 
-const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
+/**
+ * One-shot interceptors that rewrite a conversation's message list on the next
+ * live-message flush, keyed by conversation id. A single shared array would let
+ * an interceptor registered for one conversation run against another's list as
+ * soon as two conversation views are mounted at the same time.
+ */
+const beforeUpdateMessageListStacks = new Map<string, Array<(list: TMessage[]) => TMessage[]>>();
 
 // 消息索引缓存类型定义
 // Message index cache type definitions
@@ -417,7 +423,13 @@ export function composeMessageWithIndex(
   return newList;
 }
 
-export const useMergeLiveMessage = () => {
+/**
+ * @param conversation_id - the conversation this merger belongs to. Required:
+ * interceptors registered through {@link beforeUpdateMessageList} are keyed by
+ * conversation, so a merger without an id would silently never drain them and
+ * the entries would pile up in the map.
+ */
+export const useMergeLiveMessage = (conversation_id: string) => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
   const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -469,15 +481,19 @@ export const useMergeLiveMessage = () => {
           newList = composeMessageWithIndex(item.message, newList, index);
         }
 
-        while (beforeUpdateMessageListStack.length) {
-          newList = beforeUpdateMessageListStack.shift()!(newList);
+        const interceptors = beforeUpdateMessageListStacks.get(conversation_id);
+        while (interceptors?.length) {
+          newList = interceptors.shift()!(newList);
+        }
+        if (interceptors && interceptors.length === 0) {
+          beforeUpdateMessageListStacks.delete(conversation_id);
         }
       }
       return newList;
     });
 
     rafRef.current = setTimeout(flush);
-  }, []);
+  }, [conversation_id]);
 
   useEffect(() => {
     return () => {
@@ -1069,11 +1085,26 @@ export const useMessageLstCache = (key: string) => {
   }, [key, loadMessages]);
 };
 
-export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
-  beforeUpdateMessageListStack.push(fn);
+/**
+ * Register a one-shot rewrite of `conversation_id`'s message list, applied on
+ * the next live-message flush for that conversation and never for another.
+ */
+export const beforeUpdateMessageList = (conversation_id: string, fn: (list: TMessage[]) => TMessage[]) => {
+  const stack = beforeUpdateMessageListStacks.get(conversation_id) ?? [];
+  stack.push(fn);
+  beforeUpdateMessageListStacks.set(conversation_id, stack);
   return () => {
-    beforeUpdateMessageListStack.splice(beforeUpdateMessageListStack.indexOf(fn), 1);
+    const current = beforeUpdateMessageListStacks.get(conversation_id);
+    if (!current) return;
+    const index = current.indexOf(fn);
+    if (index >= 0) current.splice(index, 1);
+    if (current.length === 0) beforeUpdateMessageListStacks.delete(conversation_id);
   };
+};
+
+/** Test hook: drop every registered interceptor. */
+export const resetBeforeUpdateMessageListForTest = (): void => {
+  beforeUpdateMessageListStacks.clear();
 };
 export {
   ChatKeyProvider,

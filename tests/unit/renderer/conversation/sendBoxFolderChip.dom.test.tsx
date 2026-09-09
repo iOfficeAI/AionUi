@@ -299,3 +299,53 @@ describe('SendBox add-folder-to-chat produces a chip', () => {
     expect(chipCount()).toBe(1);
   });
 });
+
+/**
+ * The reply lanes carry a conversation target for the same reason the file
+ * lanes do: several send boxes can be mounted at once. `sendbox.reply.clear`
+ * was the asymmetric one — a send in one column used to wipe an unsent reply
+ * quote in another.
+ */
+describe('SendBox reply lanes are addressed by conversation', () => {
+  const OTHER_CONVERSATION_ID = 'other-conversation';
+  const quote = { messageId: 'm1', content: 'quoted text', position: 'left' as const };
+
+  const emitReply = async (target: string | undefined): Promise<void> => {
+    await act(async () => {
+      emitter.emit('sendbox.reply', quote, target);
+    });
+  };
+
+  const emitReplyClear = async (target: string | undefined): Promise<void> => {
+    await act(async () => {
+      emitter.emit('sendbox.reply.clear', target);
+    });
+  };
+
+  it('ignores a reply addressed to another conversation', async () => {
+    render(<Harness />);
+    await emitReply(OTHER_CONVERSATION_ID);
+    expect(screen.queryByText('quoted text')).not.toBeInTheDocument();
+  });
+
+  it('accepts a reply addressed to this conversation, and an untargeted one', async () => {
+    render(<Harness />);
+    await emitReply(CONVERSATION_ID);
+    await waitFor(() => expect(screen.getByText('quoted text')).toBeInTheDocument());
+
+    await emitReplyClear(CONVERSATION_ID);
+    await waitFor(() => expect(screen.queryByText('quoted text')).not.toBeInTheDocument());
+
+    await emitReply(undefined);
+    await waitFor(() => expect(screen.getByText('quoted text')).toBeInTheDocument());
+  });
+
+  it('keeps this conversation quote when another conversation clears its own', async () => {
+    render(<Harness />);
+    await emitReply(CONVERSATION_ID);
+    await waitFor(() => expect(screen.getByText('quoted text')).toBeInTheDocument());
+
+    await emitReplyClear(OTHER_CONVERSATION_ID);
+    expect(screen.getByText('quoted text')).toBeInTheDocument();
+  });
+});
