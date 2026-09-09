@@ -75,6 +75,7 @@ const SystemModalContent: React.FC = () => {
   const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
   const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [openLastConversation, setOpenLastConversation] = useState(false);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -114,6 +115,7 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    setOpenLastConversation(configService.get('system.openLastConversation') ?? false);
   }, [isDesktop]);
 
   useEffect(() => {
@@ -333,6 +335,14 @@ const SystemModalContent: React.FC = () => {
     [setCrossSessionMessageEnabled, t]
   );
 
+  const handleOpenLastConversationChange = useCallback((checked: boolean) => {
+    setOpenLastConversation(checked);
+    configService.set('system.openLastConversation', checked).catch(() => {
+      setOpenLastConversation(!checked);
+      configService.setLocal('system.openLastConversation', !checked);
+    });
+  }, []);
+
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
     configService.set('upload.saveToWorkspace', checked).catch(() => {
@@ -369,6 +379,12 @@ const SystemModalContent: React.FC = () => {
       key: 'closeToTray',
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
+    {
+      key: 'openLastConversation',
+      label: t('settings.openLastConversation'),
+      description: t('settings.openLastConversationDesc'),
+      component: <Switch checked={openLastConversation} onChange={handleOpenLastConversationChange} />,
     },
     ...(isDesktop && gpuStatus
       ? [

@@ -57,6 +57,8 @@ export interface IConfigStorageRefer {
   'system.cronNotificationEnabled'?: boolean;
   // 阻止系统休眠以保证定时任务执行 / Prevent system sleep to ensure scheduled tasks run
   'system.keepAwake'?: boolean;
+  // On launch, open the last active conversation instead of the GUID welcome screen
+  'system.openLastConversation'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
