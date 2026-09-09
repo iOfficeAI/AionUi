@@ -6,7 +6,7 @@
 
 import { bridge } from '@/common/platform/bridge';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
-import { refreshSession } from './sessionRefresh';
+import { refreshSessionOutcome, resetSessionRefresh } from './sessionRefresh';
 import type { ElectronBridgeAPI } from '@/common/types/platform/electron';
 
 interface CustomWindow extends Window {
@@ -94,6 +94,11 @@ if (win.electronAPI) {
   let reconnectDelay = BASE_RECONNECT_DELAY;
   let connectedAt = 0;
   let shouldReconnect = true; // Flag to control reconnection
+  // Auth recovery runs on its own schedule: the socket stays down until a refresh
+  // succeeds, so it must not share the reconnect timer/backoff.
+  let authRecoveryTimer: number | null = null;
+  let authRecoveryDelay = BASE_RECONNECT_DELAY;
+  let authRecoveryPending = false;
 
   const messageQueue: QueuedMessage[] = [];
 
@@ -138,6 +143,69 @@ if (win.electronAPI) {
     setTimeout(() => {
       window.location.hash = '/login';
     }, 1000);
+  };
+
+  // 认证失效后的恢复：续期成功才重连；refresh 也失效才跳登录页；
+  // 无法判定时只重试续期，绝不拿着同一个失效 Cookie 重拨
+  // Recover from an auth failure. The backend has already said this session is
+  // not authenticated, so the socket must stay down until a refresh actually
+  // succeeds — re-dialling with the same dead cookie only earns the same close.
+  // Only the *refresh* is retried, and only when the failure was inconclusive.
+  const attemptAuthRecovery = (): Promise<void> => {
+    authRecoveryPending = true;
+    return refreshSessionOutcome().then((outcome) => {
+      authRecoveryPending = false;
+
+      if (outcome === 'refreshed') {
+        // 新 Cookie 已就位，按退避重连即可携带；不要重置 reconnectDelay，
+        // 否则「续期成功但服务端仍拒绝」会变成新的无节制循环
+        // Fresh cookie is in place — the reconnect carries it. Go through the
+        // backoff rather than dialling straight away, and leave reconnectDelay
+        // alone: a backend that keeps refusing even a freshly minted session would
+        // otherwise loop refresh -> dial -> close -> refresh unthrottled. The delay
+        // is credited back on `close` once a connection has actually held.
+        authRecoveryDelay = BASE_RECONNECT_DELAY;
+        shouldReconnect = true;
+        scheduleReconnect();
+        return;
+      }
+
+      if (outcome === 'expired') {
+        // refresh 凭证本身失效，只能重新登录
+        // The refresh credential itself is dead — only a fresh login helps.
+        redirectToLogin();
+        return;
+      }
+
+      // 离线 / 429 / 5xx：无法判定会话是否真的失效，按退避重试续期，
+      // 不要因为一次瞬时故障就把用户踢到登录页
+      // Offline / 429 / 5xx says nothing about the session, so retry the refresh
+      // on a backoff rather than signing the user out over a transient failure.
+      authRecoveryTimer = window.setTimeout(() => {
+        authRecoveryTimer = null;
+        void attemptAuthRecovery();
+      }, authRecoveryDelay);
+      authRecoveryDelay = Math.min(authRecoveryDelay * 2, MAX_RECONNECT_DELAY);
+    });
+  };
+
+  const recoverFromAuthFailure = () => {
+    // 续期期间暂停自动重连，避免拿着失效 Cookie 空转（#4124 的重连风暴）
+    // Pause auto-reconnect while refreshing so the dead cookie can't loop
+    // (the #4124 reconnect storm).
+    shouldReconnect = false;
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    socket?.close();
+
+    // 一次只跑一轮恢复：帧可能重复到达
+    // One recovery at a time — the terminal frame can arrive more than once.
+    if (authRecoveryPending || authRecoveryTimer !== null) {
+      return;
+    }
+    void attemptAuthRecovery();
   };
 
   // 3.建立 WebSocket 连接（或复用已有的 OPEN/CONNECTING 状态）
@@ -190,29 +258,7 @@ if (win.electronAPI) {
         // and only fall back to the login page when the refresh token is also dead.
         if (isRealtimeAuthTerminalError(payload)) {
           console.warn('[WebSocket] Authentication expired, attempting silent refresh');
-
-          // 续期期间暂停自动重连，避免拿着失效 Cookie 空转（#4124 的重连风暴）
-          // Pause auto-reconnect while refreshing so the dead cookie can't loop
-          // (the #4124 reconnect storm).
-          shouldReconnect = false;
-          if (reconnectTimer !== null) {
-            window.clearTimeout(reconnectTimer);
-            reconnectTimer = null;
-          }
-          socket?.close();
-
-          void refreshSession().then((refreshed) => {
-            if (refreshed) {
-              // 新 Cookie 已就位，重连即可携带
-              // Fresh cookie is in place — the reconnect carries it.
-              shouldReconnect = true;
-              reconnectDelay = 500;
-              connect();
-              return;
-            }
-            redirectToLogin();
-          });
-
+          recoverFromAuthFailure();
           return;
         }
 
@@ -229,7 +275,7 @@ if (win.electronAPI) {
       }
     });
 
-    currentSocket.addEventListener('close', (event: CloseEvent) => {
+    currentSocket.addEventListener('close', () => {
       // Only null the outer reference if it still points at this socket.
       if (socket === currentSocket) {
         socket = null;
@@ -301,6 +347,17 @@ if (win.electronAPI) {
 
   // Expose reconnection control for login flow
   win.__websocketReconnect = () => {
+    // 登录成功后清除上一个会话留下的续期闩锁与重试队列，
+    // 否则新 Cookie 也会被判定为失效
+    // A new session invalidates the previous one's expiry latch and any queued
+    // refresh retry; without this the fresh cookie would still be treated as
+    // unrefreshable.
+    resetSessionRefresh();
+    if (authRecoveryTimer !== null) {
+      window.clearTimeout(authRecoveryTimer);
+      authRecoveryTimer = null;
+    }
+    authRecoveryDelay = BASE_RECONNECT_DELAY;
     shouldReconnect = true;
     reconnectDelay = BASE_RECONNECT_DELAY;
     if (reconnectTimer !== null) {

@@ -95,7 +95,7 @@ class FakeWebSocket {
   }
 }
 
-function setupBrowserGlobals() {
+function setupBrowserGlobals(refreshStatus: number) {
   const location: BrowserLocation = {
     protocol: 'http:',
     hostname: '127.0.0.1',
@@ -110,16 +110,26 @@ function setupBrowserGlobals() {
     clearTimeout: clearTimeout as unknown as Window['clearTimeout'],
   });
   vi.stubGlobal('WebSocket', FakeWebSocket as unknown as typeof WebSocket);
+  // `document` marks WebUI browser mode for the session-refresh primitive. Without
+  // it refreshSession() short-circuits and no refresh is ever attempted, so the
+  // auth-recovery paths below would never be exercised.
+  vi.stubGlobal('document', {});
+  const fetchMock = vi.fn(async () => ({ ok: refreshStatus >= 200 && refreshStatus < 300, status: refreshStatus }));
+  vi.stubGlobal('fetch', fetchMock);
 
-  return location;
+  return { location, fetchMock };
 }
 
-async function loadBrowserAdapter() {
+/**
+ * @param refreshStatus status the `/api/auth/refresh` endpoint answers with.
+ *   401 = the refresh credential is dead too (terminal), 503 = transient.
+ */
+async function loadBrowserAdapter(refreshStatus = 401) {
   vi.resetModules();
   FakeWebSocket.instances = [];
   platformMock.adapter.mockClear();
 
-  const location = setupBrowserGlobals();
+  const { location, fetchMock } = setupBrowserGlobals(refreshStatus);
 
   await import('@/common/adapter/browser');
 
@@ -130,7 +140,7 @@ async function loadBrowserAdapter() {
     throw new Error('browser adapter did not initialize');
   }
 
-  return { adapter, location, socket };
+  return { adapter, location, socket, fetchMock };
 }
 
 describe('browser WebSocket realtime error handling', () => {
@@ -157,10 +167,10 @@ describe('browser WebSocket realtime error handling', () => {
     socket.dispatchMessage(payload);
 
     // The socket is closed synchronously; the redirect now lives behind a silent
-    // refresh attempt. In this node env `document` is absent, so refreshSession()
-    // short-circuits to false and we fall through to the login redirect — but the
-    // scheduling happens on a microtask, so timers must advance asynchronously to
-    // let that promise settle first.
+    // refresh attempt, which here answers 401 — the refresh credential is dead
+    // too, so the session is genuinely over and the login redirect is correct.
+    // The scheduling happens on a microtask, so timers must advance
+    // asynchronously to let that promise settle first.
     expect(socket.close).toHaveBeenCalledTimes(1);
     expect(emit).not.toHaveBeenCalled();
 
@@ -172,6 +182,30 @@ describe('browser WebSocket realtime error handling', () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     expect(location.hash).toBe('/login');
+  });
+
+  it('does not redirect when the refresh endpoint is only transiently unavailable', async () => {
+    const { adapter, location, socket, fetchMock } = await loadBrowserAdapter(503);
+    const emit = vi.fn();
+    adapter.on({ emit });
+
+    socket.dispatchMessage({
+      name: 'realtime.error',
+      data: { code: 'REALTIME_AUTH_EXPIRED', message: 'Expired auth', recoverable: false },
+    });
+
+    expect(socket.close).toHaveBeenCalledTimes(1);
+    socket.dispatchClose(1006);
+    const socketCountAfterClose = FakeWebSocket.instances.length;
+    await vi.advanceTimersByTimeAsync(30000);
+
+    // A 503 says nothing about the session. Kicking the user to /login over one
+    // would destroy a session that is very likely still good; re-dialling with the
+    // cookie the backend just rejected would only earn the same close. So: neither.
+    expect(location.hash).toBe('');
+    expect(FakeWebSocket.instances).toHaveLength(socketCountAfterClose);
+    // Only the refresh is retried, on its own backoff.
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
   });
 
   it('emits non-auth realtime errors without closing or redirecting', async () => {

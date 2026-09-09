@@ -6,7 +6,7 @@
  * so existing renderer code works without changes.
  */
 
-import { refreshSession, WS_CLOSE_POLICY_VIOLATION } from './sessionRefresh';
+import { isSessionExpired, refreshSession, refreshSessionOutcome, WS_CLOSE_POLICY_VIOLATION } from './sessionRefresh';
 
 // ---------------------------------------------------------------------------
 // Base URL
@@ -401,6 +401,16 @@ let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
 let wsHasOpened = false;
+/** Epoch ms of the last `open`, or 0 while disconnected. */
+let wsConnectedAt = 0;
+
+/**
+ * How long a connection must hold before the backoff is considered recovered.
+ * A backend that accepts the upgrade and drops it right away (rejected auth,
+ * restarting) still fires `open`, so crediting the backoff there alone would pin
+ * the delay at its floor forever — the realtime half of the #4155 storm.
+ */
+const WS_STABLE_CONNECTION_MS = 5_000;
 
 function dispatchWsEvent(eventName: string, payload: unknown): void {
   const handlers = wsListeners.get(eventName);
@@ -417,6 +427,21 @@ function dispatchWsEvent(eventName: string, payload: unknown): void {
 function ensureWs(): void {
   if (typeof window === 'undefined') {
     console.debug('[ensureWs] skipped: no window');
+    return;
+  }
+  // The session is dead and no refresh can revive it. Every dial would be closed
+  // 1008 again and every close would spend another refresh POST, so stay down
+  // until re-auth calls resetSessionRefresh().
+  if (isSessionExpired()) {
+    console.debug('[ensureWs] skipped: session expired, waiting for re-auth');
+    return;
+  }
+  // A backoff reconnect is already queued — let it run. ensureWs() is called from
+  // wsSend() and from every wsEmitter().on() subscription, so dialling here ties
+  // the reconnect rate to how busy the app is rather than to the backoff. That is
+  // the #4155 storm, fixed for the bridge socket in #4156.
+  if (wsReconnectTimer) {
+    console.debug('[ensureWs] skipped: reconnect already queued');
     return;
   }
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -440,7 +465,7 @@ function ensureWs(): void {
     console.debug('[ensureWs] CONNECTED');
     const isReconnect = wsHasOpened;
     wsHasOpened = true;
-    wsReconnectAttempt = 0;
+    wsConnectedAt = Date.now();
     if (isReconnect) {
       dispatchWsEvent(REALTIME_RECONNECTED_EVENT, { timestamp: Date.now() });
     }
@@ -449,11 +474,16 @@ function ensureWs(): void {
   current.addEventListener('close', (e) => {
     console.debug('[ensureWs] CLOSED code=' + e.code + ' reason=' + e.reason);
     if (ws === current) ws = null;
+    // Only credit the backoff when the connection actually held; see
+    // WS_STABLE_CONNECTION_MS.
+    if (wsConnectedAt !== 0 && Date.now() - wsConnectedAt >= WS_STABLE_CONNECTION_MS) {
+      wsReconnectAttempt = 0;
+    }
+    wsConnectedAt = 0;
     if (e.code === WS_CLOSE_POLICY_VIOLATION) {
       // Auth policy violation (expired/missing session). Blindly reconnecting with
-      // the same dead cookie is the #4124 loop — refresh once and only reconnect if
-      // it succeeds. On failure the realtime stream stays down until re-auth;
-      // browser.ts's bridge socket drives the /login redirect.
+      // the same dead cookie is the #4124 loop — refresh first and let the outcome
+      // decide whether to reconnect, wait, or stay down. See handleWsAuthClose().
       void handleWsAuthClose();
       return;
     }
@@ -497,15 +527,51 @@ function scheduleWsReconnect(): void {
 
 /**
  * Handle a realtime socket closed for auth policy violation (code 1008): attempt
- * one shared session refresh, then reconnect only if the session was renewed.
- * A failed refresh means the session is truly dead — we stop rather than loop.
+ * one shared session refresh, then recover according to *why* it ended.
+ *
+ * The distinction matters because both failures used to look identical here: a
+ * dead refresh token and a 503 from the refresh endpoint both stopped the stream,
+ * while the next wsSend() re-dialled anyway — refreshing again on the next close.
  */
 async function handleWsAuthClose(): Promise<void> {
-  const refreshed = await refreshSession();
-  if (refreshed) {
-    wsReconnectAttempt = 0;
-    ensureWs();
+  const outcome = await refreshSessionOutcome();
+
+  if (outcome === 'refreshed') {
+    // Reconnect on the backoff rather than dialling straight away, and leave
+    // wsReconnectAttempt alone. A backend that keeps refusing even a freshly
+    // minted session would otherwise loop refresh -> dial -> 1008 -> refresh with
+    // nothing throttling it. The counter is credited on `close` once a connection
+    // has actually held, so a healthy recovery still comes back at the 1s floor.
+    scheduleWsReconnect();
+    return;
   }
+
+  if (outcome === 'expired') {
+    // Truly over. refreshSessionOutcome() has latched, so ensureWs() is now a
+    // no-op until re-auth — no dial, no further refresh POST. browser.ts's bridge
+    // socket drives the /login redirect.
+    console.warn('[ensureWs] session expired; realtime stream stays down until re-auth');
+    return;
+  }
+
+  // Inconclusive (offline / 429 / 5xx): the session may still be fine, so keep
+  // the stream on its normal backoff instead of stranding it until the next send.
+  scheduleWsReconnect();
+}
+
+/**
+ * Resume the realtime stream after a successful re-auth: drop the backoff and
+ * dial immediately, rather than waiting for the next subscription to do it.
+ * Callers must clear the refresh latch (`resetSessionRefresh()`) first.
+ */
+export function resumeRealtime(): void {
+  wsReconnectAttempt = 0;
+  wsConnectedAt = 0;
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = null;
+  }
+  ensureWs();
 }
 
 /**
