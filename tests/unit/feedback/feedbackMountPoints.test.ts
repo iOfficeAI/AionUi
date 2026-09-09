@@ -21,8 +21,8 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const read = (relativePath: string) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf-8');
 
 describe('FeedbackButton mount points — source-level wiring', () => {
-  it('MessageToolGroup wires module=conversation-session', () => {
-    const src = read('packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolGroup.tsx');
+  it('ToolGroupBlock wires module=conversation-session', () => {
+    const src = read('packages/desktop/src/renderer/pages/conversation/Messages/ToolBlocks/ToolGroupBlock.tsx');
     expect(src).toMatch(/<FeedbackButton\s+module=['"]conversation-session['"]/);
     expect(src).not.toMatch(/<FeedbackButton\s+module=['"](?!conversation-session)[^'"]+['"]/);
   });
@@ -39,7 +39,7 @@ describe('FeedbackButton mount points — source-level wiring', () => {
 
   it('every conversation error surface pairs FeedbackButton with ButlerDiagnoseButton', () => {
     for (const file of [
-      'packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolGroup.tsx',
+      'packages/desktop/src/renderer/pages/conversation/Messages/ToolBlocks/ToolGroupBlock.tsx',
       'packages/desktop/src/renderer/pages/conversation/Messages/components/MessageTips.tsx',
       'packages/desktop/src/renderer/pages/conversation/Messages/components/MessageAgentStatus.tsx',
     ]) {

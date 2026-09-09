@@ -62,12 +62,14 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageTips', () => (
   default: () => <div>tips</div>,
 }));
 
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolCall', () => ({
-  default: () => <div>tool_call</div>,
+vi.mock('@/renderer/pages/conversation/Messages/ToolBlocks/UnifiedToolRenderer', () => ({
+  default: ({ message }: { message: { type: string } }) => (
+    <div>{message.type === 'acp_tool_call' ? 'acp_tool_call' : 'tool_call'}</div>
+  ),
 }));
 
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroup', () => ({
-  default: () => <div>tool_group</div>,
+vi.mock('@/renderer/pages/conversation/Messages/ToolBlocks/ToolGroupBlock', () => ({
+  default: ({ messageId }: { messageId?: string }) => <div>{messageId ? 'tool_group' : 'tool_summary'}</div>,
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageAgentStatus', () => ({
@@ -80,10 +82,6 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessagePermission', (
 
 vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpPermission', () => ({
   default: () => <div>acp_permission</div>,
-}));
-
-vi.mock('@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall', () => ({
-  default: () => <div>acp_tool_call</div>,
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessagePlan', () => ({
@@ -100,10 +98,6 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageCronTrigger', 
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageSkillSuggest', () => ({
   default: () => <div>skill_suggest</div>,
-}));
-
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary', () => ({
-  default: () => <div>tool_summary</div>,
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/MessageFileChanges', () => ({
