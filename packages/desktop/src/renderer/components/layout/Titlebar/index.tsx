@@ -16,6 +16,7 @@ import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistory
 import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { resolveFeedbackModule } from '@/renderer/services/feedback/resolveFeedbackModule';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
+import { useWindowControlsOverlay } from '@/renderer/hooks/system/useWindowControlsOverlay';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import MigrationInviteCapsule from './MigrationInviteCapsule';
 import './titlebar.css';
@@ -129,10 +130,14 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     };
   }, []);
 
-  const isDesktopRuntime = isElectronDesktop();
-  const isMacRuntime = isDesktopRuntime && isMacOS();
-  // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
-  const showWindowControls = isDesktopRuntime && !isMacRuntime;
+  const { isVisible: isWcoVisible } = useWindowControlsOverlay();
+
+  // Desktop runtime includes native Electron desktop OR Web with Window Controls Overlay active
+  const isPwaWcoRuntime = !isElectronDesktop() && isWcoVisible;
+  const isDesktopRuntime = isElectronDesktop() || isPwaWcoRuntime;
+  const isMacRuntime = isElectronDesktop() && isMacOS();
+  // Windows/Linux Electron shows custom window controls; WCO PWA and macOS have native controls
+  const showWindowControls = isElectronDesktop() && !isMacRuntime;
   // Keep the workspace entry in the titlebar on every platform.
   const showWorkspaceButton = workspaceAvailable;
 
@@ -310,6 +315,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         'app-titlebar--mobile-conversation': layout?.isMobile && workspaceAvailable,
         'app-titlebar--desktop': isDesktopRuntime,
         'app-titlebar--mac': isMacRuntime,
+        'app-titlebar--pwa-wco': isPwaWcoRuntime,
       })}
     >
       <div ref={menuRef} className='app-titlebar__menu' style={menuStyle}>
