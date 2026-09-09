@@ -317,7 +317,10 @@
     "applied": "Застосовано тему: {{name}}",
     "applyFailed": "Не вдалося застосувати тему",
     "cleared": "Відновлено стиль за замовчуванням",
-    "deleteConfirm": "Ви впевнені, що хочете видалити цю тему? Цю дію неможливо скасувати."
+    "deleteConfirm": "Ви впевнені, що хочете видалити цю тему? Цю дію неможливо скасувати.",
+    "systemThemePreferences": "Налаштування системної теми",
+    "preferredLightTheme": "Бажана світла тема",
+    "preferredDarkTheme": "Бажана темна тема"
   },
   "geminiBaseUrl": "Base URL API Gemini",
   "cacheDir": "Директорія кешу",

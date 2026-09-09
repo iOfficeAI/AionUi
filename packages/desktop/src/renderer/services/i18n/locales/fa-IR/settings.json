@@ -309,7 +309,10 @@
     "applied": "تم اعمال شد: {{name}}",
     "applyFailed": "اعمال تم ناموفق بود",
     "cleared": "به استایل پیش‌فرض بازگشت",
-    "deleteConfirm": "آیا مطمئن هستید که می‌خواهید این تم را حذف کنید؟ این عمل غیرقابل بازگشت است."
+    "deleteConfirm": "آیا مطمئن هستید که می‌خواهید این تم را حذف کنید؟ این عمل غیرقابل بازگشت است.",
+    "systemThemePreferences": "تنظیمات تم سیستم",
+    "preferredLightTheme": "تم روشن ترجیحی",
+    "preferredDarkTheme": "تم تاریک ترجیحی"
   },
   "geminiBaseUrl": "آدرس پایه API جمینای",
   "cacheDir": "پوشه کش",

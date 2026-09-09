@@ -309,7 +309,10 @@
     "applied": "Applied theme: {{name}}",
     "applyFailed": "Failed to apply theme",
     "cleared": "Restored to default style",
-    "deleteConfirm": "Are you sure you want to delete this theme? This action cannot be undone."
+    "deleteConfirm": "Are you sure you want to delete this theme? This action cannot be undone.",
+    "systemThemePreferences": "Follow System Theme Preferences",
+    "preferredLightTheme": "Light Theme Preference",
+    "preferredDarkTheme": "Dark Theme Preference"
   },
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "Cache Directory",

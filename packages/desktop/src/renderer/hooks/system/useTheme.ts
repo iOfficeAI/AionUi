@@ -34,7 +34,12 @@ async function initActiveTheme(): Promise<Theme> {
     await configService.whenReady();
     const activeId = getPersistedActiveId();
     const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
-    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+    const systemDarkThemeId = configService.get('theme.systemDarkThemeId') as string | undefined;
+    const systemLightThemeId = configService.get('theme.systemLightThemeId') as string | undefined;
+    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark(), {
+      darkThemeId: systemDarkThemeId,
+      lightThemeId: systemLightThemeId,
+    });
     applyTheme(resolved);
     cacheAppearance(resolved);
     // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.

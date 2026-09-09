@@ -309,7 +309,10 @@
     "applied": "已套用主題：{{name}}",
     "applyFailed": "套用主題失敗",
     "cleared": "已恢復預設樣式",
-    "deleteConfirm": "確定要刪除該主題嗎？此操作不可恢復。"
+    "deleteConfirm": "確定要刪除該主題嗎？此操作不可恢復。",
+    "systemThemePreferences": "跟隨系統主題偏好",
+    "preferredLightTheme": "淺色主題偏好",
+    "preferredDarkTheme": "深色主題偏好"
   },
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "緩存目錄",

@@ -309,7 +309,10 @@
     "applied": "テーマを適用しました：{{name}}",
     "applyFailed": "テーマの適用に失敗しました",
     "cleared": "デフォルトスタイルに戻しました",
-    "deleteConfirm": "このテーマを削除してもよろしいですか？この操作は元に戻せません。"
+    "deleteConfirm": "このテーマを削除してもよろしいですか？この操作は元に戻せません。",
+    "systemThemePreferences": "システムテーマ設定",
+    "preferredLightTheme": "優先ライトテーマ",
+    "preferredDarkTheme": "優先ダークテーマ"
   },
   "geminiBaseUrl": "Gemini API ベース URL",
   "cacheDir": "キャッシュディレクトリ",
