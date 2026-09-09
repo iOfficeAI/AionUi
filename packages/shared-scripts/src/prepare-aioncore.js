@@ -115,8 +115,8 @@ function getActionsArtifactName(platform, arch) {
   return getActionsTarget(platform, arch)?.artifactName || null;
 }
 
-function getActionsRepository() {
-  const repository = (process.env.AIONUI_BACKEND_ACTIONS_REPOSITORY || DEFAULT_ACTIONS_REPOSITORY).trim();
+function getActionsRepository(fallback = DEFAULT_ACTIONS_REPOSITORY) {
+  const repository = (process.env.AIONUI_BACKEND_ACTIONS_REPOSITORY || fallback).trim();
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
     throw new Error(`Invalid AionCore Actions repository: ${repository}`);
   }
@@ -192,8 +192,8 @@ function getExpectedActionsSha256(artifactName, { required = false } = {}) {
   return normalizeSha256(value, artifactName);
 }
 
-function getExpectedActionsHeadSha({ required = false } = {}) {
-  const expectedHeadSha = (process.env.AIONUI_BACKEND_EXPECTED_HEAD_SHA || '').trim();
+function getExpectedActionsHeadSha({ required = false, fallback = '' } = {}) {
+  const expectedHeadSha = (process.env.AIONUI_BACKEND_EXPECTED_HEAD_SHA || fallback).trim();
   if (!expectedHeadSha) {
     if (required) {
       throw new Error('AIONUI_BACKEND_EXPECTED_HEAD_SHA is required by verified-actions source policy');
@@ -673,14 +673,19 @@ function validateActionsBuildManifest(record, provenance, artifactName, archiveN
   return record;
 }
 
-function downloadAndExtractActionsArtifact(platform, arch, runId, { verifiedActions = false } = {}) {
+function downloadAndExtractActionsArtifact(
+  platform,
+  arch,
+  runId,
+  { verifiedActions = false, pinnedSource = null } = {}
+) {
   const expectedArtifactName = getActionsArtifactName(platform, arch);
   if (!expectedArtifactName) {
     throw new Error(`Unsupported AionCore Actions artifact target: ${platform}-${arch}`);
   }
 
-  const repository = getActionsRepository();
-  const expectedHeadSha = getExpectedActionsHeadSha();
+  const repository = getActionsRepository(pinnedSource?.repository);
+  const expectedHeadSha = getExpectedActionsHeadSha({ fallback: pinnedSource?.headSha });
   const runProvenance = getActionsRunProvenance(runId, repository, expectedHeadSha);
   const artifacts = listActionsArtifacts(runId, repository);
   const availableArtifactNames = artifacts
@@ -809,11 +814,42 @@ function downloadAndExtract(platform, arch, tag, repository) {
  * @param {string} options.version - Backend version (default: 'latest')
  * @returns {{ prepared: true; dir: string; sourceType: string }}
  */
+function getPinnedActionsSource(projectRoot, platform, arch) {
+  // Explicit source selection remains available for release/debug workflows.
+  for (const key of [
+    'AIONUI_BACKEND_RUN_ID',
+    'AIONUI_BACKEND_VERSION',
+    'AIONUI_BACKEND_LOCAL_BINARY',
+    'AIONUI_BACKEND_LOCAL_BUNDLE_DIR',
+    'AIONUI_BACKEND_RELEASE_REPOSITORY',
+  ]) {
+    if (process.env[key]?.trim()) return null;
+  }
+  const file = path.join(projectRoot, 'package.json');
+  if (!fs.existsSync(file)) return null;
+  const pin = JSON.parse(fs.readFileSync(file, 'utf8')).aioncoreBuild;
+  const runId = pin?.runs?.[`${platform}-${arch}`];
+  if (runId === undefined) return null;
+  if (
+    typeof runId !== 'string' ||
+    !/^[1-9][0-9]*$/.test(runId) ||
+    typeof pin.repository !== 'string' ||
+    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(pin.repository) ||
+    typeof pin.headSha !== 'string' ||
+    !/^[a-f0-9]{40}$/.test(pin.headSha)
+  ) {
+    throw new Error('Invalid pinned AionCore Actions build in package.json');
+  }
+  return { runId, repository: pin.repository, headSha: pin.headSha };
+}
+
 function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
-  const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || '').trim();
-  const sourcePolicy = getBackendSourcePolicy();
+  const pinnedSource = getPinnedActionsSource(projectRoot, platform, arch);
+  const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || pinnedSource?.runId || '').trim();
+  const requestedPolicy = getBackendSourcePolicy();
+  const sourcePolicy = pinnedSource ? VERIFIED_ACTIONS_POLICY : requestedPolicy;
   const verifiedActionsOnly = sourcePolicy === VERIFIED_ACTIONS_POLICY;
   const localBundleDir = (process.env.AIONUI_BACKEND_LOCAL_BUNDLE_DIR || '').trim();
   const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
@@ -826,8 +862,8 @@ function prepareAioncore(options) {
     if (!artifactName) {
       throw new Error(`Unsupported AionCore Actions artifact target: ${platform}-${arch}`);
     }
-    getActionsRepository();
-    getExpectedActionsHeadSha();
+    getActionsRepository(pinnedSource?.repository);
+    getExpectedActionsHeadSha({ fallback: pinnedSource?.headSha });
     getExpectedActionsSha256(artifactName);
     if (localBundleDir || localBinary) {
       throw new Error('verified-actions source policy rejects local AionCore overrides');
@@ -908,6 +944,7 @@ function prepareAioncore(options) {
   if (actionsRunId) {
     const result = downloadAndExtractActionsArtifact(platform, arch, actionsRunId, {
       verifiedActions: verifiedActionsOnly,
+      pinnedSource,
     });
     sourcePath = result.binaryPath;
     tempDir = result.tempDir;
@@ -1013,6 +1050,7 @@ module.exports = {
   getBackendSourcePolicy,
   getExpectedActionsHeadSha,
   getExpectedActionsSha256,
+  getPinnedActionsSource,
   prepareManagedResources,
   prepareAioncore,
   validateActionsArtifactMetadata,

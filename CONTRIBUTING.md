@@ -137,6 +137,10 @@ Code style, dependency choices, and documentation polish are handled by maintain
 
 ## Local builds and release artifacts
 
+The `aioncoreBuild` field in `package.json` pins verified Core Actions runs for macOS arm64 and Windows x64 to an exact repository and commit. Explicit source environment variables override this pin; the older `aioncoreVersion` remains a fallback for other targets. Artifact expiry or integrity errors fail the build rather than silently selecting an older release.
+
+Native desktop installer builds start the selected Core binary with an isolated, unauthenticated profile and require the sales-plan periods route to reach `GEA_AUTH_REQUIRED`. Process startup or a login screen alone is insufficient. If the pinned release lacks this route, select a compatible Core Actions build using `AIONUI_BACKEND_SOURCE_POLICY=verified-actions`, `AIONUI_BACKEND_RUN_ID`, and `AIONUI_BACKEND_EXPECTED_HEAD_SHA`; do not bypass the check. Cloud macOS arm64 and Windows x64 builds repeat the probe against the final packaged binary. Cross-target builds record `not-run` and require separate native acceptance. These checks establish route availability, not authenticated business or MCP acceptance.
+
 Use `bun run build` to compile the client without creating installers. Use `bun run dist:mac` for a DMG targeting the host architecture, or `build-mac:arm64` / `build-mac:x64` for an explicit architecture. Use `build-win:x64` or `build-win:arm64` for Windows EXE installers.
 
 Formal releases build only macOS and Windows x64/arm64 installers (DMG / EXE), without ZIP, Linux, or Web CLI packages. Windows updater metadata is retained. macOS uses manual DMG installation and does not publish ZIP-based updater metadata. GEA automatic updates remain disabled by the existing service policy. Packaging retries preserve the original targets without adding ZIPs.

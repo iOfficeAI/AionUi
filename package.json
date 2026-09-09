@@ -270,6 +270,14 @@
   "engines": {
     "node": ">=22 <25"
   },
+  "aioncoreBuild": {
+    "repository": "CleverC2200/AionCore",
+    "headSha": "57dce78ef988e2d017c04053acfa23d7bcfc3e4c",
+    "runs": {
+      "darwin-arm64": "34296439581",
+      "win32-x64": "34296452480"
+    }
+  },
   "aioncoreRepository": "CleverC2200/AionCore",
   "aioncoreVersion": "v0.1.72-aionui.1",
   "electronRebuild": {

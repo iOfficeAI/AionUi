@@ -801,6 +801,15 @@ jobs:
             ASAR="$APP/Contents/Resources/app.asar"
           fi
           ELECTRON_RUN_AS_NODE=1 "$EXECUTABLE" scripts/packaging/dependency-smoke.cjs "$ASAR" out/packaged-dependency-smoke.json
+          CORE_PLATFORM="darwin"
+          CORE_BINARY="aioncore"
+          if [[ "${{ matrix.platform }}" == windows-* ]]; then
+            CORE_PLATFORM="win32"
+            CORE_BINARY="aioncore.exe"
+          fi
+          CORE_ARCH="${{ matrix.platform }}"
+          CORE_ARCH="${CORE_ARCH##*-}"
+          node scripts/packaging/core-capability-smoke.cjs "$(dirname "$ASAR")/bundled-aioncore/$CORE_PLATFORM-$CORE_ARCH/$CORE_BINARY" out/packaged-core-capability-smoke.json
 
       # Upload artifacts when:
       # - Build succeeded (all platforms)
@@ -851,6 +860,8 @@ jobs:
             out/cloud-build-report.json
             out/compression-profile.json
             out/packaged-dependency-smoke.json
+            out/core-capability-smoke.json
+            out/packaged-core-capability-smoke.json
           retention-days: 30
           if-no-files-found: error
 

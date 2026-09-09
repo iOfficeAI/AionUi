@@ -741,6 +741,47 @@ try {
     { target: buildTarget }
   );
 
+  // Execute native binaries only; a cross-target receipt must not claim runtime coverage.
+  if (
+    ['darwin', 'win32'].includes(targetPlatform) &&
+    targetPlatform === process.platform &&
+    targetArch === process.arch
+  ) {
+    // Check the downloaded binary, not a development Core found on PATH.
+    const coreProbe = spawnSync(
+      process.execPath,
+      [
+        path.join(projectRoot, 'scripts/packaging/core-capability-smoke.cjs'),
+        path.join(
+          projectRoot,
+          'resources/bundled-aioncore',
+          `${targetPlatform}-${targetArch}`,
+          targetPlatform === 'win32' ? 'aioncore.exe' : 'aioncore'
+        ),
+        path.join(projectRoot, 'out/core-capability-smoke.json'),
+      ],
+      { stdio: 'inherit' }
+    );
+    if (coreProbe.error || coreProbe.status !== 0) {
+      throw new Error('Bundled Core lacks required business capabilities. Select a compatible verified Core build.');
+    }
+  } else {
+    fs.writeFileSync(
+      path.join(projectRoot, 'out/core-capability-smoke.json'),
+      JSON.stringify(
+        {
+          status: 'not-run',
+          reason: ['darwin', 'win32'].includes(targetPlatform) ? 'cross-target' : 'non-desktop-release',
+          targetPlatform,
+          targetArch,
+        },
+        null,
+        2
+      )
+    );
+    console.warn('Core capability runtime check requires a native runner for this target.');
+  }
+
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   timed('hub', () => execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env }), {
     target: buildTarget,

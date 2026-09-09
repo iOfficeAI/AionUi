@@ -137,6 +137,10 @@ bunx vitest run         # 复现单元测试失败
 
 ## 本地构建与发布产物
 
+`package.json` 的 `aioncoreBuild` 将 macOS arm64 和 Windows x64 的 Core 固定到已验证的 Actions 构建、仓库和精确提交。显式来源环境变量可覆盖该固定来源；旧 `aioncoreVersion` 仅为其他目标保留回退。产物过期或完整性错误会使构建失败，不会静默改用旧发布版。
+
+本机架构的桌面安装包构建会使用隔离、未登录的配置启动选定的 Core 二进制，并要求销售计划周期接口返回 `GEA_AUTH_REQUIRED`；进程启动或出现登录页不能代替接口检查。如果固定发布版缺少该接口，应通过 `AIONUI_BACKEND_SOURCE_POLICY=verified-actions`、`AIONUI_BACKEND_RUN_ID` 和 `AIONUI_BACKEND_EXPECTED_HEAD_SHA` 选择兼容的 Core Actions 构建，不得跳过检查。云端 macOS arm64 和 Windows x64 构建还会对最终包内二进制重复验证。跨架构构建记录 `not-run`，需要另行取得目标架构的真实验收。这些检查只证明接口存在，不代替已登录业务或 MCP 验收。
+
 日常使用 `bun run build` 只编译客户端，不生成安装包。需要 Mac 安装包时使用 `bun run dist:mac`，默认只生成本机架构的 DMG；可用 `build-mac:arm64` 或 `build-mac:x64` 指定架构。Windows 使用 `build-win:x64` 或 `build-win:arm64` 生成 EXE。
 
 正式发布只构建 macOS、Windows 的 x64 和 arm64 安装包（DMG / EXE），不附带 ZIP、Linux 包或 Web CLI 包。保留 Windows 更新元数据；macOS 通过 DMG 手动安装，不发布依赖 ZIP 的自动更新元数据。GEA 自动更新仍由现有服务策略关闭。构建失败后的重试沿用原始目标，避免额外生成 ZIP。
