@@ -76,6 +76,7 @@ const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'pet.dnd',
   'pet.confirmEnabled',
   'system.closeToTray',
+  'system.startMinimizedToTray',
   'system.notificationEnabled',
   'system.cronNotificationEnabled',
   'system.keepAwake',
