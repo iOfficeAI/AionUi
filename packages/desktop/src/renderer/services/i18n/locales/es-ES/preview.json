@@ -176,5 +176,8 @@
   "zoomIn": "Acercar",
   "zoomOut": "Alejar",
   "zoomReset": "Restablecer vista",
-  "diagramZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar"
+  "diagramZoomHint": "Desplazarse para ampliar • Arrastrar para mover • ESC para cerrar",
+  "addToChatUnavailable": "No hay dónde añadir: la conversación enfocada no tiene un campo de mensaje ahora mismo.",
+  "openFromOtherColumn": "No se mostró una vista previa de “{{name}}” porque esa columna no está enfocada.",
+  "openUnattributed": "No se mostró una vista previa: hay varias conversaciones activas y no se pudo atribuir a una de ellas."
 }

@@ -176,5 +176,8 @@
   "zoomIn": "Vergrößern",
   "zoomOut": "Verkleinern",
   "zoomReset": "Ansicht zurücksetzen",
-  "diagramZoomHint": "Scrollen zum Zoomen • Ziehen zum Verschieben • ESC zum Schließen"
+  "diagramZoomHint": "Scrollen zum Zoomen • Ziehen zum Verschieben • ESC zum Schließen",
+  "addToChatUnavailable": "Kein Ziel: Die fokussierte Unterhaltung hat gerade kein Eingabefeld.",
+  "openFromOtherColumn": "Eine Vorschau aus „{{name}}“ wurde nicht angezeigt, weil diese Spalte nicht fokussiert ist.",
+  "openUnattributed": "Eine Vorschau wurde nicht angezeigt: Mehrere Unterhaltungen sind aktiv, und sie konnte keiner zugeordnet werden."
 }
