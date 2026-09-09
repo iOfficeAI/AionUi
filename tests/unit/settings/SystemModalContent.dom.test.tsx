@@ -265,14 +265,14 @@ describe('SystemModalContent directory settings', () => {
   it('loads ACP timeouts from backend client settings', async () => {
     clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
       if (key === 'acp.promptTimeout') return 640;
-      if (key === 'acp.agentIdleTimeout') return 9;
+      if (key === 'acp.agentIdleTimeout') return 0;
       return undefined;
     });
 
     renderContent();
 
     expect(await screen.findByDisplayValue('640')).toBeInTheDocument();
-    expect(await screen.findByDisplayValue('9')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('0')).toBeInTheDocument();
   });
 
   it('does not fall back to legacy configService ACP timeout keys', async () => {
@@ -312,6 +312,30 @@ describe('SystemModalContent directory settings', () => {
 
     await waitFor(() => {
       expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 7);
+    });
+  });
+
+  it('allows disabling ACP agent idle timeout with zero and preserves extended upper bound', async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    const timeoutInputs = await screen.findAllByRole('spinbutton');
+    const agentIdleTimeoutInput = timeoutInputs[1];
+
+    await user.clear(agentIdleTimeoutInput);
+    await user.type(agentIdleTimeoutInput, '0');
+    fireEvent.blur(agentIdleTimeoutInput);
+
+    await waitFor(() => {
+      expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 0);
+    });
+
+    await user.clear(agentIdleTimeoutInput);
+    await user.type(agentIdleTimeoutInput, '9999');
+    fireEvent.blur(agentIdleTimeoutInput);
+
+    await waitFor(() => {
+      expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 9999);
     });
   });
 });
