@@ -202,3 +202,29 @@ When modifying build scripts:
 - `/forge.config.ts` - Electron Forge configuration
 - `/.github/workflows/build-and-release.yml` - CI/CD pipeline
 - `/package.json` - Build scripts and dependencies
+
+## Local build phases and disk audit
+
+Use `bun run local <mode>` or `just local <mode>`. This workflow reuses the existing Vite/MCP content caches and packaging pipeline; existing CI entrypoints remain unchanged.
+
+| Mode                                                                 | Behavior and scope                                                                                                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dev`                                                                | Electron/Vite development, without Core compilation, installers, or stopping other processes                                                                                         |
+| `focused --core /absolute/AionCore --crate aionui-common`            | `cargo test --locked -p <crate> --lib`; `--test <name>` selects one integration test executable                                                                                      |
+| `wire`                                                               | Build builtin MCP bundles; probe stdio initialize, tools/list and close through a separate Node process, without business tool calls                                                 |
+| `full`                                                               | `just gate`: complete client quality checks and tests; no installer or historical CI evidence reuse                                                                                  |
+| `build`                                                              | Compile and validate Main/Preload/Renderer/MCP only; no Core compilation/download or installer                                                                                       |
+| `package`                                                            | Native-architecture DMG/NSIS only; require matching inputs and intact compiled outputs, otherwise fail and request `build`; preserve Core preparation, capability checks and signing |
+| `release`                                                            | `full`, `build`, then `package`, stopping on failure; never publishes or pushes                                                                                                      |
+| `audit [--core /absolute/AionCore] [--compare /previous/audit.json]` | Read-only ownership, size, reproducibility and logical/allocated growth inventory                                                                                                    |
+| `clean --target /exact/path [--core /absolute/AionCore]`             | Checks only by default; `--execute` removes an eligible generated cache                                                                                                              |
+
+Build modes accept `--dry-run`. `build --force` and `wire --force` rebuild their outputs. `focused --force` uses a fresh namespace at the Core worktree's `target/local-force/<build-id>`, preserving existing caches and using additional space; later normal runs return to the original target.
+
+Core uses `target/` beneath its canonical worktree root with an explicit `--target-dir`, overriding shared environment/Cargo configuration. Separate Core worktrees remain isolated, while repeated normal builds reuse their existing Cargo artifacts. Existing sccache, Cargo registry, Bun and download caches are retained; no dependencies or targets are copied and no cache capacity is increased.
+
+Each `.workspace/local-build/<id>/manifest.json` records source commit and dirty input digest, tools, platform, phase results, duration, logs, cache decisions and disk growth. Cargo cache counts use `compiler-artifact.fresh`, not elapsed-time guesses. The optional `--core` source identity is separate from the Core actually downloaded into the installer. Adjacent `<installer>.build.json` receipts bind installer SHA-256 to the run. Receipts cover only the listed local phases; real UI/business acceptance needs separate evidence.
+
+Cleanup accepts only reproducible `out/main`, `out/preload`, `out/renderer`, and Core `target/debug`. Installers, runtime resources, dependencies, shared caches, logs, source, business data and unknown paths are retained. Cleanup also requires the complete generated output digest to match (Core records it after successful focused verification), so new or modified ignored files block removal. Symlinks, tracked/nonignored files, active builds/clients, open files and inconclusive ownership checks block removal. Cleanup supports macOS/Linux and refuses other platforms; checks can conservatively block on processes in other worktrees.
+
+Orchestration and cleanup share locks: UI uses `.workspace/local-build/active.json`; Core uses `target/.aionui-local-build/active.json` with adjacent output receipts. Core bookkeeping does not pollute source identity. After interruption, prove the recorded PID and related children have exited before removing only the stale lock and retrying; age alone never expires locks. Legacy direct commands do not participate in these locks, so cleanup also checks live processes/open files. Do not concurrently launch an external build and cleanup in the same worktree.

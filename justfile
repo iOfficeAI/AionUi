@@ -12,6 +12,10 @@ default:
 # Development
 # ============================================================
 
+# Local phase workflow. Use `just local audit` before expensive builds.
+local MODE *ARGS:
+    node scripts/local-build.js {{MODE}} {{ARGS}}
+
 # Start development server (Electron + Vite HMR)
 dev:
     bun run start

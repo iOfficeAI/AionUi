@@ -58,7 +58,14 @@ cp.execSync = function(command) {
     Object.assign(env, changes, { NODE_OPTIONS: `--require=${hook}` });
     const result = spawnSync(
       process.execPath,
-      ['scripts/build-with-builder.js', 'x64', '--mac', 'dmg', '--pack-only', ...extra],
+      [
+        'scripts/build-with-builder.js',
+        'x64',
+        '--mac',
+        'dmg',
+        ...(extra.includes('--package-only') ? [] : ['--pack-only']),
+        ...extra,
+      ],
       { cwd: root, env, encoding: 'utf8', timeout: 10000 }
     );
     return { ...result, output: result.stdout + result.stderr };
@@ -112,4 +119,29 @@ test('real build entry refuses incomplete explicitly skipped output and keeps so
   assert.match(result.output, /source-map-upload-required/);
   assert.ok(!result.output.includes('test-only-placeholder'));
   assert.equal(builds(), 3);
+});
+
+test('package-only fails before compilation when inputs or outputs are stale', (t) => {
+  const { root, run, builds } = setup(t);
+  const missing = run(['--package-only']);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.output, /Package-only requires/);
+  assert.equal(fs.existsSync(path.join(root, 'calls.jsonl')), false);
+  assert.equal(run().status, 0);
+  fs.writeFileSync(path.join(root, 'out/main/index.js'), 'tampered');
+  const stale = run(['--package-only']);
+  assert.notEqual(stale.status, 0);
+  assert.match(stale.output, /Package-only requires/);
+  assert.equal(builds(), 1);
+});
+
+test('package-only rejects tampered builtin MCP bytes through the recursive Vite output digest', (t) => {
+  const { root, run, builds } = setup(t);
+  assert.equal(run().status, 0);
+  fs.writeFileSync(path.join(root, 'out/main/builtin-mcp-lark-cli.js'), 'tampered MCP');
+  const result = run(['--package-only']);
+  assert.notEqual(result.status, 0);
+  assert.match(result.output, /output-content-mismatch/);
+  assert.match(result.output, /Package-only requires/);
+  assert.equal(builds(), 1);
 });

@@ -114,6 +114,16 @@ function saveDownload(cacheDir, source, file, maxBytes = 512 * 1024 * 1024) {
   }
 }
 
+function recordEvent(record) {
+  if (process.env.BUILD_STAGE_REPORT) {
+    try {
+      fs.appendFileSync(process.env.BUILD_STAGE_REPORT, `${JSON.stringify(record)}\n`);
+    } catch {
+      console.warn('[build-stage] Could not persist cache evidence');
+    }
+  }
+}
+
 function timed(stage, action, details = {}) {
   const start = performance.now();
   const startedAt = new Date().toISOString();
@@ -141,4 +151,4 @@ function timed(stage, action, details = {}) {
   }
 }
 
-module.exports = { sha256, inputHash, outputsMatch, saveOutputs, restoreDownload, saveDownload, timed };
+module.exports = { sha256, inputHash, outputsMatch, saveOutputs, restoreDownload, saveDownload, timed, recordEvent };

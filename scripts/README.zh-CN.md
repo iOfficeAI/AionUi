@@ -202,3 +202,29 @@ rebuildSingleModule({
 - `/forge.config.ts` - Electron Forge 配置
 - `/.github/workflows/build-and-release.yml` - CI/CD 流程
 - `/package.json` - 构建脚本和依赖
+
+## 本地分层构建与审计
+
+`bun run local <模式>`（或 `just local <模式>`）复用现有 Vite/MCP 内容缓存和打包链。本地普通开发不生成安装包，现有 CI 入口保持不变。
+
+| 模式                                                             | 行为与边界                                                                                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `dev`                                                            | 启动 Electron/Vite 开发服务；不清理其他进程、不构建 Core、不打包                                                          |
+| `focused --core /绝对路径/AionCore --crate aionui-common`        | `cargo test --locked -p <crate> --lib`；指定 `--test <name>` 可选择一个集成测试入口                                       |
+| `wire`                                                           | 构建内置 MCP bundle，然后用独立 Node 子进程验证 stdio initialize、tools/list、关闭；不执行业务工具                        |
+| `full`                                                           | `just gate`：完整客户端质量检查与测试；不构建安装包、不复用 CI 历史通过记录                                               |
+| `build`                                                          | 仅编译客户端 Main/Preload/Renderer/MCP，校验输出；不编译或下载 Core、不打包                                               |
+| `package`                                                        | 只打包本机架构 DMG/NSIS；要求当前输入与已有输出摘要匹配，否则拒绝并提示先执行 `build`；保留 Core 准备、能力检查和签名环节 |
+| `release`                                                        | 依次执行 `full`、`build`、`package`；任何阶段失败立即停止，无发布或推送                                                   |
+| `audit [--core /绝对路径/AionCore] [--compare /上次/audit.json]` | 只读列出占用、归属、可再生性、逻辑及实际分配空间变化，保存报告                                                            |
+| `clean --target /精确/路径 [--core /绝对路径/AionCore]`          | 默认只检查；追加 `--execute` 才删除符合条件的生成缓存                                                                     |
+
+构建模式支持 `--dry-run` 查看阶段。`build --force`、`wire --force` 强制重建对应输出；`focused --force` 使用该 Core 工作树 `target/local-force/<构建编号>` 下的新命名空间，不删除已有缓存。强制运行会额外占空间，之后普通 focused 仍使用原 target。
+
+Core 默认使用规范化工作树路径下的 `target/`，通过显式 `--target-dir` 覆盖环境变量及 Cargo 配置中的共享 target。不同 Core 工作树隔离，同一个 Core 工作树的正常重复执行复用 Cargo 产物；sccache、Cargo registry、Bun 和下载缓存继续使用本机既有配置。不会复制依赖或 target，不自动扩大缓存容量。
+
+每次执行的 `.workspace/local-build/<编号>/manifest.json` 包含源码提交与 dirty 输入摘要、工具链、平台、阶段结果、耗时、日志路径、缓存决策与磁盘变化。Cargo 缓存状态来自 `compiler-artifact.fresh`，不是从耗时推测。指定 `--core` 的源码身份与安装包实际下载的 Core 身份分别记录。安装包旁的 `<安装包>.build.json` 记录安装包 SHA-256，可与清单绑定核对；清单只证明列出的本地阶段，真实界面和业务验收需要额外证据。
+
+清理仅接受审计中可再生的 `out/main`、`out/preload`、`out/renderer` 和 Core `target/debug`。安装包、运行资源、依赖、共享缓存、日志、源码、业务数据与 unknown 不进入删除范围。清理要求生成清单的完整输出摘要仍匹配（Core 在成功 focused 后记录），新增或修改 ignored 文件也会阻止删除。清理拒绝符号链接、Git 跟踪或非忽略文件、活动构建/客户端、打开文件、无法可靠完成的进程检查。macOS/Linux 支持清理，其他平台拒绝执行；安全检查可能保守阻止被其他工作树进程占用的系统。
+
+同一工作树的编排与清理共用互斥锁：UI 使用 `.workspace/local-build/active.json`，Core 使用 `target/.aionui-local-build/active.json`，输出证明也保存在相邻目录。Core 记账文件不会污染源码摘要。异常退出留下锁时，先核实其中 PID 和相关子进程均已结束，再仅删除该锁后重试；不会自动按锁的时间判断过期。直接调用旧构建命令不参与新锁，清理仍执行现场进程和打开文件检查；不要同时在同一工作树启动外部构建与清理。

@@ -14,7 +14,7 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { buildInputHash } = require('./build-inputs');
-const { timed, inputHash } = require('../packages/shared-scripts/src/build-cache');
+const { timed, inputHash, recordEvent } = require('../packages/shared-scripts/src/build-cache');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -313,6 +313,7 @@ function validateViteBuildOutput() {
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag, currentHash = computeSourceHash()) {
   function decision(hit, reason) {
+    recordEvent({ stage: 'vite-cache', hit, reason, inputHash: currentHash });
     console.log(
       `[build-cache] ${JSON.stringify({ stage: 'vite', target: buildTarget, hit, reason, inputHash: currentHash })}`
     );
@@ -332,6 +333,10 @@ function shouldSkipViteBuild(skipViteFlag, forceFlag, currentHash = computeSourc
 }
 
 function cleanupDiskImages() {
+  if (process.env.LOCAL_BUILD_WORKFLOW === '1') {
+    console.log('Local workflow retains mounted images; detach only a verified build-owned image manually if needed.');
+    return false;
+  }
   try {
     // Detach all mounted disk images that may block subsequent DMG creation:
     // hdiutil info → grep device paths → force detach each
@@ -404,6 +409,9 @@ function isProcessRunningWindows(imageName) {
 }
 
 function killWindowsProcesses(imageNames) {
+  if (process.env.LOCAL_BUILD_WORKFLOW === '1') {
+    throw new Error('Local workflow cannot stop clients by image name. Close the app using this output and retry.');
+  }
   if (process.platform !== 'win32') return;
   for (const name of imageNames) {
     try {
@@ -555,13 +563,21 @@ const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
 const skipVite = args.includes('--skip-vite');
 const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
+const packageOnly = args.includes('--package-only');
 const forceBuild = args.includes('--force');
 
 const builderArgs = args
   .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
-    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force') return false;
+    if (
+      arg === '--skip-vite' ||
+      arg === '--skip-native' ||
+      arg === '--pack-only' ||
+      arg === '--package-only' ||
+      arg === '--force'
+    )
+      return false;
     if (archList.includes(arg)) return false;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
     return true;
@@ -645,6 +661,9 @@ let restorePackageVersionOverride = () => {};
 let buildFailed = false;
 
 try {
+  if (packageOnly && (forceBuild || skipVite || packOnly)) {
+    throw new Error('--package-only cannot be combined with --force, --skip-vite or --pack-only');
+  }
   restorePackageVersionOverride = applyDebugAutoUpdateVersionOverride(packageJsonPath);
 
   // 1. Ensure package.json main entry is correct for electron-vite
@@ -657,6 +676,9 @@ try {
   // 2. Check if we can skip Vite build (incremental build)
   const viteInputHash = timed('vite-cache-key', computeSourceHash, { target: buildTarget });
   const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild, viteInputHash);
+  if (packageOnly && !skipViteBuild) {
+    throw new Error('Package-only requires matching build inputs and intact outputs. Run local build first.');
+  }
 
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
@@ -685,15 +707,16 @@ try {
   // Uses a dedicated script (build-mcp-servers.js) to avoid shell-quoting issues
   // with special characters in esbuild --define values.
   console.log('📦 Bundling builtin MCP servers (self-contained)...');
-  timed(
-    'mcp',
-    () =>
-      execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"${forceBuild ? ' --force' : ''}`, {
-        stdio: 'inherit',
-        shell: process.platform === 'win32',
-      }),
-    { target: buildTarget }
-  );
+  if (!packageOnly)
+    timed(
+      'mcp',
+      () =>
+        execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"${forceBuild ? ' --force' : ''}`, {
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+        }),
+      { target: buildTarget }
+    );
 
   // 3. Verify electron-vite output
   const outDir = path.resolve(__dirname, '../out');

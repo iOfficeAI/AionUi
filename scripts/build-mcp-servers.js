@@ -11,7 +11,7 @@
  * shell-quoting issues with special characters in --define values.
  */
 
-const { inputHash, outputsMatch, saveOutputs } = require('../packages/shared-scripts/src/build-cache');
+const { inputHash, outputsMatch, saveOutputs, recordEvent } = require('../packages/shared-scripts/src/build-cache');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -45,10 +45,17 @@ async function main({ root = ROOT, esbuild = require('esbuild'), force = process
     { schema: 1, node: process.version, esbuild: esbuild.version }
   );
   if (!force && outputsMatch(manifest, key, outputs)) {
+    recordEvent({ stage: 'mcp-cache', hit: true, reason: 'verified-inputs-and-outputs', inputHash: key });
     console.log('[mcp-cache] hit: inputs and outputs verified');
     return { cached: true };
   }
   console.log('[mcp-cache] miss: forced, changed inputs, or missing/corrupt outputs');
+  recordEvent({
+    stage: 'mcp-cache',
+    hit: false,
+    reason: force ? 'forced' : 'changed-inputs-or-output-mismatch',
+    inputHash: key,
+  });
   await Promise.all(
     ['imageGenServer', 'browserServer', 'larkCliServer'].map((name, index) =>
       esbuild.build({
