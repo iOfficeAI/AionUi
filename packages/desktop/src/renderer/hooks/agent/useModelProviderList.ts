@@ -83,10 +83,10 @@ export const useModelProviderList = (): ModelProviderListResult => {
         platform: 'gemini-with-google-auth',
         base_url: '',
         api_key: '',
-        model: [],
+        models: ['auto', 'auto-gemini-2.5', 'manual'],
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
         enabled: true, // Google Auth provider 始终启用
-      } as unknown as IProvider;
+      };
       list = [googleProvider, ...list];
     }
     // 过滤掉没有可用模型的 provider

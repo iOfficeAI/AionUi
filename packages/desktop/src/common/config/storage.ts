@@ -57,7 +57,13 @@ export interface IConfigStorageRefer {
   'system.cronNotificationEnabled'?: boolean;
   // 阻止系统休眠以保证定时任务执行 / Prevent system sleep to ensure scheduled tasks run
   'system.keepAwake'?: boolean;
-  // Automatically preview newly created Office files in the current workspace
+  // Mattermost channel configuration / Mattermost 渠道配置
+  'assistant.mattermost.config'?: {
+    serverUrl?: string;
+    allowedChannelIds?: string;
+    replyInThread?: boolean;
+    ignoreSelfMessages?: boolean;
+  };
   // Skills Market: whether the external skills market source is enabled
   'skillsMarket.enabled'?: boolean;
   /**
