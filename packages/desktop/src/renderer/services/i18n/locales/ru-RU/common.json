@@ -204,5 +204,6 @@
   },
   "selectedCount": "Выбрано {{count}}",
   "selectedSkills": "Выбранные навыки",
-  "aiAssistant": "ИИ-ассистент"
+  "aiAssistant": "ИИ-ассистент",
+  "documentTitleWithName": "{{name}} - AionUi"
 }
