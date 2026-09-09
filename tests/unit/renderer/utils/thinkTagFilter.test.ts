@@ -28,6 +28,18 @@ describe('thinkTagFilter', () => {
       const input = '<think>outer<think>inner</think>outer</think>Text';
       expect(stripThinkTags(input)).toBe('Text');
     });
+    it('preserves content before an orphaned close when a complete block exists', () => {
+      // A complete <thinking> block plus a stray trailing close. The legacy
+      // MiniMax strip deleted everything up to the FIRST orphaned close, which
+      // wrongly ate the legitimate "START" and "MIDDLE" text.
+      const input = 'START <thinking>secret</thinking> MIDDLE </thinking> END';
+      expect(stripThinkTags(input)).toBe('START  MIDDLE  END');
+    });
+
+    it('preserves content after an orphaned close in the middle of the text', () => {
+      const input = 'head </thinking>tail';
+      expect(stripThinkTags(input)).toBe('tail');
+    });
 
     it('removes orphaned opening tags but preserves following text', () => {
       const input = 'Text<think>incomplete';
