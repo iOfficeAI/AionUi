@@ -1,0 +1,805 @@
+/* ============================================================
+   校园规则解码器 · AI 规则审阅工作台 视觉系统
+   设计：Apple / Liquid Glass，克制使用。
+   原则：少而精的玻璃 + 大留白 + 清晰层级 + 微妙动效。
+   数据链路与组件 props 一律不动，仅视觉/交互层。
+   依赖 Arco Design 既有 CSS 变量（--color-*），自动适配明暗主题。
+   ============================================================ */
+
+/* ---------- 外层审阅容器：轻微玻璃 ---------- */
+.cr-answer {
+  position: relative;
+  border-radius: 16px;
+  padding: 20px 20px 16px;
+  background: color-mix(in srgb, var(--color-bg-2) 52%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 45%, transparent);
+  box-shadow:
+    0 1px 2px rgba(22, 24, 29, 0.03),
+    0 8px 32px rgba(22, 24, 29, 0.05);
+  overflow: hidden;
+}
+
+/* 顶部细高光（玻璃上边缘） */
+.cr-answer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .cr-answer::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+}
+
+/* 模块间弱分割线 + 大留白 */
+.cr-block {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-2) 50%, transparent);
+}
+
+.cr-block--first {
+  margin-top: 12px;
+  border-top: none;
+  padding-top: 0;
+}
+
+/* 区块小标题 */
+.cr-block-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-3);
+  margin-bottom: 10px;
+  user-select: none;
+}
+
+.cr-block-title .cr-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary-6);
+  opacity: 0.85;
+}
+
+/* ---------- 状态条：极轻 ---------- */
+.cr-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-3);
+  margin-bottom: 4px;
+}
+
+.cr-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  background: color-mix(in srgb, var(--color-success-6) 10%, transparent);
+  color: var(--color-success-6);
+  border: 1px solid color-mix(in srgb, var(--color-success-6) 25%, transparent);
+}
+
+.cr-status__badge--partial {
+  background: color-mix(in srgb, var(--color-warning-6) 10%, transparent);
+  color: var(--color-warning-6);
+  border-color: color-mix(in srgb, var(--color-warning-6) 25%, transparent);
+}
+
+.cr-status__badge--error {
+  background: color-mix(in srgb, var(--color-danger-6) 8%, transparent);
+  color: var(--color-danger-6);
+  border-color: color-mix(in srgb, var(--color-danger-6) 22%, transparent);
+}
+
+.cr-status__tool {
+  font-size: 12px;
+  color: var(--color-text-4);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ---------- ① 结论：视觉第一重点 ---------- */
+.cr-conclusion {
+  padding: 4px 0 2px;
+}
+
+.cr-conclusion__verdict {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--color-text-1);
+  letter-spacing: 0.01em;
+}
+
+.cr-conclusion__detail {
+  margin-top: 6px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--color-text-2);
+}
+
+/* 结论下方轻状态徽章 */
+.cr-conclusion__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cr-conclusion__chip--ok {
+  background: color-mix(in srgb, var(--color-success-6) 9%, transparent);
+  color: var(--color-success-6);
+}
+
+.cr-conclusion__chip--warn {
+  background: color-mix(in srgb, var(--color-warning-6) 9%, transparent);
+  color: var(--color-warning-6);
+}
+
+/* ---------- ② 依据：文档感 ---------- */
+.cr-evidence {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  padding: 12px 14px 10px 16px;
+  background: color-mix(in srgb, var(--color-bg-2) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 42%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--color-primary-6) 70%, var(--color-border-2));
+  box-shadow: 0 1px 6px rgba(22, 24, 29, 0.03);
+}
+
+/* 弱相关证据：整体灰化，不渲染成红色警告 */
+.cr-evidence--low {
+  border-left-color: var(--color-fill-4);
+  opacity: 0.62;
+  filter: grayscale(0.35);
+}
+
+.cr-evidence__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr-evidence__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  min-width: 0;
+}
+
+.cr-evidence__source-icon {
+  color: var(--color-text-4);
+  font-size: 12px;
+}
+
+.cr-evidence__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--color-primary-6) 8%, transparent);
+  color: var(--color-text-3);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 60%, transparent);
+}
+
+.cr-evidence__quote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-2);
+}
+
+/* 底部：相关度 / 依据类型 */
+.cr-evidence__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed color-mix(in srgb, var(--color-border-2) 55%, transparent);
+}
+
+.cr-evidence__relevance {
+  font-size: 11.5px;
+  color: var(--color-text-3);
+}
+
+.cr-evidence__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-success-6);
+}
+
+.cr-evidence__kind--low {
+  color: var(--color-text-3);
+}
+
+/* ---------- 政策条款命中（PolicyPanel） ---------- */
+.cr-policy {
+  margin-bottom: 10px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--color-bg-2) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 42%, transparent);
+}
+
+.cr-policy__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr-policy__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.cr-policy__kw {
+  display: inline-block;
+  margin: 8px 6px 0 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--color-text-3);
+  background: color-mix(in srgb, var(--color-fill-2) 60%, transparent);
+}
+
+.cr-policy__quote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-2);
+}
+
+/* ---------- ③ 风险：低饱和状态提示 ---------- */
+.cr-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-fill-2) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 40%, transparent);
+}
+
+.cr-risk:last-child {
+  margin-bottom: 0;
+}
+
+.cr-risk__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.cr-risk__dot--high {
+  background: color-mix(in srgb, var(--color-danger-6) 75%, transparent);
+}
+
+.cr-risk__dot--medium {
+  background: color-mix(in srgb, var(--color-warning-6) 80%, transparent);
+}
+
+.cr-risk__dot--low {
+  background: var(--color-fill-4);
+}
+
+.cr-risk__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  line-height: 1.5;
+}
+
+.cr-risk__desc {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-3);
+}
+
+/* ---------- ④ 建议：轻列表 ---------- */
+.cr-suggest {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-suggest li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-2);
+}
+
+.cr-suggest li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary-6) 60%, transparent);
+}
+
+.cr-suggest li:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- 错误状态：低调 ---------- */
+.cr-errorbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-warning-6) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning-6) 18%, transparent);
+  font-size: 13px;
+}
+
+.cr-errorbox--error {
+  background: color-mix(in srgb, var(--color-danger-6) 6%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger-6) 18%, transparent);
+}
+
+.cr-errorbox__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cr-errorbox__title {
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.cr-errorbox__desc {
+  margin-top: 2px;
+  color: var(--color-text-2);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   ★ 解读诊断（DiagnosisPanel）：玻璃中的玻璃
+   默认折叠 → 摘要 + 证据核验进度；展开 → 01现象/02原因/03验证/04结果
+   ============================================================ */
+.cr-diagnosis {
+  margin-top: 14px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-bg-2) 40%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  backdrop-filter: blur(26px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 50%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 24px rgba(22, 24, 29, 0.02),
+    0 2px 12px rgba(22, 24, 29, 0.04);
+}
+
+[data-theme='dark'] .cr-diagnosis {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 头部：始终可见 */
+.cr-diagnosis__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cr-diagnosis__head:hover {
+  background: color-mix(in srgb, var(--color-fill-2) 30%, transparent);
+}
+
+.cr-diagnosis__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.cr-diagnosis__spark {
+  color: var(--color-primary-6);
+  font-size: 13px;
+}
+
+.cr-diagnosis__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-3);
+  transition: transform 0.25s ease;
+}
+
+.cr-diagnosis__toggle--open {
+  transform: rotate(180deg);
+}
+
+/* 摘要区（默认可见）：发现 N 项问题 + 证据核验进度 */
+.cr-diagnosis__summary {
+  padding: 0 16px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-2) 45%, transparent);
+}
+
+.cr-diagnosis__count {
+  margin: 10px 0 6px;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.cr-diagnosis__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.cr-diagnosis__item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cr-diagnosis__item-dot--high { background: color-mix(in srgb, var(--color-danger-6) 75%, transparent); }
+.cr-diagnosis__item-dot--medium { background: color-mix(in srgb, var(--color-warning-6) 80%, transparent); }
+.cr-diagnosis__item-dot--low { background: var(--color-fill-4); }
+
+.cr-diagnosis__verify {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.cr-diagnosis__verify-label {
+  font-size: 12px;
+  color: var(--color-text-3);
+  white-space: nowrap;
+}
+
+.cr-diagnosis__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-fill-3) 70%, transparent);
+  overflow: hidden;
+}
+
+.cr-diagnosis__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cr-diagnosis__bar-fill--delay {
+  transition-delay: 0.15s;
+}
+
+.cr-diagnosis__verify-num {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 52px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 展开区：01~04 结构 */
+.cr-diagnosis__body {
+  overflow: hidden;
+}
+
+.cr-diagnosis__row {
+  display: flex;
+  gap: 14px;
+  padding: 10px 16px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-2) 40%, transparent);
+}
+
+.cr-diagnosis__row-index {
+  flex-shrink: 0;
+  width: 22px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-4);
+  padding-top: 2px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.cr-diagnosis__row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-diagnosis__row-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--color-text-3);
+  margin-bottom: 3px;
+}
+
+.cr-diagnosis__row-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-1);
+  word-break: break-word;
+}
+
+.cr-diagnosis__row-text--quote {
+  color: var(--color-text-2);
+}
+
+.cr-diagnosis__row-source {
+  font-size: 12px;
+  color: var(--color-text-3);
+  margin-bottom: 2px;
+}
+
+/* 展开/收起动画容器（max-height + opacity + translate） */
+.cr-diagnosis__collapsible {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: max-height 0.28s ease-out, opacity 0.25s ease-out, transform 0.28s ease-out;
+}
+
+.cr-diagnosis__collapsible--open {
+  max-height: 720px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   View Steps：工程信息弱化
+   ============================================================ */
+.tool-group-summary__header {
+  font-size: 12px;
+  color: var(--color-text-3) !important;
+}
+
+.tool-group-summary__icon {
+  color: var(--color-text-4) !important;
+}
+
+.tool-group-summary__header:hover {
+  color: var(--color-text-2) !important;
+}
+
+.tool-group-summary__arrow {
+  color: var(--color-text-4) !important;
+}
+
+/* ============================================================
+   窄屏适配：诊断行 / 证据卡自动收窄
+   ============================================================ */
+@media (max-width: 560px) {
+  .cr-answer {
+    padding: 16px 14px 12px;
+  }
+
+  .cr-conclusion__verdict {
+    font-size: 16.5px;
+  }
+
+  .cr-diagnosis__verify {
+    flex-wrap: wrap;
+  }
+
+  .cr-diagnosis__row {
+    padding: 9px 12px;
+  }
+
+  .cr-evidence__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- 逐条条件比对表（policy 判定器专属） ---------- */
+.cr-ct {
+  padding-bottom: 12px;
+}
+
+.cr-ct__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cr-ct__group {
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 32%, transparent);
+  background: color-mix(in srgb, var(--color-fill-1) 22%, transparent);
+  overflow: hidden;
+}
+
+.cr-ct__group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 6px;
+}
+
+.cr-ct__group-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  letter-spacing: 0.02em;
+}
+
+.cr-ct__group-count {
+  font-size: 11.5px;
+  color: var(--color-text-4);
+}
+
+.cr-ct__group .cr-ct__table {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.cr-ct__group .cr-ct__row:last-child {
+  border-bottom: none;
+}
+
+.cr-ct__table {
+  margin-top: 4px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 35%, transparent);
+  background: color-mix(in srgb, var(--color-fill-1) 30%, transparent);
+}
+
+.cr-ct__row {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1.2fr 0.8fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-2) 28%, transparent);
+}
+
+.cr-ct__row:last-child {
+  border-bottom: none;
+}
+
+.cr-ct__row:hover {
+  background: color-mix(in srgb, var(--color-fill-2) 35%, transparent);
+}
+
+.cr-ct__head {
+  background: color-mix(in srgb, var(--color-fill-2) 40%, transparent);
+  font-size: 12px;
+  color: var(--color-text-3);
+  letter-spacing: 0.02em;
+}
+
+.cr-ct__head:hover {
+  background: color-mix(in srgb, var(--color-fill-2) 40%, transparent);
+}
+
+.cr-ct__cell {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-1);
+}
+
+.cr-ct__item {
+  font-weight: 500;
+}
+
+.cr-ct__value {
+  color: var(--color-text-2);
+  word-break: break-word;
+}
+
+.cr-ct__req {
+  color: var(--color-text-2);
+  word-break: break-word;
+}
+
+.cr-ct__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* 状态色：低饱和，不喧宾夺主 */
+.cr-ct__state--met {
+  color: #2f9e44;
+  background: color-mix(in srgb, #2f9e44 12%, transparent);
+}
+
+.cr-ct__state--not-met {
+  color: #d9480f;
+  background: color-mix(in srgb, #d9480f 10%, transparent);
+}
+
+.cr-ct__state--missing {
+  color: #e8890c;
+  background: color-mix(in srgb, #e8890c 12%, transparent);
+}
+
+.cr-ct__state--review {
+  color: var(--color-text-3);
+  background: color-mix(in srgb, var(--color-fill-2) 60%, transparent);
+}
+
+/* 窄屏：表头隐藏，每行转 2×2 卡片 */
+@media (max-width: 640px) {
+  .cr-ct__row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+    padding: 10px 12px;
+  }
+
+  .cr-ct__head {
+    display: none;
+  }
+
+  .cr-ct__state {
+    justify-self: start;
+  }
+}

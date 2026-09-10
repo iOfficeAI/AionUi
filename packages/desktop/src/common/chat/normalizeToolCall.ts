@@ -203,6 +203,10 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
   const { call_id, name, status, input, output, args, description } = message.content;
   if (!call_id) return undefined;
 
+  const contentCompat = message.content as IMessageToolCall['content'] & {
+    _compact?: { truncated?: boolean; original_size?: number; preview_chars?: number };
+  };
+
   const displayInput = input
     ? formatValue(input)
     : args && Object.keys(args).length > 0
@@ -216,6 +220,9 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
     description: description || undefined,
     input: displayInput,
     output,
+    truncated: contentCompat._compact?.truncated === true,
+    messageId: message.id,
+    conversationId: message.conversation_id,
   };
 }
 

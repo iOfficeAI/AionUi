@@ -1,0 +1,430 @@
+/* ============================================================
+   校园工作台 · Liquid Glass / Spatial Glass 材质层
+   只负责视觉材质，不改变页面结构、布局、文字与功能。
+   空间层次：背景环境 → 玻璃面板 → 内容 → 局部高光 → 柔和阴影
+   玻璃三级梯度：输入框(最强) > 最近查询(二级) > 规则动态(三级)
+   ============================================================ */
+
+/* ---------- 0. 页面背景：极浅灰白渐变 + 克制环境光晕 ---------- */
+.workbench {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+}
+
+/* 环境光晕：蓝紫 + 冷白，低透明度、大范围、仅作玻璃透射环境 */
+.ambientLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    /* 顶部左：冷白柔光（浅色下给玻璃一个可透射的亮度来源） */
+    radial-gradient(
+      720px circle at 16% 4%,
+      rgba(255, 255, 255, 0.55),
+      transparent 60%
+    ),
+    /* 顶部右：蓝紫色低透明光晕 */
+    radial-gradient(
+      820px circle at 84% 8%,
+      color-mix(in srgb, var(--color-primary-6) 9%, transparent),
+      transparent 62%
+    ),
+    /* 中部偏左：冷蓝氛围 */
+    radial-gradient(
+      640px circle at 30% 46%,
+      color-mix(in srgb, var(--color-primary-6) 5%, transparent),
+      transparent 60%
+    ),
+    /* 底部：暖紫弱光 */
+    radial-gradient(
+      700px circle at 72% 92%,
+      color-mix(in srgb, var(--color-primary-6) 6%, transparent),
+      transparent 62%
+    ),
+    /* 鼠标跟随光斑：幅度最小 */
+    radial-gradient(
+      520px circle at var(--glow-x, 50%) var(--glow-y, 30%),
+      color-mix(in srgb, var(--color-primary-6) 10%, transparent),
+      transparent 66%
+    );
+  transition: background 0.2s ease-out;
+}
+
+/* 暗色模式：去掉冷白亮斑，光晕整体再压低 */
+[data-theme='dark'] .ambientLayer {
+  background:
+    radial-gradient(
+      820px circle at 84% 8%,
+      color-mix(in srgb, var(--color-primary-6) 7%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      640px circle at 30% 46%,
+      color-mix(in srgb, var(--color-primary-6) 4%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px circle at 72% 92%,
+      color-mix(in srgb, var(--color-primary-6) 5%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      520px circle at var(--glow-x, 50%) var(--glow-y, 30%),
+      color-mix(in srgb, var(--color-primary-6) 8%, transparent),
+      transparent 66%
+    );
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================
+   通用玻璃基元：内部高光（顶部细亮线 + 顶部微亮渐变）+ 柔和大阴影
+   ============================================================ */
+.glassBase {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 56px -28px rgba(31, 45, 90, 0.16);
+}
+
+/* 顶部 1px 细亮线（边缘高光） */
+.glassBase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  pointer-events: none;
+}
+
+/* 顶部 30% 极微弱亮渐变（内部高光，不影响内容可读性） */
+.glassBase::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 32%);
+  opacity: 0.45;
+}
+
+/* 暗色模式：玻璃翻转为深色材质 */
+[data-theme='dark'] .glassBase {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 56px -28px rgba(0, 0, 0, 0.5);
+}
+[data-theme='dark'] .glassBase::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+}
+[data-theme='dark'] .glassBase::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 32%);
+}
+
+/* ============================================================
+   一级玻璃：中央 AI 输入框（最通透、景深最强、高光最明显）
+   ============================================================ */
+.inputGlass {
+  position: relative;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 32px 72px -32px rgba(31, 45, 90, 0.24),
+    0 10px 36px color-mix(in srgb, var(--color-primary-6) 7%, transparent);
+  transition:
+    box-shadow 0.4s ease,
+    border-color 0.4s ease,
+    background 0.4s ease;
+}
+
+/* 输入框内部高光：比通用玻璃更强 */
+.inputGlass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  pointer-events: none;
+}
+
+.inputGlass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 30%);
+  opacity: 0.5;
+}
+
+/* 聚焦：高光略增强、阴影轻微扩散（克制） */
+.inputGlass--focus {
+  border-color: color-mix(in srgb, var(--color-primary-6) 30%, rgba(255, 255, 255, 0.6));
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 40px 88px -32px rgba(31, 45, 90, 0.28),
+    0 14px 44px color-mix(in srgb, var(--color-primary-6) 11%, transparent);
+}
+
+[data-theme='dark'] .inputGlass {
+  background: rgba(20, 24, 38, 0.48);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 32px 72px -32px rgba(0, 0, 0, 0.6),
+    0 10px 36px color-mix(in srgb, var(--color-primary-6) 9%, transparent);
+}
+[data-theme='dark'] .inputGlass::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+[data-theme='dark'] .inputGlass::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 30%);
+}
+[data-theme='dark'] .inputGlass--focus {
+  border-color: color-mix(in srgb, var(--color-primary-6) 42%, transparent);
+  background: rgba(20, 24, 38, 0.58);
+}
+
+/* AI 图标：柔和呼吸（幅度小） */
+.aiIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  color: var(--color-primary-6);
+  background: color-mix(in srgb, var(--color-primary-6) 9%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-primary-6) 18%, transparent);
+  animation: breathe 3s ease-in-out infinite;
+  font-size: 14px;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+/* ============================================================
+   快捷胶囊：轻量 Liquid Glass（细边缘高光、轻微 blur、柔和阴影）
+   ============================================================ */
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 20px;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-text-1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(10px) saturate(1.25);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 18px -8px rgba(31, 45, 90, 0.12);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    background 0.3s ease;
+}
+
+.pill:hover {
+  transform: translateY(-1.5px);
+  border-color: color-mix(in srgb, var(--color-primary-6) 42%, rgba(255, 255, 255, 0.55));
+  color: var(--color-primary-6);
+  background: rgba(255, 255, 255, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 26px -10px color-mix(in srgb, var(--color-primary-6) 20%, rgba(31, 45, 90, 0.2));
+}
+
+.pill:active {
+  transform: translateY(0) scale(0.98);
+}
+
+[data-theme='dark'] .pill {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 24, 38, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 6px 18px -8px rgba(0, 0, 0, 0.35);
+}
+[data-theme='dark'] .pill:hover {
+  border-color: color-mix(in srgb, var(--color-primary-6) 46%, transparent);
+  background: rgba(20, 24, 38, 0.52);
+}
+
+/* ============================================================
+   二级玻璃：最近查询（稍实） / 三级玻璃：规则动态（更轻盈透明）
+   ============================================================ */
+.infoCard {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 20px 44px -24px rgba(31, 45, 90, 0.14);
+  overflow: hidden;
+}
+
+/* 内部高光 */
+.infoCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  pointer-events: none;
+}
+.infoCard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 30%);
+  opacity: 0.45;
+}
+
+/* 二级：最近查询 —— 比输入框稍实 */
+.infoCardRecent {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+
+/* 三级：规则动态 —— 更轻盈、更透明 */
+.infoCardLight {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+}
+
+[data-theme='dark'] .infoCard {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 44px -24px rgba(0, 0, 0, 0.45);
+}
+[data-theme='dark'] .infoCard::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+[data-theme='dark'] .infoCard::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%);
+}
+[data-theme='dark'] .infoCardRecent {
+  background: rgba(20, 24, 38, 0.5);
+}
+[data-theme='dark'] .infoCardLight {
+  background: rgba(20, 24, 38, 0.34);
+}
+
+/* 行 hover：背景微亮，克制 */
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.infoRow:hover {
+  background: color-mix(in srgb, var(--color-fill-3) 55%, transparent);
+}
+
+.infoRow:active {
+  transform: scale(0.99);
+}
+
+/* 最近查询行：左侧消息图标 = 进入会话记录入口（行点击 = 自检报告） */
+.rowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: var(--color-primary-6);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rowIcon:hover {
+  background: color-mix(in srgb, var(--color-primary-6) 14%, transparent);
+}
+
+/* 图标与内容的分隔竖线 */
+.rowDivider {
+  width: 1px;
+  height: 18px;
+  flex-shrink: 0;
+  background: var(--color-border-2);
+}
+
+.dynDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-primary-6) 85%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary-6) 40%, transparent);
+}
