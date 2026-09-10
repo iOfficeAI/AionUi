@@ -5,18 +5,18 @@
  */
 
 import type { Theme } from '@/common/theme/types';
-import { ipcBridge } from '@/common';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { iconColors } from '@renderer/styles/colors';
-import { Button, Input, Radio } from '@arco-design/web-react';
+import { Button, Input, Message, Radio } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal.tsx';
 import { Plus, Delete } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CSSProperties } from 'react';
 import { injectBackgroundCssBlock } from './backgroundUtils.ts';
+import { MAX_COVER_IMAGE_BYTES, readImageFileAsDataUrl, validateCoverImageFile } from './coverImageUtils.ts';
 
 /** CodeMirror 编辑器样式 / CodeMirror editor styles */
 const CODE_MIRROR_STYLE: CSSProperties = {
@@ -49,6 +49,7 @@ interface CssThemeModalProps {
 const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, onSave, onDelete }) => {
   const { t } = useTranslation();
   const { theme: colorTheme } = useThemeContext();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [cover, setCover] = useState<string>('');
   const [css, setCss] = useState('');
@@ -75,27 +76,51 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
   }, [theme, visible]);
 
   /**
-   * 处理封面图片上传 / Handle cover image upload
+   * 触发封面图片选择 / Trigger cover image picker.
+   * Uses a browser file input (read in the renderer) rather than the backend
+   * `fs.getImageBase64`: the cover is a client-side data URL used only for local
+   * preview/background, and reading through the backend fails for files outside
+   * the workspace sandbox (403 PATH_OUTSIDE_SANDBOX) — i.e. any normal picture
+   * folder. See coverImageUtils.ts.
    */
-  const handleCoverUpload = useCallback(async () => {
-    try {
-      const files = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openFile'],
-        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
-      });
+  const handleCoverUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
-      if (files && files[0]) {
-        // 使用 IPC 读取图片并转换为 base64 / Use IPC to read image and convert to base64
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: files[0] });
-        if (base64) {
-          setCover(base64);
-          applyBackgroundImageToCss(base64);
+  /**
+   * 处理封面图片选择 / Handle cover image selection
+   */
+  const handleCoverFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const input = event.target;
+      const file = input.files?.[0];
+      // Reset so picking the same file again re-triggers change / 允许重复选择同一文件
+      input.value = '';
+      if (!file) return;
+
+      const validation = validateCoverImageFile(file);
+      if (validation.ok === false) {
+        if (validation.reason === 'type') {
+          Message.error(t('settings.cssTheme.coverInvalidType'));
+        } else {
+          Message.error(
+            t('settings.cssTheme.coverTooLarge', { size: Math.floor(MAX_COVER_IMAGE_BYTES / (1024 * 1024)) })
+          );
         }
+        return;
       }
-    } catch (error) {
-      console.error('Failed to upload cover:', error);
-    }
-  }, [applyBackgroundImageToCss]);
+
+      try {
+        const base64 = await readImageFileAsDataUrl(file);
+        setCover(base64);
+        applyBackgroundImageToCss(base64);
+      } catch (error) {
+        console.error('Failed to read cover image:', error);
+        Message.error(t('settings.cssTheme.coverReadFailed'));
+      }
+    },
+    [applyBackgroundImageToCss, t]
+  );
 
   /**
    * 处理保存 / Handle save
@@ -160,6 +185,13 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
           {/* 封面上传 / Cover upload */}
           <div className='flex-shrink-0'>
             <div className='text-13px text-t-secondary mb-8px'>{t('settings.cssTheme.previewCover')}</div>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/*'
+              className='hidden'
+              onChange={handleCoverFileChange}
+            />
             <div
               className='w-120px h-80px rounded-8px border border-dashed border-border-2 flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors overflow-hidden bg-[var(--fill-0)]'
               onClick={handleCoverUpload}
