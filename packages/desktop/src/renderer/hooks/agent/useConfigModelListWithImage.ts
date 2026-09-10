@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { MINIMAX_DEFAULT_IMAGE_MODEL } from '@/common/config/constants';
+import { isMinimaxImageApiHost } from '@/common/utils/imageModelAllowlist';
 import { useProvidersQuery } from './useModelProviderList';
 
 const useConfigModelListWithImage = () => {
@@ -39,6 +41,11 @@ const useConfigModelListWithImage = () => {
         // AntigravityTools 平台：添加常用图像模型
         // AntigravityTools platform: add common image models
         nextPlatform.models = nextPlatform.models.concat(['gemini-3-pro-image-1x1']);
+      } else if (isMinimaxImageApiHost(nextPlatform.base_url) && !hasImageModel) {
+        // MiniMax 平台：图像模型不在对话模型列表里返回，补上默认图像模型
+        // MiniMax platform: image models are not returned by the chat model list,
+        // so the default image model is supplemented here
+        nextPlatform.models = nextPlatform.models.concat([MINIMAX_DEFAULT_IMAGE_MODEL]);
       }
 
       return nextPlatform;

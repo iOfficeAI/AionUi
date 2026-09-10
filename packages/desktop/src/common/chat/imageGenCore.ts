@@ -15,9 +15,19 @@ import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
+import type { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { UnifiedChatCompletionResponse } from '@/common/api/RotatingApiClient';
-import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/config/constants';
+import {
+  IMAGE_EXTENSIONS,
+  MIME_TYPE_MAP,
+  MIME_TO_EXT_MAP,
+  DEFAULT_IMAGE_EXTENSION,
+  MINIMAX_IMAGE_GENERATION_PATH,
+  MINIMAX_IMAGE_MODELS,
+  MINIMAX_IMAGE_MODEL_PREFIX,
+} from '@/common/config/constants';
+import { isMinimaxImageApiHost } from '@/common/utils/imageModelAllowlist';
 
 const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
 
@@ -193,6 +203,168 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
   }
 }
 
+// ===== MiniMax Image Generation =====
+
+/**
+ * MiniMax serves its image models from a dedicated `/v1/image_generation`
+ * endpoint rather than returning images from chat completions, so the
+ * chat-multimodal path below can never produce an image for those models — the
+ * request either comes back as plain text or is rejected outright.
+ *
+ * The request carries the model and the prompt; the response returns the
+ * generated images in `data.image_urls` and reports API-level failures through
+ * `base_resp.status_code` instead of an HTTP error, so that field is checked
+ * explicitly.
+ */
+
+interface MinimaxImageRequestBody {
+  model: string;
+  prompt: string;
+  n: number;
+  response_format: 'url';
+}
+
+export interface MinimaxImageResponse {
+  imageUrls: string[];
+  successCount?: number;
+  failedCount?: number;
+}
+
+/** Only the first image is saved today, so a single image is requested. */
+const MINIMAX_IMAGE_COUNT = 1;
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+};
+
+/**
+ * Whether `provider` is configured against the MiniMax image generation endpoint.
+ * Both the host and the model have to match: the same host also serves chat
+ * models, which must keep using the chat-completions path.
+ */
+export function isMinimaxImageProvider(provider: { base_url?: string; use_model?: string }): boolean {
+  if (!isMinimaxImageApiHost(provider.base_url)) return false;
+  const model = (provider.use_model || '').trim().toLowerCase();
+  if (!model) return false;
+  return (MINIMAX_IMAGE_MODELS as readonly string[]).includes(model) || model.startsWith(MINIMAX_IMAGE_MODEL_PREFIX);
+}
+
+/**
+ * Endpoint path to request, relative to the provider's configured base URL.
+ * Presets already end in the API version segment, so it is dropped here to avoid
+ * requesting a doubled path.
+ */
+export function resolveMinimaxImageRequestPath(base_url?: string): string {
+  const trimmed = (base_url || '').replace(/\/+$/, '');
+  if (/\/v\d+$/i.test(trimmed)) {
+    return MINIMAX_IMAGE_GENERATION_PATH.replace(/^\/v\d+/i, '');
+  }
+  return MINIMAX_IMAGE_GENERATION_PATH;
+}
+
+export function buildMinimaxImageRequestBody(model: string, prompt: string): MinimaxImageRequestBody {
+  return {
+    model,
+    prompt,
+    n: MINIMAX_IMAGE_COUNT,
+    response_format: 'url',
+  };
+}
+
+export function parseMinimaxImageResponse(payload: unknown): MinimaxImageResponse {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Image generation API returned an unexpected response');
+  }
+
+  const body = payload as {
+    data?: { image_urls?: unknown } | null;
+    metadata?: { success_count?: unknown; failed_count?: unknown } | null;
+    base_resp?: { status_code?: unknown; status_msg?: unknown } | null;
+  };
+
+  const statusCode = toFiniteNumber(body.base_resp?.status_code);
+  if (statusCode !== undefined && statusCode !== 0) {
+    const statusMessage = typeof body.base_resp?.status_msg === 'string' ? body.base_resp.status_msg.trim() : '';
+    throw new Error(`Image generation API error ${statusCode}${statusMessage ? `: ${statusMessage}` : ''}`);
+  }
+
+  const rawImageUrls = body.data?.image_urls;
+  const imageUrls = Array.isArray(rawImageUrls)
+    ? rawImageUrls.filter((url): url is string => typeof url === 'string' && url.trim() !== '')
+    : [];
+
+  return {
+    imageUrls,
+    successCount: toFiniteNumber(body.metadata?.success_count),
+    failedCount: toFiniteNumber(body.metadata?.failed_count),
+  };
+}
+
+/**
+ * Download a generated image and return it as a data URL so it can be handed to
+ * `saveGeneratedImage`, which already owns the write path.
+ */
+async function fetchImageAsDataUrl(url: string, signal?: AbortSignal): Promise<string> {
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to download generated image: HTTP ${response.status}`);
+  }
+  const contentType = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  const mimeType = contentType.startsWith('image/') ? contentType : MIME_TYPE_MAP[DEFAULT_IMAGE_EXTENSION];
+  const imageBuffer = Buffer.from(await response.arrayBuffer());
+  return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+}
+
+async function executeMinimaxImageGeneration(
+  prompt: string,
+  provider: TProviderWithModel,
+  resolvedWorkspaceDir: string,
+  proxy?: string,
+  signal?: AbortSignal
+): Promise<ImageGenResult> {
+  // Reuses the shared client so API key rotation and proxy settings keep applying;
+  // only the request path and the response shape are specific to this endpoint.
+  const rotatingClient = (await ClientFactory.createRotatingClient(provider, {
+    proxy,
+    rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+  })) as OpenAIRotatingClient;
+
+  const requestPath = resolveMinimaxImageRequestPath(provider.base_url);
+  const body = buildMinimaxImageRequestBody(provider.use_model, prompt);
+
+  const payload = await rotatingClient.executeWithRetry((client) =>
+    client.post<unknown>(requestPath, { body, signal, timeout: API_TIMEOUT_MS })
+  );
+
+  const { imageUrls, failedCount } = parseMinimaxImageResponse(payload);
+
+  if (imageUrls.length === 0) {
+    const failedSuffix = failedCount ? ` (${failedCount} failed)` : '';
+    return {
+      success: true,
+      text: `Image generation did not produce any images${failedSuffix}.\n\nCurrent model: ${provider.use_model}`,
+    };
+  }
+
+  // Returned links are short lived, so the image is pulled into the workspace
+  // right away and only the saved path is handed back to the caller.
+  const firstImage = imageUrls[0];
+  const dataUrl = isHttpUrl(firstImage) ? await fetchImageAsDataUrl(firstImage, signal) : firstImage;
+  const imagePath = await saveGeneratedImage(dataUrl, resolvedWorkspaceDir);
+
+  return {
+    success: true,
+    text: `Image generated successfully.\n\nGenerated image saved to: ${imagePath}`,
+    imagePath,
+    relativeImagePath: path.relative(resolvedWorkspaceDir, imagePath),
+  };
+}
+
 // ===== Core Execution =====
 
 export interface ImageGenParams {
@@ -257,6 +429,15 @@ export async function executeImageGeneration(
     }
 
     const hasImages = imageUris.length > 0;
+
+    // Models behind a dedicated image generation endpoint cannot be driven through
+    // chat completions, so text-to-image requests are routed to that endpoint.
+    // Requests that carry input images stay on the existing path until the
+    // image-to-image parameters are wired up.
+    if (!hasImages && isMinimaxImageProvider(provider)) {
+      return await executeMinimaxImageGeneration(params.prompt, provider, resolvedWorkspaceDir, proxy, signal);
+    }
+
     let enhancedPrompt: string;
     if (hasImages) {
       enhancedPrompt = `Analyze/Edit image: ${params.prompt}`;
