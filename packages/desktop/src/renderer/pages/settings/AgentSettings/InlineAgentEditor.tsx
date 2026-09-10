@@ -5,6 +5,7 @@
  */
 
 import type { CustomAgentAdvancedOverrides } from '@/common/types/platform/acpTypes';
+import { buildAdvancedJson, parseAdvancedOverrides } from './advancedOverrides';
 import type { AgentMetadata, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { acpConversation, dialog, fs } from '@/common/adapter/ipcBridge';
 import { useAssistantList } from '@/renderer/hooks/assistant';
@@ -258,23 +259,15 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     }
   }, [t]);
 
-  // Canonical empty shape shown when the user has not filled anything yet.
-  // Keep keys in sync with CustomAgentAdvancedOverrides.
-  const buildJsonFromAdvanced = useCallback((advancedVal: CustomAgentAdvancedOverrides) => {
-    const skeleton: CustomAgentAdvancedOverrides = {
-      yolo_id: advancedVal.yolo_id ?? '',
-      native_skills_dirs: advancedVal.native_skills_dirs ?? [],
-      behavior_policy: advancedVal.behavior_policy ?? { supports_side_question: false },
-      description: advancedVal.description ?? '',
-    };
-    return JSON.stringify(skeleton, null, 2);
-  }, []);
-
+  // Serialization lives in `advancedOverrides.ts` so the round-trip is unit-testable — a key
+  // silently dropped while parsing is indistinguishable, for the user, from one that was saved.
+  // Called directly rather than wrapped in `useCallback`: it is a module-level pure function, so it
+  // is already stable across renders.
   useEffect(() => {
     if (!isJsonEditingRef.current) {
-      setJsonInput(buildJsonFromAdvanced(advanced));
+      setJsonInput(buildAdvancedJson(advanced));
     }
-  }, [advanced, buildJsonFromAdvanced]);
+  }, [advanced]);
 
   useEffect(() => {
     setTestStatus('idle');
@@ -305,28 +298,14 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     isJsonEditingRef.current = true;
     if (jsonEditTimerRef.current) clearTimeout(jsonEditTimerRef.current);
     setJsonInput(value);
-    try {
-      const parsed: unknown = JSON.parse(value);
-      setJsonError('');
-      if (parsed && typeof parsed === 'object') {
-        const next: CustomAgentAdvancedOverrides = {};
-        const p = parsed as Record<string, unknown>;
-        if (typeof p.yolo_id === 'string' && p.yolo_id.trim()) next.yolo_id = p.yolo_id;
-        if (Array.isArray(p.native_skills_dirs)) {
-          const dirs = p.native_skills_dirs.filter((x): x is string => typeof x === 'string');
-          if (dirs.length > 0) next.native_skills_dirs = dirs;
-        }
-        if (p.behavior_policy && typeof p.behavior_policy === 'object') {
-          const bp = p.behavior_policy as Record<string, unknown>;
-          if (typeof bp.supports_side_question === 'boolean') {
-            next.behavior_policy = { supports_side_question: bp.supports_side_question };
-          }
-        }
-        if (typeof p.description === 'string' && p.description.trim()) next.description = p.description;
-        setAdvanced(next);
-      }
-    } catch {
+    const result = parseAdvancedOverrides(value);
+    // `ignored` (valid JSON but not an object) clears the error and keeps the previous bag —
+    // behaviour preserved verbatim from the inline version this replaced.
+    if (result.kind === 'invalid') {
       setJsonError('Invalid JSON');
+    } else {
+      setJsonError('');
+      if (result.kind === 'ok') setAdvanced(result.value);
     }
     jsonEditTimerRef.current = setTimeout(() => {
       isJsonEditingRef.current = false;
