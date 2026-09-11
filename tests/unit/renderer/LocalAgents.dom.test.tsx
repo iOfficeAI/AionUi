@@ -76,6 +76,12 @@ vi.mock('@/common', () => ({
     assistants: {
       list: { invoke: vi.fn().mockResolvedValue([]) },
     },
+    // Agent-side permission policy read/write (OpenCode pilot).
+    permissionPolicy: {
+      list: { invoke: vi.fn().mockResolvedValue([]) },
+      setLevel: { invoke: vi.fn() },
+      clear: { invoke: vi.fn() },
+    },
   },
 }));
 
@@ -91,6 +97,20 @@ vi.mock('@renderer/utils/platform', async () => {
 vi.mock('@/renderer/components/base/AionModal', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({ default: () => null }));
 vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHubModal: () => null }));
+vi.mock('@renderer/pages/settings/AgentSettings/AgentPermissionControl', () => ({
+  AgentPermissionControl: ({
+    policy,
+    onChanged,
+  }: {
+    policy?: { agent: string; current_level: string | null };
+    onChanged?: () => void;
+  }) =>
+    policy ? (
+      <button data-testid='agent-permission-control' onClick={() => onChanged?.()}>
+        {policy.agent}:{policy.current_level ?? '__unmanaged__'}
+      </button>
+    ) : null,
+}));
 
 import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
 import AgentModalContent from '@renderer/components/settings/SettingsModal/contents/AgentModalContent';
@@ -449,5 +469,113 @@ describe('LocalAgents', () => {
     fireEvent.click(unavailableTab);
     expect(screen.queryByText('Aion CLI')).toBeNull();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
+
+  it('fetches permission-policy read-models and renders the control for a supported+installed agent', async () => {
+    useManagedAgents.mockReturnValue({
+      agents: [
+        {
+          id: 'opencode',
+          name: 'OpenCode',
+          agent_type: 'acp',
+          agent_source: 'internal',
+          backend: 'opencode',
+          enabled: true,
+          available: true,
+          installed: true,
+          status: 'online',
+        },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+    vi.mocked(ipcBridge.permissionPolicy.list.invoke).mockResolvedValue([
+      {
+        agent: 'opencode',
+        supported: true,
+        installed: true,
+        current_level: 'auto_edit',
+        config_path: '/home/user/.config/opencode/opencode.json',
+      },
+    ]);
+
+    render(<LocalAgents />);
+
+    await waitFor(() => {
+      expect(ipcBridge.permissionPolicy.list.invoke).toHaveBeenCalled();
+    });
+    // The control renders, echoing agent + effective level from the read-model.
+    expect(screen.getByTestId('agent-permission-control')).toHaveTextContent('opencode:auto_edit');
+  });
+
+  it('leaves permission controls empty when the backend exposes no policy management', async () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+    vi.mocked(ipcBridge.permissionPolicy.list.invoke).mockResolvedValue([]);
+
+    render(<LocalAgents />);
+
+    await waitFor(() => {
+      expect(ipcBridge.permissionPolicy.list.invoke).toHaveBeenCalled();
+    });
+    // No supported+installed agent policy => no control rendered.
+    expect(screen.queryByTestId('agent-permission-control')).toBeNull();
+  });
+
+  it('re-polls the permission-policy read-model when the control reports a change', async () => {
+    useManagedAgents.mockReturnValue({
+      agents: [
+        {
+          id: 'opencode',
+          name: 'OpenCode',
+          agent_type: 'acp',
+          agent_source: 'internal',
+          backend: 'opencode',
+          enabled: true,
+          available: true,
+          installed: true,
+          status: 'online',
+        },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+    const listMock = vi.mocked(ipcBridge.permissionPolicy.list.invoke);
+    listMock.mockResolvedValue([
+      {
+        agent: 'opencode',
+        supported: true,
+        installed: true,
+        current_level: 'auto_edit',
+        config_path: '/home/user/.config/opencode/opencode.json',
+      },
+    ]);
+
+    render(<LocalAgents />);
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByTestId('agent-permission-control'));
+
+    // onChanged re-polls the policy read-model.
+    await waitFor(() => expect(listMock.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it('tolerates a policy-management fetch failure and renders no control', async () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+    vi.mocked(ipcBridge.permissionPolicy.list.invoke).mockRejectedValue(new Error('no backend'));
+
+    render(<LocalAgents />);
+
+    await waitFor(() => {
+      expect(ipcBridge.permissionPolicy.list.invoke).toHaveBeenCalled();
+    });
+    expect(screen.queryByTestId('agent-permission-control')).toBeNull();
   });
 });
