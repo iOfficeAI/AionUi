@@ -19,6 +19,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { quotaToCredits } from '@/renderer/utils/common';
 import billingStyles from './BillingPage.module.css';
 
 type BillingTier = {
@@ -35,7 +36,7 @@ type BillingTier = {
 const tiers: BillingTier[] = [
   {
     price: 5,
-    points: 200,
+    points: 500,
     bonusPoints: 0,
     nameKey: 'billing.tierTrialName',
     descriptionKey: 'billing.tierTrialDescription',
@@ -43,8 +44,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 15,
-    points: 650,
-    bonusPoints: 50,
+    points: 1625,
+    bonusPoints: 125,
     nameKey: 'billing.tierLightName',
     descriptionKey: 'billing.tierLightDescription',
     tagKey: 'billing.tierLightTag',
@@ -52,8 +53,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 30,
-    points: 1500,
-    bonusPoints: 300,
+    points: 3750,
+    bonusPoints: 750,
     nameKey: 'billing.tierSemesterName',
     descriptionKey: 'billing.tierSemesterDescription',
     tagKey: 'billing.tierSemesterTag',
@@ -61,8 +62,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 50,
-    points: 2800,
-    bonusPoints: 800,
+    points: 7000,
+    bonusPoints: 2000,
     nameKey: 'billing.tierAdvancedName',
     descriptionKey: 'billing.tierAdvancedDescription',
     tagKey: 'billing.tierAdvancedTag',
@@ -70,8 +71,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 100,
-    points: 6500,
-    bonusPoints: 2500,
+    points: 16250,
+    bonusPoints: 6250,
     nameKey: 'billing.tierMasterName',
     descriptionKey: 'billing.tierMasterDescription',
     tagKey: 'billing.tierMasterTag',
@@ -80,8 +81,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 200,
-    points: 15000,
-    bonusPoints: 7000,
+    points: 37500,
+    bonusPoints: 17500,
     nameKey: 'billing.tierResearchName',
     descriptionKey: 'billing.tierResearchDescription',
     tagKey: 'billing.tierResearchTag',
@@ -89,8 +90,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 300,
-    points: 25000,
-    bonusPoints: 13000,
+    points: 62500,
+    bonusPoints: 32500,
     nameKey: 'billing.tierFlagshipName',
     descriptionKey: 'billing.tierFlagshipDescription',
     tagKey: 'billing.tierFlagshipTag',
@@ -98,8 +99,8 @@ const tiers: BillingTier[] = [
   },
   {
     price: 500,
-    points: 50000,
-    bonusPoints: 30000,
+    points: 125000,
+    bonusPoints: 75000,
     nameKey: 'billing.tierUltimateName',
     descriptionKey: 'billing.tierUltimateDescription',
     tagKey: 'billing.tierUltimateTag',
@@ -158,7 +159,7 @@ const BillingPage: React.FC = () => {
       setStatus({
         type: 'success',
         text: t('billing.redeemSuccess', {
-          quota: numberFormat.format(result.quota ?? user?.quota ?? 0),
+          quota: numberFormat.format(quotaToCredits(result.quota ?? user?.quota ?? 0)),
         }),
       });
     } else {
@@ -177,7 +178,9 @@ const BillingPage: React.FC = () => {
             <div>
               <div className={billingStyles.balanceLabel}>{t('billing.currentBalance')}</div>
               <div className={billingStyles.balanceValueRow}>
-                <span className={billingStyles.balanceValue}>{numberFormat.format(user?.quota ?? 0)}</span>
+                <span className={billingStyles.balanceValue}>
+                  {numberFormat.format(quotaToCredits(user?.quota ?? 0))}
+                </span>
                 <span className={billingStyles.balanceUnit}>{t('billing.pointsWithEnglish')}</span>
               </div>
             </div>

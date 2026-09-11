@@ -110,14 +110,10 @@ async function openCustomAgentEditor(page: Page, command: string) {
 
   await goToSettings(page, 'agent');
 
-  // The "Add custom Agent" entry is a TalkToButlerButton dropdown; open it and
-  // choose "Add manually" to mount the inline editor modal.
+  // The "Add custom Agent" button mounts the inline editor modal directly.
   const addButton = page.locator('button:has-text("添加自定义 Agent"), button:has-text("Add Custom Agent")').first();
   await expect(addButton).toBeVisible({ timeout: 10_000 });
   await addButton.click();
-  const manualItem = page.locator('.arco-dropdown-menu-item', { hasText: /手动添加|Add manually/ }).first();
-  await expect(manualItem).toBeVisible({ timeout: 5_000 });
-  await manualItem.click();
 
   // Scope everything to the editor modal — the agent cards behind it also
   // carry "测试连接" buttons, which the modal backdrop makes unclickable.

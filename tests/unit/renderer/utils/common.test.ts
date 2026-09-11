@@ -5,9 +5,22 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { removeStack, ToolConfirmationOutcome } from '@/renderer/utils/common';
+import { removeStack, ToolConfirmationOutcome, quotaToCredits } from '@/renderer/utils/common';
 
 describe('common utils', () => {
+  describe('quotaToCredits', () => {
+    it('converts new-api quota to AIbang credits', () => {
+      expect(quotaToCredits(500_000)).toBe(100);
+      expect(quotaToCredits(1_000_000)).toBe(200);
+      expect(quotaToCredits(2_500)).toBe(0);
+    });
+
+    it('never rounds a partial credit up', () => {
+      expect(quotaToCredits(9_999)).toBe(1);
+      expect(quotaToCredits(0)).toBe(0);
+    });
+  });
+
   describe('removeStack', () => {
     it('returns a function that calls cleanup functions in reverse order', () => {
       const order: number[] = [];

@@ -12,14 +12,13 @@ type AuthMode = 'login' | 'register';
 
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
-const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 
-const obfuscate = (text: string): string => {
+const obfuscateUsername = (text: string): string => {
   const encoded = btoa(encodeURIComponent(text));
   return encoded.split('').toReversed().join('');
 };
 
-const deobfuscate = (text: string): string => {
+const deobfuscateUsername = (text: string): string => {
   try {
     const reversed = text.split('').toReversed().join('');
     return decodeURIComponent(atob(reversed));
@@ -31,11 +30,14 @@ const deobfuscate = (text: string): string => {
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { status, login, register } = useAuth();
+  const { status, login, register, sendEmailVerification } = useAuth();
 
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
   const [rememberMe] = useState(true);
   const [agreedTerms, setAgreedTerms] = useState(true);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -60,11 +62,10 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+    localStorage.removeItem('rememberedPassword');
     if (isRememberMe) {
       const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
-      const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
-      if (storedUsername) setUsername(deobfuscate(storedUsername));
-      if (storedPassword) setPassword(deobfuscate(storedPassword));
+      if (storedUsername) setUsername(deobfuscateUsername(storedUsername));
     }
   }, []);
 
@@ -82,19 +83,36 @@ const LoginPage: React.FC = () => {
     [messageTimer]
   );
 
+  const handleSendVerificationCode = useCallback(async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      showMessage({ type: 'error', text: t('login.errors.emptyEmail') });
+      return;
+    }
+    setSendingCode(true);
+    const result = await sendEmailVerification(trimmedEmail);
+    setSendingCode(false);
+    showMessage(
+      result.success
+        ? { type: 'success', text: t('login.verificationSent') }
+        : {
+            type: 'error',
+            text: result.message ?? t('login.errors.verificationFailed'),
+          }
+    );
+  }, [email, showMessage, sendEmailVerification, t]);
+
   const saveRememberedCredentials = useCallback(
     (trimmedUsername: string) => {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_ME_KEY, 'true');
-        localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
-        localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscateUsername(trimmedUsername));
       } else {
         localStorage.removeItem(REMEMBER_ME_KEY);
         localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-        localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
       }
     },
-    [password, rememberMe]
+    [rememberMe]
   );
 
   const handleSubmit = useCallback(
@@ -126,6 +144,8 @@ const LoginPage: React.FC = () => {
         const registration = await register({
           username: trimmedUsername,
           password,
+          ...(email.trim() ? { email: email.trim() } : {}),
+          ...(verificationCode.trim() ? { verificationCode: verificationCode.trim() } : {}),
         });
         if (!registration.success) {
           setLoading(false);
@@ -242,6 +262,8 @@ const LoginPage: React.FC = () => {
               onClick={() => {
                 setAuthMode(authMode === 'login' ? 'register' : 'login');
                 setAwaitingTwoFactor(false);
+                setEmail('');
+                setVerificationCode('');
                 setMessage(null);
               }}
             >
@@ -260,6 +282,43 @@ const LoginPage: React.FC = () => {
                 </span>
               }
             />
+          )}
+
+          {authMode === 'register' && (
+            <>
+              <label className='login-page__label login-page__label--extra' htmlFor='email'>
+                {t('login.email')}
+              </label>
+              <Input
+                id='email'
+                className='login-page__input'
+                placeholder={t('login.emailPlaceholder')}
+                type='email'
+                autoComplete='email'
+                value={email}
+                onChange={setEmail}
+                prefix={<Mail size={16} />}
+              />
+              <Button
+                type='text'
+                className='login-page__forgot-button'
+                loading={sendingCode}
+                onClick={handleSendVerificationCode}
+              >
+                {t('login.sendCode')}
+              </Button>
+              <label className='login-page__label login-page__label--extra' htmlFor='verification-code'>
+                {t('login.verificationCode')}
+              </label>
+              <Input
+                id='verification-code'
+                className='login-page__input'
+                placeholder={t('login.verificationCodePlaceholder')}
+                autoComplete='one-time-code'
+                value={verificationCode}
+                onChange={setVerificationCode}
+              />
+            </>
           )}
 
           <form className='login-page__form' onSubmit={handleSubmit}>

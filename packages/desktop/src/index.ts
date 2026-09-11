@@ -7,6 +7,7 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
+import './process/utils/desktopEnv';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { describeUncaughtError } from './process/utils/describeUncaughtError';
 import type { UncaughtErrorDiagnostics } from './process/utils/describeUncaughtError';
@@ -17,6 +18,7 @@ initSentry();
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor, session } from 'electron';
+import type { WebContents } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -88,6 +90,63 @@ const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+
+const privilegedWebContents = new Set<WebContents>();
+
+function isPrivilegedWebContents(webContents: WebContents): boolean {
+  return privilegedWebContents.has(webContents);
+}
+
+function isAllowedRendererUrl(targetUrl: string): boolean {
+  const devRendererUrl = process.env.ELECTRON_RENDERER_URL;
+  if (devRendererUrl) {
+    return targetUrl === devRendererUrl || targetUrl.startsWith(`${devRendererUrl}/`);
+  }
+  try {
+    const parsedUrl = new URL(targetUrl);
+    if (parsedUrl.protocol !== 'file:') return false;
+    const rendererPath = path.join(__dirname, '../renderer');
+    const targetPath = decodeURIComponent(parsedUrl.pathname);
+    const normalizedTarget = path.resolve(targetPath);
+    const normalizedRenderer = path.resolve(rendererPath);
+    return normalizedTarget === normalizedRenderer || normalizedTarget.startsWith(`${normalizedRenderer}${path.sep}`);
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedWebviewNavigation(targetUrl: string): boolean {
+  try {
+    return ['about:', 'data:', 'blob:', 'file:', 'http:', 'https:'].includes(new URL(targetUrl).protocol);
+  } catch {
+    return false;
+  }
+}
+
+function installWebContentsHardening(): void {
+  app.on('web-contents-created', (_event, webContents) => {
+    webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    webContents.on('will-navigate', (event, targetUrl) => {
+      const isAllowed = isPrivilegedWebContents(webContents)
+        ? isAllowedRendererUrl(targetUrl)
+        : webContents.getType() === 'webview' && isAllowedWebviewNavigation(targetUrl);
+      if (!isAllowed) {
+        event.preventDefault();
+      }
+    });
+    webContents.on('will-attach-webview', (event, webPreferences, params) => {
+      delete webPreferences.preload;
+      webPreferences.nodeIntegration = false;
+      webPreferences.contextIsolation = true;
+      webPreferences.sandbox = true;
+      webPreferences.enableWebSQL = false;
+      if (!isAllowedWebviewNavigation(params.src)) {
+        event.preventDefault();
+      }
+    });
+  });
+}
+installWebContentsHardening();
 if (!gotTheLock) {
   console.warn('[AIbang] Another instance is already running; current process will exit.');
   app.quit();
@@ -503,6 +562,11 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
+  const mainWindowWebContents = mainWindow.webContents;
+  privilegedWebContents.add(mainWindowWebContents);
+  mainWindowWebContents.once('destroyed', () => {
+    privilegedWebContents.delete(mainWindowWebContents);
+  });
   console.log(`[AIbang] Main window created (id=${mainWindow.id})`);
 
   scheduleStartupLogReport(mainWindow);
@@ -718,15 +782,12 @@ const handleAppReady = async (): Promise<void> => {
 
   setSentryDeviceId();
 
-  // Allow the renderer's Local Font Access queries (window.queryLocalFonts),
-  // used by the appearance font picker to enumerate installed fonts. Electron 37
-  // surfaces the 'local-fonts' permission as 'unknown' and denies it when no
-  // request handler is installed. Grant it here; other permissions are granted
-  // too so installing this handler preserves Electron's default-grant behaviour
-  // and regresses no capability the app already relies on. Runs once, before any
-  // window is created.
-  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
-    callback(true);
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    const isPrivilegedRenderer = isPrivilegedWebContents(webContents);
+    const capability = permission as string;
+    const isAllowedCapability =
+      capability === 'local-fonts' || capability === 'media' || capability === 'notifications';
+    callback(isPrivilegedRenderer && isAllowedCapability);
   });
 
   try {

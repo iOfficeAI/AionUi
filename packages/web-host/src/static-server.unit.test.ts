@@ -398,26 +398,28 @@ describe('static-server', () => {
     expect(received).toBe(BODY_LEN);
   });
 
-  it('network URL populated only when allowRemote=true', async () => {
+  it('fails closed when remote access has no TLS material', async () => {
     const backend = await startMockBackend((_req, res) => res.end('nope'));
     stopBackend = backend.close;
-    const h1 = await startStaticServer({
+    await expect(
+      startStaticServer({
+        staticDir,
+        backendPort: backend.port,
+        port: 0,
+        allowRemote: true,
+      })
+    ).rejects.toThrow(/Remote WebUI requires/);
+  });
+
+  it('does not advertise a network URL for loopback-only mode', async () => {
+    const backend = await startMockBackend((_req, res) => res.end('nope'));
+    stopBackend = backend.close;
+    handle = await startStaticServer({
       staticDir,
       backendPort: backend.port,
       port: 0,
       allowRemote: false,
     });
-    expect(h1.networkUrl).toBeUndefined();
-    await h1.stop();
-
-    const h2 = await startStaticServer({
-      staticDir,
-      backendPort: backend.port,
-      port: 0,
-      allowRemote: true,
-    });
-    // may still be undefined on CI machines without a LAN interface
-    expect(typeof h2.networkUrl === 'string' || h2.networkUrl === undefined).toBe(true);
-    await h2.stop();
+    expect(handle.networkUrl).toBeUndefined();
   });
 });

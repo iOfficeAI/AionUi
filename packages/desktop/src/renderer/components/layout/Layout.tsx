@@ -8,10 +8,9 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
-import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
+import { Layout as ArcoLayout } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
 import { usePreviewContext } from '@renderer/pages/conversation/Preview';
@@ -144,27 +143,8 @@ const Layout: React.FC<{
     setGlobalNavigate(navigate);
     return () => setGlobalNavigate(null);
   }, [navigate]);
-  const { t } = useTranslation();
-  // The "AIbang" wordmark acts as Home / Back-to-Chat, but only from settings routes.
-  // In non-settings routes the user is already "home", so it is a no-op (and not actionable).
+  // Settings routes hide the sider brand header and render SettingsSider instead.
   const isSettingsRoute = location.pathname.startsWith('/settings');
-  // Only wired to the wordmark in the isSettingsRoute branch below, so the
-  // "no-op outside settings" contract is enforced structurally — no internal
-  // route guard needed (the chat-route wordmark is a plain, inert div).
-  const handleBrandHome = useCallback(() => {
-    // Mirror Titlebar's handleBackToChat convention: return to the last non-settings path.
-    let target: string | null = null;
-    try {
-      target = sessionStorage.getItem('aion:last-non-settings-path');
-    } catch {
-      // ignore
-    }
-    if (target && !target.startsWith('/settings')) {
-      void navigate(target);
-      return;
-    }
-    void navigate('/guid');
-  }, [navigate]);
   // Close preview whenever the user leaves the conversation route entirely
   // (e.g. switches to a team, /guid, or settings). Within /conversation/:id
   // the finer-grained closePreviewIfScopeChanged in conversation/index.tsx
@@ -390,63 +370,47 @@ const Layout: React.FC<{
               })}
               style={siderStyle}
             >
-              <ArcoLayout.Header
-                className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
-                  isMobile && 'layout-sider-header--mobile',
-                  {
-                    'cursor-pointer group ': collapsed,
-                  }
-                )}
-              >
-                <div
-                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
-                    '!size-24px': collapsed,
-                  })}
-                  onClick={onClick}
+              {/* Settings routes hide the brand header — the settings sider
+                  leads with its own "back to workspace" row. */}
+              {!isSettingsRoute && (
+                <ArcoLayout.Header
+                  className={classNames(
+                    'flex items-center justify-start pt-8px pb-8px ps-18px pe-16px gap-12px layout-sider-header',
+                    isMobile && 'layout-sider-header--mobile',
+                    {
+                      'cursor-pointer group ': collapsed,
+                    }
+                  )}
                 >
-                  <img
-                    src={logoPng}
-                    alt='AIbang'
-                    className={classNames('absolute inset-0 size-full rd-0.5rem object-cover', {
-                      'scale-140': !collapsed,
+                  <div
+                    className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
+                      '!size-24px': collapsed,
                     })}
-                  />
-                </div>
-                {isSettingsRoute ? (
-                  <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
-                    <div
-                      className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
-                      role='button'
-                      tabIndex={0}
-                      aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
-                      onClick={handleBrandHome}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleBrandHome();
-                        }
-                      }}
-                    >
-                      AIbang
-                    </div>
-                  </Tooltip>
-                ) : (
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AIbang</div>
-                )}
-                {isMobile && !collapsed && (
-                  <button
-                    type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
-                    onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
-                    aria-label='Collapse sidebar'
+                    onClick={onClick}
                   >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
-                  </button>
-                )}
-                {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-              </ArcoLayout.Header>
+                    <img
+                      src={logoPng}
+                      alt='AIbang'
+                      className={classNames('absolute inset-0 size-full rd-0.5rem object-cover', {
+                        'scale-140': !collapsed,
+                      })}
+                    />
+                  </div>
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AIbang</div>
+                  {isMobile && !collapsed && (
+                    <button
+                      type='button'
+                      className='app-titlebar__button app-titlebar__button--mobile'
+                      onClick={() => setCollapsed(true)}
+                      title='Collapse sidebar'
+                      aria-label='Collapse sidebar'
+                    >
+                      <SidebarIcon size={18} strokeWidth={2.5} />
+                    </button>
+                  )}
+                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                </ArcoLayout.Header>
+              )}
               <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
                 {React.isValidElement(sider)
                   ? React.cloneElement(sider, {

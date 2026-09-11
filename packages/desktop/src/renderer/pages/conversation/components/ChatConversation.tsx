@@ -362,7 +362,7 @@ const ChatConversation: React.FC<{
   }, [t]);
 
   // Keep the runtime selector mounted for warmup/readiness accounting, but AIbang
-  // exposes a single middleware-backed Codex model, so the control stays hidden.
+  // exposes a single new-api-backed Codex model, so the control stays hidden.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;

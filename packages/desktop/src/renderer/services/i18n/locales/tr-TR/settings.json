@@ -185,7 +185,7 @@
   "officialAssistantsHint": "Resmi asistanlar AIbang tarafından sürdürülür ve her sürümle güncellenir. Listelerinizde kullanmak için birini etkinleştirin; kendinize özel bir sürüm uyarlamak için onu asistanınız olarak çoğaltın.",
   "officialAssistantsHintShort": "AIbang içine gömülü resmi asistanlar; resmi olarak sürdürülür ve her sürümle güncellenir. Serbestçe özelleştirmek için \"Asistanım\" olarak çoğaltın.",
   "customEmptyTitle": "Henüz özel asistan yok",
-  "customEmptyBody": "Sohbet yoluyla bir tane oluşturun veya resmi bir asistanı çoğaltın.",
+  "customEmptyBody": "Kendi asistanınızı oluşturmak için resmi bir asistanı çoğaltın.",
   "customEmptyCreate": "Sohbetle oluştur",
   "customEmptyBrowseOfficial": "Resmileri göz at",
   "reorderCoachTitle": "Sıralamak için sürükleyin",
@@ -464,7 +464,7 @@
   "agent": "Ajan",
   "skills": "Beceriler",
   "tools": "Araçlar",
-  "toolsDescription": "MCP sunucularını ve görüntü oluşturma gibi yerleşik araçları yapılandırın. Görüntü oluşturma yalnızca Model sayfasında görüntü destekli bir model yapılandırıldıktan sonra etkinleştirilebilir.",
+  "toolsDescription": "MCP sunucularını manuel olarak yapılandırın.",
   "modelDescription": "Tüm asistanlarda kullanmak için LLM sağlayıcılarını ve API anahtarlarını yapılandırın. Özel modelleri yalnızca Aion CLI destekler; diğer aracılar kendi yerleşik modellerini kullanır.",
   "capabilities": "Yetenekler",
   "capabilitiesTab": {
@@ -484,6 +484,7 @@
   "webui.portDesc": "Web Arayüzü servis dinleme portu",
   "webui.allowRemote": "Uzaktan Erişime İzin Ver",
   "webui.allowRemoteDesc": "Güvenli uzaktan erişim için uzak yazılım/sunucu kullan",
+  "webui.tlsRequired": "Uzaktan erişim için TLS gerekir. AIONUI_WEBUI_TLS_CERT ve AIONUI_WEBUI_TLS_KEY değerlerini mevcut sertifika ve özel anahtar dosyalarına ayarlayın.",
   "webui.viewGuide": "Rehberi Görüntüle",
   "webui.accessInfo": "Erişim URL'leri",
   "webui.localUrl": "Yerel URL",
@@ -1113,7 +1114,10 @@
     "step1": "WeChat'te botunuzu bulun ve bir mesaj gonderin",
     "step2": "Bir eslesme istegi asagida gorunecektir. Kullaniciyi yetkilendirmek icin \"Onayla\"'ya tiklayin",
     "step3": "Onaylandiktan sonra, WeChat uzerinden AI asistani ile sohbet edebilirsiniz!",
-    "loginRequired": "Lütfen önce WeChat QR kodu ile giriş yapın"
+    "loginRequired": "Lütfen önce WeChat QR kodu ile giriş yapın",
+    "connectTitle": "WeChat Bağlantısı",
+    "connectDesc": "QR kodu okutarak bağlanın ve WeChat üzerinden AIbang ile sohbet edin",
+    "notConnected": "Bağlı değil"
   },
   "wecom": {
     "callbackTitle": "WeCom geri arama URL'si",

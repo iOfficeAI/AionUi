@@ -4,6 +4,7 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
+  ArrowLeft,
   Cat,
   Communication,
   Computer,
@@ -191,10 +192,48 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (
     <div
-      className={classNames('h-full settings-sider flex flex-col gap-2px overflow-y-auto overflow-x-hidden', {
+      className={classNames('h-full settings-sider flex flex-col gap-2px overflow-y-auto overflow-x-hidden pt-8px', {
         'settings-sider--collapsed': collapsed,
       })}
     >
+      <Tooltip {...siderTooltipProps} content={t('common.backToWorkspace')} position='right'>
+        <div
+          role='button'
+          tabIndex={0}
+          aria-label={t('common.backToWorkspace')}
+          data-settings-id='back-to-workspace'
+          className={classNames(
+            'settings-sider__item h-34px w-full flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 transition-colors hover:bg-fill-3 rd-8px',
+            collapsed ? 'justify-center px-0' : 'justify-start px-10px'
+          )}
+          onClick={() => {
+            Promise.resolve(navigate('/', { replace: true })).catch((error) => {
+              console.error('Navigation failed:', error);
+            });
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              Promise.resolve(navigate('/', { replace: true })).catch((error) => {
+                console.error('Navigation failed:', error);
+              });
+            }
+          }}
+        >
+          {/* Leading icon — 22px slot to align with the menu rows */}
+          <span className='size-22px flex items-center justify-center shrink-0 line-height-0'>
+            <ArrowLeft
+              theme='outline'
+              size='16'
+              strokeWidth={3}
+              className='block leading-none text-t-tertiary transition-colors group-hover:text-t-primary'
+            />
+          </span>
+          <span className='collapsed-hidden text-nowrap overflow-hidden text-14px font-[500] lh-24px whitespace-nowrap text-t-tertiary transition-colors group-hover:text-t-primary'>
+            {t('common.backToWorkspace')}
+          </span>
+        </div>
+      </Tooltip>
       {menus.map((item, index) => {
         const isSelected = pathname.includes(item.path);
         const groupHeaderKey = groupHeaderAt.get(index);

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { isSuppressedBuiltinLogo } from '@/renderer/utils/model/builtinAgentLogos';
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 
 export type AssistantAvatar =
@@ -31,6 +32,11 @@ export function resolveAssistantAvatar(avatar: string | undefined): AssistantAva
   if (isLikelyLocalFilePath(value)) {
     return { kind: 'fallback' };
   }
+
+  if (isSuppressedBuiltinLogo(value)) {
+    return { kind: 'fallback' };
+  }
+
   if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) {
     return { kind: 'fallback' };
   }

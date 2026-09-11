@@ -8,7 +8,7 @@ const {
 } = require('../../../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
 const CLAUDE_VERSION = '2.1.215';
-const CODEX_VERSION = '0.144.6';
+const CODEX_VERSION = '0.149.1';
 
 // codex ships under vendor/<triple>/... ; the triple is platform-specific.
 const CODEX_TRIPLE: Record<string, string> = {
@@ -34,6 +34,17 @@ function codexExecutable(runtimeKey: string) {
 
 function codexVendorDir(runtimeKey: string) {
   return `vendor/${CODEX_TRIPLE[runtimeKey]}`;
+}
+
+function codexRequiredFiles(runtimeKey: string) {
+  const suffix = exeSuffix(runtimeKey);
+  const vendorRoot = codexVendorDir(runtimeKey);
+  return [
+    `${vendorRoot}/bin/codex${suffix}`,
+    `${vendorRoot}/bin/codex-code-mode-host${suffix}`,
+    `${vendorRoot}/codex-path/rg`,
+    `${vendorRoot}/codex-resources/zsh/bin/zsh`,
+  ];
 }
 
 function writeFile(filePath: string) {
@@ -67,6 +78,7 @@ function createManagedCliFixture({
     writeFile(join(root, 'vendor', triple, 'bin', `codex${exeSuffix(runtimeKey)}`));
     writeFile(join(root, 'vendor', triple, 'bin', `codex-code-mode-host${exeSuffix(runtimeKey)}`));
     writeFile(join(root, 'vendor', triple, 'codex-path', 'rg'));
+    writeFile(join(root, 'vendor', triple, 'codex-resources', 'zsh', 'bin', 'zsh'));
   }
   return root;
 }
@@ -89,7 +101,7 @@ function contractCli({ name, version, runtimeKey }: { name: string; version: str
     root: `cli/${name}/${version}/${runtimeKey}`,
     platformDirectory: runtimeKey,
     executable: codexExecutable(runtimeKey),
-    requiredFiles: [],
+    requiredFiles: codexRequiredFiles(runtimeKey),
     requiredDirectories: [codexVendorDir(runtimeKey)],
   };
 }
@@ -366,10 +378,8 @@ describe('verifyBundledAioncoreResources', () => {
     expect(result.missing).toContain('bundled-aioncore/win32-x64/managed-resources/manifest.json<contract_failure>');
   });
 
-  it('accepts a contract with no bundled CLIs at all', () => {
-    // claude/codex are no longer shipped inside managed-resources — they run
-    // from the user's own install, like agy always has — so an empty `clis`
-    // list is the normal shape, not a packaging failure.
+  it('rejects a contract with no bundled CLIs at all', () => {
+    // Codex is a first-class product requirement and must ship offline.
     const manifestPath = join(managedResourcesDir, 'manifest.json');
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
     manifest.clis = [];
@@ -381,7 +391,12 @@ describe('verifyBundledAioncoreResources', () => {
       targetArch: 'x64',
     });
 
-    expect(result.failures).toEqual([]);
+    expect(result.failures).toContainEqual(
+      expect.objectContaining({
+        component: 'codex',
+        reason: 'missing_required_cli',
+      })
+    );
   });
 
   it('still validates CLI entries that a bundle does carry', () => {

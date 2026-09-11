@@ -183,7 +183,7 @@
   "assistantGroupCreated": "Custom Assistants",
   "myAssistantsEmpty": "No assistants here yet. Enable an official assistant, or connect a local CLI tool.",
   "customEmptyTitle": "No custom assistants yet",
-  "customEmptyBody": "Create one through chat, or duplicate an official assistant.",
+  "customEmptyBody": "Duplicate an official assistant to create your own.",
   "customEmptyCreate": "Create via chat",
   "customEmptyBrowseOfficial": "Browse official",
   "officialAssistantsHint": "Official assistants are maintained by AIbang and updated with each release. Enable one to use it in your lists; to tailor your own version, duplicate it as your assistant.",
@@ -464,7 +464,7 @@
   "agent": "Agent",
   "skills": "Skills",
   "tools": "Tools",
-  "toolsDescription": "Configure MCP servers and built-in tools like image generation. Image generation must be enabled after configuring an image-capable model on the Model page.",
+  "toolsDescription": "Configure MCP servers manually.",
   "modelDescription": "Configure LLM providers and API keys for use across all assistants. Only Aion CLI supports custom models; other agents use their own built-in models.",
   "capabilities": "Capabilities",
   "capabilitiesTab": {
@@ -484,6 +484,7 @@
   "webui.portDesc": "WebUI service listening port",
   "webui.allowRemote": "Allow Remote Access",
   "webui.allowRemoteDesc": "Use remote software/server for secure remote access",
+  "webui.tlsRequired": "Remote access requires TLS. Set AIONUI_WEBUI_TLS_CERT and AIONUI_WEBUI_TLS_KEY to existing certificate and private-key files.",
   "webui.viewGuide": "View Guide",
   "webui.accessInfo": "Access URLs",
   "webui.localUrl": "Local URL",
@@ -1125,7 +1126,10 @@
     "step1": "Find and send a message to your bot in WeChat",
     "step2": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
     "step3": "Once approved, you can start chatting with the AI assistant through WeChat!",
-    "loginRequired": "Please login with WeChat QR code first"
+    "loginRequired": "Please login with WeChat QR code first",
+    "connectTitle": "WeChat Connect",
+    "connectDesc": "Scan to connect, then chat with AIbang via WeChat",
+    "notConnected": "Not connected"
   },
   "wecom": {
     "callbackTitle": "WeCom callback URL",

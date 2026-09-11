@@ -30,7 +30,7 @@
  */
 export const BROWSER_SESSION_PARTITION = 'persist:aibang-browser';
 
-/** The only user-facing Codex model exposed by the AIbang middleware. */
+/** The only user-facing Codex model exposed by the AIbang new-api gateway. */
 export const AIBANG_FORCED_CODEX_MODEL = 'gpt-5.6-sol';
 
 /**

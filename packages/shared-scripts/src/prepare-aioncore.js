@@ -19,10 +19,18 @@ const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
+const { BUNDLED_CODEX_VERSION, verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
 
 const GITHUB_OWNER = 'iOfficeAI';
 const GITHUB_REPO = 'AionCore';
+const CODEX_VENDOR_TRIPLES = {
+  'darwin-arm64': 'aarch64-apple-darwin',
+  'darwin-x64': 'x86_64-apple-darwin',
+  'linux-arm64': 'aarch64-unknown-linux-musl',
+  'linux-x64': 'x86_64-unknown-linux-musl',
+  'win32-arm64': 'aarch64-pc-windows-msvc',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+};
 
 const ACTIONS_ARTIFACT_TARGETS = {
   'darwin-arm64': {
@@ -114,7 +122,90 @@ function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtif
   ].join(' ');
 }
 
-function prepareManagedResources(binaryPath, targetDir) {
+function codexExecutablePaths(runtimeKey) {
+  const suffix = runtimeKey.startsWith('win32') ? '.exe' : '';
+  return [`bin/codex${suffix}`, `bin/codex-code-mode-host${suffix}`, 'codex-path/rg', 'codex-resources/zsh/bin/zsh'];
+}
+
+function prepareBundledCodexCli(managedRoot, platform, arch) {
+  const runtimeKey = `${platform}-${arch}`;
+  const vendorTriple = CODEX_VENDOR_TRIPLES[runtimeKey];
+  if (!vendorTriple) throw new Error(`Unsupported bundled Codex target: ${runtimeKey}`);
+
+  const cliRoot = path.join(managedRoot, 'cli', 'codex', BUNDLED_CODEX_VERSION, runtimeKey);
+  const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aibang-codex-'));
+  const packageJsonPath = path.join(stageDir, 'package.json');
+  const sourceVendorPath = path.join(stageDir, 'node_modules', '@openai', 'codex', 'vendor', vendorTriple);
+  const targetVendorPath = path.join(cliRoot, 'vendor', vendorTriple);
+
+  removeDirectorySafe(cliRoot);
+  ensureDirectory(cliRoot);
+  writeJson(packageJsonPath, {
+    name: 'aibang-bundled-codex',
+    private: true,
+    version: '0.0.0',
+    dependencies: {
+      '@openai/codex': `${BUNDLED_CODEX_VERSION}-${runtimeKey}`,
+    },
+  });
+
+  try {
+    console.log(`  Installing bundled Codex CLI ${BUNDLED_CODEX_VERSION} for ${runtimeKey}`);
+    execFileSync(
+      process.platform === 'win32' ? 'npm.cmd' : 'npm',
+      ['install', '--ignore-scripts', '--no-audit', '--no-fund'],
+      { cwd: stageDir, stdio: 'inherit' }
+    );
+
+    if (!fs.existsSync(sourceVendorPath)) {
+      throw new Error(`Codex platform package did not contain vendor/${vendorTriple}`);
+    }
+
+    ensureDirectory(path.dirname(targetVendorPath));
+    fs.cpSync(sourceVendorPath, targetVendorPath, { recursive: true, force: true });
+
+    if (process.platform !== 'win32') {
+      for (const executable of codexExecutablePaths(runtimeKey)) {
+        fs.chmodSync(path.join(targetVendorPath, executable), 0o755);
+      }
+    }
+
+    for (const executable of codexExecutablePaths(runtimeKey)) {
+      const executablePath = path.join(targetVendorPath, executable);
+      if (!fs.existsSync(executablePath)) {
+        throw new Error(`Bundled Codex runtime is missing ${executable}`);
+      }
+    }
+
+    const manifestPath = path.join(managedRoot, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.clis = [
+      ...((Array.isArray(manifest.clis) ? manifest.clis : []) || []).filter((cli) => cli?.name !== 'codex'),
+      {
+        name: 'codex',
+        version: BUNDLED_CODEX_VERSION,
+        root: path.posix.join('cli', 'codex', BUNDLED_CODEX_VERSION, runtimeKey),
+        platformDirectory: runtimeKey,
+        executable: path.posix.join(
+          'vendor',
+          vendorTriple,
+          'bin',
+          `codex${runtimeKey.startsWith('win32') ? '.exe' : ''}`
+        ),
+        requiredFiles: codexExecutablePaths(runtimeKey).map((executable) =>
+          path.posix.join('vendor', vendorTriple, executable)
+        ),
+        requiredDirectories: [path.posix.join('vendor', vendorTriple)],
+      },
+    ].toSorted((left, right) => left.name.localeCompare(right.name));
+    writeJson(manifestPath, manifest);
+    console.log(`  Bundled Codex CLI prepared: ${path.relative(process.cwd(), cliRoot)}`);
+  } finally {
+    removeDirectorySafe(stageDir);
+  }
+}
+
+function prepareManagedResources(binaryPath, targetDir, platform, arch) {
   const bundleOut = path.join(targetDir, 'managed-resources');
   const dataDir = path.join(targetDir, '.prepare-data');
 
@@ -132,6 +223,7 @@ function prepareManagedResources(binaryPath, targetDir) {
     },
   });
 
+  prepareBundledCodexCli(bundleOut, platform, arch);
   removeDirectorySafe(dataDir);
   return bundleOut;
 }
@@ -554,7 +646,7 @@ function prepareAioncore(options) {
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
-    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
+    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir, platform, arch);
 
     // The release tag is the authoritative version — the aioncore
     // binary does not expose a --version flag (it has --app-version which

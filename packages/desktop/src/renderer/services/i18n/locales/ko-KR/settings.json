@@ -185,7 +185,7 @@
   "officialAssistantsHint": "공식 어시스턴트는 AIbang가 지속적으로 관리하며 릴리스마다 업데이트됩니다. 활성화하면 목록에서 사용할 수 있습니다. 나만의 버전으로 다듬으려면 내 어시스턴트로 복제하세요.",
   "officialAssistantsHintShort": "AIbang에 내장된 공식 어시스턴트로, 공식적으로 지속 관리되며 버전마다 업데이트됩니다. \"내 어시스턴트\"로 복제하면 자유롭게 편집할 수 있습니다.",
   "customEmptyTitle": "아직 사용자 지정 어시스턴트가 없습니다",
-  "customEmptyBody": "채팅을 통해 만들거나 공식 어시스턴트를 복제하세요.",
+  "customEmptyBody": "공식 어시스턴트를 복제해 나만의 어시스턴트를 만드세요.",
   "customEmptyCreate": "채팅으로 만들기",
   "customEmptyBrowseOfficial": "공식 둘러보기",
   "reorderCoachTitle": "드래그하여 순서 변경",
@@ -464,7 +464,7 @@
   "agent": "에이전트",
   "skills": "스킬",
   "tools": "도구",
-  "toolsDescription": "MCP 서버와 이미지 생성 등 내장 도구를 구성합니다. 이미지 생성은 모델 페이지에서 이미지 지원 모델을 구성한 후에만 활성화할 수 있습니다.",
+  "toolsDescription": "MCP 서버를 수동으로 구성합니다.",
   "modelDescription": "모든 어시스턴트에서 사용할 LLM 공급자와 API 키를 구성합니다. 사용자 지정 모델은 Aion CLI만 지원하며, 다른 에이전트는 각자의 내장 모델을 사용합니다.",
   "capabilities": "기능 확장",
   "capabilitiesTab": {
@@ -484,6 +484,7 @@
   "webui.portDesc": "WebUI 서비스 리스닝 포트",
   "webui.allowRemote": "원격 접근 허용",
   "webui.allowRemoteDesc": "원격 소프트웨어/서버로 안전한 원격 접근",
+  "webui.tlsRequired": "원격 접근에는 TLS가 필요합니다. AIONUI_WEBUI_TLS_CERT와 AIONUI_WEBUI_TLS_KEY를 실제 존재하는 인증서와 개인 키 파일로 설정하세요.",
   "webui.viewGuide": "가이드 보기",
   "webui.accessInfo": "접근 URL",
   "webui.localUrl": "로컬 URL",
@@ -1115,7 +1116,10 @@
     "step1": "WeChat에서 봇을 찾아 메시지를 보내세요",
     "step2": "페어링 요청이 아래에 표시됩니다. 사용자를 승인하려면 \"승인\"을 클릭하세요",
     "step3": "승인되면 WeChat을 통해 AI 어시스턴트와 채팅할 수 있습니다!",
-    "loginRequired": "먼저 WeChat QR 코드로 로그인해 주세요"
+    "loginRequired": "먼저 WeChat QR 코드로 로그인해 주세요",
+    "connectTitle": "WeChat 연결",
+    "connectDesc": "QR 코드를 스캔해 연결하면 WeChat으로 AIbang과 대화할 수 있습니다",
+    "notConnected": "연결되지 않음"
   },
   "wecom": {
     "callbackTitle": "WeCom 콜백 URL",

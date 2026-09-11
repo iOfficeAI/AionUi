@@ -8,6 +8,7 @@ export interface WebUIStatus {
   lanIP?: string;
   adminUsername: string;
   initialPassword?: string;
+  tlsConfigured: boolean;
 }
 
 export interface ElectronBridgeAPI {

@@ -18,7 +18,6 @@
 import { ipcBridge } from '@/common';
 import type { Assistant, UpdateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
-import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import AssistantAvatar from '@/renderer/pages/settings/AssistantSettings/AssistantAvatar';
 import { Button, Dropdown, Menu, Message, Spin, Typography } from '@arco-design/web-react';
 import { ArrowLeft, Close, Plus, Right } from '@icon-park/react';
@@ -76,7 +75,6 @@ const SkillDetailPage: React.FC = () => {
   const localeKey = resolveLocaleKey(i18n.language);
   const location = useLocation();
   const navigate = useNavigate();
-  const talkToButler = useTalkToButler();
   const { skillName = '' } = useParams<{ skillName: string }>();
   const decodedName = decodeURIComponent(skillName);
   const [saving, setSaving] = useState(false);
@@ -116,16 +114,6 @@ const SkillDetailPage: React.FC = () => {
   const goBack = useCallback(() => {
     void navigate('/settings/skills', { state: { skillsTab: originTab } });
   }, [navigate, originTab]);
-
-  const editViaChat = useCallback(() => {
-    void talkToButler({
-      prompt: t('settings.skillsHub.editViaChat.defaultPrompt', {
-        skillName: decodedName,
-        defaultValue:
-          "I'd like to improve this Skill: {{skillName}}\n\nPlease review its content and help me make improvements. My suggestions are:",
-      }),
-    });
-  }, [decodedName, t, talkToButler]);
 
   const openAssistant = useCallback(
     (assistantId: string) => {
@@ -325,17 +313,6 @@ const SkillDetailPage: React.FC = () => {
             <SectionCard
               title={t('settings.skillsHub.detailFilesTitle', { defaultValue: 'Skill files' })}
               data-testid='skill-detail-files'
-              extra={
-                <Button
-                  size='mini'
-                  type='text'
-                  data-testid='btn-edit-skill-via-chat'
-                  onClick={editViaChat}
-                  className='!h-24px !px-8px !text-12px !text-t-secondary hover:!text-t-primary'
-                >
-                  {t('settings.skillsHub.editViaChat.buttonLabel', { defaultValue: 'Edit via chat' })}
-                </Button>
-              }
             >
               <SkillFileBrowser skill={skill} />
             </SectionCard>

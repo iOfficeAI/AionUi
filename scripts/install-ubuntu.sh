@@ -204,8 +204,13 @@ start() {
     echo "🚀 正在啟動 AIbang WebUI..."
     cd "$WORKDIR" || exit 1
 
+    local remote_args=()
+    if [ -n "${AIONUI_WEBUI_TLS_CERT:-}" ] && [ -n "${AIONUI_WEBUI_TLS_KEY:-}" ]; then
+        remote_args=(--remote)
+    fi
+
     nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-        /usr/bin/AIbang --webui --remote --no-sandbox \
+        /usr/bin/AIbang --webui "${remote_args[@]}" --no-sandbox \
         > "$LOGFILE" 2>&1 &
 
     echo $! > "$PIDFILE"
@@ -214,8 +219,12 @@ start() {
     if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
         echo "✅ AIbang 啟動成功 (PID: $(cat "$PIDFILE"))"
         local ip
-        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        echo "🌐 WebUI: http://${ip:-localhost}:25808"
+        if [ ${#remote_args[@]} -gt 0 ]; then
+            ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+            echo "🌐 WebUI: https://${ip:-localhost}:25808"
+        else
+            echo "🌐 WebUI: http://127.0.0.1:25808 (use SSH tunneling for remote access)"
+        fi
     else
         echo "❌ AIbang 啟動失敗，請查看日誌: $LOGFILE"
         rm -f "$PIDFILE"

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EditOne, FolderClose, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
+import { EditOne, FolderClose, Peoples, Pushpin } from '@icon-park/react';
 import { Input, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
@@ -16,7 +16,6 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
 import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
-import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
 import { ipcBridge } from '@/common';
 import SiderItem from './SiderItem';
 import type { SiderMenuItem } from './SiderItem';
@@ -45,12 +44,6 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const teamBadgeCounts = useSiderTeamBadges(teams);
   const isTeamRunning = useSiderTeamRunning(teams);
   const { mutate: globalMutate } = useSWRConfig();
-
-  const [createTeamVisible, setCreateTeamVisible] = useState(false);
-  const [expanded, setExpanded] = useState<boolean>(() => localStorage.getItem('team-section-expanded') === 'true');
-  useEffect(() => {
-    localStorage.setItem('team-section-expanded', String(expanded));
-  }, [expanded]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
@@ -179,44 +172,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
         )
       ) : (
         <div className='shrink-0 flex flex-col gap-2px'>
-          <div
-            className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-8px cursor-pointer'
-            data-testid='team-section-toggle'
-            onClick={() => setExpanded((v) => !v)}
-          >
-            <span className='text-14px text-t-tertiary sider-section-title group-hover/label:text-t-primary transition-colors font-[500] leading-none'>
-              {t('team.sider.title')}
-            </span>
-            <span className='ms-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
-              <Right
-                theme='outline'
-                size={12}
-                className={classNames('transition-transform duration-150', { 'rotate-90': expanded })}
-              />
-            </span>
-            {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
-                如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
-            <Tooltip content={t('team.sider.createTeam')} position='top'>
-              <div
-                data-testid='team-create-btn'
-                className='ms-auto -me-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCreateTeamVisible(true);
-                }}
-              >
-                <Plus
-                  theme='outline'
-                  size='14'
-                  fill='currentColor'
-                  className='block leading-none'
-                  style={{ lineHeight: 0 }}
-                />
-              </div>
-            </Tooltip>
-          </div>
-          {expanded &&
-            sortedTeams.length > 0 &&
+          {sortedTeams.length > 0 &&
             sortedTeams.map((team) => {
               const isPinned = pinnedIds.includes(team.id);
               const menuItems: SiderMenuItem[] = [
@@ -286,14 +242,6 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             })}
         </div>
       )}
-      <TeamCreateModal
-        visible={createTeamVisible}
-        onClose={() => setCreateTeamVisible(false)}
-        onCreated={(team) => {
-          void refreshTeams();
-          Promise.resolve(navigate(`/team/${team.id}`)).catch(console.error);
-        }}
-      />
       <Modal
         title={t('team.sider.renameTitle')}
         visible={renameVisible}

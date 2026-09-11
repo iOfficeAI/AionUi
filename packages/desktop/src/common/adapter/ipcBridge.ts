@@ -1590,6 +1590,7 @@ export interface IWebUIStatus {
   lanIP?: string;
   adminUsername: string;
   initialPassword?: string;
+  tlsConfigured: boolean;
 }
 
 export interface IWebUIStartResult {
@@ -1599,6 +1600,7 @@ export interface IWebUIStartResult {
   networkUrl?: string;
   lanIP?: string;
   initialPassword?: string;
+  tlsConfigured: boolean;
 }
 
 export const webui = {
@@ -1612,6 +1614,7 @@ export const webui = {
     networkUrl?: string;
     lanIP?: string;
     initialPassword?: string;
+    tlsConfigured?: boolean;
   }>('webui.status-changed'),
   changePassword: httpPost<void, { newPassword: string }>('/api/webui/change-password', (p) => ({
     new_password: p.newPassword,

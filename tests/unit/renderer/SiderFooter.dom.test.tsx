@@ -32,15 +32,21 @@ vi.mock('@/renderer/utils/platform', () => ({
   openExternalUrl: openExternalUrlMock,
 }));
 
+vi.mock('@/common/adapter/ipcBridge', () => ({
+  channel: {
+    getPluginStatus: { invoke: vi.fn(async () => []) },
+    pluginStatusChanged: { on: vi.fn(() => vi.fn()) },
+  },
+}));
+
 vi.mock('@icon-park/react', () => ({
+  CheckOne: () => <span aria-hidden='true'>check</span>,
   Down: () => <span aria-hidden='true'>down</span>,
   Lightning: () => <span aria-hidden='true'>credits</span>,
   Logout: () => <span aria-hidden='true'>logout</span>,
   MessageOne: () => <span aria-hidden='true'>message</span>,
   Refresh: () => <span aria-hidden='true'>refresh</span>,
   SettingTwo: () => <span aria-hidden='true'>settings</span>,
-  Moon: () => <span aria-hidden='true'>moon</span>,
-  SunOne: () => <span aria-hidden='true'>sun</span>,
 }));
 
 describe('SiderFooter', () => {
@@ -57,15 +63,13 @@ describe('SiderFooter', () => {
           isMobile={false}
           isSettings={false}
           collapsed={false}
-          theme='dark'
           siderTooltipProps={{}}
           onSettingsClick={onSettingsClick}
           onCreditsClick={onCreditsClick}
-          onThemeToggle={vi.fn()}
           showLogout
           onLogoutClick={onLogoutClick}
           accountUsername='mainf'
-          accountQuota={1000}
+          accountQuota={500_000}
         />
       </ConfigProvider>
     );
@@ -74,7 +78,7 @@ describe('SiderFooter', () => {
 
     expect(await screen.findByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Credits')).toBeInTheDocument();
-    expect(screen.getByText('1,000')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.queryByText('⌘,')).not.toBeInTheDocument();
     expect(screen.getByText('Contact Developer')).toBeInTheDocument();
     expect(screen.getByText('Check for Updates')).toBeInTheDocument();

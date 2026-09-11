@@ -136,7 +136,7 @@ describe('useGuidAssistantSelection', () => {
     });
   });
 
-  it('forces the built-in Codex assistant and middleware model', async () => {
+  it('forces the built-in Codex assistant and new-api model', async () => {
     mockAssistants = [
       assistantFixture({ id: 'assistant-claude', runtimeKey: 'claude', source: 'builtin', sortOrder: 1 }),
       assistantFixture({ id: 'assistant-codex', runtimeKey: 'codex', source: 'builtin', sortOrder: 2 }),

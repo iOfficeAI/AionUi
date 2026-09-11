@@ -35,6 +35,8 @@ export type WebHostOptions = {
   staticDir: string;
   port?: number;
   allowRemote?: boolean;
+  tlsCertPath?: string;
+  tlsKeyPath?: string;
   dataDir?: string;
   logDir?: string;
   dirs?: BackendSystemDirs;

@@ -7,7 +7,6 @@
 import type { AssistantListItem } from '../types';
 import { type AssistantEnabledFilter, filterByEnabled, groupMyAssistants } from '../assistantUtils';
 import MyAssistantCard from './MyAssistantCard';
-import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import { Dropdown, Menu, Button } from '@arco-design/web-react';
 import { AllApplication, Down } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
@@ -48,18 +47,7 @@ const MyAssistantsList: React.FC<MyAssistantsListProps> = ({
   searchActive = false,
 }) => {
   const { t } = useTranslation();
-  const talkToButler = useTalkToButler();
   const [filter, setFilter] = useState<AssistantEnabledFilter>('all');
-
-  // "Create via chat": hand off to the AIbang Butler on the home page with a
-  // ready-made create-an-assistant prompt (same flow as the header action).
-  const handleCreateViaChat = () => {
-    void talkToButler({
-      prompt: t('settings.talkToButler.prompt.createAssistant', {
-        defaultValue: 'Help me create a new assistant and walk me through setting it up.',
-      }),
-    });
-  };
 
   const { cliAssistants, createdAssistants } = useMemo(() => {
     const filtered = filterByEnabled(assistants, filter);
@@ -110,19 +98,10 @@ const MyAssistantsList: React.FC<MyAssistantsListProps> = ({
       </div>
       <p className='mb-16px max-w-360px text-12px leading-[1.6] text-t-secondary'>
         {t('settings.customEmptyBody', {
-          defaultValue: 'Create one by chatting with the butler, or duplicate an official assistant into your own.',
+          defaultValue: 'Duplicate an official assistant to create your own.',
         })}
       </p>
       <div className='flex items-center gap-10px'>
-        <Button
-          type='primary'
-          size='small'
-          className='!rounded-8px'
-          onClick={handleCreateViaChat}
-          data-testid='created-empty-create'
-        >
-          {t('settings.customEmptyCreate', { defaultValue: 'Create via chat' })}
-        </Button>
         <Button size='small' className='!rounded-8px' onClick={onGoOfficial} data-testid='created-empty-official'>
           {t('settings.customEmptyBrowseOfficial', { defaultValue: 'Browse official' })}
         </Button>

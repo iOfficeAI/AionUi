@@ -23,6 +23,18 @@ type ConfigFile = typeof ProcessConfigType;
 type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 type BackendClientPreferences = Record<string, unknown>;
+type ManagedAgentRecord = {
+  id: string;
+  backend?: string;
+  agent_type: string;
+  agent_source: string;
+  enabled?: boolean;
+};
+type AssistantAgentRecord = {
+  id: string;
+  agent_id?: string;
+  enabled?: boolean;
+};
 const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
 
 /**
@@ -74,6 +86,44 @@ async function fetchProviders(): Promise<IProvider[]> {
     console.warn('[Migration] MCP bootstrap could not load providers for image generation env resolution', error);
     return [];
   }
+}
+
+async function retireAionrsRuntime(): Promise<boolean> {
+  const agents =
+    (await httpRequest<ManagedAgentRecord[]>('GET', '/api/agents/management').catch((): ManagedAgentRecord[] => [])) ||
+    [];
+  const codexAgent = agents.find(
+    (agent) => agent.backend === 'codex' && agent.agent_type === 'acp' && agent.agent_source === 'builtin'
+  );
+  if (!codexAgent) throw new Error('Built-in Codex agent is missing');
+
+  const aionrsAgent = agents.find(
+    (agent) => agent.agent_type === 'aionrs' || (agent.backend === 'aionrs' && agent.agent_source === 'internal')
+  );
+  if (aionrsAgent && aionrsAgent.enabled !== false) {
+    await httpRequest<void>('PATCH', `/api/agents/${encodeURIComponent(aionrsAgent.id)}/enabled`, { enabled: false });
+  }
+
+  const assistants =
+    (await httpRequest<AssistantAgentRecord[]>('GET', '/api/assistants').catch((): AssistantAgentRecord[] => [])) || [];
+  const boundAssistants = aionrsAgent
+    ? assistants.filter((assistant) => assistant.enabled !== false && assistant.agent_id === aionrsAgent.id)
+    : [];
+  await Promise.all(
+    boundAssistants.map((assistant) =>
+      httpRequest<void>('PUT', `/api/assistants/${encodeURIComponent(assistant.id)}`, {
+        agent_id: codexAgent.id,
+      })
+    )
+  );
+
+  if (aionrsAgent || boundAssistants.length > 0) {
+    console.info(
+      '[Migration] Retired aionrs runtime and moved %d default assistant binding(s) to built-in Codex',
+      boundAssistants.length
+    );
+  }
+  return true;
 }
 
 export function resolveImageGenerationMigrationConfig(
@@ -459,6 +509,7 @@ const MIGRATION_STEPS: Array<{
     run: async (configFile) => (await ensureBootstrapMcpServersInDb(configFile), true),
   },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },
+  { name: 'retireAionrsRuntime', run: async () => retireAionrsRuntime() },
 ];
 
 async function syncBuiltinMcpConfig(configFile: ConfigFile): Promise<void> {

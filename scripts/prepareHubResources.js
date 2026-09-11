@@ -9,14 +9,17 @@
  * Environment variables:
  *   AIONUI_HUB_TAG    - Git tag to fetch from (default: 'dist-latest')
  *   AIONUI_HUB_SKIP   - Set to '1' to skip hub resource preparation
+ *   AIONUI_HUB_UPDATE_LOCK - Set to '1' to explicitly update hub-lock.json
  */
 
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const crypto = require('crypto');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
+const HUB_LOCK_PATH = path.join(PROJECT_ROOT, 'resources', 'hub-lock.json');
 
 const DEFAULT_TAG = 'dist-latest';
 const BASE_URLS = [
@@ -32,6 +35,81 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
+}
+
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function isSafeHubFilename(value) {
+  return typeof value === 'string' && /^[\w][\w.-]*\.zip$/.test(value) && !value.includes('..');
+}
+
+function readHubLock() {
+  if (!fs.existsSync(HUB_LOCK_PATH)) {
+    throw new Error('resources/hub-lock.json is missing; run with AIONUI_HUB_UPDATE_LOCK=1 to create it');
+  }
+  const lock = JSON.parse(fs.readFileSync(HUB_LOCK_PATH, 'utf8'));
+  if (lock.schemaVersion !== 1 || lock.tag !== (process.env.AIONUI_HUB_TAG || DEFAULT_TAG)) {
+    throw new Error('resources/hub-lock.json schema or tag does not match this build');
+  }
+  if (!lock.files || typeof lock.files !== 'object' || Array.isArray(lock.files)) {
+    throw new Error('resources/hub-lock.json has no valid files map');
+  }
+  return lock;
+}
+
+function verifyHash(filePath, expectedHash, label) {
+  if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+    throw new Error(`Invalid SHA-256 in hub lock for ${label}`);
+  }
+  const actualHash = sha256File(filePath);
+  if (actualHash !== expectedHash) {
+    throw new Error(`SHA-256 mismatch for ${label}: expected ${expectedHash}, got ${actualHash}`);
+  }
+}
+
+function verifyHubDirectory(hubDir, lock, requireManifest = true) {
+  const indexPath = path.join(hubDir, 'index.json');
+  if (!fs.existsSync(indexPath)) throw new Error('Hub index.json is missing');
+  verifyHash(indexPath, lock.files['index.json'], 'index.json');
+
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+  const extensions = index.extensions || {};
+  if (!Object.keys(extensions).length) throw new Error('Hub index contains no extensions');
+
+  const actualZips = new Set(fs.readdirSync(hubDir).filter((name) => name.endsWith('.zip')));
+  const expectedEntries = [];
+  for (const [name, extension] of Object.entries(extensions)) {
+    const file = extension.dist && extension.dist.tarball;
+    if (!isSafeHubFilename(file)) throw new Error(`Hub extension ${name} has an invalid tarball path`);
+    const lockKey = `extensions/${file}`;
+    const zipPath = path.join(hubDir, file);
+    if (!fs.existsSync(zipPath)) throw new Error(`Hub extension ${name} is missing ${file}`);
+    verifyHash(zipPath, lock.files[lockKey], file);
+    actualZips.delete(file);
+    expectedEntries.push({ name, file, size: fs.statSync(zipPath).size });
+  }
+
+  if (actualZips.size > 0) {
+    throw new Error(`Hub directory contains untracked extension archives: ${[...actualZips].join(', ')}`);
+  }
+
+  if (requireManifest) {
+    const manifestPath = path.join(hubDir, 'manifest.json');
+    if (!fs.existsSync(manifestPath)) throw new Error('Hub manifest.json is missing');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifestNames = new Set((manifest.extensions || []).map((entry) => entry.name));
+    for (const entry of expectedEntries) {
+      if (!manifestNames.has(entry.name)) throw new Error(`Hub manifest is missing ${entry.name}`);
+    }
+  }
+
+  return expectedEntries;
+}
+
+function verifyHubResources() {
+  return verifyHubDirectory(HUB_DIR, readHubLock());
 }
 
 /**
@@ -100,59 +178,64 @@ async function prepareHubResources() {
   }
 
   const tag = process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
+  const updateLock = process.env.AIONUI_HUB_UPDATE_LOCK === '1';
   console.log(`[hub] Preparing hub resources from tag: ${tag}`);
 
-  // Clean and create target directory
-  if (fs.existsSync(HUB_DIR)) {
+  const stagingDir = fs.mkdtempSync(path.join(PROJECT_ROOT, '.hub-download-'));
+  let stagedLock = updateLock ? null : readHubLock();
+
+  try {
+    // Download into staging first. Existing bundle contents are replaced only after
+    // every archive has passed the tracked SHA-256 lock.
+    const indexPath = path.join(stagingDir, 'index.json');
+    console.log('[hub] Downloading index.json...');
+    const indexUrl = await downloadFile('index.json', indexPath);
+    console.log(`[hub] index.json downloaded from ${indexUrl}`);
+
+    const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+    const extensions = index.extensions || {};
+    const names = Object.keys(extensions);
+
+    console.log(`[hub] Found ${names.length} extensions to bundle`);
+
+    for (const name of names) {
+      const ext = extensions[name];
+      const tarball = ext.dist && ext.dist.tarball;
+      if (!isSafeHubFilename(tarball)) throw new Error(`Hub extension ${name} has an invalid tarball path`);
+      const zipPath = path.join(stagingDir, tarball);
+      await downloadFile(tarball, zipPath);
+      console.log(`[hub] ${name} -> ${tarball} downloaded`);
+    }
+
+    if (updateLock) {
+      const files = { 'index.json': sha256File(indexPath) };
+      for (const name of names) {
+        const file = extensions[name].dist.tarball;
+        files[`extensions/${file}`] = sha256File(path.join(stagingDir, file));
+      }
+      stagedLock = { schemaVersion: 1, tag, files };
+    }
+
+    const results = verifyHubDirectory(stagingDir, stagedLock, false);
+    const manifest = {
+      tag,
+      generatedAt: new Date().toISOString(),
+      indexUrl,
+      extensions: results,
+    };
+    fs.writeFileSync(path.join(stagingDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+
     fs.rmSync(HUB_DIR, { recursive: true, force: true });
+    fs.renameSync(stagingDir, HUB_DIR);
+    if (updateLock) fs.writeFileSync(HUB_LOCK_PATH, `${JSON.stringify(stagedLock, null, 2)}\n`);
+    verifyHubResources();
+
+    console.log(`[hub] Done: ${results.length}/${names.length} extensions bundled in resources/hub/`);
+    return { skipped: false, count: results.length, total: names.length };
+  } catch (error) {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
   }
-  ensureDir(HUB_DIR);
-
-  // Step 1: Download index.json
-  const indexPath = path.join(HUB_DIR, 'index.json');
-  console.log('[hub] Downloading index.json...');
-  const indexUrl = await downloadFile('index.json', indexPath);
-  console.log(`[hub] index.json downloaded from ${indexUrl}`);
-
-  // Step 2: Parse index and download all extension zips
-  const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-  const extensions = index.extensions || {};
-  const names = Object.keys(extensions);
-
-  console.log(`[hub] Found ${names.length} extensions to bundle`);
-
-  const results = [];
-  for (const name of names) {
-    const ext = extensions[name];
-    const tarball = ext.dist?.tarball;
-    if (!tarball) {
-      console.warn(`[hub] Skipping ${name}: no dist.tarball`);
-      continue;
-    }
-
-    const zipPath = path.join(HUB_DIR, path.basename(tarball));
-    try {
-      const url = await downloadFile(tarball, zipPath);
-      const size = fs.statSync(zipPath).size;
-      console.log(`[hub] ${name} -> ${path.basename(tarball)} (${(size / 1024).toFixed(1)} KB)`);
-      results.push({ name, file: path.basename(tarball), size, url });
-    } catch (error) {
-      console.error(`[hub] Failed to download ${name}: ${error.message}`);
-      // Non-fatal: continue with other extensions
-    }
-  }
-
-  // Step 3: Write manifest for debugging/verification
-  const manifest = {
-    tag,
-    generatedAt: new Date().toISOString(),
-    indexUrl,
-    extensions: results,
-  };
-  fs.writeFileSync(path.join(HUB_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-
-  console.log(`[hub] Done: ${results.length}/${names.length} extensions bundled in resources/hub/`);
-  return { skipped: false, count: results.length, total: names.length };
 }
 
 // Support both direct execution and require() from build-with-builder.js
@@ -163,4 +246,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { prepareHubResources };
+module.exports = { prepareHubResources, verifyHubResources };

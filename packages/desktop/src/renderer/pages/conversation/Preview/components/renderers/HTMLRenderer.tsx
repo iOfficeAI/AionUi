@@ -732,6 +732,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
             key={webviewSrc}
             ref={webviewRef}
             src={webviewSrc}
+            partition='aibang-preview'
             className='w-full border-0'
             style={{
               display: 'inline-flex',
@@ -742,7 +743,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
               bottom: 0,
               height: '100%',
             }}
-            webpreferences='allowRunningInsecureContent, javascript=yes'
+            webpreferences='javascript=yes'
           />
         </>
       ) : (

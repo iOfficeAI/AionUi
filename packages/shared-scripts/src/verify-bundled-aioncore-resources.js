@@ -1,6 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 
+const BUNDLED_CODEX_VERSION = '0.149.1';
+const REQUIRED_CLI_NAMES = ['codex'];
+const CODEX_VENDOR_TRIPLES = {
+  'darwin-arm64': 'aarch64-apple-darwin',
+  'darwin-x64': 'x86_64-apple-darwin',
+  'linux-arm64': 'aarch64-unknown-linux-musl',
+  'linux-x64': 'x86_64-unknown-linux-musl',
+  'win32-arm64': 'aarch64-pc-windows-msvc',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+};
+
 function backendBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 }
@@ -246,10 +257,14 @@ function verifyManagedClisFromContract(baseDir, runtimeKey, contract, checked, m
     validClis.push(cli);
   }
 
-  // No agent CLI is required to be bundled. claude/codex used to ship pinned
-  // inside managed-resources; they now run from the user's own install like agy
-  // always has, so `clis` is normally empty. Entries that ARE present (older
-  // bundles) still have to be well-formed — that is what the loop below checks.
+  for (const requiredName of REQUIRED_CLI_NAMES) {
+    if (!validClis.some((cli) => cli.name === requiredName)) {
+      failures.push({
+        component: requiredName,
+        reason: 'missing_required_cli',
+      });
+    }
+  }
 
   for (const cli of validClis) {
     verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing, failures);
@@ -277,6 +292,10 @@ function verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing
     return;
   }
 
+  if (cli.name === 'codex') {
+    verifyBundledCodexContract(cli, runtimeKey, failures);
+  }
+
   const pathFields = [
     ['root', cli.root],
     ['executable', cli.executable],
@@ -293,6 +312,44 @@ function verifyManagedCliFromContract(baseDir, runtimeKey, cli, checked, missing
   }
   for (const requiredDirectory of requiredDirectories) {
     requireContractDirectory(baseDir, runtimeKey, cli, cli.root, requiredDirectory, checked, missing, failures);
+  }
+}
+
+function verifyBundledCodexContract(cli, runtimeKey, failures) {
+  const vendorTriple = CODEX_VENDOR_TRIPLES[runtimeKey];
+  const executableSuffix = runtimeKey.startsWith('win32') ? '.exe' : '';
+  if (!vendorTriple) {
+    failures.push({ component: 'codex', reason: 'unsupported_runtime_key' });
+    return;
+  }
+  if (cli.version !== BUNDLED_CODEX_VERSION) {
+    failures.push({
+      component: 'codex',
+      reason: 'version_mismatch',
+      expectedVersion: BUNDLED_CODEX_VERSION,
+      actualVersion: cli.version,
+    });
+  }
+
+  const vendorRoot = `vendor/${vendorTriple}`;
+  const expectedExecutable = `${vendorRoot}/bin/codex${executableSuffix}`;
+  const expectedFiles = [
+    expectedExecutable,
+    `${vendorRoot}/bin/codex-code-mode-host${executableSuffix}`,
+    `${vendorRoot}/codex-path/rg`,
+    `${vendorRoot}/codex-resources/zsh/bin/zsh`,
+  ];
+  const requiredFiles = cli.requiredFiles === undefined ? [] : cli.requiredFiles;
+  if (
+    cli.executable !== expectedExecutable ||
+    new Set(requiredFiles).size !== expectedFiles.length ||
+    expectedFiles.some((file) => !requiredFiles.includes(file))
+  ) {
+    failures.push({ component: 'codex', reason: 'invalid_required_runtime_files' });
+  }
+  const requiredDirectories = cli.requiredDirectories === undefined ? [] : cli.requiredDirectories;
+  if (!requiredDirectories.includes(vendorRoot)) {
+    failures.push({ component: 'codex', reason: 'invalid_required_runtime_directories' });
   }
 }
 
@@ -345,5 +402,6 @@ function verifyBundledAioncoreResources({ resourcesDir, electronPlatformName, ta
 }
 
 module.exports = {
+  BUNDLED_CODEX_VERSION,
   verifyBundledAioncoreResources,
 };

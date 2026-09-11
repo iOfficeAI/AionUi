@@ -17,7 +17,6 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useManagedAgents } from '@/renderer/hooks/agent/useManagedAgents';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Button, Message, Typography } from '@arco-design/web-react';
-import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
@@ -231,16 +230,15 @@ const LocalAgents: React.FC = () => {
                 onChange={setSearchQuery}
               />
             )}
-            <TalkToButlerButton
-              label={t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
-              chatLabel={t('settings.talkToButler.addViaChat', { defaultValue: 'Add via chat' })}
-              onManual={openCustomAgentEditor}
-              manualLabel={t('settings.talkToButler.addManually', { defaultValue: 'Add manually' })}
-              prompt={t('settings.talkToButler.prompt.addCustomAgent', {
-                defaultValue: 'Help me add a custom Agent.',
-              })}
+            <Button
+              type='primary'
+              size='small'
+              className='!h-32px !rounded-8px !px-14px'
+              onClick={openCustomAgentEditor}
               data-testid='btn-add-custom-agent'
-            />
+            >
+              {t('settings.agentManagement.addCustomAgent', { defaultValue: 'Add custom Agent' })}
+            </Button>
           </>
         }
         tabs={[

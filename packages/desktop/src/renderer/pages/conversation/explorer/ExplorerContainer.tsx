@@ -533,7 +533,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
               type='text'
               size='small'
               className='flex items-center justify-center'
-              icon={<FolderPlus theme='outline' size='16' />}
+              icon={<FolderPlus theme='filled' size='16' fill='rgb(var(--success-6))' />}
               aria-label={t('conversation.explorer.addFolder')}
               onClick={handleAddFolder}
             />

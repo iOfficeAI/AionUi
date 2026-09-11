@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
+import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import useSWR, { mutate } from 'swr';
 
 export type UseManagedAgentsResult = {
@@ -66,7 +67,7 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
  */
 export const useManagedAgentRuntimeCatalog = (): ManagedAgent[] => {
   const { data } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
-  return data ?? [];
+  return (data ?? []).filter((agent) => !isDeprecatedRuntimeAgentType(agent.agent_type));
 };
 
 /**

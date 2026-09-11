@@ -112,6 +112,13 @@ function resolveAllowRemote(): boolean {
   return parseBoolean(process.env.AIONUI_ALLOW_REMOTE ?? process.env.AIONUI_REMOTE);
 }
 
+function resolveTlsPath(kind: 'cert' | 'key'): string | undefined {
+  const cli = getFlag(`--tls-${kind}`);
+  const envName = kind === 'cert' ? 'AIONUI_WEBUI_TLS_CERT' : 'AIONUI_WEBUI_TLS_KEY';
+  const value = cli ?? process.env[envName];
+  return value && value.trim().length > 0 ? path.resolve(value) : undefined;
+}
+
 function resolveStaticDir(): string {
   if (process.env.AIONUI_STATIC_DIR) return process.env.AIONUI_STATIC_DIR;
   const candidate = path.join(repoRoot, 'out', 'renderer');
@@ -204,6 +211,11 @@ async function main(): Promise<void> {
   runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();
+  const tlsCertPath = resolveTlsPath('cert');
+  const tlsKeyPath = resolveTlsPath('key');
+  if (allowRemote && (!tlsCertPath || !tlsKeyPath)) {
+    throw new Error('Remote WebUI requires --tls-cert and --tls-key (or AIONUI_WEBUI_TLS_CERT/AIONUI_WEBUI_TLS_KEY)');
+  }
   const autoOpenBrowser = shouldAutoOpenBrowser({
     allowRemote,
     env: process.env,
@@ -233,6 +245,8 @@ async function main(): Promise<void> {
     staticDir,
     port,
     allowRemote,
+    tlsCertPath,
+    tlsKeyPath,
     dataDir: workDir,
     logDir,
     // Surface the same work dir on /api/system/info so the browser UI shows

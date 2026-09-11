@@ -56,6 +56,8 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
       backendPort: backendHandle.port,
       port: opts.port,
       allowRemote: opts.allowRemote ?? false,
+      tlsCertPath: opts.tlsCertPath,
+      tlsKeyPath: opts.tlsKeyPath,
     });
   } catch (err) {
     // If static-server fails, clean up backend

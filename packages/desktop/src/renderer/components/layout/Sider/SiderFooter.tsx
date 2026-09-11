@@ -7,20 +7,20 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Popover, Tooltip } from '@arco-design/web-react';
-import { Moon, SettingTwo, SunOne } from '@icon-park/react';
+import { SettingTwo } from '@icon-park/react';
 import classNames from 'classnames';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { quotaToCredits } from '@/renderer/utils/common';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import siderStyles from './Sider.module.css';
+import WeixinConnectButton from './WeixinConnectButton';
 
 interface SiderFooterProps {
   isMobile: boolean;
   isSettings: boolean;
   collapsed?: boolean;
-  theme: string;
   siderTooltipProps: SiderTooltipProps;
   onSettingsClick: () => void;
-  onThemeToggle: () => void;
   showLogout?: boolean;
   onLogoutClick?: () => void;
   onCreditsClick?: () => void;
@@ -59,10 +59,8 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   isMobile,
   isSettings,
   collapsed = false,
-  theme,
   siderTooltipProps,
   onSettingsClick,
-  onThemeToggle,
   showLogout = false,
   onLogoutClick,
   onCreditsClick,
@@ -73,8 +71,6 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
 
   const hasAccount = showLogout && Boolean(onLogoutClick && accountUsername);
-  const showThemeToggle = isSettings && !collapsed;
-  const themeTooltip = theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode');
   const settingsLabel = isSettings ? t('common.back') : t('common.settings');
   const accountInitials = getAccountInitials(accountUsername ?? '');
 
@@ -103,7 +99,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             {t('settings.accountCredits')}
           </span>
           <span className={siderStyles.creditsValue}>
-            {`￥${new Intl.NumberFormat().format(accountQuota ?? 0)}`}
+            {new Intl.NumberFormat().format(quotaToCredits(accountQuota ?? 0))}
             <AccountIcon className={siderStyles.chevronIcon}>
               <polyline points='9 18 15 12 9 6' />
             </AccountIcon>
@@ -252,28 +248,8 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             </Button>
           </Popover>
         )}
-        {/* Theme toggle — lightweight icon button, only while inside Settings page (not in collapsed mode) */}
-        {showThemeToggle && (
-          <Tooltip {...siderTooltipProps} content={themeTooltip} position='right'>
-            <div
-              onClick={onThemeToggle}
-              data-testid='theme-toggle'
-              className={classNames(
-                'h-32px w-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
-                isMobile && 'sider-footer-btn-mobile'
-              )}
-              aria-label={themeTooltip}
-            >
-              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-                {theme === 'dark' ? (
-                  <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                ) : (
-                  <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                )}
-              </span>
-            </div>
-          </Tooltip>
-        )}
+        {/* WeChat connect — QR-scan entry to chat with AIbang via WeChat */}
+        {hasAccount && <WeixinConnectButton collapsed={collapsed} isMobile={isMobile} />}
       </div>
     </div>
   );

@@ -9,8 +9,8 @@ import EnabledAssistantsList from './EnabledAssistantsList';
 import MyAssistantsList from './MyAssistantsList';
 import OfficialAssistantsGrid from './OfficialAssistantsGrid';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
+import { Button } from '@arco-design/web-react';
 import SettingsPageHeader from '../../components/SettingsPageHeader';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -118,17 +118,15 @@ const AssistantHomeTabs: React.FC<AssistantHomeTabsProps> = ({
                     onChange={setSearchQuery}
                   />
                 )}
-                <TalkToButlerButton
-                  className='shrink-0'
-                  label={t('settings.createAssistant', { defaultValue: 'Create Assistant' })}
-                  chatLabel={t('settings.talkToButler.createViaChat', { defaultValue: 'Create via chat' })}
-                  onManual={onCreate}
-                  manualLabel={t('settings.talkToButler.createManually', { defaultValue: 'Create manually' })}
-                  prompt={t('settings.talkToButler.prompt.createAssistant', {
-                    defaultValue: 'Help me create a new assistant and walk me through setting it up.',
-                  })}
+                <Button
+                  type='primary'
+                  size='small'
+                  className='shrink-0 !h-32px !rounded-8px !px-14px'
+                  onClick={onCreate}
                   data-testid='btn-create-assistant'
-                />
+                >
+                  {t('settings.createAssistant', { defaultValue: 'Create Assistant' })}
+                </Button>
               </>
             }
             tabs={[

@@ -185,7 +185,7 @@
   "officialAssistantsHint": "Offizielle Assistenten werden von AIbang gepflegt und mit jeder Version aktualisiert. Aktiviere einen, um ihn in deinen Listen zu verwenden; um eine eigene Version anzupassen, dupliziere ihn als deinen Assistenten.",
   "officialAssistantsHintShort": "Offizielle in AIbang integrierte Assistenten, offiziell gepflegt und mit jeder Version aktualisiert; dupliziere sie als „Mein Assistent\", um sie frei anzupassen.",
   "customEmptyTitle": "Noch keine benutzerdefinierten Assistenten",
-  "customEmptyBody": "Erstelle einen per Chat oder dupliziere einen offiziellen Assistenten.",
+  "customEmptyBody": "Dupliziere einen offiziellen Assistenten, um einen eigenen zu erstellen.",
   "customEmptyCreate": "Per Chat erstellen",
   "customEmptyBrowseOfficial": "Offizielle durchsuchen",
   "reorderCoachTitle": "Zum Umsortieren ziehen",
@@ -456,7 +456,7 @@
   "agent": "Agent",
   "skills": "Skills",
   "tools": "Tools",
-  "toolsDescription": "MCP-Server und integrierte Tools wie die Bildgenerierung konfigurieren. Die Bildgenerierung kann erst aktiviert werden, nachdem auf der Modellseite ein bildfähiges Modell konfiguriert wurde.",
+  "toolsDescription": "MCP-Server manuell konfigurieren.",
   "modelDescription": "LLM-Anbieter und API-Schlüssel für alle Assistenten konfigurieren. Nur Aion CLI unterstützt eigene Modelle; andere Agenten nutzen ihre integrierten Modelle.",
   "capabilities": "Fähigkeiten",
   "capabilitiesTab": {
@@ -476,6 +476,7 @@
   "webui.portDesc": "WebUI-Dienst-Abhörport",
   "webui.allowRemote": "Remote-Zugriff erlauben",
   "webui.allowRemoteDesc": "Remote-Software/Server für sicheren Remote-Zugriff verwenden",
+  "webui.tlsRequired": "Fernzugriff erfordert TLS. Setze AIONUI_WEBUI_TLS_CERT und AIONUI_WEBUI_TLS_KEY auf vorhandene Zertifikats- und Privatschlüsseldateien.",
   "webui.viewGuide": "Anleitung anzeigen",
   "webui.accessInfo": "Zugangs-URLs",
   "webui.localUrl": "Lokale URL",
@@ -1117,7 +1118,10 @@
     "step1": "Bot in WeChat finden und eine Nachricht senden",
     "step2": "Eine Kopplungsanfrage erscheint unten. Klicke auf \"Genehmigen\", um den Benutzer zu autorisieren.",
     "step3": "Nach der Genehmigung kannst du über WeChat mit dem KI-Assistenten chatten!",
-    "loginRequired": "Bitte zuerst mit WeChat QR-Code anmelden"
+    "loginRequired": "Bitte zuerst mit WeChat QR-Code anmelden",
+    "connectTitle": "WeChat-Verbindung",
+    "connectDesc": "Scanne den QR-Code, um über WeChat mit AIbang zu chatten",
+    "notConnected": "Nicht verbunden"
   },
   "wecom": {
     "callbackTitle": "WeCom Callback-URL",

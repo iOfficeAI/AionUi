@@ -10,7 +10,6 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
 import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
@@ -73,7 +72,6 @@ const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
  */
 const WebuiModalContent: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const talkToButler = useTalkToButler();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [activeTab, setActiveTab] = useState<'webui' | 'channels'>('webui');
@@ -98,6 +96,7 @@ const WebuiModalContent: React.FC = () => {
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [form] = Form.useForm();
   const [usernameForm] = Form.useForm();
+  const tlsConfigured = status?.tlsConfigured === true;
 
   // 二维码登录相关状态 / QR code login related state
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -110,7 +109,6 @@ const WebuiModalContent: React.FC = () => {
     setLoading(true);
     try {
       const savedAllowRemote = configService.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY) ?? false;
-      setAllowRemotePreference(savedAllowRemote === true);
 
       // getStatus goes via IPC to the Electron main process which tracks the
       // WebUI lifecycle; backend does not know it's being wrapped.
@@ -128,6 +126,11 @@ const WebuiModalContent: React.FC = () => {
         // reconciliation, so the renderer only reads `running` and never
         // writes the flag back.
         setWebuiEnabled(statusData.running);
+        const effectiveAllowRemote = savedAllowRemote === true && statusData.tlsConfigured === true;
+        setAllowRemotePreference(effectiveAllowRemote);
+        if (savedAllowRemote === true && statusData.tlsConfigured !== true) {
+          await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, false);
+        }
 
         if (statusData.lanIP) {
           setCachedIP(statusData.lanIP);
@@ -154,6 +157,7 @@ const WebuiModalContent: React.FC = () => {
               running: false,
               port: WEBUI_DEFAULT_PORT,
               allowRemote: false,
+              tlsConfigured: false,
               localUrl: `http://localhost:${WEBUI_DEFAULT_PORT}`,
               adminUsername: 'admin',
             }
@@ -184,6 +188,7 @@ const WebuiModalContent: React.FC = () => {
           running: true,
           port: data.port ?? prev?.port ?? WEBUI_DEFAULT_PORT,
           allowRemote: prev?.allowRemote ?? false,
+          tlsConfigured: data.tlsConfigured || prev?.tlsConfigured === true,
           localUrl: data.localUrl ?? `http://localhost:${data.port ?? WEBUI_DEFAULT_PORT}`,
           networkUrl: data.networkUrl,
           lanIP: prev?.lanIP,
@@ -231,7 +236,8 @@ const WebuiModalContent: React.FC = () => {
     const currentPort = status?.port || port;
     const useRemote = status?.running ? status.allowRemote : allowRemotePreference;
     if (useRemote && currentIP) {
-      return `http://${currentIP}:${currentPort}`;
+      if (status?.running && status.networkUrl) return status.networkUrl;
+      return `https://${currentIP}:${currentPort}`;
     }
     return `http://localhost:${currentPort}`;
   }, [allowRemotePreference, getLocalIP, status?.allowRemote, status?.port, status?.running, port]);
@@ -250,8 +256,6 @@ const WebuiModalContent: React.FC = () => {
 
     try {
       if (enabled) {
-        const localUrl = `http://localhost:${port}`;
-
         // Await the real result — Promise.race with a 3s fallback used to hide
         // backend failures behind a fake "started" toast while the server was
         // still RESOLVING or had crashed, leaving webui.desktop.enabled unset.
@@ -271,8 +275,9 @@ const WebuiModalContent: React.FC = () => {
           running: true,
           port,
           allowRemote: allowRemotePreference,
-          localUrl,
-          networkUrl: allowRemotePreference && responseIP ? `http://${responseIP}:${port}` : undefined,
+          tlsConfigured: startResult.tlsConfigured,
+          localUrl: startResult.localUrl,
+          networkUrl: allowRemotePreference && responseIP ? `https://${responseIP}:${port}` : undefined,
           lanIP: responseIP,
           initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
         }));
@@ -301,6 +306,11 @@ const WebuiModalContent: React.FC = () => {
   const handleAllowRemoteChange = async (checked: boolean) => {
     // 保存原始值用于回滚 / Save original value for rollback
     const previousAllowRemote = allowRemotePreference;
+    if (checked && !tlsConfigured) {
+      Message.warning(t('settings.webui.tlsRequired'));
+      return;
+    }
+
     setAllowRemotePreference(checked);
 
     const wasRunning = status?.running;
@@ -332,8 +342,9 @@ const WebuiModalContent: React.FC = () => {
           running: true,
           port,
           allowRemote: checked,
-          localUrl: `http://localhost:${port}`,
-          networkUrl: checked && responseIP ? `http://${responseIP}:${port}` : undefined,
+          tlsConfigured: startResult.tlsConfigured,
+          localUrl: startResult.localUrl,
+          networkUrl: checked && responseIP ? `https://${responseIP}:${port}` : undefined,
           lanIP: responseIP,
           initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
         }));
@@ -371,8 +382,9 @@ const WebuiModalContent: React.FC = () => {
             ? {
                 ...prev,
                 allowRemote: checked,
+                tlsConfigured,
                 lanIP: existingIP || prev.lanIP,
-                networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+                networkUrl: checked && existingIP ? `https://${existingIP}:${port}` : undefined,
               }
             : null
         );
@@ -659,26 +671,15 @@ const WebuiModalContent: React.FC = () => {
           <PreferenceRow
             label={t('settings.webui.allowRemote')}
             description={
-              <span className='text-t-secondary'>
-                {t('settings.webui.allowRemoteDesc')}
-                {'  '}
-                <button
-                  className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px'
-                  onClick={() =>
-                    void talkToButler({
-                      prompt: t('settings.talkToButler.prompt.setupRemote', {
-                        defaultValue:
-                          'Help me set up remote access so I can open AIbang from my phone or over the internet.',
-                      }),
-                    })
-                  }
-                >
-                  {t('settings.webui.letButlerSetup', { defaultValue: 'Let the butler set it up' })}
-                </button>
-              </span>
+              <>
+                <span className='text-t-secondary'>{t('settings.webui.allowRemoteDesc')}</span>
+                {!tlsConfigured && (
+                  <div className='text-12px text-t-tertiary mt-2px'>{t('settings.webui.tlsRequired')}</div>
+                )}
+              </>
             }
           >
-            <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
+            <Switch checked={allowRemotePreference} disabled={!tlsConfigured} onChange={handleAllowRemoteChange} />
           </PreferenceRow>
         </div>
 

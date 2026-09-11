@@ -105,7 +105,7 @@ logDiagnostic(`Connecting chrome-devtools-mcp to the in-app browser bridge at ${
  * upstream able to swap out the code that drives a browser holding the user's live
  * sign-in cookies.
  */
-const CHROME_DEVTOOLS_MCP_VERSION = '0.16.0';
+const CHROME_DEVTOOLS_MCP_VERSION = '1.9.0';
 
 /**
  * Windows 上 npx 是 npx.cmd，而 .cmd 属于批处理文件，没有终端无法自己执行。

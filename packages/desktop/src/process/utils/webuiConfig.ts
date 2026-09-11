@@ -55,6 +55,16 @@ async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {
   }
 }
 
+async function writeWebUIDesktopAllowRemote(allowRemote: boolean): Promise<void> {
+  try {
+    await httpRequest<void>('PUT', '/api/settings/client', {
+      [DESKTOP_WEBUI_ALLOW_REMOTE_KEY]: allowRemote,
+    });
+  } catch (error) {
+    console.error('[WebUI] Failed to reconcile webui.desktop.allowRemote on backend:', error);
+  }
+}
+
 export type WebUIUserConfig = {
   port?: number | string;
   allowRemote?: boolean;
@@ -159,6 +169,16 @@ export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boole
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
 };
 
+export const isDesktopWebUITlsConfigured = (
+  certPath: string | undefined = process.env.AIONUI_WEBUI_TLS_CERT,
+  keyPath: string | undefined = process.env.AIONUI_WEBUI_TLS_KEY,
+  pathExists: (path: string) => boolean = fs.existsSync
+): boolean => {
+  const certificatePath = certPath?.trim();
+  const privateKeyPath = keyPath?.trim();
+  return Boolean(certificatePath && privateKeyPath && pathExists(certificatePath) && pathExists(privateKeyPath));
+};
+
 // ---------------------------------------------------------------------------
 // Desktop-managed WebUI lifecycle
 // ---------------------------------------------------------------------------
@@ -166,6 +186,7 @@ export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boole
 export type DesktopWebUIHandle = {
   port: number;
   allowRemote: boolean;
+  tlsConfigured: boolean;
   localUrl: string;
   networkUrl?: string;
   lanIP?: string;
@@ -202,6 +223,7 @@ const getLanIP = (): string | null => {
 const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWebUIHandle => ({
   port: handle.port,
   allowRemote,
+  tlsConfigured: isDesktopWebUITlsConfigured(),
   localUrl: handle.localUrl,
   networkUrl: handle.networkUrl,
   lanIP: handle.lanIP,
@@ -222,6 +244,9 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
   }
 
   const allowRemote = opts.allowRemote === true;
+  if (allowRemote && !isDesktopWebUITlsConfigured()) {
+    throw new Error('[WebUI] Remote access requires valid AIONUI_WEBUI_TLS_CERT and AIONUI_WEBUI_TLS_KEY files');
+  }
   const preferredPort = parsePortValue(opts.port) ?? DEFAULT_WEBUI_PORT;
   const sysDir = getSystemDir();
 
@@ -247,6 +272,8 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
     staticDir: path.join(__dirname, '../renderer'),
     port: preferredPort,
     allowRemote,
+    tlsCertPath: process.env.AIONUI_WEBUI_TLS_CERT,
+    tlsKeyPath: process.env.AIONUI_WEBUI_TLS_KEY,
     // Must align with the desktop IPC path's backend dataDir (src/index.ts), otherwise
     // users see divergent SQLite state between desktop app and bundled WebUI.
     dataDir: getDataPath(),
@@ -289,6 +316,7 @@ export function getDesktopWebUIStatus(): {
   running: boolean;
   port: number;
   allowRemote: boolean;
+  tlsConfigured: boolean;
   localUrl: string;
   networkUrl?: string;
   lanIP?: string;
@@ -300,6 +328,7 @@ export function getDesktopWebUIStatus(): {
       running: false,
       port: DEFAULT_WEBUI_PORT,
       allowRemote: false,
+      tlsConfigured: isDesktopWebUITlsConfigured(),
       localUrl: `http://localhost:${DEFAULT_WEBUI_PORT}`,
       lanIP: lanIP ?? undefined,
     };
@@ -308,6 +337,7 @@ export function getDesktopWebUIStatus(): {
     running: true,
     port: currentHandle.port,
     allowRemote: currentHandle.allowRemote,
+    tlsConfigured: isDesktopWebUITlsConfigured(),
     localUrl: currentHandle.localUrl,
     networkUrl: currentHandle.networkUrl,
     lanIP: currentHandle.lanIP,
@@ -320,9 +350,15 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
   if (!enabled) return;
 
   const preferredPort = port ?? DEFAULT_WEBUI_PORT;
+  const tlsConfigured = isDesktopWebUITlsConfigured();
+  const effectiveAllowRemote = allowRemote && tlsConfigured;
+  if (allowRemote && !tlsConfigured) {
+    console.warn('[WebUI] Remote preference ignored because TLS certificate/key files are unavailable');
+    await writeWebUIDesktopAllowRemote(false);
+  }
 
   try {
-    const handle = await startDesktopWebUI({ port: preferredPort, allowRemote });
+    const handle = await startDesktopWebUI({ port: preferredPort, allowRemote: effectiveAllowRemote });
     console.log(
       `[WebUI] Auto-restored from desktop preferences (port=${handle.port}, allowRemote=${handle.allowRemote})`
     );

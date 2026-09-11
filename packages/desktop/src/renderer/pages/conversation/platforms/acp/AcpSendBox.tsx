@@ -166,7 +166,7 @@ const AcpSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
 
-  // Keep mobile Codex runtimes synchronized with the middleware's fixed model.
+  // Keep mobile Codex runtimes synchronized with the new-api fixed model.
   const forcedModelSwitchRef = useRef(false);
   const {
     model_info,

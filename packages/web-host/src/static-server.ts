@@ -11,8 +11,10 @@
  */
 
 import http, { type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { readFileSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
+import tls from 'node:tls';
 import serveHandler from 'serve-handler';
 
 export type StaticServerOptions = {
@@ -20,6 +22,8 @@ export type StaticServerOptions = {
   backendPort: number;
   port?: number;
   allowRemote?: boolean;
+  tlsCertPath?: string;
+  tlsKeyPath?: string;
 };
 
 export type StaticServerHandle = {
@@ -162,6 +166,15 @@ function peekWsRoute(buf: Buffer): boolean | null {
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
   const port = opts.port ?? DEFAULT_PORT;
   const allowRemote = opts.allowRemote === true;
+  let tlsCertificate: Buffer | undefined;
+  let tlsPrivateKey: Buffer | undefined;
+  if (allowRemote) {
+    if (!opts.tlsCertPath || !opts.tlsKeyPath) {
+      throw new Error('Remote WebUI requires --tls-cert and --tls-key (or AIONUI_WEBUI_TLS_CERT/AIONUI_WEBUI_TLS_KEY)');
+    }
+    tlsCertificate = readFileSync(opts.tlsCertPath);
+    tlsPrivateKey = readFileSync(opts.tlsKeyPath);
+  }
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
 
   // The HTTP server listens only on loopback — user traffic hits the outer
@@ -220,7 +233,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   // route to either the backend (for /ws and /api/stt/stream upgrades) or the internal HTTP
   // server (everything else). Both routes use raw TCP splice — no reliance
   // on http.Server's upgrade event.
-  const tcp_server = net.createServer((client: Socket) => {
+  const routeExternalConnection = (client: Socket): void => {
     let peeked = Buffer.alloc(0);
     let settled = false;
     const cleanup = (): void => {
@@ -250,7 +263,10 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     client.on('data', onData);
     client.on('error', onEarlyError);
     client.on('end', onEarlyEnd);
-  });
+  };
+  const tcp_server = allowRemote
+    ? tls.createServer({ cert: tlsCertificate, key: tlsPrivateKey }, routeExternalConnection)
+    : net.createServer(routeExternalConnection);
 
   await new Promise<void>((resolve, reject) => {
     tcp_server.once('error', reject);
@@ -262,8 +278,9 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
 
   const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
-  const localUrl = `http://127.0.0.1:${actualPort}`;
-  const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;
+  const protocol = allowRemote ? 'https' : 'http';
+  const localUrl = `${protocol}://127.0.0.1:${actualPort}`;
+  const networkUrl = lanIP ? `${protocol}://${lanIP}:${actualPort}` : undefined;
 
   return {
     port: actualPort,

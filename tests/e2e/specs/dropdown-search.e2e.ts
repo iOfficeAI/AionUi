@@ -125,13 +125,11 @@ test.describe('Assistant editor default selects search', () => {
   test('default model / skills / mcp selects expose search above the threshold', async ({ page }) => {
     // Assistants moved from settings to a standalone `#/assistants` page; the
     // legacy goToAssistantSettings helper still walks the settings sider and
-    // fails, so navigate directly. Create is now a TalkToButler dropdown —
-    // open it and pick "create manually" to reach the editor.
+    // fails, so navigate directly. Create opens the editor manually.
     await page.evaluate(() => window.location.assign('#/assistants'));
     const createButton = page.locator('[data-testid="btn-create-assistant"]');
     await createButton.waitFor({ state: 'visible', timeout: 15_000 });
     await createButton.click();
-    await page.locator('[data-testid="btn-create-assistant-manual"]').click();
     await page.locator('[data-testid="input-assistant-name"]').waitFor({ state: 'visible', timeout: 10_000 });
     await fillAssistantName(page, `Dropdown Search ${Date.now()}`);
 

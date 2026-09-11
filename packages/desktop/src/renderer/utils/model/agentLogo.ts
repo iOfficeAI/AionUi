@@ -20,6 +20,7 @@
 
 import { ipcBridge } from '@/common';
 import type { AssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
+import { isSuppressedBuiltinLogo } from '@/renderer/utils/model/builtinAgentLogos';
 import {
   isBackendRelativeAssetPath,
   isLikelyLocalFilePath,
@@ -80,6 +81,9 @@ export function useAgentLogos(): AgentLogoMap {
 function normalizeLogoUrl(logo: string): string | null {
   const value = logo.trim();
   if (!value || isLikelyLocalFilePath(value)) return null;
+
+  if (isSuppressedBuiltinLogo(value)) return null;
+
   if (value.startsWith('/') && !isBackendRelativeAssetPath(value)) return null;
 
   const resolved = resolveBackendAssetUrl(value) ?? value;

@@ -185,7 +185,7 @@
   "officialAssistantsHint": "官方助理由 AIbang 持續維護、隨版本更新能力。啟用後即可在你的對話、開團和定時任務裡使用；若想調整成專屬於你的版本，可將它複製為我的助理。",
   "officialAssistantsHintShort": "AIbang 內建的官方助手，由官方持續維護、隨版本更新；可複製為「我的助手」後自由修改。",
   "customEmptyTitle": "還沒有自訂助手",
-  "customEmptyBody": "可以透過對話來建立一個，或從官方助手複製一個。",
+  "customEmptyBody": "可從官方助手複製一個，建立自己的助手。",
   "customEmptyCreate": "透過對話建立",
   "customEmptyBrowseOfficial": "逛逛官方助手",
   "reorderCoachTitle": "拖曳調整順序",
@@ -464,7 +464,7 @@
   "agent": "代理",
   "skills": "技能",
   "tools": "工具",
-  "toolsDescription": "設定 MCP 伺服器與內建工具（如圖像生成）。圖像生成需先在「模型」頁設定支援圖像的模型後才能啟用。",
+  "toolsDescription": "手動設定 MCP 伺服器。",
   "modelDescription": "設定大模型服務商與 API Key，供所有助手使用。目前僅 Aion CLI 支援自訂模型，其它 Agent 使用各自內建的模型。",
   "capabilities": "能力擴展",
   "capabilitiesTab": {
@@ -484,6 +484,7 @@
   "webui.portDesc": "WebUI 服務監聽連接埠",
   "webui.allowRemote": "允許遠端存取",
   "webui.allowRemoteDesc": "使用遠端軟體/伺服器可安全遠端存取",
+  "webui.tlsRequired": "遠端存取需要 TLS。請將 AIONUI_WEBUI_TLS_CERT 和 AIONUI_WEBUI_TLS_KEY 設為實際存在的憑證與私鑰檔案。",
   "webui.viewGuide": "查看方式",
   "webui.accessInfo": "存取網址",
   "webui.localUrl": "本機網址",
@@ -1127,7 +1128,10 @@
     "step1": "在微信中找到並給你的機器人發送任意消息",
     "step2": "配對請求會顯示在下方，點擊「批准」授權用戶",
     "step3": "授權成功後，即可通過微信與 AI 助手對話",
-    "loginRequired": "請先使用微信掃碼登入"
+    "loginRequired": "請先使用微信掃碼登入",
+    "connectTitle": "微信連接",
+    "connectDesc": "掃碼連接後，即可在微信中與 AIbang 對話",
+    "notConnected": "未連接"
   },
   "wecom": {
     "callbackTitle": "企業微信回調地址",

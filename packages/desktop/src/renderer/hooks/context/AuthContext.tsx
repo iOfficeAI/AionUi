@@ -95,6 +95,7 @@ function clearAuthCache(): void {
         (key.includes('auth') ||
           key.includes('csrf') ||
           key.includes('token') ||
+          key === 'rememberedPassword' ||
           key.startsWith(PREVIEW_SCOPE_KEY_PREFIX))
       ) {
         keysToRemove.push(key);

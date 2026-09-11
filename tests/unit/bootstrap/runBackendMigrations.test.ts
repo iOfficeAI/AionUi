@@ -126,6 +126,15 @@ beforeEach(() => {
     if (method === 'GET' && path === '/api/providers') {
       return [provider];
     }
+    if (method === 'GET' && path === '/api/agents/management') {
+      return [
+        { id: 'builtin-codex', backend: 'codex', agent_type: 'acp', agent_source: 'builtin', enabled: true },
+        { id: 'builtin-aionrs', backend: 'aionrs', agent_type: 'aionrs', agent_source: 'internal', enabled: false },
+      ];
+    }
+    if (method === 'GET' && path === '/api/assistants') {
+      return [{ id: 'assistant-1', agent_id: 'builtin-codex', enabled: true }];
+    }
     return undefined;
   });
 });
@@ -214,5 +223,37 @@ describe('runBackendMigrations', () => {
       'yes',
       'yes'
     );
+  });
+
+  it('retires aionrs and moves enabled default assistants to built-in Codex', async () => {
+    httpRequestMock.mockImplementation(async (method: string, path: string) => {
+      if (method === 'GET' && path === '/api/settings/client') return {};
+      if (method === 'GET' && path === '/api/providers') return [provider];
+      if (method === 'GET' && path === '/api/agents/management') {
+        return [
+          { id: 'builtin-codex', backend: 'codex', agent_type: 'acp', agent_source: 'builtin', enabled: true },
+          { id: 'builtin-aionrs', backend: 'aionrs', agent_type: 'aionrs', agent_source: 'internal', enabled: true },
+        ];
+      }
+      if (method === 'GET' && path === '/api/assistants') {
+        return [
+          { id: 'assistant-1', agent_id: 'builtin-aionrs', enabled: true },
+          { id: 'assistant-2', agent_id: 'builtin-aionrs', enabled: false },
+        ];
+      }
+      return undefined;
+    });
+
+    await runBackendMigrations(configFile as never);
+
+    expect(httpRequestMock).toHaveBeenCalledWith(
+      'PATCH',
+      '/api/agents/builtin-aionrs/enabled',
+      expect.objectContaining({ enabled: false })
+    );
+    expect(httpRequestMock).toHaveBeenCalledWith('PUT', '/api/assistants/assistant-1', {
+      agent_id: 'builtin-codex',
+    });
+    expect(httpRequestMock).not.toHaveBeenCalledWith('PUT', '/api/assistants/assistant-2', expect.anything());
   });
 });

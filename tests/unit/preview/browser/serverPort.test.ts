@@ -87,7 +87,7 @@ describe('resolveBridgeToken', () => {
  * pure function and can be pinned directly.
  */
 describe('buildMcpSpawnCommand — issue #3883', () => {
-  const version = '0.16.0';
+  const version = '1.9.0';
   const browserUrl = 'http://127.0.0.1:61622';
 
   it('never spawns npx.cmd directly on Windows (that is the EINVAL form)', () => {

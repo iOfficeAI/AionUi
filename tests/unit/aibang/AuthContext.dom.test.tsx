@@ -17,7 +17,7 @@ describe('desktop AuthContext', () => {
     vi.restoreAllMocks();
   });
 
-  it('keeps middleware credentials outside the renderer while handling 2FA', async () => {
+  it('keeps new-api credentials outside the renderer while handling 2FA', async () => {
     const fetchSpy = vi.spyOn(window, 'fetch').mockResolvedValue(new Response('{}'));
     const electronAPI = {
       aibangAuth: {

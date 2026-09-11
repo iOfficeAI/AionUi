@@ -96,6 +96,7 @@ export function initWebuiBridge(): void {
       networkUrl: handle.networkUrl,
       lanIP: handle.lanIP,
       initialPassword: handle.initialPassword,
+      tlsConfigured: true,
     });
     return handle;
   });

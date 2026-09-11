@@ -110,7 +110,7 @@ const DevSettings: React.FC = () => {
       "command": "npx",
       "args": [
         "-y",
-        "chrome-devtools-mcp@0.16.0",
+        "chrome-devtools-mcp@1.9.0",
         "--browser-url=http://127.0.0.1:${status.port}"
       ]
     }
@@ -231,7 +231,7 @@ const DevSettings: React.FC = () => {
       "command": "npx",
       "args": [
         "-y",
-        "chrome-devtools-mcp@0.16.0",
+        "chrome-devtools-mcp@1.9.0",
         "--browser-url=http://127.0.0.1:${status.port}"
       ]
     }

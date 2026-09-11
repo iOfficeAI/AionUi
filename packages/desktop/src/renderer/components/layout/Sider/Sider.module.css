@@ -475,3 +475,210 @@
 :global(body[arco-theme='dark']) .accountTrigger:hover .triggerChevronFrame {
   color: #a1a1aa;
 }
+
+/* ===== 微信连接入口（账户卡片右侧）===== */
+.wechatTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  color: #383838;
+  background: rgb(255 255 255 / 60%);
+  border: 1px solid rgb(229 229 229 / 70%);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.wechatTrigger:hover {
+  background: rgb(255 255 255 / 90%);
+}
+
+.wechatTrigger:active {
+  transform: scale(0.96);
+}
+
+.wechatTrigger:focus-visible {
+  outline: 2px solid rgb(var(--primary-6));
+  outline-offset: 2px;
+}
+
+.wechatIconWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.wechatIcon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.wechatStatusDot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background: #28c840;
+  border: 1px solid #fff;
+  border-radius: 9999px;
+}
+
+.wechatPopoverContent {
+  box-sizing: border-box;
+  width: 248px;
+  padding: 14px;
+  color: #404040;
+  background: #fff;
+  border: 1px solid rgb(229 229 229 / 80%);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 8%),
+    0 2px 8px -2px rgb(0 0 0 / 4%);
+  backdrop-filter: blur(24px);
+}
+
+.wechatPopoverBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.wechatHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.wechatHeaderIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.wechatTitleBlock {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wechatTitle {
+  overflow: hidden;
+  color: #171717;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wechatStatusLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #16a34a;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.wechatStatusLineOffline {
+  color: #a3a3a3;
+}
+
+.wechatConnectedIcon {
+  flex-shrink: 0;
+}
+
+.wechatBotName {
+  overflow: hidden;
+  max-width: 120px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wechatHint {
+  margin: 0;
+  color: #737373;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: start;
+}
+
+.wechatQrFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid rgb(229 229 229 / 80%);
+  border-radius: 12px;
+}
+
+.wechatQrTip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: center;
+  color: #737373;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ===== 微信连接入口（暗黑模式）===== */
+:global(body[arco-theme='dark']) .wechatTrigger {
+  color: #e4e4e7;
+  background: rgb(255 255 255 / 6%);
+  border-color: rgb(255 255 255 / 12%);
+}
+
+:global(body[arco-theme='dark']) .wechatTrigger:hover {
+  color: #e4e4e7;
+  background: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 12%);
+}
+
+:global(body[arco-theme='dark']) .wechatStatusDot {
+  border-color: #232326;
+}
+
+:global(body[arco-theme='dark']) .wechatPopoverContent {
+  color: #d4d4d8;
+  background: #232326;
+  border-color: rgb(255 255 255 / 10%);
+  box-shadow:
+    0 8px 24px -4px rgb(0 0 0 / 60%),
+    0 2px 8px -2px rgb(0 0 0 / 40%);
+}
+
+:global(body[arco-theme='dark']) .wechatTitle {
+  color: #e4e4e7;
+}
+
+:global(body[arco-theme='dark']) .wechatHint,
+:global(body[arco-theme='dark']) .wechatQrTip {
+  color: #a1a1aa;
+}
+
+:global(body[arco-theme='dark']) .wechatQrFrame {
+  border-color: rgb(255 255 255 / 10%);
+}

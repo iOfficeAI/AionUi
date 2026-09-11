@@ -21,7 +21,6 @@ type ExternalToolType = Exclude<ToolType, 'browser'>;
 interface ToolOption {
   key: ToolType;
   label: string;
-  icon: React.ReactNode;
   available: boolean;
 }
 
@@ -39,6 +38,28 @@ interface WorkspaceOpenButtonProps {
 const STORAGE_KEY = 'workspace-open-preference';
 
 const isExternalTool = (tool: ToolType): tool is ExternalToolType => tool !== 'browser';
+
+const toolIconColors: Record<ToolType, string> = {
+  vscode: 'rgb(var(--primary-6))',
+  terminal: 'rgb(var(--purple-6))',
+  explorer: 'rgb(var(--orange-6))',
+  browser: 'rgb(var(--cyan-6))',
+};
+
+const renderToolIcon = (tool: ToolType, size = 16): React.ReactNode => {
+  const fill = toolIconColors[tool];
+  switch (tool) {
+    case 'vscode':
+      return <Command theme='filled' size={size} fill={fill} />;
+    case 'explorer':
+      return <FolderOpen theme='filled' size={size} fill={fill} />;
+    case 'browser':
+      return <Browser theme='filled' size={size} fill={fill} />;
+    case 'terminal':
+    default:
+      return <Terminal theme='filled' size={size} fill={fill} />;
+  }
+};
 
 /**
  * Workspace Open Button — opens the workspace with various tools.
@@ -114,25 +135,21 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
       {
         key: 'vscode',
         label: t('conversation.workspace.openWith.vscode', { defaultValue: 'VS Code' }),
-        icon: <Command size={16} />,
         available: !isTemporary && vscodeInstalled,
       },
       {
         key: 'terminal',
         label: t('conversation.workspace.openWith.terminal', { defaultValue: 'Terminal' }),
-        icon: <Terminal size={16} />,
         available: !isTemporary,
       },
       {
         key: 'explorer',
         label: t('conversation.workspace.openWith.explorer', { defaultValue: 'File Explorer' }),
-        icon: <FolderOpen size={16} />,
         available: !isTemporary,
       },
       {
         key: 'browser',
         label: t('conversation.workspace.openWith.browser', { defaultValue: 'Browser' }),
-        icon: <Browser size={16} />,
         available: Boolean(openBrowserTab),
       },
     ],
@@ -152,17 +169,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   // Get current icon based on selected tool
   const currentIcon = useMemo(() => {
-    switch (currentTool) {
-      case 'vscode':
-        return <Command size={16} />;
-      case 'explorer':
-        return <FolderOpen size={16} />;
-      case 'browser':
-        return <Browser size={16} />;
-      case 'terminal':
-      default:
-        return <Terminal size={16} />;
-    }
+    return renderToolIcon(currentTool);
   }, [currentTool]);
 
   const tooltipContent =
@@ -192,7 +199,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
             }`}
             onClick={() => handleOpenWith(option.key)}
           >
-            <span className='flex items-center justify-center w-20px h-20px'>{option.icon}</span>
+            <span className='flex items-center justify-center w-20px h-20px'>{renderToolIcon(option.key)}</span>
             <span className='text-14px'>{option.label}</span>
             {currentTool === option.key && <span className='ms-auto text-12px text-[var(--color-text-3)]'>✓</span>}
           </div>
