@@ -72,6 +72,7 @@ const BrowserTabLayer: React.FC<BrowserTabLayerProps> = ({ browserTabs, activeTa
             <BrowserViewer
               url={tab.content}
               tabId={tab.id}
+              isActive={isActive}
               onUrlChange={handleUrlChange}
               onTitleChange={handleTitleChange}
               onFaviconChange={handleFaviconChange}

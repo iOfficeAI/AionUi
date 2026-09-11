@@ -61,13 +61,15 @@ const readBridgeEnv = async (electronApp: ElectronApplication): Promise<BridgeEn
   return latest;
 };
 
+type HttpResponse = { statusCode: number; body: string };
+
 /** GET a path off the bridge from this process; null when nothing is listening. */
-const httpGetFromTestProcess = (port: number, path: string): Promise<string | null> =>
+const httpGetFromTestProcess = (port: number, path: string): Promise<HttpResponse | null> =>
   new Promise((resolve) => {
-    const req = http.get({ host: '127.0.0.1', port, path, timeout: 5_000 }, (res) => {
+    const req = http.get({ host: '127.0.0.1', port, path, timeout: 15_000 }, (res) => {
       let body = '';
       res.on('data', (chunk) => (body += String(chunk)));
-      res.on('end', () => resolve(body));
+      res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body }));
     });
     req.on('error', () => resolve(null));
     req.on('timeout', () => {
@@ -195,7 +197,7 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
     if (legacyBody === null) return; // Nothing listening at all — the strongest outcome.
 
     // Something answered, but it must not be this app's bridge or targets.
-    expect(legacyBody).not.toContain(SINGLE_TARGET_ID);
+    expect(legacyBody.body).not.toContain(SINGLE_TARGET_ID);
 
     /**
      * And it must not be *our* renderer. Chromium's app-wide endpoint lists targets by URL,
@@ -208,27 +210,21 @@ test.describe('Agent browser control (single-target CDP bridge)', () => {
       return win?.webContents.getURL() ?? null;
     });
     if (ourRendererUrl) {
-      expect(legacyBody).not.toContain(ourRendererUrl);
+      expect(legacyBody.body).not.toContain(ourRendererUrl);
     }
   });
 
-  test('advertises exactly one page target over discovery', async ({ electronApp }) => {
+  test('does not advertise a page until the browser webview has attached', async ({ electronApp }) => {
     const { port } = await readBridgeEnv(electronApp);
     expect(port).not.toBeNull();
 
     const body = await httpGetFromTestProcess(port as number, '/json/list');
     expect(body).not.toBeNull();
 
-    const targets = JSON.parse(body as string) as Array<{ type: string; webSocketDebuggerUrl: string }>;
-    // Exactly one: puppeteer must never be handed a second target to choose from.
-    expect(targets).toHaveLength(1);
-    expect(targets[0].type).toBe('page');
-    /**
-     * Discovery hands back a tokened ws address. That is how the token reaches puppeteer,
-     * which cannot carry a query string on browserURL itself — `new URL(path, base)` drops
-     * it when the path is absolute.
-     */
-    expect(targets[0].webSocketDebuggerUrl).toContain('token=');
+    // The startup page has no preview region in which a browser webview can mount. Returning
+    // an invented about:blank target would let puppeteer proceed without a controllable page.
+    expect(body?.statusCode).toBe(503);
+    expect(body?.body).toMatch(/not currently attached/i);
   });
 
   test('refuses a WebSocket upgrade without a valid token', async ({ electronApp }) => {

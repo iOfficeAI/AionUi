@@ -22,6 +22,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
+import { bridge } from './common/platform/bridge';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
@@ -773,8 +774,14 @@ const handleAppReady = async (): Promise<void> => {
     try {
       const { startCdpBridge } = await import('./process/resources/builtinMcp/cdpBridge');
       const { setCdpBridgeHandle } = await import('./process/utils/cdpBridgeRegistry');
-      const bridge = await startCdpBridge();
-      setCdpBridgeHandle(bridge);
+      const cdpBridge = await startCdpBridge({
+        requestBrowserPanelOpen: () =>
+          bridge.emit('preview.open', {
+            content: 'about:blank',
+            content_type: 'browser',
+          }),
+      });
+      setCdpBridgeHandle(cdpBridge);
       /**
        * 回填真实端口，让设置页显示的是「连得上的地址」。
        * 以前这里显示的是 9230 段那个预留号，而通道走 listen(0) —— 用户照着复制的
@@ -784,12 +791,12 @@ const handleAppReady = async (): Promise<void> => {
        * display the reserved 9230-range number while the bridge listened on listen(0), so
        * any MCP config the user copied from there could never connect.
        */
-      setActiveCdpPort(bridge.port);
-      process.env.AIONUI_CDP_ACTIVE_PORT = String(bridge.port);
-      process.env.AIONUI_CDP_BRIDGE_TOKEN = bridge.token;
-      console.log(`[CDP] Single-target bridge listening on 127.0.0.1:${bridge.port} (token required)`);
+      setActiveCdpPort(cdpBridge.port);
+      process.env.AIONUI_CDP_ACTIVE_PORT = String(cdpBridge.port);
+      process.env.AIONUI_CDP_BRIDGE_TOKEN = cdpBridge.token;
+      console.log(`[CDP] Single-target bridge listening on 127.0.0.1:${cdpBridge.port} (token required)`);
       app.once('will-quit', () => {
-        void bridge.close();
+        void cdpBridge.close();
         setCdpBridgeHandle(null);
         setActiveCdpPort(null);
       });
