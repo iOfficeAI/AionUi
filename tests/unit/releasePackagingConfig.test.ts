@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { load } from 'js-yaml';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -22,6 +23,22 @@ function yamlBlock(content: string, key: string): string {
 }
 
 describe('release packaging configuration', () => {
+  it('uses concrete product text for Linux package metadata', () => {
+    const config = load(readProjectFile('packages/desktop/electron-builder.yml')) as {
+      linux?: {
+        synopsis?: unknown;
+        description?: unknown;
+        desktop?: { entry?: { Comment?: unknown } };
+      };
+    };
+    const packageDescription = (JSON.parse(readProjectFile('package.json')) as { description: string }).description;
+    const metadata = [config.linux?.synopsis, config.linux?.description, config.linux?.desktop?.entry?.Comment];
+
+    expect(metadata).toEqual([packageDescription, packageDescription, packageDescription]);
+    expect(metadata.every((value) => typeof value === 'string' && value.trim().length > 0)).toBe(true);
+    expect(metadata).not.toContain('${description}');
+  });
+
   it('keeps mac zip artifacts enabled', () => {
     const config = readProjectFile('packages/desktop/electron-builder.yml');
     const macBlock = yamlBlock(config, 'mac');
