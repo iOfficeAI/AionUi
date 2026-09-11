@@ -376,6 +376,7 @@
   "baseUrlHint": "سیستم به‌صورت خودکار مسیر درخواست را اضافه می‌کند",
   "modelNotFoundAfterUrlChange": "مدل {{model}} در آدرس جدید پیدا نشد؛ اگر کار نکرد، دوباره آن را انتخاب کنید.",
   "apiKey": "کلید API",
+  "getApiKey": "دریافت کلید API",
   "deleteModelConfirm": "آیا مطمئن هستید که می‌خواهید این مدل را حذف کنید؟",
   "deleteAllModelConfirm": "آیا مطمئن هستید که می‌خواهید همه مدل‌ها را حذف کنید؟",
   "modelCount": "مدل",

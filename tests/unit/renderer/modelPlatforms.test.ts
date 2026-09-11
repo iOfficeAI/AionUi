@@ -32,4 +32,23 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.ai/v1',
     ]);
   });
+
+  it('defines SSYCloud as an OpenAI-compatible preset with an API key registration link', () => {
+    const ssyCloudEntries = MODEL_PLATFORMS.filter((p) => p.value === 'SSYCloud');
+
+    expect(ssyCloudEntries).toHaveLength(1);
+    expect(ssyCloudEntries[0]).toMatchObject({
+      name: 'SSYCloud (胜算云)',
+      logo: '/api/assets/logos/ai-cloud/ssycloud.svg',
+      platform: 'custom',
+      base_url: 'https://router.shengsuanyun.com/api/v1',
+      apiKeyUrl: 'https://www.shengsuanyun.com/?from=CH_VVVBZY1S',
+    });
+  });
+
+  it('does not show the SSYCloud API key link for unrelated providers', () => {
+    const openAI = MODEL_PLATFORMS.find((p) => p.value === 'OpenAI');
+
+    expect(openAI?.apiKeyUrl).toBeUndefined();
+  });
 });

@@ -376,6 +376,7 @@
   "baseUrlHint": "システムが自動的にリクエストパスを追加します",
   "modelNotFoundAfterUrlChange": "モデル {{model}} は新しいアドレスで見つかりませんでした。利用できない場合は選択し直してください。",
   "apiKey": "API キー",
+  "getApiKey": "API キーを取得",
   "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
   "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
   "modelCount": "モデル",
