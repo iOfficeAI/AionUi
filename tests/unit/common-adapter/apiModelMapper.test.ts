@@ -154,7 +154,7 @@ describe('apiModelMapper', () => {
       expect('model' in body).toBe(false);
     });
 
-    it('strips legacy type when assistant identity is present', () => {
+    it('passes type through when assistant identity is present', () => {
       const body = buildCreateConversationBody({
         type: 'acp',
         name: 'hello',
@@ -162,7 +162,7 @@ describe('apiModelMapper', () => {
         extra: {},
       });
 
-      expect(body.type).toBeUndefined();
+      expect(body.type).toBe('acp');
     });
 
     it('omits the top-level model for ACP creates that pass an empty placeholder', () => {
