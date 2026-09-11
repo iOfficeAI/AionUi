@@ -28,6 +28,8 @@
   "openInSystemBrowser": "系统浏览器打开",
   "copySuccess": "已复制",
   "copyFailed": "Copy failed",
+  "favoriteAssistant": "设为常用助手",
+  "unfavoriteAssistant": "取消常用助手",
   "download": "下载",
   "close": "关闭",
   "retry": "重试",

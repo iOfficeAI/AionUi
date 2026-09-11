@@ -28,6 +28,8 @@
   "openInSystemBrowser": "Відкрити в системному браузері",
   "copySuccess": "Скопійовано",
   "copyFailed": "Не вдалося скопіювати",
+  "favoriteAssistant": "Додати в обране",
+  "unfavoriteAssistant": "Прибрати з обраного",
   "download": "Завантажити",
   "close": "Закрити",
   "retry": "Повторити",

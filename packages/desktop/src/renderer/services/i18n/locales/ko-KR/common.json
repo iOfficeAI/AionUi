@@ -28,6 +28,8 @@
   "openInSystemBrowser": "시스템 브라우저로 열기",
   "copySuccess": "복사됨",
   "copyFailed": "복사 실패",
+  "favoriteAssistant": "즐겨찾기로 표시",
+  "unfavoriteAssistant": "즐겨찾기에서 제거",
   "download": "다운로드",
   "close": "닫기",
   "retry": "재시도",
