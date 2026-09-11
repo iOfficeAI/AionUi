@@ -177,6 +177,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'aionrs',
           name: input,
           model: current_model,
           assistant: {
@@ -232,6 +233,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     try {
       const conversation = await ipcBridge.conversation.create.invoke({
+        type: 'acp',
         name: input,
         assistant: {
           id: assistantConversationId,
