@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import type { SpeechToTextResult } from '@/common/types/provider/speech';
+import { getClientBusinessSetting } from './clientBusinessSettings';
+import { encodeWavPcm16, floatTo16BitPcm, resampleLinear } from './speech/pcmRecorder';
 
 /** Dispatched on window whenever the speech-to-text config is saved. */
 export const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
@@ -76,8 +79,49 @@ const parseErrorResponse = (response: XMLHttpRequest): Error => {
   return new Error(`STT_REQUEST_FAILED:${response.status} ${response.statusText}`);
 };
 
+async function convertBlobToWav(blob: Blob, targetSampleRate = 16000): Promise<Blob> {
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const AudioContextClass =
+      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      return blob;
+    }
+    const audioContext = new AudioContextClass();
+    try {
+      const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      const channelData = decoded.getChannelData(0);
+      const resampled = resampleLinear(channelData, decoded.sampleRate, targetSampleRate);
+      const pcm16 = floatTo16BitPcm(resampled);
+      return encodeWavPcm16(new Uint8Array(pcm16.buffer), targetSampleRate, 1);
+    } finally {
+      void audioContext.close();
+    }
+  } catch {
+    return blob;
+  }
+}
+
 export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Promise<SpeechToTextResult> {
   ensureAudioSize(blob);
+
+  try {
+    const config = await getClientBusinessSetting('tools.speechToText');
+    if (config?.provider === 'local') {
+      const wavBlob = await convertBlobToWav(blob, 16000);
+      const arrayBuffer = await wavBlob.arrayBuffer();
+      const modelId = config.local?.model || 'parakeet-tdt-0.6b-v3-int8';
+      return await ipcBridge.speech.transcribe.invoke({
+        audioBuffer: Array.from(new Uint8Array(arrayBuffer)),
+        modelId,
+      });
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('STT_LOCAL_MODEL_NOT_DOWNLOADED')) {
+      throw error;
+    }
+    // If not local or failed reading settings, continue to cloud fallback
+  }
 
   const mimeType = blob.type || 'audio/webm';
   const file_name = createAudioFileName(mimeType);
