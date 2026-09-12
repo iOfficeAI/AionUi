@@ -142,6 +142,18 @@ Decodificação de áudio em PCM 16kHz mono enviada via IPC.
       expect(data?.sections[2].type).toBe('usage');
     });
 
+    it('parses walkthrough without subheadings as single overview section', () => {
+      const plain = `[WALKTHROUGH]
+# Walkthrough: Simple Task
+Here is just a plain summary without any subsections.
+[/WALKTHROUGH]`;
+      const data = parseWalkthrough(plain);
+      expect(data).not.toBeNull();
+      expect(data?.title).toBe('Simple Task');
+      expect(data?.sections).toHaveLength(1);
+      expect(data?.sections[0].type).toBe('custom');
+    });
+
     it('returns null for empty or non-walkthrough content', () => {
       expect(parseWalkthrough('')).toBeNull();
       expect(parseWalkthrough('Just an answer')).toBeNull();
