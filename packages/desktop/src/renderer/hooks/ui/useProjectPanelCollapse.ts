@@ -27,7 +27,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent } from '@/renderer/utils/workspace/workspaceEvents';
+import {
+  WORKSPACE_ENSURE_OPEN_EVENT,
+  WORKSPACE_TOGGLE_EVENT,
+  dispatchWorkspaceStateEvent,
+} from '@/renderer/utils/workspace/workspaceEvents';
 
 const COLLAPSE_KEY_PREFIX = 'project-panel-collapse:';
 
@@ -94,8 +98,25 @@ export function useProjectPanelCollapse({
         }
       }
     };
+    const handleEnsureOpen = () => {
+      if (!active || !projectId) return;
+      if (collapsedRef.current) {
+        setCollapsed(false);
+        if (!isMobile) {
+          try {
+            localStorage.setItem(collapseKey(projectId), 'expanded');
+          } catch {
+            // ignore persistence errors
+          }
+        }
+      }
+    };
     window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleToggle);
-    return () => window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleToggle);
+    window.addEventListener(WORKSPACE_ENSURE_OPEN_EVENT, handleEnsureOpen);
+    return () => {
+      window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleToggle);
+      window.removeEventListener(WORKSPACE_ENSURE_OPEN_EVENT, handleEnsureOpen);
+    };
   }, [active, projectId, isMobile]);
 
   // Broadcast collapse state so the mac Titlebar workspace button's icon stays in

@@ -657,7 +657,8 @@
     "newDirFailed": "Klasör oluşturulamadı",
     "tabs": {
       "files": "Dosyalar",
-      "changes": "Değişiklikler"
+      "changes": "Değişiklikler",
+      "terminal": "Terminal"
     },
     "addedToChat": "{{name}} sohbete eklendi",
     "imported": "{{count}} dosya içe aktarıldı",
@@ -762,7 +763,8 @@
     "stopped": "Durduruldu",
     "exited": "Çıkış {{code}}",
     "stop": "Durdur",
-    "truncated": "(önceki çıktı kesildi)"
+    "truncated": "(önceki çıktı kesildi)",
+    "executingInTerminal": "Terminalde yürütülüyor..."
   },
   "emptyState": {
     "greeting": "Merhaba! Ne istediğinizi söyleyin, hemen başlayayım."

@@ -2504,3 +2504,52 @@ export const sidebar = {
     (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
   ),
 };
+
+export type TerminalCreateRequest = {
+  id: string;
+  cwd?: string;
+  cols?: number;
+  rows?: number;
+  shell?: string;
+};
+
+export type TerminalSessionResult = {
+  id: string;
+  shell: string;
+  cwd: string;
+};
+
+export type TerminalWriteRequest = {
+  id: string;
+  data: string;
+};
+
+export type TerminalResizeRequest = {
+  id: string;
+  cols: number;
+  rows: number;
+};
+
+export type TerminalKillRequest = {
+  id: string;
+};
+
+export type TerminalDataPayload = {
+  id: string;
+  data: string;
+};
+
+export type TerminalExitPayload = {
+  id: string;
+  exitCode: number;
+  signal?: number;
+};
+
+export const terminal = {
+  create: bridge.buildProvider<TerminalSessionResult, TerminalCreateRequest>('terminal:create'),
+  write: bridge.buildProvider<void, TerminalWriteRequest>('terminal:write'),
+  resize: bridge.buildProvider<void, TerminalResizeRequest>('terminal:resize'),
+  kill: bridge.buildProvider<void, TerminalKillRequest>('terminal:kill'),
+  onData: bridge.buildEmitter<TerminalDataPayload>('terminal:data'),
+  onExit: bridge.buildEmitter<TerminalExitPayload>('terminal:exit'),
+};

@@ -205,5 +205,9 @@
   },
   "selectedCount": "Вибрано {{count}}",
   "selectedSkills": "Вибрані навички",
-  "aiAssistant": "ШІ-асистент"
+  "aiAssistant": "ШІ-асистент",
+  "terminal": "Термінал",
+  "runInTerminal": "Запустити в терміналі",
+  "clearTerminal": "Очистити термінал",
+  "restartTerminal": "Перезапустити термінал"
 }

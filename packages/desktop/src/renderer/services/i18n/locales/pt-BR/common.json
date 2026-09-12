@@ -202,5 +202,9 @@
   },
   "selectedCount": "{{count}} selecionado(s)",
   "selectedSkills": "Habilidades selecionadas",
-  "aiAssistant": "Assistente de IA"
+  "aiAssistant": "Assistente de IA",
+  "terminal": "Terminal",
+  "runInTerminal": "Executar no terminal",
+  "clearTerminal": "Limpar terminal",
+  "restartTerminal": "Reiniciar terminal"
 }
