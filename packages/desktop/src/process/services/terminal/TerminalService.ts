@@ -157,6 +157,14 @@ export class TerminalService {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
+    child.stdin?.on('error', () => {
+      // Ignore write errors (EPIPE, EAGAIN) when child process exits or pipes close
+    });
+
+    child.on('error', (err) => {
+      console.warn(`[TerminalService] Child process (${id}) error:`, err);
+    });
+
     child.stdout?.on('data', (buf: Buffer) => {
       this.onDataCallback?.({ id, data: buf.toString('utf-8') });
     });
@@ -177,7 +185,9 @@ export class TerminalService {
     return {
       write: (data: string) => {
         try {
-          child.stdin?.write(data);
+          if (child.stdin && !child.stdin.destroyed && child.stdin.writable) {
+            child.stdin.write(data, () => {});
+          }
         } catch (err) {
           console.warn(`[TerminalService] Error writing to child_process (${id}):`, err);
         }

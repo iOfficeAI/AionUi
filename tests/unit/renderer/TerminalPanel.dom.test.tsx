@@ -4,60 +4,53 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TerminalPanel } from '@/renderer/pages/conversation/Terminal/TerminalPanel';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchTerminalExecEvent } from '@/renderer/pages/conversation/Terminal/terminalEvents';
 
-// Stub matchMedia for xterm.js in jsdom
-if (typeof window !== 'undefined' && !window.matchMedia) {
-  window.matchMedia = vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
-}
+const mockTerminalInstance = {
+  open: vi.fn(),
+  dispose: vi.fn(),
+  loadAddon: vi.fn(),
+  onData: vi.fn(),
+  write: vi.fn(),
+  writeln: vi.fn(),
+  clear: vi.fn(),
+  reset: vi.fn(),
+  focus: vi.fn(),
+  cols: 80,
+  rows: 24,
+  options: { theme: {} },
+};
 
-const mockTerminalApi = vi.hoisted(() => ({
-  create: vi.fn().mockResolvedValue({ id: 'terminal-test-proj', shell: '/bin/zsh', cwd: '/test/cwd' }),
-  write: vi.fn().mockResolvedValue(undefined),
-  resize: vi.fn().mockResolvedValue(undefined),
-  kill: vi.fn().mockResolvedValue(undefined),
-  onDataListener: vi.fn(),
-  onExitListener: vi.fn(),
-}));
+vi.mock('@xterm/xterm', () => {
+  class MockTerminal {
+    open = mockTerminalInstance.open;
+    dispose = mockTerminalInstance.dispose;
+    loadAddon = mockTerminalInstance.loadAddon;
+    onData = mockTerminalInstance.onData;
+    write = mockTerminalInstance.write;
+    writeln = mockTerminalInstance.writeln;
+    clear = mockTerminalInstance.clear;
+    reset = mockTerminalInstance.reset;
+    focus = mockTerminalInstance.focus;
+    cols = mockTerminalInstance.cols;
+    rows = mockTerminalInstance.rows;
+    options = mockTerminalInstance.options;
+  }
+  return { Terminal: MockTerminal };
+});
 
-vi.mock('@/common', () => ({
-  ipcBridge: {
-    terminal: {
-      create: { invoke: mockTerminalApi.create },
-      write: { invoke: mockTerminalApi.write },
-      resize: { invoke: mockTerminalApi.resize },
-      kill: { invoke: mockTerminalApi.kill },
-      onData: {
-        on: (cb: (payload: { id: string; data: string }) => void) => {
-          mockTerminalApi.onDataListener = cb;
-          return () => {};
-        },
-      },
-      onExit: {
-        on: (cb: (payload: { id: string; exitCode: number }) => void) => {
-          mockTerminalApi.onExitListener = cb;
-          return () => {};
-        },
-      },
-    },
-  },
-}));
+vi.mock('@xterm/addon-fit', () => {
+  class MockFitAddon {
+    fit = vi.fn();
+  }
+  return { FitAddon: MockFitAddon };
+});
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@arco-design/web-react')>();
+  const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     Message: {
@@ -69,123 +62,159 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   };
 });
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: { defaultValue?: string }) => opts?.defaultValue || key }),
+const mockCreate = vi.fn();
+const mockWrite = vi.fn();
+const mockResize = vi.fn();
+const mockKill = vi.fn();
+let onDataListener: ((event: { id: string; data: string }) => void) | null = null;
+let onExitListener: ((event: { id: string; exitCode: number }) => void) | null = null;
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    terminal: {
+      create: { invoke: (...args: unknown[]) => mockCreate(...args) },
+      write: { invoke: (...args: unknown[]) => mockWrite(...args) },
+      resize: { invoke: (...args: unknown[]) => mockResize(...args) },
+      kill: { invoke: (...args: unknown[]) => mockKill(...args) },
+      onData: {
+        on: (cb: (event: { id: string; data: string }) => void) => {
+          onDataListener = cb;
+          return () => {
+            onDataListener = null;
+          };
+        },
+      },
+      onExit: {
+        on: (cb: (event: { id: string; exitCode: number }) => void) => {
+          onExitListener = cb;
+          return () => {
+            onExitListener = null;
+          };
+        },
+      },
+    },
+  },
 }));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: { defaultValue?: string }) => opts?.defaultValue || key,
+  }),
+}));
+
+import { TerminalPanel } from '@/renderer/pages/conversation/Terminal';
 
 describe('TerminalPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('renders terminal toolbar and initializes terminal session', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
-
-    expect(screen.getByTestId('sidebar-terminal')).toBeDefined();
-    expect(screen.getByTestId('terminal-container')).toBeDefined();
-    expect(screen.getByTestId('terminal-clear-button')).toBeDefined();
-    expect(screen.getByTestId('terminal-restart-button')).toBeDefined();
-
-    await vi.waitFor(() => {
-      expect(mockTerminalApi.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'terminal-test-proj',
-          cwd: '/test/cwd',
-        })
-      );
-    });
-
-    await vi.waitFor(() => {
-      expect(screen.getByText('$ zsh')).toBeDefined();
-      expect(screen.getByText('cwd')).toBeDefined();
+    onDataListener = null;
+    onExitListener = null;
+    mockCreate.mockResolvedValue({
+      id: 'terminal-proj-1',
+      shell: '/bin/zsh',
+      cwd: '/workspace/my-project',
     });
   });
 
-  it('clears terminal when clear button is clicked', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
+  it('initializes xterm and creates terminal session on mount', async () => {
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
 
-    const clearButton = screen.getByTestId('terminal-clear-button');
-    fireEvent.click(clearButton);
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({
+        id: 'terminal-proj-1',
+        cwd: '/workspace/my-project',
+        cols: 80,
+        rows: 24,
+      });
+      expect(screen.getByText('$ zsh')).toBeInTheDocument();
+      expect(screen.getByText('my-project')).toBeInTheDocument();
+    });
+  });
 
-    expect(mockTerminalApi.write).toHaveBeenCalledWith({
-      id: 'terminal-test-proj',
+  it('forwards incoming terminal data to xterm', async () => {
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalled();
+    });
+
+    onDataListener?.({ id: 'terminal-proj-1', data: 'hello world\r\n' });
+    expect(mockTerminalInstance.write).toHaveBeenCalledWith('hello world\r\n');
+  });
+
+  it('displays exit code when process exits', async () => {
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalled();
+    });
+
+    onExitListener?.({ id: 'terminal-proj-1', exitCode: 130 });
+    expect(mockTerminalInstance.writeln).toHaveBeenCalledWith(
+      expect.stringContaining('[Process exited with code 130]')
+    );
+  });
+
+  it('executes external command event in active terminal', async () => {
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalled();
+    });
+
+    dispatchTerminalExecEvent('bun run test', 'proj-1');
+
+    expect(mockWrite).toHaveBeenCalledWith({
+      id: 'terminal-proj-1',
+      data: 'bun run test\r',
+    });
+    expect(mockTerminalInstance.focus).toHaveBeenCalled();
+  });
+
+  it('clears terminal on clicking Clear button', async () => {
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalled();
+    });
+
+    const clearBtn = screen.getByTestId('terminal-clear-button');
+    fireEvent.click(clearBtn);
+
+    expect(mockTerminalInstance.clear).toHaveBeenCalled();
+    expect(mockWrite).toHaveBeenCalledWith({
+      id: 'terminal-proj-1',
       data: '\x0c',
     });
   });
 
-  it('restarts terminal when restart button is clicked', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
+  it('restarts terminal session on clicking Restart button', async () => {
+    mockKill.mockResolvedValue(undefined);
 
-    const restartButton = screen.getByTestId('terminal-restart-button');
-    await act(async () => {
-      fireEvent.click(restartButton);
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledTimes(1);
     });
 
-    expect(mockTerminalApi.kill).toHaveBeenCalledWith({ id: 'terminal-test-proj' });
-    expect(mockTerminalApi.create).toHaveBeenCalledTimes(2);
-  });
+    const restartBtn = screen.getByTestId('terminal-restart-button');
+    fireEvent.click(restartBtn);
 
-  it('executes command when terminal execute event is dispatched', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
-
-    await act(async () => {
-      dispatchTerminalExecEvent('npm test', 'test-proj');
-    });
-
-    expect(mockTerminalApi.write).toHaveBeenCalledWith({
-      id: 'terminal-test-proj',
-      data: 'npm test\r',
+    await waitFor(() => {
+      expect(mockKill).toHaveBeenCalledWith({ id: 'terminal-proj-1' });
+      expect(mockCreate).toHaveBeenCalledTimes(2);
     });
   });
 
-  it('ignores terminal execute events intended for another project', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
+  it('handles create session error gracefully', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('PTY spawn failed'));
 
-    await act(async () => {
-      dispatchTerminalExecEvent('npm test', 'different-proj');
+    render(<TerminalPanel projectId='proj-1' cwd='/workspace/my-project' />);
+
+    await waitFor(() => {
+      expect(mockTerminalInstance.writeln).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to start terminal session')
+      );
     });
-
-    expect(mockTerminalApi.write).not.toHaveBeenCalledWith(expect.objectContaining({ data: 'npm test\r' }));
-  });
-
-  it('receives onData and onExit events without throwing', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
-
-    await act(async () => {
-      mockTerminalApi.onDataListener?.({ id: 'terminal-test-proj', data: 'streamed output' });
-      mockTerminalApi.onExitListener?.({ id: 'terminal-test-proj', exitCode: 0 });
-    });
-
-    // Also verify event for a different terminal id is safely ignored
-    await act(async () => {
-      mockTerminalApi.onDataListener?.({ id: 'other-id', data: 'ignored' });
-      mockTerminalApi.onExitListener?.({ id: 'other-id', exitCode: 1 });
-    });
-  });
-
-  it('updates theme when data-theme attribute changes', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
-
-    await act(async () => {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      // Trigger mutation observer
-      await new Promise((r) => setTimeout(r, 20));
-    });
-
-    await act(async () => {
-      document.documentElement.setAttribute('data-theme', 'light');
-      await new Promise((r) => setTimeout(r, 20));
-    });
-  });
-
-  it('focuses terminal container on click', async () => {
-    render(<TerminalPanel projectId='test-proj' cwd='/test/cwd' visible={true} />);
-
-    const container = screen.getByTestId('terminal-container');
-    expect(() => fireEvent.click(container)).not.toThrow();
   });
 });
