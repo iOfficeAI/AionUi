@@ -49,6 +49,7 @@ import type {
   ProviderHealthCheckResponse,
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
+import type { SpeechModelDownloadStatus, SpeechToTextResult } from '../types/provider/speech';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -2503,4 +2504,25 @@ export const sidebar = {
   deleteArchivedProject: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult, { project_id: string }>(
     (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Local Speech-to-Text (Parakeet TDT)
+// ---------------------------------------------------------------------------
+
+export const speech = {
+  checkModel: bridge.buildProvider<{ isReady: boolean; status: SpeechModelDownloadStatus }, { modelId: string }>(
+    'speech:checkModel'
+  ),
+  downloadModel: bridge.buildProvider<SpeechModelDownloadStatus, { modelId: string }>('speech:downloadModel'),
+  cancelDownload: bridge.buildProvider<boolean, { modelId: string }>('speech:cancelDownload'),
+  transcribe: bridge.buildProvider<SpeechToTextResult, { audioBuffer: number[] | Uint8Array; modelId?: string }>(
+    'speech:transcribe'
+  ),
+  onDownloadProgress: bridge.buildEmitter<{
+    downloadedBytes: number;
+    modelId: string;
+    percent: number;
+    totalBytes: number;
+  }>('speech:downloadProgress'),
 };

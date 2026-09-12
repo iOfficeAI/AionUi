@@ -5,10 +5,14 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-export { DEEPGRAM_SPEECH_MODEL_PRESETS, OPENAI_SPEECH_MODEL_PRESETS } from '@renderer/services/speech/speechModels';
+export {
+  DEEPGRAM_SPEECH_MODEL_PRESETS,
+  LOCAL_SPEECH_MODEL_PRESETS,
+  OPENAI_SPEECH_MODEL_PRESETS,
+} from '@renderer/services/speech/speechModels';
 
 /** UI-level service source. 'custom' is stored as provider:'openai' + non-empty base_url. */
-export type SpeechSource = 'openai' | 'deepgram' | 'custom';
+export type SpeechSource = 'openai' | 'deepgram' | 'custom' | 'local';
 
 /** Language autonyms are intentionally not translated. Empty value = auto detect. */
 export const SPEECH_LANGUAGE_OPTIONS: Array<{ value: string; label?: string }> = [
@@ -59,7 +63,11 @@ export const migrateSpeechLanguage = (config: SpeechToTextConfig): SpeechToTextC
 
 export const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
-  provider: 'openai',
+  provider: 'local',
+  local: {
+    model: 'parakeet-tdt-0.6b-v3-int8',
+    language: '',
+  },
   openai: {
     api_key: '',
     base_url: '',
@@ -80,6 +88,10 @@ export const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
 export const normalizeSpeechToTextConfig = (config?: Partial<SpeechToTextConfig>): SpeechToTextConfig => ({
   ...DEFAULT_SPEECH_TO_TEXT_CONFIG,
   ...config,
+  local: {
+    ...DEFAULT_SPEECH_TO_TEXT_CONFIG.local,
+    ...config?.local,
+  },
   openai: {
     ...DEFAULT_SPEECH_TO_TEXT_CONFIG.openai,
     ...config?.openai,
@@ -91,6 +103,9 @@ export const normalizeSpeechToTextConfig = (config?: Partial<SpeechToTextConfig>
 });
 
 export const deriveSpeechSource = (config: SpeechToTextConfig): SpeechSource => {
+  if (config.provider === 'local') {
+    return 'local';
+  }
   if (config.provider === 'deepgram') {
     return 'deepgram';
   }
@@ -107,6 +122,16 @@ export const applySpeechSource = (
   source: SpeechSource,
   rememberedCustomBaseUrl = ''
 ): SpeechToTextConfig => {
+  if (source === 'local') {
+    return {
+      ...config,
+      provider: 'local',
+      local: {
+        ...DEFAULT_SPEECH_TO_TEXT_CONFIG.local,
+        ...config.local,
+      },
+    };
+  }
   if (source === 'deepgram') {
     return { ...config, provider: 'deepgram' };
   }
