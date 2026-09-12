@@ -656,7 +656,8 @@
     "newDirFailed": "Ordner konnte nicht erstellt werden",
     "tabs": {
       "files": "Dateien",
-      "changes": "Änderungen"
+      "changes": "Änderungen",
+      "terminal": "Terminal"
     },
     "addedToChat": "{{name}} zum Chat hinzugefügt",
     "imported": "{{count}} Datei(en) importiert",
@@ -761,7 +762,8 @@
     "stopped": "Gestoppt",
     "exited": "Exit {{code}}",
     "stop": "Stopp",
-    "truncated": "(frühere Ausgabe gekürzt)"
+    "truncated": "(frühere Ausgabe gekürzt)",
+    "executingInTerminal": "Wird im Terminal ausgeführt..."
   },
   "emptyState": {
     "greeting": "Hallo! Sag mir, was du brauchst, und ich lege los."

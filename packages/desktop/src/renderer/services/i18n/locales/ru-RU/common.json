@@ -204,5 +204,9 @@
   },
   "selectedCount": "Выбрано {{count}}",
   "selectedSkills": "Выбранные навыки",
-  "aiAssistant": "ИИ-ассистент"
+  "aiAssistant": "ИИ-ассистент",
+  "terminal": "Терминал",
+  "runInTerminal": "Запустить в терминале",
+  "clearTerminal": "Очистить терминал",
+  "restartTerminal": "Перезапустить терминал"
 }

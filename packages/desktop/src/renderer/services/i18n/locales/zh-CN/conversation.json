@@ -655,7 +655,8 @@
     "newDirFailed": "新建目录失败",
     "tabs": {
       "files": "文件",
-      "changes": "变更"
+      "changes": "变更",
+      "terminal": "终端"
     },
     "addedToChat": "已将 {{name}} 添加到聊天",
     "imported": "已导入 {{count}} 个文件",
@@ -760,7 +761,8 @@
     "stopped": "已停止",
     "exited": "退出码 {{code}}",
     "stop": "停止",
-    "truncated": "(较早输出已截断)"
+    "truncated": "(较早输出已截断)",
+    "executingInTerminal": "正在终端中执行..."
   },
   "emptyState": {
     "greeting": "你好！说说你的需求，我这就开始。"
