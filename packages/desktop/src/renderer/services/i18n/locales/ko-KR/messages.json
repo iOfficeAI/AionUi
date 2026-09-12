@@ -97,5 +97,17 @@
   "requestDetails": "요청 내용:",
   "delivery": {
     "pending": "읽지 않음"
+  },
+  "walkthrough": {
+    "title": "실행 워크스루",
+    "badge": "Walkthrough",
+    "copy": "워크스루 복사",
+    "copySuccess": "클립보드에 복사되었습니다",
+    "copyFailed": "복사 실패",
+    "expand": "펼치기",
+    "collapse": "접기",
+    "sectionsCount": "{{count}}개 섹션",
+    "sectionsCount_one": "{{count}}개 섹션",
+    "sectionsCount_other": "{{count}}개 섹션"
   }
 }

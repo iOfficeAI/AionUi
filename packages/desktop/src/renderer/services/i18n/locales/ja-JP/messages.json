@@ -97,5 +97,17 @@
   "requestDetails": "リクエスト内容:",
   "delivery": {
     "pending": "未読"
+  },
+  "walkthrough": {
+    "title": "実行ウォークスルー",
+    "badge": "Walkthrough",
+    "copy": "ウォークスルーをコピー",
+    "copySuccess": "クリップボードにコピーしました",
+    "copyFailed": "コピーに失敗しました",
+    "expand": "展開",
+    "collapse": "折りたたむ",
+    "sectionsCount": "{{count}} 件のセクション",
+    "sectionsCount_one": "{{count}} 件のセクション",
+    "sectionsCount_other": "{{count}} 件のセクション"
   }
 }

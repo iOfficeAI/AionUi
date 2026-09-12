@@ -103,5 +103,17 @@
   "requestDetails": "Деталі запиту:",
   "delivery": {
     "pending": "Непрочитано"
+  },
+  "walkthrough": {
+    "title": "Огляд виконання (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "Скопіювати огляд",
+    "copySuccess": "Огляд скопійовано в буфер обміну",
+    "copyFailed": "Не вдалося скопіювати огляд",
+    "expand": "Розгорнути",
+    "collapse": "Згорнути",
+    "sectionsCount": "Розділів: {{count}}",
+    "sectionsCount_one": "{{count}} розділ",
+    "sectionsCount_other": "Розділів: {{count}}"
   }
 }
