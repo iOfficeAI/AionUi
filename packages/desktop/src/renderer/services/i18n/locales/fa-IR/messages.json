@@ -97,5 +97,17 @@
   "requestDetails": "جزئیات درخواست:",
   "delivery": {
     "pending": "خوانده‌نشده"
+  },
+  "walkthrough": {
+    "title": "راهنمای گام‌به‌گام اجرا (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "کپی خلاصه",
+    "copySuccess": "خلاصه در کلیپ‌بورد کپی شد",
+    "copyFailed": "کپی خلاصه انجام نشد",
+    "expand": "گسترش",
+    "collapse": "جمع کردن",
+    "sectionsCount": "{{count}} بخش",
+    "sectionsCount_one": "{{count}} بخش",
+    "sectionsCount_other": "{{count}} بخش"
   }
 }

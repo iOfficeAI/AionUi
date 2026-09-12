@@ -97,5 +97,17 @@
   "requestDetails": "Request details:",
   "delivery": {
     "pending": "Unread"
+  },
+  "walkthrough": {
+    "title": "Execution Walkthrough",
+    "badge": "Walkthrough",
+    "copy": "Copy Walkthrough",
+    "copySuccess": "Walkthrough copied to clipboard",
+    "copyFailed": "Failed to copy walkthrough",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "sectionsCount": "{{count}} sections",
+    "sectionsCount_one": "{{count}} section",
+    "sectionsCount_other": "{{count}} sections"
   }
 }

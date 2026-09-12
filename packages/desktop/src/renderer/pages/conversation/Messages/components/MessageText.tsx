@@ -28,6 +28,13 @@ import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSu
 import { isForkEnabled } from '@/common/chat/forkConversation';
 import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
+import WalkthroughCard from './WalkthroughCard';
+import {
+  parseWalkthrough,
+  stripWalkthrough,
+  hasWalkthrough,
+  cleanWalkthroughForClipboard,
+} from './WalkthroughCard/walkthroughParser';
 
 /**
  * Format a timestamp for message display.
@@ -117,6 +124,9 @@ const MessageText: React.FC<{
       if (hasSkillSuggest(content)) {
         content = stripSkillSuggest(content);
       }
+      if (hasWalkthrough(content)) {
+        content = stripWalkthrough(content);
+      }
       return content;
     }
     return content;
@@ -125,6 +135,13 @@ const MessageText: React.FC<{
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+
+  const walkthrough = useMemo(() => {
+    if (isUserMessage || !message.content.content || typeof message.content.content !== 'string') {
+      return null;
+    }
+    return parseWalkthrough(message.content.content);
+  }, [isUserMessage, message.content.content]);
   // Delivered-but-not-yet-consumed marker for messages sent mid-turn to a
   // supporting backend (claude/codex). The message already reached the
   // server (it's rendered); this only answers "has the agent picked it up
@@ -184,7 +201,11 @@ const MessageText: React.FC<{
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     // An AI turn split by tool calls / thinking stores several text messages;
     // the row sits on the last one but must copy the whole reply.
-    const textToCopy = turnTexts?.length ? buildTurnClipboardText(turnTexts) : fileList + baseText;
+    const copyContent =
+      typeof message.content.content === 'string' && hasWalkthrough(message.content.content)
+        ? cleanWalkthroughForClipboard(message.content.content)
+        : baseText;
+    const textToCopy = turnTexts?.length ? buildTurnClipboardText(turnTexts) : fileList + copyContent;
     copyText(textToCopy)
       .then(() => {
         setShowCopyAlert(true);
@@ -306,45 +327,48 @@ const MessageText: React.FC<{
             )}
           </div>
         )}
-        <div
-          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
-            'bg-aou-2 p-6px md:p-8px': isUserMessage || cronMeta,
-            'bg-3 p-6px md:p-8px': isTeammateMessage,
-            'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
-          })}
-          style={{
-            ...(isUserMessage || cronMeta
-              ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
-              : isTeammateMessage
-                ? {
-                    borderRadius: '0 8px 8px 8px',
-                    ...(teammateColor ? { borderLeft: `3px solid ${teammateColor}` } : {}),
-                  }
-                : undefined),
-          }}
-        >
-          {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {shouldRenderPlainText ? (
-            <div className='whitespace-pre-wrap [overflow-wrap:anywhere]' data-testid='message-text-content'>
-              {renderedText}
-            </div>
-          ) : json ? (
-            <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
-              <div data-testid='message-text-content'>
-                <MarkdownView
-                  codeStyle={CODE_STYLE}
-                  onLocalFileLink={handleLocalFileLink}
-                >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+        {Boolean(renderedText && renderedText.trim()) && (
+          <div
+            className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
+              'bg-aou-2 p-6px md:p-8px': isUserMessage || cronMeta,
+              'bg-3 p-6px md:p-8px': isTeammateMessage,
+              'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
+            })}
+            style={{
+              ...(isUserMessage || cronMeta
+                ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
+                : isTeammateMessage
+                  ? {
+                      borderRadius: '0 8px 8px 8px',
+                      ...(teammateColor ? { borderLeft: `3px solid ${teammateColor}` } : {}),
+                    }
+                  : undefined),
+            }}
+          >
+            {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
+            {shouldRenderPlainText ? (
+              <div className='whitespace-pre-wrap [overflow-wrap:anywhere]' data-testid='message-text-content'>
+                {renderedText}
               </div>
-            </CollapsibleContent>
-          ) : (
-            <div data-testid='message-text-content'>
-              <MarkdownView codeStyle={CODE_STYLE} onLocalFileLink={handleLocalFileLink}>
-                {data}
-              </MarkdownView>
-            </div>
-          )}
-        </div>
+            ) : json ? (
+              <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
+                <div data-testid='message-text-content'>
+                  <MarkdownView
+                    codeStyle={CODE_STYLE}
+                    onLocalFileLink={handleLocalFileLink}
+                  >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+                </div>
+              </CollapsibleContent>
+            ) : (
+              <div data-testid='message-text-content'>
+                <MarkdownView codeStyle={CODE_STYLE} onLocalFileLink={handleLocalFileLink}>
+                  {data}
+                </MarkdownView>
+              </div>
+            )}
+          </div>
+        )}
+        {walkthrough && <WalkthroughCard walkthrough={walkthrough} onLocalFileLink={handleLocalFileLink} />}
         {isPendingDelivery && (
           <div className='text-12px text-t-secondary mt-4px select-none' data-testid='message-status-badge'>
             {t('messages.delivery.pending', { defaultValue: 'Unread' })}

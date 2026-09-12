@@ -101,5 +101,17 @@
   "requestDetails": "Детали запроса:",
   "delivery": {
     "pending": "Непрочитано"
+  },
+  "walkthrough": {
+    "title": "Обзор выполнения (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "Скопировать обзор",
+    "copySuccess": "Обзор скопирован в буфер обмена",
+    "copyFailed": "Не удалось скопировать обзор",
+    "expand": "Развернуть",
+    "collapse": "Свернуть",
+    "sectionsCount": "Разделов: {{count}}",
+    "sectionsCount_one": "{{count}} раздел",
+    "sectionsCount_other": "Разделов: {{count}}"
   }
 }
