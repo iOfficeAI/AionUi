@@ -129,4 +129,50 @@ describe('WalkthroughCard', () => {
     fireEvent.click(sectionTitle);
     expect(screen.getByText('Modelo Parakeet TDT integrado.')).toBeInTheDocument();
   });
+
+  it('renders custom section icon for unrecognized section types', () => {
+    const dataWithCustom: WalkthroughData = {
+      title: 'Custom Section Walkthrough',
+      rawContent: 'test',
+      sections: [
+        {
+          id: 'sec-custom',
+          type: 'custom',
+          title: '5. Pull Request Status',
+          content: 'PR #4247 is open.',
+        },
+      ],
+    };
+
+    render(<WalkthroughCard walkthrough={dataWithCustom} />);
+    expect(screen.getByTestId('walkthrough-section-custom')).toBeInTheDocument();
+    expect(screen.getByText('5. Pull Request Status')).toBeInTheDocument();
+  });
+
+  it('collapses and expands by clicking the header container directly', () => {
+    render(<WalkthroughCard walkthrough={sampleData} />);
+
+    const header = screen.getByRole('button', { name: /Parakeet TDT Speech-to-Text/i });
+    fireEvent.click(header);
+
+    // Body should be hidden
+    expect(screen.queryByTestId('walkthrough-section-delivered')).not.toBeInTheDocument();
+
+    // Click again to expand
+    fireEvent.click(header);
+    expect(screen.getByTestId('walkthrough-section-delivered')).toBeInTheDocument();
+  });
+
+  it('handles copy error gracefully and shows error message', async () => {
+    vi.mocked(copyText).mockRejectedValueOnce(new Error('Clipboard denied'));
+
+    render(<WalkthroughCard walkthrough={sampleData} />);
+
+    const copyBtn = screen.getByLabelText('Copy Walkthrough');
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(Message.error).toHaveBeenCalledWith('Failed to copy walkthrough');
+  });
 });
