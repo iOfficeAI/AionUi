@@ -63,10 +63,19 @@ interface MessageIndex {
 function getMessageIndexKey(message: TMessage): string | undefined {
   if (!message.msg_id) return undefined;
   // Every frame of a turn shares one msg_id, so any type that needs its own
-  // slot in the shared msgIdIndex must namespace its key. Without this, a plan
-  // update resolves to whatever frame was appended last and rewrites it.
+  // slot in the shared msgIdIndex must namespace its key. Without this, a plan,
+  // tips, or status update resolves to whatever frame was appended last and
+  // rewrites it.
   if (message.type === 'thinking') return `thinking:${message.msg_id}`;
   if (message.type === 'plan') return `plan:${message.msg_id}`;
+  if (message.type === 'tips') return `tips:${message.msg_id}`;
+  if (message.type === 'agent_status') return `agent_status:${message.msg_id}`;
+  if (message.type === 'tool_call') return `tool_call:${message.content?.call_id ?? message.msg_id}`;
+  if (message.type === 'acp_tool_call')
+    return `acp_tool_call:${message.content?.update?.tool_call_id ?? message.msg_id}`;
+  if (message.type === 'permission') return `permission:${message.content?.call_id ?? message.msg_id}`;
+  if (message.type === 'acp_terminal_output')
+    return `acp_terminal_output:${message.content?.terminal_id ?? message.msg_id}`;
   return message.msg_id;
 }
 
@@ -386,17 +395,22 @@ export function composeMessageWithIndex(
 
   // agent_status / tips and other msg_id-based messages:
   // replace the existing item in place instead of appending duplicates.
+  // Must check existingMsg.type === message.type so a tip or status frame never
+  // overwrites an assistant text message sharing the turn's msg_id.
   if (message.msg_id) {
-    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    const msgIndexKey = getMessageIndexKey(message) ?? message.msg_id;
+    const existingIdx = index.msgIdIndex.get(msgIndexKey);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
-      const newList = list.slice();
-      newList[existingIdx] = {
-        ...existingMsg,
-        ...message,
-        content: message.content,
-      } as TMessage;
-      return newList;
+      if (existingMsg.type === message.type) {
+        const newList = list.slice();
+        newList[existingIdx] = {
+          ...existingMsg,
+          ...message,
+          content: message.content,
+        } as TMessage;
+        return newList;
+      }
     }
   }
 
