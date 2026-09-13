@@ -24,6 +24,7 @@ vi.mock('@/common', () => ({
       listChanged: { on: () => () => {} },
       responseStream: { on: () => () => {} },
       turnCompleted: { on: () => () => {} },
+      confirmation: { remove: { on: () => () => {} } },
     },
     application: {
       writeRendererLog: { invoke: vi.fn().mockResolvedValue(undefined) },

@@ -640,6 +640,9 @@
   "notFound": "Беседа не найдена или была удалена",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Обновить файлы",
+    "refreshChanges": "Обновить изменения",
+    "collapseAll": "Свернуть все",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -650,7 +653,6 @@
       "addToChat": "Добавить в чат",
       "copyRelativePath": "Копировать относительный путь",
       "copyAbsolutePath": "Копировать абсолютный путь",
-      "refresh": "Обновить",
       "newFile": "Новый файл",
       "newDir": "Новая папка"
     },
@@ -680,7 +682,6 @@
       "noChanges": "Нет изменений",
       "loading": "Загрузка изменений…",
       "loadFailed": "Не удалось загрузить изменения",
-      "refresh": "Обновить",
       "groups": {
         "staged": "Проиндексированные изменения",
         "unstaged": "Изменения",

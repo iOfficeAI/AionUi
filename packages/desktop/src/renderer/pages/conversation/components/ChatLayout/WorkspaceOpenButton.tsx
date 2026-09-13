@@ -203,7 +203,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   return (
     <div className='workspace-open-button flex items-center'>
-      <Tooltip content={tooltipContent} mini>
+      <Tooltip content={tooltipContent} mini position='br'>
         <Button
           type='text'
           size='small'

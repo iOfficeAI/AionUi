@@ -342,7 +342,9 @@
     "denied": "Notifications bloquées : activez-les dans les paramètres du site de votre navigateur",
     "insecureContext": "Les notifications du navigateur nécessitent un accès HTTPS ou localhost",
     "bodyConfirmation": "Un agent attend votre confirmation",
-    "bodyTurnCompleted": "L'agent a fini de répondre"
+    "bodyConfirmationNamed": "« {{name}} » attend votre confirmation",
+    "bodyTurnCompleted": "L'agent a fini de répondre",
+    "bodyTurnCompletedNamed": "« {{name}} » a fini de répondre"
   },
   "notification": "Notifications",
   "cronNotificationEnabled": "Fin de tâche planifiée",

@@ -510,8 +510,6 @@ export const conversation = {
     }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
   },
   confirmation: {
-    add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
-    update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
     confirm: httpPost<
       void,
       { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }

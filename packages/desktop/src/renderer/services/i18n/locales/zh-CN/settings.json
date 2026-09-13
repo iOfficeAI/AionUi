@@ -342,7 +342,9 @@
     "denied": "通知已被拦截 —— 请在浏览器的网站设置中开启",
     "insecureContext": "浏览器通知需要通过 HTTPS 或 localhost 访问",
     "bodyConfirmation": "有一个 agent 正在等待你的确认",
-    "bodyTurnCompleted": "agent 已完成本轮回复"
+    "bodyConfirmationNamed": "「{{name}}」正在等待你确认",
+    "bodyTurnCompleted": "已完成本轮回复",
+    "bodyTurnCompletedNamed": "「{{name}}」已完成本轮回复"
   },
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",

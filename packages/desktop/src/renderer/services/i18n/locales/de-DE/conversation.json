@@ -633,6 +633,9 @@
   "notFound": "Unterhaltung nicht gefunden oder wurde gelöscht",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "Dateien aktualisieren",
+    "refreshChanges": "Änderungen aktualisieren",
+    "collapseAll": "Alle einklappen",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -643,7 +646,6 @@
       "addToChat": "Zum Chat hinzufügen",
       "copyRelativePath": "Relativen Pfad kopieren",
       "copyAbsolutePath": "Absoluten Pfad kopieren",
-      "refresh": "Aktualisieren",
       "newFile": "Neue Datei",
       "newDir": "Neuer Ordner"
     },
@@ -673,7 +675,6 @@
       "noChanges": "Keine Änderungen",
       "loading": "Änderungen werden geladen…",
       "loadFailed": "Änderungen konnten nicht geladen werden",
-      "refresh": "Aktualisieren",
       "groups": {
         "staged": "Vorgemerkte Änderungen",
         "unstaged": "Änderungen",

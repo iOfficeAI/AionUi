@@ -23,6 +23,7 @@ vi.mock('@/common', () => ({
       listChanged: { on: vi.fn() },
       responseStream: { on: vi.fn() },
       turnCompleted: { on: vi.fn() },
+      confirmation: { remove: { on: vi.fn() } },
     },
   },
 }));
