@@ -77,4 +77,46 @@ describe('McpServerHeader', () => {
 
     expect(screen.getByRole('switch', { name: 'MCP server enabled' })).toBeDisabled();
   });
+
+  it('keeps a visible delete action for user-managed servers', async () => {
+    const onDeleteServer = vi.fn();
+    render(
+      <McpServerHeader
+        server={server}
+        isTestingConnection={false}
+        onTestConnection={vi.fn()}
+        onEditServer={vi.fn()}
+        onDeleteServer={onDeleteServer}
+        onToggleServer={vi.fn()}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: 'settings.mcpDeleteServer' });
+    expect(deleteButton).toBeVisible();
+
+    await userEvent.click(deleteButton);
+    expect(onDeleteServer).toHaveBeenCalledWith(server);
+  });
+
+  it('hides delete for extension-contributed servers', () => {
+    renderHeader(vi.fn(), true);
+
+    expect(screen.queryByRole('button', { name: 'settings.mcpDeleteServer' })).not.toBeInTheDocument();
+  });
+
+  it('shows delete for built-in servers', () => {
+    const onDeleteServer = vi.fn();
+    render(
+      <McpServerHeader
+        server={{ ...server, builtin: true }}
+        isTestingConnection={false}
+        onTestConnection={vi.fn()}
+        onEditServer={vi.fn()}
+        onDeleteServer={onDeleteServer}
+        onToggleServer={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('mcp-server-delete')).toBeVisible();
+  });
 });

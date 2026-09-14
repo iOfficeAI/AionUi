@@ -69,6 +69,31 @@ const toggleLocalBuiltinServer = async (server: IMcpServer): Promise<IMcpServer>
   };
 };
 
+const deleteLocalBuiltinServer = async (server: IMcpServer): Promise<void> => {
+  const localServers = (await getClientBusinessSetting('mcp.config')) ?? [];
+  const serverIndex = localServers.findIndex(
+    (localServer) => localServer.builtin === true && (localServer.id === server.id || localServer.name === server.name)
+  );
+
+  if (serverIndex === -1) {
+    throw new Error(`MCP server not found: ${server.name}`);
+  }
+
+  await setClientBusinessSetting(
+    'mcp.config',
+    localServers.filter((_localServer, currentServerIndex) => currentServerIndex !== serverIndex)
+  );
+};
+
+const persistDeletedBuiltinServerName = async (serverName: string): Promise<void> => {
+  const deletedServerNames = (await getClientBusinessSetting('mcp.deletedBuiltinServerNames')) ?? [];
+  if (deletedServerNames.includes(serverName)) {
+    return;
+  }
+
+  await setClientBusinessSetting('mcp.deletedBuiltinServerNames', [...deletedServerNames, serverName]);
+};
+
 export const useMcpServerCRUD = (
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>
 ) => {
@@ -178,10 +203,20 @@ export const useMcpServerCRUD = (
   );
 
   const handleDeleteMcpServer = useCallback(
-    async (serverId: string) => {
+    async (server: IMcpServer) => {
       try {
-        await mcpService.deleteServer.invoke({ id: serverId });
-        await saveMcpServers((prevServers) => prevServers.filter((server) => server.id !== serverId));
+        try {
+          await mcpService.deleteServer.invoke({ id: server.id });
+        } catch (error) {
+          if (server.builtin !== true || !isBackendHttpError(error) || error.status !== 404) {
+            throw error;
+          }
+          await deleteLocalBuiltinServer(server);
+        }
+        if (server.builtin === true) {
+          await persistDeletedBuiltinServerName(server.name);
+        }
+        await saveMcpServers((prevServers) => prevServers.filter((currentServer) => currentServer.id !== server.id));
         await refreshManagedCodexMcpConfig();
         Message.success(t('settings.mcpDeleted'));
         return true;

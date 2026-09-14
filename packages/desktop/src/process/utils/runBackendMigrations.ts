@@ -79,6 +79,15 @@ async function fetchBackendClientPreferences(): Promise<BackendClientPreferences
   }
 }
 
+function resolveDeletedBuiltinServerNames(preferences: BackendClientPreferences): Set<string> {
+  const deletedServerNames = preferences['mcp.deletedBuiltinServerNames'];
+  if (!Array.isArray(deletedServerNames)) {
+    return new Set();
+  }
+
+  return new Set(deletedServerNames.filter((name): name is string => typeof name === 'string'));
+}
+
 async function fetchProviders(): Promise<IProvider[]> {
   try {
     return (await httpRequest<IProvider[]>('GET', '/api/providers')) || [];
@@ -359,7 +368,10 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   logImageGenerationEnvResolution(imageEnvResolution, 'bootstrap');
   const imageServer = buildBuiltinImageGenerationServer(imageEnvResolution, imageConfig);
   const defaultServers = buildDefaultMcpServers();
-  const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
+  const deletedBuiltinServerNames = resolveDeletedBuiltinServerNames(backendPrefs);
+  const missing = [...defaultServers, imageServer].filter(
+    (server) => !existingByName.has(server.name) && !deletedBuiltinServerNames.has(server.name)
+  );
   let imageServerUpdated = false;
 
   if (missing.length > 0) {
@@ -514,13 +526,10 @@ const MIGRATION_STEPS: Array<{
 
 async function syncBuiltinMcpConfig(configFile: ConfigFile): Promise<void> {
   const localMcpConfig = ((await configFile.get('mcp.config').catch((): IMcpServer[] => [])) || []) as IMcpServer[];
-  const localBuiltinServers = localMcpConfig.filter((server) => server?.builtin === true);
-
-  if (localBuiltinServers.length === 0) {
-    return;
-  }
-
   const backendSettings = (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) || {};
+  const localBuiltinServers = localMcpConfig.filter(
+    (server) => server?.builtin === true && !resolveDeletedBuiltinServerNames(backendSettings).has(server.name)
+  );
   const backendMcpConfig = Array.isArray(backendSettings['mcp.config'])
     ? (backendSettings['mcp.config'] as IMcpServer[])
     : [];

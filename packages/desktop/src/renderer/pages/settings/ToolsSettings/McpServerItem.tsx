@@ -17,7 +17,7 @@ interface McpServerItemProps {
   onToggleCollapse: () => void;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
-  onDeleteServer: (serverId: string) => void;
+  onDeleteServer: (server: IMcpServer) => void;
   onToggleServer?: (server: IMcpServer) => void | Promise<unknown>;
   onOAuthLogin?: (server: IMcpServer) => void;
 }

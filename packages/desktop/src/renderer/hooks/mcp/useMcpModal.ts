@@ -9,7 +9,7 @@ export const useMcpModal = () => {
   const [showMcpModal, setShowMcpModal] = useState(false);
   const [editingMcpServer, setEditingMcpServer] = useState<IMcpServer | undefined>();
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [serverToDelete, setServerToDelete] = useState<string | null>(null);
+  const [serverToDelete, setServerToDelete] = useState<IMcpServer | null>(null);
   const [mcpCollapseKey, setMcpCollapseKey] = useState<Record<string, boolean>>({});
 
   // 显示添加MCP服务器模态框
@@ -31,8 +31,8 @@ export const useMcpModal = () => {
   }, []);
 
   // 显示删除确认模态框
-  const showDeleteConfirm = useCallback((serverId: string) => {
-    setServerToDelete(serverId);
+  const showDeleteConfirm = useCallback((server: IMcpServer) => {
+    setServerToDelete(server);
     setDeleteConfirmVisible(true);
   }, []);
 

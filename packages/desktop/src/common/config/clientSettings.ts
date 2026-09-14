@@ -12,6 +12,7 @@ export type ImageGenerationModelSetting = TProviderWithModel & {
 export type ClientBusinessSettingMap = {
   'google.config': GoogleClientSetting;
   'mcp.config': IMcpServer[] | undefined;
+  'mcp.deletedBuiltinServerNames': string[] | undefined;
   'tools.imageGenerationModel': ImageGenerationModelSetting | undefined;
   'tools.speechToText': SpeechToTextConfig | undefined;
   'acp.promptTimeout': number | undefined;

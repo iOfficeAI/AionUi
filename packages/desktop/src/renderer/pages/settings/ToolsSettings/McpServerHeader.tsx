@@ -18,7 +18,7 @@ interface McpServerHeaderProps {
   isReadOnly?: boolean;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
-  onDeleteServer: (serverId: string) => void;
+  onDeleteServer: (server: IMcpServer) => void;
   onToggleServer?: (server: IMcpServer) => void | Promise<unknown>;
   onOAuthLogin?: (server: IMcpServer) => void;
 }
@@ -219,30 +219,38 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
         )}
       </div>
       {!isReadOnly && (
-        <div className='flex items-center gap-2 invisible group-hover:visible' onClick={(e) => e.stopPropagation()}>
-          {!server.builtin && (
-            <Dropdown
-              trigger='hover'
-              droplist={
-                <Menu>
-                  <Menu.Item key='edit' onClick={() => onEditServer(server)}>
-                    <div className='flex items-center gap-2'>
-                      <Write size={'14'} />
-                      {t('settings.mcpEditServer')}
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
-                    <div className='flex items-center gap-2 text-red-500'>
-                      <DeleteFour size={'14'} />
-                      {t('settings.mcpDeleteServer')}
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-            >
-              <Button size='mini' icon={<SettingOne size={'14'} />} />
-            </Dropdown>
-          )}
+        <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+          <>
+            <Button
+              size='mini'
+              status='danger'
+              type='text'
+              icon={<DeleteFour size={'14'} fill='currentColor' strokeWidth={3} />}
+              aria-label={t('settings.mcpDeleteServer')}
+              title={t('settings.mcpDeleteServer')}
+              data-testid='mcp-server-delete'
+              onClick={() => onDeleteServer(server)}
+            />
+            {!server.builtin && (
+              <span className='invisible group-hover:visible'>
+                <Dropdown
+                  trigger='hover'
+                  droplist={
+                    <Menu>
+                      <Menu.Item key='edit' onClick={() => onEditServer(server)}>
+                        <div className='flex items-center gap-2'>
+                          <Write size={'14'} />
+                          {t('settings.mcpEditServer')}
+                        </div>
+                      </Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <Button size='mini' icon={<SettingOne size={'14'} />} />
+                </Dropdown>
+              </span>
+            )}
+          </>
         </div>
       )}
     </div>
