@@ -35,7 +35,6 @@
     "runNow": "Запустити зараз",
     "description": "Опис",
     "agent": "Асистент",
-    "assistant": "Асистент",
     "instructions": "Інструкції",
     "repeats": "Повторюється",
     "history": "Історія",
@@ -90,11 +89,9 @@
       "scheduleDescRequired": "Опис розкладу обов'язковий",
       "scheduleDescPlaceholder": "напр., Щопонеділка о 9:00",
       "agent": "Асистент",
-      "assistant": "Асистент",
       "agentRequired": "Будь ласка, виберіть асистента",
       "assistantRequired": "Будь ласка, виберіть асистента",
       "agentPlaceholder": "Виберіть асистента для виконання цього завдання",
-      "assistantPlaceholder": "Виберіть асистента для виконання цього завдання",
       "executionMode": "Режим виконання",
       "newConversation": "Новий діалог",
       "existingConversation": "Поточний діалог",
@@ -108,8 +105,6 @@
       "clearFolder": "Очистити",
       "model": "Модель",
       "aionrsModelRequired": "Виберіть модель для Aion CLI",
-      "aionrsNoProvider": "Немає доступних моделей",
-      "assistantLockedExistingConversation": "Завдання поточного діалогу мають зберігати початкового помічника. Щоб використати іншого помічника, створіть нове завдання.",
       "teamTaskExecutionModeLockedReason": "Заплановані завдання Team мають продовжувати виконуватися у своєму діалозі Team, тому режим виконання не можна змінити."
     },
     "freq": {

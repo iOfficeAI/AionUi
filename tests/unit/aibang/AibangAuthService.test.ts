@@ -3,57 +3,81 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { electronAppPathMock } = vi.hoisted(() => ({ electronAppPathMock: vi.fn() }));
 const serviceRoot = path.join(os.tmpdir(), `aibang-auth-service-${process.pid}`);
 const codexHome = path.join(serviceRoot, 'aibang', 'runtime', 'codex-home');
 const originalOpenAiApiKey = process.env.OPENAI_API_KEY;
 const originalCodexApiKey = process.env.CODEX_API_KEY;
+const originalCdpActivePort = process.env.AIONUI_CDP_ACTIVE_PORT;
+const originalCdpBridgeToken = process.env.AIONUI_CDP_BRIDGE_TOKEN;
 
 type NewApiCall = {
   method: string;
   pathname: string;
   body?: unknown;
   authorization?: string;
+  cookie?: string;
+  authSession?: string;
 };
 
 type BackendOptions = {
   commandOverride?: string | null;
   loginMessage?: string;
   loginSuccess?: boolean;
+  mcpServers?: Array<{
+    name: string;
+    enabled?: boolean;
+    transport: { type: string; command: string; args?: string[]; env?: Record<string, string> };
+  }>;
   overridePutStatus?: number;
   tokenKeyStatus?: number;
+  existingTokens?: { id: number; name: string; status?: number; expired_time?: number }[];
 };
 
 const createFetchMock = (newApiCalls: NewApiCall[], putBodies: unknown[], options: BackendOptions = {}) =>
   (() => {
-    const state = { createdTokenName: '' };
+    const state = { createdTokenName: '', deletedTokenIds: new Set<number>() };
 
     return vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
       const url = new URL(String(input));
       const body = init?.body === undefined ? undefined : (JSON.parse(String(init.body)) as unknown);
-      const authorization = ((init?.headers ?? {}) as Record<string, string>).Authorization;
+      const requestHeaders = (init?.headers ?? {}) as Record<string, string>;
+      const authorization = requestHeaders.Authorization;
       if (url.origin === 'http://127.0.0.1:5000') {
         newApiCalls.push({
           method: init?.method ?? 'GET',
           pathname: url.pathname,
           ...(body === undefined ? {} : { body }),
           ...(authorization === undefined ? {} : { authorization }),
+          ...(requestHeaders.Cookie === undefined ? {} : { cookie: requestHeaders.Cookie }),
+          ...(requestHeaders['X-Auth-Session'] === undefined ? {} : { authSession: requestHeaders['X-Auth-Session'] }),
         });
         if (url.pathname === '/api/user/login/encryption-key') {
           return Response.json({ success: true, data: { enabled: false } });
         }
         if ((url.pathname === '/api/user/login' || url.pathname === '/api/user/login/2fa') && init?.method === 'POST') {
           const loginSucceeded = options.loginSuccess ?? true;
-          return Response.json({
+          const loginPayload = {
             success: loginSucceeded,
             ...(loginSucceeded
               ? {
                   data: {
                     access_token: 'dashboard-access-token',
                     access_expires_at: Math.floor((Date.now() + 3_600_000) / 1000),
+                    session: {
+                      sid: 'session-id',
+                      expires_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+                    },
                     user: { id: 7, username: 'mainf', quota: 1000 },
                   },
                 }
               : { message: options.loginMessage ?? 'Login failed' }),
+          };
+          return new Response(JSON.stringify(loginPayload), {
+            headers: {
+              'Set-Cookie':
+                'new_api_refresh=session-id.initial-refresh-token; Path=/api/user/auth; HttpOnly; SameSite=Strict',
+            },
           });
         }
         if (url.pathname === '/api/token/' && init?.method === 'POST') {
@@ -61,18 +85,26 @@ const createFetchMock = (newApiCalls: NewApiCall[], putBodies: unknown[], option
           return Response.json({ success: true, message: '' });
         }
         if (url.pathname === '/api/token/search') {
+          const items = [
+            ...(options.existingTokens ?? []),
+            ...(state.createdTokenName ? [{ id: 421, name: state.createdTokenName }] : []),
+          ].filter((token) => !state.deletedTokenIds.has(token.id));
           return Response.json({
             success: true,
-            data: { items: [{ id: 421, name: state.createdTokenName }] },
+            data: { items },
           });
         }
-        if (url.pathname === '/api/token/421/key' && init?.method === 'POST') {
+        if (url.pathname === '/api/token/' && init?.method === 'PUT') {
+          return Response.json({ success: true, data: {} });
+        }
+        if (/^\/api\/token\/\d+\/key$/.test(url.pathname) && init?.method === 'POST') {
           return Response.json(
             { success: options.tokenKeyStatus === undefined, data: { key: 'sk-new-api-token' } },
             { status: options.tokenKeyStatus ?? 200 }
           );
         }
-        if (url.pathname === '/api/token/421' && init?.method === 'DELETE') {
+        if (/^\/api\/token\/\d+$/.test(url.pathname) && init?.method === 'DELETE') {
+          state.deletedTokenIds.add(Number(url.pathname.split('/').at(-1)));
           return Response.json({ success: true });
         }
         if (url.pathname === '/api/user/auth/logout' && init?.method === 'POST') {
@@ -86,6 +118,9 @@ const createFetchMock = (newApiCalls: NewApiCall[], putBodies: unknown[], option
           success: true,
           data: [{ id: 'builtin-codex', backend: 'codex', agent_type: 'acp', agent_source: 'builtin' }],
         });
+      }
+      if (url.pathname === '/api/mcp/servers') {
+        return Response.json({ success: true, data: options.mcpServers ?? [] });
       }
       if (url.pathname === '/api/agents/builtin-codex/overrides' && init?.method === 'GET') {
         return Response.json({
@@ -107,15 +142,18 @@ const createFetchMock = (newApiCalls: NewApiCall[], putBodies: unknown[], option
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn(() => serviceRoot),
-    getAppPath: vi.fn(() => serviceRoot),
+    getAppPath: electronAppPathMock,
     isPackaged: false,
   },
 }));
 
 describe('AibangAuthService', () => {
   beforeEach(() => {
+    electronAppPathMock.mockReturnValue(serviceRoot);
     process.env.OPENAI_API_KEY = originalOpenAiApiKey;
     process.env.CODEX_API_KEY = originalCodexApiKey;
+    process.env.AIONUI_CDP_ACTIVE_PORT = originalCdpActivePort;
+    process.env.AIONUI_CDP_BRIDGE_TOKEN = originalCdpBridgeToken;
   });
 
   afterEach(async () => {
@@ -124,6 +162,10 @@ describe('AibangAuthService', () => {
     else process.env.OPENAI_API_KEY = originalOpenAiApiKey;
     if (originalCodexApiKey === undefined) delete process.env.CODEX_API_KEY;
     else process.env.CODEX_API_KEY = originalCodexApiKey;
+    if (originalCdpActivePort === undefined) delete process.env.AIONUI_CDP_ACTIVE_PORT;
+    else process.env.AIONUI_CDP_ACTIVE_PORT = originalCdpActivePort;
+    if (originalCdpBridgeToken === undefined) delete process.env.AIONUI_CDP_BRIDGE_TOKEN;
+    else process.env.AIONUI_CDP_BRIDGE_TOKEN = originalCdpBridgeToken;
     vi.resetModules();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
@@ -150,10 +192,10 @@ describe('AibangAuthService', () => {
     expect(loginResult).not.toHaveProperty('apiToken');
     expect(newApiCalls.find((call) => call.pathname === '/api/token/')).toMatchObject({
       body: {
-        name: expect.stringMatching(/^AIbang Desktop /),
+        name: 'AIbang Desktop',
         expired_time: expect.any(Number),
-        remain_quota: 500_000,
-        unlimited_quota: false,
+        remain_quota: 0,
+        unlimited_quota: true,
         model_limits_enabled: true,
         model_limits: 'gpt-5.6-sol',
         group: '',
@@ -179,11 +221,17 @@ describe('AibangAuthService', () => {
     expect(putBodies).toEqual([
       {
         command_override: '/custom/codex',
-        env_override: [{ name: 'HTTPS_PROXY', value: 'http://proxy.test' }],
+        env_override: [
+          { name: 'HTTPS_PROXY', value: 'http://proxy.test' },
+          { name: 'NO_PROXY', value: '127.0.0.1,localhost' },
+        ],
       },
       {
         command_override: '/custom/codex',
-        env_override: [{ name: 'HTTPS_PROXY', value: 'http://proxy.test' }],
+        env_override: [
+          { name: 'HTTPS_PROXY', value: 'http://proxy.test' },
+          { name: 'NO_PROXY', value: '127.0.0.1,localhost' },
+        ],
       },
     ]);
   });
@@ -201,8 +249,13 @@ describe('AibangAuthService', () => {
     expect(modes.map((entry) => entry.mode & 0o777)).toEqual([0o600, 0o600, 0o600]);
     expect(JSON.parse(await readFile(sessionPath, 'utf8'))).toEqual({
       dashboardAccessToken: 'dashboard-access-token',
+      dashboardSessionId: 'session-id',
+      dashboardRefreshToken: 'session-id.initial-refresh-token',
+      dashboardAccessTokenExpiresAt: expect.any(Number),
+      dashboardSessionExpiresAt: expect.any(Number),
       apiTokenId: 421,
       apiToken: 'sk-new-api-token',
+      apiTokenExpiresAt: expect.any(Number),
       expiresAt: expect.any(Number),
       user: { id: 7, username: 'mainf', quota: 1000 },
     });
@@ -211,8 +264,169 @@ describe('AibangAuthService', () => {
     });
   });
 
-  it('points the built-in Codex agent at the bundled binary when no custom path exists', async () => {
+  it('refreshes the Codex MCP config when an existing session is validated', async () => {
+    process.env.AIONUI_CDP_ACTIVE_PORT = '9230';
+    process.env.AIONUI_CDP_BRIDGE_TOKEN = 'bridge-token';
+    const mcpServers = [
+      {
+        name: 'chrome-devtools',
+        enabled: true,
+        transport: { type: 'stdio', command: 'npx', args: ['-y', 'chrome-devtools-mcp@latest'] },
+      },
+      {
+        name: 'aibang-browser',
+        enabled: true,
+        transport: {
+          type: 'stdio',
+          command: 'node',
+          args: ['/app/out/main/builtin-mcp-browser.js'],
+          env: { AIBANG_CDP_PORT: '9222' },
+        },
+      },
+    ];
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
     const putBodies: unknown[] = [];
+    const baseFetch = createFetchMock([], putBodies, { commandOverride: null, mcpServers });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/api/user/self') {
+          return Response.json({
+            success: true,
+            data: { id: 7, username: 'mainf', quota: 1000 },
+          });
+        }
+        if (url.pathname === '/api/token/421' && (init?.method ?? 'GET') === 'GET') {
+          return Response.json({
+            success: true,
+            data: { id: 421, name: 'AIbang Desktop', status: 1, expired_time: -1 },
+          });
+        }
+        return baseFetch(input, init);
+      })
+    );
+    const { aibangAuthService, buildBundledCodexPath } = await import('@/process/services/AibangAuthService');
+    const bundledCodexPath = buildBundledCodexPath(serviceRoot);
+    if (!bundledCodexPath) throw new Error('Unsupported test platform');
+    await mkdir(path.dirname(bundledCodexPath), { recursive: true });
+    await writeFile(bundledCodexPath, '', { mode: 0o755 });
+    await aibangAuthService.login({ username: 'mainf', password: 'password' });
+    const configPath = path.join(codexHome, 'config.toml');
+    await writeFile(configPath, 'model = "gpt-5.6-sol"\n');
+
+    await expect(aibangAuthService.refreshSession()).resolves.toEqual({
+      authenticated: true,
+      user: { id: 7, username: 'mainf', quota: 1000 },
+    });
+
+    const config = await readFile(configPath, 'utf8');
+    expect(config).toContain('[mcp_servers.chrome-devtools]');
+    expect(config).toContain('command = "npx"');
+    expect(config).toContain('[mcp_servers.aibang-browser]');
+    expect(config).toContain('"AIBANG_CDP_PORT" = "9222"');
+    expect(config).toContain('"AIONUI_CDP_ACTIVE_PORT" = "9230"');
+    expect(config).toContain('"AIONUI_CDP_BRIDGE_TOKEN" = "bridge-token"');
+    expect(putBodies.at(-1)).toMatchObject({
+      command_override: bundledCodexPath,
+      env_override: [
+        { name: 'HTTPS_PROXY', value: 'http://proxy.test' },
+        { name: 'NO_PROXY', value: '127.0.0.1,localhost' },
+      ],
+    });
+  });
+
+  it('reuses the managed token and removes legacy desktop tokens on login', async () => {
+    const newApiCalls: NewApiCall[] = [];
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
+    vi.stubGlobal(
+      'fetch',
+      createFetchMock(newApiCalls, [], {
+        existingTokens: [
+          { id: 499, name: 'AIbang Desktop legacy-session', status: 1, expired_time: -1 },
+          { id: 500, name: 'AIbang Desktop', status: 1, expired_time: Math.floor(Date.now() / 1000) + 60 },
+        ],
+      })
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+
+    const result = await aibangAuthService.login({ username: 'mainf', password: 'password' });
+
+    expect(result).toMatchObject({ success: true });
+    expect(newApiCalls.some((call) => call.pathname === '/api/token/' && call.method === 'POST')).toBe(false);
+    expect(newApiCalls.find((call) => call.pathname === '/api/token/' && call.method === 'PUT')).toMatchObject({
+      body: {
+        id: 500,
+        name: 'AIbang Desktop',
+        remain_quota: 0,
+        unlimited_quota: true,
+        model_limits: 'gpt-5.6-sol',
+      },
+    });
+    expect(newApiCalls.find((call) => call.pathname === '/api/token/499' && call.method === 'DELETE')).toBeTruthy();
+    expect(JSON.parse(await readFile(path.join(serviceRoot, 'aibang', 'auth-session.json'), 'utf8'))).toMatchObject({
+      apiTokenId: 500,
+      apiToken: 'sk-new-api-token',
+    });
+  });
+
+  it('replaces an exhausted managed token so account credits stay usable', async () => {
+    const newApiCalls: NewApiCall[] = [];
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
+    vi.stubGlobal(
+      'fetch',
+      createFetchMock(newApiCalls, [], {
+        existingTokens: [
+          { id: 500, name: 'AIbang Desktop', status: 4, expired_time: Math.floor(Date.now() / 1000) + 60 },
+        ],
+      })
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+
+    const result = await aibangAuthService.login({ username: 'mainf', password: 'password' });
+
+    expect(result).toMatchObject({ success: true });
+    expect(newApiCalls.find((call) => call.pathname === '/api/token/500' && call.method === 'DELETE')).toBeTruthy();
+    expect(newApiCalls.find((call) => call.pathname === '/api/token/' && call.method === 'POST')).toMatchObject({
+      body: {
+        name: 'AIbang Desktop',
+        remain_quota: 0,
+        unlimited_quota: true,
+      },
+    });
+    expect(JSON.parse(await readFile(path.join(serviceRoot, 'aibang', 'auth-session.json'), 'utf8'))).toMatchObject({
+      apiTokenId: 421,
+    });
+  });
+
+  it('deletes the previous account token when switching users', async () => {
+    const newApiCalls: NewApiCall[] = [];
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
+    vi.stubGlobal('fetch', createFetchMock(newApiCalls, []));
+    await mkdir(path.join(serviceRoot, 'aibang'), { recursive: true });
+    await writeFile(
+      path.join(serviceRoot, 'aibang', 'auth-session.json'),
+      `${JSON.stringify({
+        dashboardAccessToken: 'previous-dashboard-token',
+        apiTokenId: 777,
+        apiToken: 'sk-previous-token',
+        expiresAt: Date.now() + 3_600_000,
+        user: { id: 8, username: 'previous-user', quota: 1000 },
+      })}\n`
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+
+    const result = await aibangAuthService.login({ username: 'mainf', password: 'password' });
+
+    expect(result).toMatchObject({ success: true });
+    expect(newApiCalls.find((call) => call.pathname === '/api/token/777' && call.method === 'DELETE')).toMatchObject({
+      authorization: 'Bearer previous-dashboard-token',
+    });
+  });
+
+  it('finds the bundled binary from the development out directory and pins the built-in Codex agent', async () => {
+    const putBodies: unknown[] = [];
+    electronAppPathMock.mockReturnValue(path.join(serviceRoot, 'out', 'main'));
     (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
     vi.stubGlobal('fetch', createFetchMock([], putBodies, { commandOverride: null }));
     const { aibangAuthService, buildBundledCodexPath } = await import('@/process/services/AibangAuthService');
@@ -225,7 +439,10 @@ describe('AibangAuthService', () => {
 
     expect(putBodies[0]).toEqual({
       command_override: bundledCodexPath,
-      env_override: [{ name: 'HTTPS_PROXY', value: 'http://proxy.test' }],
+      env_override: [
+        { name: 'HTTPS_PROXY', value: 'http://proxy.test' },
+        { name: 'NO_PROXY', value: '127.0.0.1,localhost' },
+      ],
     });
   });
 
@@ -245,24 +462,36 @@ describe('AibangAuthService', () => {
             pathname: url.pathname,
             body: init?.body === undefined ? undefined : (JSON.parse(String(init.body)) as unknown),
           });
-          return Response.json(
-            loginCallCount === 1
-              ? {
-                  success: true,
-                  data: {
-                    require_2fa: true,
-                    flow_token: 'server-flow-token',
-                    expires_at: Math.floor((Date.now() + 300_000) / 1000),
-                  },
-                }
-              : {
-                  success: true,
-                  data: {
-                    access_token: 'dashboard-access-token',
-                    access_expires_at: Math.floor((Date.now() + 3_600_000) / 1000),
-                    user: { id: 7, username: 'mainf', quota: 1000 },
-                  },
-                }
+          return new Response(
+            JSON.stringify(
+              loginCallCount === 1
+                ? {
+                    success: true,
+                    data: {
+                      require_2fa: true,
+                      flow_token: 'server-flow-token',
+                      expires_at: Math.floor((Date.now() + 300_000) / 1000),
+                    },
+                  }
+                : {
+                    success: true,
+                    data: {
+                      access_token: 'dashboard-access-token',
+                      access_expires_at: Math.floor((Date.now() + 3_600_000) / 1000),
+                      session: {
+                        sid: 'session-id',
+                        expires_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+                      },
+                      user: { id: 7, username: 'mainf', quota: 1000 },
+                    },
+                  }
+            ),
+            {
+              headers: {
+                'Set-Cookie':
+                  'new_api_refresh=session-id.initial-refresh-token; Path=/api/user/auth; HttpOnly; SameSite=Strict',
+              },
+            }
           );
         }
         return tokenFetch(input, init);
@@ -404,5 +633,149 @@ describe('AibangAuthService', () => {
     await expect(readFile(path.join(codexHome, 'config.toml'))).rejects.toThrow();
     await expect(readFile(path.join(serviceRoot, 'aibang', 'auth-session.json'))).rejects.toThrow();
     expect(process.env.OPENAI_API_KEY).toBe('user-openai-key');
+  });
+
+  it('replaces the managed API token when it is no longer usable', async () => {
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
+    const baseFetch = createFetchMock([], []);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/api/user/self') {
+          return Response.json({
+            success: true,
+            data: { id: 7, username: 'mainf', quota: 1000 },
+          });
+        }
+        if (url.pathname === '/api/token/421' && (init?.method ?? 'GET') === 'GET') {
+          return Response.json({ success: false, message: 'Token not found' });
+        }
+        return baseFetch(input, init);
+      })
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+    await aibangAuthService.login({ username: 'mainf', password: 'password' });
+
+    await expect(aibangAuthService.refreshSession()).resolves.toEqual({
+      authenticated: true,
+      user: { id: 7, username: 'mainf', quota: 1000 },
+    });
+    expect(JSON.parse(await readFile(path.join(codexHome, 'auth.json'), 'utf8'))).toEqual({
+      OPENAI_API_KEY: 'sk-new-api-token',
+    });
+    expect(JSON.parse(await readFile(path.join(serviceRoot, 'aibang', 'auth-session.json'), 'utf8'))).toMatchObject({
+      apiTokenId: 421,
+      apiToken: 'sk-new-api-token',
+    });
+  });
+
+  it('refreshes the dashboard session instead of creating a new login', async () => {
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 13400;
+    const newApiCalls: NewApiCall[] = [];
+    const baseFetch = createFetchMock(newApiCalls, []);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/api/user/auth/refresh' && (init?.method ?? 'POST') === 'POST') {
+          const requestHeaders = (init?.headers ?? {}) as Record<string, string>;
+          newApiCalls.push({
+            method: 'POST',
+            pathname: url.pathname,
+            cookie: requestHeaders.Cookie,
+            authSession: requestHeaders['X-Auth-Session'],
+          });
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                access_token: 'refreshed-dashboard-token',
+                access_expires_at: Math.floor((Date.now() + 900_000) / 1000),
+                session: {
+                  sid: 'session-id',
+                  expires_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+                },
+                user: { id: 7, username: 'mainf', quota: 1000 },
+              },
+            }),
+            {
+              headers: {
+                'Set-Cookie':
+                  'new_api_refresh=session-id.rotated-refresh-token; Path=/api/user/auth; HttpOnly; SameSite=Strict',
+              },
+            }
+          );
+        }
+        if (url.pathname === '/api/user/self') {
+          const requestHeaders = (init?.headers ?? {}) as Record<string, string>;
+          newApiCalls.push({
+            method: init?.method ?? 'GET',
+            pathname: url.pathname,
+            authorization: requestHeaders.Authorization,
+          });
+          return Response.json({
+            success: true,
+            data: { id: 7, username: 'mainf', quota: 1000 },
+          });
+        }
+        if (url.pathname === '/api/token/421' && (init?.method ?? 'GET') === 'GET') {
+          return Response.json({
+            success: true,
+            data: { id: 421, name: 'AIbang Desktop', status: 1, expired_time: -1 },
+          });
+        }
+        return baseFetch(input, init);
+      })
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+    await aibangAuthService.login({ username: 'mainf', password: 'password' });
+    const sessionPath = path.join(serviceRoot, 'aibang', 'auth-session.json');
+    const storedSession = JSON.parse(await readFile(sessionPath, 'utf8')) as Record<string, unknown>;
+    await writeFile(
+      sessionPath,
+      `${JSON.stringify({ ...storedSession, dashboardAccessTokenExpiresAt: Date.now() - 1 })}\n`
+    );
+
+    await expect(aibangAuthService.refreshSession()).resolves.toEqual({
+      authenticated: true,
+      user: { id: 7, username: 'mainf', quota: 1000 },
+    });
+
+    expect(newApiCalls.find((call) => call.pathname === '/api/user/auth/refresh')).toMatchObject({
+      cookie: 'new_api_refresh=session-id.initial-refresh-token',
+      authSession: 'session-id',
+    });
+    expect(newApiCalls.find((call) => call.pathname === '/api/user/self')).toMatchObject({
+      authorization: 'Bearer refreshed-dashboard-token',
+    });
+    expect(newApiCalls.filter((call) => call.pathname === '/api/user/login')).toHaveLength(1);
+    expect(JSON.parse(await readFile(sessionPath, 'utf8'))).toMatchObject({
+      dashboardAccessToken: 'refreshed-dashboard-token',
+      dashboardRefreshToken: 'session-id.rotated-refresh-token',
+      dashboardSessionId: 'session-id',
+    });
+  });
+
+  it('maps the active session limit to a dedicated login error', async () => {
+    const newApiCalls: NewApiCall[] = [];
+    const baseFetch = createFetchMock(newApiCalls, []);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/api/user/login' && (init?.method ?? 'POST') === 'POST') {
+          return Response.json({ success: false, code: 'AUTH_SESSION_LIMIT', message: 'Conflict' }, { status: 409 });
+        }
+        return baseFetch(input, init);
+      })
+    );
+    const { aibangAuthService } = await import('@/process/services/AibangAuthService');
+
+    await expect(aibangAuthService.login({ username: 'mainf', password: 'password' })).resolves.toEqual({
+      success: false,
+      code: 'sessionLimit',
+      message: 'Conflict',
+    });
   });
 });

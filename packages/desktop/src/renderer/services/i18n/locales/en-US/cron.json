@@ -35,7 +35,6 @@
     "runNow": "Run now",
     "description": "Description",
     "agent": "Assistant",
-    "assistant": "Assistant",
     "instructions": "Instructions",
     "repeats": "Repeats",
     "history": "History",
@@ -93,11 +92,9 @@
       "scheduleDescRequired": "Schedule description is required",
       "scheduleDescPlaceholder": "e.g., Every Monday at 9:00 AM",
       "agent": "Assistant",
-      "assistant": "Assistant",
       "agentRequired": "Please select an assistant",
       "assistantRequired": "Please select an assistant",
       "agentPlaceholder": "Select the assistant to execute this task",
-      "assistantPlaceholder": "Select the assistant to execute this task",
       "executionMode": "Execution Mode",
       "newConversation": "New conversation",
       "existingConversation": "Ongoing conversation",
@@ -111,8 +108,6 @@
       "clearFolder": "Clear",
       "model": "Model",
       "aionrsModelRequired": "Please select a model for Aion CLI",
-      "aionrsNoProvider": "No available models",
-      "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant.",
       "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed."
     },
     "freq": {

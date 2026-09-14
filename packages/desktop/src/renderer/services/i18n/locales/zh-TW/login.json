@@ -24,6 +24,7 @@
     "emptyTotpCode": "請輸入兩步驗證碼",
     "invalidCredentials": "使用者名稱或密碼錯誤",
     "tooManyAttempts": "登入嘗試過多，請稍後再試",
+    "sessionLimit": "此帳號的活躍登入工作階段已達上限。請先在已登入裝置登出，或聯絡管理員清理舊工作階段。",
     "networkError": "連線失敗，請稍後再試",
     "serverError": "伺服器發生錯誤，請稍後再試",
     "unknown": "登入失敗，請稍後再試",

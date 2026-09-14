@@ -74,8 +74,14 @@ const ModalMcpManagementSection: React.FC<{
     hideDeleteConfirm,
     toggleServerCollapse,
   } = useMcpModal();
-  const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer } =
-    useMcpServerCRUD(saveMcpServers);
+  const {
+    handleAddMcpServer,
+    handleBatchImportMcpServers,
+    handleEditMcpServer,
+    handleDeleteMcpServer,
+    handleToggleMcpServer,
+    togglingServers,
+  } = useMcpServerCRUD(saveMcpServers);
 
   const handleOAuthLogin = useCallback(
     async (server: IMcpServer) => {
@@ -137,8 +143,8 @@ const ModalMcpManagementSection: React.FC<{
 
   const handleConfirmDelete = useCallback(async () => {
     if (!serverToDelete) return;
-    hideDeleteConfirm();
-    await handleDeleteMcpServer(serverToDelete);
+    const deleted = await handleDeleteMcpServer(serverToDelete);
+    if (deleted) hideDeleteConfirm();
   }, [serverToDelete, hideDeleteConfirm, handleDeleteMcpServer]);
 
   const renderAddButton = () => {
@@ -201,12 +207,14 @@ const ModalMcpManagementSection: React.FC<{
                   server={server}
                   isCollapsed={mcpCollapseKey[server.id] || false}
                   isTestingConnection={testingServers[server.id] || false}
+                  isToggling={togglingServers[server.id] || false}
                   oauthStatus={oauthStatus[server.id]}
                   isLoggingIn={loggingIn[server.id]}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
                   onTestConnection={handleTestMcpConnection}
                   onEditServer={showEditMcpModal}
                   onDeleteServer={showDeleteConfirm}
+                  onToggleServer={handleToggleMcpServer}
                   onOAuthLogin={handleOAuthLogin}
                 />
               ))}
@@ -216,10 +224,12 @@ const ModalMcpManagementSection: React.FC<{
                   server={server}
                   isCollapsed={mcpCollapseKey[server.id] || false}
                   isTestingConnection={false}
+                  isToggling={false}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
                   onTestConnection={handleTestMcpConnection}
                   onEditServer={() => {}}
                   onDeleteServer={() => {}}
+                  onToggleServer={() => undefined}
                   isReadOnly
                 />
               ))}

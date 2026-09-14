@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { parse } from 'smol-toml';
 import { describe, expect, it } from 'vitest';
 import {
   buildBundledCodexPath,
@@ -39,6 +40,43 @@ requires_openai_auth = true
     expect(selected?.id).toBe('builtin');
   });
 
+  it('serializes enabled stdio MCP servers for Codex', () => {
+    const config = serializeCodexConfig(
+      {
+        newApiUrl: 'http://127.0.0.1:5000',
+        publicModel: 'gpt-5.6-sol',
+        codexHome: '/user-data/aibang/runtime/codex-home',
+      },
+      [
+        {
+          name: 'chrome-devtools',
+          command: 'npx',
+          args: ['-y', 'chrome-devtools-mcp@latest'],
+        },
+        {
+          name: 'aibang-browser',
+          command: 'node',
+          args: ['/app/out/main/builtin-mcp-browser.js'],
+          env: { AIBANG_CDP_PORT: '9222' },
+        },
+        {
+          name: 'disabled',
+          command: 'node',
+          enabled: false,
+        },
+      ]
+    );
+
+    expect(config).toContain('[mcp_servers.chrome-devtools]');
+    expect(config).toContain('command = "npx"');
+    expect(config).toContain('[mcp_servers.aibang-browser]');
+    expect(config).toContain('[mcp_servers.disabled]');
+    expect(config).toContain('enabled = false');
+    expect(parse(config)).toMatchObject({
+      mcp_servers: { 'aibang-browser': { env: { AIBANG_CDP_PORT: '9222' } } },
+    });
+  });
+
   it('removes managed environment entries without losing unrelated overrides', () => {
     expect(
       removeCodexEnvOverrides([
@@ -75,19 +113,18 @@ requires_openai_auth = true
     expect(resolveScopedApiTokenExpiresAt(1_000, 1_000_000, 10)).toBe(601_000);
   });
 
-  it('builds a short-lived, model-scoped, quota-limited token request', () => {
+  it('builds a short-lived, model-scoped token request that follows the account balance', () => {
     expect(
       buildScopedApiTokenRequest({
         name: 'AIbang Desktop session',
         model: 'gpt-5.6-sol',
         expiresAt: 1_761_000_000_000,
-        quota: 500_000,
       })
     ).toEqual({
       name: 'AIbang Desktop session',
       expired_time: 1_761_000_000,
-      remain_quota: 500_000,
-      unlimited_quota: false,
+      remain_quota: 0,
+      unlimited_quota: true,
       model_limits_enabled: true,
       model_limits: 'gpt-5.6-sol',
       group: '',
@@ -100,7 +137,6 @@ requires_openai_auth = true
         name: 'AIbang Desktop session',
         model: 'gpt-5.6-sol,gpt-5.6-terra',
         expiresAt: 1_761_000_000_000,
-        quota: 500_000,
       })
     ).toThrow(/single model identifier/);
   });

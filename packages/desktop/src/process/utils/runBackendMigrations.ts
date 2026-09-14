@@ -260,7 +260,7 @@ function buildDefaultMcpServers(): McpImportServer[] {
     {
       name: BUILTIN_CHROME_DEVTOOLS_NAME,
       description: 'Default MCP server: chrome-devtools',
-      enabled: false,
+      enabled: true,
       builtin: true,
       transport: {
         type: 'stdio',

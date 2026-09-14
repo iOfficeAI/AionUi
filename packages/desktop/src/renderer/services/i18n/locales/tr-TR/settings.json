@@ -771,6 +771,9 @@
   "mcpSyncFailedNoAgents": "Mevcut ajan bulunamadı, MCP yapılandırması senkronize edilemedi",
   "mcpDeletedWithCleanup": "MCP sunucusu silindi ve yapılandırma temizlendi",
   "mcpDeleted": "MCP sunucusu silindi",
+  "mcpDeleteFailed": "MCP sunucusu silinemedi",
+  "mcpToggleFailed": "MCP sunucu durumu güncellenemedi",
+  "mcpServerEnabled": "MCP sunucusu etkin",
   "mcpDeleteError": "MCP yapılandırması silinirken hata oluştu",
   "mcpSyncError": "MCP yapılandırma senkronizasyonu hatası",
   "mcpRemoveError": "MCP yapılandırma kaldırma hatası",
@@ -1342,26 +1345,6 @@
   "assistantAgentUnchecked": "Gereken aracı henüz denetlenmedi.",
   "assistantAgentMissing": "Gereken aracı yüklü değil.",
   "assistantTeamUnsupported": "Bu asistan şu anda takım modunda kullanılamıyor.",
-  "webui.letButlerSetup": "Kâhya ayarlasın",
-  "talkToButler": {
-    "createViaChat": "Sohbetle oluştur",
-    "createManually": "Elle oluştur",
-    "addViaChat": "Sohbetle ekle",
-    "addManually": "Elle ekle",
-    "solveViaChat": "Sohbetle çöz",
-    "enabledToast": "AIbang Kâhyası sizin için etkinleştirildi",
-    "prompt": {
-      "createAssistant": "Yeni bir asistan oluşturmama ve kurulumunda bana yol göstermene yardım et.",
-      "addCustomAgent": "Özel bir Agent eklememe yardım et.",
-      "addModel": "Yeni bir LLM sağlayıcısı ve API anahtarı ekle, ardından varsayılan model olarak ayarla.",
-      "addMcp": "Bir MCP sunucusu kurmama yardım et.",
-      "addSkill": "Bir beceri içe aktarıp bir asistana eklememe yardım et.",
-      "setupRemote": "Telefonumdan veya internetten AIbang’yi açabilmem için uzaktan erişimi ayarlamama yardım et.",
-      "diagnose": "AIbang kullanırken bir sorunla karşılaştım, teşhis etmeme yardım et.\n\n[Modül] {{module}}\n[Açıklama] {{description}}\n[Ekler] giriş alanındaki ekran görüntülerine bakın.\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle.",
-      "diagnoseChatError": "AIbang sohbeti sırasında bir hatayla karşılaştım, teşhis etmeme yardım et.\n\n[Hata] {{error}}\n\nLütfen nedenini teşhis et ve nasıl düzelteceğimi söyle."
-    },
-    "solveWithButler": "Kâhya'ya sor"
-  },
   "providerIdConflict": "Provider ID zaten var. Lütfen tekrar deneyin.",
   "autoInjectedSkillsHint": "Her sohbete otomatik olarak yüklenir — etkinleştirmeye gerek yoktur; aracı bunları ne zaman kullanacağına karar verir.",
   "browserData": {

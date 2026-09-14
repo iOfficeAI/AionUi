@@ -36,7 +36,6 @@
     "runNow": "지금 실행",
     "description": "설명",
     "agent": "어시스턴트",
-    "assistant": "어시스턴트",
     "instructions": "실행 지시",
     "repeats": "반복",
     "history": "실행 기록",
@@ -92,11 +91,9 @@
       "scheduleDescRequired": "일정 설명은 필수입니다",
       "scheduleDescPlaceholder": "예: 매주 월요일 오전 9:00",
       "agent": "실행 어시스턴트",
-      "assistant": "실행 어시스턴트",
       "agentRequired": "실행 어시스턴트를 선택하세요",
       "assistantRequired": "실행 어시스턴트를 선택하세요",
       "agentPlaceholder": "작업을 실행할 어시스턴트 선택",
-      "assistantPlaceholder": "작업을 실행할 어시스턴트 선택",
       "executionMode": "실행 모드",
       "newConversation": "새 대화",
       "existingConversation": "동일 대화",
@@ -110,8 +107,6 @@
       "clearFolder": "지우기",
       "model": "모델",
       "aionrsModelRequired": "Aion CLI의 모델을 선택하세요",
-      "aionrsNoProvider": "사용 가능한 모델 없음",
-      "assistantLockedExistingConversation": "동일 대화 작업은 원래 실행 어시스턴트를 유지해야 합니다. 다른 어시스턴트를 사용하려면 새 작업을 만드세요.",
       "teamTaskExecutionModeLockedReason": "Team 예약 작업은 소속 Team 대화에서 계속 실행되어야 하므로 실행 모드를 변경할 수 없습니다."
     },
     "freq": {

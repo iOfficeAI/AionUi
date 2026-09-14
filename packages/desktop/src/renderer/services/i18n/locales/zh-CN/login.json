@@ -24,6 +24,7 @@
     "emptyTotpCode": "请输入两步验证码",
     "invalidCredentials": "用户名或密码错误",
     "tooManyAttempts": "登录尝试过多，请稍后再试",
+    "sessionLimit": "该账号的活跃登录会话已达上限。请先在已登录设备退出登录，或联系管理员清理旧会话。",
     "networkError": "连接失败，请稍后重试",
     "serverError": "服务器开小差了，请稍后重试",
     "unknown": "登录失败，请稍后再试",

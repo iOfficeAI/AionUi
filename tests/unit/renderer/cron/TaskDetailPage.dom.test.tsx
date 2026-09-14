@@ -150,7 +150,7 @@ describe('TaskDetailPage', () => {
     expect(runNowInvokeMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders preset assistant identity instead of backing runtime identity', async () => {
+  it('does not render assistant identity', async () => {
     render(
       <MemoryRouter initialEntries={['/scheduled/job-1']}>
         <Routes>
@@ -161,13 +161,9 @@ describe('TaskDetailPage', () => {
 
     await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
 
-    expect(await screen.findByText('问好助手')).toBeInTheDocument();
-    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
-    expect(screen.queryByText('cron.detail.agent')).not.toBeInTheDocument();
-
-    const assistantAvatar = screen.getByAltText('问好助手');
-    expect(assistantAvatar).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
-    expect(screen.queryByText('Codex CLI')).not.toBeInTheDocument();
+    expect(await screen.findByText('cron.detail.instructions')).toBeInTheDocument();
+    expect(screen.queryByText('cron.detail.assistant')).not.toBeInTheDocument();
+    expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
   });
 
   it('renames run-now conversations with the execution date in new conversation mode', async () => {
@@ -235,60 +231,6 @@ describe('TaskDetailPage', () => {
 
     expect(await screen.findByText('cron.lastError')).toBeInTheDocument();
     expect(screen.getByText('ACP init failed: config file is invalid')).toBeInTheDocument();
-  });
-
-  it('still renders assistant identity when legacy agent_type is absent but assistant_id exists', async () => {
-    getJobInvokeMock.mockResolvedValue(
-      job({
-        metadata: {
-          agent_type: '',
-        },
-      })
-    );
-
-    render(
-      <MemoryRouter initialEntries={['/scheduled/job-1']}>
-        <Routes>
-          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
-
-    expect(await screen.findByText('问好助手')).toBeInTheDocument();
-    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
-    expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
-  });
-
-  it('still renders assistant identity for legacy jobs that only stored custom_agent_id', async () => {
-    getJobInvokeMock.mockResolvedValue(
-      job({
-        metadata: {
-          agent_config: {
-            backend: 'codex',
-            name: '问好助手',
-            is_preset: true,
-            custom_agent_id: 'assistant-1',
-            preset_agent_type: 'codex',
-          },
-        },
-      })
-    );
-
-    render(
-      <MemoryRouter initialEntries={['/scheduled/job-1']}>
-        <Routes>
-          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
-
-    expect(await screen.findByText('问好助手')).toBeInTheDocument();
-    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
-    expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
   });
 
   it('opens the owning team from execution history when the conversation belongs to a team', async () => {

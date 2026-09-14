@@ -7,6 +7,7 @@ type ElectronWindow = Window & {
     aibangAuth: {
       login: ReturnType<typeof vi.fn>;
       getStatus: ReturnType<typeof vi.fn>;
+      refreshSession: ReturnType<typeof vi.fn>;
       clearSession: ReturnType<typeof vi.fn>;
     };
   };
@@ -14,6 +15,8 @@ type ElectronWindow = Window & {
 
 describe('desktop AuthContext', () => {
   afterEach(() => {
+    (window as ElectronWindow).electronAPI = undefined;
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -74,5 +77,34 @@ describe('desktop AuthContext', () => {
     await act(() => result.current.logout());
     expect(electronAPI.aibangAuth.clearSession).toHaveBeenCalled();
     expect(result.current.status).toBe('unauthenticated');
+  });
+
+  it('returns to the login page when the desktop session poll detects key expiry', async () => {
+    vi.useFakeTimers();
+    (window as ElectronWindow).electronAPI = {
+      aibangAuth: {
+        refreshSession: vi
+          .fn()
+          .mockResolvedValueOnce({
+            authenticated: true,
+            user: { id: 7, username: 'mainf', quota: 1000 },
+          })
+          .mockResolvedValueOnce({ authenticated: false }),
+        login: vi.fn(),
+        getStatus: vi.fn(),
+        clearSession: vi.fn(async () => undefined),
+      },
+    };
+
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await act(async () => {});
+    expect(result.current.status).toBe('authenticated');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+    });
+
+    expect(result.current.status).toBe('unauthenticated');
+    expect(result.current.user).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Empty, Message, Spin, Switch, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Menu, Message, Spin, Switch, Tooltip } from '@arco-design/web-react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
@@ -20,10 +20,9 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
-import TalkToButlerButton from '@/renderer/components/base/TalkToButlerButton';
 import { AionSearchInput } from '@/renderer/components/base';
 import SettingsPageHeader from '@/renderer/pages/settings/components/SettingsPageHeader';
-import { Attention, Robot } from '@icon-park/react';
+import { Attention, Down, Robot } from '@icon-park/react';
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -141,13 +140,28 @@ const ScheduledTasksPage: React.FC = () => {
                     onChange={setSearchQuery}
                   />
                 )}
-                <TalkToButlerButton
-                  label={t('cron.page.newTask')}
-                  onChat={handleCreateViaChat}
-                  chatLabel={t('cron.page.createViaChat')}
-                  onManual={handleCreateManually}
-                  manualLabel={t('cron.page.createManually')}
-                />
+                <Dropdown
+                  trigger='click'
+                  position='br'
+                  droplist={
+                    <Menu
+                      onClickMenuItem={(key) => {
+                        if (key === 'chat') handleCreateViaChat();
+                        else if (key === 'manual') handleCreateManually();
+                      }}
+                    >
+                      <Menu.Item key='chat'>{t('cron.page.createViaChat')}</Menu.Item>
+                      <Menu.Item key='manual'>{t('cron.page.createManually')}</Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <Button type='primary' size='small' className='!h-32px !rounded-8px !px-14px'>
+                    <span className='flex items-center gap-6px'>
+                      {t('cron.page.newTask')}
+                      <Down theme='outline' size={14} fill='currentColor' />
+                    </span>
+                  </Button>
+                </Dropdown>
               </>
             }
           />

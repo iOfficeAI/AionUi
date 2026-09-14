@@ -783,6 +783,9 @@
   "mcpSyncFailedNoAgents": "No available agents detected, unable to sync MCP configuration",
   "mcpDeletedWithCleanup": "MCP server deleted and configuration cleaned up",
   "mcpDeleted": "MCP server deleted",
+  "mcpDeleteFailed": "Failed to delete MCP server",
+  "mcpToggleFailed": "Failed to update MCP server status",
+  "mcpServerEnabled": "MCP server enabled",
   "mcpDeleteError": "Error deleting MCP configuration",
   "mcpSyncError": "MCP configuration sync failed",
   "mcpRemoveError": "MCP configuration removal failed",
@@ -1342,26 +1345,6 @@
   "assistantAgentUnchecked": "The required agent has not been checked yet.",
   "assistantAgentMissing": "The required agent is not installed.",
   "assistantTeamUnsupported": "This assistant cannot be used in team mode right now.",
-  "webui.letButlerSetup": "Let the butler set it up",
-  "talkToButler": {
-    "createViaChat": "Create via chat",
-    "createManually": "Create manually",
-    "addViaChat": "Add via chat",
-    "addManually": "Add manually",
-    "solveViaChat": "Solve via chat",
-    "enabledToast": "Enabled the AIbang Butler for you",
-    "prompt": {
-      "createAssistant": "Help me create a new assistant and walk me through setting it up.",
-      "addCustomAgent": "Help me add a custom Agent.",
-      "addModel": "Help me add a new LLM provider and API key, then set it as the default model.",
-      "addMcp": "Help me set up an MCP server.",
-      "addSkill": "Help me import a skill and attach it to an assistant.",
-      "setupRemote": "Help me set up remote access so I can open AIbang from my phone or over the internet.",
-      "diagnose": "I ran into a problem with AIbang, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.",
-      "diagnoseChatError": "I ran into an error during a conversation in AIbang, please help me diagnose it.\n\n[Error] {{error}}\n\nPlease diagnose the cause and tell me how to fix it."
-    },
-    "solveWithButler": "Ask the Butler"
-  },
   "providerIdConflict": "Provider ID already exists. Please try again.",
   "autoInjectedSkillsHint": "Loaded automatically into every conversation — no need to enable them; the agent decides when to use them.",
   "browserData": {

@@ -126,10 +126,6 @@ vi.mock('@/renderer/hooks/system/useDeepLink', () => ({
   consumePendingDeepLink: () => null,
 }));
 
-vi.mock('@/renderer/components/base/TalkToButlerButton', () => ({
-  default: ({ label }: { label: React.ReactNode }) => <span>{label}</span>,
-}));
-
 vi.mock('@/renderer/pages/settings/components/EditModeModal', () => {
   const EditModeModal = () => null;
   EditModeModal.useModal = () => [{ close: mocks.close, open: mocks.editModeOpen }, null];

@@ -35,7 +35,6 @@
     "runNow": "Executar agora",
     "description": "Descrição",
     "agent": "Assistente",
-    "assistant": "Assistente",
     "instructions": "Instruções",
     "repeats": "Repetições",
     "history": "Histórico",
@@ -91,11 +90,9 @@
       "scheduleDescRequired": "A descrição do agendamento é obrigatória",
       "scheduleDescPlaceholder": "Ex.: Toda segunda-feira às 9:00",
       "agent": "Assistente",
-      "assistant": "Assistente",
       "agentRequired": "Por favor, selecione um assistente",
       "assistantRequired": "Por favor, selecione um assistente",
       "agentPlaceholder": "Selecione o assistente para executar esta tarefa",
-      "assistantPlaceholder": "Selecione o assistente para executar esta tarefa",
       "executionMode": "Modo de Execução",
       "newConversation": "Nova conversa",
       "existingConversation": "Conversa em andamento",
@@ -109,8 +106,6 @@
       "clearFolder": "Limpar",
       "model": "Modelo",
       "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
-      "aionrsNoProvider": "Nenhum modelo disponível",
-      "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente.",
       "teamTaskExecutionModeLockedReason": "Tarefas agendadas de Team devem continuar executando na conversa de Team proprietária, por isso o modo de execução não pode ser alterado."
     },
     "freq": {

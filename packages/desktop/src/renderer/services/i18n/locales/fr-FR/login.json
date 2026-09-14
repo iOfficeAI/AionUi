@@ -24,6 +24,7 @@
     "emptyTotpCode": "Veuillez saisir votre code d'authentification à deux facteurs",
     "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide",
     "tooManyAttempts": "Trop de tentatives, veuillez réessayer plus tard",
+    "sessionLimit": "Ce compte a atteint sa limite de sessions de connexion actives. Déconnectez-vous d'un appareil déjà connecté ou demandez à un administrateur de nettoyer les anciennes sessions.",
     "networkError": "Connexion échouée, veuillez réessayer",
     "serverError": "Erreur serveur, veuillez réessayer plus tard",
     "unknown": "Échec de connexion, veuillez réessayer",

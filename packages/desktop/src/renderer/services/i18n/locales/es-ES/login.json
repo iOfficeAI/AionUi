@@ -24,6 +24,7 @@
     "emptyTotpCode": "Ingresa tu código de dos factores",
     "invalidCredentials": "Usuario o contraseña inválidos",
     "tooManyAttempts": "Demasiados intentos, vuelve a intentarlo más tarde",
+    "sessionLimit": "Esta cuenta alcanzó el límite de sesiones de inicio de sesión activas. Cierra sesión en un dispositivo ya conectado o pide a un administrador que limpie las sesiones antiguas.",
     "networkError": "Error de conexión, intenta de nuevo",
     "serverError": "Error del servidor, intenta más tarde",
     "unknown": "Error al iniciar sesión, intenta de nuevo",

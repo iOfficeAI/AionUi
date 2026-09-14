@@ -32,6 +32,7 @@ interface RegisterParams {
 type LoginErrorCode =
   | 'invalidCredentials'
   | 'tooManyAttempts'
+  | 'sessionLimit'
   | 'serverError'
   | 'networkError'
   | 'csrfError'
@@ -62,6 +63,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const AUTH_USER_ENDPOINT = '/api/auth/user';
+const DESKTOP_AUTH_REFRESH_INTERVAL_MS = 5 * 60_000;
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
@@ -200,6 +202,19 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     void refresh();
     return () => {
       abortRef.current?.abort();
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!isDesktopRuntime) return;
+    const checkDesktopSession = () => {
+      void refresh();
+    };
+    const intervalId = window.setInterval(checkDesktopSession, DESKTOP_AUTH_REFRESH_INTERVAL_MS);
+    window.addEventListener('focus', checkDesktopSession);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', checkDesktopSession);
     };
   }, [refresh]);
 

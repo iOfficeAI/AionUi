@@ -94,10 +94,6 @@ vi.mock('@renderer/pages/conversation/utils/conversationCreateError', () => ({
   getConversationCreateErrorMessage: () => 'error',
 }));
 
-vi.mock('@renderer/utils/model/assistantAvatar', () => ({
-  resolveAssistantAvatar: () => ({ kind: 'emoji', value: '🤖' }),
-}));
-
 vi.mock('@renderer/utils/model/agentLogo', () => ({
   useAgentLogos: () => ({}),
   resolveAgentLogo: () => null,
@@ -235,10 +231,12 @@ describe('CreateTaskDialog', () => {
     await waitFor(() => expect(screen.getByDisplayValue('edited prompt')).toBeInTheDocument());
   });
 
-  it('shows the current task assistant by default in edit mode', async () => {
+  it('does not expose assistant selection in edit mode', async () => {
     render(<CreateTaskDialog visible onClose={() => {}} editJob={job()} />);
 
-    expect(await screen.findByText('问好助手')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('original prompt')).toBeInTheDocument();
+    expect(screen.queryByTestId('cron-assistant-select')).not.toBeInTheDocument();
+    expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
   });
 
   it('does not infer assistant identity from legacy backend fields after migration ownership moved server-side', async () => {
@@ -252,24 +250,11 @@ describe('CreateTaskDialog', () => {
     expect(screen.queryByText('问好助手')).not.toBeInTheDocument();
   });
 
-  it('locks assistant selection when editing an ongoing conversation task', async () => {
+  it('does not expose assistant selection when editing an ongoing conversation task', async () => {
     render(<CreateTaskDialog visible onClose={() => {}} editJob={ongoingConversationJob()} />);
 
-    const assistantSelect = await screen.findByTestId('cron-assistant-select');
-    expect(assistantSelect).toHaveClass('arco-select-disabled');
-    expect(screen.getByText('cron.page.form.assistantLockedExistingConversation')).toBeInTheDocument();
-  });
-
-  it('keeps assistant selection locked when an ongoing conversation task is temporarily switched to new conversation', async () => {
-    const user = userEvent.setup();
-
-    render(<CreateTaskDialog visible onClose={() => {}} editJob={ongoingConversationJob()} />);
-
-    await user.click(await screen.findByText('cron.page.form.newConversation'));
-
-    const assistantSelect = screen.getByTestId('cron-assistant-select');
-    expect(assistantSelect).toHaveClass('arco-select-disabled');
-    expect(screen.getByText('cron.page.form.assistantLockedExistingConversation')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('original prompt')).toBeInTheDocument();
+    expect(screen.queryByTestId('cron-assistant-select')).not.toBeInTheDocument();
   });
 
   it('does not send agent config when updating an ongoing conversation task', async () => {
@@ -316,7 +301,7 @@ describe('CreateTaskDialog', () => {
     });
   });
 
-  it('locks execution mode and assistant when editing a team-owned task', async () => {
+  it('locks execution mode when editing a team-owned task', async () => {
     const user = userEvent.setup();
     vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue({
       id: 'team-conv-1',
@@ -337,8 +322,6 @@ describe('CreateTaskDialog', () => {
       })
     );
 
-    const assistantSelect = await screen.findByTestId('cron-assistant-select');
-    expect(assistantSelect).toHaveClass('arco-select-disabled');
     expect(executionModeInputs()).toHaveLength(2);
     expect(executionModeInputs().every((input) => input.disabled)).toBe(true);
     expect(screen.getByText('cron.page.form.teamTaskExecutionModeLockedReason')).toBeInTheDocument();
@@ -353,7 +336,7 @@ describe('CreateTaskDialog', () => {
     expect(updates.metadata).not.toHaveProperty('agent_config');
   });
 
-  it('passes the selected assistant id when manually creating a task', async () => {
+  it('uses the default agent when manually creating a task', async () => {
     const user = userEvent.setup();
 
     render(<CreateTaskDialog visible onClose={() => {}} />);
@@ -361,13 +344,7 @@ describe('CreateTaskDialog', () => {
     await user.type(await screen.findByPlaceholderText('cron.page.form.namePlaceholder'), 'manual task');
     await user.type(screen.getByPlaceholderText('cron.page.form.promptPlaceholder'), 'Say hello');
 
-    await user.click(screen.getByTestId('cron-assistant-select'));
-    const assistantOption = await waitFor(() => {
-      const option = document.querySelector('.arco-select-option');
-      if (!option) throw new Error('assistant option not found');
-      return option;
-    });
-    fireEvent.click(assistantOption);
+    expect(screen.queryByTestId('cron-assistant-select')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('modal-ok'));
 
     await waitFor(() => expect(resolveCronAgentConfig).toHaveBeenCalledTimes(1));

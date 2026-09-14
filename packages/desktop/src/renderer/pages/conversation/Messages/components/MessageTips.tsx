@@ -11,7 +11,6 @@ import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
-import ButlerDiagnoseButton from '@renderer/components/base/ButlerDiagnoseButton';
 import FeedbackButton from '@renderer/components/base/FeedbackButton';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import { iconColors } from '@/renderer/styles/colors';
@@ -69,11 +68,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { json, data } = useFormatContent(localizedTipBody);
 
   const displayContent = json ? '' : localizedTipBody;
-  // The report chip stays hidden for errors that opt out via
-  // feedback_recommended=false (user-environment problems the team can't fix),
-  // but the Butler chip shows on every error — environment issues are exactly
-  // what the Butler diagnoses best.
-  const shouldShowButler = type === 'error';
+  // User-environment problems the team can't fix opt out of the report chip.
   const shouldShowFeedback = type === 'error' && structuredError?.feedback_recommended !== false;
 
   if (structuredError) {
@@ -178,16 +173,9 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
               )}
             </div>
           </div>
-          {shouldShowButler && (
+          {shouldShowFeedback && (
             <div className='flex justify-end'>
-              <ButlerDiagnoseButton errorText={[title, body, ...detailParts].filter(Boolean).join('\n')} />
-              {shouldShowFeedback && (
-                <FeedbackButton
-                  module='conversation-session'
-                  feedbackTags={feedbackTags}
-                  feedbackExtra={feedbackExtra}
-                />
-              )}
+              <FeedbackButton module='conversation-session' feedbackTags={feedbackTags} feedbackExtra={feedbackExtra} />
             </div>
           )}
         </div>
@@ -219,7 +207,6 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           </div>
           {type === 'error' && (
             <div className='flex justify-end'>
-              <ButlerDiagnoseButton errorText={JSON.stringify(data, null, 2)} />
               <FeedbackButton module='conversation-session' />
             </div>
           )}
@@ -237,10 +224,9 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
             </CollapsibleContent>
           </div>
         </div>
-        {shouldShowButler && (
+        {shouldShowFeedback && (
           <div className='flex justify-end'>
-            <ButlerDiagnoseButton errorText={displayContent} />
-            {shouldShowFeedback && <FeedbackButton module='conversation-session' />}
+            <FeedbackButton module='conversation-session' />
           </div>
         )}
       </div>

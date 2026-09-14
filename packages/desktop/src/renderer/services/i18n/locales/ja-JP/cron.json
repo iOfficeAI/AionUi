@@ -48,7 +48,6 @@
     "runNow": "今すぐ実行",
     "description": "説明",
     "agent": "アシスタント",
-    "assistant": "アシスタント",
     "instructions": "実行内容",
     "repeats": "繰り返し",
     "history": "実行履歴",
@@ -104,11 +103,9 @@
       "scheduleDescRequired": "スケジュール説明は必須です",
       "scheduleDescPlaceholder": "例：毎週月曜日 午前9:00",
       "agent": "アシスタント",
-      "assistant": "アシスタント",
       "agentRequired": "アシスタントを選択してください",
       "assistantRequired": "アシスタントを選択してください",
       "agentPlaceholder": "このタスクを実行するアシスタントを選択",
-      "assistantPlaceholder": "このタスクを実行するアシスタントを選択",
       "executionMode": "実行モード",
       "newConversation": "新しい会話",
       "existingConversation": "同じ会話",
@@ -122,8 +119,6 @@
       "clearFolder": "クリア",
       "model": "モデル",
       "aionrsModelRequired": "Aion CLI のモデルを選択してください",
-      "aionrsNoProvider": "利用可能なモデルがありません",
-      "assistantLockedExistingConversation": "同じ会話で実行するタスクは元のアシスタントを維持する必要があります。別のアシスタントを使うには新しいタスクを作成してください。",
       "teamTaskExecutionModeLockedReason": "Team のスケジュールタスクは所属する Team 会話で継続実行する必要があるため、実行モードは変更できません。"
     },
     "freq": {

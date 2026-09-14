@@ -8,16 +8,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Message, Switch, Popconfirm, Spin, Empty, Tooltip, Checkbox, Modal } from '@arco-design/web-react';
-import { Left, Delete, Write, Attention, Robot } from '@icon-park/react';
+import { Left, Delete, Write, Attention } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
-import { getJobAgentMeta } from './jobAgentMeta';
-import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
-import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { formatCronRunConversationTitle, formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
@@ -53,10 +49,6 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations, refetch: refetchConversations } = useCronJobConversations(job_id);
-  const { presetAssistants } = useConversationAssistants();
-  const logos = useAgentLogos();
-  const assistantIdentity = job ? getJobAgentMeta(job, presetAssistants, logos) : null;
-
   useEffect(() => {
     setSelectedConversationIds((prev) => {
       const currentIds = new Set(conversations.map((conversation) => conversation.id));
@@ -504,28 +496,6 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               </div>
             </section>
-
-            {assistantIdentity?.name && (
-              <section className='flex flex-col gap-10px'>
-                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
-                <div className='flex items-center gap-10px'>
-                  {assistantIdentity.logo ? (
-                    <ThemedLogo
-                      src={assistantIdentity.logo}
-                      alt={assistantIdentity.name}
-                      className='h-28px w-28px rounded-50%'
-                    />
-                  ) : assistantIdentity.emoji ? (
-                    <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
-                      {assistantIdentity.emoji}
-                    </span>
-                  ) : (
-                    <Robot size='28' className='shrink-0 text-t-secondary' />
-                  )}
-                  <span className='min-w-0 text-14px font-medium text-t-primary'>{assistantIdentity.name}</span>
-                </div>
-              </section>
-            )}
 
             <section className='flex flex-col gap-10px'>
               <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.repeats')}</h2>

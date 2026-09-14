@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
-import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
+import { isMcpServerEnabled, toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
@@ -113,28 +113,43 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? assistantDefaultDisabledBuiltinSkillIds;
     const selectedAllMcpServerIds = selectedMcpServerIds ?? [];
     const selectedMcpServerIdSet = new Set(selectedAllMcpServerIds);
+    const enabledMcpServerIdSet = new Set(
+      availableMcpServers.filter((server) => isMcpServerEnabled(server)).map((server) => server.id)
+    );
+    const isSelectedMcpServer = (server: IMcpServer) =>
+      enabledMcpServerIdSet.has(server.id) && selectedMcpServerIdSet.has(server.id);
     const selectedUserMcpServerIds = availableMcpServers
-      .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin !== true)
+      .filter((server) => isSelectedMcpServer(server) && server.builtin !== true)
       .map((server) => server.id);
     const selectedAllSessionMcpServers = availableMcpServers
-      .filter((server) => selectedMcpServerIdSet.has(server.id))
+      .filter((server) => isSelectedMcpServer(server))
       .map((server) => toSessionMcpServer(server));
     const selectedSessionMcpServers = availableMcpServers
-      .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
+      .filter((server) => isSelectedMcpServer(server) && server.builtin === true)
       .map((server) => toSessionMcpServer(server));
     const defaultSelectedMcpServerIds = assistantDefaultMcpIds;
     const defaultSelectedUserMcpServerIds = availableMcpServers
-      .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id) && server.builtin !== true)
+      .filter(
+        (server) =>
+          enabledMcpServerIdSet.has(server.id) &&
+          (defaultSelectedMcpServerIds ?? []).includes(server.id) &&
+          server.builtin !== true
+      )
       .map((server) => server.id);
     const assistantOverrideMcpIds =
-      selectedMcpServerIds !== undefined ? selectedAllMcpServerIds : defaultSelectedMcpServerIds;
+      selectedMcpServerIds !== undefined
+        ? selectedAllMcpServerIds.filter((serverId) => enabledMcpServerIdSet.has(serverId))
+        : (defaultSelectedMcpServerIds ?? []).filter((serverId) => enabledMcpServerIdSet.has(serverId));
     const selectedUserMcpServerIdsToSend =
       selectedMcpServerIds !== undefined ? selectedUserMcpServerIds : defaultSelectedUserMcpServerIds;
     const selectedSessionMcpServersToSend =
       selectedMcpServerIds !== undefined
         ? selectedAllSessionMcpServers
         : availableMcpServers
-            .filter((server) => (defaultSelectedMcpServerIds ?? []).includes(server.id))
+            .filter(
+              (server) =>
+                enabledMcpServerIdSet.has(server.id) && (defaultSelectedMcpServerIds ?? []).includes(server.id)
+            )
             .map((server) => toSessionMcpServer(server));
 
     // `current_model` is the aionrs provider selection and means nothing to a

@@ -412,6 +412,8 @@ const scheduleBackendMigrations = (): void => {
     try {
       const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
       await runBackendMigrations(ProcessConfig);
+      const { aibangAuthService } = await import('./process/services/AibangAuthService');
+      await aibangAuthService.syncCodexConfig();
       console.info('[AIbang] runBackendMigrations completed');
     } catch (error) {
       console.error('[AIbang] Backend migration hook threw:', error);
@@ -453,6 +455,11 @@ function markBackendReady(backendPort: number, source: string): void {
   // Backend is ready: tell the renderer to drop any "starting" view and show the App.
   broadcastBackendStartupState(null);
   void ensureAdminUserOnce(backendPort);
+  void import('./process/services/AibangAuthService')
+    .then(({ aibangAuthService }) => aibangAuthService.syncCodexConfig())
+    .catch((error: unknown) => {
+      console.warn('[AIbang] Failed to prepare the built-in Codex MCP config:', error);
+    });
   scheduleBackendMigrations();
 }
 

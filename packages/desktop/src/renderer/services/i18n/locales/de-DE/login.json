@@ -24,6 +24,7 @@
     "emptyTotpCode": "Bitte geben Sie Ihren Zwei-Faktor-Code ein",
     "invalidCredentials": "Ungültiger Benutzername oder Passwort",
     "tooManyAttempts": "Zu viele Versuche, bitte später erneut versuchen",
+    "sessionLimit": "Das Limit aktiver Anmeldesitzungen für dieses Konto ist erreicht. Melden Sie sich auf einem bereits angemeldeten Gerät ab oder lassen Sie alte Sitzungen von einem Administrator löschen.",
     "networkError": "Verbindung fehlgeschlagen, bitte erneut versuchen",
     "serverError": "Serverfehler, bitte später erneut versuchen",
     "unknown": "Anmeldung fehlgeschlagen, bitte erneut versuchen",

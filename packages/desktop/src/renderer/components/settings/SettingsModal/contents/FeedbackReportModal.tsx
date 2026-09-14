@@ -6,9 +6,7 @@
 
 import AionModal from '@renderer/components/base/AionModal';
 import { FEEDBACK_MODULES } from './feedbackModules';
-import { useTalkToButler } from '@/renderer/hooks/assistant/useTalkToButler';
 import { useAuth } from '@/renderer/hooks/context/AuthContext';
-import { uploadFileViaHttp } from '@/renderer/services/FileService';
 import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
 import { Info } from '@icon-park/react';
@@ -89,7 +87,6 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   feedbackDiagnosticsContext,
 }) => {
   const { t } = useTranslation();
-  const talkToButler = useTalkToButler();
   const { user } = useAuth();
   const accountEmail = readAccountEmail(user);
 
@@ -97,7 +94,6 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   const [description, setDescription] = useState('');
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [diagnosing, setDiagnosing] = useState(false);
   const descriptionRef = useRef<RefTextAreaType | null>(null);
   const [error, setError] = useState('');
 
@@ -220,47 +216,6 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     feedbackDiagnosticsContext,
   ]);
 
-  // "Solve via chat": hand the report to the AIbang Butler for on-the-spot
-  // diagnosis instead of submitting to the team. The typed description + module
-  // become a structured prompt; screenshots are uploaded to disk so they ride
-  // along in the chat input (reusing the same upload path as pasted images).
-  const handleDiagnose = useCallback(async () => {
-    if (!description.trim()) return;
-    setError('');
-    setDiagnosing(true);
-    try {
-      const files = (
-        await Promise.all(
-          screenshots.map(async (item) => {
-            if (!item.originFile) return null;
-            try {
-              return await uploadFileViaHttp(item.originFile);
-            } catch (uploadError) {
-              console.error('[feedback] failed to upload screenshot for diagnosis:', uploadError);
-              return null;
-            }
-          })
-        )
-      ).filter((path): path is string => typeof path === 'string' && path.length > 0);
-
-      const moduleLabel = t(selectedModule?.i18nKey ?? 'settings.bugReportModuleOther');
-      const prompt = t('settings.talkToButler.prompt.diagnose', {
-        defaultValue:
-          'I ran into a problem with AIbang, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.',
-        module: moduleLabel,
-        description: description.trim(),
-      });
-
-      await talkToButler({ prompt, files });
-      resetForm();
-      onCancel();
-    } catch {
-      setError(t('settings.bugReportError'));
-    } finally {
-      setDiagnosing(false);
-    }
-  }, [description, screenshots, selectedModule, t, talkToButler, resetForm, onCancel]);
-
   const isFormValid = module !== undefined && description.trim().length > 0;
 
   const appendScreenshotFiles = useCallback((files: File[]) => {
@@ -352,20 +307,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       alignCenter
       footer={{
         render: () => (
-          <div className='flex items-center justify-between gap-8px'>
-            {/* "Solve via chat" is an alternative self-service path — kept on the
-                left as a borderless text action so it reads as secondary to the
-                primary submit, not as a competing filled button. */}
-            <Button
-              type='text'
-              loading={diagnosing}
-              disabled={!description.trim() || submitting}
-              onClick={() => void handleDiagnose()}
-              data-testid='btn-feedback-diagnose'
-              className='!text-primary-6 hover:!text-primary-5'
-            >
-              {t('settings.talkToButler.solveViaChat', { defaultValue: 'Solve via chat' })}
-            </Button>
+          <div className='flex items-center justify-end gap-8px'>
             <div className='flex items-center gap-8px'>
               <Button onClick={handleCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
                 {t('settings.bugReportCancel')}
@@ -373,7 +315,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
               <Button
                 type='primary'
                 loading={submitting}
-                disabled={!isFormValid || diagnosing}
+                disabled={!isFormValid}
                 onClick={() => void handleSubmit()}
                 className='px-20px min-w-80px'
                 style={{ borderRadius: 8 }}

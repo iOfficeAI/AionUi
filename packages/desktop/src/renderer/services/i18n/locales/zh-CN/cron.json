@@ -36,7 +36,6 @@
     "runNow": "立即执行",
     "description": "描述",
     "agent": "执行助手",
-    "assistant": "执行助手",
     "instructions": "执行指令",
     "repeats": "重复执行",
     "history": "执行历史",
@@ -94,11 +93,9 @@
       "scheduleDescRequired": "请输入调度描述",
       "scheduleDescPlaceholder": "例如：每周一上午 9:00",
       "agent": "执行助手",
-      "assistant": "执行助手",
       "agentRequired": "请选择执行助手",
       "assistantRequired": "请选择执行助手",
       "agentPlaceholder": "选择执行任务的助手",
-      "assistantPlaceholder": "选择执行任务的助手",
       "executionMode": "执行模式",
       "newConversation": "新建会话",
       "existingConversation": "持续会话",
@@ -112,8 +109,6 @@
       "clearFolder": "清除",
       "model": "模型",
       "aionrsModelRequired": "请为 Aion CLI 选择模型",
-      "aionrsNoProvider": "暂无可用模型",
-      "assistantLockedExistingConversation": "持续会话任务必须保留原执行助手。如需更换助手，请新建任务。",
       "teamTaskExecutionModeLockedReason": "Team 定时任务必须在所属 Team 会话中持续执行，因此不能修改执行模式。"
     },
     "freq": {

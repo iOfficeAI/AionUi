@@ -24,6 +24,7 @@
     "emptyTotpCode": "2단계 인증 코드를 입력하세요",
     "invalidCredentials": "잘못된 사용자 이름 또는 비밀번호",
     "tooManyAttempts": "시도 횟수가 너무 많습니다. 나중에 다시 시도하세요",
+    "sessionLimit": "이 계정의 활성 로그인 세션 한도에 도달했습니다. 이미 로그인된 기기에서 로그아웃하거나 관리자에게 오래된 세션 정리를 요청하세요.",
     "networkError": "연결 실패, 다시 시도하세요",
     "serverError": "서버 오류, 나중에 다시 시도하세요",
     "unknown": "로그인 실패, 다시 시도하세요",

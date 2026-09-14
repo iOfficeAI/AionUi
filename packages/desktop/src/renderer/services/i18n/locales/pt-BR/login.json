@@ -24,6 +24,7 @@
     "emptyTotpCode": "Digite seu código de dois fatores",
     "invalidCredentials": "Nome de usuário ou senha inválidos",
     "tooManyAttempts": "Muitas tentativas, por favor tente novamente mais tarde",
+    "sessionLimit": "Esta conta atingiu o limite de sessões de login ativas. Saia de um dispositivo já conectado ou peça a um administrador para limpar sessões antigas.",
     "networkError": "Falha na conexão, por favor tente novamente",
     "serverError": "Erro no servidor, por favor tente novamente mais tarde",
     "unknown": "O login falhou, por favor tente novamente",

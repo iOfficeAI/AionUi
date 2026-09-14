@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Alert, Button, Collapse, Message, Switch, Tooltip } from '@arco-design/web-react';
 import { Copy, Down, Link } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -96,9 +97,7 @@ const DevSettings: React.FC = () => {
   const copyCdpUrl = () => {
     if (status?.port) {
       const url = `http://127.0.0.1:${status.port}`;
-      void navigator.clipboard.writeText(url).then(() => {
-        Message.success(t('common.copySuccess'));
-      });
+      void copyText(url).then(() => Message.success(t('common.copySuccess'))).catch(() => Message.error(t('common.copyFailed')));
     }
   };
 
@@ -116,9 +115,7 @@ const DevSettings: React.FC = () => {
     }
   }
 }`;
-      void navigator.clipboard.writeText(config).then(() => {
-        Message.success(t('common.copySuccess'));
-      });
+      void copyText(config).then(() => Message.success(t('common.copySuccess'))).catch(() => Message.error(t('common.copyFailed')));
     }
   };
 
@@ -136,9 +133,7 @@ const DevSettings: React.FC = () => {
     }
   }
 }`;
-      void navigator.clipboard.writeText(config).then(() => {
-        Message.success(t('common.copySuccess'));
-      });
+      void copyText(config).then(() => Message.success(t('common.copySuccess'))).catch(() => Message.error(t('common.copyFailed')));
     }
   };
 

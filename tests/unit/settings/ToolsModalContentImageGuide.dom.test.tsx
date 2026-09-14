@@ -95,13 +95,12 @@ describe('ToolsModalContent manual tools configuration', () => {
     cleanup();
   });
 
-  it('hides image generation configuration and chat-based setup', () => {
+  it('hides image generation configuration', () => {
     render(<ToolsModalContent />);
 
     expect(screen.getByText('settings.mcpAddServer')).toBeInTheDocument();
     expect(screen.queryByText('settings.imageGeneration')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.imageGenerationModel')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.goToModelSettings')).not.toBeInTheDocument();
-    expect(screen.queryByText(/talkToButler/)).not.toBeInTheDocument();
   });
 });

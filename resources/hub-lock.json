@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "tag": "dist-latest",
+  "files": {
+    "index.json": "70b77aade1f3df761f5375367498f1c7cc630741597e21c8e6f247a477142a16",
+    "extensions/aionext-auggie.zip": "61c6c8e831f87b0f157ed5e8fa6354d067dea8deccc6db6538355a96c55037c3",
+    "extensions/aionext-claude.zip": "171d9cff7561d52de52300f904f592d0f13e432e7ff181de09e111622686a73f",
+    "extensions/aionext-codebuddy.zip": "a5e1d51a76d75cdb1c60ea476dc09e0bf78605d8f19fb416c180e4f81659b85d",
+    "extensions/aionext-codex.zip": "bc922eb3604246e41754199acae7c8d5ac4b1445d2cc4c42a167b17e872b4bf6",
+    "extensions/aionext-goose.zip": "bee13963d1484ea157eff5938d22fed9b6076a1926e2e2d469a49cda5121c413",
+    "extensions/aionext-opencode.zip": "cb8654acd7479056aafe215ecdb1714b18066b713734053a132f4c6a1be8d867",
+    "extensions/aionext-qwen.zip": "e688c713d06fcc17e1a2747217e20a98997810350081488b64ac02ea1c2b63e4"
+  }
+}

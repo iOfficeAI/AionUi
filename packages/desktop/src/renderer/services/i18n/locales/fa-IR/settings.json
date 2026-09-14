@@ -783,6 +783,9 @@
   "mcpSyncFailedNoAgents": "ایجنت در دسترسی شناسایی نشد، امکان همگام‌سازی پیکربندی MCP وجود ندارد",
   "mcpDeletedWithCleanup": "سرور MCP حذف شد و پیکربندی پاکسازی شد",
   "mcpDeleted": "سرور MCP حذف شد",
+  "mcpDeleteFailed": "حذف سرور MCP ناموفق بود",
+  "mcpToggleFailed": "به‌روزرسانی وضعیت سرور MCP ناموفق بود",
+  "mcpServerEnabled": "سرور MCP فعال است",
   "mcpDeleteError": "خطا در حذف پیکربندی MCP",
   "mcpSyncError": "همگام‌سازی پیکربندی MCP ناموفق بود",
   "mcpRemoveError": "حذف پیکربندی MCP ناموفق بود",
@@ -1342,26 +1345,6 @@
   "assistantAgentUnchecked": "ایجنت مورد نیاز هنوز بررسی نشده است.",
   "assistantAgentMissing": "ایجنت مورد نیاز نصب نشده است.",
   "assistantTeamUnsupported": "این دستیار فعلاً در حالت تیم قابل استفاده نیست.",
-  "webui.letButlerSetup": "اجازه دهید Butler آن را تنظیم کند",
-  "talkToButler": {
-    "createViaChat": "ایجاد از طریق چت",
-    "createManually": "ایجاد دستی",
-    "addViaChat": "افزودن از طریق چت",
-    "addManually": "افزودن دستی",
-    "solveViaChat": "حل از طریق چت",
-    "enabledToast": "AIbang Butler برای شما فعال شد",
-    "prompt": {
-      "createAssistant": "کمکم کن یک دستیار جدید بسازم و مرحله‌به‌مرحله تنظیمش کنم.",
-      "addCustomAgent": "کمکم کن یک Agent سفارشی اضافه کنم.",
-      "addModel": "کمکم کن یک ارائه‌دهنده LLM و کلید API جدید اضافه کنم، سپس آن را مدل پیش‌فرض قرار دهم.",
-      "addMcp": "کمکم کن یک سرور MCP راه‌اندازی کنم.",
-      "addSkill": "کمکم کن یک مهارت وارد کنم و آن را به یک دستیار متصل کنم.",
-      "setupRemote": "کمکم کن دسترسی ریموت را راه‌اندازی کنم تا بتوانم AIbang را از گوشی یا از اینترنت باز کنم.",
-      "diagnose": "در AIbang به مشکلی برخوردم، لطفاً کمک کن آن را عیب‌یابی کنم.\n\n[ماژول] {{module}}\n[توضیح] {{description}}\n[پیوست‌ها] اسکرین‌شات‌های ورودی را ببین.\n\nلطفاً علت را تشخیص بده و بگو چطور آن را رفع کنم.",
-      "diagnoseChatError": "در حین گفتگو در AIbang با خطایی مواجه شدم، لطفاً کمک کن آن را عیب‌یابی کنم.\n\n[خطا] {{error}}\n\nلطفاً علت را تشخیص بده و بگو چطور آن را رفع کنم."
-    },
-    "solveWithButler": "از باتلر بپرس"
-  },
   "providerIdConflict": "شناسه ارائه‌دهنده از قبل وجود دارد. دوباره تلاش کنید.",
   "autoInjectedSkillsHint": "در هر گفتگو به‌طور خودکار بارگذاری می‌شوند — نیازی به فعال‌سازی نیست؛ عامل تصمیم می‌گیرد چه زمانی از آن‌ها استفاده کند.",
   "browserData": {

@@ -8,7 +8,7 @@ import type {
   PendingSkill,
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
-import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { ensureBackendMcpCatalog, isMcpServerEnabled } from '@/renderer/hooks/mcp/catalog';
 import { getSkillImportErrorMessage } from '@/renderer/pages/settings/SkillsSettings/skillImportMessages';
 import { emitter } from '@/renderer/utils/emitter';
 import { assistantOrderAfterToggle, selectableAssistants } from '@/renderer/utils/model/assistantSelection';
@@ -132,7 +132,7 @@ export const useAssistantEditor = ({
       const [detail, skillsList, mcpServers] = await Promise.all([
         loadAssistantDetail(assistantId),
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ensureBackendMcpCatalog().then(({ allServers }) => allServers),
+        ensureBackendMcpCatalog().then(({ allServers }) => allServers.filter(isMcpServerEnabled)),
       ]);
       return { detail, skillsList, autoSkills: deriveBuiltinAutoSkills(skillsList), mcpServers };
     },
@@ -298,7 +298,7 @@ export const useAssistantEditor = ({
     try {
       const [skillsList, mcpServers] = await Promise.all([
         ipcBridge.fs.listAvailableSkills.invoke(),
-        ensureBackendMcpCatalog().then(({ allServers }) => allServers),
+        ensureBackendMcpCatalog().then(({ allServers }) => allServers.filter(isMcpServerEnabled)),
       ]);
       setAvailableSkills(skillsList);
       setBuiltinAutoSkills(deriveBuiltinAutoSkills(skillsList));

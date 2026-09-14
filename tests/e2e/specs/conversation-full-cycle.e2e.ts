@@ -196,50 +196,8 @@ function parseJsonish<T>(value: unknown): T | null {
   return value as T;
 }
 
-async function selectPreferredCronDialogAgent(
-  page: import('@playwright/test').Page,
-  dialog: import('@playwright/test').Locator
-): Promise<string | null> {
-  return selectCronDialogAgentByPattern(page, dialog);
-}
-
-async function selectCronDialogAgentByPattern(
-  page: import('@playwright/test').Page,
-  dialog: import('@playwright/test').Locator,
-  preferredPatterns = [/Gemini/i, /Claude/i, /Codex/i, /Aion/i]
-): Promise<string | null> {
-  const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
-  await agentSelect.click();
-  const selectableOptions = page.locator('.arco-select-option:not(.arco-select-option-disabled)');
-  const anyOptionVisible = await selectableOptions
-    .first()
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!anyOptionVisible) {
-    await page.keyboard.press('Escape').catch(() => {});
-    await page.keyboard.press('Escape').catch(() => {});
-    return null;
-  }
-
-  for (const pattern of preferredPatterns) {
-    const option = selectableOptions.filter({ hasText: pattern }).first();
-    if (await option.isVisible().catch(() => false)) {
-      const label = (await option.textContent())?.trim() ?? null;
-      await option.click();
-      return label;
-    }
-  }
-
-  const fallback = selectableOptions.first();
-  if (!(await fallback.isVisible().catch(() => false))) {
-    await page.keyboard.press('Escape').catch(() => {});
-    await page.keyboard.press('Escape').catch(() => {});
-    return null;
-  }
-  const label = (await fallback.textContent())?.trim() ?? null;
-  await fallback.click();
-  return label;
+async function expectNoCronDialogAgentSelector(dialog: import('@playwright/test').Locator): Promise<void> {
+  await expect(dialog.locator('[data-testid="cron-assistant-select"]')).toHaveCount(0);
 }
 
 async function waitForCronCreateDialogToClose(
@@ -259,9 +217,6 @@ async function waitForCronCreateDialogToClose(
     const formErrors = Array.from(document.querySelectorAll('.arco-form-message, .arco-form-item-error'))
       .map((el) => el.textContent?.trim())
       .filter(Boolean);
-    const selectedAssistant = Array.from(document.querySelectorAll('[data-testid="cron-assistant-select"]'))
-      .map((el) => el.textContent?.trim())
-      .filter(Boolean);
     const modalText = Array.from(document.querySelectorAll('.arco-modal'))
       .map((el) => el.textContent?.trim())
       .filter(Boolean)
@@ -270,7 +225,6 @@ async function waitForCronCreateDialogToClose(
     return {
       messages,
       formErrors,
-      selectedAssistant,
       modalText,
     };
   });
@@ -901,23 +855,7 @@ test.describe('Conversation Full Cycle', () => {
     const taskName = `E2E-CLI-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
 
-    const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
-    await agentSelect.click();
-
-    const assistantOptions = page
-      .locator('.arco-select-option:not(.arco-select-option-disabled)')
-      .filter({ hasText: /Claude|Codex|Gemini|Aion/ });
-    if ((await assistantOptions.count()) === 0) {
-      await page.keyboard.press('Escape');
-      await page.keyboard.press('Escape');
-      test.skip(true, 'No assistants available in create task dialog');
-      return;
-    }
-    const selectedOptionText = await assistantOptions.first().textContent();
-    await assistantOptions.first().click();
-
-    // Verify assistant name shows in select trigger
-    await expect(agentSelect).toContainText(selectedOptionText!.trim(), { timeout: 3_000 });
+    await expectNoCronDialogAgentSelector(dialog);
 
     // Fill prompt
     await dialog.locator('#prompt textarea').fill('Say hello');
@@ -1002,56 +940,7 @@ test.describe('Conversation Full Cycle', () => {
     const taskName = `E2E-Preset-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
 
-    const agentSelect = dialog.locator('[data-testid="cron-assistant-select"]').first();
-    await agentSelect.click();
-
-    // Preset group title is "Preset Assistants"; the first option after it is a preset.
-    // Arco Select options have no data-value attr, so we use DOM structure instead.
-    const presetGroupTitle = page
-      .locator('.arco-select-group-title')
-      .filter({ hasText: /Preset|preset|预设|助手|Assistant/ });
-    if ((await presetGroupTitle.count()) === 0) {
-      await page.keyboard.press('Escape');
-      await page.keyboard.press('Escape');
-      test.skip(true, 'No preset assistant group in create task dialog');
-      return;
-    }
-
-    // Click the first option after the preset group title (next sibling li.arco-select-option)
-    const firstPresetOption = presetGroupTitle
-      .first()
-      .locator('~ .arco-select-option:not(.arco-select-option-disabled)')
-      .first();
-    if (!(await firstPresetOption.isVisible().catch(() => false))) {
-      // Fallback: use evaluate to find next sibling
-      const clicked = await presetGroupTitle.first().evaluate((el) => {
-        let next = el.nextElementSibling;
-        while (next) {
-          if (
-            next.classList.contains('arco-select-option') &&
-            !next.classList.contains('arco-select-option-disabled')
-          ) {
-            (next as HTMLElement).click();
-            return next.textContent;
-          }
-          next = next.nextElementSibling;
-        }
-        return null;
-      });
-      if (!clicked) {
-        await page.keyboard.press('Escape');
-        await page.keyboard.press('Escape');
-        test.skip(true, 'No preset assistant option found after group title');
-        return;
-      }
-    } else {
-      await firstPresetOption.click();
-    }
-
-    // Verify agent name appears in select trigger (dropdown closes after click)
-    await page.waitForTimeout(500);
-    const triggerText = await agentSelect.textContent();
-    expect(triggerText!.length).toBeGreaterThan(0);
+    await expectNoCronDialogAgentSelector(dialog);
 
     // Fill prompt
     await dialog.locator('#prompt textarea').fill('Summarize news');
@@ -1135,10 +1024,7 @@ test.describe('Conversation Full Cycle', () => {
     const taskName = `E2E-RunNow-${Date.now()}`;
     await dialog.locator('#name input').fill(taskName);
 
-    if (!(await selectPreferredCronDialogAgent(page, dialog))) {
-      test.skip(true, 'No usable agent available in create task dialog');
-      return;
-    }
+    await expectNoCronDialogAgentSelector(dialog);
 
     await dialog.locator('#prompt textarea').fill('Say hello for run-now test');
 
@@ -1422,11 +1308,7 @@ test.describe('Conversation Full Cycle', () => {
       const taskName = `E2E-SkillSuggest-${Date.now()}`;
       await dialog.locator('#name input').fill(taskName);
 
-      if (!(await selectPreferredCronDialogAgent(page, dialog))) {
-        console.log('[cron-skill-suggest-e2e] skip: no usable agent in dialog');
-        test.skip(true, 'No usable agent available in create task dialog');
-        return;
-      }
+      await expectNoCronDialogAgentSelector(dialog);
 
       await dialog
         .locator('#prompt textarea')

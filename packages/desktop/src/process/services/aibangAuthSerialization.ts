@@ -8,8 +8,13 @@ export type AibangAuthUser = {
 
 export type AibangAuthSession = {
   dashboardAccessToken: string;
+  dashboardSessionId?: string;
+  dashboardRefreshToken?: string;
+  dashboardAccessTokenExpiresAt?: number;
+  dashboardSessionExpiresAt?: number;
   apiTokenId?: number;
   apiToken: string;
+  apiTokenExpiresAt?: number;
   expiresAt: number;
   user: AibangAuthUser;
 };
@@ -18,6 +23,14 @@ export type AibangAuthConfig = {
   newApiUrl: string;
   publicModel: string;
   codexHome: string;
+};
+
+export type CodexMcpServerConfig = {
+  name: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  enabled?: boolean;
 };
 
 export type AgentEnvOverride = {
@@ -29,8 +42,8 @@ export type AgentEnvOverride = {
 export type ScopedApiTokenRequest = {
   name: string;
   expired_time: number;
-  remain_quota: number;
-  unlimited_quota: false;
+  remain_quota: 0;
+  unlimited_quota: true;
   model_limits_enabled: true;
   model_limits: string;
   group: string;
@@ -94,7 +107,6 @@ export function buildScopedApiTokenRequest(input: {
   name: string;
   model: string;
   expiresAt: number;
-  quota: number;
 }): ScopedApiTokenRequest {
   if (!input.model || input.model.includes(',')) {
     throw new Error('The scoped API token model must be a single model identifier');
@@ -102,17 +114,17 @@ export function buildScopedApiTokenRequest(input: {
   return {
     name: input.name,
     expired_time: Math.floor(input.expiresAt / 1000),
-    remain_quota: input.quota,
-    unlimited_quota: false,
+    remain_quota: 0,
+    unlimited_quota: true,
     model_limits_enabled: true,
     model_limits: input.model,
     group: '',
   };
 }
 
-export function serializeCodexConfig(config: AibangAuthConfig): string {
+export function serializeCodexConfig(config: AibangAuthConfig, mcpServers: CodexMcpServerConfig[] = []): string {
   const baseUrl = `${normalizeNewApiUrl(config.newApiUrl)}/v1`;
-  return [
+  const lines = [
     `model_provider = ${JSON.stringify('aibang')}`,
     `model = ${JSON.stringify(config.publicModel)}`,
     '',
@@ -122,7 +134,21 @@ export function serializeCodexConfig(config: AibangAuthConfig): string {
     'wire_api = "responses"',
     'requires_openai_auth = true',
     '',
-  ].join('\n');
+  ];
+  for (const server of mcpServers) {
+    lines.push(`[mcp_servers.${server.name}]`);
+    lines.push(`command = ${JSON.stringify(server.command)}`);
+    lines.push(`args = ${JSON.stringify(server.args ?? [])}`);
+    if (server.env && Object.keys(server.env).length > 0) {
+      lines.push(`[mcp_servers.${server.name}.env]`);
+      for (const [key, value] of Object.entries(server.env)) {
+        lines.push(`${JSON.stringify(key)} = ${JSON.stringify(value)}`);
+      }
+    }
+    if (server.enabled === false) lines.push('enabled = false');
+    lines.push('');
+  }
+  return lines.join('\n');
 }
 
 export function findBuiltinCodexAgent<T extends ManagedCodexAgent>(agents: readonly T[]): T | undefined {

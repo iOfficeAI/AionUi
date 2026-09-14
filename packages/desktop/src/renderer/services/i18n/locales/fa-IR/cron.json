@@ -35,7 +35,6 @@
     "runNow": "اجرا اکنون",
     "description": "توضیحات",
     "agent": "ایجنت",
-    "assistant": "دستیار",
     "instructions": "دستورالعمل‌ها",
     "repeats": "تکرار",
     "history": "تاریخچه",
@@ -91,11 +90,9 @@
       "scheduleDescRequired": "توضیح زمان‌بندی الزامی است",
       "scheduleDescPlaceholder": "مثلاً، هر دوشنبه ساعت ۹:۰۰ صبح",
       "agent": "ایجنت",
-      "assistant": "دستیار",
       "agentRequired": "لطفاً یک ایجنت انتخاب کنید",
       "assistantRequired": "لطفاً یک دستیار انتخاب کنید",
       "agentPlaceholder": "ایجنتی که این کار را اجرا کند انتخاب کنید",
-      "assistantPlaceholder": "دستیاری را انتخاب کنید که این کار را اجرا کند",
       "executionMode": "حالت اجرا",
       "newConversation": "مکالمه جدید",
       "existingConversation": "مکالمه در حال انجام",
@@ -109,8 +106,6 @@
       "clearFolder": "پاک کردن",
       "model": "مدل",
       "aionrsModelRequired": "لطفاً برای Aion CLI یک مدل انتخاب کنید",
-      "aionrsNoProvider": "مدل موجودی وجود ندارد",
-      "assistantLockedExistingConversation": "کارهای مکالمه در حال انجام باید دستیار اصلی خود را حفظ کنند. برای استفاده از دستیار دیگر، یک کار جدید ایجاد کنید.",
       "teamTaskExecutionModeLockedReason": "کارهای زمان‌بندی‌شده تیم باید در مکالمه تیم مالک اجرا شوند، بنابراین حالت اجرا قابل تغییر نیست."
     },
     "freq": {

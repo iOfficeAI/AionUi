@@ -35,7 +35,6 @@
     "runNow": "Exécuter maintenant",
     "description": "Description",
     "agent": "Agent",
-    "assistant": "Assistant",
     "instructions": "Instructions",
     "repeats": "Répétitions",
     "history": "Historique",
@@ -91,11 +90,9 @@
       "scheduleDescRequired": "La description de planification est requise",
       "scheduleDescPlaceholder": "ex. Chaque lundi à 9h00",
       "agent": "Agent",
-      "assistant": "Assistant",
       "agentRequired": "Veuillez sélectionner un agent",
       "assistantRequired": "Veuillez sélectionner un assistant",
       "agentPlaceholder": "Sélectionner l'agent pour exécuter cette tâche",
-      "assistantPlaceholder": "Sélectionnez l'assistant pour exécuter cette tâche",
       "executionMode": "Mode d'exécution",
       "newConversation": "Nouvelle conversation",
       "existingConversation": "Conversation en cours",
@@ -109,8 +106,6 @@
       "clearFolder": "Effacer",
       "model": "Modèle",
       "aionrsModelRequired": "Veuillez sélectionner un modèle pour Aion CLI",
-      "aionrsNoProvider": "Aucun modèle disponible",
-      "assistantLockedExistingConversation": "Les tâches de conversation en cours doivent conserver leur assistant d'origine. Créez une nouvelle tâche pour utiliser un autre assistant.",
       "teamTaskExecutionModeLockedReason": "Les tâches planifiées par l'équipe doivent continuer à s'exécuter dans la conversation de l'équipe propriétaire, le mode d'exécution ne peut donc pas être modifié."
     },
     "freq": {

@@ -771,6 +771,9 @@
   "mcpSyncFailedNoAgents": "利用可能なエージェントが検出されませんでした。MCP 設定を同期できません",
   "mcpDeletedWithCleanup": "MCP サーバーが削除され、設定がクリーンアップされました",
   "mcpDeleted": "MCP サーバーが削除されました",
+  "mcpDeleteFailed": "MCP サーバーの削除に失敗しました",
+  "mcpToggleFailed": "MCP サーバーの状態を更新できませんでした",
+  "mcpServerEnabled": "MCP サーバーは有効です",
   "mcpDeleteError": "MCP 設定の削除中にエラーが発生しました",
   "mcpSyncError": "MCP 設定の同期に失敗しました",
   "mcpRemoveError": "MCP 設定の削除に失敗しました",
@@ -1344,26 +1347,6 @@
   "assistantAgentUnchecked": "依存しているエージェントはまだ確認されていません。",
   "assistantAgentMissing": "依存しているエージェントがインストールされていません。",
   "assistantTeamUnsupported": "このアシスタントは現在チームモードで使用できません。",
-  "webui.letButlerSetup": "執事に設定してもらう",
-  "talkToButler": {
-    "createViaChat": "チャットで作成",
-    "createManually": "手動で作成",
-    "addViaChat": "チャットで追加",
-    "addManually": "手動で追加",
-    "solveViaChat": "チャットで解決",
-    "enabledToast": "AIbang 執事を有効にしました",
-    "prompt": {
-      "createAssistant": "新しいアシスタントの作成と初期設定を手伝ってください。",
-      "addCustomAgent": "カスタム Agent の追加を手伝ってください。",
-      "addModel": "新しい LLM プロバイダーと API キーを追加し、デフォルトモデルに設定してください。",
-      "addMcp": "MCP サーバーの設定を手伝ってください。",
-      "addSkill": "スキルをインポートしてアシスタントに紐付けてください。",
-      "setupRemote": "スマホや外部ネットワークから AIbang を開けるよう、リモートアクセスを設定してください。",
-      "diagnose": "AIbang で問題が発生しました。診断を手伝ってください。\n\n【モジュール】{{module}}\n【問題の説明】{{description}}\n【添付】入力欄のスクリーンショットを参照。\n\n原因を診断し、解決方法を教えてください。",
-      "diagnoseChatError": "AIbang の会話中にエラーが発生しました。診断を手伝ってください。\n\n【エラー内容】{{error}}\n\n原因を診断し、解決方法を教えてください。"
-    },
-    "solveWithButler": "執事に相談"
-  },
   "providerIdConflict": "Provider ID は既に存在します。もう一度お試しください。",
   "autoInjectedSkillsHint": "すべての会話に自動的に読み込まれます。有効化は不要で、エージェントが使用するタイミングを判断します。",
   "browserData": {

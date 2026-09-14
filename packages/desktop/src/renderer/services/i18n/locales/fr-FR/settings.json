@@ -783,6 +783,9 @@
   "mcpSyncFailedNoAgents": "Aucun agent disponible détecté, impossible de synchroniser la configuration MCP",
   "mcpDeletedWithCleanup": "Serveur MCP supprimé et configuration nettoyée",
   "mcpDeleted": "Serveur MCP supprimé",
+  "mcpDeleteFailed": "Échec de la suppression du serveur MCP",
+  "mcpToggleFailed": "Échec de la mise à jour du statut du serveur MCP",
+  "mcpServerEnabled": "Serveur MCP activé",
   "mcpDeleteError": "Erreur lors de la suppression de la configuration MCP",
   "mcpSyncError": "Échec de la synchronisation de la configuration MCP",
   "mcpRemoveError": "Échec de la suppression de la configuration MCP",
@@ -1342,26 +1345,6 @@
   "assistantAgentUnchecked": "L'agent requis n'a pas encore été vérifié.",
   "assistantAgentMissing": "L'agent requis n'est pas installé.",
   "assistantTeamUnsupported": "Cet assistant ne peut pas être utilisé en mode équipe pour le moment.",
-  "webui.letButlerSetup": "Laisse le majordome l'installer",
-  "talkToButler": {
-    "createViaChat": "Créer via le chat",
-    "createManually": "Créer manuellement",
-    "addViaChat": "Ajouter via le chat",
-    "addManually": "Ajouter manuellement",
-    "solveViaChat": "Résoudre via le chat",
-    "enabledToast": "Activé le majordome AIbang pour vous",
-    "prompt": {
-      "createAssistant": "Aidez-moi à créer un nouvel assistant et guidez-moi dans sa configuration.",
-      "addCustomAgent": "Aidez-moi à ajouter un agent personnalisé.",
-      "addModel": "Aidez-moi à ajouter un nouveau fournisseur LLM et une clé API, puis à le définir comme modèle par défaut.",
-      "addMcp": "Aidez-moi à configurer un serveur MCP.",
-      "addSkill": "Aidez-moi à importer une compétence et à la joindre à un assistant.",
-      "setupRemote": "Aidez-moi à configurer l'accès à distance afin que je puisse ouvrir AIbang depuis mon téléphone ou via Internet.",
-      "diagnose": "J'ai rencontré un problème avec AIbang, aidez-moi à le diagnostiquer.\n\n[Module] {{module}}\n[Description] {{description}}\n[Pièces jointes] voir les captures d'écran dans l'entrée.\n\nVeuillez diagnostiquer la cause et me dire comment y remédier.",
-      "diagnoseChatError": "J'ai rencontré une erreur lors d'une conversation dans AIbang, aidez-moi à la diagnostiquer.\n\n[Erreur] {{error}}\n\nVeuillez diagnostiquer la cause et me dire comment y remédier."
-    },
-    "solveWithButler": "Demander au majordome"
-  },
   "providerIdConflict": "L'ID du fournisseur existe déjà. Veuillez réessayer.",
   "autoInjectedSkillsHint": "Chargé automatiquement dans chaque conversation – pas besoin de les activer ; l'agent décide quand les utiliser.",
   "browserData": {

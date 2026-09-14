@@ -30,7 +30,9 @@
  */
 
 import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
 import { buildMcpSpawnCommand, resolveBridgeToken, resolveBrowserUrl } from './browserServerPort';
+import { createBrowserMcpProtocolTransformer } from './browserMcpProtocol';
 
 /**
  * stdio MCP 服务器的 stdout 是协议通道，任何附加输出都会破坏握手。
@@ -154,12 +156,42 @@ const spawnPlan = buildMcpSpawnCommand({
 });
 
 const child = spawn(spawnPlan.command, spawnPlan.args, {
-  // stdio 直通：这个进程只是转发者，MCP 协议流不能被中间层缓冲或改写
-  // Pass stdio straight through: this process is a forwarder, and the MCP
-  // protocol stream must not be buffered or rewritten in between.
-  stdio: 'inherit',
+  stdio: ['pipe', 'pipe', 'inherit'],
   env: process.env,
 });
+
+const pipeJsonRpc = (
+  source: NodeJS.ReadableStream,
+  destination: NodeJS.WritableStream,
+  transform: (line: string) => string
+): void => {
+  const lines = createInterface({ input: source, crlfDelay: Infinity });
+
+  lines.on('line', (line) => {
+    if (line.trim().length === 0) return;
+    if (!destination.write(`${transform(line)}\n`)) {
+      lines.pause();
+      destination.once('drain', () => lines.resume());
+    }
+  });
+  lines.on('close', () => destination.end());
+};
+
+const childStdin = child.stdin;
+const childStdout = child.stdout;
+
+if (childStdin && childStdout) {
+  const protocol = createBrowserMcpProtocolTransformer();
+
+  pipeJsonRpc(process.stdin, childStdin, protocol.transformClientMessage);
+  pipeJsonRpc(childStdout, process.stdout, protocol.transformServerMessage);
+  childStdin.on('error', (error) => {
+    logDiagnostic(`Failed to write to chrome-devtools-mcp stdin: ${error.message}`);
+  });
+  childStdout.on('error', (error) => {
+    logDiagnostic(`Failed to read chrome-devtools-mcp stdout: ${error.message}`);
+  });
+}
 
 child.on('error', (error) => {
   logDiagnostic(`Failed to spawn chrome-devtools-mcp: ${error instanceof Error ? error.message : String(error)}`);

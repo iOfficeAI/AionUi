@@ -773,6 +773,9 @@
   "mcpSyncFailedNoAgents": "No se detectaron agentes disponibles, no se puede sincronizar la configuración MCP",
   "mcpDeletedWithCleanup": "Servidor MCP eliminado y configuración limpiada",
   "mcpDeleted": "Servidor MCP eliminado",
+  "mcpDeleteFailed": "No se pudo eliminar el servidor MCP",
+  "mcpToggleFailed": "No se pudo actualizar el estado del servidor MCP",
+  "mcpServerEnabled": "Servidor MCP activado",
   "mcpDeleteError": "Error al eliminar la configuración MCP",
   "mcpSyncError": "Error en la sincronización de configuración MCP",
   "mcpRemoveError": "Error al quitar la configuración MCP",
@@ -1342,26 +1345,6 @@
   "assistantAgentUnchecked": "The required agent has not been checked yet.",
   "assistantAgentMissing": "The required agent is not installed.",
   "assistantTeamUnsupported": "This assistant cannot be used in team mode right now.",
-  "webui.letButlerSetup": "Let the butler set it up",
-  "talkToButler": {
-    "createViaChat": "Create via chat",
-    "createManually": "Create manually",
-    "addViaChat": "Add via chat",
-    "addManually": "Add manually",
-    "solveViaChat": "Solve via chat",
-    "enabledToast": "Enabled the AIbang Butler for you",
-    "prompt": {
-      "createAssistant": "Help me create a new assistant and walk me through setting it up.",
-      "addCustomAgent": "Help me add a custom Agent.",
-      "addModel": "Help me add a new LLM provider and API key, then set it as the default model.",
-      "addMcp": "Help me set up an MCP server.",
-      "addSkill": "Help me import a skill and attach it to an assistant.",
-      "setupRemote": "Help me set up remote access so I can open AIbang from my phone or over the internet.",
-      "diagnose": "I ran into a problem with AIbang, please help me diagnose it.\n\n[Module] {{module}}\n[Description] {{description}}\n[Attachments] see the screenshots in the input.\n\nPlease diagnose the cause and tell me how to fix it.",
-      "diagnoseChatError": "Encontré un error durante una conversación en AIbang, ayúdame a diagnosticarlo.\n\n[Error] {{error}}\n\nPor favor, diagnostica la causa y dime cómo solucionarlo."
-    },
-    "solveWithButler": "Preguntar al Mayordomo"
-  },
   "providerIdConflict": "El ID del proveedor ya existe. Inténtalo de nuevo.",
   "autoInjectedSkillsHint": "Se cargan automáticamente en cada conversación: no hace falta activarlas; el agente decide cuándo usarlas.",
   "browserData": {

@@ -24,6 +24,7 @@
     "emptyTotpCode": "İki adımlı doğrulama kodunuzu girin",
     "invalidCredentials": "Geçersiz kullanıcı adı veya şifre",
     "tooManyAttempts": "Çok fazla deneme, lütfen daha sonra tekrar deneyin",
+    "sessionLimit": "Bu hesabın etkin oturum açma oturumu sınırına ulaşıldı. Zaten oturum açmış bir cihazdan çıkış yapın veya eski oturumları bir yöneticiden temizlemesini isteyin.",
     "networkError": "Bağlantı başarısız, lütfen tekrar deneyin",
     "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
     "unknown": "Giriş başarısız, lütfen tekrar deneyin",

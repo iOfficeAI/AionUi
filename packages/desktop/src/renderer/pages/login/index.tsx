@@ -188,6 +188,8 @@ const LoginPage: React.FC = () => {
               return t('login.errors.invalidCredentials');
             case 'tooManyAttempts':
               return t('login.errors.tooManyAttempts');
+            case 'sessionLimit':
+              return t('login.errors.sessionLimit');
             case 'networkError':
               return t('login.errors.networkError');
             case 'serverError':

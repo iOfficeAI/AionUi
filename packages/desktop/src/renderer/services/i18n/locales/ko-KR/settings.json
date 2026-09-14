@@ -771,6 +771,9 @@
   "mcpSyncFailedNoAgents": "사용 가능한 에이전트가 감지되지 않아 MCP 구성을 동기화할 수 없습니다",
   "mcpDeletedWithCleanup": "MCP 서버 삭제 및 구성 정리 완료",
   "mcpDeleted": "MCP 서버 삭제됨",
+  "mcpDeleteFailed": "MCP 서버 삭제 실패",
+  "mcpToggleFailed": "MCP 서버 상태 업데이트 실패",
+  "mcpServerEnabled": "MCP 서버 활성화됨",
   "mcpDeleteError": "MCP 구성 삭제 중 오류 발생",
   "mcpSyncError": "MCP 구성 동기화 실패",
   "mcpRemoveError": "MCP 구성 제거 실패",
@@ -1344,26 +1347,6 @@
   "assistantAgentUnchecked": "필요한 에이전트는 아직 확인되지 않았습니다.",
   "assistantAgentMissing": "필요한 에이전트가 설치되지 않았습니다.",
   "assistantTeamUnsupported": "이 어시스턴트는 현재 팀 모드에서 사용할 수 없습니다.",
-  "webui.letButlerSetup": "집사에게 설정 맡기기",
-  "talkToButler": {
-    "createViaChat": "대화로 만들기",
-    "createManually": "수동으로 만들기",
-    "addViaChat": "대화로 추가",
-    "addManually": "수동으로 추가",
-    "solveViaChat": "대화로 해결",
-    "enabledToast": "AIbang 집사를 활성화했습니다",
-    "prompt": {
-      "createAssistant": "새 어시스턴트를 만들고 설정을 안내해 주세요.",
-      "addCustomAgent": "사용자 지정 Agent 추가를 도와주세요.",
-      "addModel": "새 LLM 공급자와 API 키를 추가하고 기본 모델로 설정해 주세요.",
-      "addMcp": "MCP 서버 설정을 도와주세요.",
-      "addSkill": "스킬을 가져와 어시스턴트에 연결해 주세요.",
-      "setupRemote": "휴대폰이나 외부에서 AIbang를 열 수 있도록 원격 접속을 설정해 주세요.",
-      "diagnose": "AIbang 사용 중 문제가 발생했습니다. 진단을 도와주세요.\n\n[모듈] {{module}}\n[문제 설명] {{description}}\n[첨부] 입력창의 스크린샷 참조.\n\n원인을 진단하고 해결 방법을 알려주세요.",
-      "diagnoseChatError": "AIbang 대화 중 오류가 발생했습니다. 진단을 도와주세요.\n\n[오류 내용] {{error}}\n\n원인을 진단하고 해결 방법을 알려주세요."
-    },
-    "solveWithButler": "집사에게 문의"
-  },
   "providerIdConflict": "Provider ID가 이미 있습니다. 다시 시도하세요.",
   "autoInjectedSkillsHint": "모든 대화에 자동으로 로드됩니다. 활성화할 필요가 없으며, 에이전트가 사용 시점을 결정합니다.",
   "browserData": {

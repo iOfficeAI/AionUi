@@ -783,6 +783,9 @@
   "mcpSyncFailedNoAgents": "未检测到可用的智能体，无法同步 MCP 配置",
   "mcpDeletedWithCleanup": "MCP 服务器已删除并清理配置",
   "mcpDeleted": "MCP 服务器已删除",
+  "mcpDeleteFailed": "删除 MCP 服务器失败",
+  "mcpToggleFailed": "更新 MCP 服务器状态失败",
+  "mcpServerEnabled": "MCP 服务器已启用",
   "mcpDeleteError": "删除 MCP 配置时出错",
   "mcpSyncError": "MCP 配置同步失败",
   "mcpRemoveError": "MCP 配置移除失败",
@@ -1343,26 +1346,6 @@
   "assistantAgentUnchecked": "所依赖的 Agent 尚未检测。",
   "assistantAgentMissing": "所依赖的 Agent 尚未安装。",
   "assistantTeamUnsupported": "该助手目前无法在团队模式中使用。",
-  "webui.letButlerSetup": "让管家帮我设置",
-  "talkToButler": {
-    "createViaChat": "通过对话创建",
-    "createManually": "手动创建",
-    "addViaChat": "通过对话添加",
-    "addManually": "手动添加",
-    "solveViaChat": "通过对话排查",
-    "enabledToast": "已为你启用 AIbang 管家",
-    "prompt": {
-      "createAssistant": "帮我创建一个新助手，并引导我完成设置。",
-      "addCustomAgent": "帮我添加一个自定义 Agent。",
-      "addModel": "帮我添加一个新的 LLM 模型和 API Key，并设为默认模型。",
-      "addMcp": "帮我配置一个 MCP 服务器。",
-      "addSkill": "帮我导入一个技能，并绑定到助手上。",
-      "setupRemote": "帮我配置远程访问，让我在手机或外网也能打开 AIbang。",
-      "diagnose": "我在使用 AIbang 时遇到问题，帮我排查一下。\n\n【模块】{{module}}\n【问题描述】{{description}}\n【附件】见输入框中的截图。\n\n请帮我诊断原因并给出解决办法。",
-      "diagnoseChatError": "我在 AIbang 对话过程中遇到了报错，帮我排查一下。\n\n【报错内容】{{error}}\n\n请帮我诊断原因并给出解决办法。"
-    },
-    "solveWithButler": "找管家排查"
-  },
   "providerIdConflict": "Provider ID 已存在，请重试。",
   "autoInjectedSkillsHint": "每次对话都会自动加载，无需手动启用；由智能体自行决定何时调用。",
   "browserData": {

@@ -147,7 +147,7 @@ describe('SkillDetailPage', () => {
     mocks.assistantsList.mockResolvedValue([
       makeAssistant({ id: 'a1', name: 'Writer', enabled_skills: ['demo-skill'] }),
       makeAssistant({ id: 'a2', name: 'Coder', enabled_skills: [] }),
-      makeAssistant({ id: 'b1', name: 'Butler', source: 'builtin', enabled_skills: ['demo-skill'] }),
+      makeAssistant({ id: 'b1', name: 'Built-in Helper', source: 'builtin', enabled_skills: ['demo-skill'] }),
     ]);
     mocks.assistantsUpdate.mockResolvedValue({});
     mocks.listSkillFiles.mockResolvedValue([
@@ -163,7 +163,7 @@ describe('SkillDetailPage', () => {
     await waitFor(() => expect(screen.getByTestId('skill-detail-info')).toBeInTheDocument());
     expect(screen.getByText('A demo skill.')).toBeInTheDocument();
 
-    // Used by: Writer (user) + Butler (builtin)
+    // Used by: Writer (user) + Built-in Helper (builtin)
     expect(screen.getByTestId('skill-used-by-row-a1')).toBeInTheDocument();
     expect(screen.getByTestId('skill-used-by-row-b1')).toBeInTheDocument();
     expect(screen.queryByTestId('skill-used-by-row-a2')).not.toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('SkillDetailPage', () => {
     fireEvent.click(screen.getByTestId('btn-add-assistant'));
 
     // Coder (user, not using) is addable; Writer already uses the skill and
-    // builtin Butler is never editable, so neither shows in the menu.
+    // builtin assistants are never editable, so neither shows in the menu.
     await waitFor(() => expect(screen.getByTestId('menu-add-assistant-a2')).toBeInTheDocument());
     expect(screen.queryByTestId('menu-add-assistant-a1')).not.toBeInTheDocument();
     expect(screen.queryByTestId('menu-add-assistant-b1')).not.toBeInTheDocument();
