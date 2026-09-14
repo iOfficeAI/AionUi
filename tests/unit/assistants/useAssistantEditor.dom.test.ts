@@ -51,6 +51,7 @@ vi.mock('@/renderer/hooks/mcp/catalog', () => ({
     builtinServers: [],
     allServers: [{ id: 'mcp-a', name: 'Server A', enabled: true }],
   })),
+  isMcpServerEnabled: (server: { enabled?: boolean }) => server.enabled !== false,
 }));
 
 import { useAssistantEditor } from '@/renderer/hooks/assistant/useAssistantEditor';

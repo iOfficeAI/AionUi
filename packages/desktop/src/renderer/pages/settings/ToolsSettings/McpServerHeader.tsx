@@ -1,5 +1,5 @@
 import type { IMcpServer } from '@/common/config/storage';
-import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Popover, Switch, Tooltip } from '@arco-design/web-react';
 import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,13 @@ interface McpServerHeaderProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  isToggling?: boolean;
   /** Extension-contributed servers are read-only */
   isReadOnly?: boolean;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
+  onToggleServer?: (server: IMcpServer) => void | Promise<unknown>;
   onOAuthLogin?: (server: IMcpServer) => void;
 }
 
@@ -149,10 +151,12 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
+  isToggling,
   isReadOnly,
   onTestConnection,
   onEditServer,
   onDeleteServer,
+  onToggleServer,
   onOAuthLogin,
 }) => {
   const { t, i18n } = useTranslation();
@@ -164,11 +168,24 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   const statusPopoverContent = getStatusPopoverContent(server, i18n.language, t);
 
   const isError = server.last_test_status === 'error';
+  const isEnabled = server.enabled !== false;
 
   return (
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
+        <span onClick={(event) => event.stopPropagation()}>
+          <Switch
+            size='small'
+            checked={isEnabled}
+            disabled={isReadOnly}
+            loading={isToggling}
+            onChange={() => {
+              void onToggleServer?.(server);
+            }}
+            aria-label={t('settings.mcpServerEnabled', { defaultValue: 'MCP server enabled' })}
+          />
+        </span>
         {statusPopoverContent ? (
           <Popover content={statusPopoverContent} trigger='hover' position='top'>
             <span className='flex items-center cursor-default'>{statusIcon}</span>

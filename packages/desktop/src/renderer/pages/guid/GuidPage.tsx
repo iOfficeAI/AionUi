@@ -25,7 +25,7 @@ import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
+import { ensureBackendMcpCatalog, isMcpServerEnabled } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { chatFileRefPath, uploadFileRef } from '@/common/types/chatFile';
@@ -98,7 +98,7 @@ const GuidPage: React.FC = () => {
   useEffect(() => {
     void ensureBackendMcpCatalog()
       .then(({ allServers }) => {
-        setAvailableMcpServers(allServers);
+        setAvailableMcpServers(allServers.filter(isMcpServerEnabled));
       })
       .catch((error) => {
         console.error('[GuidPage] Failed to load MCP catalog:', error);

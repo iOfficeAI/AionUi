@@ -154,6 +154,28 @@ describe('useGuidSend', () => {
     expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'builtin-mcp' })]);
   });
 
+  it('excludes disabled MCP servers from conversation creation', async () => {
+    const deps = createDeps();
+    deps.availableMcpServers = [
+      { id: 'disabled-user', name: 'Disabled User', enabled: false, builtin: false } as IMcpServer,
+      { id: 'enabled-user', name: 'Enabled User', enabled: true, builtin: false } as IMcpServer,
+      { id: 'disabled-builtin', name: 'Disabled Builtin', enabled: false, builtin: true } as IMcpServer,
+      { id: 'enabled-builtin', name: 'Enabled Builtin', enabled: true, builtin: true } as IMcpServer,
+    ];
+    deps.selectedMcpServerIds = ['disabled-user', 'enabled-user', 'disabled-builtin', 'enabled-builtin'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant?.conversation_overrides?.mcp_ids).toEqual(['enabled-user', 'enabled-builtin']);
+    expect(payload.extra.selected_mcp_server_ids).toEqual(['enabled-user']);
+    expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'enabled-builtin' })]);
+  });
+
   it('does not write legacy preset_assistant_id for preset assistant sends', async () => {
     const deps = createDeps();
 

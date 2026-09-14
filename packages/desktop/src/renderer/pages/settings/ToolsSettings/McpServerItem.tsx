@@ -9,6 +9,7 @@ interface McpServerItemProps {
   server: IMcpServer;
   isCollapsed: boolean;
   isTestingConnection: boolean;
+  isToggling?: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
   /** Extension-contributed servers are read-only (no edit/delete) */
@@ -17,6 +18,7 @@ interface McpServerItemProps {
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
+  onToggleServer?: (server: IMcpServer) => void | Promise<unknown>;
   onOAuthLogin?: (server: IMcpServer) => void;
 }
 
@@ -24,6 +26,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   server,
   isCollapsed,
   isTestingConnection,
+  isToggling,
   oauthStatus,
   isLoggingIn,
   isReadOnly,
@@ -31,6 +34,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   onTestConnection,
   onEditServer,
   onDeleteServer,
+  onToggleServer,
   onOAuthLogin,
 }) => {
   return (
@@ -45,12 +49,14 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
           <McpServerHeader
             server={server}
             isTestingConnection={isTestingConnection}
+            isToggling={isToggling}
             oauthStatus={oauthStatus}
             isLoggingIn={isLoggingIn}
             isReadOnly={isReadOnly}
             onTestConnection={onTestConnection}
             onEditServer={onEditServer}
             onDeleteServer={onDeleteServer}
+            onToggleServer={onToggleServer}
             onOAuthLogin={onOAuthLogin}
           />
         }

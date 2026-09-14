@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { IMcpServer } from '@/common/config/storage';
+import { setClientBusinessSetting, getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { toBackendMcpPayload } from './catalog';
 
 const mergeServerState = (persisted: IMcpServer, fallback?: Partial<IMcpServer>): IMcpServer => ({
@@ -32,10 +33,47 @@ const getMcpRequestErrorMessage = (error: unknown, fallback: string): string => 
   if (typeof error === 'string' && error.trim()) return error;
   return fallback;
 };
+
+const refreshManagedCodexMcpConfig = async (): Promise<void> => {
+  const authBridge = window.electronAPI?.aibangAuth;
+  if (!authBridge) return;
+
+  try {
+    await authBridge.getStatus();
+  } catch (error) {
+    console.warn('[MCP] Failed to refresh managed Codex config:', error);
+  }
+};
+
+const toggleLocalBuiltinServer = async (server: IMcpServer): Promise<IMcpServer> => {
+  const localServers = (await getClientBusinessSetting('mcp.config')) ?? [];
+  const serverIndex = localServers.findIndex(
+    (localServer) => localServer.builtin === true && (localServer.id === server.id || localServer.name === server.name)
+  );
+
+  if (serverIndex === -1) {
+    throw new Error(`MCP server not found: ${server.name}`);
+  }
+
+  const nextServers = [...localServers];
+  nextServers[serverIndex] = {
+    ...localServers[serverIndex],
+    enabled: server.enabled === false,
+  };
+  await setClientBusinessSetting('mcp.config', nextServers);
+
+  return {
+    ...server,
+    enabled: server.enabled === false,
+    updated_at: Date.now(),
+  };
+};
+
 export const useMcpServerCRUD = (
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>
 ) => {
   const { t } = useTranslation();
+  const [togglingServers, setTogglingServers] = useState<Record<string, boolean>>({});
 
   const persistEnabledState = useCallback(async (server: IMcpServer, enabled: boolean) => {
     if (server.enabled === enabled) {
@@ -53,6 +91,7 @@ export const useMcpServerCRUD = (
 
         const nextServer = mergeServerState(persisted, serverData);
         await saveMcpServers((prevServers) => replaceUserServer(prevServers, nextServer));
+        await refreshManagedCodexMcpConfig();
         return nextServer;
       } catch (error) {
         Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
@@ -92,6 +131,7 @@ export const useMcpServerCRUD = (
 
           return nextServers;
         });
+        await refreshManagedCodexMcpConfig();
 
         return finalServers;
       } catch (error) {
@@ -125,6 +165,7 @@ export const useMcpServerCRUD = (
         await saveMcpServers((prevServers) =>
           prevServers.map((server) => (server.id === editingMcpServer.id ? nextServer : server))
         );
+        await refreshManagedCodexMcpConfig();
 
         Message.success(t('settings.mcpImportSuccess'));
         return nextServer;
@@ -138,11 +179,52 @@ export const useMcpServerCRUD = (
 
   const handleDeleteMcpServer = useCallback(
     async (serverId: string) => {
-      await mcpService.deleteServer.invoke({ id: serverId });
-      await saveMcpServers((prevServers) => prevServers.filter((server) => server.id !== serverId));
-      Message.success(t('settings.mcpDeleted'));
+      try {
+        await mcpService.deleteServer.invoke({ id: serverId });
+        await saveMcpServers((prevServers) => prevServers.filter((server) => server.id !== serverId));
+        await refreshManagedCodexMcpConfig();
+        Message.success(t('settings.mcpDeleted'));
+        return true;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpDeleteFailed')));
+        return false;
+      }
     },
     [saveMcpServers, t]
+  );
+
+  const handleToggleMcpServer = useCallback(
+    async (server: IMcpServer) => {
+      if (togglingServers[server.id]) return undefined;
+
+      setTogglingServers((prevTogglingServers) => ({ ...prevTogglingServers, [server.id]: true }));
+      try {
+        let persisted: IMcpServer;
+        try {
+          persisted = await mcpService.toggleServer.invoke({ id: server.id });
+        } catch (error) {
+          if (server.builtin !== true || !isBackendHttpError(error) || error.status !== 404) {
+            throw error;
+          }
+          persisted = await toggleLocalBuiltinServer(server);
+        }
+        const nextServer = mergeServerState(persisted, server);
+        await saveMcpServers((prevServers) =>
+          prevServers.map((currentServer) => (currentServer.id === server.id ? nextServer : currentServer))
+        );
+        await refreshManagedCodexMcpConfig();
+        return nextServer;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpToggleFailed')));
+        return undefined;
+      } finally {
+        setTogglingServers((prevTogglingServers) => {
+          const { [server.id]: _isToggling, ...remainingServers } = prevTogglingServers;
+          return remainingServers;
+        });
+      }
+    },
+    [saveMcpServers, t, togglingServers]
   );
 
   return {
@@ -150,5 +232,7 @@ export const useMcpServerCRUD = (
     handleBatchImportMcpServers,
     handleEditMcpServer,
     handleDeleteMcpServer,
+    handleToggleMcpServer,
+    togglingServers,
   };
 };

@@ -14,6 +14,8 @@ type BackendMcpPayload = {
 
 const isBuiltinServer = (server: IMcpServer) => server.builtin === true;
 
+export const isMcpServerEnabled = (server: Pick<IMcpServer, 'enabled'>) => server.enabled !== false;
+
 const normalizeServerName = (name: string) => name.trim().toLowerCase();
 
 const getCatalogServerKey = (server: Pick<IMcpServer, 'id' | 'name' | 'builtin'>) => {
