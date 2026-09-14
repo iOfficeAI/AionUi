@@ -137,9 +137,13 @@ function prepareBundledCodexCli(managedRoot, platform, arch) {
   const packageJsonPath = path.join(stageDir, 'package.json');
   const sourceVendorPath = path.join(stageDir, 'node_modules', '@openai', 'codex', 'vendor', vendorTriple);
   const targetVendorPath = path.join(cliRoot, 'vendor', vendorTriple);
+  const manifestPath = path.join(managedRoot, 'manifest.json');
 
   removeDirectorySafe(cliRoot);
   ensureDirectory(cliRoot);
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error('Prepared managed resources contract is missing managed-resources/manifest.json');
+  }
   writeJson(packageJsonPath, {
     name: 'aibang-bundled-codex',
     private: true,
@@ -177,7 +181,6 @@ function prepareBundledCodexCli(managedRoot, platform, arch) {
       }
     }
 
-    const manifestPath = path.join(managedRoot, 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     manifest.clis = [
       ...((Array.isArray(manifest.clis) ? manifest.clis : []) || []).filter((cli) => cli?.name !== 'codex'),

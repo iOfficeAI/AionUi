@@ -17,6 +17,7 @@ import type { FeedbackModuleTag } from '@/common/types/feedbackDiagnostics';
  * before the user can click the report button.
  */
 const ROUTE_MODULE_MAP: ReadonlyArray<readonly [prefix: string, tag: FeedbackModuleTag]> = [
+  ['/billing', 'model-auth'],
   ['/conversation', 'conversation-session'],
   ['/team', 'agent-team'],
   ['/scheduled', 'scheduled-task'],

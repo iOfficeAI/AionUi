@@ -4,11 +4,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 const {
+  BUNDLED_CODEX_VERSION,
   verifyBundledAioncoreResources,
 } = require('../../../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
 const CLAUDE_VERSION = '2.1.215';
-const CODEX_VERSION = '0.149.1';
+const CODEX_VERSION = BUNDLED_CODEX_VERSION;
 
 // codex ships under vendor/<triple>/... ; the triple is platform-specific.
 const CODEX_TRIPLE: Record<string, string> = {
@@ -246,7 +247,7 @@ describe('verifyBundledAioncoreResources', () => {
     expect(result.missing).toEqual([]);
     expect(result.failures).toEqual([]);
     expect(result.checked).toContain(
-      'bundled-aioncore/win32-arm64/managed-resources/cli/codex/0.144.6/win32-arm64/vendor/aarch64-pc-windows-msvc/bin/codex.exe'
+      `bundled-aioncore/win32-arm64/managed-resources/cli/codex/${CODEX_VERSION}/win32-arm64/vendor/aarch64-pc-windows-msvc/bin/codex.exe`
     );
   });
 
@@ -306,7 +307,7 @@ describe('verifyBundledAioncoreResources', () => {
   });
 
   it('fails when the pinned codex version directory is absent', () => {
-    // The contract pins 0.144.6; only an older tree exists on disk.
+    // The contract pins the current Codex version; only an older tree exists on disk.
     rmSync(join(managedResourcesDir, 'cli', 'codex', CODEX_VERSION), { recursive: true, force: true });
     createManagedCliFixture({ managedResourcesDir, name: 'codex', version: '0.100.0', runtimeKey: 'win32-x64' });
 
@@ -317,7 +318,7 @@ describe('verifyBundledAioncoreResources', () => {
     });
 
     expect(result.missing).toContain(
-      'bundled-aioncore/win32-x64/managed-resources/cli/codex/0.144.6/win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe'
+      `bundled-aioncore/win32-x64/managed-resources/cli/codex/${CODEX_VERSION}/win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe`
     );
   });
 

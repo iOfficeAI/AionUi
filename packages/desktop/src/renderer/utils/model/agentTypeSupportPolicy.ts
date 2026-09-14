@@ -1,4 +1,4 @@
-const DEPRECATED_RUNTIME_AGENT_TYPES = new Set(['openclaw-gateway', 'nanobot', 'remote', 'gemini', 'aionrs']);
+const DEPRECATED_RUNTIME_AGENT_TYPES = new Set(['openclaw-gateway', 'nanobot', 'remote', 'gemini']);
 
 export function isDeprecatedRuntimeAgentType(agentType?: string | null): boolean {
   return Boolean(agentType && DEPRECATED_RUNTIME_AGENT_TYPES.has(agentType));
