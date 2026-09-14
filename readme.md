@@ -163,7 +163,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
-**Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • and more
+**Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • [MiniMax Code (MCode)](#minimax-code-mcode) (custom agent) • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • and more
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -174,6 +174,15 @@ If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-de
 - **Parallel Sessions** — run multiple agents simultaneously with independent context
 - **MCP Unified Management** — manage MCP (Model Context Protocol) tools in one place; AionUi injects or syncs compatible transports according to each agent's capabilities
 - **YOLO / Full-Auto Mode** — supported agents can expose an unattended mode; available modes and permission behavior depend on the selected agent
+
+### MiniMax Code (MCode)
+
+Connect the [MiniMax Code](https://agent.minimax.io) CLI using a custom ACP agent:
+
+1. Follow the [CLI installation instructions](https://www.npmjs.com/package/@minimax-ai/code), including the Node.js requirements and npm script permissions, then run `mcode login` in a terminal.
+2. Open **Settings → Agents → Add Custom Agent → Add manually**.
+3. Set **Display Name** to `MiniMax Code`, **Command** to `mcode`, and **Arguments** to `acp`. If AionUi cannot find `mcode`, use the executable's full path in **Command**.
+4. Click **Test Connection**, save the agent, then select it when starting a conversation.
 
 ### Team Mode — Coordinated Multi-Agent Collaboration
 
