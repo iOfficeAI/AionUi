@@ -125,18 +125,44 @@ describe('useMcpServerCRUD', () => {
   });
 
   it('keeps a server after backend deletion fails', async () => {
+    const server = createServer(true);
     const saveMcpServers = vi.fn(() => Promise.resolve());
     vi.mocked(mcpService.deleteServer.invoke).mockRejectedValue(new Error('forbidden'));
 
     const { result } = renderHook(() => useMcpServerCRUD(saveMcpServers));
     let deleted = false;
     await act(async () => {
-      deleted = await result.current.handleDeleteMcpServer('server-1');
+      deleted = await result.current.handleDeleteMcpServer(server);
     });
 
     expect(deleted).toBe(false);
     expect(saveMcpServers).not.toHaveBeenCalled();
     expect(messageMock.error).toHaveBeenCalledWith('forbidden');
+  });
+
+  it('removes a server and refreshes Codex config after backend deletion succeeds', async () => {
+    const server = createServer(true);
+    const otherServer = { ...server, id: 'server-2', name: 'Other MCP' };
+    const saveMcpServers = vi.fn((updater: (servers: IMcpServer[]) => IMcpServer[]) =>
+      Promise.resolve(updater([server, otherServer]))
+    );
+    const getStatus = vi.fn(() => Promise.resolve({ authenticated: true }));
+    vi.stubGlobal('electronAPI', { aibangAuth: { getStatus } });
+    vi.mocked(mcpService.deleteServer.invoke).mockResolvedValue(undefined as never);
+
+    const { result } = renderHook(() => useMcpServerCRUD(saveMcpServers));
+    let deleted = false;
+    await act(async () => {
+      deleted = await result.current.handleDeleteMcpServer(server);
+    });
+
+    expect(deleted).toBe(true);
+    expect(saveMcpServers).toHaveBeenCalledTimes(1);
+    expect(saveMcpServers.mock.calls[0][0]([server, otherServer])).toEqual([otherServer]);
+    expect(getStatus).toHaveBeenCalledTimes(1);
+    expect(messageMock.success).toHaveBeenCalledWith('settings.mcpDeleted');
+
+    vi.unstubAllGlobals();
   });
 
   it('falls back to local persistence for legacy builtin MCP servers missing from the backend', async () => {
@@ -158,5 +184,43 @@ describe('useMcpServerCRUD', () => {
       expect.objectContaining({ id: server.id, enabled: false }),
     ]);
     expect(saveMcpServers).toHaveBeenCalledTimes(1);
+  });
+
+  it('records deleted builtin names so bootstrap cannot restore them', async () => {
+    const server = { ...createServer(true), builtin: true };
+    const saveMcpServers = vi.fn(() => Promise.resolve());
+    clientBusinessSettingMock.get.mockResolvedValue(['aibang-browser']);
+    vi.mocked(mcpService.deleteServer.invoke).mockResolvedValue(undefined as never);
+
+    const { result } = renderHook(() => useMcpServerCRUD(saveMcpServers));
+    await act(async () => {
+      await result.current.handleDeleteMcpServer(server);
+    });
+
+    expect(clientBusinessSettingMock.set).toHaveBeenCalledWith('mcp.deletedBuiltinServerNames', [
+      'aibang-browser',
+      'Test MCP',
+    ]);
+  });
+
+  it('deletes legacy builtin servers from local MCP config on backend 404', async () => {
+    const server = { ...createServer(true), builtin: true };
+    const saveMcpServers = vi.fn(() => Promise.resolve());
+    const backendError = Object.assign(new Error('not found'), { status: 404 });
+    vi.mocked(mcpService.deleteServer.invoke).mockRejectedValue(backendError);
+    clientBusinessSettingMock.get.mockImplementation(async (key: string) => {
+      if (key === 'mcp.config') return [server];
+      return [];
+    });
+
+    const { result } = renderHook(() => useMcpServerCRUD(saveMcpServers));
+    let deleted = false;
+    await act(async () => {
+      deleted = await result.current.handleDeleteMcpServer(server);
+    });
+
+    expect(deleted).toBe(true);
+    expect(clientBusinessSettingMock.set).toHaveBeenCalledWith('mcp.config', []);
+    expect(clientBusinessSettingMock.set).toHaveBeenCalledWith('mcp.deletedBuiltinServerNames', [server.name]);
   });
 });

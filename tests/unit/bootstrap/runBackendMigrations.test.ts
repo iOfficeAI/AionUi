@@ -203,6 +203,44 @@ describe('runBackendMigrations', () => {
     );
   });
 
+  it('does not restore deleted builtin MCP servers during bootstrap', async () => {
+    listServersMock.mockResolvedValue([]);
+    httpRequestMock.mockImplementation(async (method: string, path: string) => {
+      if (method === 'GET' && path === '/api/settings/client') {
+        return {
+          'tools.imageGenerationModel': {
+            id: 'provider-1',
+            name: 'Gemini',
+            platform: 'gemini',
+            use_model: 'gemini-image',
+          },
+          'mcp.deletedBuiltinServerNames': ['chrome-devtools', 'aibang-browser'],
+        };
+      }
+      if (method === 'GET' && path === '/api/providers') {
+        return [provider];
+      }
+      if (method === 'GET' && path === '/api/agents/management') {
+        return [{ id: 'builtin-codex', backend: 'codex', agent_type: 'acp', agent_source: 'builtin', enabled: true }];
+      }
+      if (method === 'GET' && path === '/api/assistants') {
+        return [];
+      }
+      return undefined;
+    });
+
+    await runBackendMigrations(configFile as never);
+
+    expect(batchImportServersMock).toHaveBeenCalledWith({
+      servers: [expect.objectContaining({ name: BUILTIN_IMAGE_GEN_NAME })],
+    });
+    const importedNames = batchImportServersMock.mock.calls[0][0].servers.map(
+      (server: { name: string }) => server.name
+    );
+    expect(importedNames).not.toContain('chrome-devtools');
+    expect(importedNames).not.toContain('aibang-browser');
+  });
+
   it('does not sync agents when only the stored image MCP JSON representation differs', async () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     listServersMock.mockResolvedValue([
