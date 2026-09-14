@@ -163,7 +163,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
-**Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • [MiniMax Code (MCode)](#minimax-code-mcode) (custom agent) • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • and more
+**Supported Agents:** Built-in Agent (powered by the embedded [aionrs](https://github.com/iOfficeAI/aionrs) agent engine) • Claude Code • Codex • Qwen Code • Gemini CLI • Goose • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder • Mistral Vibe • Nanobot • Snow • Hermes • Cursor Agent • Pi • MiMo Code • omp • Antigravity • [MiniMax Code (MCode)](#minimax-code-mcode) (custom agent) • and more
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
