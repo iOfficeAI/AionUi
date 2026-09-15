@@ -253,6 +253,12 @@ class AibangAuthService {
       this.clearManagedCodexCredentials();
       return { authenticated: false };
     }
+    // The Codex process keeps the API key it received at startup. Refresh the
+    // short lived scoped token before reporting an authenticated state so a
+    // stale key cannot be used for the next conversation.
+    if (!(await this.isSessionApiTokenValid(session))) {
+      return this.refreshSessionInternal();
+    }
     try {
       await mkdir(this.codexHome, { recursive: true, mode: 0o700 });
       await this.writeCodexConfig();
@@ -302,6 +308,11 @@ class AibangAuthService {
           apiToken: apiToken.key,
           apiTokenExpiresAt,
         };
+        // Keep both the parent process environment and Codex's auth file in
+        // sync with the newly issued token. Without this, refresh succeeds but
+        // subsequent /v1/responses requests continue sending the expired key.
+        this.setManagedCodexCredentials(apiToken.key);
+        await this.writePrivateFile(this.authPath, `${JSON.stringify({ OPENAI_API_KEY: apiToken.key })}\n`);
         await this.writePrivateFile(this.sessionPath, `${JSON.stringify(currentSession)}\n`);
       }
       try {
