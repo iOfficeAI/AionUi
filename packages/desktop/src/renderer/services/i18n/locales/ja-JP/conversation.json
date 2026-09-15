@@ -632,6 +632,9 @@
   "notFound": "会話が存在しないか、削除されました",
   "explorer": {
     "addFolder": "Add folder to project",
+    "refreshFiles": "ファイルを更新",
+    "refreshChanges": "変更を更新",
+    "collapseAll": "すべて折りたたむ",
     "removeFolder": "Remove from project",
     "attachDuplicate": "This folder is already in the project",
     "attachOverlap": "This folder overlaps a folder already in the project",
@@ -642,7 +645,6 @@
       "addToChat": "チャットに追加",
       "copyRelativePath": "相対パスをコピー",
       "copyAbsolutePath": "絶対パスをコピー",
-      "refresh": "更新",
       "newFile": "新規ファイル",
       "newDir": "新規フォルダー"
     },
@@ -672,7 +674,6 @@
       "noChanges": "変更はありません",
       "loading": "変更を読み込み中…",
       "loadFailed": "変更を読み込めませんでした",
-      "refresh": "更新",
       "groups": {
         "staged": "ステージ済みの変更",
         "unstaged": "変更",

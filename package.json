@@ -1,11 +1,11 @@
 {
-  "name": "AIbang",
-  "version": "2.1.61",
+  "name": "AionUi",
+  "version": "2.2.2",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AIbang",
+    "name": "AionUi",
     "email": "service@aionui.com"
   },
   "workspaces": [
@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.18.2",
-    "@aibang/web-host": "workspace:*",
+    "@aionui/web-host": "workspace:*",
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@aws-sdk/client-bedrock": "^3.987.0",
@@ -101,7 +101,6 @@
     "@iconify/react": "^6.0.2",
     "@larksuiteoapi/node-sdk": "^1.58.0",
     "@lezer/highlight": "^1.2.3",
-    "lucide-react": "^0.546.0",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
     "@sentry/electron": "^7.10.0",
@@ -210,7 +209,7 @@
     "builder-util": "26.15.0",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
-    "electron": "37.10.3",
+    "electron": "^37.10.3",
     "electron-builder": "26.15.2",
     "electron-builder-squirrel-windows": "26.15.2",
     "electron-devtools-installer": "^4.0.0",
@@ -269,5 +268,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AIbang"
+  "productName": "AionUi"
 }

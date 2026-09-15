@@ -44,6 +44,10 @@ export type ExportTask =
 export type ConversationRowProps = {
   conversation: TChatConversation;
   isGenerating: boolean;
+  /** The agent is blocked awaiting the user (tool permission or a question).
+   *  Takes display precedence over `isGenerating` — a distinct "needs you" icon
+   *  replaces the generating spinner. */
+  isWaitingConfirmation: boolean;
   hasUnread: boolean;
   /** Whether the user manually marked this conversation as unread (persisted). */
   isManualUnread: boolean;

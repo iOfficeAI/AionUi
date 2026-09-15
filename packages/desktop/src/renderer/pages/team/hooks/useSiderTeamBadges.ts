@@ -58,10 +58,11 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
       });
     };
 
+    // Only `confirmation.remove` is emitted by the backend; a new confirmation
+    // arrives on the `message.stream` channel, not a dedicated add event. The
+    // live +1 path was removed with the dead `confirmation.add` emitter; the
+    // badge is seeded/refreshed from the team summary (`buildTeamCounts`).
     return removeStack(
-      ipcBridge.conversation.confirmation.add.on((data) => {
-        updateCount(data.conversation_id, +1);
-      }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
         updateCount(data.conversation_id, -1);
       })

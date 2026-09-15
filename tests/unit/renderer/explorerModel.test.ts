@@ -645,7 +645,6 @@ describe('explorerContextMenuSections — grouped, ordered, divider-ready sectio
     revealInFolder: false,
     copyRelativePath: false,
     copyAbsolutePath: false,
-    refresh: false,
     newFile: false,
     newDir: false,
     rename: false,
@@ -707,37 +706,6 @@ describe('explorerContextMenuSections — grouped, ordered, divider-ready sectio
       ['addToChat'],
       ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath'],
       ['newFile', 'newDir', 'remove'],
-    ]);
-  });
-
-  it('a pe root with refresh enabled lists it at the tail of the utility section (never beside remove)', () => {
-    expect(
-      explorerContextMenuSections(
-        caps({
-          addToChat: true,
-          revealInFolder: true,
-          copyRelativePath: true,
-          copyAbsolutePath: true,
-          refresh: true,
-          newFile: true,
-          newDir: true,
-          remove: true,
-        })
-      )
-    ).toEqual([
-      ['addToChat'],
-      ['revealInFolder', 'copyRelativePath', 'copyAbsolutePath', 'refresh'],
-      ['newFile', 'newDir', 'remove'],
-    ]);
-  });
-
-  it('refresh is a read-only utility, so it groups with the copy actions, not the mutate section', () => {
-    // A WebUI pe root with no active chat: only copy-relative + refresh + remove
-    // are enabled. Refresh stays in the (now copy-relative-only) utility section;
-    // it must not leak into the mutate section next to remove.
-    expect(explorerContextMenuSections(caps({ copyRelativePath: true, refresh: true, remove: true }))).toEqual([
-      ['copyRelativePath', 'refresh'],
-      ['remove'],
     ]);
   });
 
