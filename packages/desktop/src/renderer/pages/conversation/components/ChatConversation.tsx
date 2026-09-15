@@ -38,6 +38,7 @@ import { resolveConversationBackend } from '../utils/conversationAssistantIdenti
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import SingleChatEmptyState from './SingleChatEmptyState';
 import { useActiveLease } from '../hooks/useActiveLease';
+import { useFocusedConversationRegistration } from '../hooks/focusedConversationStore';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const configErrorMessageKey = (error: unknown) => {
@@ -278,6 +279,12 @@ const ChatConversation: React.FC<{
     [conversation?.id]
   );
   useActiveLease({ type: 'conversation', id: conversation?.id });
+  // Announce this view to the focused-conversation store and let any pointer /
+  // focus event inside it claim focus. With a single conversation on screen the
+  // registration alone decides focus, so nothing changes; with several mounted
+  // it is the click that moves the Explorer target, the shortcuts and the
+  // preview to the column the user is actually working in.
+  const focusRegistration = useFocusedConversationRegistration(conversation?.id);
   const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
@@ -425,23 +432,27 @@ const ChatConversation: React.FC<{
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      previewHosted={Boolean(conversation?.project_id)}
-      workspacePath={conversation?.extra?.workspace}
-      workspacePreferenceKey={conversation?.project_id}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    // `display: contents` so the wrapper carries the focus handlers without
+    // generating a box — the chat layout stays the parent's direct flex child.
+    <div style={{ display: 'contents' }} {...focusRegistration}>
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        previewHosted={Boolean(conversation?.project_id)}
+        workspacePath={conversation?.extra?.workspace}
+        workspacePreferenceKey={conversation?.project_id}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </div>
   );
 };
 
