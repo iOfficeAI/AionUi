@@ -873,6 +873,8 @@
   "includePrereleaseUpdates": "Включить предварительные/dev сборки",
   "saveModelConfigFailed": "Не удалось сохранить конфигурацию модели",
   "healthCheck": "Проверка здоровья",
+  "checkAllHealth": "Проверить все",
+  "healthCheckAllSummary": "Проверка здоровья завершена: {{available}} доступно, {{unavailable}} недоступно",
   "clearStatus": "Очистить статус",
   "healthStatusCleared": "Статус здоровья очищен",
   "latency": "Задержка",

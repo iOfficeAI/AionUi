@@ -869,6 +869,8 @@
   "includePrereleaseUpdates": "Incluir versiones previas/de desarrollo",
   "saveModelConfigFailed": "Error al guardar la configuración del modelo",
   "healthCheck": "Verificación de salud",
+  "checkAllHealth": "Comprobar todo",
+  "healthCheckAllSummary": "Verificación de salud completada: {{available}} disponibles, {{unavailable}} no disponibles",
   "clearStatus": "Limpiar estado",
   "healthStatusCleared": "Estado de salud limpiado",
   "latency": "Latencia",

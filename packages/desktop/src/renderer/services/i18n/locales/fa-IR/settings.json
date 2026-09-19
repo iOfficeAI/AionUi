@@ -881,6 +881,8 @@
   "includePrereleaseUpdates": "شامل نسخه‌های پیش‌انتشار/توسعه",
   "saveModelConfigFailed": "ذخیره پیکربندی مدل ناموفق بود",
   "healthCheck": "بررسی سلامت",
+  "checkAllHealth": "بررسی همه",
+  "healthCheckAllSummary": "بررسی سلامت کامل شد: {{available}} در دسترس، {{unavailable}} در دسترس نیست",
   "clearStatus": "پاک کردن وضعیت",
   "healthStatusCleared": "وضعیت سلامت پاک شد",
   "latency": "تأخیر",
