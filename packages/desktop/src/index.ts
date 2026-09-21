@@ -456,20 +456,22 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   console.log('[AionUi] Creating main window...');
   const { x: windowX, y: windowY, width: windowWidth, height: windowHeight } = resolveInitialBounds();
 
-  // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
-  // In production, icons are set via forge.config.ts packagerConfig
-  let devIcon: Electron.NativeImage | undefined;
-  if (!app.isPackaged) {
+  // Resolve the window icon for Windows/Linux (macOS uses the dock and ignores it).
+  // A production-packaged Linux window must set its icon explicitly or the taskbar
+  // shows a blank/icon-less entry (issue #890); app.png is shipped to the packaged
+  // resources (electron-builder.yml extraResources), same path the tray uses.
+  let windowIcon: Electron.NativeImage | undefined;
+  if (process.platform !== 'darwin' && (!app.isPackaged || process.platform === 'linux')) {
     try {
-      // Windows: app.ico (no dev version), Linux: app_dev.png (with padding)
-      const iconFile = process.platform === 'win32' ? 'app.ico' : 'app_dev.png';
-      const iconPath = path.join(process.cwd(), 'resources', iconFile);
+      const iconPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'app.png')
+        : path.join(process.cwd(), 'resources', process.platform === 'win32' ? 'app.ico' : 'app_dev.png');
       if (fs.existsSync(iconPath)) {
-        devIcon = nativeImage.createFromPath(iconPath);
-        if (devIcon.isEmpty()) devIcon = undefined;
+        const icon = nativeImage.createFromPath(iconPath);
+        if (!icon.isEmpty()) windowIcon = icon;
       }
     } catch {
-      // Ignore icon loading errors in development
+      // Ignore icon loading errors (fall back to no window icon)
     }
   }
 
@@ -483,8 +485,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     show: false, // Hide until CSS is loaded to prevent FOUC
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
-    // Set icon for Windows/Linux in development mode
-    ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
+    // Set the window icon for Windows/Linux (dev and production Linux) so the
+    // taskbar shows the AionUi icon instead of a blank entry (issue #890)
+    ...(windowIcon ? { icon: windowIcon } : {}),
     // Custom titlebar configuration / 自定义标题栏配置
     ...(process.platform === 'darwin'
       ? {
