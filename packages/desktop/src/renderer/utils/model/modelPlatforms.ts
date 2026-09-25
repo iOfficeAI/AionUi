@@ -13,6 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import requestyLogo from '@/renderer/assets/logos/requesty.svg';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -146,6 +147,14 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/openrouter.svg'),
     platform: 'custom',
     base_url: 'https://openrouter.ai/api/v1',
+  },
+  {
+    // Logo is bundled locally because the backend logo service has no Requesty asset.
+    name: 'Requesty',
+    value: 'Requesty',
+    logo: requestyLogo,
+    platform: 'custom',
+    base_url: 'https://router.requesty.ai/v1',
   },
   {
     name: 'Dashscope',

@@ -228,7 +228,7 @@ Office アシスタントは、依頼を編集・再利用できるファイル�
 - **公式プラットフォーム** — Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
 - **クラウドプロバイダー** — AWS Bedrock、New API（統一 AI モデルゲートウェイ）
 - **中国プラットフォーム** — Dashscope (Qwen)、Dashscope コーディングプラン、Zhipu、Moonshot (Kimi)、Qianfan (Baidu)、Hunyuan (Tencent)、Lingyi、ModelScope、InfiniAI、Ctyun、StepFun、SiliconFlow-CN、PPIO
-- **国際プラットフォーム** — DeepSeek、MiniMax、Novita、OpenRouter、SiliconFlow、xAI、Ark (Volcengine)、Poe
+- **国際プラットフォーム** — DeepSeek、MiniMax、Novita、OpenRouter、Requesty、SiliconFlow、xAI、Ark (Volcengine)、Poe
 - **ローカルモデル** — Ollama、LM Studio（ローカル API エンドポイントを使用したカスタムプラットフォーム経由）
 
 AionUi は [NewAPI](https://github.com/QuantumNous/new-api) ゲートウェイサービスもサポートしています——様々な LLM を集約・配布する統一 AI モデルハブです。同じインターフェースで異なるモデルを柔軟に切り替えて、様々なタスク要件に対応できます。
