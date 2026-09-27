@@ -186,4 +186,32 @@ describe('HTMLRenderer', () => {
       })
     );
   });
+
+  it('inlines relative images in electron mode when local resources are present', async () => {
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: electronAPI,
+    });
+
+    const { ipcBridge } = await import('@/common');
+    const getImageBase64Spy = vi
+      .spyOn(ipcBridge.fs.getImageBase64, 'invoke')
+      .mockResolvedValue('data:image/png;base64,mockImageContent');
+
+    const { container } = render(
+      <HTMLRenderer content='<div><img src="./test-image.png" alt="test" /></div>' file_path='/workspace/test.html' />
+    );
+
+    await waitFor(() => {
+      expect(getImageBase64Spy).toHaveBeenCalledWith({
+        path: '/workspace/test-image.png',
+        workspace: undefined,
+      });
+      const webview = container.querySelector('webview');
+      expect(webview).toBeInTheDocument();
+      expect(decodeURIComponent(webview?.getAttribute('src') || '')).toContain(
+        'data:image/png;base64,mockImageContent'
+      );
+    });
+  });
 });
