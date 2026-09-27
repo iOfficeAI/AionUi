@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Hewan Peliharaan Desktop",
+  "enable": "Aktifkan Hewan Peliharaan Desktop",
+  "size": "Ukuran Hewan Peliharaan",
+  "sizeSmall": "Kecil ({{px}}px)",
+  "sizeMedium": "Sedang ({{px}}px)",
+  "sizeLarge": "Besar ({{px}}px)",
+  "dnd": "Jangan Ganggu",
+  "dndDescription": "Hewan peliharaan diam saja, mengabaikan peristiwa AI",
+  "confirmBubble": "Tampilkan persetujuan di hewan peliharaan",
+  "confirmBubbleDescription": "Jika mati, persetujuan alat AI tetap di jendela obrolan utama",
+  "pat": "Elus",
+  "resetPosition": "Atur Ulang Posisi",
+  "hide": "Sembunyikan",
+  "showHide": "Tampilkan/Sembunyikan",
+  "desktopOnly": "Hewan Peliharaan Desktop hanya tersedia di aplikasi desktop. Tidak dapat digunakan dalam mode browser WebUI."
+}
