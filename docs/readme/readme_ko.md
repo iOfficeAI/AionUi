@@ -723,8 +723,8 @@ AionUi 로컬 개발은 Electron 프런트엔드용 AionUi와 로컬 백엔드�
 ## Star 히스토리
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://star-history.dera.page/#iofficeai/aionui&amp;type=date&amp;legend=top-left" target="_blank">
+    <img src="https://star-history.dera.page/svg?repos=iofficeai%2Faionui&amp;type=Date" alt="Star History" width="600">
   </a>
 </p>
 
