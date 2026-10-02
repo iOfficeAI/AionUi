@@ -42,12 +42,7 @@ A generated entry uses the standard stdio MCP shape that AionUi already accepts:
   "mcpServers": {
     "paralax-gateway": {
       "command": "/absolute/path/to/paralax/venv/bin/python",
-      "args": [
-        "-m",
-        "paralax_mcp.run",
-        "--config",
-        "/absolute/path/to/runtime/aionui/gateway.json"
-      ]
+      "args": ["-m", "paralax_mcp.run", "--config", "/absolute/path/to/runtime/aionui/gateway.json"]
     }
   }
 }
