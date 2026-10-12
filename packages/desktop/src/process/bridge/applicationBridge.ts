@@ -317,8 +317,8 @@ export function initApplicationBridge(): void {
         }
 
         db.run(
-          `UPDATE conversations 
-           SET extra = json_set(extra, '$.workspace', ?), updated_at = ? 
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.workspace', ?), updated_at = ?
            WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
           ws,
           now,
@@ -330,8 +330,8 @@ export function initApplicationBridge(): void {
         const trimmedName = name.trim();
         db.run('UPDATE teams SET name = ?, updated_at = ? WHERE id = ?', trimmedName, now, id);
         db.run(
-          `UPDATE conversations 
-           SET extra = json_set(extra, '$.team_name', ?), updated_at = ? 
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.team_name', ?), updated_at = ?
            WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
           trimmedName,
           now,
@@ -361,10 +361,10 @@ export function initApplicationBridge(): void {
         }
 
         db.run(
-          `UPDATE conversations 
-           SET extra = json_set(extra, '$.role', 
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.role',
              CASE WHEN json_extract(extra, '$.slot_id') = ? THEN 'leader' ELSE 'teammate' END
-           ), updated_at = ? 
+           ), updated_at = ?
            WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
           leader_assistant_id,
           now,
