@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Delete project",
+    "deleteProjectTitle": "Delete project",
+    "deleteProjectConfirm": "Delete project \"{{name}}\"? All {{count}} conversation(s) in this project will be deleted permanently. This action cannot be undone.",
+    "deleteProjectSuccess": "Project deleted"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -544,7 +548,13 @@
     "output": "Output",
     "thought": "Thinking",
     "cachedRead": "Cache read",
-    "cachedWrite": "Cache write"
+    "cachedWrite": "Cache write",
+    "cache": "Cache",
+    "total": "Total",
+    "replyTokens": "Reply tokens",
+    "chatTotal": "Chat total",
+    "sessionTotal": "Chat window total",
+    "contextWindow": "Context window"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",
@@ -782,5 +792,17 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expand plan",
     "collapse": "Collapse plan"
+  },
+  "browser": {
+    "stop": "Stop",
+    "retry": "Retry",
+    "title": "Browser",
+    "addressBarPlaceholder": "Enter URL or search...",
+    "navigate": "Go",
+    "back": "Back",
+    "forward": "Forward",
+    "refresh": "Reload",
+    "close": "Close",
+    "loading": "Loading..."
   }
 }

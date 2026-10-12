@@ -145,6 +145,7 @@ vi.mock('@arco-design/web-react', () => ({
     error: vi.fn(),
   },
   Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@icon-park/react', () => ({
@@ -153,7 +154,10 @@ vi.mock('@icon-park/react', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+    t: (key: string, fallbackOrOptions?: string | { defaultValue?: string }) => {
+      if (typeof fallbackOrOptions === 'string') return fallbackOrOptions;
+      return fallbackOrOptions?.defaultValue ?? key;
+    },
   }),
 }));
 
@@ -817,5 +821,98 @@ describe('MessageText fork entry point', () => {
       expect(forkMocks.navigate).toHaveBeenCalledWith('/conversation/conv-forked');
       expect(forkMocks.ensureRuntime).toHaveBeenCalledWith({ conversation_id: 'conv-forked' });
     });
+  });
+});
+
+describe('MessageText token usage', () => {
+  it('renders MessageTokenUsage when assistant message has token_usage and showCopyRow is true', () => {
+    const message: IMessageText = {
+      id: 'msg-ast-1',
+      msg_id: 'msg-ast-1',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content: 'Assistant reply',
+        token_usage: {
+          total_tokens: 14_118,
+          breakdown: {
+            input_tokens: 14_088,
+            output_tokens: 30,
+          },
+        },
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversation_id: 'conv-1', type: 'acp' }}>
+        <MessageText message={message} showCopyRow={true} />
+      </ConversationProvider>
+    );
+
+    const tokenUsageEl = screen.getByTestId('message-token-usage');
+    expect(tokenUsageEl).toBeInTheDocument();
+    expect(tokenUsageEl.textContent).toContain('Total: 14.1K');
+  });
+
+  it('renders MessageTokenUsage using turnsTokenUsage from ConversationContext', () => {
+    const message: IMessageText = {
+      id: 'msg-ast-2',
+      msg_id: 'msg-ast-2',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content: 'Assistant reply without direct token_usage',
+      },
+    };
+
+    render(
+      <ConversationProvider
+        value={{
+          conversation_id: 'conv-1',
+          type: 'acp',
+          turnsTokenUsage: {
+            'msg-ast-2': {
+              total_tokens: 8_500,
+              breakdown: { input_tokens: 8_000, output_tokens: 500 },
+            },
+          },
+        }}
+      >
+        <MessageText message={message} showCopyRow={true} />
+      </ConversationProvider>
+    );
+
+    const tokenUsageEl = screen.getByTestId('message-token-usage');
+    expect(tokenUsageEl).toBeInTheDocument();
+    expect(tokenUsageEl.textContent).toContain('Total: 8.5K');
+  });
+
+  it('does not render MessageTokenUsage on user messages', () => {
+    const message: IMessageText = {
+      id: 'msg-user-1',
+      msg_id: 'msg-user-1',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'right',
+      createdAt: Date.now(),
+      content: {
+        content: 'User message',
+        token_usage: {
+          total_tokens: 100,
+        },
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversation_id: 'conv-1', type: 'acp' }}>
+        <MessageText message={message} showCopyRow={true} />
+      </ConversationProvider>
+    );
+
+    expect(screen.queryByTestId('message-token-usage')).toBeNull();
   });
 });

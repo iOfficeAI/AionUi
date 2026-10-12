@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Hook Sentry IPC so the renderer SDK uses ipcRenderer.send instead of falling
-// back to fetch('sentry-ipc://...'), which floods the DevTools Network panel.
-// Bundled into this preload via `externalizeDepsPlugin({ exclude: [...] })` so
-// Electron's sandbox-mode preload doesn't try to resolve it from node_modules.
+// Hook Sentry IPC so renderer SDK uses ipcRenderer.send instead of falling
+// back to fetch('sentry-ipc://...') which floods the DevTools Network panel.
+// Bundled into preload by `externalizeDepsPlugin({ exclude: [...] })` so
+// Electron's sandbox-mode preload doesn't try to resolve node_modules.
 import '@sentry/electron/preload';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from '../common/adapter/constant';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信
- * */
+ */
 contextBridge.exposeInMainWorld('electronAPI', {
   emit: (name: string, data: unknown) => {
     return ipcRenderer
@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw error;
       });
   },
+
   on: (callback: (payload: { event: unknown; value: unknown }) => void) => {
     const handler = (event: unknown, value: unknown) => {
       callback({ event, value });
@@ -39,34 +40,67 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.off(ADAPTER_BRIDGE_EVENT_KEY, handler);
     };
   },
-  // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
+
+  // 获取拖拽文件/目录的绝对路径 / Get absolute path of dragged file/directory
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   // Feedback: collect and compress recent log files
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
-  // Feedback: capture a screenshot of the current window
+  // Feedback: capture screenshot of the current window
   captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
-  // Feedback: forward diagnostics logs to the main process console
+  // Feedback: forward diagnostics logs to main process console
   logFeedbackEvent: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) =>
     ipcRenderer.send('feedback:renderer-log', payload),
   recoverCorruptedDatabase: () => ipcRenderer.invoke('backend:recover-corrupted-database'),
+  // Browser automation commands
+  browserNavigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
+  browserClick: (selector: string) => ipcRenderer.invoke('browser:click', selector),
+  browserType: (selector: string, text: string) => ipcRenderer.invoke('browser:type', selector, text),
+  browserScroll: (x: number, y: number) => ipcRenderer.invoke('browser:scroll', x, y),
+  browserScreenshot: () => ipcRenderer.invoke('browser:screenshot'),
+  // Teamwork Multi-Agent Orchestration APIs
+  teamworkInitiate: (params: unknown) => ipcRenderer.invoke('teamwork:initiate', params),
+  teamworkSubmitInterview: (params: unknown) => ipcRenderer.invoke('teamwork:submit-interview', params),
+  teamworkConfirmPlan: (params: unknown) => ipcRenderer.invoke('teamwork:confirm-plan', params),
+  teamworkAbort: (params: unknown) => ipcRenderer.invoke('teamwork:abort', params),
+  teamworkGetState: (params: unknown) => ipcRenderer.invoke('teamwork:get-state', params),
+  onTeamworkStatusUpdate: (callback: (state: unknown) => void) => {
+    const handler = (_event: unknown, state: unknown) => callback(state);
+    ipcRenderer.on('teamwork:status-update', handler);
+    return () => {
+      ipcRenderer.off('teamwork:status-update', handler);
+    };
+  },
+  // Team Scoping & Verification APIs
+  teamInitiateScoping: (params: unknown) => ipcRenderer.invoke('team:initiateScoping', params),
+  teamSubmitInterviewAnswers: (params: unknown) => ipcRenderer.invoke('team:submitInterviewAnswers', params),
+  teamApprovePlan: (params: unknown) => ipcRenderer.invoke('team:approvePlan', params),
+  teamRejectPlan: (params: unknown) => ipcRenderer.invoke('team:rejectPlan', params),
+  teamGetScopingState: (params: unknown) => ipcRenderer.invoke('team:getScopingState', params),
+  onTeamScopingStatusChanged: (callback: (event: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('team.scopingStatusChanged', handler);
+    return () => {
+      ipcRenderer.off('team.scopingStatusChanged', handler);
+    };
+  },
 });
 
-// Synchronously fetch the aioncore port and expose it to the renderer
-// via contextBridge (direct window assignment is invisible under contextIsolation).
+// Synchronously fetch aioncore port and expose to renderer via
+// contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
-contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
+contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage || null);
 contextBridge.exposeInMainWorld('__aionuiE2ETest', process.env.AIONUI_E2E_TEST === '1');
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
-contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
+contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure || null);
 
-// Backend startup state bridge: `getState` re-reads the current failure info on
-// mount (resolves the "READY arrived before the renderer subscribed" race), and
-// `subscribe` receives subsequent ready/exit pushes on the backend-startup-state
-// channel. All communication stays behind the preload contextBridge.
+// Backend startup state bridge: `getState` re-reads current failure info on
+// mount (resolves the "READY arrived before the renderer subscribed" race),
+// `subscribe` receives subsequent ready/exit pushes on backend-startup-state
+// channel. All communication stays behind preload contextBridge.
 contextBridge.exposeInMainWorld('__backendStartupBridge', {
   getState: () => ipcRenderer.sendSync('get-backend-startup-failure'),
   subscribe: (callback: (state: unknown) => void) => {
@@ -78,15 +112,15 @@ contextBridge.exposeInMainWorld('__backendStartupBridge', {
   },
 });
 
-// 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
-// Tray event listeners - convert IPC events to DOM events
+// 托盘事件监听 IPC 事件转换为 DOM 事件
+// Tray event listeners convert IPC events to DOM events
 const trayEvents = [
   'tray:navigate-to-guid',
   'tray:navigate-to-conversation',
   'tray:open-about',
   'tray:pause-all-tasks',
   'tray:check-update',
-];
+] as const;
 
 for (const channel of trayEvents) {
   ipcRenderer.on(channel, (_event, ...args) => {

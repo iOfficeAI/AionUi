@@ -9,6 +9,7 @@
  * Safe to use in both Electron and WebUI server mode.
  * Electron-only handlers (restart, devtools, zoom, CDP) remain in applicationBridge.ts.
  */
+import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { ipcBridge } from '@/common';
@@ -36,6 +37,41 @@ export function initApplicationBridgeCore(): void {
       await copyDirectoryRecursively(oldDir.cacheDir, safeCacheDir);
     }
     await ProcessEnv.set('aionui.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir, logDir: safeLogDir });
+  });
+
+  ipcBridge.application.backupData.provider(async ({ targetDir }) => {
+    if (!targetDir || typeof targetDir !== 'string') {
+      throw new Error('Invalid backup directory');
+    }
+    const safeTarget = resolveCliSafePath(targetDir, '');
+    if (!fs.existsSync(safeTarget)) {
+      await fs.promises.mkdir(safeTarget, { recursive: true });
+    }
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const backupSubdir = path.join(safeTarget, `aionui-backup-${timestamp}`);
+    await fs.promises.mkdir(backupSubdir, { recursive: true });
+
+    const dbPath = path.join(getDataPath(), 'aionui-backend.db');
+    if (fs.existsSync(dbPath)) {
+      await fs.promises.copyFile(dbPath, path.join(backupSubdir, 'aionui-backend.db'));
+      const walPath = `${dbPath}-wal`;
+      if (fs.existsSync(walPath)) {
+        await fs.promises.copyFile(walPath, path.join(backupSubdir, 'aionui-backend.db-wal'));
+      }
+      const shmPath = `${dbPath}-shm`;
+      if (fs.existsSync(shmPath)) {
+        await fs.promises.copyFile(shmPath, path.join(backupSubdir, 'aionui-backend.db-shm'));
+      }
+    }
+
+    const configDir = getConfigPath();
+    if (fs.existsSync(configDir)) {
+      await copyDirectoryRecursively(configDir, path.join(backupSubdir, 'config'));
+    }
+
+    return { success: true, backupPath: backupSubdir };
   });
 
   ipcBridge.application.getPath.provider(({ name }) => {

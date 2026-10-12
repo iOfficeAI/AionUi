@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "حذف پروژه",
+    "deleteProjectTitle": "حذف پروژه",
+    "deleteProjectConfirm": "پروژه «{{name}}» حذف شود؟ تمام {{count}} گفتگوی این پروژه برای همیشه حذف خواهند شد. این اقدام قابل بازگشت نیست.",
+    "deleteProjectSuccess": "پروژه حذف شد"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -544,7 +548,13 @@
     "output": "خروجی",
     "thought": "تفکر",
     "cachedRead": "خواندن حافظه پنهان",
-    "cachedWrite": "نوشتن حافظه پنهان"
+    "cachedWrite": "نوشتن حافظه پنهان",
+    "cache": "حافظه پنهان",
+    "total": "مجموع",
+    "replyTokens": "توکن‌های پاسخ",
+    "chatTotal": "مجموع گفتگو",
+    "sessionTotal": "مجموع پنجره گفتگو",
+    "contextWindow": "پنجره زمینه"
   },
   "skill_generator": {
     "title": "ساخت مهارت/قانون",
@@ -782,5 +792,17 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "گسترش برنامه",
     "collapse": "جمع کردن برنامه"
+  },
+  "browser": {
+    "stop": "توقف",
+    "retry": "تلاش مجدد",
+    "title": "مرورگر",
+    "addressBarPlaceholder": "نشانی یا جستجو را وارد کنید...",
+    "navigate": "برو",
+    "back": "بازگشت",
+    "forward": "جلو",
+    "refresh": "بازنشانی",
+    "close": "بستن",
+    "loading": "در حال بارگذاری..."
   }
 }

@@ -10,6 +10,12 @@ lerna-debug.log*
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Runtime data
+/data/
+/data-*/
+*.lnk
+start-aionui.bat
+packages/desktop/src/common/brand/
+src/
 pids
 *.pid
 *.seed

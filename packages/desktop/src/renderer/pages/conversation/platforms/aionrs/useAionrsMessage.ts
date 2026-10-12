@@ -7,7 +7,8 @@
 import { ipcBridge } from '@/common';
 import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
+import { estimateTurnTokenUsage, sumTokenUsages } from '@/common/chat/tokenUsage';
+import type { TChatConversation, TokenUsageBreakdown, TokenUsageData } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
@@ -16,11 +17,23 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { beginConversationTurn, endConversationTurn } from '@/renderer/pages/conversation/utils/conversationTurnClock';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { processLocalCronResponse } from './localCronCommands';
 
 type TokenUsage = {
   input_tokens?: number;
   output_tokens?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  cached_read_tokens?: number;
+  cached_write_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cached_tokens?: number;
+  cache_tokens?: number;
+  thought_tokens?: number;
+  reasoning_tokens?: number;
 };
 
 export const useAionrsMessage = (
@@ -43,6 +56,9 @@ export const useAionrsMessage = (
     subject: '',
   });
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
+  const [turnsTokenUsage, setTurnsTokenUsage] = useState<Record<string, TokenUsageData>>({});
+  const [cumulativeTokenUsage, setCumulativeTokenUsage] = useState<TokenUsageData | null>(null);
+  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   // Turn start origin for the elapsed indicator; backed by the module-level
   // conversation turn clock so it survives unmount on conversation switches.
   const [turnStartedAtMs, setTurnStartedAtMs] = useState<number | null>(null);
@@ -54,6 +70,16 @@ export const useAionrsMessage = (
   const activeMsgIdRef = useRef<string | null>(null);
   const messageBufferRef = useRef(new Map<string, string>());
   const processedCronMsgIdsRef = useRef(new Set<string>());
+  const lastPromptRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!ipcBridge.conversation.userCreated?.on) return;
+    return ipcBridge.conversation.userCreated.on((evt) => {
+      if (evt?.conversation_id === conversation_id && evt?.content) {
+        lastPromptRef.current = evt.content;
+      }
+    });
+  }, [conversation_id]);
 
   // Use refs to avoid useEffect re-subscription when these states change
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -207,6 +233,14 @@ export const useAionrsMessage = (
       if (conversation_id !== message.conversation_id) {
         return;
       }
+      console.log(
+        '[DEBUG aionrs event]',
+        message.type,
+        'msg_id:',
+        message.msg_id,
+        'data:',
+        JSON.stringify(message.data)
+      );
 
       if (isErrorTipMessage(message)) {
         setStreamRunning(false);
@@ -267,13 +301,99 @@ export const useAionrsMessage = (
         case 'finish':
           {
             logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
-            // aionrs stream_end carries usage in data field
+            // aionrs stream_end carries usage in data field when reported by provider
             const usageData = message.data as TokenUsage | undefined;
-            if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
-              const newTokenUsage: TokenUsageData = {
-                total_tokens: (usageData.input_tokens || 0) + (usageData.output_tokens || 0),
+            const completedText = message.msg_id ? (messageBufferRef.current.get(message.msg_id) ?? '') : '';
+            const rawInputTokens =
+              typeof usageData?.input_tokens === 'number'
+                ? usageData.input_tokens
+                : typeof usageData?.prompt_tokens === 'number'
+                  ? usageData.prompt_tokens
+                  : undefined;
+            const rawOutputTokens =
+              typeof usageData?.output_tokens === 'number'
+                ? usageData.output_tokens
+                : typeof usageData?.completion_tokens === 'number'
+                  ? usageData.completion_tokens
+                  : undefined;
+            const rawTotalTokens =
+              typeof usageData?.total_tokens === 'number' && usageData.total_tokens > 0
+                ? usageData.total_tokens
+                : (rawInputTokens ?? 0) + (rawOutputTokens ?? 0);
+
+            let newTokenUsage: TokenUsageData;
+            if (rawTotalTokens > 0) {
+              const breakdown: TokenUsageBreakdown = {};
+              if (typeof rawInputTokens === 'number') breakdown.input_tokens = rawInputTokens;
+              if (typeof rawOutputTokens === 'number') breakdown.output_tokens = rawOutputTokens;
+              const cachedRead =
+                typeof usageData?.cached_read_tokens === 'number'
+                  ? usageData.cached_read_tokens
+                  : typeof usageData?.cache_read_input_tokens === 'number'
+                    ? usageData.cache_read_input_tokens
+                    : undefined;
+              if (typeof cachedRead === 'number') breakdown.cached_read_tokens = cachedRead;
+              const cachedWrite =
+                typeof usageData?.cached_write_tokens === 'number'
+                  ? usageData.cached_write_tokens
+                  : typeof usageData?.cache_creation_input_tokens === 'number'
+                    ? usageData.cache_creation_input_tokens
+                    : undefined;
+              if (typeof cachedWrite === 'number') breakdown.cached_write_tokens = cachedWrite;
+              const cachedTokens =
+                typeof usageData?.cached_tokens === 'number'
+                  ? usageData.cached_tokens
+                  : typeof usageData?.cache_tokens === 'number'
+                    ? usageData.cache_tokens
+                    : undefined;
+              if (typeof cachedTokens === 'number') breakdown.cached_tokens = cachedTokens;
+              const thoughtTokens =
+                typeof usageData?.thought_tokens === 'number'
+                  ? usageData.thought_tokens
+                  : typeof usageData?.reasoning_tokens === 'number'
+                    ? usageData.reasoning_tokens
+                    : undefined;
+              if (typeof thoughtTokens === 'number') breakdown.thought_tokens = thoughtTokens;
+
+              newTokenUsage = {
+                total_tokens: rawTotalTokens,
+                ...(Object.keys(breakdown).length > 0 ? { breakdown } : {}),
               };
-              setTokenUsage(newTokenUsage);
+            } else {
+              newTokenUsage = estimateTurnTokenUsage(completedText, lastPromptRef.current);
+            }
+
+            setTokenUsage(newTokenUsage);
+            if (message.msg_id) {
+              setTurnsTokenUsage((prev) => {
+                const updatedTurns = { ...prev, [message.msg_id]: newTokenUsage };
+                const nextCumulative = sumTokenUsages(updatedTurns);
+                setCumulativeTokenUsage(nextCumulative);
+                void ipcBridge.conversation.update.invoke({
+                  id: conversation_id,
+                  updates: {
+                    extra: {
+                      last_token_usage: newTokenUsage,
+                      turns_token_usage: updatedTurns,
+                      cumulative_token_usage: nextCumulative,
+                    } as TChatConversation['extra'],
+                  },
+                  merge_extra: true,
+                });
+                return updatedTurns;
+              });
+              mergeLiveMessage({
+                id: message.msg_id,
+                msg_id: message.msg_id,
+                type: 'text',
+                position: 'left',
+                conversation_id,
+                content: {
+                  content: '',
+                  token_usage: newTokenUsage,
+                },
+              });
+            } else {
               void ipcBridge.conversation.update.invoke({
                 id: conversation_id,
                 updates: {
@@ -282,6 +402,7 @@ export const useAionrsMessage = (
                 merge_extra: true,
               });
             }
+
             setStreamRunning(false);
             setWaitingResponse(false);
             setThought({ subject: '', description: '' });
@@ -352,9 +473,22 @@ export const useAionrsMessage = (
           // MessageAcpPermission. Re-tag so transformMessage routes it correctly.
           mergeLiveMessage(transformMessage({ ...message, type: 'permission' }));
           break;
-        case 'config_changed':
+        case 'config_changed': {
+          const modes = (message.data as { modes?: string[] })?.modes;
+          if (modes && modes.length > 0) {
+            setDynamicModes(
+              modes.map((value) => ({
+                value,
+                label: value
+                  .split('_')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' '),
+              }))
+            );
+          }
           onConfigChangedRef.current?.(message.data as Record<string, unknown>);
           break;
+        }
         default: {
           if (message.type === 'error') {
             logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
@@ -392,6 +526,8 @@ export const useAionrsMessage = (
 
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
+    setTurnsTokenUsage({});
+    setCumulativeTokenUsage(null);
     hasContentInTurnRef.current = false;
     setHasHydratedRunningState(false);
 
@@ -431,10 +567,68 @@ export const useAionrsMessage = (
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
       // Load persisted token usage stats
-      if (res.type === 'aionrs' && res.extra?.last_token_usage) {
-        const { last_token_usage } = res.extra;
-        if (last_token_usage.total_tokens > 0) {
+      if (res.type === 'aionrs' && res.extra) {
+        const { last_token_usage, turns_token_usage, cumulative_token_usage } = res.extra;
+        if (last_token_usage && last_token_usage.total_tokens > 0) {
           setTokenUsage(last_token_usage);
+        }
+        if (turns_token_usage && Object.keys(turns_token_usage).length > 0) {
+          setTurnsTokenUsage(turns_token_usage);
+        }
+        if (cumulative_token_usage) {
+          setCumulativeTokenUsage(cumulative_token_usage);
+        } else if (turns_token_usage && Object.keys(turns_token_usage).length > 0) {
+          setCumulativeTokenUsage(sumTokenUsages(turns_token_usage));
+        } else if (last_token_usage && last_token_usage.total_tokens > 0) {
+          setCumulativeTokenUsage(last_token_usage);
+        } else {
+          // If no token usage was recorded yet, estimate from existing assistant messages
+          void ipcBridge.database.getConversationMessages
+            .invoke({ conversation_id, limit: 100 })
+            .then(
+              (page: {
+                items?: Array<{ position?: string; type?: string; content?: unknown; msg_id?: string; id?: string }>;
+              }) => {
+                if (cancelled || !page?.items || page.items.length === 0) return;
+                const estimatedTurns: Record<string, TokenUsageData> = {};
+                for (const item of page.items) {
+                  if (item.position === 'left' && item.type === 'text') {
+                    const content =
+                      typeof item.content === 'object' && item.content !== null
+                        ? (item.content as { content?: string; token_usage?: TokenUsageData }).content
+                        : String(item.content || '');
+                    const existingUsage =
+                      typeof item.content === 'object' && item.content !== null
+                        ? (item.content as { token_usage?: TokenUsageData }).token_usage
+                        : undefined;
+                    const id = item.msg_id || item.id;
+                    if (id) {
+                      if (existingUsage && existingUsage.total_tokens > 0) {
+                        estimatedTurns[id] = existingUsage;
+                      } else if (content && typeof content === 'string' && content.trim()) {
+                        estimatedTurns[id] = estimateTurnTokenUsage(content);
+                      }
+                    }
+                  }
+                }
+                if (Object.keys(estimatedTurns).length > 0) {
+                  setTurnsTokenUsage(estimatedTurns);
+                  const nextCumulative = sumTokenUsages(estimatedTurns);
+                  setCumulativeTokenUsage(nextCumulative);
+                  void ipcBridge.conversation.update.invoke({
+                    id: conversation_id,
+                    updates: {
+                      extra: {
+                        turns_token_usage: estimatedTurns,
+                        cumulative_token_usage: nextCumulative,
+                      } as TChatConversation['extra'],
+                    },
+                    merge_extra: true,
+                  });
+                }
+              }
+            )
+            .catch(() => {});
         }
       }
       setHasHydratedRunningState(true);
@@ -465,8 +659,13 @@ export const useAionrsMessage = (
     hasHydratedRunningState,
     turnStartedAtMs,
     tokenUsage,
+    turnsTokenUsage,
+    cumulativeTokenUsage,
+    dynamicModes,
     setActiveMsgId,
     setWaitingResponse,
     resetState,
   };
 };
+
+export type UseAionrsMessageReturn = ReturnType<typeof useAionrsMessage>;

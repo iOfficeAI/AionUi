@@ -22,6 +22,51 @@ export interface ElectronBridgeAPI {
   // Forward feedback diagnostics logs to the main process console / 转发反馈诊断日志到主进程控制台
   logFeedbackEvent?: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) => void;
   recoverCorruptedDatabase?: () => Promise<void>;
+  // Browser automation commands
+  browserNavigate?: (url: string) => Promise<{ error?: string; success: boolean; url?: string }>;
+  browserClick?: (selector: string) => Promise<{ error?: string; success: boolean }>;
+  browserType?: (selector: string, text: string) => Promise<{ error?: string; success: boolean }>;
+  browserScroll?: (
+    x: number,
+    y: number
+  ) => Promise<{ error?: string; scrollX?: number; scrollY?: number; success: boolean }>;
+  browserScreenshot?: () => Promise<{ data?: string; error?: string; success: boolean }>;
+  // Teamwork Multi-Agent Orchestration APIs
+  teamworkInitiate?: (
+    params: import('../teamwork').InitiateTeamworkRequest
+  ) => Promise<import('../teamwork').InitiateTeamworkResponse>;
+  teamworkSubmitInterview?: (
+    params: import('../teamwork').SubmitInterviewRequest
+  ) => Promise<import('../teamwork').SubmitInterviewResponse>;
+  teamworkConfirmPlan?: (
+    params: import('../teamwork').ConfirmPlanRequest
+  ) => Promise<import('../teamwork').ConfirmPlanResponse>;
+  teamworkAbort?: (
+    params: import('../teamwork').AbortTeamworkRequest
+  ) => Promise<import('../teamwork').AbortTeamworkResponse>;
+  teamworkGetState?: (
+    params: import('../teamwork').GetTeamworkStateRequest
+  ) => Promise<import('../teamwork').GetTeamworkStateResponse>;
+  onTeamworkStatusUpdate?: (callback: (state: import('../teamwork').TeamworkSessionState) => void) => () => void;
+  // Team Scoping & Verification APIs
+  teamInitiateScoping?: (
+    params: import('../teamwork').InitiateTeamScopingParams
+  ) => Promise<import('../teamwork').InitiateTeamScopingResponse>;
+  teamSubmitInterviewAnswers?: (
+    params: import('../teamwork').SubmitTeamInterviewAnswersParams
+  ) => Promise<import('../teamwork').SubmitTeamInterviewAnswersResponse>;
+  teamApprovePlan?: (
+    params: import('../teamwork').ApproveTeamPlanParams
+  ) => Promise<import('../teamwork').ApproveTeamPlanResponse>;
+  teamRejectPlan?: (
+    params: import('../teamwork').RejectTeamPlanParams
+  ) => Promise<import('../teamwork').RejectTeamPlanResponse>;
+  teamGetScopingState?: (
+    params: import('../teamwork').GetTeamScopingStateParams
+  ) => Promise<import('../teamwork').GetTeamScopingStateResponse>;
+  onTeamScopingStatusChanged?: (
+    callback: (event: import('../teamwork').ITeamScopingStatusChangedEvent) => void
+  ) => () => void;
 }
 
 export type BackendStartupFailureReason =

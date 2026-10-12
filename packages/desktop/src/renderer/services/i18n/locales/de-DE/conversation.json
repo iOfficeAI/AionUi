@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Projekt löschen",
+    "deleteProjectTitle": "Projekt löschen",
+    "deleteProjectConfirm": "Projekt „{{name}}“ löschen? Alle {{count}} Unterhaltung(en) in diesem Projekt werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteProjectSuccess": "Projekt gelöscht"
   },
   "historySearch": {
     "tooltip": "Nachrichten durchsuchen",
@@ -545,7 +549,13 @@
     "output": "Ausgabe",
     "thought": "Denken",
     "cachedRead": "Cache-Lesen",
-    "cachedWrite": "Cache-Schreiben"
+    "cachedWrite": "Cache-Schreiben",
+    "cache": "Cache",
+    "total": "Gesamt",
+    "replyTokens": "Antwort-Tokens",
+    "chatTotal": "Chat gesamt",
+    "sessionTotal": "Chatfenster gesamt",
+    "contextWindow": "Kontextfenster"
   },
   "skill_generator": {
     "title": "Skill/Regel generieren",
@@ -783,5 +793,17 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Plan ausklappen",
     "collapse": "Plan einklappen"
+  },
+  "browser": {
+    "stop": "Stopp",
+    "retry": "Wiederholen",
+    "title": "Browser",
+    "addressBarPlaceholder": "URL eingeben oder suchen...",
+    "navigate": "Los",
+    "back": "Zurück",
+    "forward": "Vorwärts",
+    "refresh": "Neu laden",
+    "close": "Schließen",
+    "loading": "Laden..."
   }
 }

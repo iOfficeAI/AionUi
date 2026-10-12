@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Plus } from '@icon-park/react';
@@ -29,10 +29,12 @@ import TeamMemberDraftList, { type TeamMemberDraft } from './memberPicker/TeamMe
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onCreated: (team: TTeam) => void;
+  onCreated?: (team: TTeam) => void;
+  team?: TTeam | null;
+  onUpdated?: (team: TTeam) => void;
 };
 
-const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
+const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated, team, onUpdated }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const layout = useLayoutContext();
@@ -46,6 +48,46 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   // 窄屏专用：助手选择器以下拉列表形式，锚在“添加成员”按钮上按需唤出。
   const [assistantDropdownOpen, setAssistantDropdownOpen] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+
+  const isEdit = Boolean(team);
+  const prevVisibleRef = useRef(false);
+
+  useEffect(() => {
+    if (visible && !prevVisibleRef.current) {
+      if (team) {
+        setName(team.name || '');
+        setWorkspace(team.workspace || '');
+        if (team.assistants && team.assistants.length > 0) {
+          const drafts: TeamMemberDraft[] = team.assistants.map((ast) => {
+            const matching = allAssistants.find((a) => a.id === ast.assistant_id);
+            const assistantOption: TeamAssistantOption = matching ?? {
+              id: ast.assistant_id || ast.slot_id,
+              name: ast.assistant_name || '',
+              backend: ast.assistant_backend || '',
+              icon: ast.icon,
+            };
+            return {
+              selectionId: ast.slot_id,
+              assistant: assistantOption,
+            };
+          });
+          setSelectedMembers(drafts);
+          const leaderSlot = team.leader_assistant_id || team.assistants.find((a) => a.role === 'leader')?.slot_id;
+          const leaderDraft = drafts.find((d) => d.selectionId === leaderSlot);
+          setLeaderSelectionId(leaderDraft?.selectionId ?? drafts[0]?.selectionId);
+        } else {
+          setSelectedMembers([]);
+          setLeaderSelectionId(undefined);
+        }
+      } else {
+        setName('');
+        setSelectedMembers([]);
+        setLeaderSelectionId(undefined);
+        setWorkspace('');
+      }
+    }
+    prevVisibleRef.current = visible;
+  }, [visible, team, allAssistants]);
 
   const hasOneLeader = useMemo(
     () => Boolean(leaderSelectionId && selectedMembers.some((member) => member.selectionId === leaderSelectionId)),
@@ -78,7 +120,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
       Message.warning(t('team.create.nameRequired', { defaultValue: 'Please enter a team name' }));
       nameInputRef.current?.focus();
@@ -92,6 +134,77 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       Message.warning(t('team.create.selectOneLeader', { defaultValue: 'Select one Team Leader' }));
       return;
     }
+
+    if (isEdit && team) {
+      setLoading(true);
+      try {
+        const existingAssistants = team.assistants || [];
+        const removedAssistants = existingAssistants.filter(
+          (ast) => !selectedMembers.some((m) => m.selectionId === ast.slot_id)
+        );
+        for (const ast of removedAssistants) {
+          try {
+            await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id: ast.slot_id });
+          } catch (err) {
+            console.error('Failed to remove agent:', ast.slot_id, err);
+          }
+        }
+
+        const newMembers = selectedMembers.filter(
+          (m) => !existingAssistants.some((ast) => ast.slot_id === m.selectionId)
+        );
+
+        let finalLeaderSlotId = leaderSelectionId;
+
+        for (const member of newMembers) {
+          const isLeader = member.selectionId === leaderSelectionId;
+          const model = await resolveDefaultTeamAgentModel({
+            assistant_id: member.assistant.id,
+            assistant_backend: member.assistant.backend,
+          });
+          const added = await ipcBridge.team.addAgent.invoke({
+            team_id: team.id,
+            assistant: {
+              role: isLeader ? 'leader' : 'teammate',
+              assistant_name: member.assistant.name,
+              assistant_id: member.assistant.id,
+              model,
+            },
+          });
+          if (isLeader && added?.slot_id) {
+            finalLeaderSlotId = added.slot_id;
+          }
+        }
+
+        if (name.trim() !== team.name) {
+          try {
+            await ipcBridge.team.renameTeam.invoke({ id: team.id, name: name.trim() });
+          } catch (err) {
+            console.warn('renameTeam error', err);
+          }
+        }
+
+        await ipcBridge.team.updateTeam.invoke({
+          id: team.id,
+          name: name.trim(),
+          workspace: workspace.trim(),
+          leader_assistant_id: finalLeaderSlotId,
+        });
+
+        const updated = await ipcBridge.team.get.invoke({ id: team.id });
+        if (updated) {
+          onUpdated?.(updated);
+        }
+        Message.success(t('team.edit.success', { defaultValue: 'Team updated successfully' }));
+        handleClose();
+      } catch (error) {
+        Message.error(getConversationCreateErrorMessage(error, t));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
@@ -118,7 +231,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         model: modelBySelectionId.get(member.selectionId),
       }));
 
-      const team = await ipcBridge.team.create.invoke({
+      const newTeam = await ipcBridge.team.create.invoke({
         user_id,
         name,
         workspace,
@@ -127,13 +240,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       });
 
       // The platform bridge swallows provider errors and returns a sentinel object
-      const result = team as unknown as { __bridgeError?: boolean; message?: string };
+      const result = newTeam as unknown as { __bridgeError?: boolean; message?: string };
       if (result.__bridgeError) {
         Message.error(getConversationCreateErrorMessage(result.message ?? t('team.create.error'), t));
         return;
       }
 
-      onCreated(team);
+      onCreated?.(newTeam);
       handleClose();
     } catch (error) {
       Message.error(getConversationCreateErrorMessage(error, t));
@@ -292,11 +405,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       // 窄屏改为单栏（自带内边距），标题区 / 按钮区 / 居中 / 最大高度均沿用 standard 统一规则。
       contentStyle={{ padding: 0, overflow: 'hidden' }}
       header={{
-        title: t('team.create.title', { defaultValue: 'New Team' }),
-        subtitle: t('team.create.subtitle', {
-          defaultValue:
-            'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
-        }),
+        title: isEdit
+          ? t('team.edit.title', { defaultValue: 'Edit Team' })
+          : t('team.create.title', { defaultValue: 'New Team' }),
+        subtitle: isEdit
+          ? t('team.edit.subtitle', {
+              defaultValue: 'Update team settings, workspace folder, and team members.',
+            })
+          : t('team.create.subtitle', {
+              defaultValue:
+                'Let multiple AI assistants team up and collaborate. We suggest one team focuses on a single goal — create separate teams for different tasks.',
+            }),
         showClose: true,
       }}
       footer={{
@@ -307,12 +426,14 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             </Button>
             <Button
               type='primary'
-              onClick={handleCreate}
+              onClick={handleSubmit}
               loading={loading}
               disabled={!name.trim() || selectedMembers.length === 0 || !hasOneLeader}
               className='!h-38px min-w-100px !rounded-8px !px-18px !text-13px'
             >
-              {t('team.create.confirm', { defaultValue: 'Confirm Create' })}
+              {isEdit
+                ? t('team.edit.confirm', { defaultValue: 'Save Changes' })
+                : t('team.create.confirm', { defaultValue: 'Confirm Create' })}
             </Button>
           </div>
         ),

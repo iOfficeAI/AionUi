@@ -97,5 +97,13 @@
   "requestDetails": "Request details:",
   "delivery": {
     "pending": "Unread"
-  }
+  },
+  "slash.antigravity.goal": "Run a long-running task thoroughly until completion",
+  "slash.antigravity.teamworkPreview": "Multi-agent teamwork workflow for complex projects",
+  "slash.antigravity.plan": "Step-by-step implementation planning before execution",
+  "slash.antigravity.grillMe": "Interactive interview to align on design decisions and trade-offs",
+  "slash.antigravity.boost": "Deep thinking, strategic planning, and rigorous verification",
+  "slash.antigravity.browser": "Web browsing, documentation retrieval, and online research",
+  "slash.antigravity.schedule": "Recurring schedule or timed task execution",
+  "slash.antigravity.learn": "Persist learnings, rules, and guidelines for future tasks"
 }

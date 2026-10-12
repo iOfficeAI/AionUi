@@ -35,6 +35,23 @@ vi.mock('@renderer/pages/conversation/platforms/aionrs/AionrsSendBox', () => ({
   default: () => null,
 }));
 
+vi.mock('@renderer/pages/conversation/platforms/aionrs/useAionrsMessage', () => ({
+  useAionrsMessage: () => ({
+    thought: { subject: '', description: '' },
+    setThought: vi.fn(),
+    running: false,
+    hasHydratedRunningState: false,
+    turnStartedAtMs: null,
+    tokenUsage: null,
+    turnsTokenUsage: {},
+    cumulativeTokenUsage: null,
+    dynamicModes: [],
+    setActiveMsgId: vi.fn(),
+    setWaitingResponse: vi.fn(),
+    resetState: vi.fn(),
+  }),
+}));
+
 // This test is about ConversationContext wiring only; the plan bar pulls in the
 // message list + runtime view, neither of which this file's narrow mocks provide.
 vi.mock('@renderer/pages/conversation/PlanBar/ConversationPlanBar', () => ({
@@ -52,6 +69,7 @@ vi.mock('@renderer/pages/conversation/Messages/hooks', () => {
   return {
     __esModule: true,
     useMessageLstCache: () => {},
+    useMergeLiveMessage: () => () => {},
     MessageListProvider: PassThrough,
     MessageListLoadingProvider: PassThrough,
     MessagePaginationProvider: PassThrough,

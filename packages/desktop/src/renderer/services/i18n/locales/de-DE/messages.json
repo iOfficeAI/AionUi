@@ -97,5 +97,13 @@
   "requestDetails": "Anfragedetails:",
   "delivery": {
     "pending": "Ungelesen"
-  }
+  },
+  "slash.antigravity.goal": "Laufende Aufgaben gründlich bis zum vollständigen Abschluss ausführen",
+  "slash.antigravity.teamworkPreview": "Multi-Agenten-Teamwork-Workflow für komplexe Projekte",
+  "slash.antigravity.plan": "Schrittweise Implementierungsplanung vor der Ausführung",
+  "slash.antigravity.grillMe": "Interaktives Interview zur Abstimmung von Architekturentscheidungen",
+  "slash.antigravity.boost": "Tiefes Nachdenken, strategische Planung und rigorose Überprüfung",
+  "slash.antigravity.browser": "Web-Recherche, Dokumentationsabruf und Online-Suche",
+  "slash.antigravity.schedule": "Wiederkehrender Zeitplan oder zeitgesteuerte Ausführung",
+  "slash.antigravity.learn": "Erkenntnisse und Richtlinien für zukünftige Aufgaben sichern"
 }

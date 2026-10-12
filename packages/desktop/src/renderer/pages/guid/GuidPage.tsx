@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
+import { getAntigravitySlashCommands } from '@/common/chat/slash/antigravityCommands';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
@@ -200,6 +201,7 @@ const GuidPage: React.FC = () => {
         kind: 'builtin',
         source: 'builtin',
       },
+      ...getAntigravitySlashCommands(t),
     ],
     [t]
   );

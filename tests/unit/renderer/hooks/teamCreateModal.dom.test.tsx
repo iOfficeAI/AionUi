@@ -10,6 +10,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 const createTeamInvokeMock = vi.fn();
+const updateTeamInvokeMock = vi.fn();
+const getTeamInvokeMock = vi.fn();
+const renameTeamInvokeMock = vi.fn();
+const addAgentInvokeMock = vi.fn();
+const removeAgentInvokeMock = vi.fn();
 const resolveDefaultTeamAgentModelMock = vi.fn();
 const messageErrorMock = vi.fn();
 
@@ -51,6 +56,7 @@ vi.mock('@arco-design/web-react', async () => {
     Message: {
       ...actual.Message,
       error: (...args: unknown[]) => messageErrorMock(...args),
+      success: vi.fn(),
     },
   };
 });
@@ -101,6 +107,11 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     team: {
       create: { invoke: (...args: unknown[]) => createTeamInvokeMock(...args) },
+      updateTeam: { invoke: (...args: unknown[]) => updateTeamInvokeMock(...args) },
+      get: { invoke: (...args: unknown[]) => getTeamInvokeMock(...args) },
+      renameTeam: { invoke: (...args: unknown[]) => renameTeamInvokeMock(...args) },
+      addAgent: { invoke: (...args: unknown[]) => addAgentInvokeMock(...args) },
+      removeAgent: { invoke: (...args: unknown[]) => removeAgentInvokeMock(...args) },
     },
   },
 }));
@@ -125,6 +136,16 @@ describe('TeamCreateModal', () => {
   beforeEach(() => {
     createTeamInvokeMock.mockReset();
     createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
+    updateTeamInvokeMock.mockReset();
+    updateTeamInvokeMock.mockResolvedValue(undefined);
+    getTeamInvokeMock.mockReset();
+    getTeamInvokeMock.mockResolvedValue({ id: 'existing-team-id', name: 'Updated Team', assistants: [] });
+    renameTeamInvokeMock.mockReset();
+    renameTeamInvokeMock.mockResolvedValue(undefined);
+    addAgentInvokeMock.mockReset();
+    addAgentInvokeMock.mockResolvedValue({ slot_id: 'new-slot' });
+    removeAgentInvokeMock.mockReset();
+    removeAgentInvokeMock.mockResolvedValue(undefined);
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
     messageErrorMock.mockReset();
@@ -430,6 +451,52 @@ describe('TeamCreateModal · mobile (narrow screen)', () => {
     const payload = createTeamInvokeMock.mock.calls[0][0];
     expect(payload.name).toBe('Mobile Team');
     expect(payload.agents[0]).toMatchObject({ role: 'leader', assistant_id: 'bare-aionrs' });
+  });
+
+  it('pre-populates existing team and updates team info on save', async () => {
+    const existingTeam: any = {
+      id: 'existing-team-id',
+      name: 'Existing Team',
+      workspace: '/path/to/existing',
+      workspace_mode: 'shared',
+      leader_assistant_id: 'slot-1',
+      assistants: [
+        {
+          slot_id: 'slot-1',
+          role: 'leader',
+          assistant_id: 'bare-aionrs',
+          assistant_name: 'Aion CLI',
+          status: 'idle',
+        },
+      ],
+      created_at: 100,
+      updated_at: 100,
+    };
+    const onUpdated = vi.fn();
+    render(<TeamCreateModal visible team={existingTeam} onClose={vi.fn()} onUpdated={onUpdated} />);
+
+    // Header title should be Edit Team
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Edit Team');
+    // Name input should have Existing Team
+    const nameInput = screen.getByTestId('team-create-name-input') as HTMLInputElement;
+    expect(nameInput.value).toBe('Existing Team');
+    // Button should say Save Changes
+    const saveBtn = screen.getByRole('button', { name: 'Save Changes' });
+    expect(saveBtn).toBeEnabled();
+
+    // Change name
+    fireEvent.change(nameInput, { target: { value: 'Updated Team' } });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(updateTeamInvokeMock).toHaveBeenCalledTimes(1));
+    expect(renameTeamInvokeMock).toHaveBeenCalledWith({ id: 'existing-team-id', name: 'Updated Team' });
+    expect(updateTeamInvokeMock).toHaveBeenCalledWith({
+      id: 'existing-team-id',
+      name: 'Updated Team',
+      workspace: '/path/to/existing',
+      leader_assistant_id: 'slot-1',
+    });
+    expect(onUpdated).toHaveBeenCalled();
   });
 });
 

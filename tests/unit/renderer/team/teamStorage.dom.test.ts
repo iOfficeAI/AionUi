@@ -33,5 +33,7 @@ describe('pruneOrphanTeamStorage', () => {
     expect(TEAM_STORAGE_PREFIXES).toContain('team-active-slot-');
     expect(TEAM_STORAGE_PREFIXES).toContain('team-assistant-order-');
     expect(TEAM_STORAGE_PREFIXES).toContain('team-pending-permissions-');
+    expect(TEAM_STORAGE_PREFIXES).toContain('team-memory-');
+    expect(TEAM_STORAGE_PREFIXES).toContain('team-agent-memory-');
   });
 });

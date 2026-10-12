@@ -1414,5 +1414,13 @@
   "crossSessionMessageDesc": "Permet aux agents d'envoyer des messages à vos autres conversations. La désactivation coupe aussi la mention @@ dans la zone de saisie.",
   "crossSessionMessageDisabledBanner": "Les messages entre conversations sont désactivés, la mention @@ est indisponible.",
   "crossSessionMessageResume": "Réactiver",
-  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations"
+  "crossSessionMessageUpdateFailed": "Échec de la mise à jour du réglage des messages entre conversations",
+  "backupDir": "Répertoire de sauvegarde",
+  "changeBackupDir": "Changer le répertoire de sauvegarde",
+  "backupDirDesc": "Dossier dans lequel les sauvegardes de la base de données et des configurations seront enregistrées",
+  "backupNow": "Sauvegarder maintenant",
+  "backingUp": "Sauvegarde en cours...",
+  "backupSuccess": "Données sauvegardées dans {{path}}",
+  "backupFailed": "Échec de la sauvegarde des données",
+  "openBackupDir": "Ouvrir le dossier"
 }

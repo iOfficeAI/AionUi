@@ -1414,5 +1414,13 @@
   "crossSessionMessageDesc": "Let agents send messages to your other conversations. Turning this off also disables the @@ conversation mention in the input box.",
   "crossSessionMessageDisabledBanner": "Cross-conversation messages are off, so the @@ conversation mention is unavailable.",
   "crossSessionMessageResume": "Turn back on",
-  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting"
+  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting",
+  "backupDir": "Backup Directory",
+  "changeBackupDir": "Change backup directory",
+  "backupDirDesc": "Folder where database and configuration backups will be saved",
+  "backupNow": "Back Up Now",
+  "backingUp": "Backing up...",
+  "backupSuccess": "Data backed up to {{path}}",
+  "backupFailed": "Failed to back up data",
+  "openBackupDir": "Open Folder"
 }

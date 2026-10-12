@@ -12,7 +12,7 @@ import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
+import { Delete, FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -112,7 +112,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     dropdownVisibleId,
     handleConversationClick,
     handleArchive,
+    handleDelete,
     handleBatchArchive,
+    handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
@@ -126,6 +128,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     archiveProjectLoading,
     handleArchiveProjectCancel,
     handleArchiveProjectConfirm,
+    handleDeleteProject,
+    deleteProjectTarget,
+    deleteProjectLoading,
+    handleDeleteProjectCancel,
+    handleDeleteProjectConfirm,
   } = useConversationActions({
     batchMode,
     onSessionClick,
@@ -180,6 +187,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onEditStart: handleEditStart,
       onCreateCronTask: handleCreateCronTask,
       onArchive: handleArchive,
+      onDelete: handleDelete,
       onTogglePin: handleTogglePin,
       onToggleManualUnread: handleToggleManualUnread,
       getJobStatus,
@@ -203,6 +211,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleEditStart,
       handleCreateCronTask,
       handleArchive,
+      handleDelete,
       handleTogglePin,
       handleToggleManualUnread,
       getJobStatus,
@@ -292,9 +301,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             <div className='text-12px leading-18px text-t-secondary'>
               {t('conversation.history.selectedCount', { count: selectedCount })}
             </div>
-            <div className='grid grid-cols-2 gap-6px'>
+            <div className='grid grid-cols-3 gap-6px'>
               <Button
-                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                className='!w-full !justify-center !min-w-0 !h-30px !px-4px !text-12px whitespace-nowrap'
                 size='mini'
                 type='secondary'
                 onClick={handleToggleSelectAll}
@@ -302,12 +311,21 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 {allSelected ? t('common.cancel') : t('conversation.history.selectAll')}
               </Button>
               <Button
-                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                className='!w-full !justify-center !min-w-0 !h-30px !px-4px !text-12px whitespace-nowrap'
                 size='mini'
-                type='primary'
+                type='secondary'
                 onClick={handleBatchArchive}
               >
                 {t('conversation.history.batchArchive')}
+              </Button>
+              <Button
+                className='!w-full !justify-center !min-w-0 !h-30px !px-4px !text-12px whitespace-nowrap'
+                size='mini'
+                status='danger'
+                type='primary'
+                onClick={handleBatchDelete}
+              >
+                {t('conversation.history.batchDelete')}
               </Button>
             </div>
           </div>
@@ -381,6 +399,40 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         </div>
       </AionModal>
 
+      {/* 删除项目确认弹窗 */}
+      <AionModal
+        visible={deleteProjectTarget !== null}
+        style={{ width: '400px' }}
+        header={{
+          title: t('conversation.history.deleteProjectTitle'),
+          showClose: true,
+          style: { borderBottom: 'none' },
+        }}
+        onCancel={handleDeleteProjectCancel}
+        footer={
+          <div className='flex justify-end gap-12px pt-16px'>
+            <Button onClick={handleDeleteProjectCancel} disabled={deleteProjectLoading}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              status='danger'
+              type='primary'
+              loading={deleteProjectLoading}
+              onClick={() => void handleDeleteProjectConfirm()}
+            >
+              {t('conversation.history.deleteProject')}
+            </Button>
+          </div>
+        }
+      >
+        <div className='text-14px leading-22px text-t-secondary'>
+          {t('conversation.history.deleteProjectConfirm', {
+            name: deleteProjectTarget?.name ?? '',
+            count: deleteProjectTarget?.conversations.length ?? 0,
+          })}
+        </div>
+      </AionModal>
+
       <div>
         {/* L1: Pinned section */}
         <DndContext
@@ -424,6 +476,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                     onClickMenuItem={(key) => {
                       if (key === 'archive') {
                         handleArchiveProject(group.displayName, group.conversations);
+                      } else if (key === 'delete') {
+                        handleDeleteProject(group.displayName, group.conversations);
                       }
                     }}
                   >
@@ -431,6 +485,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       <span className='flex items-center gap-8px'>
                         <FolderClose theme='outline' size='14' />
                         {t('conversation.history.archiveProject')}
+                      </span>
+                    </Menu.Item>
+                    <Menu.Item key='delete' className='!text-[var(--color-danger-6,#f53f3f)]'>
+                      <span className='flex items-center gap-8px'>
+                        <Delete theme='outline' size='14' />
+                        {t('conversation.history.deleteProject')}
                       </span>
                     </Menu.Item>
                   </Menu>

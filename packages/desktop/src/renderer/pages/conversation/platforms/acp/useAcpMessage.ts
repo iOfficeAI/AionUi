@@ -10,7 +10,8 @@ import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TokenUsageBreakdown, TokenUsageData } from '@/common/config/storage';
+import { sumTokenUsages } from '@/common/chat/tokenUsage';
+import type { TChatConversation, TokenUsageBreakdown, TokenUsageData } from '@/common/config/storage';
 import { useMergeLiveMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -36,6 +37,8 @@ export type UseAcpMessageReturn = {
   turnStartedAtMs: number | null;
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
+  turnsTokenUsage: Record<string, TokenUsageData>;
+  cumulativeTokenUsage: TokenUsageData | null;
   context_limit: number;
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
@@ -48,6 +51,7 @@ const BREAKDOWN_KEYS = [
   'thought_tokens',
   'cached_read_tokens',
   'cached_write_tokens',
+  'cached_tokens',
 ] as const;
 
 /**
@@ -59,17 +63,56 @@ export function tokenUsageFromAcpUsage(data: {
   used: number;
   cost?: { amount: number; currency: string };
   _meta?: Record<string, unknown>;
+  [key: string]: unknown;
 }): TokenUsageData {
   const usage: TokenUsageData = { total_tokens: data.used };
   if (data.cost && typeof data.cost.amount === 'number' && data.cost.amount > 0) {
     usage.cost = { amount: data.cost.amount, currency: data.cost.currency || 'USD' };
   }
-  if (data._meta) {
+  const source = data._meta || data;
+  if (source && typeof source === 'object') {
     const breakdown: TokenUsageBreakdown = {};
     for (const key of BREAKDOWN_KEYS) {
-      const value = data._meta[key];
+      const value = source[key];
       if (typeof value === 'number' && value >= 0) {
         breakdown[key] = value;
+      }
+    }
+    // Check aliases if standard keys were not set
+    if (breakdown.input_tokens === undefined) {
+      const promptTokens = source.prompt_tokens;
+      if (typeof promptTokens === 'number' && promptTokens >= 0) {
+        breakdown.input_tokens = promptTokens;
+      }
+    }
+    if (breakdown.output_tokens === undefined) {
+      const completionTokens = source.completion_tokens;
+      if (typeof completionTokens === 'number' && completionTokens >= 0) {
+        breakdown.output_tokens = completionTokens;
+      }
+    }
+    if (breakdown.cached_read_tokens === undefined) {
+      const cacheRead = source.cache_read_input_tokens;
+      if (typeof cacheRead === 'number' && cacheRead >= 0) {
+        breakdown.cached_read_tokens = cacheRead;
+      }
+    }
+    if (breakdown.cached_write_tokens === undefined) {
+      const cacheWrite = source.cache_creation_input_tokens;
+      if (typeof cacheWrite === 'number' && cacheWrite >= 0) {
+        breakdown.cached_write_tokens = cacheWrite;
+      }
+    }
+    if (breakdown.cached_tokens === undefined) {
+      const cacheTokens = source.cache_tokens;
+      if (typeof cacheTokens === 'number' && cacheTokens >= 0) {
+        breakdown.cached_tokens = cacheTokens;
+      }
+    }
+    if (breakdown.thought_tokens === undefined) {
+      const reasoningTokens = source.reasoning_tokens;
+      if (typeof reasoningTokens === 'number' && reasoningTokens >= 0) {
+        breakdown.thought_tokens = reasoningTokens;
       }
     }
     if (Object.keys(breakdown).length > 0) {
@@ -119,6 +162,8 @@ export const useAcpMessage = (
   // conversation turn clock so it survives unmount on conversation switches.
   const [turnStartedAtMs, setTurnStartedAtMs] = useState<number | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
+  const [turnsTokenUsage, setTurnsTokenUsage] = useState<Record<string, TokenUsageData>>({});
+  const [cumulativeTokenUsage, setCumulativeTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
 
@@ -371,6 +416,46 @@ export const useAcpMessage = (
             hasThinkingMessageRef.current = false;
             activeThinkingRef.current = null;
             setHasThinkingMessage(false);
+            // Check for usage in finish payload
+            const finishUsage =
+              message.data && typeof message.data === 'object'
+                ? ((message.data as { usage?: unknown }).usage ?? message.data)
+                : undefined;
+            if (finishUsage && typeof (finishUsage as { used?: unknown }).used === 'number') {
+              const next = tokenUsageFromAcpUsage(finishUsage as Parameters<typeof tokenUsageFromAcpUsage>[0]);
+              setTokenUsage(next);
+              if (message.msg_id) {
+                setTurnsTokenUsage((prev) => {
+                  const updatedTurns = { ...prev, [message.msg_id]: next };
+                  const nextCumulative = sumTokenUsages(updatedTurns);
+                  setCumulativeTokenUsage(nextCumulative);
+                  void ipcBridge.conversation.update?.invoke({
+                    id: conversation_id,
+                    updates: {
+                      extra: {
+                        last_token_usage: next,
+                        turns_token_usage: updatedTurns,
+                        cumulative_token_usage: nextCumulative,
+                      } as TChatConversation['extra'],
+                    },
+                    merge_extra: true,
+                  });
+                  return updatedTurns;
+                });
+                mergeLiveMessage({
+                  id: message.msg_id,
+                  msg_id: message.msg_id,
+                  type: 'text',
+                  position: 'left',
+                  conversation_id,
+                  content: {
+                    content: '',
+                    token_usage: next,
+                  },
+                });
+              }
+            }
+
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
@@ -492,8 +577,8 @@ export const useAcpMessage = (
             _meta?: Record<string, unknown>;
           };
           if (usageData && typeof usageData.used === 'number') {
+            const next = tokenUsageFromAcpUsage(usageData);
             setTokenUsage((prev) => {
-              const next = tokenUsageFromAcpUsage(usageData);
               // Mid-turn UsageUpdate notifications carry no per-turn
               // breakdown; keep the last end-of-turn one until replaced.
               if (!next.breakdown && prev?.breakdown) next.breakdown = prev.breakdown;
@@ -502,6 +587,41 @@ export const useAcpMessage = (
             });
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
+            }
+
+            if (message.msg_id) {
+              setTurnsTokenUsage((prev) => {
+                const updatedTurns = { ...prev, [message.msg_id]: next };
+                const nextCumulative = sumTokenUsages(updatedTurns);
+                setCumulativeTokenUsage(nextCumulative);
+
+                void ipcBridge.conversation.update?.invoke({
+                  id: conversation_id,
+                  updates: {
+                    extra: {
+                      last_token_usage: next,
+                      ...(usageData.size > 0 ? { last_context_limit: usageData.size } : {}),
+                      turns_token_usage: updatedTurns,
+                      cumulative_token_usage: nextCumulative,
+                    } as TChatConversation['extra'],
+                  },
+                  merge_extra: true,
+                });
+
+                return updatedTurns;
+              });
+
+              mergeLiveMessage({
+                id: message.msg_id,
+                msg_id: message.msg_id,
+                type: 'text',
+                position: 'left',
+                conversation_id,
+                content: {
+                  content: '',
+                  token_usage: next,
+                },
+              });
             }
           }
           break;
@@ -611,6 +731,9 @@ export const useAcpMessage = (
     setAiProcessing(false);
     aiProcessingRef.current = false;
     setTurnStartedAtMs(null);
+    setTokenUsage(null);
+    setTurnsTokenUsage({});
+    setCumulativeTokenUsage(null);
 
     void getConversationOrNull(conversation_id)
       .then((res) => {
@@ -646,13 +769,23 @@ export const useAcpMessage = (
         // Restore persisted context usage data
         // Antigravity persists the same usage fields through this surface, so
         // gating on `acp` alone loses its context meter on reload.
-        if ((res.type === 'acp' || res.type === 'antigravity') && res.extra?.last_token_usage) {
-          const { last_token_usage, last_context_limit } = res.extra;
-          if (last_token_usage.total_tokens > 0) {
+        if ((res.type === 'acp' || res.type === 'antigravity') && res.extra) {
+          const { last_token_usage, last_context_limit, turns_token_usage, cumulative_token_usage } = res.extra;
+          if (last_token_usage && last_token_usage.total_tokens > 0) {
             setTokenUsage(last_token_usage);
           }
           if (last_context_limit && last_context_limit > 0) {
             setContextLimit(last_context_limit);
+          }
+          if (turns_token_usage && Object.keys(turns_token_usage).length > 0) {
+            setTurnsTokenUsage(turns_token_usage);
+          }
+          if (cumulative_token_usage) {
+            setCumulativeTokenUsage(cumulative_token_usage);
+          } else if (turns_token_usage && Object.keys(turns_token_usage).length > 0) {
+            setCumulativeTokenUsage(sumTokenUsages(turns_token_usage));
+          } else if (last_token_usage && last_token_usage.total_tokens > 0) {
+            setCumulativeTokenUsage(last_token_usage);
           }
         }
       })
@@ -750,6 +883,8 @@ export const useAcpMessage = (
     turnStartedAtMs,
     resetState,
     tokenUsage,
+    turnsTokenUsage,
+    cumulativeTokenUsage,
     context_limit,
     hasThinkingMessage,
     slashCommands,

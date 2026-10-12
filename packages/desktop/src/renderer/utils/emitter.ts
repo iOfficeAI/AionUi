@@ -34,6 +34,9 @@ interface EventTypes {
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
   'chat.history.refresh': void;
+  // 会话清空/新任务消息重置事件 / Conversation messages cleared event
+  'conversation.messages.clear': [string]; // conversation_id
+  'team.task.reset': [string]; // team_id
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
   // 预览面板事件 / Preview panel events

@@ -1,3 +1,4 @@
+import { configurePortableUserData, getPortableUserDataDir } from './userDataPath';
 import path from 'path';
 import type { IPlatformServices } from './IPlatformServices';
 import { NodePlatformServices } from './NodePlatformServices';
@@ -36,13 +37,10 @@ export function getPlatformServices(): IPlatformServices {
       } else {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { app, net } = require('electron') as typeof import('electron');
-        // Dev isolation: set app name before any getPath('userData') call.
-        // Rollup may load this chunk before configureChromium.ts runs, so we
-        // must apply the dev name here as a safety net.
+        // Portable isolation: configure user data path inside application directory
+        configurePortableUserData(app);
         if (!app.isPackaged) {
-          const devAppName = getDevAppName();
-          app.setName(devAppName);
-          app.setPath('userData', path.join(path.dirname(app.getPath('userData')), devAppName));
+          app.setName(getDevAppName());
         }
         // Typed as IPlatformPaths so tsc enforces completeness: any new method
         // added to the interface will cause a compile error here if omitted below.
@@ -97,3 +95,5 @@ export type {
   INotificationService,
   INetworkService,
 } from './IPlatformServices';
+
+export { configurePortableUserData, getPortableUserDataDir } from './userDataPath';
