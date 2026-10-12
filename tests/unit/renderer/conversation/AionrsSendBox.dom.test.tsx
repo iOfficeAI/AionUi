@@ -268,6 +268,7 @@ vi.mock('@arco-design/web-react', () => ({
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Space: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Button: ({
     children,
     onClick,
@@ -286,6 +287,7 @@ vi.mock('@icon-park/react', () => ({
   Brain: () => null,
   MagicHat: () => null,
   Shield: () => null,
+  Plan: () => null,
 }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: translateMock }),
