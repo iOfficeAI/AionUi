@@ -811,6 +811,14 @@
     "backendEmbedded": "埋め込み",
     "backendChrome": "外部 Chrome",
     "launchChrome": "Chromeを起動",
-    "chromeConnected": "接続済み"
+    "chromeConnected": "接続済み",
+    "safetyGateTitle": "アクションの承認が必要です",
+    "safetyGateDesc": "続行する前に自動化アクションの承認が必要です。",
+    "safetyApprove": "承認",
+    "safetyReject": "拒否",
+    "safetyRemember": "この選択を記憶する（自動承認）",
+    "safetyTarget": "対象アカウント",
+    "safetyCaption": "投稿文 / コンテンツ",
+    "safetyMedia": "メディアファイル"
   }
 }

@@ -827,6 +827,14 @@
     "backendEmbedded": "Встроенный",
     "backendChrome": "Внешний Chrome",
     "launchChrome": "Запустить Chrome",
-    "chromeConnected": "Подключено"
+    "chromeConnected": "Подключено",
+    "safetyGateTitle": "Требуется подтверждение действия",
+    "safetyGateDesc": "Автоматическое действие требует вашего подтверждения перед выполнением.",
+    "safetyApprove": "Подтвердить",
+    "safetyReject": "Отклонить",
+    "safetyRemember": "Запомнить выбор (автоодобрение)",
+    "safetyTarget": "Целевой аккаунт",
+    "safetyCaption": "Подпись / Содержимое",
+    "safetyMedia": "Медиафайл"
   }
 }

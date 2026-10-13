@@ -4,6 +4,7 @@ import { BrowserChrome, Clear, Close, Left, Pause, Refresh, Right, SendOne } fro
 import { useTranslation } from 'react-i18next';
 import { useBrowser } from '../hooks/useBrowser';
 import { useBrowserProfiles } from '../hooks/useBrowserProfiles';
+import { SafetyApprovalModal } from './browser/SafetyApprovalModal';
 
 export type BrowserPanelProps = {
   className?: string;
@@ -233,6 +234,8 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
           style={{ width: '100%', height: '100%' }}
         />
       </div>
+
+      <SafetyApprovalModal />
     </div>
   );
 };

@@ -827,6 +827,14 @@
     "backendEmbedded": "Вбудований",
     "backendChrome": "Зовнішній Chrome",
     "launchChrome": "Запустити Chrome",
-    "chromeConnected": "Підключено"
+    "chromeConnected": "Підключено",
+    "safetyGateTitle": "Потрібне підтвердження дії",
+    "safetyGateDesc": "Автоматизована дія потребує вашого схвалення перед продовженням.",
+    "safetyApprove": "Схвалити",
+    "safetyReject": "Відхилити",
+    "safetyRemember": "Запам'ятати вибір (автосхвалення)",
+    "safetyTarget": "Цільовий обліковий запис",
+    "safetyCaption": "Підпис / Вміст",
+    "safetyMedia": "Медіафайл"
   }
 }

@@ -811,6 +811,14 @@
     "backendEmbedded": "內建瀏覽器",
     "backendChrome": "獨立 Chrome",
     "launchChrome": "啟動 Chrome",
-    "chromeConnected": "已連線"
+    "chromeConnected": "已連線",
+    "safetyGateTitle": "需要安全審批",
+    "safetyGateDesc": "自動化操作在繼續前需要您的確認審批。",
+    "safetyApprove": "批准",
+    "safetyReject": "拒絕",
+    "safetyRemember": "記住此選擇（自動批准）",
+    "safetyTarget": "目標帳號",
+    "safetyCaption": "內文內容",
+    "safetyMedia": "媒體檔案"
   }
 }

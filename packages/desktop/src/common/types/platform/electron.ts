@@ -101,7 +101,28 @@ export interface ElectronBridgeAPI {
     params?: Record<string, unknown>;
     profileId?: string;
   }) => Promise<import('../../browser/workflowTypes').BrowserWorkflowExecutionResult>;
+  browserPostSocial?: (
+    options: import('../../browser/safetyTypes').SocialPostOptions
+  ) => Promise<import('../../browser/safetyTypes').SocialPostResult>;
+  browserRespondSafetyApproval?: (payload: {
+    requestId: string;
+    approved: boolean;
+    rememberChoice?: boolean;
+  }) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserSetSafetyAutoApprove?: (payload: {
+    actionType: import('../../browser/safetyTypes').SafetyActionType;
+    enabled: boolean;
+  }) => Promise<{ error?: string; success: boolean }>;
+  browserGetSafetyAutoApprove?: (
+    actionType: import('../../browser/safetyTypes').SafetyActionType
+  ) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserSetSocialDailyCap?: (cap: number) => Promise<{ error?: string; success: boolean }>;
+  browserGetSocialDailyCap?: () => Promise<{ error?: string; success: boolean; data?: number }>;
+  browserGetSocialDailyCount?: (platform: string) => Promise<{ error?: string; success: boolean; data?: number }>;
   onBrowserToolProgress?: (callback: (event: unknown) => void) => () => void;
+  onBrowserSafetyApprovalRequest?: (
+    callback: (request: import('../../browser/safetyTypes').SafetyGateRequest) => void
+  ) => () => void;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (
     params: import('../teamwork').InitiateTeamworkRequest

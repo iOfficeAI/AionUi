@@ -811,6 +811,14 @@
     "backendEmbedded": "داخلی",
     "backendChrome": "کروم خارجی",
     "launchChrome": "اجرای کروم",
-    "chromeConnected": "متصل شد"
+    "chromeConnected": "متصل شد",
+    "safetyGateTitle": "تأیید اقدام لازم است",
+    "safetyGateDesc": "یک اقدام خودکار قبل از ادامه نیاز به تأیید شما دارد.",
+    "safetyApprove": "تأیید",
+    "safetyReject": "رد",
+    "safetyRemember": "به‌خاطر سپردن انتخاب (تأیید خودکار)",
+    "safetyTarget": "حساب هدف",
+    "safetyCaption": "کپشن / محتوا",
+    "safetyMedia": "فایل رسانه"
   }
 }

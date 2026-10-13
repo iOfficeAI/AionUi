@@ -5,7 +5,12 @@
  */
 
 import { BrowserWindow, ipcMain } from 'electron';
-import { getBrowserProfileService, getExternalChromeLauncher, getBrowserToolService } from '../services/browser';
+import {
+  getBrowserProfileService,
+  getExternalChromeLauncher,
+  getBrowserToolService,
+  getBrowserSafetyGateService,
+} from '../services/browser';
 import type { CreateProfileInput, ExternalChromeConfig, UpdateProfileInput } from '@/common/browser/types';
 
 export function registerBrowserBridge(): void {
@@ -15,6 +20,15 @@ export function registerBrowserBridge(): void {
       for (const win of windows) {
         if (!win.isDestroyed()) {
           win.webContents.send('browser:toolProgress', event);
+        }
+      }
+    });
+
+    getBrowserSafetyGateService().on('safetyApprovalRequest', (req) => {
+      const windows = BrowserWindow.getAllWindows();
+      for (const win of windows) {
+        if (!win.isDestroyed()) {
+          win.webContents.send('browser:safetyApprovalRequest', req);
         }
       }
     });
@@ -320,4 +334,104 @@ export function registerBrowserBridge(): void {
       }
     }
   );
+
+  ipcMain.handle(
+    'browser:postSocial',
+    async (_event, options: import('@/common/browser/safetyTypes').SocialPostOptions) => {
+      try {
+        const { getSocialApiService } = await import('../services/browser');
+        const res = await getSocialApiService().post(options);
+        return res;
+      } catch (error) {
+        console.error('[browserBridge] postSocial error:', error);
+        return {
+          success: false,
+          platform: options?.platform || 'instagram',
+          mode: 'official_api',
+          error: error instanceof Error ? error.message : String(error),
+          durationMs: 0,
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'browser:respondSafetyApproval',
+    async (_event, payload: { requestId: string; approved: boolean; rememberChoice?: boolean }) => {
+      try {
+        const { getBrowserSafetyGateService } = await import('../services/browser');
+        const res = getBrowserSafetyGateService().respondApproval(
+          payload.requestId,
+          payload.approved,
+          payload.rememberChoice
+        );
+        return { success: true, data: res };
+      } catch (error) {
+        console.error('[browserBridge] respondSafetyApproval error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'browser:setSafetyAutoApprove',
+    async (
+      _event,
+      payload: { actionType: import('@/common/browser/safetyTypes').SafetyActionType; enabled: boolean }
+    ) => {
+      try {
+        const { getBrowserSafetyGateService } = await import('../services/browser');
+        getBrowserSafetyGateService().setAutoApprove(payload.actionType, payload.enabled);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'browser:getSafetyAutoApprove',
+    async (_event, actionType: import('@/common/browser/safetyTypes').SafetyActionType) => {
+      try {
+        const { getBrowserSafetyGateService } = await import('../services/browser');
+        const enabled = getBrowserSafetyGateService().isAutoApproveEnabled(actionType);
+        return { success: true, data: enabled };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    }
+  );
+
+  ipcMain.handle('browser:setSocialDailyCap', async (_event, cap: number) => {
+    try {
+      const { getSocialRateLimiter } = await import('../services/browser');
+      getSocialRateLimiter().setMaxDailyPosts(cap);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.handle('browser:getSocialDailyCap', async () => {
+    try {
+      const { getSocialRateLimiter } = await import('../services/browser');
+      const cap = getSocialRateLimiter().getMaxDailyPosts();
+      return { success: true, data: cap };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.handle('browser:getSocialDailyCount', async (_event, platform: string) => {
+    try {
+      const { getSocialRateLimiter } = await import('../services/browser');
+      const count = getSocialRateLimiter().getDailyCount(platform);
+      return { success: true, data: count };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
 }

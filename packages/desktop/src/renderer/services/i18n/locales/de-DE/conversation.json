@@ -812,6 +812,14 @@
     "backendEmbedded": "Eingebettet",
     "backendChrome": "Externer Chrome",
     "launchChrome": "Chrome starten",
-    "chromeConnected": "Verbunden"
+    "chromeConnected": "Verbunden",
+    "safetyGateTitle": "Aktionsgenehmigung erforderlich",
+    "safetyGateDesc": "Eine automatisierte Aktion erfordert Ihre Genehmigung, bevor sie fortgesetzt wird.",
+    "safetyApprove": "Genehmigen",
+    "safetyReject": "Ablehnen",
+    "safetyRemember": "Auswahl merken (automatisch genehmigen)",
+    "safetyTarget": "Zielkonto",
+    "safetyCaption": "Beschriftung / Inhalt",
+    "safetyMedia": "Mediendatei"
   }
 }

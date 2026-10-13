@@ -812,6 +812,14 @@
     "backendEmbedded": "Integrado",
     "backendChrome": "Chrome externo",
     "launchChrome": "Iniciar Chrome",
-    "chromeConnected": "Conectado"
+    "chromeConnected": "Conectado",
+    "safetyGateTitle": "Aprobación de acción requerida",
+    "safetyGateDesc": "Una acción automatizada requiere su aprobación antes de continuar.",
+    "safetyApprove": "Aprobar",
+    "safetyReject": "Rechazar",
+    "safetyRemember": "Recordar elección (autoaprobar)",
+    "safetyTarget": "Cuenta de destino",
+    "safetyCaption": "Título / Contenido",
+    "safetyMedia": "Archivo multimedia"
   }
 }

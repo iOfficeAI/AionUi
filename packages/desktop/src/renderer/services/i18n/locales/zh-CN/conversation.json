@@ -811,6 +811,14 @@
     "backendEmbedded": "内置浏览器",
     "backendChrome": "独立 Chrome",
     "launchChrome": "启动 Chrome",
-    "chromeConnected": "已连接"
+    "chromeConnected": "已连接",
+    "safetyGateTitle": "需要安全审批",
+    "safetyGateDesc": "自动化操作在继续前需要您的确认审批。",
+    "safetyApprove": "批准",
+    "safetyReject": "拒绝",
+    "safetyRemember": "记住此选择（自动批准）",
+    "safetyTarget": "目标账号",
+    "safetyCaption": "正文内容",
+    "safetyMedia": "媒体文件"
   }
 }

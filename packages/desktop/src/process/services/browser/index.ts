@@ -10,3 +10,4 @@ export * from './BrowserAutomationEngine';
 export * from './BrowserDownloadManager';
 export * from './BrowserToolService';
 export * from './BrowserWorkflowEngine';
+export * from './social';

@@ -811,6 +811,14 @@
     "backendEmbedded": "Embedded",
     "backendChrome": "External Chrome",
     "launchChrome": "Launch Chrome",
-    "chromeConnected": "Connected"
+    "chromeConnected": "Connected",
+    "safetyGateTitle": "Action Approval Required",
+    "safetyGateDesc": "An automated action requires your approval before proceeding.",
+    "safetyApprove": "Approve",
+    "safetyReject": "Reject",
+    "safetyRemember": "Remember choice (auto-approve)",
+    "safetyTarget": "Target Account",
+    "safetyCaption": "Caption / Content",
+    "safetyMedia": "Media File"
   }
 }

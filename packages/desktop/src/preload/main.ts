@@ -78,11 +78,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserGetWorkflows: () => ipcRenderer.invoke('browser:getWorkflows'),
   browserExecuteWorkflow: (payload: { workflowId: string; params?: unknown; profileId?: string }) =>
     ipcRenderer.invoke('browser:executeWorkflow', payload),
+  browserPostSocial: (options: unknown) => ipcRenderer.invoke('browser:postSocial', options),
+  browserRespondSafetyApproval: (payload: { requestId: string; approved: boolean; rememberChoice?: boolean }) =>
+    ipcRenderer.invoke('browser:respondSafetyApproval', payload),
+  browserSetSafetyAutoApprove: (payload: { actionType: string; enabled: boolean }) =>
+    ipcRenderer.invoke('browser:setSafetyAutoApprove', payload),
+  browserGetSafetyAutoApprove: (actionType: string) => ipcRenderer.invoke('browser:getSafetyAutoApprove', actionType),
+  browserSetSocialDailyCap: (cap: number) => ipcRenderer.invoke('browser:setSocialDailyCap', cap),
+  browserGetSocialDailyCap: () => ipcRenderer.invoke('browser:getSocialDailyCap'),
+  browserGetSocialDailyCount: (platform: string) => ipcRenderer.invoke('browser:getSocialDailyCount', platform),
   onBrowserToolProgress: (callback: (event: unknown) => void) => {
     const handler = (_event: unknown, data: unknown) => callback(data);
     ipcRenderer.on('browser:toolProgress', handler);
     return () => {
       ipcRenderer.off('browser:toolProgress', handler);
+    };
+  },
+  onBrowserSafetyApprovalRequest: (callback: (request: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('browser:safetyApprovalRequest', handler);
+    return () => {
+      ipcRenderer.off('browser:safetyApprovalRequest', handler);
     };
   },
   // Teamwork Multi-Agent Orchestration APIs

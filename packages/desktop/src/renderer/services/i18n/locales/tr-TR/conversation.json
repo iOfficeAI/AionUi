@@ -813,6 +813,14 @@
     "backendEmbedded": "Gömülü",
     "backendChrome": "Harici Chrome",
     "launchChrome": "Chrome'u Başlat",
-    "chromeConnected": "Bağlandı"
+    "chromeConnected": "Bağlandı",
+    "safetyGateTitle": "Eylem Onayı Gerekli",
+    "safetyGateDesc": "Devam etmeden önce otomatik bir eylem için onayınız gereklidir.",
+    "safetyApprove": "Onayla",
+    "safetyReject": "Reddet",
+    "safetyRemember": "Seçimi hatırla (otomatik onayla)",
+    "safetyTarget": "Hedef Hesap",
+    "safetyCaption": "Açıklama / İçerik",
+    "safetyMedia": "Medya Dosyası"
   }
 }

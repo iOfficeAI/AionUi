@@ -811,6 +811,14 @@
     "backendEmbedded": "임베디드",
     "backendChrome": "외부 Chrome",
     "launchChrome": "Chrome 실행",
-    "chromeConnected": "연결됨"
+    "chromeConnected": "연결됨",
+    "safetyGateTitle": "작업 승인 필요",
+    "safetyGateDesc": "계속하기 전에 자동화 작업에 대한 승인이 필요합니다.",
+    "safetyApprove": "승인",
+    "safetyReject": "거부",
+    "safetyRemember": "선택 기억하기(자동 승인)",
+    "safetyTarget": "대상 계정",
+    "safetyCaption": "문구 / 내용",
+    "safetyMedia": "미디어 파일"
   }
 }
