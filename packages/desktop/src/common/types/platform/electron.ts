@@ -58,6 +58,19 @@ export interface ElectronBridgeAPI {
   browserLaunchExternalChrome?: (
     config: import('../../browser').ExternalChromeConfig
   ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').ExternalChromeStatus }>;
+  browserExecuteAction?: (
+    request: import('../../browser').BrowserActionRequest
+  ) => Promise<import('../../browser').ActionResult>;
+  browserGetSnapshot?: (
+    options?: import('../../browser').SnapshotOptions
+  ) => Promise<{
+    error?: string;
+    success: boolean;
+    data?: { url: string; title: string; tree: import('../../browser').AccessibilitySnapshotNode[] };
+  }>;
+  browserTakeScreenshot?: (
+    options?: import('../../browser').ScreenshotOptions
+  ) => Promise<{ error?: string; success: boolean; data?: string }>;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (
     params: import('../teamwork').InitiateTeamworkRequest
@@ -94,6 +107,40 @@ export interface ElectronBridgeAPI {
   onTeamScopingStatusChanged?: (
     callback: (event: import('../teamwork').ITeamScopingStatusChangedEvent) => void
   ) => () => void;
+  // Knowledge Repos APIs
+  knowledgeRepoList?: () => Promise<import('../knowledgeRepo').KnowledgeRepo[]>;
+  knowledgeRepoGet?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo | undefined>;
+  knowledgeRepoAdd?: (params: {
+    name: string;
+    gitUrl: string;
+    ref?: string;
+    subpath?: string;
+    authToken?: string;
+  }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoUpdate?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoRollback?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoPin?: (params: { id: string; pin: boolean }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoSetTrust?: (params: {
+    id: string;
+    trustStatus: import('../knowledgeRepo').KnowledgeRepoTrustStatus;
+  }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoRemove?: (id: string) => Promise<void>;
+  knowledgeRepoBuildInstructions?: (params: {
+    memberName: string;
+    rolePrompt?: string;
+    repoIds: string[];
+    whenToUseHint?: string;
+    tokenBudget?: number;
+  }) => Promise<import('../knowledgeRepo').EffectiveInstructionResult>;
+  knowledgeRepoBuildTeamCapabilityCards?: (
+    members: Array<{
+      slot_id: string;
+      assistant_name: string;
+      knowledgeRepoIds?: string[];
+      whenToUseHint?: string;
+    }>
+  ) => Promise<import('../knowledgeRepo').TeammateCapabilityCard[]>;
+  knowledgeRepoSetTaskRunning?: (params: { repoIds: string[]; isRunning: boolean }) => Promise<void>;
 }
 
 export type BackendStartupFailureReason =

@@ -126,4 +126,54 @@ export function registerBrowserBridge(): void {
       };
     }
   });
+
+  ipcMain.handle(
+    'browser:executeAction',
+    async (_event, request: import('@/common/browser/types').BrowserActionRequest) => {
+      try {
+        const { getBrowserAutomationEngine } = await import('../services/browser');
+        const result = await getBrowserAutomationEngine().execute(request);
+        return result;
+      } catch (error) {
+        console.error('[browserBridge] executeAction error:', error);
+        return {
+          success: false,
+          action: request?.action || 'navigate',
+          error: error instanceof Error ? error.message : String(error),
+          durationMs: 0,
+        };
+      }
+    }
+  );
+
+  ipcMain.handle('browser:getSnapshot', async (_event, options?: import('@/common/browser/types').SnapshotOptions) => {
+    try {
+      const { getBrowserAutomationEngine } = await import('../services/browser');
+      const snapshot = await getBrowserAutomationEngine().getSnapshot(options);
+      return { success: true, data: snapshot };
+    } catch (error) {
+      console.error('[browserBridge] getSnapshot error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(
+    'browser:takeScreenshot',
+    async (_event, options?: import('@/common/browser/types').ScreenshotOptions) => {
+      try {
+        const { getBrowserAutomationEngine } = await import('../services/browser');
+        const res = await getBrowserAutomationEngine().screenshot(options);
+        return { success: true, data: res.data };
+      } catch (error) {
+        console.error('[browserBridge] takeScreenshot error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  );
 }

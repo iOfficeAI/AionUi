@@ -6,3 +6,4 @@
 
 export * from './BrowserProfileService';
 export * from './ExternalChromeLauncher';
+export * from './BrowserAutomationEngine';

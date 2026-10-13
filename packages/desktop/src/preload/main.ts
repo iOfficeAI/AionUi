@@ -66,6 +66,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserClearProfileData: (id: string) => ipcRenderer.invoke('browser:clearProfileData', id),
   browserProbeExternalChrome: (port?: number) => ipcRenderer.invoke('browser:probeExternalChrome', port),
   browserLaunchExternalChrome: (config: unknown) => ipcRenderer.invoke('browser:launchExternalChrome', config),
+  browserExecuteAction: (request: unknown) => ipcRenderer.invoke('browser:executeAction', request),
+  browserGetSnapshot: (options?: unknown) => ipcRenderer.invoke('browser:getSnapshot', options),
+  browserTakeScreenshot: (options?: unknown) => ipcRenderer.invoke('browser:takeScreenshot', options),
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate: (params: unknown) => ipcRenderer.invoke('teamwork:initiate', params),
   teamworkSubmitInterview: (params: unknown) => ipcRenderer.invoke('teamwork:submit-interview', params),
