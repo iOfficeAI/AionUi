@@ -75,6 +75,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserCallTool: (payload: { tool: string; args?: unknown; taskId?: string }) =>
     ipcRenderer.invoke('browser:callTool', payload),
   browserCancelToolTask: (taskId: string) => ipcRenderer.invoke('browser:cancelToolTask', taskId),
+  browserGetWorkflows: () => ipcRenderer.invoke('browser:getWorkflows'),
+  browserExecuteWorkflow: (payload: { workflowId: string; params?: unknown; profileId?: string }) =>
+    ipcRenderer.invoke('browser:executeWorkflow', payload),
   onBrowserToolProgress: (callback: (event: unknown) => void) => {
     const handler = (_event: unknown, data: unknown) => callback(data);
     ipcRenderer.on('browser:toolProgress', handler);

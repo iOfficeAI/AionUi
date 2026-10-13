@@ -91,6 +91,16 @@ export interface ElectronBridgeAPI {
     durationMs: number;
   }>;
   browserCancelToolTask?: (taskId: string) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserGetWorkflows?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser/workflowTypes').BrowserWorkflowDefinition[];
+  }>;
+  browserExecuteWorkflow?: (payload: {
+    workflowId: string;
+    params?: Record<string, unknown>;
+    profileId?: string;
+  }) => Promise<import('../../browser/workflowTypes').BrowserWorkflowExecutionResult>;
   onBrowserToolProgress?: (callback: (event: unknown) => void) => () => void;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (

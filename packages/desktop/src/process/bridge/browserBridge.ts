@@ -276,4 +276,48 @@ export function registerBrowserBridge(): void {
       };
     }
   });
+
+  ipcMain.handle('browser:getWorkflows', async () => {
+    try {
+      const { getBrowserWorkflowEngine } = await import('../services/browser');
+      const workflows = getBrowserWorkflowEngine().getWorkflows();
+      return { success: true, data: workflows };
+    } catch (error) {
+      console.error('[browserBridge] getWorkflows error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(
+    'browser:executeWorkflow',
+    async (
+      _event,
+      payload: {
+        workflowId: string;
+        params?: Record<string, unknown>;
+        profileId?: string;
+      }
+    ) => {
+      try {
+        const { getBrowserWorkflowEngine } = await import('../services/browser');
+        const res = await getBrowserWorkflowEngine().executeWorkflow(payload.workflowId, payload.params, {
+          profileId: payload.profileId,
+        });
+        return res;
+      } catch (error) {
+        console.error('[browserBridge] executeWorkflow error:', error);
+        return {
+          success: false,
+          workflowId: payload?.workflowId,
+          stepResults: [],
+          outputs: {},
+          error: error instanceof Error ? error.message : String(error),
+          durationMs: 0,
+        };
+      }
+    }
+  );
 }

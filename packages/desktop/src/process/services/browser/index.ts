@@ -9,3 +9,4 @@ export * from './ExternalChromeLauncher';
 export * from './BrowserAutomationEngine';
 export * from './BrowserDownloadManager';
 export * from './BrowserToolService';
+export * from './BrowserWorkflowEngine';
