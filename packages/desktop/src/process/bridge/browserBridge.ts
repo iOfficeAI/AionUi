@@ -176,4 +176,35 @@ export function registerBrowserBridge(): void {
       }
     }
   );
+
+  ipcMain.handle(
+    'browser:waitForDownload',
+    async (_event, options?: import('@/common/browser/types').DownloadOptions) => {
+      try {
+        const { getBrowserDownloadManager } = await import('../services/browser');
+        const record = await getBrowserDownloadManager().waitForDownload(options);
+        return { success: true, data: record };
+      } catch (error) {
+        console.error('[browserBridge] waitForDownload error:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  );
+
+  ipcMain.handle('browser:getDownloads', async () => {
+    try {
+      const { getBrowserDownloadManager } = await import('../services/browser');
+      const list = getBrowserDownloadManager().getDownloads();
+      return { success: true, data: list };
+    } catch (error) {
+      console.error('[browserBridge] getDownloads error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
 }

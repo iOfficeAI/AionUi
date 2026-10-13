@@ -25,7 +25,10 @@ import type {
   TypeOptions,
   UploadFileOptions,
   WaitForOptions,
+  DownloadOptions,
+  DownloadRecord,
 } from '@/common/browser/types';
+import { getBrowserDownloadManager } from './BrowserDownloadManager';
 
 export function resolveLocatorString(target: LocatorTarget): string {
   if (typeof target === 'string') {
@@ -477,6 +480,19 @@ export class BrowserAutomationEngine {
     return { handled: true };
   }
 
+  public async download(options: DownloadOptions = {}): Promise<DownloadRecord> {
+    const downloadManager = getBrowserDownloadManager();
+    const wc = this.getWebContents();
+    if (options.url && wc) {
+      if (options.url.startsWith('blob:')) {
+        await downloadManager.triggerBlobDownload(wc, options.url, options.expectedFilename);
+      } else {
+        wc.downloadURL(options.url);
+      }
+    }
+    return await downloadManager.waitForDownload(options);
+  }
+
   public async execute(request: BrowserActionRequest): Promise<ActionResult> {
     const startTime = Date.now();
     const { action, params, retries = 1 } = request;
@@ -527,6 +543,9 @@ export class BrowserAutomationEngine {
             break;
           case 'handleDialog':
             data = await this.handleDialog(params.handleDialog || { action: 'accept' });
+            break;
+          case 'download':
+            data = await this.download(params.download || {});
             break;
           default:
             throw new Error(`Unsupported browser action: ${action}`);

@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserExecuteAction: (request: unknown) => ipcRenderer.invoke('browser:executeAction', request),
   browserGetSnapshot: (options?: unknown) => ipcRenderer.invoke('browser:getSnapshot', options),
   browserTakeScreenshot: (options?: unknown) => ipcRenderer.invoke('browser:takeScreenshot', options),
+  browserWaitForDownload: (options?: unknown) => ipcRenderer.invoke('browser:waitForDownload', options),
+  browserGetDownloads: () => ipcRenderer.invoke('browser:getDownloads'),
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate: (params: unknown) => ipcRenderer.invoke('teamwork:initiate', params),
   teamworkSubmitInterview: (params: unknown) => ipcRenderer.invoke('teamwork:submit-interview', params),

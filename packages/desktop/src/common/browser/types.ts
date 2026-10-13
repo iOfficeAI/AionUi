@@ -81,7 +81,8 @@ export type BrowserActionType =
   | 'screenshot'
   | 'evaluate'
   | 'manageTabs'
-  | 'handleDialog';
+  | 'handleDialog'
+  | 'download';
 
 export type NavigateOptions = {
   url: string;
@@ -166,6 +167,29 @@ export type HandleDialogOptions = {
   promptText?: string;
 };
 
+export type DownloadOptions = {
+  profileId?: string;
+  workspace?: string;
+  targetDir?: string;
+  expectedFilename?: string;
+  url?: string;
+  timeoutMs?: number;
+};
+
+export type DownloadRecord = {
+  id: string;
+  url: string;
+  filename: string;
+  savePath: string;
+  totalBytes: number;
+  receivedBytes: number;
+  mimeType: string;
+  state: 'progressing' | 'completed' | 'cancelled' | 'interrupted';
+  startTime: number;
+  completedTime?: number;
+  error?: string;
+};
+
 export type BrowserActionParams = {
   navigate?: NavigateOptions;
   click?: ClickOptions;
@@ -181,6 +205,7 @@ export type BrowserActionParams = {
   evaluate?: EvaluateOptions;
   manageTabs?: ManageTabsOptions;
   handleDialog?: HandleDialogOptions;
+  download?: DownloadOptions;
 };
 
 export type BrowserActionRequest = {

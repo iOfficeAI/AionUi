@@ -61,9 +61,7 @@ export interface ElectronBridgeAPI {
   browserExecuteAction?: (
     request: import('../../browser').BrowserActionRequest
   ) => Promise<import('../../browser').ActionResult>;
-  browserGetSnapshot?: (
-    options?: import('../../browser').SnapshotOptions
-  ) => Promise<{
+  browserGetSnapshot?: (options?: import('../../browser').SnapshotOptions) => Promise<{
     error?: string;
     success: boolean;
     data?: { url: string; title: string; tree: import('../../browser').AccessibilitySnapshotNode[] };
@@ -71,6 +69,14 @@ export interface ElectronBridgeAPI {
   browserTakeScreenshot?: (
     options?: import('../../browser').ScreenshotOptions
   ) => Promise<{ error?: string; success: boolean; data?: string }>;
+  browserWaitForDownload?: (
+    options?: import('../../browser').DownloadOptions
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').DownloadRecord }>;
+  browserGetDownloads?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').DownloadRecord[];
+  }>;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (
     params: import('../teamwork').InitiateTeamworkRequest
