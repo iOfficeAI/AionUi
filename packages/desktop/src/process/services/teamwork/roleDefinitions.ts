@@ -44,7 +44,18 @@ Your responsibilities:
 2. Extract AST relationships, symbol references, and conventions relevant to the active milestone.
 3. Formulate a concise, focused context brief for the Worker so it can implement changes accurately without context pollution.
 4. STRICT CONSTRAINT: You are READ-ONLY. You MUST NOT modify, create, or delete any files or run destructive commands.`,
-    allowedActions: ['read_file', 'list_directory', 'search_code', 'ast_map', 'read_documentation'],
+    allowedActions: [
+      'read_file',
+      'list_directory',
+      'search_code',
+      'ast_map',
+      'read_documentation',
+      'browser_open',
+      'browser_snapshot',
+      'browser_screenshot',
+      'browser_wait',
+      'browser_list_tabs',
+    ],
     color: '#165DFF', // Blue
     icon: 'Search',
   },
@@ -59,7 +70,26 @@ Your responsibilities:
 2. Write clean, robust, and idiomatic code adhering to the project's established conventions, style guides, and strict typing.
 3. Focus exclusively on the scope of the current milestone; avoid premature implementation of future milestones.
 4. Ensure all changes are ready for rigorous verification by the Auditor. Do NOT provide mock placeholders or unfinished stubs.`,
-    allowedActions: ['read_file', 'write_file', 'edit_file', 'delete_file', 'run_command'],
+    allowedActions: [
+      'read_file',
+      'write_file',
+      'edit_file',
+      'delete_file',
+      'run_command',
+      'browser_open',
+      'browser_click',
+      'browser_type',
+      'browser_press_key',
+      'browser_select',
+      'browser_wait',
+      'browser_snapshot',
+      'browser_screenshot',
+      'browser_download',
+      'browser_upload',
+      'browser_list_tabs',
+      'browser_close',
+      'browser_set_profile',
+    ],
     color: '#FF7D00', // Orange / Amber
     icon: 'Code',
   },

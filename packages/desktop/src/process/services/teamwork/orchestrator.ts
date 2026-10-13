@@ -62,22 +62,46 @@ export class DefaultTeamworkRunner implements ITeamworkRunner {
     const { role, milestone, contextBrief, feedback } = params;
 
     if (role === 'explorer') {
+      const isBrowserTask =
+        milestone.title.toLowerCase().includes('browser') ||
+        milestone.title.toLowerCase().includes('flow') ||
+        milestone.title.toLowerCase().includes('web');
+
+      const toolCalls = isBrowserTask
+        ? ['browser_open', 'browser_snapshot', 'browser_screenshot', 'browser_wait']
+        : ['ast_map', 'read_file', 'search_code'];
+
       return {
         success: true,
-        output: `Codebase indexed for ${milestone.title}. Key dependencies mapped without context pollution.`,
-        toolCalls: ['ast_map', 'read_file', 'search_code'],
+        output: isBrowserTask
+          ? `Web page indexed and DOM accessibility snapshot captured for ${milestone.title}.`
+          : `Codebase indexed for ${milestone.title}. Key dependencies mapped without context pollution.`,
+        toolCalls,
         tokensUsed: { inputTokens: 420, outputTokens: 180 },
       };
     }
 
     if (role === 'worker') {
       const isRetry = Boolean(feedback);
+      const isBrowserTask =
+        milestone.title.toLowerCase().includes('browser') ||
+        milestone.title.toLowerCase().includes('flow') ||
+        milestone.title.toLowerCase().includes('download') ||
+        milestone.title.toLowerCase().includes('post') ||
+        milestone.description.toLowerCase().includes('browser');
+
+      const toolCalls = isBrowserTask
+        ? ['browser_open', 'browser_click', 'browser_type', 'browser_wait', 'browser_download']
+        : ['write_file', 'edit_file'];
+
       return {
         success: true,
         output: isRetry
           ? `Worker addressed feedback for ${milestone.title}: ${feedback}`
-          : `Worker implemented subtasks for ${milestone.title} based on Explorer brief: ${contextBrief?.slice(0, 60)}...`,
-        toolCalls: ['write_file', 'edit_file'],
+          : isBrowserTask
+            ? `Worker executed browser automation workflow for ${milestone.title}. Artifacts downloaded to workspace/browser-downloads/ and verified.`
+            : `Worker implemented subtasks for ${milestone.title} based on Explorer brief: ${contextBrief?.slice(0, 60)}...`,
+        toolCalls,
         tokensUsed: { inputTokens: 750, outputTokens: 450 },
       };
     }

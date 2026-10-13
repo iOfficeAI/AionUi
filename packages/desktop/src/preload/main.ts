@@ -71,6 +71,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserTakeScreenshot: (options?: unknown) => ipcRenderer.invoke('browser:takeScreenshot', options),
   browserWaitForDownload: (options?: unknown) => ipcRenderer.invoke('browser:waitForDownload', options),
   browserGetDownloads: () => ipcRenderer.invoke('browser:getDownloads'),
+  browserGetToolDefinitions: () => ipcRenderer.invoke('browser:getToolDefinitions'),
+  browserCallTool: (payload: { tool: string; args?: unknown; taskId?: string }) =>
+    ipcRenderer.invoke('browser:callTool', payload),
+  browserCancelToolTask: (taskId: string) => ipcRenderer.invoke('browser:cancelToolTask', taskId),
+  onBrowserToolProgress: (callback: (event: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('browser:toolProgress', handler);
+    return () => {
+      ipcRenderer.off('browser:toolProgress', handler);
+    };
+  },
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate: (params: unknown) => ipcRenderer.invoke('teamwork:initiate', params),
   teamworkSubmitInterview: (params: unknown) => ipcRenderer.invoke('teamwork:submit-interview', params),
@@ -110,6 +121,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   knowledgeRepoBuildTeamCapabilityCards: (members: unknown) =>
     ipcRenderer.invoke('knowledgeRepo:buildTeamCapabilityCards', members),
   knowledgeRepoSetTaskRunning: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:setTaskRunning', params),
+  knowledgeRepoRunSetup: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:runSetup', params),
+  knowledgeRepoCheckEnvironment: (repoId: string) => ipcRenderer.invoke('knowledgeRepo:checkEnvironment', repoId),
+  knowledgeRepoProvisionWorkingCopy: (params: unknown) =>
+    ipcRenderer.invoke('knowledgeRepo:provisionWorkingCopy', params),
+  knowledgeRepoSetEnvVars: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:setEnvVars', params),
 });
 
 // Synchronously fetch aioncore port and expose to renderer via

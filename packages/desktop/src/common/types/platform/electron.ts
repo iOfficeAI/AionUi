@@ -77,6 +77,21 @@ export interface ElectronBridgeAPI {
     success: boolean;
     data?: import('../../browser').DownloadRecord[];
   }>;
+  browserGetToolDefinitions?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  }>;
+  browserCallTool?: (payload: { tool: string; args?: Record<string, unknown>; taskId?: string }) => Promise<{
+    success: boolean;
+    tool: string;
+    data?: unknown;
+    error?: string;
+    failureScreenshot?: string;
+    durationMs: number;
+  }>;
+  browserCancelToolTask?: (taskId: string) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  onBrowserToolProgress?: (callback: (event: unknown) => void) => () => void;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (
     params: import('../teamwork').InitiateTeamworkRequest
@@ -147,6 +162,14 @@ export interface ElectronBridgeAPI {
     }>
   ) => Promise<import('../knowledgeRepo').TeammateCapabilityCard[]>;
   knowledgeRepoSetTaskRunning?: (params: { repoIds: string[]; isRunning: boolean }) => Promise<void>;
+  knowledgeRepoRunSetup?: (params: {
+    repoId: string;
+    projectId?: string;
+    command: string;
+  }) => Promise<{ success: boolean; output: string }>;
+  knowledgeRepoCheckEnvironment?: (repoId: string) => Promise<Array<{ binary: string; present: boolean }>>;
+  knowledgeRepoProvisionWorkingCopy?: (params: { repoId: string; projectId: string }) => Promise<string>;
+  knowledgeRepoSetEnvVars?: (params: { id: string; envVars: Record<string, string> }) => Promise<void>;
 }
 
 export type BackendStartupFailureReason =

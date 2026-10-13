@@ -4,11 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcMain } from 'electron';
-import { getBrowserProfileService, getExternalChromeLauncher } from '../services/browser';
+import { BrowserWindow, ipcMain } from 'electron';
+import { getBrowserProfileService, getExternalChromeLauncher, getBrowserToolService } from '../services/browser';
 import type { CreateProfileInput, ExternalChromeConfig, UpdateProfileInput } from '@/common/browser/types';
 
 export function registerBrowserBridge(): void {
+  try {
+    getBrowserToolService().on('progress', (event) => {
+      const windows = BrowserWindow.getAllWindows();
+      for (const win of windows) {
+        if (!win.isDestroyed()) {
+          win.webContents.send('browser:toolProgress', event);
+        }
+      }
+    });
+  } catch {
+    // Ignore in headless/mock test environments
+  }
+
   ipcMain.handle('browser:getProfiles', async () => {
     try {
       const profiles = getBrowserProfileService().getProfiles();
@@ -201,6 +214,62 @@ export function registerBrowserBridge(): void {
       return { success: true, data: list };
     } catch (error) {
       console.error('[browserBridge] getDownloads error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcMain.handle('browser:getToolDefinitions', async () => {
+    try {
+      const { getBrowserToolService } = await import('../services/browser');
+      const defs = getBrowserToolService().getToolDefinitions();
+      return { success: true, data: defs };
+    } catch (error) {
+      console.error('[browserBridge] getToolDefinitions error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(
+    'browser:callTool',
+    async (
+      _event,
+      payload: {
+        tool: import('../services/browser').BrowserToolName;
+        args?: Record<string, unknown>;
+        taskId?: string;
+      }
+    ) => {
+      try {
+        const { getBrowserToolService } = await import('../services/browser');
+        const res = await getBrowserToolService().executeTool(payload.tool, payload.args, {
+          taskId: payload.taskId,
+        });
+        return res;
+      } catch (error) {
+        console.error('[browserBridge] callTool error:', error);
+        return {
+          success: false,
+          tool: payload?.tool,
+          error: error instanceof Error ? error.message : String(error),
+          durationMs: 0,
+        };
+      }
+    }
+  );
+
+  ipcMain.handle('browser:cancelToolTask', async (_event, taskId: string) => {
+    try {
+      const { getBrowserToolService } = await import('../services/browser');
+      const cancelled = getBrowserToolService().cancelTask(taskId);
+      return { success: true, data: cancelled };
+    } catch (error) {
+      console.error('[browserBridge] cancelToolTask error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
