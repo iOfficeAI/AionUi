@@ -819,6 +819,14 @@
     "forward": "Вперед",
     "refresh": "Оновити",
     "close": "Закрити",
-    "loading": "Завантаження..."
+    "loading": "Завантаження...",
+    "profiles": "Профілі",
+    "clearData": "Очистити дані профілю",
+    "clearDataConfirm": "Очистити всі файли cookie та локальне сховище для цього профілю?",
+    "clearDataSuccess": "Дані профілю успішно очищено",
+    "backendEmbedded": "Вбудований",
+    "backendChrome": "Зовнішній Chrome",
+    "launchChrome": "Запустити Chrome",
+    "chromeConnected": "Підключено"
   }
 }

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Input, Spin, Tooltip } from '@arco-design/web-react';
-import { Close, Left, Pause, Refresh, Right, SendOne } from '@icon-park/react';
+import { Button, Input, Message, Popconfirm, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { BrowserChrome, Clear, Close, Left, Pause, Refresh, Right, SendOne } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { useBrowser } from '../hooks/useBrowser';
+import { useBrowserProfiles } from '../hooks/useBrowserProfiles';
 
 export type BrowserPanelProps = {
   className?: string;
@@ -20,6 +20,10 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [inputUrl, setInputUrl] = useState<string>(initialUrl);
+  const [chromeStatus, setChromeStatus] = useState<string | null>(null);
+
+  const { activeProfile, clearProfileData, launchExternalChrome, probeExternalChrome, profiles, switchProfile } =
+    useBrowserProfiles();
 
   const { canGoBack, canGoForward, failError, goBack, goForward, isLoading, navigate, reload, stop, url, webviewRef } =
     useBrowser({
@@ -51,15 +55,49 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
     [handleNavigate]
   );
 
-  // Improvement 3: keep webview mounted when hidden — use CSS display toggle
-  // so session state, cookies, and scroll position survive panel toggle.
+  const handleClearData = useCallback(async () => {
+    const success = await clearProfileData(activeProfile.id);
+    if (success) {
+      Message.success(t('conversation.browser.clearDataSuccess'));
+      reload();
+    } else {
+      Message.error('Failed to clear profile data');
+    }
+  }, [activeProfile.id, clearProfileData, reload, t]);
+
+  const handleLaunchChrome = useCallback(async () => {
+    if (!activeProfile.externalChrome) return;
+    setChromeStatus('Connecting...');
+    const status = await launchExternalChrome(activeProfile.externalChrome);
+    if (status.running) {
+      setChromeStatus(t('conversation.browser.chromeConnected'));
+      Message.success(`${t('conversation.browser.chromeConnected')} (Port ${status.port})`);
+    } else {
+      setChromeStatus(status.error || 'Failed to start');
+      Message.error(status.error || 'Failed to launch Google Chrome');
+    }
+  }, [activeProfile.externalChrome, launchExternalChrome, t]);
+
+  useEffect(() => {
+    if (activeProfile.backend === 'external-chrome') {
+      const port = activeProfile.externalChrome?.port || 9222;
+      void probeExternalChrome(port).then((st) => {
+        if (st.running) {
+          setChromeStatus(t('conversation.browser.chromeConnected'));
+        } else {
+          setChromeStatus(null);
+        }
+      });
+    }
+  }, [activeProfile, probeExternalChrome, t]);
+
   return (
     <div
       className={`flex flex-col h-full w-full bg-[var(--color-bg-2)] border border-[var(--color-border-2)] rounded-lg overflow-hidden ${className}`}
       style={{ display: visible ? 'flex' : 'none' }}
     >
       {/* Browser toolbar */}
-      <div className='flex items-center gap-2 p-2 bg-[var(--color-bg-1)] border-b border-[var(--color-border-2)]'>
+      <div className='flex items-center gap-2 p-2 bg-[var(--color-bg-1)] border-b border-[var(--color-border-2)] flex-wrap'>
         <Tooltip content={t('conversation.browser.back')}>
           <Button
             disabled={!canGoBack}
@@ -82,7 +120,6 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
           />
         </Tooltip>
 
-        {/* Improvement 4: Stop button while loading, Reload when idle */}
         {isLoading ? (
           <Tooltip content={t('conversation.browser.stop')}>
             <Button
@@ -105,8 +142,35 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
           </Tooltip>
         )}
 
+        {/* Profile Selector */}
+        <Select className='w-140px' size='small' value={activeProfile.id} onChange={(val) => void switchProfile(val)}>
+          {profiles.map((p) => (
+            <Select.Option key={p.id} value={p.id}>
+              {p.name}
+            </Select.Option>
+          ))}
+        </Select>
+
+        {/* Backend Tag */}
+        {activeProfile.backend === 'external-chrome' ? (
+          <Tag color='arcoblue' size='small'>
+            {t('conversation.browser.backendChrome')}
+          </Tag>
+        ) : (
+          <Tag color='gray' size='small'>
+            {t('conversation.browser.backendEmbedded')}
+          </Tag>
+        )}
+
+        {/* Clear Data Button */}
+        <Popconfirm focusLock title={t('conversation.browser.clearDataConfirm')} onOk={handleClearData}>
+          <Tooltip content={t('conversation.browser.clearData')}>
+            <Button icon={<Clear theme='outline' size='14' />} shape='circle' size='small' type='secondary' />
+          </Tooltip>
+        </Popconfirm>
+
         {/* Address bar */}
-        <div className='flex-1 flex items-center gap-1'>
+        <div className='flex-1 flex items-center gap-1 min-w-160px'>
           <Input
             onKeyDown={handleKeyDown}
             onChange={(val) => setInputUrl(val)}
@@ -133,7 +197,21 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
         )}
       </div>
 
-      {/* Improvement 5: in-panel error banner */}
+      {/* External Chrome banner when active */}
+      {activeProfile.backend === 'external-chrome' && (
+        <div className='flex items-center gap-2 px-3 py-1.5 bg-[var(--color-primary-light-1)] border-b border-[var(--color-primary-light-3)] text-[var(--color-primary-6)] text-xs'>
+          <BrowserChrome theme='outline' size='14' />
+          <span className='flex-1'>
+            {t('conversation.browser.backendChrome')} (Port {activeProfile.externalChrome?.port || 9222}) —{' '}
+            {chromeStatus || 'Ready to connect'}
+          </span>
+          <Button size='mini' type='primary' onClick={handleLaunchChrome}>
+            {t('conversation.browser.launchChrome')}
+          </Button>
+        </div>
+      )}
+
+      {/* Load error banner */}
       {failError && (
         <div className='flex items-center gap-2 px-3 py-2 bg-[var(--color-danger-light-1)] border-b border-[var(--color-danger-light-3)] text-[var(--color-danger-6)] text-sm'>
           <span className='flex-1'>{failError}</span>
@@ -143,12 +221,13 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
         </div>
       )}
 
-      {/* Webview container — uses shared BROWSER_SESSION_PARTITION for persistent sessions */}
+      {/* Webview container with dynamic persistent session partition */}
       <div className='flex-1 relative w-full h-full bg-[var(--color-bg-1)]'>
         <webview
           {...({ allowpopups: 'true' } as object)}
           className='w-full h-full border-none block'
-          partition={BROWSER_SESSION_PARTITION}
+          key={activeProfile.partition}
+          partition={activeProfile.partition}
           ref={webviewRef}
           src={url}
           style={{ width: '100%', height: '100%' }}

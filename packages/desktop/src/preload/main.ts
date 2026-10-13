@@ -57,6 +57,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browserType: (selector: string, text: string) => ipcRenderer.invoke('browser:type', selector, text),
   browserScroll: (x: number, y: number) => ipcRenderer.invoke('browser:scroll', x, y),
   browserScreenshot: () => ipcRenderer.invoke('browser:screenshot'),
+  browserGetProfiles: () => ipcRenderer.invoke('browser:getProfiles'),
+  browserGetActiveProfile: () => ipcRenderer.invoke('browser:getActiveProfile'),
+  browserSetActiveProfile: (id: string) => ipcRenderer.invoke('browser:setActiveProfile', id),
+  browserCreateProfile: (input: unknown) => ipcRenderer.invoke('browser:createProfile', input),
+  browserUpdateProfile: (input: unknown) => ipcRenderer.invoke('browser:updateProfile', input),
+  browserDeleteProfile: (id: string) => ipcRenderer.invoke('browser:deleteProfile', id),
+  browserClearProfileData: (id: string) => ipcRenderer.invoke('browser:clearProfileData', id),
+  browserProbeExternalChrome: (port?: number) => ipcRenderer.invoke('browser:probeExternalChrome', port),
+  browserLaunchExternalChrome: (config: unknown) => ipcRenderer.invoke('browser:launchExternalChrome', config),
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate: (params: unknown) => ipcRenderer.invoke('teamwork:initiate', params),
   teamworkSubmitInterview: (params: unknown) => ipcRenderer.invoke('teamwork:submit-interview', params),
@@ -83,6 +92,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.off('team.scopingStatusChanged', handler);
     };
   },
+  // Knowledge Repos APIs
+  knowledgeRepoList: () => ipcRenderer.invoke('knowledgeRepo:list'),
+  knowledgeRepoGet: (id: string) => ipcRenderer.invoke('knowledgeRepo:get', id),
+  knowledgeRepoAdd: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:add', params),
+  knowledgeRepoUpdate: (id: string) => ipcRenderer.invoke('knowledgeRepo:update', id),
+  knowledgeRepoRollback: (id: string) => ipcRenderer.invoke('knowledgeRepo:rollback', id),
+  knowledgeRepoPin: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:pin', params),
+  knowledgeRepoSetTrust: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:setTrust', params),
+  knowledgeRepoRemove: (id: string) => ipcRenderer.invoke('knowledgeRepo:remove', id),
+  knowledgeRepoBuildInstructions: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:buildInstructions', params),
+  knowledgeRepoBuildTeamCapabilityCards: (members: unknown) =>
+    ipcRenderer.invoke('knowledgeRepo:buildTeamCapabilityCards', members),
+  knowledgeRepoSetTaskRunning: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:setTaskRunning', params),
 });
 
 // Synchronously fetch aioncore port and expose to renderer via

@@ -804,6 +804,14 @@
     "forward": "Vorwärts",
     "refresh": "Neu laden",
     "close": "Schließen",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "profiles": "Profile",
+    "clearData": "Profildaten löschen",
+    "clearDataConfirm": "Alle Cookies und lokalen Speicherdaten für dieses Profil löschen?",
+    "clearDataSuccess": "Profildaten erfolgreich gelöscht",
+    "backendEmbedded": "Eingebettet",
+    "backendChrome": "Externer Chrome",
+    "launchChrome": "Chrome starten",
+    "chromeConnected": "Verbunden"
   }
 }

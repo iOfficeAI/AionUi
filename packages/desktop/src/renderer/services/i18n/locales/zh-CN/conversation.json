@@ -803,6 +803,14 @@
     "forward": "前进",
     "refresh": "刷新",
     "close": "关闭",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "profiles": "浏览器配置文件",
+    "clearData": "清除配置文件数据",
+    "clearDataConfirm": "确定要清除此配置文件的所有 Cookie 和本地存储吗？",
+    "clearDataSuccess": "配置文件数据已成功清除",
+    "backendEmbedded": "内置浏览器",
+    "backendChrome": "独立 Chrome",
+    "launchChrome": "启动 Chrome",
+    "chromeConnected": "已连接"
   }
 }

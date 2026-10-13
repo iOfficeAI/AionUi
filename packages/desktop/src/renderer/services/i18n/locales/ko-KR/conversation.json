@@ -803,6 +803,14 @@
     "forward": "앞으로",
     "refresh": "새로고침",
     "close": "닫기",
-    "loading": "로딩 중..."
+    "loading": "로딩 중...",
+    "profiles": "프로필",
+    "clearData": "프로필 데이터 삭제",
+    "clearDataConfirm": "이 프로필의 모든 쿠키와 로컬 스토리지를 삭제하시겠습니까?",
+    "clearDataSuccess": "프로필 데이터가 성공적으로 삭제되었습니다",
+    "backendEmbedded": "임베디드",
+    "backendChrome": "외부 Chrome",
+    "launchChrome": "Chrome 실행",
+    "chromeConnected": "연결됨"
   }
 }

@@ -803,6 +803,14 @@
     "forward": "進む",
     "refresh": "更新",
     "close": "閉じる",
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "profiles": "プロファイル",
+    "clearData": "プロファイルデータを消去",
+    "clearDataConfirm": "このプロファイルのすべてのCookieとローカルストレージを消去しますか？",
+    "clearDataSuccess": "プロファイルデータが正常に消去されました",
+    "backendEmbedded": "埋め込み",
+    "backendChrome": "外部 Chrome",
+    "launchChrome": "Chromeを起動",
+    "chromeConnected": "接続済み"
   }
 }

@@ -803,6 +803,14 @@
     "forward": "Forward",
     "refresh": "Reload",
     "close": "Close",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "profiles": "Profiles",
+    "clearData": "Clear Profile Data",
+    "clearDataConfirm": "Clear all cookies and local storage for this profile?",
+    "clearDataSuccess": "Profile data cleared successfully",
+    "backendEmbedded": "Embedded",
+    "backendChrome": "External Chrome",
+    "launchChrome": "Launch Chrome",
+    "chromeConnected": "Connected"
   }
 }

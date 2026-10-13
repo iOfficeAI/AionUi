@@ -819,6 +819,14 @@
     "forward": "Вперед",
     "refresh": "Обновить",
     "close": "Закрыть",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "profiles": "Профили",
+    "clearData": "Очистить данные профиля",
+    "clearDataConfirm": "Очистить все файлы cookie и локальное хранилище для этого профиля?",
+    "clearDataSuccess": "Данные профиля успешно очищены",
+    "backendEmbedded": "Встроенный",
+    "backendChrome": "Внешний Chrome",
+    "launchChrome": "Запустить Chrome",
+    "chromeConnected": "Подключено"
   }
 }

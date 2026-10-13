@@ -803,6 +803,14 @@
     "forward": "前進",
     "refresh": "重新整理",
     "close": "關閉",
-    "loading": "載入中..."
+    "loading": "載入中...",
+    "profiles": "瀏覽器設定檔",
+    "clearData": "清除設定檔資料",
+    "clearDataConfirm": "確定要清除此設定檔的所有 Cookie 和本機儲存空間嗎？",
+    "clearDataSuccess": "設定檔資料已成功清除",
+    "backendEmbedded": "內建瀏覽器",
+    "backendChrome": "獨立 Chrome",
+    "launchChrome": "啟動 Chrome",
+    "chromeConnected": "已連線"
   }
 }

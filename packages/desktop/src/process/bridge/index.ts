@@ -13,8 +13,10 @@ import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initThemeBridge } from './themeBridge';
 import { registerBrowserService } from '../services/browserService';
+import { registerBrowserBridge } from './browserBridge';
 import { registerTeamworkHandlers } from '../services/teamwork/teamworkHandler';
 import { registerTeamScopingHandlers } from '../services/teamwork/teamScopingHandler';
+import { registerKnowledgeRepoBridge } from './knowledgeRepoBridge';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -28,8 +30,10 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initWebuiBridge();
   initThemeBridge();
   registerBrowserService();
+  registerBrowserBridge();
   registerTeamworkHandlers();
   registerTeamScopingHandlers();
+  registerKnowledgeRepoBridge();
 }
 
 export {

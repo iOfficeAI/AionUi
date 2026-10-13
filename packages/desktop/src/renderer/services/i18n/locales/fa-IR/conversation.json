@@ -803,6 +803,14 @@
     "forward": "جلو",
     "refresh": "بازنشانی",
     "close": "بستن",
-    "loading": "در حال بارگذاری..."
+    "loading": "در حال بارگذاری...",
+    "profiles": "نمایه‌ها",
+    "clearData": "پاک کردن داده‌های نمایه",
+    "clearDataConfirm": "آیا تمام کوکی‌ها و حافظه محلی برای این نمایه پاک شوند؟",
+    "clearDataSuccess": "داده‌های نمایه با موفقیت پاک شدند",
+    "backendEmbedded": "داخلی",
+    "backendChrome": "کروم خارجی",
+    "launchChrome": "اجرای کروم",
+    "chromeConnected": "متصل شد"
   }
 }

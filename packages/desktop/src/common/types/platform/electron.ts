@@ -31,6 +31,33 @@ export interface ElectronBridgeAPI {
     y: number
   ) => Promise<{ error?: string; scrollX?: number; scrollY?: number; success: boolean }>;
   browserScreenshot?: () => Promise<{ data?: string; error?: string; success: boolean }>;
+  browserGetProfiles?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').BrowserProfile[];
+  }>;
+  browserGetActiveProfile?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').BrowserProfile;
+  }>;
+  browserSetActiveProfile?: (
+    id: string
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserCreateProfile?: (
+    input: import('../../browser').CreateProfileInput
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserUpdateProfile?: (
+    input: import('../../browser').UpdateProfileInput
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserDeleteProfile?: (id: string) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserClearProfileData?: (id: string) => Promise<import('../../browser').ClearProfileDataResult>;
+  browserProbeExternalChrome?: (
+    port?: number
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').ExternalChromeStatus }>;
+  browserLaunchExternalChrome?: (
+    config: import('../../browser').ExternalChromeConfig
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').ExternalChromeStatus }>;
   // Teamwork Multi-Agent Orchestration APIs
   teamworkInitiate?: (
     params: import('../teamwork').InitiateTeamworkRequest
