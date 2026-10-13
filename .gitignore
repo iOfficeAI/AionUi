@@ -14,8 +14,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /data-*/
 *.lnk
 start-aionui.bat
-packages/desktop/src/common/brand/
-src/
 pids
 *.pid
 *.seed
