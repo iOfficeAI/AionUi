@@ -171,12 +171,12 @@ linux:
   category: Utility
   maintainer: aionui
   vendor: aionui
-  synopsis: ${description}
-  description: ${description}
+  synopsis: Transform your command-line AI agent into a modern, efficient AI Chat interface.
+  description: Transform your command-line AI agent into a modern, efficient AI Chat interface.
   desktop:
     entry:
       Name: AionUi
-      Comment: ${description}
+      Comment: Transform your command-line AI agent into a modern, efficient AI Chat interface.
       Icon: AionUi
       Categories: Office;Utility;
       MimeType: x-scheme-handler/aionui;
