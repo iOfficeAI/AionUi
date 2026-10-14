@@ -229,7 +229,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 - **Офіційні платформи** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Хмарні провайдери** — AWS Bedrock, New API
 - **Китайські платформи** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
-- **Міжнародні платформи** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Міжнародні платформи** — DeepSeek, MiniMax, Novita, OpenRouter, Requesty, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Локальні моделі** — Ollama, LM Studio (через Custom платформу)
 
 </details>

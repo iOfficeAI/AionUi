@@ -139,6 +139,8 @@ describe('protocolDetector', () => {
       expect(guessProtocolFromUrl('https://api.openai.com/v1')).toBe('openai');
       expect(guessProtocolFromUrl('https://api.deepseek.com/v1')).toBe('openai');
       expect(guessProtocolFromUrl('https://openrouter.ai/v1')).toBe('openai');
+      expect(guessProtocolFromUrl('https://router.requesty.ai/v1')).toBe('openai');
+      expect(guessProtocolFromUrl('https://router.eu.requesty.ai/v1')).toBe('openai');
     });
 
     it('detects Anthropic URLs', () => {
