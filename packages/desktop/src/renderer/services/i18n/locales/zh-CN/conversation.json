@@ -89,7 +89,11 @@
     "archiveProject": "归档项目",
     "archiveProjectTitle": "归档项目",
     "archiveProjectConfirm": "确定归档项目「{{name}}」吗？项目下的 {{count}} 个对话也会一起归档。归档后可在设置的归档页恢复或删除。",
-    "archiving": "归档中..."
+    "archiving": "归档中...",
+    "deleteProject": "删除项目",
+    "deleteProjectTitle": "删除项目",
+    "deleteProjectConfirm": "确定要删除项目“{{name}}”吗？该项目下的 {{count}} 个会话将被永久删除，此操作无法撤销。",
+    "deleteProjectSuccess": "项目已删除"
   },
   "historySearch": {
     "tooltip": "检索会话",
@@ -544,7 +548,13 @@
     "output": "输出",
     "thought": "思考",
     "cachedRead": "缓存读",
-    "cachedWrite": "缓存写"
+    "cachedWrite": "缓存写",
+    "cache": "缓存",
+    "total": "总计",
+    "replyTokens": "回复 Token",
+    "chatTotal": "对话总计",
+    "sessionTotal": "对话总 Token",
+    "contextWindow": "上下文窗口"
   },
   "skill_generator": {
     "title": "生成 Skill/规则",
@@ -782,5 +792,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "展开计划",
     "collapse": "收起计划"
+  },
+  "browser": {
+    "stop": "停止",
+    "retry": "重试",
+    "title": "浏览器",
+    "addressBarPlaceholder": "输入网址或搜索...",
+    "navigate": "前往",
+    "back": "后退",
+    "forward": "前进",
+    "refresh": "刷新",
+    "close": "关闭",
+    "loading": "加载中...",
+    "profiles": "浏览器配置文件",
+    "clearData": "清除配置文件数据",
+    "clearDataConfirm": "确定要清除此配置文件的所有 Cookie 和本地存储吗？",
+    "clearDataSuccess": "配置文件数据已成功清除",
+    "backendEmbedded": "内置浏览器",
+    "backendChrome": "独立 Chrome",
+    "launchChrome": "启动 Chrome",
+    "chromeConnected": "已连接",
+    "safetyGateTitle": "需要安全审批",
+    "safetyGateDesc": "自动化操作在继续前需要您的确认审批。",
+    "safetyApprove": "批准",
+    "safetyReject": "拒绝",
+    "safetyRemember": "记住此选择（自动批准）",
+    "safetyTarget": "目标账号",
+    "safetyCaption": "正文内容",
+    "safetyMedia": "媒体文件"
   }
 }

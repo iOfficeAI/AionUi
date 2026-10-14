@@ -1,8 +1,8 @@
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Message, Spin } from '@arco-design/web-react';
-import React, { Suspense, useCallback } from 'react';
+import { Message, Spin, Tag } from '@arco-design/web-react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -19,6 +19,11 @@ import TeamChatEmptyState from './TeamChatEmptyState';
 import { useTeamTabs } from '@/renderer/pages/team/hooks/TeamTabsContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import { injectRetainedSkillsIntoPrompt } from '../utils/teamMemoryManager';
+import { isTeamworkSlashCommand, extractTeamworkTask } from '@/common/chat/slash/antigravityCommands';
+import { teamScoping } from '@/common/adapter/ipcBridge';
+import type { TeamScopingState } from '@/common/types/teamwork';
+import { ScopingInterview, PlanApprovalView, MilestoneAuditorBar } from './scoping';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
@@ -136,7 +141,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamSlotPaused,
 }) => {
   const { t } = useTranslation();
-  const { activeSlotId, switchTab } = useTeamTabs();
+  const { activeSlotId, switchTab, assistants = [] } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -153,19 +158,156 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
       isLeader={isLeader}
     />
   ) : undefined;
+  const [scopingState, setScopingState] = useState<TeamScopingState | null>(null);
+  const [submittingScoping, setSubmittingScoping] = useState(false);
+
+  useEffect(() => {
+    if (!team_id) return;
+    void teamScoping.getState({ team_id }).then((res) => {
+      if (res.success && res.state) {
+        setScopingState(res.state);
+      }
+    });
+
+    const unsub = teamScoping.onStatusChanged((event) => {
+      if (event.team_id === team_id) {
+        setScopingState(event.state);
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [team_id]);
+
+  const handleSubmitInterview = useCallback(
+    async (answers: Record<string, string>) => {
+      if (!team_id) return;
+      setSubmittingScoping(true);
+      try {
+        const res = await teamScoping.submitInterviewAnswers({ team_id, answers });
+        if (res.success && res.state) {
+          setScopingState(res.state);
+          Message.success(t('team.scoping.planGenerated', { defaultValue: 'PROJECT_PLAN.md generated!' }));
+        } else if (res.error) {
+          Message.error(res.error);
+        }
+      } catch (err) {
+        Message.error(String(err));
+      } finally {
+        setSubmittingScoping(false);
+      }
+    },
+    [team_id, t]
+  );
+
+  const handleApprovePlan = useCallback(
+    async (planMarkdown?: string) => {
+      if (!team_id) return;
+      setSubmittingScoping(true);
+      try {
+        const res = await teamScoping.approvePlan({ team_id, planMarkdown });
+        if (res.success && res.state) {
+          setScopingState(res.state);
+          Message.success(
+            t('team.scoping.planApproved', { defaultValue: 'Plan approved! Starting autonomous team execution.' })
+          );
+        } else if (res.error) {
+          Message.error(res.error);
+        }
+      } catch (err) {
+        Message.error(String(err));
+      } finally {
+        setSubmittingScoping(false);
+      }
+    },
+    [team_id, t]
+  );
+
+  const handleRejectPlan = useCallback(
+    async (reason?: string) => {
+      if (!team_id) return;
+      try {
+        const res = await teamScoping.rejectPlan({ team_id, reason });
+        if (res.success && res.state) {
+          setScopingState(res.state);
+          Message.info(t('team.scoping.planRejected', { defaultValue: 'Plan returned for revision.' }));
+        }
+      } catch (err) {
+        Message.error(String(err));
+      }
+    },
+    [team_id, t]
+  );
+
+  const handleCancelScoping = useCallback(async () => {
+    if (!team_id) return;
+    try {
+      const res = await teamScoping.rejectPlan({ team_id, reason: 'Cancelled by user' });
+      if (res.success && res.state) {
+        setScopingState(res.state);
+      }
+    } catch {
+      // ignore
+    }
+  }, [team_id]);
+
+  const activeMilestone = useMemo(() => {
+    if (!scopingState?.plan?.milestones) return undefined;
+    return scopingState.plan.milestones.find((m) => m.id === scopingState.activeMilestoneId);
+  }, [scopingState]);
+
+  const totalMilestones = scopingState?.plan?.milestones?.length ?? 1;
+  const currentMilestoneIndex = useMemo(() => {
+    if (!scopingState?.plan?.milestones || !activeMilestone) return 1;
+    const idx = scopingState.plan.milestones.findIndex((m) => m.id === activeMilestone.id);
+    return idx >= 0 ? idx + 1 : 1;
+  }, [scopingState, activeMilestone]);
+
   const teamSendMessage = useCallback<TeamSendOverride>(
     async ({ input, files }) => {
       if (!team_id) throw new Error('Missing team id for team send');
+
+      if (isTeamworkSlashCommand(input)) {
+        const cleanTask = extractTeamworkTask(input);
+        const memberRepoMap: Record<string, string[]> = {};
+        const allRepoIds = new Set<string>();
+        for (const a of assistants) {
+          if (a.knowledgeRepoIds && a.knowledgeRepoIds.length > 0) {
+            memberRepoMap[a.slot_id] = a.knowledgeRepoIds;
+            for (const r of a.knowledgeRepoIds) allRepoIds.add(r);
+          }
+        }
+
+        const res = await teamScoping.initiate({
+          team_id,
+          userRequest: cleanTask || input,
+          workspace: conversation.extra?.workspace,
+          knowledgeRepoIds: Array.from(allRepoIds),
+          memberRepoMap,
+        });
+        if (res.success && res.state) {
+          setScopingState(res.state);
+        }
+        return;
+      }
+
+      const enrichedInput = injectRetainedSkillsIntoPrompt(team_id, input);
       if (isLeader) {
-        const ack = await ipcBridge.team.sendMessage.invoke({ team_id, input, files });
+        const ack = await ipcBridge.team.sendMessage.invoke({ team_id, input: enrichedInput, files });
         onTeamRunAck?.(ack);
         return;
       }
       if (!slot_id) throw new Error('Missing slot id for team agent send');
-      const ack = await ipcBridge.team.sendMessageToAgent.invoke({ team_id, slot_id, input, files });
+      const ack = await ipcBridge.team.sendMessageToAgent.invoke({
+        team_id,
+        slot_id,
+        input: enrichedInput,
+        files,
+      });
       onTeamRunAck?.(ack);
     },
-    [isLeader, onTeamRunAck, slot_id, team_id]
+    [conversation.extra?.workspace, isLeader, onTeamRunAck, slot_id, team_id]
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
   const resolvedAssistantBackend =
@@ -292,7 +434,71 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     }
   })();
 
-  return <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>;
+  return (
+    <div className='relative flex flex-col flex-1 h-full min-h-0'>
+      {team_id && isLeader && scopingState?.status === 'scoping' && (
+        <div className='p-3 bg-[var(--color-bg-1)] border-b border-[var(--color-border-2)]'>
+          <ScopingInterview
+            teamId={team_id}
+            userRequest={scopingState.userRequest}
+            questions={scopingState.questions}
+            onSubmitAnswers={handleSubmitInterview}
+            onCancel={handleCancelScoping}
+            loading={submittingScoping}
+          />
+        </div>
+      )}
+      {team_id && isLeader && scopingState?.status === 'awaiting_plan_approval' && scopingState.plan && (
+        <div className='p-3 bg-[var(--color-bg-1)] border-b border-[var(--color-border-2)]'>
+          <PlanApprovalView
+            teamId={team_id}
+            plan={scopingState.plan}
+            originalRequestDoc={scopingState.originalRequestDoc}
+            onApprovePlan={handleApprovePlan}
+            onRejectPlan={handleRejectPlan}
+            loading={submittingScoping}
+          />
+        </div>
+      )}
+      {team_id &&
+        scopingState &&
+        (scopingState.status === 'executing' ||
+          scopingState.status === 'auditing' ||
+          scopingState.status === 'verified') && (
+          <div className='px-3 pt-2 bg-[var(--color-bg-1)]'>
+            <MilestoneAuditorBar
+              status={scopingState.status}
+              activeMilestone={activeMilestone}
+              activeRole={scopingState.activeRole}
+              auditorFeedback={scopingState.auditorFeedback}
+              totalMilestones={totalMilestones}
+              currentMilestoneIndex={currentMilestoneIndex}
+            />
+          </div>
+        )}
+      {/* Active Knowledge Repo chip if member has assigned repos */}
+      {(() => {
+        const currentMember =
+          assistants?.find((a) => a.slot_id === slot_id) ||
+          (isLeader ? assistants?.find((a) => a.role === 'leader') : undefined);
+        if (currentMember?.knowledgeRepoIds && currentMember.knowledgeRepoIds.length > 0) {
+          return (
+            <div className='px-3 py-1 flex items-center gap-6px bg-[var(--color-bg-2)] border-b border-[var(--color-border-2)] text-12px'>
+              <Tag color='arcoblue' size='small'>
+                {t('team.knowledgeRepos.usingChip', {
+                  repo: currentMember.knowledgeRepoIds[0],
+                  skill: currentMember.whenToUseHint || 'pipelines & rules',
+                  defaultValue: `Using: ${currentMember.knowledgeRepoIds[0]} → ${currentMember.whenToUseHint || 'pipeline'}`,
+                })}
+              </Tag>
+            </div>
+          );
+        }
+        return null;
+      })()}
+      <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>
+    </div>
+  );
 };
 
 export default TeamChatView;

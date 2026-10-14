@@ -97,5 +97,13 @@
   "requestDetails": "요청 내용:",
   "delivery": {
     "pending": "읽지 않음"
-  }
+  },
+  "slash.antigravity.goal": "목표가 완전히 달성될 때까지 철저하게 장시간 작업 실행",
+  "slash.antigravity.teamworkPreview": "복잡한 프로젝트를 위한 다중 에이전트 협업 워크플로",
+  "slash.antigravity.plan": "실행 전 단계별 구현 계획 수립",
+  "slash.antigravity.grillMe": "설계 결정과 트레이드오프를 맞추기 위한 대화형 인터뷰",
+  "slash.antigravity.boost": "심층적 사고, 전략적 계획 및 엄격한 검증",
+  "slash.antigravity.browser": "웹 브라우징, 문서 검색 및 온라인 조사",
+  "slash.antigravity.schedule": "정기 예약 또는 타이머 기반 작업 실행",
+  "slash.antigravity.learn": "향후 작업을 위해 학습 내용, 규칙 및 지침 유지"
 }

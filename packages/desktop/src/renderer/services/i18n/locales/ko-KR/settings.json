@@ -1416,5 +1416,15 @@
   "crossSessionMessageDesc": "에이전트가 다른 대화로 메시지를 보낼 수 있게 합니다. 끄면 입력창의 @@ 대화 멘션도 비활성화됩니다.",
   "crossSessionMessageDisabledBanner": "대화 간 메시지가 꺼져 있어 입력창의 @@ 대화 멘션을 사용할 수 없습니다.",
   "crossSessionMessageResume": "다시 켜기",
-  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다"
+  "crossSessionMessageUpdateFailed": "대화 간 메시지 설정 업데이트에 실패했습니다",
+  "backupDir": "백업 디렉터리",
+  "changeBackupDir": "백업 디렉터리 변경",
+  "backupDirDesc": "데이터베이스 및 설정 백업이 저장되는 폴더",
+  "backupNow": "지금 백업",
+  "backingUp": "백업 중...",
+  "backupSuccess": "데이터가 {{path}}에 백업되었습니다",
+  "backupFailed": "데이터 백업에 실패했습니다",
+  "openBackupDir": "폴더 열기",
+  "mcpServers": "MCP 서버 및 도구",
+  "browserAutomation": "브라우저 자동화"
 }

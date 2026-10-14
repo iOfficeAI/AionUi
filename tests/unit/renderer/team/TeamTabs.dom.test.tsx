@@ -102,4 +102,32 @@ describe('TeamTabs', () => {
     expect(screen.getByTestId('team-tab-lead-slot')).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('team-tab-worker-slot')).toHaveAttribute('data-active', 'false');
   });
+
+  it('renders the members dropdown button for multiple team members', () => {
+    renderTabs(false);
+
+    expect(screen.getByTestId('team-tab-members-dropdown-btn')).toBeInTheDocument();
+  });
+
+  it('filters member tabs using the search/filter input', () => {
+    renderTabs(false);
+
+    // Toggle filter input
+    const filterToggle = screen.getByTestId('team-tab-filter-toggle');
+    fireEvent.click(filterToggle);
+
+    const filterInput = screen.getByTestId('team-tab-filter-input');
+    expect(filterInput).toBeInTheDocument();
+
+    // Type query to filter
+    fireEvent.change(filterInput, { target: { value: 'Work' } });
+
+    expect(screen.queryByTestId('team-tab-lead-slot')).not.toBeInTheDocument();
+    expect(screen.getByTestId('team-tab-worker-slot')).toBeInTheDocument();
+
+    // Clear filter
+    fireEvent.change(filterInput, { target: { value: '' } });
+    expect(screen.getByTestId('team-tab-lead-slot')).toBeInTheDocument();
+    expect(screen.getByTestId('team-tab-worker-slot')).toBeInTheDocument();
+  });
 });

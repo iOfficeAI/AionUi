@@ -199,7 +199,7 @@ const ChatLayout: React.FC<{
   const desktopHeader = (
     <ArcoLayout.Header
       className={classNames(
-        'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
+        'h-40px flex items-center justify-between px-16px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
       )}
     >
       <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>

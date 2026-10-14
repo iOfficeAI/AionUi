@@ -316,6 +316,123 @@ export const useConversationActions = ({
     [t]
   );
 
+  const handleDelete = useCallback(
+    (conversation: TChatConversation) => {
+      setDropdownVisibleId(null);
+      Modal.confirm({
+        title: t('conversation.history.deleteTitle'),
+        content: t('conversation.history.deleteConfirm'),
+        okText: t('conversation.history.confirmDelete'),
+        cancelText: t('conversation.history.cancelDelete'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          try {
+            const success = await removeConversation(conversation.id);
+            if (success) {
+              emitter.emit('chat.history.refresh');
+              Message.success(t('conversation.history.deleteSuccess'));
+            } else {
+              Message.error(t('conversation.history.deleteFailed'));
+            }
+          } catch (error) {
+            console.error('Failed to delete conversation:', error);
+            Message.error(t('conversation.history.deleteFailed'));
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [removeConversation, t]
+  );
+
+  const handleBatchDelete = useCallback(() => {
+    if (selectedConversationIds.size === 0) {
+      Message.warning(t('conversation.history.batchNoSelection'));
+      return;
+    }
+
+    Modal.confirm({
+      title: t('conversation.history.batchDelete'),
+      content: t('conversation.history.batchDeleteConfirm', { count: selectedConversationIds.size }),
+      okText: t('conversation.history.confirmDelete'),
+      cancelText: t('conversation.history.cancelDelete'),
+      okButtonProps: { status: 'danger' },
+      onOk: async () => {
+        const selectedIds = Array.from(selectedConversationIds);
+        try {
+          const results = await Promise.allSettled(
+            selectedIds.map((item_id) => ipcBridge.conversation.remove.invoke({ id: item_id }))
+          );
+          const successCount = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+          selectedIds.forEach((item_id) => emitter.emit('conversation.deleted', item_id));
+          emitter.emit('chat.history.refresh');
+          if (id && selectedIds.includes(id)) {
+            void navigate('/');
+          }
+          if (successCount > 0) {
+            Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
+          } else {
+            Message.error(t('conversation.history.deleteFailed'));
+          }
+        } catch (error) {
+          console.error('Failed to batch delete conversations:', error);
+          Message.error(t('conversation.history.deleteFailed'));
+        } finally {
+          setSelectedConversationIds(new Set());
+          onBatchModeChange?.(false);
+        }
+      },
+      style: { borderRadius: '12px' },
+      alignCenter: true,
+      getPopupContainer: () => document.body,
+    });
+  }, [id, navigate, onBatchModeChange, selectedConversationIds, setSelectedConversationIds, t]);
+
+  const [deleteProjectTarget, setDeleteProjectTarget] = useState<{
+    name: string;
+    conversations: TChatConversation[];
+  } | null>(null);
+  const [deleteProjectLoading, setDeleteProjectLoading] = useState(false);
+
+  const handleDeleteProject = useCallback((projectName: string, conversations: TChatConversation[]) => {
+    if (conversations.length === 0) return;
+    setDeleteProjectTarget({ name: projectName, conversations });
+  }, []);
+
+  const handleDeleteProjectCancel = useCallback(() => {
+    if (deleteProjectLoading) return;
+    setDeleteProjectTarget(null);
+  }, [deleteProjectLoading]);
+
+  const handleDeleteProjectConfirm = useCallback(async () => {
+    if (!deleteProjectTarget) return;
+    setDeleteProjectLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        deleteProjectTarget.conversations.map((c) => ipcBridge.conversation.remove.invoke({ id: c.id }))
+      );
+      const successCount = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+      deleteProjectTarget.conversations.forEach((c) => emitter.emit('conversation.deleted', c.id));
+      emitter.emit('chat.history.refresh');
+      if (id && deleteProjectTarget.conversations.some((c) => c.id === id)) {
+        void navigate('/');
+      }
+      if (successCount > 0) {
+        Message.success(t('conversation.history.deleteProjectSuccess'));
+      } else {
+        Message.error(t('conversation.history.deleteFailed'));
+      }
+      setDeleteProjectTarget(null);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      Message.error(t('conversation.history.deleteFailed'));
+    } finally {
+      setDeleteProjectLoading(false);
+    }
+  }, [deleteProjectTarget, id, navigate, t]);
+
   return {
     renameModalVisible,
     renameModalName,
@@ -324,7 +441,9 @@ export const useConversationActions = ({
     dropdownVisibleId,
     handleConversationClick,
     handleBatchArchive,
+    handleBatchDelete,
     handleArchive,
+    handleDelete,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
@@ -338,5 +457,10 @@ export const useConversationActions = ({
     archiveProjectLoading,
     handleArchiveProjectCancel,
     handleArchiveProjectConfirm,
+    handleDeleteProject,
+    deleteProjectTarget,
+    deleteProjectLoading,
+    handleDeleteProjectCancel,
+    handleDeleteProjectConfirm,
   };
 };

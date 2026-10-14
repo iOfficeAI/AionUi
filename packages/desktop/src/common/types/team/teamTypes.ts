@@ -38,6 +38,19 @@ export type TeamContextResetResponse = {
   preserved_unread_count: number;
 };
 
+export type TeamMemorySkill = {
+  id: string;
+  title: string;
+  description: string;
+  extractedAt: number;
+};
+
+export type TeamMemory = {
+  teamId: string;
+  skills: TeamMemorySkill[];
+  systemDirectives: string[];
+};
+
 /** Persisted assistant configuration within a team */
 export type TeamAssistant = {
   slot_id: string;
@@ -52,6 +65,10 @@ export type TeamAssistant = {
   model?: string;
   pending_confirmations?: number;
   context_reset: TeamContextResetCapability;
+  learnedSkills?: TeamMemorySkill[];
+  persistentMemory?: TeamMemory;
+  knowledgeRepoIds?: string[];
+  whenToUseHint?: string;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
@@ -71,6 +88,8 @@ export type TTeam = {
   session_mode?: string;
   created_at: number;
   updated_at: number;
+  learnedSkills?: TeamMemorySkill[];
+  persistentMemory?: TeamMemory;
 };
 
 export type ISendTeamMessageParams = {
@@ -91,7 +110,16 @@ export type IInterruptTeamAgentParams = ISendTeamAgentMessageParams & {
 };
 
 export type TeamRunTargetRole = 'lead' | 'teammate';
-export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
+export type TeamRunStatus =
+  | 'accepted'
+  | 'running'
+  | 'cancelling'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'
+  | 'scoping'
+  | 'awaiting_plan_approval'
+  | 'auditing';
 export type TeamSlotWorkState = 'idle' | 'queued' | 'starting' | 'running' | 'paused' | 'blocked';
 export type TeamSlotBlockedReason = 'runtime_starting' | 'runtime_failed' | 'removing' | 'session_stopped';
 export type TeamMessageEnqueueStatus = 'accepted' | 'queued' | 'blocked_runtime_starting';
@@ -343,3 +371,24 @@ export type ITeamSessionChangedEvent = {
   status?: string;
   error?: string;
 };
+
+export type {
+  ScopingQuestion,
+  ScopingQuestionCategory,
+  TeamMilestone,
+  TeamMilestoneStatus,
+  TeamworkPlan,
+  TeamScopingStatus,
+  TeamScopingState,
+  ITeamScopingStatusChangedEvent,
+  SubmitTeamInterviewAnswersParams,
+  SubmitTeamInterviewAnswersResponse,
+  ApproveTeamPlanParams,
+  ApproveTeamPlanResponse,
+  RejectTeamPlanParams,
+  RejectTeamPlanResponse,
+  InitiateTeamScopingParams,
+  InitiateTeamScopingResponse,
+  GetTeamScopingStateParams,
+  GetTeamScopingStateResponse,
+} from '../teamwork';

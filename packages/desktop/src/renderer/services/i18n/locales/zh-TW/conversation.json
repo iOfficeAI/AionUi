@@ -89,7 +89,11 @@
     "archiveProject": "歸檔專案",
     "archiveProjectTitle": "歸檔專案",
     "archiveProjectConfirm": "確定歸檔專案「{{name}}」嗎？專案下的 {{count}} 個對話也會一起歸檔。歸檔後可在設定的歸檔頁恢復或刪除。",
-    "archiving": "歸檔中..."
+    "archiving": "歸檔中...",
+    "deleteProject": "刪除專案",
+    "deleteProjectTitle": "刪除專案",
+    "deleteProjectConfirm": "確定要刪除專案「{{name}}」嗎？該專案下的 {{count}} 個對話將被永久刪除，此操作無法復原。",
+    "deleteProjectSuccess": "專案已刪除"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",
@@ -544,7 +548,13 @@
     "output": "輸出",
     "thought": "思考",
     "cachedRead": "快取讀取",
-    "cachedWrite": "快取寫入"
+    "cachedWrite": "快取寫入",
+    "cache": "快取",
+    "total": "總計",
+    "replyTokens": "回覆 Token",
+    "chatTotal": "對話總計",
+    "sessionTotal": "對話總 Token",
+    "contextWindow": "上下文窗口"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",
@@ -782,5 +792,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "展開計劃",
     "collapse": "收合計劃"
+  },
+  "browser": {
+    "stop": "停止",
+    "retry": "重試",
+    "title": "瀏覽器",
+    "addressBarPlaceholder": "輸入網址或搜尋...",
+    "navigate": "前往",
+    "back": "後退",
+    "forward": "前進",
+    "refresh": "重新整理",
+    "close": "關閉",
+    "loading": "載入中...",
+    "profiles": "瀏覽器設定檔",
+    "clearData": "清除設定檔資料",
+    "clearDataConfirm": "確定要清除此設定檔的所有 Cookie 和本機儲存空間嗎？",
+    "clearDataSuccess": "設定檔資料已成功清除",
+    "backendEmbedded": "內建瀏覽器",
+    "backendChrome": "獨立 Chrome",
+    "launchChrome": "啟動 Chrome",
+    "chromeConnected": "已連線",
+    "safetyGateTitle": "需要安全審批",
+    "safetyGateDesc": "自動化操作在繼續前需要您的確認審批。",
+    "safetyApprove": "批准",
+    "safetyReject": "拒絕",
+    "safetyRemember": "記住此選擇（自動批准）",
+    "safetyTarget": "目標帳號",
+    "safetyCaption": "內文內容",
+    "safetyMedia": "媒體檔案"
   }
 }

@@ -1415,5 +1415,15 @@
   "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
   "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
   "crossSessionMessageResume": "重新开启",
-  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败",
+  "backupDir": "备份目录",
+  "changeBackupDir": "更改备份目录",
+  "backupDirDesc": "数据库与配置文件的备份存储路径",
+  "backupNow": "立即备份",
+  "backingUp": "备份中...",
+  "backupSuccess": "数据已成功备份至 {{path}}",
+  "backupFailed": "备份数据失败",
+  "openBackupDir": "打开目录",
+  "mcpServers": "MCP 服务与工具",
+  "browserAutomation": "浏览器自动化"
 }

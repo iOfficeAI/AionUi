@@ -467,6 +467,8 @@
   "skills": "Skills",
   "tools": "Tools",
   "toolsDescription": "Configure MCP servers and built-in tools like image generation. Image generation must be enabled after configuring an image-capable model on the Model page.",
+  "mcpServers": "MCP Servers & Tools",
+  "browserAutomation": "Browser Automation",
   "modelDescription": "Configure LLM providers and API keys for use across all assistants. Only Aion CLI supports custom models; other agents use their own built-in models.",
   "capabilities": "Capabilities",
   "capabilitiesTab": {
@@ -1414,5 +1416,13 @@
   "crossSessionMessageDesc": "Let agents send messages to your other conversations. Turning this off also disables the @@ conversation mention in the input box.",
   "crossSessionMessageDisabledBanner": "Cross-conversation messages are off, so the @@ conversation mention is unavailable.",
   "crossSessionMessageResume": "Turn back on",
-  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting"
+  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting",
+  "backupDir": "Backup Directory",
+  "changeBackupDir": "Change backup directory",
+  "backupDirDesc": "Folder where database and configuration backups will be saved",
+  "backupNow": "Back Up Now",
+  "backingUp": "Backing up...",
+  "backupSuccess": "Data backed up to {{path}}",
+  "backupFailed": "Failed to back up data",
+  "openBackupDir": "Open Folder"
 }

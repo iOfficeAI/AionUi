@@ -1416,5 +1416,15 @@
   "crossSessionMessageDesc": "允許 Agent 向你的其他對話傳送訊息。關閉後，輸入框的 @@ 對話提及與投遞功能會同時停用。",
   "crossSessionMessageDisabledBanner": "跨對話訊息已關閉，輸入框的 @@ 對話提及不可用。",
   "crossSessionMessageResume": "重新開啟",
-  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗"
+  "crossSessionMessageUpdateFailed": "跨對話訊息設定更新失敗",
+  "backupDir": "備份目錄",
+  "changeBackupDir": "變更備份目錄",
+  "backupDirDesc": "資料庫與設定檔的備份儲存路徑",
+  "backupNow": "立即備份",
+  "backingUp": "備份中...",
+  "backupSuccess": "資料已成功備份至 {{path}}",
+  "backupFailed": "備份資料失敗",
+  "openBackupDir": "開啟目錄",
+  "mcpServers": "MCP 服務與工具",
+  "browserAutomation": "瀏覽器自動化"
 }

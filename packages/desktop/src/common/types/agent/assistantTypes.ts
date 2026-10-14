@@ -5,7 +5,7 @@
  */
 
 // Mirror of aionui-api-types/src/assistant.rs.
-// Any shape change on either side requires a same-PR update on the other.
+import type { TeamMemory, TeamMemorySkill } from '../team/teamTypes';
 
 export type AssistantSource = 'builtin' | 'generated' | 'user';
 export type AssistantAgentStatus = 'missing' | 'online' | 'offline' | 'unchecked';
@@ -51,6 +51,8 @@ export interface Assistant {
   team_selectable: boolean;
   team_block_reason?: string;
   deletable: boolean;
+  learnedSkills?: TeamMemorySkill[];
+  persistentMemory?: TeamMemory;
 }
 
 export interface AssistantProfile {

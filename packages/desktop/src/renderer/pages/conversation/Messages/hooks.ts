@@ -23,6 +23,7 @@ import {
   loadConversationMessagePage,
   loadLatestConversationMessages,
 } from '@/renderer/utils/chat/messagePagination';
+import { emitter } from '@renderer/utils/emitter';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 const [useMessageListLoading, MessageListLoadingProvider, useUpdateMessageListLoading] = createContext(false);
@@ -982,6 +983,20 @@ export const useMessageLstCache = (key: string) => {
       cancelled = true;
     };
   }, [key, loadMessages, setLoading, setPagination]);
+
+  useEffect(() => {
+    if (!key) return;
+    const handleClear = (clearedId: string) => {
+      if (clearedId === key) {
+        update(() => []);
+        setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
+      }
+    };
+    emitter.on('conversation.messages.clear', handleClear);
+    return () => {
+      emitter.off('conversation.messages.clear', handleClear);
+    };
+  }, [key, update, setPagination]);
 
   useEffect(() => {
     if (!key) {

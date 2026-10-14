@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TTeam } from '@/common/types/team/teamTypes';
@@ -57,19 +57,51 @@ vi.mock('@renderer/components/layout/Sider/useSiderTeamRunning', () => ({
 vi.mock('@renderer/components/layout/Sider/SiderItem', async () => {
   const ReactModule = await vi.importActual<typeof import('react')>('react');
   return {
-    default: ({ icon, name, pinned }: { icon: React.ReactNode; name: string; pinned?: boolean }) =>
+    default: ({
+      icon,
+      name,
+      pinned,
+      menuItems,
+      onMenuAction,
+    }: {
+      icon: React.ReactNode;
+      name: string;
+      pinned?: boolean;
+      menuItems?: { key: string; label: string }[];
+      onMenuAction?: (key: string) => void;
+    }) =>
       ReactModule.createElement(
         'div',
         {
           'data-testid': `sider-item-${name}`,
           'data-pinned': String(Boolean(pinned)),
+          'data-menu-keys': menuItems?.map((m) => m.key).join(','),
         },
-        icon
+        icon,
+        ReactModule.createElement('button', {
+          'data-testid': `edit-btn-${name}`,
+          onClick: () => onMenuAction?.('edit'),
+        }),
+        ReactModule.createElement('button', {
+          'data-testid': `delete-btn-${name}`,
+          onClick: () => onMenuAction?.('delete'),
+        })
       ),
   };
 });
 
-vi.mock('@renderer/pages/team/components/TeamCreateModal', () => ({ default: () => null }));
+vi.mock('@renderer/pages/team/components/TeamCreateModal', async () => {
+  const ReactModule = await vi.importActual<typeof import('react')>('react');
+  return {
+    default: ({ visible, team }: { visible: boolean; team?: { id: string } | null }) =>
+      visible
+        ? ReactModule.createElement('div', {
+            'data-testid': 'mock-team-create-modal',
+            'data-team-id': team?.id,
+          })
+        : null,
+  };
+});
 vi.mock('@renderer/utils/ui/siderTooltip', () => ({ cleanupSiderTooltips: vi.fn() }));
 vi.mock('@renderer/utils/ui/focus', () => ({ blurActiveElement: vi.fn() }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -87,9 +119,15 @@ vi.mock('@arco-design/web-react', async () => {
   const ReactModule = await vi.importActual<typeof import('react')>('react');
   const Modal = ({ children }: { children?: React.ReactNode }) => ReactModule.createElement('div', null, children);
   Modal.confirm = vi.fn();
+  const Menu = ({ children }: { children?: React.ReactNode }) => ReactModule.createElement('div', null, children);
+  Menu.Item = ({ children }: { children?: React.ReactNode }) => ReactModule.createElement('div', null, children);
+  const Dropdown = ({ children }: { children?: React.ReactNode }) =>
+    ReactModule.createElement(ReactModule.Fragment, null, children);
 
   return {
+    Dropdown,
     Input: () => null,
+    Menu,
     Message: { success: vi.fn(), error: vi.fn() },
     Modal,
     Spin: ({ size }: { size?: number }) =>
@@ -107,6 +145,8 @@ vi.mock('@icon-park/react', async () => {
     };
 
   return {
+    Delete: icon('Delete'),
+    Edit: icon('Edit'),
     FolderClose: icon('FolderClose'),
     EditOne: icon('EditOne'),
     Peoples: icon('Peoples'),
@@ -175,5 +215,37 @@ describe('TeamSiderSection running state', () => {
 
     expect(screen.getByTestId('collapsed-team-icon-idle-team')).toHaveAttribute('data-mock-icon', 'Peoples');
     expect(screen.queryByTestId('collapsed-team-spinner-idle-team')).not.toBeInTheDocument();
+  });
+
+  it('includes edit option in menu and clicking it opens TeamCreateModal with team data', async () => {
+    localStorage.setItem('team-section-expanded', 'true');
+    renderSection(false);
+
+    const idleItem = screen.getByTestId('sider-item-Idle team');
+    expect(idleItem).toHaveAttribute('data-menu-keys', expect.stringContaining('edit'));
+
+    const editBtn = screen.getByTestId('edit-btn-Idle team');
+    fireEvent.click(editBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-team-create-modal')).toHaveAttribute('data-team-id', 'idle-team');
+    });
+  });
+
+  it('includes delete option in menu and triggers removeTeam upon confirm', async () => {
+    const { Modal } = await import('@arco-design/web-react');
+    localStorage.setItem('team-section-expanded', 'true');
+    renderSection(false);
+
+    const idleItem = screen.getByTestId('sider-item-Idle team');
+    expect(idleItem).toHaveAttribute('data-menu-keys', expect.stringContaining('delete'));
+
+    const deleteBtn = screen.getByTestId('delete-btn-Idle team');
+    fireEvent.click(deleteBtn);
+
+    expect(Modal.confirm).toHaveBeenCalled();
+    const confirmCall = (Modal.confirm as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    await confirmCall.onOk();
+    expect(fixtures.removeTeam).toHaveBeenCalledWith('idle-team');
   });
 });

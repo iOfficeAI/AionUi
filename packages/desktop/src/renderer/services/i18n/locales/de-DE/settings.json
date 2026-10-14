@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "Erlaubt Agenten, Nachrichten an Ihre anderen Unterhaltungen zu senden. Beim Ausschalten wird auch die @@-Erwähnung im Eingabefeld deaktiviert.",
   "crossSessionMessageDisabledBanner": "Nachrichten zwischen Unterhaltungen sind aus, die @@-Erwähnung ist nicht verfügbar.",
   "crossSessionMessageResume": "Wieder einschalten",
-  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden"
+  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden",
+  "backupDir": "Backup-Verzeichnis",
+  "changeBackupDir": "Backup-Verzeichnis ändern",
+  "backupDirDesc": "Ordner, in dem Datenbank- und Konfigurations-Backups gespeichert werden",
+  "backupNow": "Jetzt sichern",
+  "backingUp": "Wird gesichert...",
+  "backupSuccess": "Daten gesichert in {{path}}",
+  "backupFailed": "Datensicherung fehlgeschlagen",
+  "openBackupDir": "Ordner öffnen",
+  "mcpServers": "MCP-Server & Tools",
+  "browserAutomation": "Browser-Automatisierung"
 }

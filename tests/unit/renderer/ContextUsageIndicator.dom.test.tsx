@@ -104,6 +104,27 @@ describe('ContextUsageIndicator', () => {
     expect(popover).not.toContain('Thinking');
   });
 
+  it('shows general cache tokens when reported in breakdown', () => {
+    const { getByTestId } = render(
+      <ContextUsageIndicator
+        tokenUsage={{
+          total_tokens: 15_000,
+          breakdown: {
+            input_tokens: 10_000,
+            output_tokens: 2_000,
+            cached_tokens: 3_000,
+          },
+        }}
+        context_limit={100_000}
+      />
+    );
+
+    const popover = getByTestId('popover-content').textContent ?? '';
+    expect(popover).toContain('Input 10.0K');
+    expect(popover).toContain('Output 2.0K');
+    expect(popover).toContain('Cache 3.0K');
+  });
+
   it('formats cost, percentage and token counts in the app language, not the host locale', () => {
     mockLanguage = 'de-DE';
     const { getByTestId } = render(
@@ -137,6 +158,56 @@ describe('ContextUsageIndicator', () => {
     const popover = getByTestId('popover-content').textContent ?? '';
     expect(popover).not.toContain('Session cost');
     expect(popover).not.toContain('Input');
+  });
+
+  it('renders chat window token usage pill and popover breakdown when cumulativeUsage is provided', () => {
+    const { getByTestId } = render(
+      <ContextUsageIndicator
+        tokenUsage={{ total_tokens: 5_000 }}
+        cumulativeUsage={{
+          total_tokens: 45_200,
+          cost: { amount: 1.25, currency: 'USD' },
+          breakdown: {
+            input_tokens: 38_500,
+            output_tokens: 3_200,
+            cached_tokens: 22_100,
+          },
+        }}
+        context_limit={100_000}
+      />
+    );
+
+    const pill = getByTestId('chat-window-token-usage');
+    expect(pill.textContent).toContain('Total: 45.2K');
+    expect(pill.textContent).toContain('In: 38.5K');
+    expect(pill.textContent).toContain('Out: 3.2K');
+    expect(pill.textContent).toContain('Cache: 22.1K');
+
+    const popover = getByTestId('popover-content').textContent ?? '';
+    expect(popover).toContain('Chat window total');
+    expect(popover).toContain('45,200');
+    expect(popover).toContain('38,500');
+    expect(popover).toContain('3,200');
+    expect(popover).toContain('22,100');
+    expect(popover).toContain('$1.25');
+    expect(popover).toContain('Context window');
+  });
+
+  it('renders indicator when tokenUsage is null but cumulativeUsage is present', () => {
+    const { container, getByTestId } = render(
+      <ContextUsageIndicator
+        tokenUsage={null}
+        cumulativeUsage={{
+          total_tokens: 10_000,
+          breakdown: { input_tokens: 8_000, output_tokens: 2_000 },
+        }}
+        context_limit={0}
+      />
+    );
+
+    expect(container.querySelector('.context-usage-indicator')).not.toBeNull();
+    const pill = getByTestId('chat-window-token-usage');
+    expect(pill.textContent).toContain('Total: 10.0K');
   });
 });
 

@@ -90,6 +90,11 @@ vi.mock('@/common', () => ({
         invoke: stopInvokeMock,
       },
     },
+    teamwork: {
+      initiate: {
+        invoke: vi.fn().mockResolvedValue(undefined),
+      },
+    },
   },
 }));
 
@@ -305,10 +310,12 @@ vi.mock('@arco-design/web-react', () => ({
   Message: {
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
     warning: messageWarningMock,
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Button: ({
     children,
     onClick,
@@ -323,6 +330,35 @@ vi.mock('@arco-design/web-react', () => ({
     </button>
   ),
 }));
+
+vi.mock('@icon-park/react', () => ({
+  Brain: () => null,
+  Lightning: () => null,
+  MagicHat: () => null,
+  Plan: () => null,
+  Shield: () => null,
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+  }),
+}));
+
+vi.mock('@/common/chat/slash/antigravityCommands', () => ({
+  extractTeamworkTask: vi.fn((msg: string) => msg),
+  isTeamworkSlashCommand: vi.fn(() => false),
+}));
+
+vi.mock('@/renderer/components/chat/CrossSessionDisabledBanner', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/renderer/hooks/chat/useCrossSessionMessageEnabled', () => ({
+  useCrossSessionMessageEnabled: () => ({ enabled: true }),
+}));
+
+vi.mock('@/renderer/pages/conversation/Messages/components/MessageTokenUsage', () => ({ default: () => null }));
 
 const makeMessageState = (): UseAcpMessageReturn => ({
   thought: { subject: '', description: '' },

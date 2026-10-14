@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
   "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
   "crossSessionMessageResume": "Yeniden aç",
-  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi",
+  "backupDir": "Yedekleme Dizini",
+  "changeBackupDir": "Yedekleme dizinini değiştir",
+  "backupDirDesc": "Veritabanı ve yapılandırma yedeklerinin kaydedileceği klasör",
+  "backupNow": "Şimdi Yedekle",
+  "backingUp": "Yedekleniyor...",
+  "backupSuccess": "Veriler {{path}} konumuna yedeklendi",
+  "backupFailed": "Veri yedekleme başarısız oldu",
+  "openBackupDir": "Klasörü Aç",
+  "mcpServers": "MCP Sunucuları ve Araçları",
+  "browserAutomation": "Tarayıcı Otomasyonu"
 }

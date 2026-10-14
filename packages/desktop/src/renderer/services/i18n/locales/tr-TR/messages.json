@@ -97,5 +97,13 @@
   "requestDetails": "İstek ayrıntıları:",
   "delivery": {
     "pending": "Okunmadı"
-  }
+  },
+  "slash.antigravity.goal": "Uzun süreli görevi tamamen bitene kadar titizlikle çalıştır",
+  "slash.antigravity.teamworkPreview": "Karmaşık projeler için çoklu ajan ekip çalışması iş akışı",
+  "slash.antigravity.plan": "Uygulama öncesinde adım adım detaylı planlama",
+  "slash.antigravity.grillMe": "Tasarım kararlarını netleştirmek için etkileşimli mülakat",
+  "slash.antigravity.boost": "Derin düşünme, stratejik planlama ve titiz doğrulama",
+  "slash.antigravity.browser": "Web tarama, belge arama ve çevrimiçi araştırma",
+  "slash.antigravity.schedule": "Yinelenen zamanlama veya süreli görev yürütme",
+  "slash.antigravity.learn": "Gelecekteki görevler için kuralları ve deneyimleri kaydet"
 }

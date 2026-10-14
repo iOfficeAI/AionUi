@@ -28,6 +28,7 @@ import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSu
 import { isForkEnabled } from '@/common/chat/forkConversation';
 import { useForkConversation } from '@/renderer/hooks/chat/useForkConversation';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
+import { estimateTurnTokenUsage } from '@/common/chat/tokenUsage';
 
 /**
  * Format a timestamp for message display.
@@ -52,6 +53,7 @@ export const formatMessageTime = (timestamp: number): string => {
   return time;
 };
 import MessageCronBadge from './MessageCronBadge';
+import MessageTokenUsage from './MessageTokenUsage';
 import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import TeammateMessageAvatar from './TeammateMessageAvatar';
 import { useTeammateColor } from '@/renderer/pages/team/identity/TeamIdentityContext';
@@ -165,6 +167,13 @@ const MessageText: React.FC<{
   const { data, json } = useFormatContent(renderedText);
   const shouldRenderPlainText = isUserMessage || Boolean(contextResetNotice);
   const conversationContext = useConversationContextSafe();
+  const turnUsage =
+    message.content.token_usage ??
+    (message.msg_id ? conversationContext?.turnsTokenUsage?.[message.msg_id] : undefined) ??
+    (message.id ? conversationContext?.turnsTokenUsage?.[message.id] : undefined) ??
+    (!isUserMessage && typeof message.content.content === 'string' && message.content.content.trim()
+      ? estimateTurnTokenUsage(message.content.content)
+      : undefined);
   const forkConversation = useForkConversation(conversationContext?.conversation_id);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -367,6 +376,12 @@ const MessageText: React.FC<{
                 {formatMessageTime(message.created_at)}
               </span>
             )}
+            {!isUserMessage && turnUsage && <MessageTokenUsage tokenUsage={turnUsage} />}
+          </div>
+        )}
+        {isMobile && showCopyRow && !isUserMessage && turnUsage && (
+          <div className='flex items-center mt-4px'>
+            <MessageTokenUsage tokenUsage={turnUsage} />
           </div>
         )}
       </div>

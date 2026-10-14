@@ -46,10 +46,11 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
-import { Button, Message, Tag } from '@arco-design/web-react';
-import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
+import { Button, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { Brain, Lightning, MagicHat, Plan, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { extractTeamworkTask, isTeamworkSlashCommand } from '@/common/chat/slash/antigravityCommands';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
@@ -122,6 +123,7 @@ const AcpSendBox: React.FC<{
     hasThinkingMessage,
     slashCommands,
     tokenUsage,
+    cumulativeTokenUsage,
     context_limit,
   } = messageState;
   const { t } = useTranslation();
@@ -436,12 +438,37 @@ Please check your local CLI tool authentication status`,
   // read it — every send path has to both forward and release it.
   const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
   const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
+  const [isTeamworkMode, setIsTeamworkMode] = useState(false);
 
   // Supporting agents (mid-turn delivery) send immediately, busy or not.
   // Non-supporting agents can no longer send while the agent is replying —
   // that path is hard-blocked with a toast; the only way to queue a message
   // while busy is the explicit "add to queue" entry (handleAddToQueue below).
   const onSendHandler = async (message: string): Promise<void | false> => {
+    // Intercept execution for Teamwork mode before file edits occur
+    if (isTeamworkSlashCommand(message) || isTeamworkMode) {
+      const task = extractTeamworkTask(message) || message;
+      clearFiles();
+      setSelectedSessions([]);
+      emitter.emit('acp.selected.file.clear');
+      try {
+        const res = await ipcBridge.teamwork.initiate({
+          conversationId: conversation_id,
+          userRequest: task,
+          workspace: conversationContext?.workspace,
+        });
+        if (res.success) {
+          Message.info(t('team.teamwork.interviewTitle'));
+          return;
+        } else if (res.error) {
+          Message.error(res.error);
+        }
+      } catch (err) {
+        Message.error(err instanceof Error ? err.message : String(err));
+      }
+      return;
+    }
+
     if (!supportsMidturnDelivery && isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -850,6 +877,17 @@ Please check your local CLI tool authentication status`,
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
+            <Tooltip content={t('team.teamwork.modeTooltip')}>
+              <Button
+                size='mini'
+                type={isTeamworkMode ? 'primary' : 'secondary'}
+                shape='round'
+                icon={<Plan theme='outline' size='14' />}
+                onClick={() => setIsTeamworkMode((prev) => !prev)}
+              >
+                {t('team.teamwork.modeLabel')}
+              </Button>
+            </Tooltip>
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}
@@ -930,7 +968,13 @@ Please check your local CLI tool authentication status`,
                 {t('team.interruptAndSend')}
               </Button>
             )}
-            {tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined}
+            {tokenUsage || cumulativeTokenUsage ? (
+              <ContextUsageIndicator
+                tokenUsage={tokenUsage}
+                cumulativeUsage={cumulativeTokenUsage}
+                context_limit={context_limit}
+              />
+            ) : undefined}
           </>
         }
         onAddToDraft={handleAddToQueue}

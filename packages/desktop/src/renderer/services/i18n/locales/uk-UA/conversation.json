@@ -93,7 +93,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Видалити проект",
+    "deleteProjectTitle": "Видалити проект",
+    "deleteProjectConfirm": "Видалити проект «{{name}}»? Усі діалоги ({{count}}) у цьому проекті буде видалено назавжди. Цю дію не можна скасувати.",
+    "deleteProjectSuccess": "Проект видалено"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
@@ -552,7 +556,13 @@
     "output": "Вивід",
     "thought": "Міркування",
     "cachedRead": "Читання кешу",
-    "cachedWrite": "Запис кешу"
+    "cachedWrite": "Запис кешу",
+    "cache": "Кеш",
+    "total": "Всього",
+    "replyTokens": "Токени відповіді",
+    "chatTotal": "Всього в чаті",
+    "sessionTotal": "Всього у вікні чату",
+    "contextWindow": "Вікно контексту"
   },
   "skill_generator": {
     "title": "Створити Навичку/Правило",
@@ -798,5 +808,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Розгорнути план",
     "collapse": "Згорнути план"
+  },
+  "browser": {
+    "stop": "Зупинити",
+    "retry": "Повторити",
+    "title": "Браузер",
+    "addressBarPlaceholder": "Введіть URL або пошуковий запит...",
+    "navigate": "Перейти",
+    "back": "Назад",
+    "forward": "Вперед",
+    "refresh": "Оновити",
+    "close": "Закрити",
+    "loading": "Завантаження...",
+    "profiles": "Профілі",
+    "clearData": "Очистити дані профілю",
+    "clearDataConfirm": "Очистити всі файли cookie та локальне сховище для цього профілю?",
+    "clearDataSuccess": "Дані профілю успішно очищено",
+    "backendEmbedded": "Вбудований",
+    "backendChrome": "Зовнішній Chrome",
+    "launchChrome": "Запустити Chrome",
+    "chromeConnected": "Підключено",
+    "safetyGateTitle": "Потрібне підтвердження дії",
+    "safetyGateDesc": "Автоматизована дія потребує вашого схвалення перед продовженням.",
+    "safetyApprove": "Схвалити",
+    "safetyReject": "Відхилити",
+    "safetyRemember": "Запам'ятати вибір (автосхвалення)",
+    "safetyTarget": "Цільовий обліковий запис",
+    "safetyCaption": "Підпис / Вміст",
+    "safetyMedia": "Медіафайл"
   }
 }

@@ -85,6 +85,10 @@ function resolveBackendDataDir(): string {
     fs.mkdirSync(resolved, { recursive: true });
     return resolved;
   }
+  const portableDir = path.join(repoRoot, 'data', 'aionui');
+  if (fs.existsSync(portableDir)) {
+    return portableDir;
+  }
   const suffix =
     process.env.NODE_ENV === 'production' ? '' : process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
   const dir = path.join(os.homedir(), `.aionui-web${suffix}`);

@@ -9,6 +9,7 @@ import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import ConversationPlanBar from '@renderer/pages/conversation/PlanBar/ConversationPlanBar';
+import { TeamworkPanel } from '@renderer/components/Teamwork';
 import { usePlanRecovery } from '@renderer/pages/conversation/PlanBar/usePlanRecovery';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
@@ -26,6 +27,7 @@ import React, { useMemo } from 'react';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import { useAionrsMessage } from './useAionrsMessage';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -61,6 +63,7 @@ const AionrsChat: React.FC<{
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
   usePlanRecovery(conversation_id);
+  const messageState = useAionrsMessage(conversation_id);
   const conversationValue = useMemo<ConversationContextValue>(() => {
     return {
       conversation_id: conversation_id,
@@ -72,6 +75,8 @@ const AionrsChat: React.FC<{
       loadedMcpStatuses,
       assistantId,
       forkCapability,
+      turnsTokenUsage: messageState.turnsTokenUsage,
+      cumulativeTokenUsage: messageState.cumulativeTokenUsage,
     };
   }, [
     conversation_id,
@@ -82,6 +87,8 @@ const AionrsChat: React.FC<{
     loadedMcpStatuses,
     assistantId,
     forkCapability,
+    messageState.turnsTokenUsage,
+    messageState.cumulativeTokenUsage,
   ]);
 
   return (
@@ -92,11 +99,13 @@ const AionrsChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <ConversationPlanBar conversation_id={conversation_id} />
+          <TeamworkPanel conversation_id={conversation_id} workspace={workspace} />
           <AionrsSendBox
             conversation_id={conversation_id}
             modelSelection={modelSelection}
             session_mode={session_mode}
             agent_name={agent_name}
+            messageState={messageState}
             teamSendMessage={teamSendMessage}
             teamRuntime={teamRuntime}
           />

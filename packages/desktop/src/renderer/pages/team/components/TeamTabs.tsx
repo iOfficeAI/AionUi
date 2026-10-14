@@ -1,15 +1,31 @@
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CloseSmall, Drag, Edit, Plus } from '@icon-park/react';
+import { Button, Input, Tooltip, Trigger } from '@arco-design/web-react';
+import {
+  Check,
+  CloseSmall,
+  Down,
+  Drag,
+  Edit,
+  Left,
+  Peoples,
+  Plus,
+  Right,
+  Search,
+  Github,
+  BookOne,
+} from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TeammateStatus } from '@/common/types/team/teamTypes';
+import type { TeamAssistant, TeammateStatus } from '@/common/types/team/teamTypes';
 import { restrictToHorizontalAxis } from '@/renderer/utils/ui/dndModifiers';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
+import { KnowledgeRepoModal } from './KnowledgeRepoModal';
+import { MemberRepoAssignModal } from './MemberRepoAssignModal';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -33,6 +49,7 @@ type TeamTabViewProps = {
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
+  onAssignRepos?: (slot_id: string) => void;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -51,6 +68,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   onSwitch,
   onRename,
   onRemove,
+  onAssignRepos,
 }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -205,6 +223,19 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='13' fill='currentColor' />
         </span>
       )}
+      {showHoverActions && onAssignRepos && (
+        <span
+          data-testid={`team-tab-repos-${slot_id}`}
+          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--brand)] transition-colors duration-150'
+          title='Attach Knowledge Repos'
+          onClick={(e) => {
+            e.stopPropagation();
+            onAssignRepos(slot_id);
+          }}
+        >
+          <BookOne theme='outline' size='13' fill='currentColor' />
+        </span>
+      )}
       {showHoverActions && !isLeader && onRemove && (
         <span
           data-testid={`team-tab-remove-${slot_id}`}
@@ -221,6 +252,202 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   );
 };
 
+type TeamMembersDropdownProps = {
+  assistants: TeamAssistant[];
+  activeSlotId: string;
+  statusMap: Map<string, { status: TeammateStatus }>;
+  failedSlotIds?: Set<string>;
+  colorOf: (slot_id: string) => string;
+  visibleSlotIds: Set<string>;
+  hasOverflow: boolean;
+  onSelectMember: (slot_id: string) => void;
+};
+
+/**
+ * 下拉菜单：查看团队全部成员 / 其余折叠成员，支持在成员较多时快速搜索和一键跳转。
+ */
+const TeamMembersDropdown: React.FC<TeamMembersDropdownProps> = ({
+  assistants,
+  activeSlotId,
+  statusMap,
+  failedSlotIds,
+  colorOf,
+  visibleSlotIds,
+  hasOverflow,
+  onSelectMember,
+}) => {
+  const { t } = useTranslation();
+  const [visible, setVisible] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const hiddenAssistants = useMemo(
+    () => assistants.filter((a) => !visibleSlotIds.has(a.slot_id)),
+    [assistants, visibleSlotIds]
+  );
+  const inViewAssistants = useMemo(
+    () => assistants.filter((a) => visibleSlotIds.has(a.slot_id)),
+    [assistants, visibleSlotIds]
+  );
+  const hiddenCount = hasOverflow ? hiddenAssistants.length : 0;
+
+  const allFiltered = useMemo(() => {
+    if (!search.trim()) return assistants;
+    const q = search.toLowerCase();
+    return assistants.filter((a) => a.assistant_name.toLowerCase().includes(q));
+  }, [assistants, search]);
+
+  const handleSelect = (slot_id: string) => {
+    onSelectMember(slot_id);
+    setVisible(false);
+    setSearch('');
+  };
+
+  const renderMemberItem = (assistant: TeamAssistant) => {
+    const isActive = assistant.slot_id === activeSlotId;
+    const isLeader = assistant.role === 'leader';
+    const status = statusMap.get(assistant.slot_id)?.status ?? assistant.status;
+    const color = colorOf(assistant.slot_id);
+    const warmupFailed = failedSlotIds?.has(assistant.slot_id) ?? false;
+
+    return (
+      <div
+        key={assistant.slot_id}
+        data-testid={`team-dropdown-member-${assistant.slot_id}`}
+        className={`flex items-center justify-between gap-8px px-8px py-6px rounded-6px cursor-pointer transition-colors duration-150 ${
+          isActive ? 'bg-[color:var(--color-fill-3)] font-600' : 'hover:bg-[color:var(--color-fill-2)]'
+        }`}
+        onClick={() => handleSelect(assistant.slot_id)}
+      >
+        <div className='flex items-center gap-8px min-w-0 flex-1'>
+          <div
+            className='relative shrink-0 w-22px h-22px flex items-center justify-center rounded-full text-11px font-600 bg-fill-2'
+            style={{ border: `1.5px solid ${color}` }}
+          >
+            {assistant.icon ? (
+              <img src={assistant.icon} alt='' className='w-full h-full object-cover rounded-full' />
+            ) : (
+              <span style={{ color }}>{assistant.assistant_name.slice(0, 1).toUpperCase()}</span>
+            )}
+            {warmupFailed ? (
+              <span className='absolute -end-2px -bottom-2px w-8px h-8px rounded-full bg-[color:var(--color-danger-6)]' />
+            ) : (
+              <span className='absolute -end-2px -bottom-2px'>
+                <AgentStatusBadge status={status} overlay />
+              </span>
+            )}
+          </div>
+          <span className='text-13px text-t-primary truncate' style={{ color: isActive ? color : undefined }}>
+            {assistant.assistant_name}
+          </span>
+          {isLeader && (
+            <span className='shrink-0 text-10px font-medium px-4px py-1px rounded-4px bg-[color:var(--color-fill-3)] text-t-tertiary'>
+              {t('team.create.teamLeader')}
+            </span>
+          )}
+        </div>
+        {isActive && (
+          <span className='shrink-0 text-[color:var(--color-brand)]'>
+            <Check theme='outline' size='14' fill='currentColor' />
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Trigger
+      popupVisible={visible}
+      onVisibleChange={setVisible}
+      trigger='click'
+      position='br'
+      popupAlign={{ bottom: 8 }}
+      getPopupContainer={() => document.body}
+      popup={() => (
+        <div
+          data-testid='team-members-dropdown-panel'
+          className='flex max-h-[min(380px,65vh)] w-260px min-h-0 flex-col rounded-10px border border-solid border-3 bg-dialog-fill-0 p-8px shadow-[0_4px_16px_rgba(0,0,0,0.12)]'
+          style={{ zIndex: 10020 }}
+        >
+          {/* Header */}
+          <div className='flex items-center justify-between pb-6px px-4px border-b border-solid border-3 mb-6px'>
+            <span className='text-13px font-600 text-t-primary'>
+              {hasOverflow && hiddenCount > 0 ? t('team.restMembers') : t('team.allMembers')}
+            </span>
+            <span className='text-11px text-t-tertiary font-medium'>
+              {t('team.memberCount', {
+                visible: hasOverflow ? inViewAssistants.length : assistants.length,
+                total: assistants.length,
+              })}
+            </span>
+          </div>
+
+          {/* Search if more than 3 members */}
+          {assistants.length > 3 && (
+            <div className='mb-6px px-2px'>
+              <Input
+                size='mini'
+                allowClear
+                value={search}
+                onChange={setSearch}
+                prefix={<Search size='12' />}
+                placeholder={t('team.searchMembers')}
+                className='rounded-6px'
+              />
+            </div>
+          )}
+
+          {/* List */}
+          <div className='flex-1 overflow-y-auto min-h-0 flex flex-col gap-2px pr-2px'>
+            {search.trim() ? (
+              allFiltered.length > 0 ? (
+                allFiltered.map(renderMemberItem)
+              ) : (
+                <div className='py-16px text-center text-12px text-t-tertiary'>{t('team.noMatchingMembers')}</div>
+              )
+            ) : hasOverflow && hiddenCount > 0 ? (
+              <>
+                <div className='text-11px font-600 text-t-tertiary px-6px py-2px uppercase tracking-wider'>
+                  {t('team.hiddenMembers')} ({hiddenCount})
+                </div>
+                {hiddenAssistants.map(renderMemberItem)}
+                <div className='text-11px font-600 text-t-tertiary px-6px pt-6px pb-2px uppercase tracking-wider border-t border-solid border-3 mt-4px'>
+                  {t('team.inViewMembers')} ({inViewAssistants.length})
+                </div>
+                {inViewAssistants.map(renderMemberItem)}
+              </>
+            ) : (
+              assistants.map(renderMemberItem)
+            )}
+          </div>
+        </div>
+      )}
+    >
+      <Tooltip
+        content={hasOverflow && hiddenCount > 0 ? `${t('team.restMembers')} (+${hiddenCount})` : t('team.allMembers')}
+        position='bottom'
+      >
+        <Button
+          type='text'
+          size='small'
+          data-testid='team-tab-members-dropdown-btn'
+          className={`h-28px px-6px text-12px font-medium rounded-6px flex items-center gap-4px transition-colors duration-150 ${
+            hasOverflow && hiddenCount > 0
+              ? 'text-[color:var(--brand)] bg-[color:var(--color-primary-light-1)] hover:bg-[color:var(--color-primary-light-2)]'
+              : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] hover:bg-[color:var(--bg-2)]'
+          }`}
+        >
+          <Peoples theme='outline' size='14' />
+          {hasOverflow && hiddenCount > 0 ? (
+            <span className='font-600 text-11px'>+{hiddenCount}</span>
+          ) : (
+            <Down theme='outline' size='12' />
+          )}
+        </Button>
+      </Tooltip>
+    </Trigger>
+  );
+};
+
 type TeamTabsProps = {
   onTabClick?: (slot_id: string) => void;
   /** Pending permission confirmation counts per assistant slot ID */
@@ -229,13 +456,21 @@ type TeamTabsProps = {
   warmingUp?: boolean;
   /** warmup 失败的成员 slot：胶囊头像标红提示，引导用户移除/换模型自救。 */
   failedSlotIds?: Set<string>;
+  /** Controls to render on the right side of the tab bar (e.g. active teammate's model selector, actions, fullscreen) */
+  rightSlot?: React.ReactNode;
 };
 
 /**
  * Tab bar for team mode showing assistant tabs with status badges.
- * Supports scroll overflow with fade indicators.
+ * Supports scroll overflow with visible arrow buttons, inline search filter, and dropdown for rest of members.
  */
-const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingUp = false, failedSlotIds }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({
+  onTabClick,
+  pendingCounts,
+  warmingUp = false,
+  failedSlotIds,
+  rightSlot,
+}) => {
   const { t } = useTranslation();
   const {
     assistants,
@@ -248,31 +483,69 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     addAssistant,
     colorOf,
   } = useTeamTabs();
-  // 胶囊操作（增/删/改名）只在「warmup 进行中」禁用。warmup 一旦结束——无论成功还是失败——
-  // 就全部放开。后端对增删改成员本身有并发锁保证串行，前端不需要再叠一层忙碌禁用
-  // （否则删完一个成员，后端重建剩余成员时又会把胶囊锁住，出现「删一个卡一下」的怪体验）。
   const memberOpsDisabled = warmingUp;
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
-  // 拖拽进行中：冻结所有胶囊的 hover 增宽（改名/移除按钮），否则拖动经过时
-  // 目标胶囊变宽→布局跳→hover 丢失→又变窄，形成闪烁循环。
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [visibleSlotIds, setVisibleSlotIds] = useState<Set<string>>(new Set());
+  const [tabFilterQuery, setTabFilterQuery] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isKnowledgeModalOpen, setIsKnowledgeModalOpen] = useState(false);
+  const [assignRepoAssistant, setAssignRepoAssistant] = useState<TeamAssistant | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const filteredAssistants = useMemo(() => {
+    if (!tabFilterQuery.trim()) return assistants;
+    const q = tabFilterQuery.toLowerCase();
+    return assistants.filter((assistant) => assistant.assistant_name.toLowerCase().includes(q));
+  }, [assistants, tabFilterQuery]);
+
   // Only teammates are sortable; the leader pill is rendered outside the sortable id list.
   const sortableIds = useMemo(
-    () => assistants.filter((assistant) => assistant.role !== 'leader').map((assistant) => assistant.slot_id),
-    [assistants]
+    () => filteredAssistants.filter((assistant) => assistant.role !== 'leader').map((assistant) => assistant.slot_id),
+    [filteredAssistants]
   );
 
   const updateTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
-    const hasOverflow = container.scrollWidth > container.clientWidth + 1;
-    setShowLeftFade(hasOverflow && container.scrollLeft > TAB_OVERFLOW_THRESHOLD);
+    const overflow = container.scrollWidth > container.clientWidth + 1;
+    setHasOverflow(overflow);
+    setShowLeftFade(overflow && container.scrollLeft > TAB_OVERFLOW_THRESHOLD);
     setShowRightFade(
-      hasOverflow && container.scrollLeft + container.clientWidth < container.scrollWidth - TAB_OVERFLOW_THRESHOLD
+      overflow && container.scrollLeft + container.clientWidth < container.scrollWidth - TAB_OVERFLOW_THRESHOLD
     );
+
+    const containerRect = container.getBoundingClientRect();
+    const visible = new Set<string>();
+    const tabElements = container.querySelectorAll<HTMLElement>('[data-testid^="team-tab-"]');
+    tabElements.forEach((el) => {
+      const testId = el.getAttribute('data-testid') || '';
+      if (
+        !testId.startsWith('team-tab-') ||
+        testId.includes('-drag-') ||
+        testId.includes('-name-') ||
+        testId.includes('-edit-') ||
+        testId.includes('-remove-') ||
+        testId.includes('-failed-') ||
+        testId.includes('-status-') ||
+        testId.includes('-bar') ||
+        testId.includes('-add-member') ||
+        testId.includes('-scroll-') ||
+        testId.includes('-filter-') ||
+        testId.includes('-members-')
+      ) {
+        return;
+      }
+      const slotId = testId.replace('team-tab-', '');
+      const rect = el.getBoundingClientRect();
+      if (rect.right > containerRect.left + 20 && rect.left < containerRect.right - 20) {
+        visible.add(slotId);
+      }
+    });
+    setVisibleSlotIds(visible);
   }, []);
 
   useEffect(() => {
@@ -290,6 +563,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     };
   }, [updateTabOverflow]);
 
+  useEffect(() => {
+    updateTabOverflow();
+  }, [assistants, updateTabOverflow]);
+
   const handleDragStart = useCallback(() => setDragActive(true), []);
 
   const handleDragEnd = useCallback(
@@ -303,107 +580,257 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
 
   const handleDragCancel = useCallback(() => setDragActive(false), []);
 
+  const scrollTabBar = useCallback((direction: 'left' | 'right') => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    const scrollAmount = 200;
+    container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  }, []);
+
+  const scrollTabIntoView = useCallback((slot_id: string) => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    const tabEl = container.querySelector<HTMLElement>(`[data-testid="team-tab-${slot_id}"]`);
+    if (tabEl) {
+      tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, []);
+
   if (assistants.length === 0) return null;
 
   return (
     <div
       data-testid='team-tab-bar'
-      className='relative shrink-0 bg-1 border-t border-x border-b border-solid border-[color:var(--border-base)]'
+      className='relative shrink-0 bg-1 border-b border-solid border-[color:var(--border-base)]'
     >
-      <div className='relative flex items-stretch min-h-48px'>
-        {/* 可横向滚动的成员胶囊列表 */}
-        <div
-          ref={tabsContainerRef}
-          className='flex items-center gap-6px flex-1 min-w-0 overflow-x-auto overflow-y-hidden py-8px px-12px [scrollbar-width:none]'
-        >
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            modifiers={[restrictToHorizontalAxis]}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
-              {assistants.map((assistant) => {
-                const statusInfo = statusMap.get(assistant.slot_id);
-                return (
-                  <TeamTabView
-                    key={assistant.slot_id}
-                    slot_id={assistant.slot_id}
-                    assistant_name={assistant.assistant_name}
-                    assistant_backend={assistant.assistant_backend}
-                    icon={assistant.icon}
-                    conversation_id={assistant.conversation_id}
-                    isActive={assistant.slot_id === activeSlotId}
-                    status={statusInfo?.status ?? assistant.status}
-                    isLeader={assistant.role === 'leader'}
-                    warmupFailed={failedSlotIds?.has(assistant.slot_id) ?? false}
-                    color={colorOf(assistant.slot_id)}
-                    pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
-                    dragActive={dragActive}
-                    onSwitch={(slot_id) => {
-                      switchTab(slot_id);
-                      onTabClick?.(slot_id);
-                    }}
-                    onRename={
-                      renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
-                    }
-                    onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
-        </div>
-        {/* 两侧渐隐提示「还有更多」，只覆盖滚动区、不盖固定的添加入口 */}
-        {showLeftFade && (
+      <div className='relative flex items-center justify-between min-h-40px h-40px px-12px gap-12px'>
+        {/* 可横向滚动的成员胶囊列表 + 滚动箭头 + 下拉查看其余成员 + 添加成员 */}
+        <div className='relative flex items-center flex-1 min-w-0 h-full overflow-hidden'>
+          {/* Left scroll arrow */}
+          {showLeftFade && (
+            <div
+              className='absolute start-0 top-0 bottom-0 z-20 flex items-center'
+              style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 60%, transparent)' }}
+            >
+              <Tooltip content={t('team.scrollTabs.left')} position='bottom'>
+                <Button
+                  type='secondary'
+                  shape='circle'
+                  size='mini'
+                  aria-label={t('team.scrollTabs.left')}
+                  data-testid='team-tab-scroll-left'
+                  className='!w-24px !h-24px ms-2px shrink-0 !p-0 flex items-center justify-center text-[color:var(--color-text-2)] bg-[color:var(--color-bg-2)] border-[color:var(--color-border-2)] hover:bg-[color:var(--color-bg-3)] hover:text-[color:var(--color-text-1)]'
+                  onClick={() => scrollTabBar('left')}
+                  icon={<Left size='14' fill='currentColor' />}
+                />
+              </Tooltip>
+            </div>
+          )}
           <div
-            className='pointer-events-none absolute start-0 top-0 bottom-0 w-28px z-10'
-            style={{ background: 'linear-gradient(90deg, var(--color-bg-1), transparent)' }}
-          />
-        )}
-        {showRightFade && (
-          <div
-            className='pointer-events-none absolute top-0 bottom-0 w-28px z-10'
+            ref={tabsContainerRef}
+            className='flex items-center gap-6px flex-1 min-w-0 overflow-x-auto overflow-y-hidden py-3px [scrollbar-width:none]'
             style={{
-              right: 'var(--team-add-w, 132px)',
-              background: 'linear-gradient(270deg, var(--color-bg-1), transparent)',
+              paddingLeft: showLeftFade ? '32px' : undefined,
+              paddingRight: showRightFade ? '32px' : undefined,
             }}
-          />
-        )}
-        {/* 固定在最右、不随列表滚动的「添加成员」；左侧一根分隔线与成员列表隔开，按钮本身无边框。 */}
-        {addAssistant ? (
-          <div className='flex items-center shrink-0 border-s border-solid border-[color:var(--border-base)] px-8px'>
-            <TeamAddMemberPopover disabled={memberOpsDisabled}>
-              <button
-                type='button'
-                disabled={memberOpsDisabled}
-                data-testid='team-tab-add-member'
-                // 禁用态：只把文字调浅，位置/尺寸/背景/边框都不变。
-                // 原生 <button>:disabled 会叠加浏览器默认灰底 + 收缩高度，className 的 appearance/bg
-                // 在禁用态下可能被 UA 样式盖过；这里用内联 style 强制关掉原生外观并锁定盒模型，保证两态一致。
-                style={{
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  background: 'transparent',
-                  border: 'none',
-                  height: 32,
-                  lineHeight: 'normal',
-                }}
-                className={`flex items-center gap-6px px-10px rounded-8px text-13px font-500 whitespace-nowrap transition-colors duration-150 ${
-                  memberOpsDisabled
-                    ? 'text-[color:var(--text-disabled)] cursor-not-allowed'
-                    : 'text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)] cursor-pointer'
-                }`}
-              >
-                <Plus theme='outline' size='15' fill='currentColor' className='leading-none' />
-                {t('team.addMember.title', { defaultValue: 'Add member' })}
-              </button>
-            </TeamAddMemberPopover>
+          >
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToHorizontalAxis]}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+                {filteredAssistants.length > 0 ? (
+                  filteredAssistants.map((assistant) => {
+                    const statusInfo = statusMap.get(assistant.slot_id);
+                    return (
+                      <TeamTabView
+                        key={assistant.slot_id}
+                        slot_id={assistant.slot_id}
+                        assistant_name={assistant.assistant_name}
+                        assistant_backend={assistant.assistant_backend}
+                        icon={assistant.icon}
+                        conversation_id={assistant.conversation_id}
+                        isActive={assistant.slot_id === activeSlotId}
+                        status={statusInfo?.status ?? assistant.status}
+                        isLeader={assistant.role === 'leader'}
+                        warmupFailed={failedSlotIds?.has(assistant.slot_id) ?? false}
+                        color={colorOf(assistant.slot_id)}
+                        pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
+                        dragActive={dragActive}
+                        onSwitch={(slot_id) => {
+                          switchTab(slot_id);
+                          onTabClick?.(slot_id);
+                        }}
+                        onRename={
+                          renameAssistant && !memberOpsDisabled
+                            ? (sid, name) => void renameAssistant(sid, name)
+                            : undefined
+                        }
+                        onRemove={
+                          removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined
+                        }
+                        onAssignRepos={(sid) => {
+                          const target = assistants.find((a) => a.slot_id === sid);
+                          if (target) setAssignRepoAssistant(target);
+                        }}
+                      />
+                    );
+                  })
+                ) : (
+                  <div className='flex items-center px-12px text-12px text-t-tertiary italic'>
+                    {t('team.noMatchingMembers')}
+                  </div>
+                )}
+              </SortableContext>
+            </DndContext>
           </div>
-        ) : null}
+          {/* Right scroll arrow */}
+          {showRightFade && (
+            <div
+              className='absolute end-0 top-0 bottom-0 z-20 flex items-center justify-end'
+              style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 60%, transparent)' }}
+            >
+              <Tooltip content={t('team.scrollTabs.right')} position='bottom'>
+                <Button
+                  type='secondary'
+                  shape='circle'
+                  size='mini'
+                  aria-label={t('team.scrollTabs.right')}
+                  data-testid='team-tab-scroll-right'
+                  className='!w-24px !h-24px me-2px shrink-0 !p-0 flex items-center justify-center text-[color:var(--color-text-2)] bg-[color:var(--color-bg-2)] border-[color:var(--color-border-2)] hover:bg-[color:var(--color-bg-3)] hover:text-[color:var(--color-text-1)]'
+                  onClick={() => scrollTabBar('right')}
+                  icon={<Right size='14' fill='currentColor' />}
+                />
+              </Tooltip>
+            </div>
+          )}
+
+          {/* 搜索/过滤成员按钮或输入框 */}
+          {assistants.length >= 2 && (
+            <div className='flex items-center shrink-0 ms-4px'>
+              {isFilterOpen ? (
+                <div className='flex items-center gap-4px'>
+                  <Input
+                    size='mini'
+                    allowClear
+                    autoFocus
+                    data-testid='team-tab-filter-input'
+                    value={tabFilterQuery}
+                    onChange={setTabFilterQuery}
+                    placeholder={t('team.filterMembers')}
+                    prefix={<Search size='12' />}
+                    className='w-120px h-28px rounded-6px'
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setTabFilterQuery('');
+                        setIsFilterOpen(false);
+                      }
+                    }}
+                  />
+                  <Button
+                    type='text'
+                    size='mini'
+                    icon={<CloseSmall size='14' />}
+                    className='h-24px w-24px p-0 text-[color:var(--text-secondary)]'
+                    onClick={() => {
+                      setTabFilterQuery('');
+                      setIsFilterOpen(false);
+                    }}
+                  />
+                </div>
+              ) : (
+                <Tooltip content={t('team.filterMembers')} position='bottom'>
+                  <Button
+                    type='text'
+                    size='small'
+                    data-testid='team-tab-filter-toggle'
+                    icon={<Search size='14' />}
+                    className='h-28px w-28px p-0 rounded-6px text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] hover:bg-[color:var(--bg-2)]'
+                    onClick={() => setIsFilterOpen(true)}
+                  />
+                </Tooltip>
+              )}
+            </div>
+          )}
+
+          {/* 下拉菜单查看其余成员 / 全部成员 */}
+          {assistants.length > 1 && (
+            <div className='flex items-center shrink-0 ms-2px'>
+              <TeamMembersDropdown
+                assistants={assistants}
+                activeSlotId={activeSlotId}
+                statusMap={statusMap}
+                failedSlotIds={failedSlotIds}
+                colorOf={colorOf}
+                visibleSlotIds={visibleSlotIds}
+                hasOverflow={hasOverflow}
+                onSelectMember={(slot_id) => {
+                  switchTab(slot_id);
+                  onTabClick?.(slot_id);
+                  scrollTabIntoView(slot_id);
+                }}
+              />
+            </div>
+          )}
+
+          {/* 添加成员 */}
+          {addAssistant ? (
+            <div className='flex items-center shrink-0 border-s border-solid border-[color:var(--border-base)] ms-6px ps-6px'>
+              <TeamAddMemberPopover disabled={memberOpsDisabled}>
+                <Button
+                  type='text'
+                  size='small'
+                  disabled={memberOpsDisabled}
+                  data-testid='team-tab-add-member'
+                  icon={<Plus theme='outline' size='14' />}
+                  className='h-28px px-8px text-12px font-medium rounded-6px text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)]'
+                >
+                  {t('team.addMember.title', { defaultValue: 'Add member' })}
+                </Button>
+              </TeamAddMemberPopover>
+            </div>
+          ) : null}
+
+          {/* Knowledge Repos Button */}
+          <div className='flex items-center shrink-0 border-s border-solid border-[color:var(--border-base)] ms-6px ps-6px'>
+            <Button
+              type='text'
+              size='small'
+              icon={<Github theme='outline' size='14' />}
+              onClick={() => setIsKnowledgeModalOpen(true)}
+              className='h-28px px-8px text-12px font-medium rounded-6px text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)]'
+            >
+              {t('team.knowledgeRepos.tabLabel')}
+            </Button>
+          </div>
+        </div>
+
+        {/* 右侧插槽：单聊 / 单成员时的模型选择、运行重启及全屏切换 */}
+        {rightSlot && (
+          <div className='flex items-center gap-8px shrink-0 ps-10px border-s border-solid border-[color:var(--border-base)]'>
+            {rightSlot}
+          </div>
+        )}
       </div>
+
+      <KnowledgeRepoModal visible={isKnowledgeModalOpen} onClose={() => setIsKnowledgeModalOpen(false)} />
+
+      {assignRepoAssistant && (
+        <MemberRepoAssignModal
+          visible={Boolean(assignRepoAssistant)}
+          assistant={assignRepoAssistant}
+          onClose={() => setAssignRepoAssistant(null)}
+          onSave={(assignedRepoIds, whenToUseHint) => {
+            assignRepoAssistant.knowledgeRepoIds = assignedRepoIds;
+            assignRepoAssistant.whenToUseHint = whenToUseHint;
+            setAssignRepoAssistant(null);
+          }}
+        />
+      )}
     </div>
   );
 };

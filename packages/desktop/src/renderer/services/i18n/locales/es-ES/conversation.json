@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Eliminar proyecto",
+    "deleteProjectTitle": "Eliminar proyecto",
+    "deleteProjectConfirm": "¿Eliminar el proyecto \"{{name}}\"? Todas las {{count}} conversaciones de este proyecto se eliminarán permanentemente. Esta acción no se puede deshacer.",
+    "deleteProjectSuccess": "Proyecto eliminado"
   },
   "historySearch": {
     "tooltip": "Buscar mensajes",
@@ -545,7 +549,13 @@
     "output": "Salida",
     "thought": "Razonamiento",
     "cachedRead": "Lectura de caché",
-    "cachedWrite": "Escritura de caché"
+    "cachedWrite": "Escritura de caché",
+    "cache": "Caché",
+    "total": "Total",
+    "replyTokens": "Tokens de respuesta",
+    "chatTotal": "Total del chat",
+    "sessionTotal": "Total de la ventana de chat",
+    "contextWindow": "Ventana de contexto"
   },
   "skill_generator": {
     "title": "Generar habilidad/regla",
@@ -783,5 +793,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expandir plan",
     "collapse": "Contraer plan"
+  },
+  "browser": {
+    "stop": "Detener",
+    "retry": "Reintentar",
+    "title": "Navegador",
+    "addressBarPlaceholder": "Introduce una URL o busca...",
+    "navigate": "Ir",
+    "back": "Atrás",
+    "forward": "Adelante",
+    "refresh": "Recargar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "profiles": "Perfiles",
+    "clearData": "Borrar datos del perfil",
+    "clearDataConfirm": "¿Borrar todas las cookies y almacenamiento local de este perfil?",
+    "clearDataSuccess": "Datos del perfil borrados con éxito",
+    "backendEmbedded": "Integrado",
+    "backendChrome": "Chrome externo",
+    "launchChrome": "Iniciar Chrome",
+    "chromeConnected": "Conectado",
+    "safetyGateTitle": "Aprobación de acción requerida",
+    "safetyGateDesc": "Una acción automatizada requiere su aprobación antes de continuar.",
+    "safetyApprove": "Aprobar",
+    "safetyReject": "Rechazar",
+    "safetyRemember": "Recordar elección (autoaprobar)",
+    "safetyTarget": "Cuenta de destino",
+    "safetyCaption": "Título / Contenido",
+    "safetyMedia": "Archivo multimedia"
   }
 }

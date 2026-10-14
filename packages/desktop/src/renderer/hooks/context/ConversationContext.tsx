@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IConversationMcpStatus } from '@/common/config/storage';
+import type { IConversationMcpStatus, TokenUsageData } from '@/common/config/storage';
 import React, { createContext, useContext } from 'react';
 
 /**
@@ -76,6 +76,16 @@ export interface ConversationContextValue {
    * attachments reach the agent as file paths, and the send box hints so.
    */
   promptCapability?: { image: boolean; audio: boolean };
+
+  /**
+   * Per-turn token usage keyed by message ID / turn msg_id
+   */
+  turnsTokenUsage?: Record<string, TokenUsageData>;
+
+  /**
+   * Cumulative session token usage across the conversation
+   */
+  cumulativeTokenUsage?: TokenUsageData | null;
 }
 
 /**

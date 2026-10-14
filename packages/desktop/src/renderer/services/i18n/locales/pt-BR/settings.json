@@ -1417,5 +1417,15 @@
   "crossSessionMessageDesc": "Permite que agentes enviem mensagens para suas outras conversas. Desativar também desliga a menção @@ na caixa de entrada.",
   "crossSessionMessageDisabledBanner": "As mensagens entre conversas estão desativadas, a menção @@ não está disponível.",
   "crossSessionMessageResume": "Ativar novamente",
-  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas"
+  "crossSessionMessageUpdateFailed": "Falha ao atualizar a configuração de mensagens entre conversas",
+  "backupDir": "Diretório de Backup",
+  "changeBackupDir": "Alterar diretório de backup",
+  "backupDirDesc": "Pasta onde os backups do banco de dados e configurações serão salvos",
+  "backupNow": "Fazer Backup Agora",
+  "backingUp": "Fazendo backup...",
+  "backupSuccess": "Dados salvos em {{path}}",
+  "backupFailed": "Falha ao fazer backup dos dados",
+  "openBackupDir": "Abrir Pasta",
+  "mcpServers": "Servidores e ferramentas MCP",
+  "browserAutomation": "Automação do navegador"
 }

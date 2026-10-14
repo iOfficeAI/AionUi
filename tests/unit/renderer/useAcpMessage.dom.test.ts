@@ -59,6 +59,9 @@ vi.mock('@/common', () => ({
       getUsage: {
         invoke: getUsageInvokeMock,
       },
+      update: {
+        invoke: vi.fn().mockResolvedValue(undefined),
+      },
     },
   },
 }));
@@ -496,6 +499,8 @@ describe('useAcpMessage', () => {
       expect(result.current.context_limit).toBe(200_000);
     });
     expect(result.current.tokenUsage).toEqual({ total_tokens: 90_000 });
+    expect(result.current.turnsTokenUsage['usage-1']).toEqual({ total_tokens: 90_000 });
+    expect(result.current.cumulativeTokenUsage).toEqual({ total_tokens: 90_000 });
   });
 
   it('survives a failing usage snapshot request without touching indicator state', async () => {

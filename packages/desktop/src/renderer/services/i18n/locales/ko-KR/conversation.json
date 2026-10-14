@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "프로젝트 삭제",
+    "deleteProjectTitle": "프로젝트 삭제",
+    "deleteProjectConfirm": "프로젝트 \"{{name}}\"을(를) 삭제하시겠습니까? 이 프로젝트의 대화 {{count}}개가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "deleteProjectSuccess": "프로젝트가 삭제되었습니다"
   },
   "historySearch": {
     "tooltip": "메시지 검색",
@@ -544,7 +548,13 @@
     "output": "출력",
     "thought": "사고",
     "cachedRead": "캐시 읽기",
-    "cachedWrite": "캐시 쓰기"
+    "cachedWrite": "캐시 쓰기",
+    "cache": "캐시",
+    "total": "총합",
+    "replyTokens": "응답 토큰",
+    "chatTotal": "채팅 총합",
+    "sessionTotal": "채팅창 전체 토큰",
+    "contextWindow": "컨텍스트 윈도우"
   },
   "skill_generator": {
     "title": "스킬/규칙 생성",
@@ -782,5 +792,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "계획 펼치기",
     "collapse": "계획 접기"
+  },
+  "browser": {
+    "stop": "중지",
+    "retry": "다시 시도",
+    "title": "브라우저",
+    "addressBarPlaceholder": "URL 또는 검색어 입력...",
+    "navigate": "이동",
+    "back": "뒤로",
+    "forward": "앞으로",
+    "refresh": "새로고침",
+    "close": "닫기",
+    "loading": "로딩 중...",
+    "profiles": "프로필",
+    "clearData": "프로필 데이터 삭제",
+    "clearDataConfirm": "이 프로필의 모든 쿠키와 로컬 스토리지를 삭제하시겠습니까?",
+    "clearDataSuccess": "프로필 데이터가 성공적으로 삭제되었습니다",
+    "backendEmbedded": "임베디드",
+    "backendChrome": "외부 Chrome",
+    "launchChrome": "Chrome 실행",
+    "chromeConnected": "연결됨",
+    "safetyGateTitle": "작업 승인 필요",
+    "safetyGateDesc": "계속하기 전에 자동화 작업에 대한 승인이 필요합니다.",
+    "safetyApprove": "승인",
+    "safetyReject": "거부",
+    "safetyRemember": "선택 기억하기(자동 승인)",
+    "safetyTarget": "대상 계정",
+    "safetyCaption": "문구 / 내용",
+    "safetyMedia": "미디어 파일"
   }
 }

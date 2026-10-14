@@ -1414,5 +1414,15 @@
   "crossSessionMessageDesc": "به عامل‌ها اجازه می‌دهد به گفتگوهای دیگر شما پیام بفرستند. با خاموش کردن، منشن @@ در کادر ورودی نیز غیرفعال می‌شود.",
   "crossSessionMessageDisabledBanner": "پیام‌های بین گفتگوها خاموش است، منشن @@ در دسترس نیست.",
   "crossSessionMessageResume": "روشن کردن دوباره",
-  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود"
+  "crossSessionMessageUpdateFailed": "به‌روزرسانی تنظیم پیام‌های بین گفتگوها ناموفق بود",
+  "backupDir": "مسیر پشتیبان‌گیری",
+  "changeBackupDir": "تغییر مسیر پشتیبان‌گیری",
+  "backupDirDesc": "پوشه‌ای که پشتیبان‌های پایگاه داده و تنظیمات در آن ذخیره می‌شوند",
+  "backupNow": "پشتیبان‌گیری اکنون",
+  "backingUp": "در حال پشتیبان‌گیری...",
+  "backupSuccess": "داده‌ها در {{path}} ذخیره شدند",
+  "backupFailed": "پشتیبان‌گیری داده‌ها ناموفق بود",
+  "openBackupDir": "باز کردن پوشه",
+  "mcpServers": "سرورها و ابزارهای MCP",
+  "browserAutomation": "اتوماسیون مرورگر"
 }

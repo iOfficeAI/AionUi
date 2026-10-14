@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -48,12 +49,13 @@ import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/c
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Button, Message, Tag } from '@arco-design/web-react';
-import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
+import { Button, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { Brain, Lightning, MagicHat, Plan, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { extractTeamworkTask, isTeamworkSlashCommand } from '@/common/chat/slash/antigravityCommands';
 import { classifyConversationBusyError } from '../conversationBusyError';
-import { useAionrsMessage } from './useAionrsMessage';
+import { useAionrsMessage, type UseAionrsMessageReturn } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
 const configErrorMessageKey = (error: unknown) => {
@@ -116,15 +118,30 @@ const useSendBoxDraft = (conversation_id: string) => {
   };
 };
 
-const AionrsSendBox: React.FC<{
+export interface AionrsSendBoxProps {
   conversation_id: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
-  const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
+  messageState?: UseAionrsMessageReturn;
+}
+
+const AionrsSendBoxInner: React.FC<AionrsSendBoxProps & { messageState: UseAionrsMessageReturn }> = ({
+  conversation_id,
+  modelSelection,
+  session_mode,
+  agent_name,
+  teamSendMessage,
+  teamRuntime,
+  messageState,
+}) => {
+  const [internalDynamicModes, setInternalDynamicModes] = useState<AgentModeOption[]>([]);
+  const dynamicModes =
+    messageState.dynamicModes && messageState.dynamicModes.length > 0
+      ? messageState.dynamicModes
+      : internalDynamicModes;
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const layout = useLayoutContext();
@@ -144,17 +161,16 @@ const AionrsSendBox: React.FC<{
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, turnStartedAtMs, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(
-    conversation_id,
-    {
-      onConfigChanged: (capabilities) => {
-        const modes = (capabilities as { modes?: string[] })?.modes;
-        if (modes && modes.length > 0) {
-          setDynamicModes(modeOptionsFromCapabilities(modes));
-        }
-      },
-    }
-  );
+  const {
+    thought,
+    running,
+    turnStartedAtMs,
+    tokenUsage,
+    cumulativeTokenUsage,
+    setActiveMsgId,
+    setWaitingResponse,
+    resetState,
+  } = messageState;
   const runtimeView = useConversationRuntimeView(conversation_id);
   const { markSendStarted, markSendAccepted, markSendFailed } = runtimeView;
 
@@ -384,12 +400,37 @@ const AionrsSendBox: React.FC<{
   // read it — every send path has to both forward and release it.
   const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
   const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
+  const [isTeamworkMode, setIsTeamworkMode] = useState(false);
 
   // aionrs backends never support mid-turn delivery: while the agent is
   // replying, sending is hard-blocked with a toast instead of implicitly
   // enqueuing. The only way to queue a message while busy is the explicit
   // "add to queue" entry (handleAddToQueue below).
   const onSendHandler = async (message: string): Promise<void | false> => {
+    // Intercept execution for Teamwork mode before file edits occur
+    if (isTeamworkSlashCommand(message) || isTeamworkMode) {
+      const task = extractTeamworkTask(message) || message;
+      clearFiles();
+      setSelectedSessions([]);
+      emitter.emit('aionrs.selected.file.clear');
+      try {
+        const res = await ipcBridge.teamwork.initiate({
+          conversationId: conversation_id,
+          userRequest: task,
+          workspace: conversationContext?.workspace,
+        });
+        if (res.success) {
+          Message.info(t('team.teamwork.interviewTitle'));
+          return;
+        } else if (res.error) {
+          Message.error(res.error);
+        }
+      } catch (err) {
+        Message.error(err instanceof Error ? err.message : String(err));
+      }
+      return;
+    }
+
     if (isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -803,6 +844,17 @@ const AionrsSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
+            <Tooltip content={t('team.teamwork.modeTooltip')}>
+              <Button
+                size='mini'
+                type={isTeamworkMode ? 'primary' : 'secondary'}
+                shape='round'
+                icon={<Plan theme='outline' size='14' />}
+                onClick={() => setIsTeamworkMode((prev) => !prev)}
+              >
+                {t('team.teamwork.modeLabel')}
+              </Button>
+            </Tooltip>
             <AgentModeSelector
               backend='aionrs'
               conversation_id={conversation_id}
@@ -876,17 +928,26 @@ const AionrsSendBox: React.FC<{
         }
         allowSendWhileLoading
         sendButtonPrefix={
-          teamRuntime?.onInterruptSend && content.trim() ? (
-            <Button
-              size='mini'
-              type='secondary'
-              icon={<Lightning />}
-              loading={interrupting}
-              onClick={() => void handleInterruptSend()}
-            >
-              {t('team.interruptAndSend')}
-            </Button>
-          ) : undefined
+          <>
+            {teamRuntime?.onInterruptSend && content.trim() && (
+              <Button
+                size='mini'
+                type='secondary'
+                icon={<Lightning />}
+                loading={interrupting}
+                onClick={() => void handleInterruptSend()}
+              >
+                {t('team.interruptAndSend')}
+              </Button>
+            )}
+            {tokenUsage || cumulativeTokenUsage ? (
+              <ContextUsageIndicator
+                tokenUsage={tokenUsage}
+                cumulativeUsage={cumulativeTokenUsage}
+                context_limit={current_model?.context_limit ?? 0}
+              />
+            ) : undefined}
+          </>
         }
       />
       {isMobile && (
@@ -902,6 +963,34 @@ const AionrsSendBox: React.FC<{
       )}
     </div>
   );
+};
+
+const AionrsSendBoxWithHook: React.FC<AionrsSendBoxProps> = (props) => {
+  const [hookDynamicModes, setHookDynamicModes] = useState<AgentModeOption[]>([]);
+  const messageState = useAionrsMessage(props.conversation_id, {
+    onConfigChanged: (capabilities) => {
+      const modes = (capabilities as { modes?: string[] })?.modes;
+      if (modes && modes.length > 0) {
+        setHookDynamicModes(modeOptionsFromCapabilities(modes));
+      }
+    },
+  });
+  return (
+    <AionrsSendBoxInner
+      {...props}
+      messageState={{
+        ...messageState,
+        dynamicModes: messageState.dynamicModes?.length ? messageState.dynamicModes : hookDynamicModes,
+      }}
+    />
+  );
+};
+
+const AionrsSendBox: React.FC<AionrsSendBoxProps> = (props) => {
+  if (props.messageState) {
+    return <AionrsSendBoxInner {...props} messageState={props.messageState} />;
+  }
+  return <AionrsSendBoxWithHook {...props} />;
 };
 
 export default AionrsSendBox;

@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "プロジェクトを削除",
+    "deleteProjectTitle": "プロジェクトを削除",
+    "deleteProjectConfirm": "プロジェクト「{{name}}」を削除しますか？このプロジェクトの {{count}} 件の会話は完全に削除されます。この操作は元に戻せません。",
+    "deleteProjectSuccess": "プロジェクトが削除されました"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -544,7 +548,13 @@
     "output": "出力",
     "thought": "思考",
     "cachedRead": "キャッシュ読み取り",
-    "cachedWrite": "キャッシュ書き込み"
+    "cachedWrite": "キャッシュ書き込み",
+    "cache": "キャッシュ",
+    "total": "合計",
+    "replyTokens": "返答トークン",
+    "chatTotal": "チャット合計",
+    "sessionTotal": "チャット全体のトークン",
+    "contextWindow": "コンテキストウィンドウ"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",
@@ -782,5 +792,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "プランを展開",
     "collapse": "プランを折りたたむ"
+  },
+  "browser": {
+    "stop": "停止",
+    "retry": "再試行",
+    "title": "ブラウザ",
+    "addressBarPlaceholder": "URLまたは検索キーワードを入力...",
+    "navigate": "移動",
+    "back": "戻る",
+    "forward": "進む",
+    "refresh": "更新",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "profiles": "プロファイル",
+    "clearData": "プロファイルデータを消去",
+    "clearDataConfirm": "このプロファイルのすべてのCookieとローカルストレージを消去しますか？",
+    "clearDataSuccess": "プロファイルデータが正常に消去されました",
+    "backendEmbedded": "埋め込み",
+    "backendChrome": "外部 Chrome",
+    "launchChrome": "Chromeを起動",
+    "chromeConnected": "接続済み",
+    "safetyGateTitle": "アクションの承認が必要です",
+    "safetyGateDesc": "続行する前に自動化アクションの承認が必要です。",
+    "safetyApprove": "承認",
+    "safetyReject": "拒否",
+    "safetyRemember": "この選択を記憶する（自動承認）",
+    "safetyTarget": "対象アカウント",
+    "safetyCaption": "投稿文 / コンテンツ",
+    "safetyMedia": "メディアファイル"
   }
 }

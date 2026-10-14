@@ -29,6 +29,7 @@ export type ConfigKeyMap = {
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;
+  'system.backupDir': string | undefined;
   'system.keepAwake': boolean | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;

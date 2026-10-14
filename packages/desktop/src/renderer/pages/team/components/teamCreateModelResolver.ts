@@ -101,5 +101,14 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
+  try {
+    const providers = (await ipcBridge.mode.listProviders.invoke()) ?? [];
+    const activeProvider = providers.find((p) => p.enabled !== false && Array.isArray(p.models) && p.models.length > 0);
+    if (activeProvider?.models?.[0]) {
+      return activeProvider.models[0];
+    }
+  } catch (err) {
+    console.warn('[teamCreateModelResolver] Failed to resolve aionrs default provider:', err);
+  }
   return 'default';
 }
