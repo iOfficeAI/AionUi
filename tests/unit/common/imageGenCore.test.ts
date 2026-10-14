@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { processImageUri, saveGeneratedImage, executeImageGeneration } from '@/common/chat/imageGenCore';
+import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
 
 let cleanupDirs: string[] = [];
 
@@ -31,6 +32,7 @@ function createNonImageFile(dir: string, name: string): string {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const d of cleanupDirs) {
     try {
       rmSync(d, { recursive: true, force: true });
@@ -196,6 +198,213 @@ describe('saveGeneratedImage', () => {
 });
 
 describe('executeImageGeneration', () => {
+  it('uses the OpenAI Images API for GPT Image 2 and saves returned base64 data', async () => {
+    const ws = createWorkspace();
+    const createImage = vi.fn().mockResolvedValue({
+      created: 1,
+      output_format: 'png',
+      data: [{ b64_json: PNG_1x1.toString('base64') }],
+    });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({ createImage } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'a watercolor fox' },
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        base_url: 'https://api.openai.com/v1',
+        api_key: 'sk-test',
+        use_model: 'gpt-image-2',
+      },
+      ws
+    );
+
+    expect(createImage).toHaveBeenCalledWith(
+      { model: 'gpt-image-2', prompt: 'a watercolor fox' },
+      expect.objectContaining({ timeout: 180000 })
+    );
+    expect(result.success).toBe(true);
+    expect(result.imagePath).toMatch(/img-\d+\.png$/);
+    expect(result.text).toContain('Generated image saved to:');
+  });
+
+  it('downloads URL results returned by OpenAI-compatible image providers', async () => {
+    const ws = createWorkspace();
+    const createImage = vi.fn().mockResolvedValue({
+      created: 1,
+      data: [{ url: 'https://cdn.example.com/generated.png' }],
+    });
+    const download = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(PNG_1x1, {
+        status: 200,
+        headers: { 'content-type': 'image/png', 'content-length': String(PNG_1x1.byteLength) },
+      })
+    );
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({ createImage } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'a neon city' },
+      {
+        id: 'xai',
+        name: 'xAI',
+        platform: 'custom',
+        base_url: 'https://api.x.ai/v1',
+        api_key: 'xai-test',
+        use_model: 'grok-imagine-image-2.0',
+      },
+      ws
+    );
+
+    expect(download).toHaveBeenCalledWith('https://cdn.example.com/generated.png', { signal: undefined });
+    expect(result.success).toBe(true);
+    expect(result.imagePath).toMatch(/img-\d+\.png$/);
+  });
+
+  it('accepts the images array response variant used by compatible gateways', async () => {
+    const ws = createWorkspace();
+    const createImage = vi.fn().mockResolvedValue({
+      images: [{ b64_json: PNG_1x1.toString('base64') }],
+    });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({ createImage } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'editorial illustration' },
+      {
+        id: 'gateway',
+        name: 'Images Gateway',
+        platform: 'custom',
+        base_url: 'https://images.example.com/v1',
+        api_key: 'test-key',
+        use_model: 'recraftv4_1_pro',
+      },
+      ws
+    );
+
+    expect(createImage).toHaveBeenCalledOnce();
+    expect(result.success).toBe(true);
+    expect(result.imagePath).toMatch(/img-\d+\.png$/);
+  });
+
+  it('uses Microsoft MAI endpoint authentication for custom deployment names', async () => {
+    const ws = createWorkspace();
+    const createImage = vi.fn().mockResolvedValue({ data: [{ b64_json: PNG_1x1.toString('base64') }] });
+    const createClient = vi
+      .spyOn(ClientFactory, 'createRotatingClient')
+      .mockResolvedValue({ createImage } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'a studio product photo' },
+      {
+        id: 'mai',
+        name: 'Microsoft Foundry',
+        platform: 'custom',
+        base_url: 'https://example.services.ai.azure.com/mai/v1',
+        api_key: 'azure-test',
+        use_model: 'production-image-deployment',
+      },
+      ws
+    );
+
+    expect(createClient).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        baseConfig: expect.objectContaining({
+          baseURL: 'https://example.services.ai.azure.com/mai/v1',
+          defaultHeaders: { 'api-key': 'azure-test' },
+        }),
+      })
+    );
+    expect(createImage).toHaveBeenCalledWith(expect.objectContaining({ width: 1024, height: 1024 }), expect.anything());
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a generated image URL that returns non-image content', async () => {
+    const ws = createWorkspace();
+    const createImage = vi.fn().mockResolvedValue({ data: [{ url: 'https://cdn.example.com/error' }] });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"error":"expired"}', { status: 200, headers: { 'content-type': 'application/json' } })
+    );
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({ createImage } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'a neon city' },
+      {
+        id: 'xai',
+        name: 'xAI',
+        platform: 'custom',
+        base_url: 'https://api.x.ai/v1',
+        api_key: 'xai-test',
+        use_model: 'grok-imagine-image-2.0',
+      },
+      ws
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('unsupported content type');
+  });
+
+  it('keeps nano-banana on the chat completion image route', async () => {
+    const ws = createWorkspace();
+    const createChatCompletion = vi.fn().mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'done',
+            images: [{ type: 'image_url', image_url: { url: DATA_URL_PNG } }],
+          },
+        },
+      ],
+    });
+    vi.spyOn(ClientFactory, 'createRotatingClient').mockResolvedValue({
+      createChatCompletion,
+    } as unknown as RotatingClient);
+
+    const result = await executeImageGeneration(
+      { prompt: 'a watercolor fox' },
+      {
+        id: 'openrouter',
+        name: 'OpenRouter',
+        platform: 'custom',
+        base_url: 'https://openrouter.ai/api/v1',
+        api_key: 'sk-test',
+        use_model: 'nano-banana',
+      },
+      ws
+    );
+
+    expect(createChatCompletion).toHaveBeenCalledOnce();
+    expect(createChatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({ modalities: ['image', 'text'] }),
+      expect.objectContaining({ timeout: 180000 })
+    );
+    expect(result.success).toBe(true);
+    expect(result.imagePath).toMatch(/img-\d+\.png$/);
+  });
+
+  it('returns a clear error when GPT Image 2 editing is requested', async () => {
+    const ws = createWorkspace();
+    createImageFile(ws, 'input.png');
+    const createClient = vi.spyOn(ClientFactory, 'createRotatingClient');
+
+    const result = await executeImageGeneration(
+      { prompt: 'make it blue', image_uris: ['input.png'] },
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        base_url: 'https://api.openai.com/v1',
+        api_key: 'sk-test',
+        use_model: 'gpt-image-2',
+      },
+      ws
+    );
+
+    expect(createClient).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.text).toContain('Image editing is not yet supported');
+  });
+
   it('should return error for a non-existent workspace directory', async () => {
     const result = await executeImageGeneration(
       { prompt: 'a cat' },
