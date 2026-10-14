@@ -1,0 +1,180 @@
+{
+  "loading": "Memuat...",
+  "downloadFile": "Unduh berkas",
+  "closePreview": "Tutup pratinjau",
+  "collapsePanel": "Ciutkan panel",
+  "maximizePanel": "Maksimalkan",
+  "restorePanel": "Pulihkan",
+  "source": "Sumber",
+  "code": "Kode",
+  "preview": "Pratinjau",
+  "editor": "Editor",
+  "previewEffect": "Pratinjau",
+  "downloadMarkdown": "Unduh berkas Markdown",
+  "downloadCode": "Unduh berkas {{language}}",
+  "downloadDiff": "Unduh berkas Diff",
+  "addToChat": "Tambahkan ke obrolan",
+  "openSplitScreen": "Buka layar belah",
+  "closeSplitScreen": "Tutup layar belah",
+  "edit": "Edit",
+  "exitEdit": "Keluar dari Edit",
+  "unsavedChangesTitle": "Perubahan Belum Disimpan",
+  "unsavedChangesMessage": "Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar dari pengeditan?",
+  "confirmExit": "Konfirmasi Keluar",
+  "continueEdit": "Lanjutkan Mengedit",
+  "closeTabTitle": "Tutup Tab",
+  "closeTabMessage": "Konten saat ini belum disimpan. Apakah Anda ingin menyimpan sebelum menutup?",
+  "closeTabsTitle": "Tutup Tab",
+  "closeTabsMessage": "{{count}} tab memiliki perubahan yang belum disimpan. Simpan sebelum menutup?",
+  "closeTabsMessage_one": "{{count}} tab memiliki perubahan yang belum disimpan. Simpan sebelum menutup?",
+  "closeTabsMessage_other": "{{count}} tab memiliki perubahan yang belum disimpan. Simpan sebelum menutup?",
+  "saveAndClose": "Simpan dan Tutup",
+  "closeWithoutSave": "Jangan Simpan",
+  "pptTitle": "Presentasi PowerPoint",
+  "pptOpenHint": "Klik tombol di bawah untuk membuka di aplikasi sistem guna melihat konten lengkap",
+  "pptOpenFile": "Buka Berkas",
+  "pptShowLocation": "Tampilkan Lokasi",
+  "pptSystemAppHint": "Akan dibuka dengan aplikasi sistem default (PowerPoint, Keynote, atau WPS)",
+  "openWithApp": "Buka di {{app}}",
+  "openInSystemApp": "Buka di aplikasi sistem",
+  "openInSystemSuccess": "Dibuka di aplikasi default sistem",
+  "openInSystemFailed": "Gagal dibuka dengan aplikasi sistem",
+  "close": "Tutup",
+  "closeLeft": "Tutup Kiri",
+  "closeRight": "Tutup Kanan",
+  "closeOthers": "Tutup Lainnya",
+  "closeAll": "Tutup Semua",
+  "closeUnmodified": "Tutup yang Tak Diubah",
+  "copyPath": "Salin Path",
+  "copyRelativePath": "Salin Path Relatif",
+  "openLocation": "Tampilkan di folder",
+  "openLocationFailed": "Gagal membuka folder berisi",
+  "readOnlyLabel": "Pratinjau hanya-baca",
+  "pathLabel": "Path",
+  "missingFile": {
+    "title": "Berkas tidak ditemukan",
+    "openInNewTab": "Coba buka di tab baru"
+  },
+  "noTabs": "Tidak ada tab terbuka",
+  "openInPanelTooltip": "Lihat di panel pratinjau",
+  "mermaidTitle": "Diagram Mermaid",
+  "wavedromTitle": "Diagram WaveDrom",
+  "oversized": {
+    "title": "Berkas terlalu besar untuk dipratinjau",
+    "detail": "Ukuran berkas {{size}} melebihi batas {{threshold}}. Silakan buka di editor sistem.",
+    "downloadUnavailable": "Berkas ini terlalu besar untuk diunduh di sini. Gunakan “Buka di sistem” sebagai gantinya."
+  },
+  "unsupported": {
+    "title": "Pratinjau tidak didukung untuk format ini",
+    "detail": "Berkas {{format}} tidak dapat dipratinjau di sini. Buka di aplikasi sistem sebagai gantinya.",
+    "downloadUnavailable": "Berkas ini tidak dapat diunduh di sini. Gunakan “Buka di sistem” sebagai gantinya."
+  },
+  "aiWriting": "AI sedang menulis…",
+  "errors": {
+    "missingFilePath": "Path berkas tidak ada",
+    "openWithoutPath": "Tidak dapat membuka: path berkas tidak diberikan",
+    "conversionFailed": "Konversi gagal"
+  },
+  "office": {
+    "installLinkText": "Buka panduan pemasangan officecli",
+    "errors": {
+      "officecliNotFound": "officecli belum terpasang.",
+      "installFailed": "Gagal memasang officecli secara otomatis. Periksa log backend dan coba lagi.",
+      "portTimeout": "Layanan pratinjau mulai tetapi tidak siap tepat waktu. Coba lagi.",
+      "startFailed": "Gagal memulai layanan pratinjau Office.",
+      "outsideSandbox": "Berkas ini berada di luar sandbox proyek saat ini."
+    },
+    "serverInstall": {
+      "hint": "AionUi berjalan di server. Pasang komponen pratinjau di server tersebut, lalu coba lagi:",
+      "icuNote": "Jika masih gagal mulai, pasang pustaka ICU di server (Debian/Ubuntu: apt-get install -y libicu-dev)."
+    }
+  },
+  "word": {
+    "title": "Dokumen Word",
+    "loading": "Memuat dokumen Word...",
+    "invalid": "Pastikan berkas tersebut dokumen Word yang valid",
+    "loadFailed": "Gagal memuat dokumen Word",
+    "watch": {
+      "loading": "Memuat dokumen Word...",
+      "installing": "Memasang officecli...",
+      "startFailed": "Gagal memulai pratinjau Word",
+      "installHint": "Membutuhkan officecli. Akan dipasang otomatis."
+    }
+  },
+  "excel": {
+    "title": "Lembar Kerja Excel",
+    "loading": "Memuat buku kerja Excel...",
+    "invalid": "Pastikan berkas tersebut dokumen Excel yang valid",
+    "noSheets": "Tidak ditemukan lembar kerja di berkas Excel ini",
+    "sheetCount": "{{count}} lembar kerja",
+    "convertFailed": "Konversi Excel gagal",
+    "loadFailed": "Gagal memuat buku kerja Excel",
+    "emptySheet": "Lembar kerja ini tidak ada datanya",
+    "emptySheetHint": "Periksa apakah lembar berisi data atau gambar",
+    "watch": {
+      "loading": "Memuat berkas Excel...",
+      "installing": "Memasang officecli...",
+      "startFailed": "Gagal memulai pratinjau Excel",
+      "installHint": "Membutuhkan officecli. Akan dipasang otomatis."
+    }
+  },
+  "pdf": {
+    "title": "Dokumen PDF",
+    "pathMissing": "Path berkas PDF tidak ada",
+    "loadFailed": "Gagal memuat dokumen PDF",
+    "unableDisplay": "Tidak dapat menampilkan berkas PDF"
+  },
+  "html": {
+    "elementSelected": "Elemen terpilih: {{path}}",
+    "copySuccess": "Cuplikan HTML disalin",
+    "inspectorEnabled": "Inspektur elemen diaktifkan. Klik item di pratinjau untuk menyorotnya.",
+    "inspectorButton": "Inspektur elemen",
+    "inspecting": "Memeriksa...",
+    "selectedLabel": "Terpilih:",
+    "inspectorTooltip": "Klik elemen pratinjau untuk memeriksa HTML-nya",
+    "downloadHtml": "Unduh berkas HTML",
+    "copyElementHtml": "Salin HTML elemen",
+    "viewElementInfo": "Lihat info elemen",
+    "printedToConsole": "Info elemen dicatat ke konsol",
+    "inspectElement": "Periksa elemen",
+    "inspectElementEnable": "Aktifkan inspektur elemen",
+    "inspectElementDisable": "Nonaktifkan inspektur elemen"
+  },
+  "ppt": {
+    "loading": "Memulai pratinjau PPT...",
+    "installing": "Memasang komponen pratinjau...",
+    "startFailed": "Gagal memulai pratinjau PPT",
+    "installHint": "Pasang OfficeCLI dari halaman rilis resmi iOfficeAI/OfficeCLI"
+  },
+  "browser": {
+    "newTab": "Tab baru",
+    "addressPlaceholder": "Masukkan URL atau cari",
+    "agentActiveTooltip": "Agen sedang mengoperasikan tab ini",
+    "tabLimitReached": "Batas tab browser tercapai ({{count}}). Tab terlama dipakai ulang.",
+    "agentFirstUseTitle": "Agen sedang memakai browser dalam aplikasi",
+    "agentFirstUseContent": "Agen dapat membuka halaman, mengklik, dan membaca konten di panel ini. Status masuk Anda tetap tersimpan antar sesi.",
+    "agentFirstUseAction": "Buka pengaturan"
+  },
+  "saveConflict": "Tidak dapat menyimpan: berkas ini berubah di disk sejak Anda membukanya. Muat ulang untuk melihat perubahan lain — edit Anda masih di sini, belum tersimpan.",
+  "persistQuotaExceeded": "Penyimpanan lokal penuh, sehingga tab yang terbuka tidak dapat lagi diingat untuk proyek ini. Tutup sebagian tab atau bersihkan data situs.",
+  "save": {
+    "tooltip": "Simpan perubahan (Ctrl/Cmd+S)",
+    "clean": "Tidak ada perubahan yang belum disimpan"
+  },
+  "refresh": {
+    "label": "Muat Ulang",
+    "tooltip": "Muat ulang dari disk",
+    "hasUpdate": "Berkas ini berubah di disk — muat ulang untuk melihatnya",
+    "noSignalSource": "Berkas ini tidak ada dalam proyek, sehingga perubahan tidak akan diumumkan",
+    "unavailable": "Berkas ini tidak dapat ditemukan",
+    "failed": "Tidak dapat memuat ulang berkas ini",
+    "confirmTitle": "Muat ulang dan hilangkan perubahan yang belum disimpan?",
+    "confirmMessage": "Tab ini memiliki perubahan yang belum disimpan. Memuat ulang akan menggantinya dengan isi di disk.",
+    "discardAndRefresh": "Buang perubahan dan muat ulang",
+    "officeNotWired": "Muat ulang dokumen Office belum tersedia — tutup dan buka ulang berkas untuk melihat perubahan."
+  },
+  "zoomIn": "Perbesar",
+  "zoomOut": "Perkecil",
+  "zoomReset": "Atur ulang tampilan",
+  "diagramZoomHint": "Gulir untuk memperbesar • Seret untuk menggeser • ESC untuk menutup"
+}

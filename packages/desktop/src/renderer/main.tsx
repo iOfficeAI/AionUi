@@ -71,6 +71,7 @@ import ptBR from '@arco-design/web-react/es/locale/pt-BR';
 import deDE from '@arco-design/web-react/es/locale/de-DE';
 import esES from '@arco-design/web-react/es/locale/es-ES';
 import frFR from '@arco-design/web-react/es/locale/fr-FR';
+import idID from '@arco-design/web-react/es/locale/id-ID';
 import { useTranslation } from 'react-i18next';
 
 // Styles
@@ -167,6 +168,7 @@ const arcoLocales: Record<string, typeof enUS> = {
   'de-DE': completeArcoLocale(deDE),
   'es-ES': completeArcoLocale(esES),
   'fr-FR': completeArcoLocale(frFR),
+  'id-ID': completeArcoLocale(idID),
 };
 
 const INSTALLATION_INTEGRITY_FAILURES = new Set<RuntimeFailureKind>([
