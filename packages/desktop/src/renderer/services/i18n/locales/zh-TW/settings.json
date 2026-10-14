@@ -1424,5 +1424,7 @@
   "backingUp": "備份中...",
   "backupSuccess": "資料已成功備份至 {{path}}",
   "backupFailed": "備份資料失敗",
-  "openBackupDir": "開啟目錄"
+  "openBackupDir": "開啟目錄",
+  "mcpServers": "MCP 服務與工具",
+  "browserAutomation": "瀏覽器自動化"
 }

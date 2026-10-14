@@ -312,5 +312,51 @@
     "planRejected": "Plan returned for revision.",
     "startScopingTooltip": "Start Structured Scoping & Verification Interview",
     "buttonLabel": "Scoping Gate"
+  },
+  "knowledgeRepos": {
+    "title": "Knowledge Repositories",
+    "tabLabel": "Knowledge Repos",
+    "addRepo": "Add Repository",
+    "repoName": "Repository Name",
+    "gitUrl": "Git HTTPS URL",
+    "ref": "Branch / Tag",
+    "subpath": "Subpath (optional)",
+    "token": "Access Token (optional)",
+    "tokenPlaceholder": "Personal Access Token for private repos",
+    "autoUpdate": "Auto-update",
+    "pin": "Pin to commit",
+    "pinned": "Pinned",
+    "unpin": "Unpin",
+    "rollback": "Rollback to previous",
+    "updateNow": "Update now",
+    "lastChecked": "Last checked",
+    "lastUpdated": "Last updated",
+    "updatedRecently": "Updated recently",
+    "viewChanges": "View changes",
+    "commit": "Commit",
+    "status": {
+      "idle": "Up to date",
+      "syncing": "Syncing...",
+      "error": "Sync error",
+      "needsAttention": "Needs attention"
+    },
+    "trust": {
+      "untrusted": "Untrusted",
+      "trusted": "Trusted",
+      "reapprovalRequired": "Re-approval required for setup"
+    },
+    "rulesCount": "{{count}} Rules",
+    "skillsCount": "{{count}} Skills",
+    "setupCount": "{{count}} Setup Files",
+    "noRepos": "No knowledge repositories added yet.",
+    "attachRepos": "Attach Knowledge Repos",
+    "whenToUseHint": "When to use (e.g. video production)",
+    "usingChip": "Using: {{repo}} → {{skill}}",
+    "effectiveInstructions": "Preview Effective Instructions",
+    "reapproveSetup": "Approve Setup Changes",
+    "setupInstructions": "Setup Instructions & Requirements",
+    "runSetup": "Run Setup",
+    "envVars": "Environment Variables",
+    "conflictsWarning": "Rule conflicts detected: higher-priority repo took precedence."
   }
 }

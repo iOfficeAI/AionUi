@@ -22,6 +22,7 @@ import {
   generateProjectPlanDoc,
   persistWorkspaceArtifacts,
 } from './scopingEngine';
+import { knowledgeRepoService } from '../knowledgeRepo/knowledgeRepoService';
 
 export type SubagentExecutionParams = {
   role: TeamworkRole;
@@ -29,6 +30,8 @@ export type SubagentExecutionParams = {
   contextBrief?: string;
   feedback?: string;
   workspace: string;
+  effectiveInstructions?: string;
+  knowledgeRepoIds?: string[];
 };
 
 export type SubagentExecutionResult = {
@@ -211,8 +214,9 @@ export class TeamworkOrchestrator {
     userRequest: string;
     workspace?: string;
     llmOutput?: string;
+    knowledgeRepoIds?: string[];
   }): TeamworkSessionState {
-    const { conversationId, userRequest, workspace = process.cwd(), llmOutput } = params;
+    const { conversationId, userRequest, workspace = process.cwd(), llmOutput, knowledgeRepoIds } = params;
     const sessionId = `teamwork_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const questions = buildScopingQuestions(userRequest, llmOutput);
@@ -228,6 +232,7 @@ export class TeamworkOrchestrator {
       conversationId,
       workspace,
       userRequest,
+      knowledgeRepoIds,
       phase: 'interview',
       questions,
       answers: {},
@@ -390,12 +395,26 @@ export class TeamworkOrchestrator {
           session.agentStatuses.worker.activeToolCall = 'write_file';
           this.notify(session);
 
+          // Build effective instructions for worker teammate if knowledge repos are active
+          const repoIds = session.knowledgeRepoIds || [];
+          let effectiveInstructions: string | undefined;
+          if (repoIds.length > 0) {
+            const instrResult = knowledgeRepoService.buildEffectiveInstructions({
+              memberName: 'Worker',
+              rolePrompt: 'Targeted file generation, editing, refactoring, and feature implementation per milestone.',
+              repoIds,
+            });
+            effectiveInstructions = instrResult.instructions;
+          }
+
           const workerResult = await this.runner.runSubagent({
             role: 'worker',
             milestone,
             contextBrief: explorerResult.output,
             feedback: lastFeedback || undefined,
             workspace: session.workspace,
+            effectiveInstructions,
+            knowledgeRepoIds: repoIds,
           });
 
           this.addTokens(session, 'worker', workerResult.tokensUsed);

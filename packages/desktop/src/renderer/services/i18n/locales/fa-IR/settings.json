@@ -1422,5 +1422,7 @@
   "backingUp": "در حال پشتیبان‌گیری...",
   "backupSuccess": "داده‌ها در {{path}} ذخیره شدند",
   "backupFailed": "پشتیبان‌گیری داده‌ها ناموفق بود",
-  "openBackupDir": "باز کردن پوشه"
+  "openBackupDir": "باز کردن پوشه",
+  "mcpServers": "سرورها و ابزارهای MCP",
+  "browserAutomation": "اتوماسیون مرورگر"
 }

@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Message, Spin } from '@arco-design/web-react';
+import { Message, Spin, Tag } from '@arco-design/web-react';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
@@ -141,7 +141,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamSlotPaused,
 }) => {
   const { t } = useTranslation();
-  const { activeSlotId, switchTab } = useTeamTabs();
+  const { activeSlotId, switchTab, assistants } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -270,10 +270,21 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
 
       if (isTeamworkSlashCommand(input)) {
         const cleanTask = extractTeamworkTask(input);
+        const memberRepoMap: Record<string, string[]> = {};
+        const allRepoIds = new Set<string>();
+        for (const a of assistants) {
+          if (a.knowledgeRepoIds && a.knowledgeRepoIds.length > 0) {
+            memberRepoMap[a.slot_id] = a.knowledgeRepoIds;
+            for (const r of a.knowledgeRepoIds) allRepoIds.add(r);
+          }
+        }
+
         const res = await teamScoping.initiate({
           team_id,
           userRequest: cleanTask || input,
           workspace: conversation.extra?.workspace,
+          knowledgeRepoIds: Array.from(allRepoIds),
+          memberRepoMap,
         });
         if (res.success && res.state) {
           setScopingState(res.state);
@@ -465,6 +476,26 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             />
           </div>
         )}
+      {/* Active Knowledge Repo chip if member has assigned repos */}
+      {(() => {
+        const currentMember =
+          assistants.find((a) => a.slot_id === slot_id) ||
+          (isLeader ? assistants.find((a) => a.role === 'leader') : undefined);
+        if (currentMember?.knowledgeRepoIds && currentMember.knowledgeRepoIds.length > 0) {
+          return (
+            <div className='px-3 py-1 flex items-center gap-6px bg-[var(--color-bg-2)] border-b border-[var(--color-border-2)] text-12px'>
+              <Tag color='arcoblue' size='small'>
+                {t('team.knowledgeRepos.usingChip', {
+                  repo: currentMember.knowledgeRepoIds[0],
+                  skill: currentMember.whenToUseHint || 'pipelines & rules',
+                  defaultValue: `Using: ${currentMember.knowledgeRepoIds[0]} → ${currentMember.whenToUseHint || 'pipeline'}`,
+                })}
+              </Tag>
+            </div>
+          );
+        }
+        return null;
+      })()}
       <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>
     </div>
   );

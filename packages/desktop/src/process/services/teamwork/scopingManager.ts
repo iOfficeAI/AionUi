@@ -23,6 +23,7 @@ import type {
   TeamworkPlan,
 } from '@/common/types/teamwork';
 import { verifyMilestoneDiff } from './auditorRole';
+import { knowledgeRepoService } from '../knowledgeRepo/knowledgeRepoService';
 
 export type TeamScopingStatusListener = (event: ITeamScopingStatusChangedEvent) => void;
 
@@ -130,7 +131,8 @@ export function generateTeamScopingQuestions(userRequest: string): ScopingQuesti
 export function synthesizeOriginalRequestDoc(
   userRequest: string,
   questions: ScopingQuestion[],
-  answers: Record<string, string>
+  answers: Record<string, string>,
+  knowledgeRepoIds?: string[]
 ): string {
   const timestamp = new Date().toISOString();
   const qaSection = questions
@@ -139,6 +141,16 @@ export function synthesizeOriginalRequestDoc(
       return `### Question ${idx + 1} [${q.category.toUpperCase()}]: ${q.question}\n**User Answer:** ${ans}\n`;
     })
     .join('\n');
+
+  let repoInstructionsBlock = '';
+  if (knowledgeRepoIds && knowledgeRepoIds.length > 0) {
+    const built = knowledgeRepoService.buildEffectiveInstructions({
+      memberName: 'Teammate',
+      rolePrompt: 'Autonomous multi-agent milestone execution',
+      repoIds: knowledgeRepoIds,
+    });
+    repoInstructionsBlock = ['', '## 5. Knowledge Repositories & Execution Playbook', built.instructions].join('\n');
+  }
 
   return [
     '# ORIGINAL_REQUEST.md',
@@ -160,7 +172,10 @@ export function synthesizeOriginalRequestDoc(
     '',
     '## 4. Scope Exclusions & Deferrals',
     '- Refactoring of unrelated legacy components is strictly out of scope.',
-  ].join('\n');
+    repoInstructionsBlock,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**
@@ -331,7 +346,7 @@ export class TeamScopingManager {
    * Phase 1: Initiate Scoping Interview for a Team.
    */
   async initiateScoping(params: InitiateTeamScopingParams): Promise<InitiateTeamScopingResponse> {
-    const { team_id, userRequest, workspace = process.cwd() } = params;
+    const { team_id, userRequest, workspace = process.cwd(), knowledgeRepoIds, memberRepoMap } = params;
     const questions = generateTeamScopingQuestions(userRequest);
 
     const state: TeamScopingState = {
@@ -341,6 +356,8 @@ export class TeamScopingManager {
       status: 'scoping',
       questions,
       answers: {},
+      knowledgeRepoIds,
+      memberRepoMap,
       updatedAt: Date.now(),
     };
 
@@ -361,7 +378,12 @@ export class TeamScopingManager {
     }
 
     state.answers = { ...state.answers, ...answers };
-    const originalRequestDoc = synthesizeOriginalRequestDoc(state.userRequest, state.questions, state.answers);
+    const originalRequestDoc = synthesizeOriginalRequestDoc(
+      state.userRequest,
+      state.questions,
+      state.answers,
+      state.knowledgeRepoIds
+    );
     const milestones = synthesizeMilestones(state.userRequest, state.questions, state.answers);
     const projectPlanDoc = synthesizeProjectPlanDoc(state.userRequest, milestones);
 

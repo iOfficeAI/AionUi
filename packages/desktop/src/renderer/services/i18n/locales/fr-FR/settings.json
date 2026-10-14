@@ -1422,5 +1422,7 @@
   "backingUp": "Sauvegarde en cours...",
   "backupSuccess": "Données sauvegardées dans {{path}}",
   "backupFailed": "Échec de la sauvegarde des données",
-  "openBackupDir": "Ouvrir le dossier"
+  "openBackupDir": "Ouvrir le dossier",
+  "mcpServers": "Serveurs et outils MCP",
+  "browserAutomation": "Automatisation du navigateur"
 }

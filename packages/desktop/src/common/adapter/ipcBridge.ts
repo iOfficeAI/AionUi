@@ -2593,3 +2593,114 @@ export const teamScoping = {
     return () => {};
   },
 };
+
+export const knowledgeRepo = {
+  list: async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoList) {
+      return window.electronAPI.knowledgeRepoList();
+    }
+    return [];
+  },
+  get: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoGet) {
+      return window.electronAPI.knowledgeRepoGet(id);
+    }
+    return undefined;
+  },
+  add: async (params: { name: string; gitUrl: string; ref?: string; subpath?: string; authToken?: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoAdd) {
+      return window.electronAPI.knowledgeRepoAdd(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  update: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoUpdate) {
+      return window.electronAPI.knowledgeRepoUpdate(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  rollback: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRollback) {
+      return window.electronAPI.knowledgeRepoRollback(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  pin: async (params: { id: string; pin: boolean }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoPin) {
+      return window.electronAPI.knowledgeRepoPin(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  setTrust: async (params: { id: string; trustStatus: import('../types/knowledgeRepo').KnowledgeRepoTrustStatus }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetTrust) {
+      return window.electronAPI.knowledgeRepoSetTrust(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  remove: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRemove) {
+      return window.electronAPI.knowledgeRepoRemove(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  buildInstructions: async (params: {
+    memberName: string;
+    rolePrompt?: string;
+    repoIds: string[];
+    whenToUseHint?: string;
+    tokenBudget?: number;
+  }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoBuildInstructions) {
+      return window.electronAPI.knowledgeRepoBuildInstructions(params);
+    }
+    return {
+      instructions: '',
+      estimatedTokens: 0,
+      budgetExceeded: false,
+      budgetLimitTokens: 8000,
+      conflicts: [],
+    };
+  },
+  buildTeamCapabilityCards: async (
+    members: Array<{
+      slot_id: string;
+      assistant_name: string;
+      knowledgeRepoIds?: string[];
+      whenToUseHint?: string;
+    }>
+  ) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoBuildTeamCapabilityCards) {
+      return window.electronAPI.knowledgeRepoBuildTeamCapabilityCards(members);
+    }
+    return [];
+  },
+  setTaskRunning: async (params: { repoIds: string[]; isRunning: boolean }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetTaskRunning) {
+      return window.electronAPI.knowledgeRepoSetTaskRunning(params);
+    }
+  },
+  runSetup: async (params: { repoId: string; projectId?: string; command: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRunSetup) {
+      return window.electronAPI.knowledgeRepoRunSetup(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  checkEnvironment: async (repoId: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoCheckEnvironment) {
+      return window.electronAPI.knowledgeRepoCheckEnvironment(repoId);
+    }
+    return [];
+  },
+  provisionWorkingCopy: async (params: { repoId: string; projectId: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoProvisionWorkingCopy) {
+      return window.electronAPI.knowledgeRepoProvisionWorkingCopy(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  setEnvVars: async (params: { id: string; envVars: Record<string, string> }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetEnvVars) {
+      return window.electronAPI.knowledgeRepoSetEnvVars(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+};

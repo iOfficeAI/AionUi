@@ -67,6 +67,8 @@ export type TeamAssistant = {
   context_reset: TeamContextResetCapability;
   learnedSkills?: TeamMemorySkill[];
   persistentMemory?: TeamMemory;
+  knowledgeRepoIds?: string[];
+  whenToUseHint?: string;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */

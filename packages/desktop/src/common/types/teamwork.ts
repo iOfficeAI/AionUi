@@ -96,6 +96,8 @@ export type TeamScopingState = {
   activeMilestoneId?: string;
   activeRole?: string;
   auditorFeedback?: string;
+  knowledgeRepoIds?: string[];
+  memberRepoMap?: Record<string, string[]>;
   error?: string;
   updatedAt: number;
 };
@@ -131,6 +133,7 @@ export type TeamworkSessionState = {
   tokenConsumption: TeamworkTokenConsumption;
   originalRequestDoc?: string;
   projectPlanDoc?: string;
+  knowledgeRepoIds?: string[];
   error?: string;
   createdAt: number;
   updatedAt: number;
@@ -140,6 +143,7 @@ export type InitiateTeamworkRequest = {
   conversationId: string;
   userRequest: string;
   workspace?: string;
+  knowledgeRepoIds?: string[];
 };
 
 export type InitiateTeamworkResponse = {
@@ -246,6 +250,8 @@ export type InitiateTeamScopingParams = {
   team_id: string;
   userRequest: string;
   workspace?: string;
+  knowledgeRepoIds?: string[];
+  memberRepoMap?: Record<string, string[]>;
 };
 
 export type InitiateTeamScopingResponse = {

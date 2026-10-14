@@ -1436,5 +1436,7 @@
   "backingUp": "Создание копии...",
   "backupSuccess": "Данные сохранены в {{path}}",
   "backupFailed": "Не удалось создать резервную копию данных",
-  "openBackupDir": "Открыть папку"
+  "openBackupDir": "Открыть папку",
+  "mcpServers": "Серверы и инструменты MCP",
+  "browserAutomation": "Автоматизация браузера"
 }

@@ -1425,5 +1425,7 @@
   "backingUp": "Fazendo backup...",
   "backupSuccess": "Dados salvos em {{path}}",
   "backupFailed": "Falha ao fazer backup dos dados",
-  "openBackupDir": "Abrir Pasta"
+  "openBackupDir": "Abrir Pasta",
+  "mcpServers": "Servidores e ferramentas MCP",
+  "browserAutomation": "Automação do navegador"
 }

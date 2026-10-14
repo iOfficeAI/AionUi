@@ -1422,5 +1422,7 @@
   "backingUp": "Yedekleniyor...",
   "backupSuccess": "Veriler {{path}} konumuna yedeklendi",
   "backupFailed": "Veri yedekleme başarısız oldu",
-  "openBackupDir": "Klasörü Aç"
+  "openBackupDir": "Klasörü Aç",
+  "mcpServers": "MCP Sunucuları ve Araçları",
+  "browserAutomation": "Tarayıcı Otomasyonu"
 }

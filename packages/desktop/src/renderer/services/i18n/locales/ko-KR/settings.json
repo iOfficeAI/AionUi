@@ -1424,5 +1424,7 @@
   "backingUp": "백업 중...",
   "backupSuccess": "데이터가 {{path}}에 백업되었습니다",
   "backupFailed": "데이터 백업에 실패했습니다",
-  "openBackupDir": "폴더 열기"
+  "openBackupDir": "폴더 열기",
+  "mcpServers": "MCP 서버 및 도구",
+  "browserAutomation": "브라우저 자동화"
 }

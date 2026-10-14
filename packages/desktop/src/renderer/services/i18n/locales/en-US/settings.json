@@ -467,6 +467,8 @@
   "skills": "Skills",
   "tools": "Tools",
   "toolsDescription": "Configure MCP servers and built-in tools like image generation. Image generation must be enabled after configuring an image-capable model on the Model page.",
+  "mcpServers": "MCP Servers & Tools",
+  "browserAutomation": "Browser Automation",
   "modelDescription": "Configure LLM providers and API keys for use across all assistants. Only Aion CLI supports custom models; other agents use their own built-in models.",
   "capabilities": "Capabilities",
   "capabilitiesTab": {

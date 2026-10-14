@@ -1422,5 +1422,7 @@
   "backingUp": "Wird gesichert...",
   "backupSuccess": "Daten gesichert in {{path}}",
   "backupFailed": "Datensicherung fehlgeschlagen",
-  "openBackupDir": "Ordner öffnen"
+  "openBackupDir": "Ordner öffnen",
+  "mcpServers": "MCP-Server & Tools",
+  "browserAutomation": "Browser-Automatisierung"
 }

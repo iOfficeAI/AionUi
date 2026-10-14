@@ -1422,5 +1422,7 @@
   "backingUp": "Haciendo copia...",
   "backupSuccess": "Datos respaldados en {{path}}",
   "backupFailed": "Error al crear la copia de seguridad de los datos",
-  "openBackupDir": "Abrir carpeta"
+  "openBackupDir": "Abrir carpeta",
+  "mcpServers": "Servidores y herramientas MCP",
+  "browserAutomation": "Automatización del navegador"
 }

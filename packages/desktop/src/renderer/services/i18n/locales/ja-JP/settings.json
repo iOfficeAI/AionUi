@@ -1424,5 +1424,7 @@
   "backingUp": "バックアップ中...",
   "backupSuccess": "データが {{path}} にバックアップされました",
   "backupFailed": "データのバックアップに失敗しました",
-  "openBackupDir": "フォルダーを開く"
+  "openBackupDir": "フォルダーを開く",
+  "mcpServers": "MCP サーバーとツール",
+  "browserAutomation": "ブラウザ自動化"
 }
