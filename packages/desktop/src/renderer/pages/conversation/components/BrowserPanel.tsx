@@ -1,10 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Input, Message, Popconfirm, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
-import { BrowserChrome, Clear, Close, Left, Pause, Refresh, Right, SendOne } from '@icon-park/react';
+import {
+  BrowserChrome,
+  Caution,
+  Clear,
+  Close,
+  HandDown,
+  Left,
+  ListOne,
+  Pause,
+  Refresh,
+  Right,
+  SendOne,
+} from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useBrowser } from '../hooks/useBrowser';
 import { useBrowserProfiles } from '../hooks/useBrowserProfiles';
 import { SafetyApprovalModal } from './browser/SafetyApprovalModal';
+import { ActionLogDrawer } from './browser/ActionLogDrawer';
 
 export type BrowserPanelProps = {
   className?: string;
@@ -22,6 +35,32 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
   const { t } = useTranslation();
   const [inputUrl, setInputUrl] = useState<string>(initialUrl);
   const [chromeStatus, setChromeStatus] = useState<string | null>(null);
+  const [isActionLogVisible, setIsActionLogVisible] = useState(false);
+  const [isManualTakeover, setIsManualTakeover] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!window.electronAPI?.onBrowserToolProgress) return;
+    const unsub = window.electronAPI.onBrowserToolProgress((event: unknown) => {
+      const prog = event as { taskId?: string; phase?: string };
+      if (prog.phase === 'started' || prog.phase === 'progress') {
+        setActiveTaskId(prog.taskId || null);
+      } else {
+        setActiveTaskId(null);
+      }
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  const handleHaltActiveAutomation = useCallback(() => {
+    if (activeTaskId && window.electronAPI?.browserCancelToolTask) {
+      void window.electronAPI.browserCancelToolTask(activeTaskId);
+      Message.warning('Halted browser automation task');
+      setActiveTaskId(null);
+    }
+  }, [activeTaskId]);
 
   const { activeProfile, clearProfileData, launchExternalChrome, probeExternalChrome, profiles, switchProfile } =
     useBrowserProfiles();
@@ -185,6 +224,42 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
           </Tooltip>
         </div>
 
+        {/* Action Log Drawer Toggle */}
+        <Tooltip content='Action Log'>
+          <Button
+            icon={<ListOne theme='outline' size='14' />}
+            onClick={() => setIsActionLogVisible(true)}
+            size='small'
+            type='secondary'
+          />
+        </Tooltip>
+
+        {/* Take over manually mode */}
+        <Tooltip content={isManualTakeover ? 'Release manual takeover' : 'Take over manually (pause agent)'}>
+          <Button
+            icon={<HandDown theme='outline' size='14' />}
+            onClick={() => setIsManualTakeover((prev) => !prev)}
+            size='small'
+            status={isManualTakeover ? 'warning' : 'default'}
+            type={isManualTakeover ? 'primary' : 'secondary'}
+          >
+            {isManualTakeover ? 'Manual Mode' : 'Take Over'}
+          </Button>
+        </Tooltip>
+
+        {/* Prominent Stop Automation Button */}
+        {activeTaskId && (
+          <Button
+            icon={<Pause theme='outline' size='14' />}
+            onClick={handleHaltActiveAutomation}
+            size='small'
+            status='danger'
+            type='primary'
+          >
+            STOP Automation
+          </Button>
+        )}
+
         {onClose && (
           <Tooltip content={t('conversation.browser.close')}>
             <Button
@@ -197,6 +272,20 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
           </Tooltip>
         )}
       </div>
+
+      {/* Manual takeover indicator banner */}
+      {isManualTakeover && (
+        <div className='flex items-center gap-2 px-3 py-1.5 bg-[var(--color-warning-light-1)] border-b border-[var(--color-warning-light-3)] text-[var(--color-warning-6)] text-xs'>
+          <Caution theme='filled' size='14' fill='#FF7D00' />
+          <span className='flex-1 font-medium'>
+            Manual Takeover Active — Automated agent interactions paused. Click &quot;Release&quot; to allow automation
+            to resume.
+          </span>
+          <Button size='mini' type='primary' status='warning' onClick={() => setIsManualTakeover(false)}>
+            Release
+          </Button>
+        </div>
+      )}
 
       {/* External Chrome banner when active */}
       {activeProfile.backend === 'external-chrome' && (
@@ -236,6 +325,11 @@ export const BrowserPanel: React.FC<BrowserPanelProps> = ({
       </div>
 
       <SafetyApprovalModal />
+      <ActionLogDrawer
+        visible={isActionLogVisible}
+        onClose={() => setIsActionLogVisible(false)}
+        onCancelActiveTask={handleHaltActiveAutomation}
+      />
     </div>
   );
 };

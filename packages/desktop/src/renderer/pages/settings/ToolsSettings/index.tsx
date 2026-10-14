@@ -10,14 +10,19 @@
  * so Tools has its own top-level entry in the settings sidebar.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tabs } from '@arco-design/web-react';
 import ToolsModalContent from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import SettingsPageHeader from '../components/SettingsPageHeader';
+import { BrowserAutomationSettings } from './BrowserAutomationSettings';
+
+const TabPane = Tabs.TabPane;
 
 const ToolsSettings: React.FC = () => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('mcp');
 
   return (
     <SettingsPageWrapper contentClassName='max-w-1200px'>
@@ -26,10 +31,17 @@ const ToolsSettings: React.FC = () => {
           data-testid='tools-header'
           title={t('settings.tools', { defaultValue: 'Tools' })}
           description={t('settings.toolsDescription', {
-            defaultValue: 'Configure MCP servers and built-in tools such as image generation.',
+            defaultValue: 'Configure MCP servers, browser automation, and built-in tools.',
           })}
         />
-        <ToolsModalContent />
+        <Tabs activeTab={activeTab} onChange={setActiveTab} type='line'>
+          <TabPane key='mcp' title={t('settings.mcpServers', { defaultValue: 'MCP Servers & Tools' })}>
+            <ToolsModalContent />
+          </TabPane>
+          <TabPane key='browser' title={t('settings.browserAutomation', { defaultValue: 'Browser Automation' })}>
+            <BrowserAutomationSettings />
+          </TabPane>
+        </Tabs>
       </div>
     </SettingsPageWrapper>
   );

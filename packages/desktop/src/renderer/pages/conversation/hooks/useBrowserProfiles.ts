@@ -17,6 +17,7 @@ export type UseBrowserProfilesReturn = {
   activeProfile: BrowserProfile;
   clearProfileData: (id: string) => Promise<boolean>;
   createProfile: (input: CreateProfileInput) => Promise<BrowserProfile | null>;
+  deleteProfile: (id: string) => Promise<boolean>;
   launchExternalChrome: (config: ExternalChromeConfig) => Promise<ExternalChromeStatus>;
   loading: boolean;
   probeExternalChrome: (port?: number) => Promise<ExternalChromeStatus>;
@@ -135,10 +136,29 @@ export function useBrowserProfiles(): UseBrowserProfilesReturn {
     }
   }, []);
 
+  const deleteProfile = useCallback(
+    async (id: string): Promise<boolean> => {
+      if (!window.electronAPI?.browserDeleteProfile) return false;
+      try {
+        const res = await window.electronAPI.browserDeleteProfile(id);
+        if (res?.success) {
+          await refreshProfiles();
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error('[useBrowserProfiles] deleteProfile error:', err);
+        return false;
+      }
+    },
+    [refreshProfiles]
+  );
+
   return {
     activeProfile,
     clearProfileData,
     createProfile,
+    deleteProfile,
     launchExternalChrome,
     loading,
     probeExternalChrome,
