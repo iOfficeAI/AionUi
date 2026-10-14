@@ -5,7 +5,13 @@
  */
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
-import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type {
+  IMessageAcpToolCall,
+  IMessageText,
+  IMessageToolCall,
+  IMessageToolGroup,
+  TMessage,
+} from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
@@ -69,8 +75,33 @@ type CompactAcpToolCallContent = IMessageAcpToolCall['content'] & {
   };
 };
 
+type AcpTaskCompleteUpdate = IMessageAcpToolCall['content']['update'] & {
+  raw_input?: Record<string, unknown>;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getAcpTaskCompleteSummary = (message: IMessageAcpToolCall): string | undefined => {
+  const update = message.content?.update as AcpTaskCompleteUpdate | undefined;
+  if (update?.title !== 'task_complete' || update.status !== 'completed') return undefined;
+
+  const rawInput = update.rawInput ?? update.raw_input;
+  const summary = rawInput?.summary;
+  if (typeof summary === 'string' && summary.trim()) return summary;
+
+  const contentSummary = update.content
+    ?.filter((item) => item.type === 'content' && item.content?.type === 'text')
+    .map((item) => item.content?.text ?? '')
+    .join('\n');
+  return contentSummary?.trim() ? contentSummary : undefined;
+};
+
+const toAcpTaskCompleteMessage = (message: IMessageAcpToolCall, summary: string): IMessageText => ({
+  ...message,
+  type: 'text',
+  content: { content: summary },
+});
 
 const hasRenderableAcpDiff = (message: IMessageAcpToolCall): boolean => {
   const content = message.content as CompactAcpToolCallContent | undefined;
@@ -428,6 +459,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         continue;
       }
       if (message.type === 'acp_tool_call') {
+        const taskCompleteSummary = getAcpTaskCompleteSummary(message);
+        if (taskCompleteSummary) {
+          pushStandaloneMessage(toAcpTaskCompleteMessage(message, taskCompleteSummary));
+          continue;
+        }
         if (hasRenderableAcpDiff(message)) {
           pushStandaloneMessage(message);
           continue;
