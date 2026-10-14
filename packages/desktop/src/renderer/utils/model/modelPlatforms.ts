@@ -13,6 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import aimlapiLogo from '@/renderer/assets/logos/aimlapi.svg';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -260,6 +261,18 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/stepfun.svg'),
     platform: 'custom',
     base_url: 'https://api.stepfun.com/v1',
+  },
+  {
+    // Aggregator exposing many vendors behind one OpenAI-compatible endpoint.
+    // The brand is written lowercase with the TLD, so the display name is the
+    // domain itself; the stored `value` stays a plain identifier.
+    // Logo is bundled locally because the backend logo service has no
+    // `ai-cloud/aimlapi.svg` asset to serve.
+    name: 'aimlapi.com',
+    value: 'AIMLAPI',
+    logo: aimlapiLogo,
+    platform: 'custom',
+    base_url: 'https://api.aimlapi.com/v1',
   },
 ];
 
