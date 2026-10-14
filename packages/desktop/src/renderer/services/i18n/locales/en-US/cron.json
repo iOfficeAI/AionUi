@@ -42,7 +42,10 @@
     "noHistory": "No runs yet",
     "notFound": "Task not found",
     "executionModeDescriptionNew": "Each run starts a fresh conversation, so previous context does not carry over. Best for recurring reports or checks that should stay independent.",
-    "executionModeDescriptionExisting": "Each run continues in the same conversation, so earlier context and results stay available. Best for follow-up tasks that build on previous runs."
+    "executionModeDescriptionExisting": "Each run continues in the same conversation, so earlier context and results stay available. Best for follow-up tasks that build on previous runs.",
+    "command": "Command",
+    "shellWorkspace": "Workspace",
+    "shellTimeout": "Timeout"
   },
   "notification": {
     "taskComplete": "Task Complete",
@@ -113,7 +116,16 @@
       "aionrsModelRequired": "Please select a model for Aion CLI",
       "aionrsNoProvider": "No available models",
       "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant.",
-      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed."
+      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed.",
+      "taskType": "Task type",
+      "taskTypeAgent": "AI assistant",
+      "taskTypeShell": "Shell script",
+      "shellCommand": "Shell command",
+      "shellCommandPlaceholder": "e.g. gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Please enter the shell command",
+      "shellModeHint": "Shell tasks run a command directly — no AI assistant involved — and write the result back to the bound conversation.",
+      "shellTimeout": "Timeout",
+      "shellNeedsConversation": "Shell tasks need a bound conversation — create them from inside a conversation's task panel."
     },
     "freq": {
       "manual": "Manual",

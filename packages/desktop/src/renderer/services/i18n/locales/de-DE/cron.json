@@ -42,7 +42,10 @@
     "notFound": "Aufgabe nicht gefunden",
     "executionModeDescriptionNew": "Jede Ausführung startet ein neues Gespräch, der vorherige Kontext wird nicht übernommen. Ideal für wiederkehrende Berichte oder Prüfungen, die unabhängig bleiben sollen.",
     "executionModeDescriptionExisting": "Jede Ausführung setzt das gleiche Gespräch fort, frühere Ergebnisse bleiben verfügbar. Ideal für Folgeaufgaben, die auf früheren Ausführungen aufbauen.",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "command": "Befehl",
+    "shellWorkspace": "Arbeitsbereich",
+    "shellTimeout": "Timeout"
   },
   "notification": {
     "taskComplete": "Aufgabe abgeschlossen",
@@ -111,7 +114,16 @@
       "teamTaskExecutionModeLockedReason": "Geplante Team-Aufgaben müssen im zugehörigen Team-Gespräch weiterlaufen, deshalb kann der Ausführungsmodus nicht geändert werden.",
       "assistant": "Assistant",
       "assistantRequired": "Please select an assistant",
-      "assistantPlaceholder": "Select the assistant to execute this task"
+      "assistantPlaceholder": "Select the assistant to execute this task",
+      "taskType": "Aufgabentyp",
+      "taskTypeAgent": "KI-Assistent",
+      "taskTypeShell": "Shell-Skript",
+      "shellCommand": "Shell-Befehl",
+      "shellCommandPlaceholder": "z. B. gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Bitte Shell-Befehl eingeben",
+      "shellModeHint": "Shell-Aufgaben führen einen Befehl direkt aus — ohne KI-Assistenten — und schreiben das Ergebnis in die verknüpfte Unterhaltung.",
+      "shellTimeout": "Timeout",
+      "shellNeedsConversation": "Shell-Aufgaben benötigen eine verknüpfte Unterhaltung. Erstelle sie im Aufgabenbereich einer Unterhaltung."
     },
     "freq": {
       "manual": "Manuell",

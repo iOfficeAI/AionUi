@@ -43,7 +43,10 @@
     "noHistory": "暂无执行记录",
     "notFound": "未找到任务",
     "executionModeDescriptionNew": "每次触发都会新建一个会话，之前的上下文不会带到下一次执行。适合日报、巡检、定时汇总这类彼此独立的任务。",
-    "executionModeDescriptionExisting": "每次触发都会回到同一个会话继续执行，之前的上下文和结果会持续保留。适合长期跟进同一件事的连续任务。"
+    "executionModeDescriptionExisting": "每次触发都会回到同一个会话继续执行，之前的上下文和结果会持续保留。适合长期跟进同一件事的连续任务。",
+    "command": "命令",
+    "shellWorkspace": "工作目录",
+    "shellTimeout": "超时时间"
   },
   "notification": {
     "taskComplete": "任务完成",
@@ -114,7 +117,16 @@
       "aionrsModelRequired": "请为 Aion CLI 选择模型",
       "aionrsNoProvider": "暂无可用模型",
       "assistantLockedExistingConversation": "持续会话任务必须保留原执行助手。如需更换助手，请新建任务。",
-      "teamTaskExecutionModeLockedReason": "Team 定时任务必须在所属 Team 会话中持续执行，因此不能修改执行模式。"
+      "teamTaskExecutionModeLockedReason": "Team 定时任务必须在所属 Team 会话中持续执行，因此不能修改执行模式。",
+      "taskType": "任务类型",
+      "taskTypeAgent": "AI 助手",
+      "taskTypeShell": "Shell 脚本",
+      "shellCommand": "Shell 命令",
+      "shellCommandPlaceholder": "例如:gh repo fork owner/repo --clone",
+      "shellCommandRequired": "请输入 Shell 命令",
+      "shellModeHint": "Shell 任务直接执行命令,不经过 AI 助手,执行结果会写回绑定的会话。",
+      "shellTimeout": "超时时间",
+      "shellNeedsConversation": "Shell 任务需要绑定会话,请在会话内的任务面板中创建。"
     },
     "freq": {
       "manual": "手动触发",

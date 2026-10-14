@@ -102,6 +102,21 @@ describe('getJobAgentMeta', () => {
       assistantFallback: true,
     });
   });
+
+  it('falls back to a shell label with keyboard emoji for shell jobs', () => {
+    const meta = getJobAgentMeta(
+      cronJob({
+        metadata: {
+          agent_type: 'shell',
+          agent_config: undefined,
+        },
+      }),
+      [],
+      LOGOS
+    );
+
+    expect(meta).toEqual({ name: 'shell', emoji: '⌨️' });
+  });
 });
 
 function cronJob(overrides: Partial<ICronJob>): ICronJob {
