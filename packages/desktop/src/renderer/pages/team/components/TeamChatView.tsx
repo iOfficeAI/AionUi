@@ -141,7 +141,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamSlotPaused,
 }) => {
   const { t } = useTranslation();
-  const { activeSlotId, switchTab, assistants } = useTeamTabs();
+  const { activeSlotId, switchTab, assistants = [] } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -479,8 +479,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
       {/* Active Knowledge Repo chip if member has assigned repos */}
       {(() => {
         const currentMember =
-          assistants.find((a) => a.slot_id === slot_id) ||
-          (isLeader ? assistants.find((a) => a.role === 'leader') : undefined);
+          assistants?.find((a) => a.slot_id === slot_id) ||
+          (isLeader ? assistants?.find((a) => a.role === 'leader') : undefined);
         if (currentMember?.knowledgeRepoIds && currentMember.knowledgeRepoIds.length > 0) {
           return (
             <div className='px-3 py-1 flex items-center gap-6px bg-[var(--color-bg-2)] border-b border-[var(--color-border-2)] text-12px'>

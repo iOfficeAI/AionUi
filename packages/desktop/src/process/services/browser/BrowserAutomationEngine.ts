@@ -73,7 +73,7 @@ export function buildDomQueryScript(selectorStr: string): string {
     (() => {
       const raw = ${JSON.stringify(selectorStr)};
       if (!raw) return null;
-      
+
       // Try direct query
       try {
         const el = document.querySelector(raw);
@@ -417,7 +417,7 @@ export class BrowserAutomationEngine {
           const role = el.getAttribute('role') || el.tagName.toLowerCase();
           const name = el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText?.slice(0, 50) || '';
           const value = el.value || undefined;
-          
+
           const isInteractive = ['button', 'a', 'input', 'select', 'textarea'].includes(el.tagName.toLowerCase())
             || el.hasAttribute('role') || el.hasAttribute('onclick');
 
