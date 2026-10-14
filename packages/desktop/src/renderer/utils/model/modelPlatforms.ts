@@ -131,7 +131,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     value: 'MiniMax',
     logo: buildLogoAssetUrl('ai-china/minimax.png'),
     platform: 'custom',
-    base_url: 'https://api.minimaxi.com/v1',
+    base_url: 'https://api.minimax.io/v1',
   },
   {
     name: 'Novita',
