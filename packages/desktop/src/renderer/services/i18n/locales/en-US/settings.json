@@ -376,6 +376,7 @@
   "baseUrlHint": "System will auto-append request path",
   "modelNotFoundAfterUrlChange": "Model {{model}} was not found at the new address; reselect it if it doesn't work.",
   "apiKey": "API Key",
+  "getApiKey": "Get API Key",
   "deleteModelConfirm": "Are you sure you want to delete this model?",
   "deleteAllModelConfirm": "Are you sure you want to delete all models?",
   "modelCount": "Model",

@@ -10,7 +10,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
+import { Form, Input, Link, Message, Select, Switch } from '@arco-design/web-react';
 import { Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,7 @@ import {
 } from '@/renderer/utils/model/modelPlatforms';
 import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
+import { openExternalUrl } from '@/renderer/utils/platform';
 
 /**
  * Protocol icon configurations
@@ -521,7 +522,20 @@ const AddPlatformModal = ModalHOC<{
           {/* API Key */}
           <Form.Item
             hidden={isBedrock}
-            label={t('settings.apiKey')}
+            label={
+              <span className='inline-flex items-center gap-6px'>
+                {t('settings.apiKey')}
+                {selectedPlatform?.apiKeyUrl && (
+                  <Link
+                    onClick={() => {
+                      void openExternalUrl(selectedPlatform.apiKeyUrl!);
+                    }}
+                  >
+                    {t('settings.getApiKey')}
+                  </Link>
+                )}
+              </span>
+            }
             required={!isBedrock}
             rules={[{ required: !isBedrock }]}
             field={'api_key'}

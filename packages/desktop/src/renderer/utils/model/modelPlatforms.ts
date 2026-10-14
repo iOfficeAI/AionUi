@@ -41,6 +41,8 @@ export interface PlatformConfig {
   base_url?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
+  /** API Key 注册地址（可选） / API Key registration URL (optional) */
+  apiKeyUrl?: string;
 }
 
 /**
@@ -176,6 +178,14 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/siliconflow.png'),
     platform: 'custom',
     base_url: 'https://api.siliconflow.com/v1',
+  },
+  {
+    name: 'SSYCloud (胜算云)',
+    value: 'SSYCloud',
+    logo: buildLogoAssetUrl('ai-cloud/ssycloud.svg'),
+    platform: 'custom',
+    base_url: 'https://router.shengsuanyun.com/api/v1',
+    apiKeyUrl: 'https://www.shengsuanyun.com/?from=CH_VVVBZY1S',
   },
   {
     name: 'Zhipu',
