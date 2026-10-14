@@ -13,6 +13,9 @@ export const IMAGE_GEN_ENV_KEYS = {
   baseUrl: 'AIONUI_IMG_BASE_URL',
   apiKey: 'AIONUI_IMG_API_KEY',
   model: 'AIONUI_IMG_MODEL',
+  // Real provider display name — the media catalog matches some entries by
+  // provider name (e.g. antigravity), so the MCP server needs it at runtime.
+  providerName: 'AIONUI_IMG_PROVIDER_NAME',
 } as const;
 
 type ImageGenerationSelection = Partial<ImageGenerationModelSetting>;
@@ -66,6 +69,7 @@ function buildEnv(provider: IProvider, model: string): Record<string, string> {
     [IMAGE_GEN_ENV_KEYS.baseUrl]: provider.base_url,
     [IMAGE_GEN_ENV_KEYS.apiKey]: provider.api_key,
     [IMAGE_GEN_ENV_KEYS.model]: model,
+    [IMAGE_GEN_ENV_KEYS.providerName]: provider.name,
   };
 }
 
