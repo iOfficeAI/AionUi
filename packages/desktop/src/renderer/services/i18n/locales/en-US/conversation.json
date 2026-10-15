@@ -782,5 +782,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expand plan",
     "collapse": "Collapse plan"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto (planner/worker routing)",
+    "pill": "Auto · {{phase}}/{{model}}",
+    "noCandidates": "No available models for Auto"
   }
 }

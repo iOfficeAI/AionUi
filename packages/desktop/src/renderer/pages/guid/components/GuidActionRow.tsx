@@ -87,6 +87,8 @@ type GuidActionRowProps = {
   modelList: IProvider[];
   current_model?: TProviderWithModel;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
+  autoEnabled?: boolean;
+  onSelectAuto?: () => Promise<void>;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   selectedAcpModel: string | null;
   setSelectedAcpModel: (model: string | null) => void;
@@ -126,6 +128,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   modelList,
   current_model,
   setCurrentModel,
+  autoEnabled = false,
+  onSelectAuto,
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
@@ -234,16 +238,34 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     let onModelSelect: (key: string) => void = () => {};
     if (isGeminiMode) {
       const enabled = modelList.filter((p) => p.enabled !== false);
-      modelOptions = enabled.flatMap((provider) =>
-        getAvailableModels(provider).map((modelName) => ({
-          key: `${provider.id}::${modelName}`,
-          label: modelName,
-          description: provider.name,
-          active: current_model?.id === provider.id && current_model?.use_model === modelName,
-        }))
-      );
-      currentModelLabel = current_model?.use_model || '';
+      modelOptions = [
+        {
+          key: '__aionui_auto__::auto',
+          label: t('conversation.autoModel.optionLabel', { defaultValue: 'Auto (planner/worker routing)' }),
+          description: t('conversation.autoModel.groupTitle', { defaultValue: 'Auto' }),
+          active: autoEnabled,
+        },
+        ...enabled.flatMap((provider) =>
+          getAvailableModels(provider).map((modelName) => ({
+            key: `${provider.id}::${modelName}`,
+            label: modelName,
+            description: provider.name,
+            active: !autoEnabled && current_model?.id === provider.id && current_model?.use_model === modelName,
+          }))
+        ),
+      ];
+      currentModelLabel = autoEnabled
+        ? t('conversation.autoModel.pill', {
+            phase: 'planner',
+            model: current_model?.use_model || '',
+            defaultValue: `Auto · planner/${current_model?.use_model || ''}`,
+          })
+        : current_model?.use_model || '';
       onModelSelect = (key) => {
+        if (key === '__aionui_auto__::auto') {
+          void onSelectAuto?.();
+          return;
+        }
         const [providerId, modelName] = key.split('::');
         const provider = enabled.find((p) => p.id === providerId);
         if (provider) void setCurrentModel({ ...provider, use_model: modelName } as TProviderWithModel);
@@ -407,6 +429,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     modelList,
     current_model,
     setCurrentModel,
+    autoEnabled,
+    onSelectAuto,
     currentAcpCachedModelInfo,
     selectedAcpModel,
     setSelectedAcpModel,

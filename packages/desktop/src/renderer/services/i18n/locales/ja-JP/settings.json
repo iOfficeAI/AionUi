@@ -1416,5 +1416,20 @@
   "crossSessionMessageDesc": "エージェントが他の会話にメッセージを送れるようにします。オフにすると入力欄の @@ 会話メンションも無効になります。",
   "crossSessionMessageDisabledBanner": "会話間メッセージはオフです。入力欄の @@ 会話メンションは使用できません。",
   "crossSessionMessageResume": "再度オンにする",
-  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました"
+  "crossSessionMessageUpdateFailed": "会話間メッセージ設定の更新に失敗しました",
+  "autoModel": {
+    "title": "Auto モデルルーティング",
+    "description": "長時間稼働する aionrs エージェント向けに planner / worker / utility スロットを設定します。Phase 1 では Auto 選択時に具体モデルへ解決し、Phase 2 でエージェント再構築なしのスロット切替を予定しています。",
+    "preference": "スロットが自動のとき",
+    "preferenceCost": "コスト優先",
+    "preferenceBalance": "コストと品質のバランス",
+    "preferenceQuality": "品質優先",
+    "automatic": "自動",
+    "slot": {
+      "planner": "Planner モデル",
+      "worker": "Worker モデル",
+      "utility": "Utility モデル"
+    },
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
+  }
 }
