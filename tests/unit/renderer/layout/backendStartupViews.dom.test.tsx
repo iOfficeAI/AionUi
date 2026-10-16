@@ -65,6 +65,14 @@ describe('AC-4: BackendStartingView (pending-slow, process alive)', () => {
     expect(screen.queryByTestId('installation-integrity-report')).toBeNull();
     expect(screen.queryByTestId('installation-integrity-download')).toBeNull();
   });
+
+  it('shows the animated pet without replacing the accessible startup message', () => {
+    render(<BackendStartingView />);
+
+    expect(screen.getByTestId('backend-starting-pet').getAttribute('src')).toContain('pet-states/thinking.svg');
+    expect(screen.getByText(COPY['common.backendStartup.pendingSlow.title'])).toBeTruthy();
+    expect(screen.getByTestId('backend-starting-pet').getAttribute('aria-hidden')).toBe('true');
+  });
 });
 
 describe('AC-5: backend_exited honest-failure wiring', () => {
