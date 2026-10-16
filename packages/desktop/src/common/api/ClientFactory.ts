@@ -13,6 +13,49 @@ import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { getProviderAuthType } from '../utils/platformAuthType';
 import { isNewApiPlatform } from '../utils/platformConstants';
 
+/**
+ * 应用级归因头，发送给所有 OpenAI 兼容服务
+ * App-level attribution headers, sent to every OpenAI-compatible service.
+ */
+const APP_ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = {
+  'HTTP-Referer': 'https://aionui.com',
+  'X-Title': 'AionUi',
+};
+
+/**
+ * 按 API 源站划分的额外归因头
+ * Extra attribution headers, keyed by API origin.
+ *
+ * Keying on the request origin — not on the configured platform name — is what
+ * keeps a vendor's headers off every other vendor's request, including a proxy
+ * that merely fronts the same API under a different base URL.
+ */
+const ATTRIBUTION_HEADERS_BY_API_ORIGIN: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  'https://api.aimlapi.com': {
+    'X-AIMLAPI-Partner-ID': 'part_UJK4IAHBjvT9g4cPDrb7B7KT',
+    'X-AIMLAPI-Source': 'agent/aionui',
+  },
+};
+
+/**
+ * 构建某个 base URL 对应的默认请求头
+ * Build the default headers for a given base URL.
+ *
+ * Returns a fresh object on every call so the module-level constants above are
+ * never mutated by a caller merging into the result.
+ */
+export function buildDefaultHeaders(base_url?: string): Record<string, string> {
+  let originHeaders: Readonly<Record<string, string>> | undefined;
+  if (base_url) {
+    try {
+      originHeaders = ATTRIBUTION_HEADERS_BY_API_ORIGIN[new URL(base_url).origin];
+    } catch {
+      // Not a parsable absolute URL — app-level headers only.
+    }
+  }
+  return { ...APP_ATTRIBUTION_HEADERS, ...originHeaders };
+}
+
 export interface ClientOptions {
   timeout?: number;
   proxy?: string;
@@ -72,14 +115,14 @@ export class ClientFactory {
 
     switch (authType) {
       case AuthType.USE_OPENAI: {
+        const openaiBaseConfig = options.baseConfig as OpenAIClientConfig | undefined;
         const clientConfig: OpenAIClientConfig = {
           baseURL: base_url,
           timeout: options.timeout,
-          defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
-          },
-          ...(options.baseConfig as OpenAIClientConfig),
+          ...openaiBaseConfig,
+          // Merged, not assigned: a caller's own headers must survive, and the
+          // attribution headers must survive a caller that sets unrelated ones.
+          defaultHeaders: { ...buildDefaultHeaders(base_url), ...openaiBaseConfig?.defaultHeaders },
         };
 
         // 添加代理配置（如果提供）
@@ -123,14 +166,14 @@ export class ClientFactory {
 
       default: {
         // 默认使用OpenAI兼容协议
+        const openaiBaseConfig = options.baseConfig as OpenAIClientConfig | undefined;
         const clientConfig: OpenAIClientConfig = {
           baseURL: base_url,
           timeout: options.timeout,
-          defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
-          },
-          ...(options.baseConfig as OpenAIClientConfig),
+          ...openaiBaseConfig,
+          // Merged, not assigned: a caller's own headers must survive, and the
+          // attribution headers must survive a caller that sets unrelated ones.
+          defaultHeaders: { ...buildDefaultHeaders(base_url), ...openaiBaseConfig?.defaultHeaders },
         };
 
         // 添加代理配置（如果提供）
