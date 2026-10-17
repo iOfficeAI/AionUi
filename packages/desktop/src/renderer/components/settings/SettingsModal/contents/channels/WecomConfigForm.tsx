@@ -557,8 +557,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         </div>
       )}
 
-      {/* Pending Pairings */}
-      {pluginStatus?.enabled && authorizedUsers.length === 0 && (
+      {/* Pending Pairings - show whenever the channel is enabled */}
+      {pluginStatus?.enabled && (
         <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
