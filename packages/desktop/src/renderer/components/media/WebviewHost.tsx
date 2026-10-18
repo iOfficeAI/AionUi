@@ -86,6 +86,10 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   const onFaviconChangeRef = useRef(onFaviconChange);
   onFaviconChangeRef.current = onFaviconChange;
 
+  // Native redirects and history updates must not be echoed back into src:
+  // assigning src starts another load and can replay one-time OAuth callbacks.
+  const webviewSourceRef = useRef({ initialUrl: url, lastPropUrl: url });
+
   // Navigation state
   const [currentUrl, setCurrentUrl] = useState(url);
   const [inputUrl, setInputUrl] = useState(url);
@@ -137,6 +141,8 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
 
   // Reset when props.url changes
   useEffect(() => {
+    const propChanged = webviewSourceRef.current.lastPropUrl !== url;
+    webviewSourceRef.current.lastPropUrl = url;
     // 只有「外部」换址才该清空历史（换 tab、换预览文件）。判断逻辑抽到
     // shouldResetHistoryForUrlProp，那里有完整的回环说明与单测。
     //
@@ -153,6 +159,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
     setZoomFactor(1);
     setWebviewReady(false);
     autoFitPendingRef.current = isStarOfficeUrl(url);
+    if (propChanged && webviewRef.current) webviewRef.current.src = url;
   }, [url]);
 
   useEffect(() => {
@@ -784,7 +791,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       >
         <webview
           ref={webviewRef as any}
-          src={currentUrl}
+          src={webviewSourceRef.current.initialUrl}
           className='border-0 absolute start-0 top-0'
           style={{
             opacity: !showNavBar && isLoading ? 0 : 1,
