@@ -24,6 +24,8 @@ import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import TeamTabs from './components/TeamTabs';
+import TeamLeadSettingsControl from './components/TeamLeadSettingsControl';
+import { executeLeadTransferWithBusyRecovery, type LeadTransferBusyMember } from './utils/confirmLeadTransfer';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
 import TeamViewToggle from './components/TeamViewToggle';
@@ -36,7 +38,7 @@ import { TeamIdentityProvider } from './identity/TeamIdentityContext';
 import { TeamPermissionProvider, useTeamPermission } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
-import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationOrNull, refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useActiveLease } from '@/renderer/pages/conversation/hooks/useActiveLease';
 import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -539,7 +541,15 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
 }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
+  const {
+    assistants,
+    activeSlotId,
+    switchTab,
+    colorOf,
+    colorOfConversation,
+    setLeadAssistant,
+    membershipMutationBusy,
+  } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -813,7 +823,20 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
           isTemporaryWorkspace={isTeamWorkspaceTemporary}
           workspacePreferenceKey={team.id}
           onRenameTitle={onRenameTeam}
-          headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          headerExtra={
+            assistants.length > 1 ? (
+              <div className='flex items-center gap-8px'>
+                {setLeadAssistant && (
+                  <TeamLeadSettingsControl
+                    assistants={assistants}
+                    disabled={isWarmingUp || membershipMutationBusy}
+                    onSetLead={setLeadAssistant}
+                  />
+                )}
+                <TeamViewToggle value={viewMode} onChange={setViewMode} />
+              </div>
+            ) : undefined
+          }
           headerLeading={
             <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
               <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
@@ -977,6 +1000,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
           Message.error(String(error));
         }
       };
+      if (team.assistants.find((assistant) => assistant.slot_id === slot_id)?.role === 'leader') return;
       // 移除成员一律二次确认；成员正在工作中时用更强的措辞提示会打断其工作。
       const status = statusMap.get(slot_id)?.status;
       const isActive = status === 'active';
@@ -991,7 +1015,40 @@ const TeamPage: React.FC<Props> = ({ team }) => {
         onOk: doRemoveAssistant,
       });
     },
-    [membershipMutationBusy, statusMap, removeAssistant, t]
+    [membershipMutationBusy, statusMap, removeAssistant, t, team]
+  );
+
+  const handleSetLeadAssistant = useCallback(
+    async (slot_id: string, interruptBusy = false, confirmedBusyMembers?: LeadTransferBusyMember[]) => {
+      if (membershipMutationBusy || warmupPhase === 'warming') throw new Error('Team membership is changing');
+      const currentLead = team.assistants.find((assistant) => assistant.role === 'leader');
+      const target = team.assistants.find((assistant) => assistant.slot_id === slot_id);
+      if (!currentLead || !target || target.role === 'leader') return;
+
+      const allowedSlots = new Map([
+        [currentLead.slot_id, { conversationId: currentLead.conversation_id, name: currentLead.assistant_name }],
+        [target.slot_id, { conversationId: target.conversation_id, name: target.assistant_name }],
+      ]);
+      const requestSetLead = () => ipcBridge.team.setLead.invoke({ team_id: team.id, slot_id });
+      const updatedTeam = await executeLeadTransferWithBusyRecovery({
+        teamId: team.id,
+        allowedSlots,
+        interruptBusy,
+        confirmedBusyMembers,
+        requestSetLead,
+        stopConversation: (params) => ipcBridge.conversation.stop.invoke(params),
+      });
+
+      await mutateTeam(updatedTeam, false);
+      await Promise.all([
+        globalMutate(`teams/${user?.id ?? 'system_default_user'}`).catch((): void => undefined),
+        ...team.assistants
+          .map((assistant) => assistant.conversation_id)
+          .filter((conversationId): conversationId is string => Boolean(conversationId))
+          .map((conversationId) => refreshConversationCache(conversationId).catch((): void => undefined)),
+      ]);
+    },
+    [globalMutate, membershipMutationBusy, mutateTeam, team, user, warmupPhase]
   );
 
   const handleRenameTeam = useCallback(
@@ -1018,6 +1075,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       addAssistant={addAssistant}
       renameAssistant={renameAssistant}
       removeAssistant={handleRemoveAssistantWithConfirm}
+      setLeadAssistant={handleSetLeadAssistant}
       membershipMutationBusy={membershipMutationBusy}
     >
       <TeamPageContent

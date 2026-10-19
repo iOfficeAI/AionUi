@@ -1,7 +1,7 @@
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CloseSmall, Drag, Edit, Plus } from '@icon-park/react';
+import { CloseSmall, Crown, Drag, Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
@@ -10,6 +10,7 @@ import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';
 import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
+import TeamLeadTransferConfirmation from '../utils/confirmLeadTransfer';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -33,6 +34,7 @@ type TeamTabViewProps = {
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
+  onMakeLead?: (slot_id: string) => void;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -51,6 +53,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   onSwitch,
   onRename,
   onRemove,
+  onMakeLead,
 }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -217,6 +220,21 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <CloseSmall theme='outline' size='14' fill='currentColor' />
         </span>
       )}
+      {showHoverActions && !isLeader && onMakeLead && (
+        <button
+          type='button'
+          data-testid={`team-tab-make-lead-${slot_id}`}
+          aria-label={t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
+          title={t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
+          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px border-none bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--brand)] transition-colors duration-150 cursor-pointer'
+          onClick={(e) => {
+            e.stopPropagation();
+            onMakeLead(slot_id);
+          }}
+        >
+          <Crown theme='outline' size='13' fill='currentColor' />
+        </button>
+      )}
     </div>
   );
 };
@@ -244,6 +262,8 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     switchTab,
     renameAssistant,
     removeAssistant,
+    setLeadAssistant,
+    membershipMutationBusy,
     reorderAssistants,
     addAssistant,
     colorOf,
@@ -252,12 +272,18 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   // 就全部放开。后端对增删改成员本身有并发锁保证串行，前端不需要再叠一层忙碌禁用
   // （否则删完一个成员，后端重建剩余成员时又会把胶囊锁住，出现「删一个卡一下」的怪体验）。
   const memberOpsDisabled = warmingUp;
+  const leadTransferDisabled = warmingUp || membershipMutationBusy;
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
   // 拖拽进行中：冻结所有胶囊的 hover 增宽（改名/移除按钮），否则拖动经过时
   // 目标胶囊变宽→布局跳→hover 丢失→又变窄，形成闪烁循环。
   const [dragActive, setDragActive] = useState(false);
+  const [pendingLeadTransfer, setPendingLeadTransfer] = useState<{
+    slotId: string;
+    currentLeadName: string;
+    nextLeadName: string;
+  } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   // Only teammates are sortable; the leader pill is rendered outside the sortable id list.
   const sortableIds = useMemo(
@@ -302,6 +328,21 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   );
 
   const handleDragCancel = useCallback(() => setDragActive(false), []);
+
+  const handleMakeLead = useCallback(
+    (slot_id: string) => {
+      if (!setLeadAssistant || leadTransferDisabled) return;
+      const currentLead = assistants.find((assistant) => assistant.role === 'leader');
+      const nextLead = assistants.find((assistant) => assistant.slot_id === slot_id);
+      if (!currentLead || !nextLead || nextLead.role === 'leader') return;
+      setPendingLeadTransfer({
+        slotId: slot_id,
+        currentLeadName: currentLead.assistant_name,
+        nextLeadName: nextLead.assistant_name,
+      });
+    },
+    [assistants, leadTransferDisabled, setLeadAssistant, t]
+  );
 
   if (assistants.length === 0) return null;
 
@@ -350,6 +391,11 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                       renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
                     }
                     onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
+                    onMakeLead={
+                      setLeadAssistant && !leadTransferDisabled && assistant.role !== 'leader'
+                        ? handleMakeLead
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -404,6 +450,17 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
           </div>
         ) : null}
       </div>
+      {pendingLeadTransfer && setLeadAssistant && (
+        <TeamLeadTransferConfirmation
+          visible
+          currentLeadName={pendingLeadTransfer.currentLeadName}
+          nextLeadName={pendingLeadTransfer.nextLeadName}
+          onCancel={() => setPendingLeadTransfer(null)}
+          onConfirm={(interruptBusy, busyMembers) =>
+            setLeadAssistant(pendingLeadTransfer.slotId, interruptBusy, busyMembers)
+          }
+        />
+      )}
     </div>
   );
 };

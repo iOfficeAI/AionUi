@@ -189,5 +189,20 @@
       "idle_notification": "Leerlaufhinweis",
       "shutdown_request": "Stopp-Anfrage"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "Teamleitung ändern",
+    "menuItem": "{{name}} zur Teamleitung machen",
+    "makeLeadAction": "Zur Teamleitung machen",
+    "confirmTitle": "Teamleitung ändern?",
+    "confirmContent": "{{nextLead}} statt {{currentLead}} zur Teamleitung machen? Vorhandene Unterhaltungen und der Teamverlauf bleiben erhalten.",
+    "confirmButton": "Teamleitung ändern",
+    "busy": "Ein Teammitglied arbeitet noch. Warte auf den Abschluss und versuche es erneut.",
+    "runtimeStarting": "Ein Teammitglied wird gestartet. Warte, bis der Start abgeschlossen ist, und versuche es erneut.",
+    "failed": "Die Teamleitung konnte nicht geändert werden. Bitte versuche es erneut.",
+    "busyNotStarted": "Ein Teammitglied hat Arbeit übernommen, aber noch nicht begonnen. Warte kurz und versuche es erneut.",
+    "interruptConfirmTitle": "Aktuelle Arbeit unterbrechen und Teamleitung ändern?",
+    "interruptConfirmContent": "Die aktuelle Arbeit von {{busyMembers}} wird gestoppt und {{nextLead}} übernimmt statt {{currentLead}} die Teamleitung. Vorhandene Unterhaltungen und der Teamverlauf bleiben erhalten.",
+    "interruptConfirmButton": "Unterbrechen und Teamleitung ändern"
   }
 }

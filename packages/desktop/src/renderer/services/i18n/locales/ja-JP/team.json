@@ -189,5 +189,20 @@
       "idle_notification": "アイドル通知",
       "shutdown_request": "停止リクエスト"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "チームリーダーを変更",
+    "menuItem": "{{name}}をチームリーダーにする",
+    "makeLeadAction": "リーダーにする",
+    "confirmTitle": "チームリーダーを変更しますか？",
+    "confirmContent": "{{currentLead}}に代わって{{nextLead}}をチームリーダーにしますか？既存の会話とチーム履歴は保持されます。",
+    "confirmButton": "リーダーを変更",
+    "busy": "作業中のチームメンバーがいます。完了するまで待ってから再試行してください。",
+    "runtimeStarting": "起動中のチームメンバーがいます。起動完了まで待ってから再試行してください。",
+    "failed": "チームリーダーを変更できませんでした。もう一度お試しください。",
+    "busyNotStarted": "チームメンバーが作業を開始する前に担当しました。少し待ってから再試行してください。",
+    "interruptConfirmTitle": "現在の作業を中断してチームリーダーを変更しますか？",
+    "interruptConfirmContent": "{{busyMembers}}の現在の作業を停止し、{{currentLead}}に代わって{{nextLead}}をチームリーダーにします。既存の会話とチーム履歴は保持されます。",
+    "interruptConfirmButton": "中断してリーダーを変更"
   }
 }

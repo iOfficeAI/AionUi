@@ -12,6 +12,7 @@ type HttpCall = {
 
 const httpBridgeMocks = vi.hoisted(() => {
   const calls: HttpCall[] = [];
+  let nextResponse: unknown;
   const provider =
     (method: HttpCall['method']) =>
     <Data, Params = undefined>(path: string | ((params: Params) => string), mapBody?: (params: Params) => unknown) => ({
@@ -23,13 +24,18 @@ const httpBridgeMocks = vi.hoisted(() => {
           path: resolvedPath,
           body: mapBody && params !== undefined ? mapBody(params as Params) : undefined,
         });
-        return { active_run: null } as Data;
+        const response = nextResponse ?? { active_run: null };
+        nextResponse = undefined;
+        return response as Data;
       }),
     });
   const emitter = () => ({ on: vi.fn(() => vi.fn()), emit: vi.fn() });
 
   return {
     calls,
+    setNextResponse: (response: unknown) => {
+      nextResponse = response;
+    },
     httpGet: provider('GET'),
     httpPost: provider('POST'),
     httpPut: provider('PUT'),
@@ -97,6 +103,28 @@ describe('ipcBridge team adapter', () => {
       path: '/api/teams/team-1/agents/worker-1/model',
       body: { model_id: 'gpt-5.6-sol' },
     });
+  });
+
+  it('setLead posts the selected slot and maps the team response', async () => {
+    const { team } = await import('@/common/adapter/ipcBridge');
+    httpBridgeMocks.setNextResponse({
+      id: 'team-1',
+      user_id: 'user-1',
+      name: 'Alpha',
+      workspace_mode: 'shared',
+      leader_agent_id: 'worker-1',
+      agents: [],
+    });
+
+    const response = await team.setLead.invoke({ team_id: 'team-1', slot_id: 'worker-1' });
+
+    expect(httpBridgeMocks.calls).toContainEqual({
+      method: 'POST',
+      path: '/api/teams/team-1/lead',
+      body: { slot_id: 'worker-1' },
+    });
+    expect(response.id).toBe('team-1');
+    expect(response.leader_assistant_id).toBe('worker-1');
   });
 
   it('interruptAgent posts the durable replacement message to the member interrupt route', async () => {

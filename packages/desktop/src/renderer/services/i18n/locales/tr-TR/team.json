@@ -189,5 +189,20 @@
       "idle_notification": "Boşta bildirimi",
       "shutdown_request": "Kapatma isteği"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "Takım liderini değiştir",
+    "menuItem": "{{name}} adlı üyeyi takım lideri yap",
+    "makeLeadAction": "Takım lideri yap",
+    "confirmTitle": "Takım lideri değiştirilsin mi?",
+    "confirmContent": "{{currentLead}} yerine {{nextLead}} takım lideri olsun mu? Mevcut konuşmalar ve takım geçmişi korunur.",
+    "confirmButton": "Takım liderini değiştir",
+    "busy": "Bir takım üyesi hâlâ çalışıyor. Bitmesini bekleyip yeniden deneyin.",
+    "runtimeStarting": "Bir takım üyesi başlatılıyor. Başlaması tamamlanana kadar bekleyip yeniden deneyin.",
+    "failed": "Takım lideri değiştirilemedi. Lütfen yeniden deneyin.",
+    "busyNotStarted": "Bir takım üyesi henüz başlamamış bir işi aldı. Biraz bekleyip yeniden deneyin.",
+    "interruptConfirmTitle": "Mevcut çalışma kesilip takım lideri değiştirilsin mi?",
+    "interruptConfirmContent": "{{busyMembers}} için devam eden çalışma durdurulacak ve {{currentLead}} yerine {{nextLead}} takım lideri yapılacak. Mevcut konuşmalar ve takım geçmişi korunur.",
+    "interruptConfirmButton": "Kes ve lideri değiştir"
   }
 }

@@ -189,5 +189,20 @@
       "idle_notification": "Notif. d’inactivité",
       "shutdown_request": "Demande d’arrêt"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "Changer le responsable de l’équipe",
+    "menuItem": "Définir {{name}} comme responsable de l’équipe",
+    "makeLeadAction": "Définir comme responsable",
+    "confirmTitle": "Changer le responsable de l’équipe ?",
+    "confirmContent": "Définir {{nextLead}} comme responsable de l’équipe à la place de {{currentLead}} ? Les conversations et l’historique de l’équipe seront conservés.",
+    "confirmButton": "Changer le responsable",
+    "busy": "Un membre de l’équipe travaille encore. Attendez la fin, puis réessayez.",
+    "runtimeStarting": "Un membre de l’équipe démarre. Attendez la fin du démarrage, puis réessayez.",
+    "failed": "Impossible de changer le responsable de l’équipe. Veuillez réessayer.",
+    "busyNotStarted": "Un membre de l’équipe a pris une tâche, mais ne l’a pas encore commencée. Patientez, puis réessayez.",
+    "interruptConfirmTitle": "Interrompre le travail en cours et changer le responsable de l’équipe ?",
+    "interruptConfirmContent": "Le travail en cours de {{busyMembers}} sera arrêté et {{nextLead}} remplacera {{currentLead}} comme responsable de l’équipe. Les conversations et l’historique de l’équipe seront conservés.",
+    "interruptConfirmButton": "Interrompre et changer le responsable"
   }
 }
