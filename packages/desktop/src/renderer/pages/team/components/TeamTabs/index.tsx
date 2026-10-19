@@ -122,9 +122,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
         if (String(key) === 'make-lead') onMakeLead?.(slot_id);
       }}
     >
-      <Menu.Item key='make-lead'>
-        {t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
-      </Menu.Item>
+      <Menu.Item key='make-lead'>{t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}</Menu.Item>
     </Menu>
   ) : null;
   const tabContent = (

@@ -100,5 +100,4 @@ const TeamLeadTransferConfirmation: React.FC<Props> = ({
   );
 };
 
-
 export default TeamLeadTransferConfirmation;
