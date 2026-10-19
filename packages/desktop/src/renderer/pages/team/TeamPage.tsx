@@ -24,7 +24,7 @@ import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import TeamTabs from './components/TeamTabs';
-import TeamLeadSettingsControl from './components/TeamLeadSettingsControl';
+import TeamLeadSettingsControl from './components/TeamTabs/TeamLeadSettingsControl';
 import { executeLeadTransferWithBusyRecovery, type LeadTransferBusyMember } from './utils/confirmLeadTransfer';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';

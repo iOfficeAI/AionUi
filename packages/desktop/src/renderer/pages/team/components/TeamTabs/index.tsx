@@ -1,16 +1,17 @@
+import { Dropdown, Menu } from '@arco-design/web-react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CloseSmall, Crown, Drag, Edit, Plus } from '@icon-park/react';
+import { CloseSmall, Drag, Edit, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
 import { restrictToHorizontalAxis } from '@/renderer/utils/ui/dndModifiers';
-import AgentStatusBadge from './AgentStatusBadge';
-import TeamAgentIdentity from './TeamAgentIdentity';
-import { useTeamTabs } from '../hooks/TeamTabsContext';
-import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
-import TeamLeadTransferConfirmation from '../utils/confirmLeadTransfer';
+import AgentStatusBadge from '../AgentStatusBadge';
+import TeamAgentIdentity from '../TeamAgentIdentity';
+import { useTeamTabs } from '../../hooks/TeamTabsContext';
+import TeamAddMemberPopover from '../memberPicker/TeamAddMemberPopover';
+import TeamLeadTransferConfirmation from './TeamLeadTransferConfirmation';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -114,7 +115,19 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   // 手柄和按钮可见，宽度全程恒定。
   const showDragHandle = !isLeader && !editing && ((hovered && !dragActive) || isDragging);
   const showHoverActions = !editing && ((hovered && !dragActive) || isDragging);
-  return (
+  const canMakeLead = !isLeader && Boolean(onMakeLead);
+  const leadContextMenu = canMakeLead ? (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (String(key) === 'make-lead') onMakeLead?.(slot_id);
+      }}
+    >
+      <Menu.Item key='make-lead'>
+        {t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
+      </Menu.Item>
+    </Menu>
+  ) : null;
+  const tabContent = (
     <div
       ref={setNodeRef}
       data-testid={`team-tab-${slot_id}`}
@@ -220,22 +233,13 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <CloseSmall theme='outline' size='14' fill='currentColor' />
         </span>
       )}
-      {showHoverActions && !isLeader && onMakeLead && (
-        <button
-          type='button'
-          data-testid={`team-tab-make-lead-${slot_id}`}
-          aria-label={t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
-          title={t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}
-          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px border-none bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--brand)] transition-colors duration-150 cursor-pointer'
-          onClick={(e) => {
-            e.stopPropagation();
-            onMakeLead(slot_id);
-          }}
-        >
-          <Crown theme='outline' size='13' fill='currentColor' />
-        </button>
-      )}
     </div>
+  );
+  if (!canMakeLead) return tabContent;
+  return (
+    <Dropdown trigger='contextMenu' droplist={leadContextMenu} position='br'>
+      {tabContent}
+    </Dropdown>
   );
 };
 

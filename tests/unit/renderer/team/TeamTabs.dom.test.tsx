@@ -55,7 +55,7 @@ vi.mock('@/renderer/pages/team/components/memberPicker/TeamAddMemberPopover', ()
 }));
 
 import TeamTabs from '@/renderer/pages/team/components/TeamTabs';
-import TeamLeadSettingsControl from '@/renderer/pages/team/components/TeamLeadSettingsControl';
+import TeamLeadSettingsControl from '@/renderer/pages/team/components/TeamTabs/TeamLeadSettingsControl';
 import { TeamTabsProvider } from '@/renderer/pages/team/hooks/TeamTabsContext';
 
 const renameAssistantMock = vi.fn();
@@ -79,6 +79,11 @@ const assistants: TeamAssistant[] = [
     status: 'idle',
   },
 ];
+
+const openTeammateLeadMenu = async () => {
+  fireEvent.contextMenu(screen.getByTestId('team-tab-worker-slot'));
+  return screen.findByRole('menuitem', { name: 'Make team lead' });
+};
 
 const renderTabs = (warmingUp: boolean) =>
   render(
@@ -148,8 +153,7 @@ describe('TeamTabs', () => {
   it('shows a named confirmation before making a teammate the lead', async () => {
     renderTabs(false);
 
-    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
-    fireEvent.click(screen.getByRole('button', { name: 'Make team lead' }));
+    fireEvent.click(await openTeammateLeadMenu());
 
     expect(
       await screen.findByText(
@@ -161,12 +165,12 @@ describe('TeamTabs', () => {
     await vi.waitFor(() => expect(setLeadAssistantMock).toHaveBeenCalledWith('worker-slot', false, undefined));
   });
 
-  it('does not expose a make-lead action on the current lead tab', () => {
+  it('does not expose a make-lead context menu on the current lead tab', () => {
     renderTabs(false);
 
-    fireEvent.mouseEnter(screen.getByTestId('team-tab-lead-slot'));
+    fireEvent.contextMenu(screen.getByTestId('team-tab-lead-slot'));
 
-    expect(screen.queryByTestId('team-tab-make-lead-lead-slot')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Make team lead' })).not.toBeInTheDocument();
   });
 
   it('offers a named lead-transfer action from team settings', async () => {
@@ -197,8 +201,7 @@ describe('TeamTabs', () => {
       .mockResolvedValueOnce(undefined);
     renderTabs(false);
 
-    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
-    fireEvent.click(screen.getByRole('button', { name: 'Make team lead' }));
+    fireEvent.click(await openTeammateLeadMenu());
     fireEvent.click(await screen.findByRole('button', { name: 'Change lead' }));
 
     expect(
@@ -222,8 +225,7 @@ describe('TeamTabs', () => {
     );
     renderTabs(false);
 
-    fireEvent.mouseEnter(screen.getByTestId('team-tab-worker-slot'));
-    fireEvent.click(screen.getByRole('button', { name: 'Make team lead' }));
+    fireEvent.click(await openTeammateLeadMenu());
     fireEvent.click(await screen.findByRole('button', { name: 'Change lead' }));
 
     expect(

@@ -2,8 +2,8 @@ import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TeamAssistant } from '@/common/types/team/teamTypes';
-import type { LeadTransferBusyMember } from '../utils/confirmLeadTransfer';
-import TeamLeadTransferConfirmation from '../utils/confirmLeadTransfer';
+import type { LeadTransferBusyMember } from '../../utils/confirmLeadTransfer';
+import TeamLeadTransferConfirmation from './TeamLeadTransferConfirmation';
 
 type Props = {
   assistants: TeamAssistant[];
