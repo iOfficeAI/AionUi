@@ -71,6 +71,11 @@ describe('platformAuthType', () => {
       expect(getAuthTypeFromPlatform('OpenRouter')).toBe(AuthType.USE_OPENAI);
     });
 
+    it('returns USE_OPENAI for Requesty', () => {
+      expect(getAuthTypeFromPlatform('requesty')).toBe(AuthType.USE_OPENAI);
+      expect(getAuthTypeFromPlatform('Requesty')).toBe(AuthType.USE_OPENAI);
+    });
+
     it('returns USE_OPENAI for DeepSeek', () => {
       expect(getAuthTypeFromPlatform('deepseek')).toBe(AuthType.USE_OPENAI);
       expect(getAuthTypeFromPlatform('DeepSeek')).toBe(AuthType.USE_OPENAI);

@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import {
+  DEFAULT_PLATFORM_VALUE,
+  getPresetProviders,
+  getProviderLogo,
+  MODEL_PLATFORMS,
+} from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +36,28 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+});
+
+describe('Requesty preset provider', () => {
+  const entry = MODEL_PLATFORMS.find((p) => p.value === 'Requesty');
+
+  it('is an OpenAI-compatible preset next to OpenRouter', () => {
+    expect(entry?.name).toBe('Requesty');
+    expect(entry?.platform).toBe('custom');
+    expect(entry?.base_url).toBe('https://router.requesty.ai/v1');
+    expect(getPresetProviders()).toContain(entry);
+    const values = MODEL_PLATFORMS.map((p) => p.value);
+    expect(values.indexOf('Requesty')).toBe(values.indexOf('OpenRouter') + 1);
+  });
+
+  it('is not the default platform', () => {
+    expect(DEFAULT_PLATFORM_VALUE).not.toBe('Requesty');
+  });
+
+  it('resolves its bundled logo by name and by base URL', () => {
+    expect(entry?.logo).toBeTruthy();
+    expect(getProviderLogo({ name: 'Requesty' })).toBe(entry?.logo);
+    expect(getProviderLogo({ base_url: 'https://router.requesty.ai/v1' })).toBe(entry?.logo);
   });
 });
