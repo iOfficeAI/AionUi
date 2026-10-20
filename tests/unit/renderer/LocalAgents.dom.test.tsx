@@ -9,7 +9,7 @@
  * derives the detected/custom sections from it.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
@@ -148,6 +148,10 @@ const makeAgents = () => [
 ];
 
 describe('LocalAgents', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('runs the health probe and shows a success toast after an official-agent test connection succeeds', async () => {
     const refreshCatalog = vi.fn().mockResolvedValue(undefined);
     useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });
@@ -448,6 +452,38 @@ describe('LocalAgents', () => {
     // "unavailable" keeps only the non-online agent.
     fireEvent.click(unavailableTab);
     expect(screen.queryByText('Aion CLI')).toBeNull();
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
+
+  it('restores the selected availability filter after remounting', () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    const { unmount } = render(<LocalAgents />);
+    fireEvent.click(screen.getByTestId('settings-tab-unavailable'));
+    expect(localStorage.getItem('aionui.agent-availability-filter')).toBe('unavailable');
+
+    unmount();
+    render(<LocalAgents />);
+
+    expect(screen.queryByText('Aion CLI')).toBeNull();
+    expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
+
+  it('uses all agents when the saved availability filter is invalid', () => {
+    localStorage.setItem('aionui.agent-availability-filter', 'unknown');
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    render(<LocalAgents />);
+
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
   });
 });
