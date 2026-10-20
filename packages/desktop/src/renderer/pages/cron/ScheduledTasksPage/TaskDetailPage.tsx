@@ -18,7 +18,13 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import ThemedLogo from '@/renderer/components/agent/ThemedLogo';
 import { useAgentLogos } from '@renderer/utils/model/agentLogo';
-import { formatCronRunConversationTitle, formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
+import {
+  formatCronRunConversationTitle,
+  formatSchedule,
+  formatNextRun,
+  getJobCommandText,
+  isShellJob,
+} from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
@@ -497,11 +503,27 @@ const TaskDetailPage: React.FC = () => {
 
           <aside data-testid='task-detail-sidebar-column' className='flex min-w-0 flex-col gap-24px'>
             <section className='flex flex-col gap-12px'>
-              <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.instructions')}</h2>
+              <h2 className='m-0 text-13px font-medium text-t-secondary'>
+                {isShellJob(job) ? t('cron.detail.command') : t('cron.detail.instructions')}
+              </h2>
               <div className='box-border rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-16px py-14px'>
-                <div className='whitespace-pre-wrap break-words text-14px leading-22px text-t-primary'>
-                  {job.target.payload.text || '-'}
+                <div className='whitespace-pre-wrap break-words font-mono text-14px leading-22px text-t-primary'>
+                  {getJobCommandText(job) || '-'}
                 </div>
+                {isShellJob(job) && (
+                  <div className='mt-10px flex flex-col gap-4px text-12px leading-18px text-t-secondary'>
+                    {job.target.payload.workspace && (
+                      <span>
+                        {t('cron.detail.shellWorkspace')}: {job.target.payload.workspace}
+                      </span>
+                    )}
+                    {job.target.payload.timeout_ms != null && (
+                      <span>
+                        {t('cron.detail.shellTimeout')}: {Math.round(job.target.payload.timeout_ms / 60000)} min
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
 

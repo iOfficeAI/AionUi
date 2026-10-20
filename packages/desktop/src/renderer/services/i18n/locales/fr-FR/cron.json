@@ -42,7 +42,10 @@
     "noHistory": "Aucune exécution pour l'instant",
     "notFound": "Tâche introuvable",
     "executionModeDescriptionNew": "Chaque exécution démarre une nouvelle conversation, sans contexte précédent. Idéal pour des rapports ou vérifications périodiques indépendants.",
-    "executionModeDescriptionExisting": "Chaque exécution continue dans la même conversation, conservant le contexte. Idéal pour des tâches de suivi qui s'appuient sur les exécutions précédentes."
+    "executionModeDescriptionExisting": "Chaque exécution continue dans la même conversation, conservant le contexte. Idéal pour des tâches de suivi qui s'appuient sur les exécutions précédentes.",
+    "command": "Commande",
+    "shellWorkspace": "Espace de travail",
+    "shellTimeout": "Délai d'expiration"
   },
   "notification": {
     "taskComplete": "Tâche terminée",
@@ -111,7 +114,16 @@
       "aionrsModelRequired": "Veuillez sélectionner un modèle pour Aion CLI",
       "aionrsNoProvider": "Aucun modèle disponible",
       "assistantLockedExistingConversation": "Les tâches de conversation en cours doivent conserver leur assistant d'origine. Créez une nouvelle tâche pour utiliser un autre assistant.",
-      "teamTaskExecutionModeLockedReason": "Les tâches planifiées par l'équipe doivent continuer à s'exécuter dans la conversation de l'équipe propriétaire, le mode d'exécution ne peut donc pas être modifié."
+      "teamTaskExecutionModeLockedReason": "Les tâches planifiées par l'équipe doivent continuer à s'exécuter dans la conversation de l'équipe propriétaire, le mode d'exécution ne peut donc pas être modifié.",
+      "taskType": "Type de tâche",
+      "taskTypeAgent": "Assistant IA",
+      "taskTypeShell": "Script Shell",
+      "shellCommand": "Commande Shell",
+      "shellCommandPlaceholder": "ex. gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Veuillez saisir la commande Shell",
+      "shellModeHint": "Les tâches Shell exécutent une commande directement, sans assistant IA, et écrivent le résultat dans la conversation liée.",
+      "shellTimeout": "Délai d'expiration",
+      "shellNeedsConversation": "Les tâches Shell nécessitent une conversation liée. Créez-les depuis le panneau de tâches d'une conversation."
     },
     "freq": {
       "manual": "Manuel",

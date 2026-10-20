@@ -55,6 +55,10 @@ export function getJobAgentMeta(
   if (!rawType) return {};
   const logoBackend = rawType;
 
+  if (rawType === 'shell') {
+    return { name: rawType, emoji: '⌨️' };
+  }
+
   if (rawType === 'acp') {
     return {
       name: config?.name || rawType,
