@@ -281,13 +281,14 @@ const ToolsModalContent: React.FC = () => {
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
-    return (data || [])
-      .map((provider) => ({
-        ...provider,
-        models: provider.models.filter((modelName) => isImageGenSupported(provider, modelName)),
-      }))
-      .filter((provider) => provider.models.length > 0);
+    return data.filter((provider) => provider.models.length > 0);
   }, [data]);
+
+  const isSelectedImageModelCustom = useMemo(() => {
+    if (!data || !imageGenerationModel?.id || !imageGenerationModel.use_model) return false;
+    const provider = data.find((item) => item.id === imageGenerationModel.id);
+    return provider ? !isImageGenSupported(provider, imageGenerationModel.use_model) : false;
+  }, [data, imageGenerationModel]);
 
   useEffect(() => {
     const loadConfigs = async () => {
@@ -440,12 +441,13 @@ const ToolsModalContent: React.FC = () => {
   const handleImageGenerationToggle = useCallback(
     async (checked: boolean) => {
       if (!builtinImageGenServer) return;
+      if (builtinImageGenServer.enabled === checked) return;
 
       setIsUpdatingImageGeneration(true);
       try {
         if (checked) {
           if (!imageGenerationModel?.id || !imageGenerationModel.use_model) {
-            mcpMessage.error(t('settings.mcpSyncError'));
+            mcpMessage.error(t('settings.selectModel'));
             return;
           }
           await syncMcpServerEnv(imageGenerationModel);
@@ -481,7 +483,6 @@ const ToolsModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const navigateToSettingsTab = useSettingsTabNavigate();
-  const isImageGenerationModelUnavailable = !imageGenerationModelList.length || !imageGenerationModel?.use_model;
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -513,12 +514,8 @@ const ToolsModalContent: React.FC = () => {
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
               <Switch
-                disabled={
-                  isUpdatingImageGeneration ||
-                  isImageGenerationServerLoading ||
-                  !builtinImageGenServer ||
-                  (!builtinImageGenServer.enabled && isImageGenerationModelUnavailable)
-                }
+                aria-label={t('settings.imageGenerationToggle')}
+                disabled={isUpdatingImageGeneration || isImageGenerationServerLoading || !builtinImageGenServer}
                 checked={Boolean(builtinImageGenServer?.enabled) && !isImageGenerationServerLoading}
                 loading={isImageGenerationServerLoading}
                 onChange={handleImageGenerationToggle}
@@ -537,6 +534,7 @@ const ToolsModalContent: React.FC = () => {
                       <li>{t('settings.imageGenSupportedTooltipGemini')}</li>
                       <li>{t('settings.imageGenSupportedTooltipOpenRouter')}</li>
                       <li>{t('settings.imageGenSupportedTooltipAntigravity')}</li>
+                      <li>{t('settings.imageGenSupportedTooltipOpenAI')}</li>
                     </ul>
                     <div>{t('settings.imageGenUnsupportedTooltip')}</div>
                   </div>
@@ -609,6 +607,11 @@ const ToolsModalContent: React.FC = () => {
                         <Help theme='outline' size='14' />
                       </a>
                     </Tooltip>
+                  </div>
+                )}
+                {isSelectedImageModelCustom && (
+                  <div className='mt-6px text-12px leading-18px text-t-secondary'>
+                    {t('settings.imageGenCustomModelWarning')}
                   </div>
                 )}
               </Form.Item>
