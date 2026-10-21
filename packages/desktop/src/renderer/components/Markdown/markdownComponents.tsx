@@ -5,9 +5,10 @@
  */
 
 import React from 'react';
+import type { Options as ReactMarkdownOptions } from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -34,7 +35,34 @@ export const MARKDOWN_REMARK_PLUGINS = [remarkGfm, remarkMath, remarkBreaks];
  * Sanitizing before KaTeX (not after) is what lets raw HTML be shown safely while
  * math keeps working — this is the behaviour that must not regress.
  */
-export const SANITIZED_HTML_REHYPE_PLUGINS = [rehypeRaw, rehypeSanitize, rehypeKatex];
+export const SANITIZED_HTML_REHYPE_PLUGINS: ReactMarkdownOptions['rehypePlugins'] = [
+  rehypeRaw,
+  [
+    rehypeSanitize,
+    {
+      ...defaultSchema,
+      protocols: {
+        ...defaultSchema.protocols,
+        src: [...(defaultSchema.protocols?.src || []), 'data', 'file'],
+        href: [
+          ...(defaultSchema.protocols?.href || []),
+          'file',
+          // Allow Windows drive letter paths (e.g. C:/path) parsed as protocols
+          ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+        ],
+      },
+    },
+  ],
+  rehypeKatex,
+];
+
+/**
+ * Default rehype pipeline for chat and standard markdown surfaces.
+ * Uses rehype-raw with sanitized HTML tags (rehypeSanitize) followed by KaTeX.
+ * This allows benign tags like `<kbd>` while stripping dangerous
+ * markup (`<script>`, `<iframe>`, inline event handlers, etc.).
+ */
+export const DEFAULT_REHYPE_PLUGINS = SANITIZED_HTML_REHYPE_PLUGINS;
 
 /** Table override shared by the chat and preview renderers: horizontal scroll + collapsed borders. */
 export const MarkdownTable = ({ node: _node, ...rest }: Record<string, unknown>) => (
