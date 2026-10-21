@@ -1,0 +1,8 @@
+/* Mobile: the Arco Tabs strip is header-only; the active column renders below it. */
+.tabs :global(.arco-tabs-content) {
+  display: none;
+}
+
+.tabs :global(.arco-tabs-header-title) {
+  padding-inline: 10px;
+}

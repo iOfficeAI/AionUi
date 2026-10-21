@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { useVisibleConversationIds } from '@/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
+import { useFocusedConversationId } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { isPlatformPrimaryModifier, isPrimaryApplicationShortcut } from '@/renderer/utils/ui/keyboardShortcuts';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
@@ -40,6 +41,10 @@ const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
 export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();
+  // Which conversation the shortcuts act on. The focus store knows it even when
+  // several are mounted; the pathname is the fallback for the moment before a
+  // conversation view has registered itself (and for non-conversation routes).
+  const focusedConversationId = useFocusedConversationId();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -53,7 +58,8 @@ export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversat
 
       if (isConversationTabShortcut(event)) {
         event.preventDefault();
-        const currentConversationId = location.pathname.match(/^\/conversation\/([^/]+)/)?.[1] ?? null;
+        const currentConversationId =
+          focusedConversationId ?? location.pathname.match(/^\/conversation\/([^/]+)/)?.[1] ?? null;
         const targetConversationId = getCycledConversationId(
           visibleConversationIds,
           currentConversationId,
@@ -91,5 +97,5 @@ export const useConversationShortcuts = ({ navigate, toggleSider }: UseConversat
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [location.pathname, navigate, toggleSider, visibleConversationIds]);
+  }, [focusedConversationId, location.pathname, navigate, toggleSider, visibleConversationIds]);
 };

@@ -1,0 +1,631 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * The split-group block in the sidebar: a labelled container with one row per
+ * member, and three distinct clicks — the block opens the group, a member row
+ * opens it with that member focused, the remove button takes only that member
+ * out. The container has to read as one group at a glance, so its header line,
+ * its tint and its header glyph are part of the contract.
+ *
+ * A member row is a browser tab: its icon slot becomes the remove button while
+ * the pointer or the keyboard is on it, and its grab handle keeps a slot of its
+ * own so a working row is still draggable — the gesture that takes it out of
+ * the group.
+ */
+
+import React from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { DndContext } from '@dnd-kit/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import type { TChatConversation } from '@/common/config/storage';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) => {
+      if (options && typeof options.name === 'string') return `${key}:${options.name}`;
+      if (options && typeof options.count === 'number') return `${key}:${options.count}`;
+      return key;
+    },
+  }),
+}));
+const { layoutState } = vi.hoisted(() => ({ layoutState: { isMobile: false } }));
+vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
+  useLayoutContext: () => ({ isMobile: layoutState.isMobile, siderCollapsed: false, setSiderCollapsed: () => {} }),
+}));
+vi.mock('@/renderer/pages/conversation/GroupedHistory/ConversationLeadingIcon', () => ({
+  default: ({ conversation, isGenerating }: { conversation: TChatConversation; isGenerating?: boolean }) => (
+    <span data-testid={`leading-icon-${conversation.id}`} data-generating={isGenerating ? 'true' : 'false'} />
+  ),
+}));
+
+import { ConversationRowMenu } from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
+import SplitGroupRow from '@/renderer/pages/conversation/GroupedHistory/SplitGroupRow';
+import type { ConversationRowProps } from '@/renderer/pages/conversation/GroupedHistory/types';
+import type { SplitGroup } from '@/renderer/pages/conversation/GroupedHistory/utils/splitGroupHelpers';
+
+const member = (id: string, order: number): TChatConversation =>
+  ({
+    id,
+    name: `Conversation ${id}`,
+    type: 'acp',
+    created_at: 1,
+    modified_at: 1,
+    extra: { split_group: { id: 'g1', order } },
+  }) as TChatConversation;
+
+const group: SplitGroup = { id: 'g1', members: [member('a', 0), member('b', 1), member('c', 2)] };
+
+/** The pointer arriving on a member row, which is what reveals its remove button. */
+const engage = (id: string) => fireEvent.mouseEnter(screen.getByTestId(`split-group-member-${id}`));
+const disengage = (id: string) => fireEvent.mouseLeave(screen.getByTestId(`split-group-member-${id}`));
+
+const renderPill = (overrides: Partial<React.ComponentProps<typeof SplitGroupRow>> = {}) => {
+  const onOpen = vi.fn();
+  const onRemoveMember = vi.fn();
+  render(
+    <DndContext>
+      <SplitGroupRow
+        group={group}
+        collapsed={false}
+        tooltipEnabled={false}
+        batchMode={false}
+        selected={false}
+        isGenerating={(id) => id === 'b'}
+        isWaitingConfirmation={() => false}
+        hasUnread={(id) => id === 'c'}
+        getJobStatus={() => 'none'}
+        onOpen={onOpen}
+        onRemoveMember={onRemoveMember}
+        {...overrides}
+      />
+    </DndContext>
+  );
+  return { onOpen, onRemoveMember };
+};
+
+afterEach(() => {
+  cleanup();
+  layoutState.isMobile = false;
+});
+
+/**
+ * Answer the pointer question for one test. The rows ask `(any-hover: hover)` —
+ * whether anything attached can hover — so a tablet with a mouse plugged in
+ * counts as able to, and a bare touch screen does not.
+ */
+const withPointer = (canHover: boolean, body: () => void) => {
+  const original = window.matchMedia;
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: query.includes('any-hover: hover') ? canHover : false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
+  });
+  try {
+    body();
+  } finally {
+    Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: original });
+  }
+};
+
+describe('SplitGroupRow', () => {
+  it('renders one leading icon per member, in column order', () => {
+    renderPill();
+    const icons = screen.getAllByTestId(/^leading-icon-/);
+    expect(icons.map((icon) => icon.getAttribute('data-testid'))).toEqual([
+      'leading-icon-a',
+      'leading-icon-b',
+      'leading-icon-c',
+    ]);
+  });
+
+  it("renders every member's full title, one row per member", () => {
+    renderPill();
+    expect(screen.getByTestId('split-group-title-a').textContent).toBe('Conversation a');
+    expect(screen.getByTestId('split-group-title-b').textContent).toBe('Conversation b');
+    expect(screen.getByTestId('split-group-title-c').textContent).toBe('Conversation c');
+    expect(screen.getAllByTestId(/^split-group-member-[abc]$/)).toHaveLength(3);
+  });
+
+  it('renders both titles for a two-member group', () => {
+    const pair: SplitGroup = { id: 'g1', members: [member('a', 0), member('b', 1)] };
+    renderPill({ group: pair });
+    expect(screen.getByText('Conversation a')).toBeInTheDocument();
+    expect(screen.getByText('Conversation b')).toBeInTheDocument();
+  });
+
+  it('keeps the icons but drops the titles in the collapsed rail', () => {
+    renderPill({ collapsed: true });
+    expect(screen.getAllByTestId(/^leading-icon-/)).toHaveLength(3);
+    expect(screen.queryAllByTestId(/^split-group-title-/)).toHaveLength(0);
+  });
+
+  it('heads the block with the split label and the member count', () => {
+    renderPill();
+    const label = screen.getByTestId('split-group-label-g1');
+    expect(label.textContent).toBe('conversation.splitGroup.blockLabel:3');
+  });
+
+  it('counts only the members it actually shows', () => {
+    cleanup();
+    renderPill({ group: { id: 'g1', members: [member('a', 0), member('b', 1)] } });
+    expect(screen.getByTestId('split-group-label-g1').textContent).toBe('conversation.splitGroup.blockLabel:2');
+  });
+
+  it('drops the header line in the collapsed rail, where there is no room for it', () => {
+    cleanup();
+    renderPill({ collapsed: true });
+    expect(screen.queryByTestId('split-group-label-g1')).toBeNull();
+    expect(screen.getByTestId('leading-icon-a')).toBeInTheDocument();
+  });
+
+  it('draws a tinted container with a columns glyph in its header — no accent bar — and deepens the tint when the group is open', () => {
+    renderPill();
+    const block = screen.getByTestId('split-group-row-g1');
+    // The coloured edge bar is gone; the glyph before the label carries the mark.
+    expect(block.querySelector('span[aria-hidden="true"].w-2px')).toBeNull();
+    expect(block.className).not.toMatch(/inset-y-0|start-0 w-2px/);
+    expect(screen.getByTestId('split-group-label-g1').querySelector('svg')).not.toBeNull();
+    expect(block.className).toContain('bg-fill-2');
+    cleanup();
+    renderPill({ selected: true });
+    const open = screen.getByTestId('split-group-row-g1');
+    expect(open.className).toContain('bg-[rgba(var(--primary-6),0.10)]');
+    // The old look boxed the open group in with a heavy grey fill.
+    expect(open.className).not.toContain('bg-fill-3');
+  });
+
+  it('keeps the icon slot to itself until the row is engaged, then swaps it for the remove button', () => {
+    renderPill();
+    expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+
+    engage('a');
+    const remove = screen.getByTestId('split-group-remove-a');
+    expect(remove).toHaveAttribute('aria-label', 'conversation.splitGroup.removeMember:Conversation a');
+    // Only the engaged row swaps: the block is not a row of × buttons.
+    expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(1);
+    // The icon it replaced is still mounted, just out of sight.
+    expect(screen.getByTestId('leading-icon-a').parentElement?.className).toContain('opacity-0');
+
+    disengage('a');
+    expect(screen.queryByTestId('split-group-remove-a')).toBeNull();
+    expect(screen.getByTestId('leading-icon-a').parentElement?.className).not.toContain('opacity-0');
+  });
+
+  it('swaps the slot for a row that is working too, and keeps its grab handle', () => {
+    renderPill();
+    // Member b is the generating one.
+    expect(screen.getByTestId('leading-icon-b')).toHaveAttribute('data-generating', 'true');
+    expect(screen.getByTestId('split-group-drag-handle-b')).toBeInTheDocument();
+
+    engage('b');
+    expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+    // The handle has a slot of its own, so it never contends with the spinner.
+    expect(screen.getByTestId('split-group-drag-handle-b')).toBeInTheDocument();
+  });
+
+  it('reveals the remove button for the keyboard too, and hides it again on the way out', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-c');
+    fireEvent.focus(row);
+    expect(screen.getByTestId('split-group-remove-c')).toBeInTheDocument();
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-c')).toBeNull();
+  });
+
+  it('gives every member a grab handle, so any of them can be dragged out', () => {
+    renderPill();
+    expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
+  });
+
+  it('passes each member its own live state', () => {
+    renderPill();
+    expect(screen.getByTestId('leading-icon-b')).toHaveAttribute('data-generating', 'true');
+    expect(screen.getByTestId('leading-icon-a')).toHaveAttribute('data-generating', 'false');
+    expect(screen.getByTestId('split-group-member-unread-c')).toBeInTheDocument();
+    expect(screen.queryByTestId('split-group-member-unread-a')).toBeNull();
+  });
+
+  it('opens the group when the pill body is clicked', () => {
+    const { onOpen } = renderPill();
+    fireEvent.click(screen.getByTestId('split-group-row-g1'));
+    expect(onOpen).toHaveBeenCalledWith(group);
+  });
+
+  it('opens the group with that member focused when its row is clicked, without opening twice', () => {
+    const { onOpen } = renderPill();
+    fireEvent.click(screen.getByTestId('split-group-title-b'));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it('removes only the clicked member and does not open the group', () => {
+    const { onOpen, onRemoveMember } = renderPill();
+    engage('c');
+    fireEvent.click(screen.getByTestId('split-group-remove-c'));
+    expect(onRemoveMember).toHaveBeenCalledTimes(1);
+    expect(onRemoveMember).toHaveBeenCalledWith(group, 'c');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('hides the remove buttons and ignores clicks while batch-selecting', () => {
+    const { onOpen } = renderPill({ batchMode: true });
+    engage('b');
+    expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('split-group-row-g1'));
+    fireEvent.click(screen.getByTestId('leading-icon-b'));
+    fireEvent.keyDown(screen.getByTestId('leading-icon-b').parentElement as HTMLElement, { key: 'Enter' });
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("keeps every grab handle in the collapsed rail, and reveals only the engaged row's remove button", () => {
+    renderPill({ collapsed: true });
+    expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+    expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
+    engage('a');
+    expect(screen.getAllByTestId(/^split-group-remove-/).map((e) => e.getAttribute('data-testid'))).toEqual([
+      'split-group-remove-a',
+    ]);
+  });
+
+  it('keeps every grab handle in a narrow window — width is not a reason to take it away', () => {
+    layoutState.isMobile = true;
+    renderPill();
+    expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
+    engage('b');
+    // The busy row too: the handle has a slot of its own, so the spinner never displaces it.
+    expect(screen.getByTestId('split-group-drag-handle-b').className).toContain('opacity-100');
+  });
+
+  it('pins the grab handle visible where the pointer cannot hover, next to the permanent remove button', () => {
+    // Touch does not switch dragging off — the drag provider's touch sensor
+    // waits for a hold — so the handle stays, and stays visible, because a
+    // hover-revealed handle is invisible to a finger.
+    withPointer(false, () => {
+      renderPill();
+      const handles = screen.getAllByTestId(/^split-group-drag-handle-/);
+      expect(handles).toHaveLength(3);
+      for (const handle of handles) expect(handle.className).toContain('opacity-100');
+      expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(3);
+      // And it lets a touch scroll begin: the browser keeps panning from it.
+      expect(handles[0].style.touchAction).toBe('manipulation');
+    });
+  });
+
+  it('treats a touch screen with a mouse attached as able to hover', () => {
+    // `(hover: none)` describes the primary pointer alone and would say no;
+    // `(any-hover: hover)` says yes as soon as the mouse is there.
+    withPointer(true, () => {
+      renderPill();
+      expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+      expect(screen.getAllByTestId(/^split-group-drag-handle-/)).toHaveLength(3);
+    });
+  });
+});
+
+/**
+ * A member row's right-click menu is the plain row's menu plus one item that
+ * only a member has any use for. Everything else a conversation can do it can
+ * still do from inside a split group.
+ */
+describe('SplitGroupRow member menu', () => {
+  const menuProps = (conversation: TChatConversation, menuVisible: boolean): ConversationRowProps =>
+    ({
+      conversation,
+      isGenerating: false,
+      isWaitingConfirmation: false,
+      hasUnread: false,
+      isManualUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible,
+      onToggleChecked: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: vi.fn(),
+      onEditStart: vi.fn(),
+      onCreateCronTask: vi.fn(),
+      onArchive: vi.fn(),
+      onTogglePin: vi.fn(),
+      onToggleManualUnread: vi.fn(),
+      getJobStatus: () => 'none',
+    }) as ConversationRowProps;
+
+  it('offers "remove from split" alongside the usual row actions, and removes that member', async () => {
+    const { onRemoveMember, onOpen } = renderPill({
+      getMemberRowProps: (conversation) => menuProps(conversation, conversation.id === 'b'),
+    });
+    expect(await screen.findByText('conversation.history.rename')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('conversation.splitGroup.removeFromSplit'));
+    expect(onRemoveMember).toHaveBeenCalledWith(group, 'b');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("leaves the item out of a plain row's menu, which has no group to leave", async () => {
+    render(<ConversationRowMenu {...menuProps(member('z', 0), true)} />);
+    expect(await screen.findByText('conversation.history.rename')).toBeInTheDocument();
+    expect(screen.queryByText('conversation.splitGroup.removeFromSplit')).toBeNull();
+  });
+});
+
+/**
+ * Reaching a member row without a mouse. The remove button already appears on
+ * focus; the grab handle and the action menu are the two that did not answer
+ * the keyboard at all.
+ */
+describe('SplitGroupRow keyboard reach', () => {
+  const menuProps = (conversation: TChatConversation, menuVisible: boolean): ConversationRowProps =>
+    ({
+      conversation,
+      isGenerating: false,
+      isWaitingConfirmation: false,
+      hasUnread: false,
+      isManualUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible,
+      onToggleChecked: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: vi.fn(),
+      onEditStart: vi.fn(),
+      onCreateCronTask: vi.fn(),
+      onArchive: vi.fn(),
+      onTogglePin: vi.fn(),
+      onToggleManualUnread: vi.fn(),
+      getJobStatus: () => 'none',
+    }) as ConversationRowProps;
+
+  it('keeps the grab handle out of the tab order and out of the accessibility tree', () => {
+    renderPill();
+    const handle = screen.getByTestId('split-group-drag-handle-a');
+    // Only a PointerSensor is registered: a tab stop here would do nothing,
+    // and a role would announce a control nobody can operate.
+    expect(handle).not.toHaveAttribute('tabindex');
+    expect(handle).not.toHaveAttribute('role');
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('does not open the member when a key is pressed on the handle', () => {
+    const { onOpen } = renderPill();
+    fireEvent.keyDown(screen.getByTestId('split-group-drag-handle-a'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByTestId('split-group-drag-handle-a'), { key: ' ' });
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('gives the row a real menu button, so the actions are not behind a right-click', () => {
+    const onOpenMenu = vi.fn();
+    renderPill({
+      getMemberRowProps: (conversation) => ({ ...menuProps(conversation, false), onOpenMenu }),
+    });
+    const button = screen.getByTestId('split-group-member-menu-b');
+    // An Arco control, not a span wearing role='button': focusable and
+    // keyboard-activated by the platform rather than by hand.
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.className).toContain('arco-btn');
+    expect(button).toHaveAttribute('aria-label', 'conversation.splitGroup.memberActions:Conversation b');
+    expect(button).toHaveAttribute('aria-haspopup', 'menu');
+
+    fireEvent.click(button);
+    expect(onOpenMenu).toHaveBeenCalledTimes(1);
+    expect(onOpenMenu.mock.calls[0][0].id).toBe('b');
+  });
+
+  it('reveals the menu button when the keyboard tabs onto it', () => {
+    renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const button = screen.getByTestId('split-group-member-menu-b');
+    // Not hovered, so it starts out of sight — and would be an invisible tab
+    // stop if focus did not bring it up.
+    expect(button.className).toContain('opacity-0');
+    fireEvent.focus(button);
+    expect(screen.getByTestId('split-group-member-menu-b').className).toContain('opacity-100');
+  });
+
+  it('leaves no control nested inside another', () => {
+    renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const row = screen.getByTestId('split-group-member-b');
+    // The row is a plain container now. A row that was itself role='button'
+    // with buttons inside it is a control nested in a control, which neither
+    // ARIA nor a screen reader can express.
+    expect(row).not.toHaveAttribute('role');
+    expect(row).not.toHaveAttribute('tabindex');
+    for (const control of row.querySelectorAll('button')) {
+      expect(control.closest('[role="button"]')).toBeNull();
+    }
+  });
+
+  it('opens the member through an Arco control carrying its name', () => {
+    const { onOpen } = renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    const title = screen.getByTestId('split-group-title-b');
+    expect(title.tagName).toBe('BUTTON');
+    expect(title).toHaveAttribute('aria-label', 'conversation.splitGroup.focusMember:Conversation b');
+    fireEvent.click(title);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it("pins the row's buttons open where the pointer cannot hover", () => {
+    withPointer(false, () => {
+      renderPill({ getMemberRowProps: (conversation) => menuProps(conversation, false) });
+      // No hover to uncover them with, so the remove button takes its
+      // permanent place at the end of the row and the menu stays visible.
+      expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+      expect(screen.getByTestId('split-group-member-menu-b').className).toContain('opacity-100');
+    });
+  });
+
+  it('opens the menu on a click of that button without opening the member', () => {
+    const onOpenMenu = vi.fn();
+    const { onOpen } = renderPill({
+      getMemberRowProps: (conversation) => ({ ...menuProps(conversation, false), onOpenMenu }),
+    });
+    fireEvent.click(screen.getByTestId('split-group-member-menu-c'));
+    expect(onOpenMenu).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('offers no menu button where there is no menu — the collapsed rail and batch mode', () => {
+    renderPill({ collapsed: true, getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    expect(screen.queryAllByTestId(/^split-group-member-menu-/)).toHaveLength(0);
+    cleanup();
+    renderPill({ batchMode: true, getMemberRowProps: (conversation) => menuProps(conversation, false) });
+    expect(screen.queryAllByTestId(/^split-group-member-menu-/)).toHaveLength(0);
+  });
+});
+
+/**
+ * The collapsed rail. It has no title, no remove button and no menu, so when
+ * the row stopped being a control itself there was nothing left to focus — a
+ * member could be opened with a mouse and by no other means. The mark is the
+ * control there.
+ */
+describe('SplitGroupRow collapsed rail', () => {
+  it('gives the mark a focusable opener carrying the member name', () => {
+    const { onOpen } = renderPill({ collapsed: true });
+    const opener = screen.getByTestId('split-group-open-b');
+    expect(opener.tagName).toBe('BUTTON');
+    expect(opener).toHaveAttribute('aria-label', 'conversation.splitGroup.focusMember:Conversation b');
+    fireEvent.click(opener);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it('leaves one control per row at rest and no nesting', () => {
+    renderPill({ collapsed: true });
+    const row = screen.getByTestId('split-group-member-b');
+    expect(row.querySelectorAll('button')).toHaveLength(1);
+    expect(row).not.toHaveAttribute('role');
+    // The grab handle is a pointer affordance; it must not read as a second control.
+    expect(row.querySelectorAll('[role], [tabindex]')).toHaveLength(0);
+  });
+
+  it('gives the handle a slot of its own beside the opener, revealed with the row and kept off the mark', () => {
+    renderPill({ collapsed: true });
+    const opener = screen.getByTestId('split-group-open-b');
+    const handle = screen.getByTestId('split-group-drag-handle-b');
+    expect(opener.contains(handle)).toBe(false);
+    expect(handle.className).toContain('opacity-0');
+    engage('b');
+    // Up on hover, and the mark — the busy row's spinner included — stays where it was.
+    expect(handle.className).toContain('opacity-100');
+    expect(screen.getByTestId('leading-icon-b').parentElement?.className).not.toContain('opacity-0');
+  });
+
+  it('opens the member from a plain click on the handle — the row is a pointer shortcut and the handle lies on it', () => {
+    const { onOpen } = renderPill({ collapsed: true });
+    fireEvent.click(screen.getByTestId('split-group-drag-handle-b'));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(group, 'b');
+  });
+
+  it('reveals a remove button beside the mark on hover, as a sibling of the opener, and it removes', () => {
+    const { onOpen, onRemoveMember } = renderPill({ collapsed: true });
+    engage('b');
+    const remove = screen.getByTestId('split-group-remove-b');
+    const row = screen.getByTestId('split-group-member-b');
+    expect(screen.getByTestId('split-group-open-b').contains(remove)).toBe(false);
+    expect(row.querySelectorAll('button')).toHaveLength(2);
+    expect(row.querySelectorAll('button button, [role="button"] button')).toHaveLength(0);
+    fireEvent.click(remove);
+    expect(onRemoveMember).toHaveBeenCalledWith(group, 'b');
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('reveals the remove button for the keyboard too: focus on the opener brings it up, and Tab reaches it', () => {
+    renderPill({ collapsed: true });
+    const opener = screen.getByTestId('split-group-open-b');
+    fireEvent.focus(opener);
+    const remove = screen.getByTestId('split-group-remove-b');
+    expect(remove.tagName).toBe('BUTTON');
+    // Moving focus onto the remove button keeps the row engaged, so it does not vanish under the focus.
+    fireEvent.blur(opener, { relatedTarget: remove });
+    fireEvent.focus(remove);
+    expect(screen.getByTestId('split-group-remove-b')).toBeInTheDocument();
+    fireEvent.blur(remove, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-b')).toBeNull();
+  });
+
+  it('pins the remove button and the handle where the pointer cannot hover', () => {
+    withPointer(false, () => {
+      renderPill({ collapsed: true });
+      expect(screen.getAllByTestId(/^split-group-remove-/)).toHaveLength(3);
+      for (const handle of screen.getAllByTestId(/^split-group-drag-handle-/)) {
+        expect(handle.className).toContain('opacity-100');
+      }
+    });
+  });
+
+  it('has no handle while batch-selecting, where nothing is draggable', () => {
+    renderPill({ collapsed: true, batchMode: true });
+    expect(screen.queryAllByTestId(/^split-group-drag-handle-/)).toHaveLength(0);
+  });
+
+  it('offers no opener while batch-selecting, where the row is not interactive', () => {
+    renderPill({ collapsed: true, batchMode: true });
+    expect(screen.queryAllByTestId(/^split-group-open-/)).toHaveLength(0);
+  });
+
+  it('still shows every member and no title', () => {
+    renderPill({ collapsed: true });
+    expect(screen.getAllByTestId(/^split-group-open-/)).toHaveLength(3);
+    expect(screen.queryAllByTestId(/^split-group-title-/)).toHaveLength(0);
+  });
+});
+
+/**
+ * Hover and focus are two ways to engage a row and they end independently.
+ * Sharing one flag meant moving the pointer away hid a control the keyboard was
+ * still inside — and the remove button lives in the leading slot, so hiding it
+ * unmounted the element holding the focus.
+ */
+describe('SplitGroupRow engagement', () => {
+  it('keeps the remove button up when the pointer leaves but focus stays', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-a');
+    fireEvent.mouseEnter(row);
+    fireEvent.focus(row);
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(row);
+    // Focus is still inside; the control it is on must not vanish underneath it.
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.queryByTestId('split-group-remove-a')).toBeNull();
+  });
+
+  it('keeps it up when focus leaves but the pointer stays', () => {
+    renderPill();
+    const row = screen.getByTestId('split-group-member-a');
+    fireEvent.mouseEnter(row);
+    fireEvent.focus(row);
+    fireEvent.blur(row, { relatedTarget: document.body });
+    expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+  });
+
+  it('asks the pointer, not the viewport, whether anything can be hovered', () => {
+    // A narrow window on a mouse-driven desktop is "mobile" by width and has a
+    // hover all the same; it should keep the leading-slot swap rather than
+    // being handed the touch layout.
+    layoutState.isMobile = true;
+    withPointer(true, () => {
+      renderPill();
+      expect(screen.queryAllByTestId(/^split-group-remove-/)).toHaveLength(0);
+      fireEvent.mouseEnter(screen.getByTestId('split-group-member-a'));
+      expect(screen.getByTestId('split-group-remove-a')).toBeInTheDocument();
+    });
+  });
+});
