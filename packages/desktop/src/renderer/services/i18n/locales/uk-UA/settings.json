@@ -337,6 +337,8 @@
   "startOnBootUnsupported": "Доступно лише в упакованих програмах для macOS та Windows.",
   "startOnBootUpdateFailed": "Не вдалося оновити налаштування запуску при завантаженні",
   "closeToTray": "Згортати в трей",
+  "startMinimizedToTray": "Запускати згорнутим у трей",
+  "startMinimizedToTrayDesc": "Під час запуску залишати AionUi в системному треї без показу головного вікна. Потрібно «Закривати в трей».",
   "hardwareAcceleration": "Апаратне прискорення",
   "hardwareAccelerationDesc": "Використовувати GPU для відображення інтерфейсу. Вимкніть, якщо застосунок вилітає під час запуску або зображення спотворюється.",
   "hardwareAccelerationAutoDisabled": "Автоматично вимкнено через повторні збої GPU.",

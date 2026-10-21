@@ -329,6 +329,8 @@
   "startOnBootUnsupported": "パッケージ版の macOS / Windows アプリでのみ利用できます。",
   "startOnBootUpdateFailed": "起動時自動起動の設定更新に失敗しました",
   "closeToTray": "トレイに最小化",
+  "startMinimizedToTray": "起動時にトレイへ最小化",
+  "startMinimizedToTrayDesc": "起動時にメインウィンドウを表示せず、システムトレイに常駐します。「トレイに閉じる」が必要です。",
   "hardwareAcceleration": "ハードウェアアクセラレーション",
   "hardwareAccelerationDesc": "GPU を使って UI を描画します。起動時にクラッシュしたり画面が乱れる場合はオフにしてください。",
   "hardwareAccelerationAutoDisabled": "GPU の繰り返しクラッシュにより自動的に無効化されました。",

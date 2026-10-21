@@ -18,6 +18,10 @@ import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
 import { createOrUpdateTray, destroyTray, setCloseToTrayEnabled } from '@process/utils/tray';
 import { readCloseToTraySetting, writeCloseToTraySetting } from '@process/utils/closeToTraySetting';
+import {
+  readStartMinimizedToTraySetting,
+  writeStartMinimizedToTraySetting,
+} from '@process/utils/startMinimizedToTraySetting';
 
 type LanguageChangeListener = () => void;
 let _languageChangeListener: LanguageChangeListener | null = null;
@@ -41,6 +45,14 @@ export function initSystemSettingsBridge(): void {
     } else {
       destroyTray();
     }
+  });
+
+  ipcBridge.systemSettings.getStartMinimizedToTray.provider(async () => readStartMinimizedToTraySetting());
+
+  ipcBridge.systemSettings.setStartMinimizedToTray.provider(async ({ enabled }) => {
+    // Only meaningful with close-to-tray; still persist the preference so it
+    // re-applies when the user re-enables close-to-tray later.
+    await writeStartMinimizedToTraySetting(enabled);
   });
 
   // 语言变更通知，同步主进程 i18n 并通知托盘重建

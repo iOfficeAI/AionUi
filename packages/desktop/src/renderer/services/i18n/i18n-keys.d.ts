@@ -2563,6 +2563,8 @@ export type I18nKey =
   | 'settings.speechToTextTestTranscribing'
   | 'settings.speechToTextTestUploadHint'
   | 'settings.speechToTextWholeBadge'
+  | 'settings.startMinimizedToTray'
+  | 'settings.startMinimizedToTrayDesc'
   | 'settings.startOnBoot'
   | 'settings.startOnBootDesc'
   | 'settings.startOnBootUnsupported'
