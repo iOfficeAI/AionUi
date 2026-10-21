@@ -202,5 +202,6 @@
   },
   "selectedCount": "{{count}} seçili",
   "selectedSkills": "Seçili beceriler",
-  "aiAssistant": "Yapay Zekâ Asistanı"
+  "aiAssistant": "Yapay Zekâ Asistanı",
+  "documentTitleWithName": "{{name}} - AionUi"
 }

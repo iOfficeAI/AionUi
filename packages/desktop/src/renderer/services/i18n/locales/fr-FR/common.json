@@ -202,5 +202,6 @@
   },
   "selectedCount": "{{count}} sélectionné(s)",
   "selectedSkills": "Compétences sélectionnées",
-  "aiAssistant": "Assistant IA"
+  "aiAssistant": "Assistant IA",
+  "documentTitleWithName": "{{name}} - AionUi"
 }

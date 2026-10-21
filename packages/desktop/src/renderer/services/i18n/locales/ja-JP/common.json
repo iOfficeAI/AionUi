@@ -202,5 +202,6 @@
   },
   "selectedCount": "選択済み {{count}}",
   "selectedSkills": "選択済みスキル",
-  "aiAssistant": "AI アシスタント"
+  "aiAssistant": "AI アシスタント",
+  "documentTitleWithName": "{{name}} - AionUi"
 }
