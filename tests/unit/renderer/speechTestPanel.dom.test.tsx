@@ -67,4 +67,17 @@ describe('SpeechTestPanel', () => {
       expect(speechSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('tools.speechToText', config)
     );
   });
+
+  it('validates and proceeds without API key when source is local', async () => {
+    const localConfig: SpeechToTextConfig = {
+      enabled: true,
+      provider: 'local',
+      local: { model: 'parakeet-tdt-0.6b-v3-int8', language: '' },
+    };
+    render(<SpeechTestPanel config={localConfig} source='local' />);
+    fireEvent.click(screen.getByText('settings.speechToTextTest'));
+    await waitFor(() =>
+      expect(speechSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('tools.speechToText', localConfig)
+    );
+  });
 });

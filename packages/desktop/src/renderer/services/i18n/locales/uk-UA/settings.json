@@ -1429,5 +1429,9 @@
   "crossSessionMessageDesc": "Дозволяє агентам надсилати повідомлення до ваших інших розмов. Вимкнення також відключає згадку @@ у полі введення.",
   "crossSessionMessageDisabledBanner": "Повідомлення між розмовами вимкнено, згадка @@ недоступна.",
   "crossSessionMessageResume": "Увімкнути знову",
-  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами"
+  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами",
+  "speechToTextSourceLocal": "Локально (Офлайн - Parakeet TDT)",
+  "speechToTextDownloadModel": "Завантажити модель (~670 МБ)",
+  "speechToTextDownloadingModel": "Завантаження моделі...",
+  "speechToTextLocalModelReady": "Модель готова до офлайн-диктування"
 }

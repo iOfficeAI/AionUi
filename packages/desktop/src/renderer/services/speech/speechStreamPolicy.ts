@@ -67,6 +67,10 @@ export const getModelStreamCapability = (source: 'openai' | 'deepgram' | 'custom
  * - openai with a custom base_url → unknown (custom endpoint behaviour varies)
  */
 export const getStreamCapability = (config: SpeechToTextConfig): StreamCapability => {
+  if (config.provider === 'local') {
+    return 'unsupported';
+  }
+
   if (config.provider === 'deepgram') {
     return getModelStreamCapability('deepgram', config.deepgram?.model ?? '');
   }
@@ -83,6 +87,9 @@ export const getStreamCapability = (config: SpeechToTextConfig): StreamCapabilit
 
 /** Derive a stable string key for the active provider sub-config. */
 const streamMemoryEntry = (config: SpeechToTextConfig): string => {
+  if (config.provider === 'local') {
+    return `local||${config.local?.model ?? ''}`;
+  }
   if (config.provider === 'deepgram') {
     return `deepgram||${config.deepgram?.model ?? ''}`;
   }

@@ -1414,5 +1414,9 @@
   "crossSessionMessageDesc": "Aracıların diğer sohbetlerinize mesaj göndermesine izin verir. Kapatmak giriş alanındaki @@ sohbet etiketini de devre dışı bırakır.",
   "crossSessionMessageDisabledBanner": "Sohbetler arası mesajlar kapalı, @@ sohbet etiketi kullanılamıyor.",
   "crossSessionMessageResume": "Yeniden aç",
-  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi"
+  "crossSessionMessageUpdateFailed": "Sohbetler arası mesaj ayarı güncellenemedi",
+  "speechToTextSourceLocal": "Yerel (Çevrimdışı - Parakeet TDT)",
+  "speechToTextDownloadModel": "Modeli İndir (~670 MB)",
+  "speechToTextDownloadingModel": "Model indiriliyor...",
+  "speechToTextLocalModelReady": "Model çevrimdışı dikte için hazır"
 }

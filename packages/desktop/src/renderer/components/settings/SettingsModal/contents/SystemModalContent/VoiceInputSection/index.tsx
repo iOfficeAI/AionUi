@@ -4,18 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import { ipcBridge } from '@/common';
+import type { SpeechModelDownloadStatus, SpeechToTextConfig } from '@/common/types/provider/speech';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { getModelStreamCapability } from '@/renderer/services/speech/speechStreamPolicy';
-import { Divider, Form, Input, Switch } from '@arco-design/web-react';
+import { Button, Divider, Form, Input, Message, Progress, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SpeechTestPanel from './SpeechTestPanel';
 import {
   DEEPGRAM_SPEECH_MODEL_PRESETS,
   DEFAULT_SPEECH_TO_TEXT_CONFIG,
+  LOCAL_SPEECH_MODEL_PRESETS,
   OPENAI_SPEECH_MODEL_PRESETS,
   SPEECH_LANGUAGE_OPTIONS,
   applySpeechSource,
@@ -134,28 +136,122 @@ const VoiceInputSection: React.FC = () => {
     [updateConfig]
   );
 
+  type LocalField = keyof NonNullable<SpeechToTextConfig['local']>;
+
+  const handleLocalChange = useCallback(
+    (field: LocalField, value: string) => {
+      updateConfig(
+        (current) =>
+          ({
+            ...current,
+            local: { ...DEFAULT_SPEECH_TO_TEXT_CONFIG.local, ...current.local, [field]: value },
+          }) as SpeechToTextConfig
+      );
+    },
+    [updateConfig]
+  );
+
+  const isLocal = source === 'local';
   const isDeepgram = source === 'deepgram';
   const isCustom = source === 'custom';
-  const activeLanguage = (isDeepgram ? config.deepgram?.language : config.openai?.language) ?? '';
-  const activeModel = (isDeepgram ? config.deepgram?.model : config.openai?.model) ?? '';
+  const activeLanguage =
+    (isLocal ? config.local?.language : isDeepgram ? config.deepgram?.language : config.openai?.language) ?? '';
+  const activeModel =
+    (isLocal ? config.local?.model : isDeepgram ? config.deepgram?.model : config.openai?.model) ??
+    (isLocal ? 'parakeet-tdt-0.6b-v3-int8' : '');
   const activeApiKey = (isDeepgram ? config.deepgram?.api_key : config.openai?.api_key) ?? '';
-  const modelPresets = isDeepgram ? DEEPGRAM_SPEECH_MODEL_PRESETS : OPENAI_SPEECH_MODEL_PRESETS;
+  const modelPresets = isLocal
+    ? LOCAL_SPEECH_MODEL_PRESETS
+    : isDeepgram
+      ? DEEPGRAM_SPEECH_MODEL_PRESETS
+      : OPENAI_SPEECH_MODEL_PRESETS;
   const customBaseUrl = config.openai?.base_url ?? '';
   const isBaseUrlInvalid = isCustom && customBaseUrl.trim() !== '' && !isValidHttpUrl(customBaseUrl);
 
+  const [localModelStatus, setLocalModelStatus] = useState<SpeechModelDownloadStatus | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    if (!isLocal || !activeModel || !ipcBridge.speech) {
+      return;
+    }
+    let cancelled = false;
+
+    const check = async () => {
+      try {
+        const res = await ipcBridge.speech?.checkModel?.invoke({ modelId: activeModel });
+        if (!cancelled && res?.status) {
+          setLocalModelStatus(res.status);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void check();
+
+    const off = ipcBridge.speech?.onDownloadProgress?.on?.((progress) => {
+      if (progress.modelId === activeModel) {
+        setLocalModelStatus({
+          modelId: progress.modelId,
+          status: progress.percent >= 100 ? 'ready' : 'downloading',
+          progress: progress.percent,
+          downloadedBytes: progress.downloadedBytes,
+          totalBytes: progress.totalBytes,
+        });
+        if (progress.percent >= 100) {
+          setIsDownloading(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      off?.();
+    };
+  }, [activeModel, isLocal]);
+
+  const handleDownloadModel = useCallback(async () => {
+    if (!activeModel || isDownloading || !ipcBridge.speech) {
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      await ipcBridge.speech.downloadModel.invoke({ modelId: activeModel });
+      setLocalModelStatus({
+        modelId: activeModel,
+        status: 'ready',
+        progress: 100,
+        downloadedBytes: 0,
+        totalBytes: 0,
+      });
+      Message.success(t('settings.speechToTextLocalModelReady'));
+    } catch (err) {
+      Message.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [activeModel, isDownloading, t]);
+
   const handleModelChange = useCallback(
     (value: string) => {
-      if (isDeepgram) {
+      if (isLocal) {
+        handleLocalChange('model', value);
+      } else if (isDeepgram) {
         handleDeepgramChange('model', value);
       } else {
         handleOpenAIChange('model', value);
       }
     },
-    [handleDeepgramChange, handleOpenAIChange, isDeepgram]
+    [handleDeepgramChange, handleLocalChange, handleOpenAIChange, isDeepgram, isLocal]
   );
 
   const handleLanguageChange = useCallback(
     (value: string) => {
+      if (isLocal) {
+        handleLocalChange('language', value);
+        return;
+      }
       if (isDeepgram) {
         handleDeepgramChange('language', value);
         return;
@@ -175,7 +271,7 @@ const VoiceInputSection: React.FC = () => {
           }) as SpeechToTextConfig
       );
     },
-    [handleDeepgramChange, isDeepgram, updateConfig]
+    [handleDeepgramChange, handleLocalChange, isDeepgram, isLocal, updateConfig]
   );
 
   const handleApiKeyChange = useCallback(
@@ -209,13 +305,14 @@ const VoiceInputSection: React.FC = () => {
           <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
             <Form.Item label={t('settings.speechToTextSource')}>
               <AionSelect value={source} onChange={handleSourceChange}>
+                <AionSelect.Option value='local'>{t('settings.speechToTextSourceLocal')}</AionSelect.Option>
                 <AionSelect.Option value='openai'>{t('settings.speechToTextSourceOpenAI')}</AionSelect.Option>
                 <AionSelect.Option value='deepgram'>{t('settings.speechToTextSourceDeepgram')}</AionSelect.Option>
                 <AionSelect.Option value='custom'>{t('settings.speechToTextSourceCustom')}</AionSelect.Option>
               </AionSelect>
             </Form.Item>
 
-            {isCustom && (
+            {!isLocal && isCustom && (
               <Form.Item
                 label={<FieldLabel labelKey='settings.speechToTextBaseUrl' requirement='required' />}
                 validateStatus={isBaseUrlInvalid ? 'error' : undefined}
@@ -229,38 +326,67 @@ const VoiceInputSection: React.FC = () => {
               </Form.Item>
             )}
 
-            <Form.Item
-              label={
-                <FieldLabel labelKey='settings.speechToTextApiKey' requirement={isCustom ? 'optional' : 'required'} />
-              }
-            >
-              <Input.Password value={activeApiKey} visibilityToggle onChange={handleApiKeyChange} />
-            </Form.Item>
+            {!isLocal && (
+              <Form.Item
+                label={
+                  <FieldLabel labelKey='settings.speechToTextApiKey' requirement={isCustom ? 'optional' : 'required'} />
+                }
+              >
+                <Input.Password value={activeApiKey} visibilityToggle onChange={handleApiKeyChange} />
+              </Form.Item>
+            )}
 
             <Form.Item label={t('settings.speechToTextModel')}>
-              <AionSelect
-                value={activeModel || undefined}
-                onChange={handleModelChange}
-                allowCreate={isCustom}
-                showSearch={isCustom}
-                placeholder={isCustom ? t('settings.speechToTextModelPlaceholder') : undefined}
-              >
-                {buildModelOptions(modelPresets, activeModel).map((model) => {
-                  const capability = getModelStreamCapability(source, model);
-                  const badgeText =
-                    capability === 'supported'
-                      ? t('settings.speechToTextStreamingBadge')
-                      : capability === 'unsupported'
-                        ? t('settings.speechToTextWholeBadge')
-                        : null;
-                  return (
-                    <AionSelect.Option key={model} value={model}>
-                      {model}
-                      {badgeText !== null && <span className='text-12px text-t-tertiary ms-8px'>{badgeText}</span>}
-                    </AionSelect.Option>
-                  );
-                })}
-              </AionSelect>
+              <div className='flex flex-col gap-8px w-full'>
+                <AionSelect
+                  value={activeModel || undefined}
+                  onChange={handleModelChange}
+                  allowCreate={isCustom}
+                  showSearch={isCustom}
+                  placeholder={isCustom ? t('settings.speechToTextModelPlaceholder') : undefined}
+                >
+                  {buildModelOptions(modelPresets, activeModel).map((model) => {
+                    const capability = isLocal ? 'unsupported' : getModelStreamCapability(source, model);
+                    const badgeText =
+                      capability === 'supported'
+                        ? t('settings.speechToTextStreamingBadge')
+                        : capability === 'unsupported'
+                          ? t('settings.speechToTextWholeBadge')
+                          : null;
+                    return (
+                      <AionSelect.Option key={model} value={model}>
+                        {model}
+                        {badgeText !== null && <span className='text-12px text-t-tertiary ms-8px'>{badgeText}</span>}
+                      </AionSelect.Option>
+                    );
+                  })}
+                </AionSelect>
+
+                {isLocal && (
+                  <div className='flex items-center justify-between gap-12px mt-4px p-10px bg-fill-2 rd-8px'>
+                    {localModelStatus?.status === 'ready' ? (
+                      <span className='text-13px text-success flex items-center gap-6px'>
+                        ✓ {t('settings.speechToTextLocalModelReady')}
+                      </span>
+                    ) : isDownloading || localModelStatus?.status === 'downloading' ? (
+                      <div className='flex flex-col gap-4px w-full'>
+                        <div className='flex justify-between text-12px text-t-secondary'>
+                          <span>{t('settings.speechToTextDownloadingModel')}</span>
+                          <span>{localModelStatus?.progress ?? 0}%</span>
+                        </div>
+                        <Progress percent={localModelStatus?.progress ?? 0} size='small' showText={false} />
+                      </div>
+                    ) : (
+                      <div className='flex items-center justify-between w-full'>
+                        <span className='text-12px text-t-secondary'>Parakeet TDT (~670 MB)</span>
+                        <Button size='small' type='primary' loading={isDownloading} onClick={handleDownloadModel}>
+                          {t('settings.speechToTextDownloadModel')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </Form.Item>
 
             <Form.Item label={t('settings.speechToTextLanguage')}>
