@@ -464,7 +464,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
       {/* Next Steps Guide - shown when connected but no authorized users yet */}
       {pluginStatus?.connected && authorizedUsers.length === 0 && (
-        <div className='bg-blue-50 dark:bg-blue-900/20 rd-12px p-16px border border-blue-200 dark:border-blue-800'>
+        <div className='bg-primary-light-1 rd-12px p-16px border border-primary-3'>
           <SectionHeader title={t('settings.assistant.nextSteps', 'Next Steps')} />
           <div className='text-14px text-t-secondary space-y-8px'>
             <p className='m-0'>
