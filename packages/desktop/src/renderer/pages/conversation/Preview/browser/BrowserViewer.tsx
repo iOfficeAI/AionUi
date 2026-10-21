@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback } from 'react';
+import { ipcBridge } from '@/common';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
 import {
   BROWSER_BLANK_URL,
@@ -18,6 +19,8 @@ export interface BrowserViewerProps {
   url: string;
   /** 所属 preview tab 的 id / Id of the owning preview tab */
   tabId: string;
+  /** 此 tab 是否是 Agent 可控制的可见页面 / Whether this tab is the visible page the agent may drive. */
+  isActive: boolean;
   /** 地址变化时回写 tab（用于持久化）/ Persist the new address back onto the tab */
   onUrlChange: (tabId: string, url: string) => void;
   /** 页面标题变化时回写 tab / Persist the page title back onto the tab */
@@ -39,7 +42,14 @@ export interface BrowserViewerProps {
  * the address bar, and writing address/title/favicon back onto the owning tab so
  * the browser can be restored after a restart.
  */
-const BrowserViewer: React.FC<BrowserViewerProps> = ({ url, tabId, onUrlChange, onTitleChange, onFaviconChange }) => {
+const BrowserViewer: React.FC<BrowserViewerProps> = ({
+  url,
+  tabId,
+  isActive,
+  onUrlChange,
+  onTitleChange,
+  onFaviconChange,
+}) => {
   const handleUrlChange = useCallback((next: string) => onUrlChange(tabId, next), [tabId, onUrlChange]);
 
   const handleTitleChange = useCallback(
@@ -65,6 +75,19 @@ const BrowserViewer: React.FC<BrowserViewerProps> = ({ url, tabId, onUrlChange, 
     if (url === BROWSER_BLANK_URL) onTitleChange(tabId, browserTabLabelFromUrl(url));
   }, [url, tabId, onTitleChange]);
 
+  const handleWebContentsReady = useCallback(
+    (webContentsId: number) => {
+      if (!isActive) return;
+
+      console.info('[browser] reporting active browser webContents', { tabId, webContentsId });
+      void ipcBridge.application.reportBrowserWebContentsId.invoke({ webContentsId }).then((result) => {
+        if (!result.success)
+          console.warn('[browser] active browser webContents was not attached', { tabId, webContentsId, result });
+      });
+    },
+    [isActive, tabId]
+  );
+
   return (
     <WebviewHost
       url={url || BROWSER_BLANK_URL}
@@ -76,6 +99,7 @@ const BrowserViewer: React.FC<BrowserViewerProps> = ({ url, tabId, onUrlChange, 
       onTitleChange={handleTitleChange}
       onFaviconChange={handleFaviconChange}
       onDidFinishLoad={handleDidFinishLoad}
+      onWebContentsReady={handleWebContentsReady}
     />
   );
 };
