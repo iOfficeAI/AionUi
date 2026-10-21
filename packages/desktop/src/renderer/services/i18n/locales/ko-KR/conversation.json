@@ -91,6 +91,17 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "attentionCenter": {
+    "tooltip": "확인 필요",
+    "title": "확인 필요",
+    "count": "읽지 않은 항목 {{count}}개",
+    "count_one": "읽지 않은 항목 {{count}}개",
+    "count_other": "읽지 않은 항목 {{count}}개",
+    "markAllAsRead": "모두 읽음으로 표시",
+    "empty": "확인이 필요한 항목이 없습니다",
+    "completed": "작업 완료",
+    "manualUnread": "읽지 않음으로 표시됨"
+  },
   "historySearch": {
     "tooltip": "메시지 검색",
     "title": "대화 내용 검색",
