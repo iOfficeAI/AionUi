@@ -35,7 +35,7 @@ describe('ApiKeyManager', () => {
       const manager = new ApiKeyManager('key1,key2,key3', AuthType.USE_OPENAI);
       expect(manager.hasMultipleKeys()).toBe(true);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.maskedKeys).toEqual(['***', '***', '***']);
       expect(status.total).toBe(3);
     });
 
@@ -43,14 +43,14 @@ describe('ApiKeyManager', () => {
       const manager = new ApiKeyManager('key1\nkey2\nkey3', AuthType.USE_ANTHROPIC);
       expect(manager.hasMultipleKeys()).toBe(true);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.maskedKeys).toEqual(['***', '***', '***']);
       expect(status.envKey).toBe('ANTHROPIC_API_KEY');
     });
 
     it('trims whitespace and filters empty lines', () => {
       const manager = new ApiKeyManager(' key1 , key2 ,  ,key3  ', AuthType.USE_OPENAI);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.maskedKeys).toEqual(['***', '***', '***']);
     });
   });
 
@@ -180,7 +180,8 @@ describe('ApiKeyManager', () => {
       expect(status).toHaveProperty('envKey', 'ANTHROPIC_API_KEY');
       expect(status).toHaveProperty('current');
       expect(status).toHaveProperty('total', 3);
-      expect(status).toHaveProperty('keys');
+      expect(status).toHaveProperty('maskedKeys');
+      expect(status).not.toHaveProperty('keys');
       expect(status).toHaveProperty('blacklisted');
       expect(Array.isArray(status.blacklisted)).toBe(true);
     });
