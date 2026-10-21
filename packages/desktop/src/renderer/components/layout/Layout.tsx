@@ -14,7 +14,7 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
-import { usePreviewContext } from '@renderer/pages/conversation/Preview';
+import { PanelEmptyState, usePreviewContext, usePreviewRegionHold } from '@renderer/pages/conversation/Preview';
 import { ProjectPanelHost } from '@renderer/components/layout/ProjectPanelHost';
 import { ProjectPanelMobileOverlay } from '@renderer/components/layout/ProjectPanelMobileOverlay';
 import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversation/explorer/currentProjectStore';
@@ -131,8 +131,11 @@ const Layout: React.FC<{
   useDesktopTurnNotification();
   const navigate = useNavigate();
   const location = useLocation();
+  const isSplitGroupRoute = location.pathname.startsWith('/split/');
   const workspaceAvailable =
-    location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+    location.pathname.startsWith('/conversation/') ||
+    isSplitGroupRoute ||
+    (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const toggleSider = useCallback(() => {
     setCollapsed((previous) => !previous);
   }, []);
@@ -175,16 +178,23 @@ const Layout: React.FC<{
     closePreview: closePreviewOnRouteChange,
     isOpen: isPreviewOpen,
     isMaximized: isPreviewMaximized,
+    deliberateCloseCount,
   } = usePreviewContext();
+  // Held while the panel is up on a split route, so following the focus across
+  // columns of different projects swaps the panel's contents, never the region.
+  const previewHeldOpenOnSplit = usePreviewRegionHold({ isSplitGroupRoute, isPreviewOpen, deliberateCloseCount });
   // Layout-level explorer column width engine (stage3 FULL / P2): measure the
   // [content | explorer] row, clamp the explorer width so chat (+ preview) keep
   // their reserve. Active only when a project is bound and on desktop.
   const currentProject = useCurrentProject();
   const { containerRef: mainRowRef, containerWidth: mainRowWidth } = useContainerWidth();
   const explorerActive = Boolean(currentProject) && !isMobile;
+  // The clamp reserves the preview's space whenever the region is on screen —
+  // held open on a split route as much as open — or resizing the explorer
+  // with the hold active could squeeze the chat below its minimum.
   const { widthPx: explorerWidthPx, createDragHandle: createExplorerDragHandle } = useProjectExplorerColumnWidth(
     mainRowWidth,
-    isPreviewOpen,
+    isPreviewOpen || previewHeldOpenOnSplit,
     explorerActive
   );
   // P3: host-level collapse (project-scoped on desktop; overlay on mobile). The
@@ -202,7 +212,18 @@ const Layout: React.FC<{
   // P4 (②B): hoist the preview region to the Layout host for project
   // conversations so it is structurally persistent (no remount on same-project
   // switches). ChatLayout renders chat only in that case (previewHosted).
-  const previewRegionActive = Boolean(currentProject) && !isMobile && isPreviewOpen;
+  // Split columns always hoist here too, project or not: one shared panel that
+  // follows the focused column (plan decision 3), instead of one inline panel
+  // per column showing the same content.
+  // Plan decision 3 keeps ONE preview panel that follows the focused column. Its
+  // open/closed state is stored per project scope, so following the focus across
+  // a group that spans projects flipped `isPreviewOpen` and tore the whole region
+  // out of the layout on every click between columns. The region stays for as
+  // long as the user is in split routes with the panel up (see the hold above);
+  // a column with nothing open shows an empty panel instead of collapsing the
+  // layout, and a deliberate close still dismisses it.
+  const previewRegionActive =
+    (Boolean(currentProject) || isSplitGroupRoute) && !isMobile && (isPreviewOpen || previewHeldOpenOnSplit);
   // 最大化：隐藏聊天区、让预览铺满它腾出的空间；左侧边栏与右侧资源管理器列均不动。
   // Maximized: hide the chat area and let the preview fill the space it vacated;
   // the left sidebar and the right explorer column are both left untouched.
@@ -549,7 +570,11 @@ const Layout: React.FC<{
                       lineStyle: { width: '2px' },
                     })}
                   <div className='h-full w-full overflow-hidden'>
-                    <PreviewPanel />
+                    {isPreviewOpen ? (
+                      <PreviewPanel />
+                    ) : (
+                      <PanelEmptyState testId='preview-region-empty-state' onClose={closePreviewOnRouteChange} />
+                    )}
                   </div>
                 </div>
               )}
@@ -557,6 +582,7 @@ const Layout: React.FC<{
                 <ProjectPanelHost
                   widthPx={explorerWidthPx}
                   collapsed={explorerCollapsed}
+                  keepMountedWhileEmpty={workspaceAvailable}
                   dragHandle={createExplorerDragHandle({
                     className: 'absolute start-0 top-0 bottom-0 z-20',
                     reverse: true,

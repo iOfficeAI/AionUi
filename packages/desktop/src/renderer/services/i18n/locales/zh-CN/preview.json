@@ -176,5 +176,8 @@
   "zoomIn": "放大",
   "zoomOut": "缩小",
   "zoomReset": "重置视图",
-  "diagramZoomHint": "滚轮缩放 • 拖拽平移 • ESC 关闭"
+  "diagramZoomHint": "滚轮缩放 • 拖拽平移 • ESC 关闭",
+  "addToChatUnavailable": "无法添加：当前聚焦的会话暂无输入框。",
+  "openFromOtherColumn": "未显示来自“{{name}}”的预览，因为该列未处于聚焦状态。",
+  "openUnattributed": "未显示预览：多个会话正在运行，无法确定它来自哪一个。"
 }

@@ -16,6 +16,14 @@
   background-color: color-mix(in srgb, var(--bg-1) 92%, transparent) !important;
 }
 
+/* The focused split column is named by a light primary wash on its header band.
+   It has to be declared here rather than as a utility: the glass background is
+   an `!important` rule on this same class, so only a more specific selector
+   layers over it. */
+.chat-layout-header--glass[data-column-focused='true'] {
+  background-color: color-mix(in srgb, rgb(var(--primary-6)) 8%, var(--bg-1)) !important;
+}
+
 .chat-layout-header--glass::after {
   content: '';
   position: absolute;
