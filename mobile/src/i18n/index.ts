@@ -7,6 +7,7 @@ import enUS from './locales/en-US.json';
 import zhCN from './locales/zh-CN.json';
 import ruRU from './locales/ru-RU.json';
 import deDE from './locales/de-DE.json';
+import idID from './locales/id-ID.json';
 
 const LANGUAGE_KEY = 'aionui_language';
 
@@ -15,6 +16,7 @@ const resources = {
   'zh-CN': { translation: zhCN },
   'ru-RU': { translation: ruRU },
   'de-DE': { translation: deDE },
+  'id-ID': { translation: idID },
 };
 
 const detectDeviceLanguage = (): string => {
@@ -22,6 +24,7 @@ const detectDeviceLanguage = (): string => {
   if (deviceLocale.startsWith('zh')) return 'zh-CN';
   if (deviceLocale.startsWith('ru')) return 'ru-RU';
   if (deviceLocale.startsWith('de')) return 'de-DE';
+  if (deviceLocale.startsWith('id')) return 'id-ID';
   return 'en-US';
 };
 

@@ -1,0 +1,32 @@
+{
+  "auth": {
+    "failed": "Autentikasi {{backend}} gagal:\n\n{{error}}\n\nSilakan periksa status autentikasi alat CLI lokal Anda",
+    "console_error": "Detail kesalahan autentikasi ACP:",
+    "failed_confirm": "Autentikasi ACP {{backend}} gagal:\n\n{{error}}\n\nApakah Anda ingin membuka halaman pengaturan untuk mengonfigurasinya sekarang?"
+  },
+  "send": {
+    "failed": "Gagal mengirim pesan: {{error}}"
+  },
+  "sendbox": {
+    "placeholder": "Kirim pesan ke {{backend}}..."
+  },
+  "image": {
+    "download": "Unduh",
+    "download_aria": "Unduh gambar",
+    "download_success": "Unduhan berhasil",
+    "download_error": "Gagal mengunduh",
+    "generated_alt": "Gambar yang dihasilkan"
+  },
+  "status": {
+    "connecting": "Menghubungkan ke {{agent}}...",
+    "connected": "Terhubung ke {{agent}}",
+    "authenticated": "Terautentikasi dengan {{agent}}",
+    "session_active": "Sesi aktif dengan {{agent}}",
+    "error": "Kesalahan koneksi",
+    "unknown": "Status tidak diketahui"
+  },
+  "config": {
+    "reasoning_effort": "Upaya Penalaran",
+    "default": "Default"
+  }
+}

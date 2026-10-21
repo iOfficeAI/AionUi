@@ -1,0 +1,786 @@
+{
+  "welcome": {
+    "title": "Hai, apa rencana Anda hari ini?",
+    "placeholder": "Kirim pesan, unggah berkas, buka folder, buat tugas terjadwal, atau ketik / untuk perintah...",
+    "linkFolder": "Buka Folder",
+    "newConversation": "Obrolan Baru",
+    "selectModel": "Pilih Model",
+    "useCliModel": "Pilih Model",
+    "modelSwitchNotSupported": "Daftar model akan tersedia setelah koneksi pertama. Kirim pesan untuk menyambung dan memuat model yang tersedia.",
+    "specifyWorkspace": "Obrolan dalam Proyek",
+    "currentWorkspace": "Proyek Saat Ini",
+    "clearWorkspace": "Hapus proyek",
+    "openFolder": "Buka Folder",
+    "none": "Tidak ada",
+    "quickActionsTitle": "Apa yang dapat dilakukan AionUi?",
+    "quickActionFeedback": "Laporkan Masalah",
+    "quickActionStar": "Suka dengan kami? Beri kami bintang!",
+    "skillsMarket": "Pasar Skill AionUi",
+    "skillsMarketDesc": "Cari dan aktifkan Skill komunitas sesuai kebutuhan. Konfigurasikan sekali, tersedia untuk semua agen.",
+    "skillsMarketDetails": "Lihat Selengkapnya >>"
+  },
+  "history": {
+    "recents": "Terbaru",
+    "noHistory": "Tidak ada riwayat obrolan",
+    "deleteTitle": "Hapus",
+    "deleteConfirm": "Apakah Anda yakin ingin menghapus obrolan ini?",
+    "confirmDelete": "Hapus",
+    "cancelDelete": "Batal",
+    "editName": "Ubah Nama",
+    "saveName": "Simpan",
+    "cancelEdit": "Batal",
+    "rename": "Ganti nama",
+    "createCronTask": "Buat tugas terjadwal",
+    "renameTitle": "Ganti Nama Obrolan",
+    "renamePlaceholder": "Silakan masukkan nama baru",
+    "renameSuccess": "Berhasil diganti namanya",
+    "renameFailed": "Ganti nama gagal",
+    "batchManage": "Kelola Massal",
+    "batchModeExit": "Keluar dari Mode Massal",
+    "selectAll": "Pilih Semua",
+    "selectedCount": "{{count}} dipilih",
+    "batchExport": "Ekspor Massal",
+    "batchExportConfirm": "Ekspor {{count}} topik yang dipilih?",
+    "batchDelete": "Hapus Massal",
+    "batchDeleteConfirm": "Hapus {{count}} topik yang dipilih?",
+    "batchDeleteConfirm_one": "Hapus {{count}} topik yang dipilih?",
+    "batchDeleteConfirm_other": "Hapus {{count}} topik yang dipilih?",
+    "batchDeleteSuccess": "{{count}} topik dihapus",
+    "batchDeleteSuccess_one": "{{count}} topik dihapus",
+    "batchDeleteSuccess_other": "{{count}} topik dihapus",
+    "batchNoSelection": "Silakan pilih topik terlebih dahulu",
+    "export": "Ekspor",
+    "exportDialogTitle": "Ekspor Topik",
+    "exportDialogSingleDescription": "Ekspor rekaman percakapan topik saat ini (JSON + Markdown) dan berkas proyek ke dalam paket ZIP.",
+    "exportDialogBatchDescription": "Ekspor rekaman percakapan {{count}} topik yang dipilih (JSON + Markdown) dan berkas proyek ke dalam satu paket ZIP.",
+    "exportTargetFolder": "Ekspor ke Folder",
+    "exportSelectFolder": "Silakan pilih folder ekspor",
+    "exportDialogHint": "Pemilihan folder mengikuti interaksi yang sama seperti mengubah proyek.",
+    "exporting": "Mengekspor...",
+    "exportSuccess": "Ekspor berhasil",
+    "exportCanceled": "Ekspor dibatalkan",
+    "exportFailed": "Ekspor gagal",
+    "pin": "Sematkan",
+    "unpin": "Lepas sematan",
+    "markAsUnread": "Tandai sebagai belum dibaca",
+    "markAsRead": "Tandai sebagai sudah dibaca",
+    "pinned": "Disematkan",
+    "pinFailed": "Operasi penyematan gagal",
+    "pinnedSection": "Disematkan",
+    "deleteSuccess": "Berhasil dihapus",
+    "deleteFailed": "Gagal menghapus",
+    "today": "Hari ini",
+    "yesterday": "Kemarin",
+    "recent7Days": "7 Hari Terakhir",
+    "earlier": "Lebih Lama",
+    "projectsSection": "Proyek",
+    "conversationsSection": "Percakapan",
+    "newConversationInProject": "Obrolan baru dalam proyek ini",
+    "deleting": "Menghapus...",
+    "reorderPinned": "Seret untuk menyusun ulang percakapan yang disematkan",
+    "forkedFrom": "Dicabangkan dari “{{name}}”",
+    "forkedConversation": "Percakapan cabang",
+    "archive": "Arsipkan",
+    "archiveSuccess": "Diarsipkan",
+    "archiveFailed": "Gagal mengarsipkan",
+    "batchArchive": "Arsipkan massal",
+    "batchArchiveConfirm": "Arsipkan {{count}} topik yang dipilih? Anda dapat memulihkan atau menghapusnya dari Arsip di Pengaturan.",
+    "batchArchiveSuccess": "{{count}} topik diarsipkan",
+    "archiveProject": "Arsipkan proyek",
+    "archiveProjectTitle": "Arsipkan proyek",
+    "archiveProjectConfirm": "Arsipkan proyek \"{{name}}\"? {{count}} percakapannya juga akan diarsipkan. Anda dapat memulihkan atau menghapusnya dari Arsip di Pengaturan.",
+    "archiving": "Mengarsipkan..."
+  },
+  "historySearch": {
+    "tooltip": "Cari pesan",
+    "title": "Cari isi percakapan",
+    "shortTitle": "Cari",
+    "description": "Cari pesan terdahulu berdasarkan kata kunci, muat lebih banyak saat menggulir, dan lompat ke pesan yang cocok.",
+    "placeholder": "Cari isi pesan...",
+    "idle": "Masukkan kata kunci untuk mencari pesan",
+    "empty": "Tidak ditemukan pesan yang cocok",
+    "loadingMore": "Memuat lebih banyak...",
+    "untitled": "Percakapan tanpa judul"
+  },
+  "dropdown": {
+    "cliAgents": "Agen CLI",
+    "presetAssistants": "Asisten Preset"
+  },
+  "noAgentsAvailable": "Tidak ada agen yang tersedia",
+  "noModelConfigured": "Tidak ada model yang dikonfigurasi. Silakan konfigurasikan di pengaturan.",
+  "createFailed": "Gagal membuat percakapan",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "Path ruang kerja yang dipilih tidak tersedia. Pastikan path ruang kerja \"{{workspacePath}}\" ada dan dapat diakses."
+    },
+    "codes": {
+      "TEAM_ASSISTANT_ID_REQUIRED": "Silakan pilih asisten sebelum membuat tim.",
+      "TEAM_ASSISTANT_NOT_FOUND": "Asisten {{assistantId}} tidak lagi tersedia. Muat ulang daftar asisten dan pilih yang lain.",
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": "Gunakan assistant_id sebagai pengganti {{field}}."
+    }
+  },
+  "agentError": {
+    "fallbackTitle": "Agen tidak dapat membalas",
+    "errorCode": "Kode kesalahan",
+    "retryable": "Dapat dicoba lagi",
+    "notRetryable": "Perlu konfigurasi",
+    "resolutionPrefix": "Saran: ",
+    "resolution": {
+      "retry": "Coba lagi nanti, atau kirim ulang pesan ini.",
+      "wait_for_current_response": "Tunggu respons saat ini selesai sebelum mengirim pesan lain.",
+      "start_new_session": "Mulai percakapan baru sebelum melanjutkan.",
+      "reconnect_agent": "Mulai ulang atau sambungkan kembali agen yang dipilih, lalu coba lagi.",
+      "check_agent_login": "Masuk ke agen yang dipilih, atau muat ulang kredensialnya.",
+      "check_agent_installation": "Periksa instalasi agen dan konfigurasi perintah lokal.",
+      "check_agent_version": "Periksa protokol agen dan kompatibilitas versi.",
+      "check_local_command": "Instal perintah yang hilang, atau pastikan perintah tersebut telah ditambahkan ke PATH.",
+      "check_provider_credentials": "Periksa kunci API penyedia model atau kredensial akun di pengaturan.",
+      "check_provider_billing": "Periksa saldo, kredit, atau kuota penyedia model.",
+      "check_provider_base_url": "Periksa URL Dasar penyedia model, path API, proksi, dan kompatibilitas API.",
+      "change_model": "Pilih model yang tersedia untuk akun saat ini dan mendukung permintaan ini.",
+      "reduce_context": "Kurangi isi pesan, berkas yang dirujuk, atau ukuran konteks, lalu coba lagi.",
+      "send_feedback": "Kirim umpan balik beserta log agar tim dapat menyelidikinya."
+    },
+    "ownership": {
+      "aionui": "Aplikasi",
+      "user_agent": "Agen",
+      "user_llm_provider": "Penyedia model",
+      "unknown_upstream": "Upstream"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "Aliran respons terputus",
+        "body": "Aplikasi menerima pesan Anda tetapi aliran respons berakhir secara tak terduga. Silakan coba lagi; jika terjadi lagi, kirim umpan balik."
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "Status percakapan tidak sinkron",
+        "body": "Status percakapan tidak sinkron. Mulai ulang obrolan ini atau muat ulang aplikasi sebelum mencoba lagi."
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "Tidak dapat mengakses sumber daya yang diminta",
+        "body": "Pemeriksaan izin lokal atau sistem berkas gagal. Periksa path proyek dan izin aplikasi, lalu coba lagi."
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "Permintaan gagal dalam aplikasi",
+        "body": "Permintaan gagal saat aplikasi memprosesnya. Silakan coba lagi sekali; jika berulang, kirim umpan balik."
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "Percakapan sedang sibuk",
+        "body": "Respons lain masih berjalan. Tunggu hingga selesai sebelum mengirim pesan baru."
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "Agen yang dipilih belum diinstal",
+        "body": "Instal CLI atau aplikasi yang diperlukan agen ini, lalu sambungkan kembali di pengaturan."
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "Agen yang dipilih gagal dijalankan",
+        "body": "Proses agen berhenti sebelum siap. Periksa instalasi, status masuk, dan konfigurasi perintah lokalnya."
+      },
+      "USER_AGENT_OPENCLAW_GATEWAY_UNREACHABLE": {
+        "title": "Gateway OpenClaw tidak dapat dijangkau",
+        "body": "Gateway OpenClaw tidak berjalan atau tidak dapat dijangkau di 127.0.0.1:18789.\n\nJalankan Gateway OpenClaw dan coba lagi. Anda dapat menjalankan:\nopenclaw gateway status\nopenclaw gateway start"
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "Agen yang dipilih terputus",
+        "body": "Koneksi agen terputus saat menangani pesan ini. Mulai ulang atau sambungkan kembali agen, lalu coba lagi."
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "Agen yang dipilih memerlukan autentikasi",
+        "body": "Masuk ke agen yang dipilih atau muat ulang kredensialnya, lalu kirim ulang pesan."
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "Sesi agen hilang",
+        "body": "Agen melaporkan bahwa sesi ini tidak ditemukan atau tidak lagi dikenal."
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "Agen yang dipilih tidak mendukung tindakan ini",
+        "body": "Agen melaporkan bahwa metode ACP yang diminta tidak didukung atau tidak tersedia."
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "Agen yang dipilih menolak permintaan",
+        "body": "Agen melaporkan bahwa parameter permintaan tidak valid."
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "Handshake agen gagal",
+        "body": "Agen yang dipilih tidak dapat menyelesaikan handshake startup. Mulai ulang atau sambungkan kembali agen, lalu coba lagi."
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "Handshake agen kedaluwarsa",
+        "body": "Agen yang dipilih tidak menyelesaikan handshake startup tepat waktu. Periksa apakah agen masih dijalankan atau terhambat, lalu coba lagi."
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "Inisialisasi protokol agen gagal",
+        "body": "Aplikasi tidak dapat menginisialisasi sesi Agent Client Protocol dengan agen ini."
+      },
+      "USER_AGENT_PROTOCOL_PARSE_ERROR": {
+        "title": "Agen melaporkan kesalahan penguraian protokol",
+        "body": "Agen yang dipilih melaporkan bahwa pesan ACP/JSON-RPC tidak dapat diuraikan."
+      },
+      "USER_AGENT_INVALID_REQUEST": {
+        "title": "Agen melaporkan permintaan protokol yang tidak valid",
+        "body": "Agen yang dipilih melaporkan bahwa objek permintaan ACP/JSON-RPC tidak valid."
+      },
+      "USER_AGENT_RESOURCE_NOT_FOUND": {
+        "title": "Agen tidak dapat menemukan sumber daya yang diperlukan",
+        "body": "Agen yang dipilih melaporkan bahwa sumber daya yang diperlukan, seperti berkas, tidak ditemukan."
+      },
+      "USER_AGENT_PROTOCOL_ERROR": {
+        "title": "Agen mengembalikan kesalahan protokol",
+        "body": "Agen yang dipilih mengembalikan kode kesalahan ACP yang tidak standar."
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "Versi protokol agen tidak kompatibel",
+        "body": "Aplikasi dan agen yang dipilih tidak dapat menggunakan versi protokol ACP yang kompatibel."
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "Sesi agen sebelumnya tidak tersedia",
+        "body": "Agen tidak dapat melanjutkan sesi sebelumnya. Mulai percakapan baru untuk melanjutkan."
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "Perintah agen tidak ditemukan",
+        "body": "Perintah agen yang dikonfigurasi tidak ditemukan. Instal perintah tersebut atau perbarui path perintah di pengaturan."
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "Lingkungan agen kekurangan variabel yang diperlukan",
+        "body": "Agen memerlukan variabel lingkungan yang belum dikonfigurasi. Tambahkan di pengaturan atau lingkungan shell Anda, lalu sambungkan kembali."
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "Autentikasi penyedia model gagal",
+        "body": "Penyedia yang dipilih menolak kunci API atau kredensial akun. Periksa pengaturan penyedia dan coba lagi."
+      },
+      "USER_LLM_PROVIDER_AWS_SSO_EXPIRED": {
+        "title": "Sesi AWS SSO kedaluwarsa",
+        "body": "Sesi AWS SSO Anda telah kedaluwarsa. Jalankan 'aws sso login' untuk profil yang sesuai, lalu kirim ulang pesan."
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "Konfigurasi penyedia model tidak valid",
+        "body": "Permintaan penyedia tidak dapat dibuat dari pengaturan saat ini. Periksa kredensial, wilayah, URL Dasar, dan konfigurasi khusus penyedia sebelum mencoba lagi."
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "Model yang dipilih tidak ditemukan",
+        "body": "Penyedia tidak mengenali nama model ini. Pilih model yang tersedia dari pengaturan dan coba lagi."
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "Batas laju penyedia model tercapai",
+        "body": "Penyedia untuk sementara membatasi permintaan. Tunggu sebentar, kurangi frekuensi permintaan, atau ganti model."
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "Permintaan penyedia model kedaluwarsa",
+        "body": "Penyedia tidak merespons tepat waktu. Coba lagi nanti atau beralih ke penyedia yang lebih stabil."
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "Tidak dapat menjangkau penyedia model",
+        "body": "Kesalahan jaringan atau DNS menghalangi akses ke penyedia. Periksa jaringan, proksi, dan URL Dasar Anda."
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "Layanan penyedia model tidak tersedia",
+        "body": "Penyedia mengembalikan kesalahan gateway atau layanan. Coba lagi nanti atau gunakan penyedia lain."
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "Izin penyedia model ditolak",
+        "body": "Akun penyedia tidak memiliki izin untuk model atau operasi ini. Periksa izin akun atau pilih model lain."
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "Penagihan penyedia model diperlukan",
+        "body": "Penyedia yang dipilih memerlukan penagihan, kredit, atau kuota yang aktif sebelum dapat menyelesaikan permintaan ini."
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "Model tidak mendukung permintaan ini",
+        "body": "Model yang dipilih tidak tersedia atau tidak mendukung kemampuan yang diminta. Pilih model yang didukung dan coba lagi."
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "Titik akhir penyedia model tidak ditemukan",
+        "body": "Titik akhir penyedia atau path API tidak ditemukan. Periksa URL Dasar, nama deployment, dan kompatibilitas API."
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "Penyedia model menolak permintaan",
+        "body": "Penyedia melaporkan bahwa permintaan tidak valid. Sederhanakan pesan atau periksa pengaturan model/penyedia."
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "Skema alat ditolak oleh penyedia",
+        "body": "Penyedia menolak definisi alat dalam permintaan ini. Perbarui agen atau nonaktifkan alat yang tidak kompatibel, lalu coba lagi."
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "Konteks terlalu besar untuk model",
+        "body": "Permintaan melebihi batas konteks model. Kurangi isi pesan, berkas yang dirujuk, atau riwayat percakapan, lalu coba lagi."
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "Penyedia model mengembalikan respons kosong",
+        "body": "Penyedia menyelesaikan permintaan tanpa konten yang dapat digunakan. Coba lagi sekali atau ganti penyedia jika berulang."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "Agen saat ini gagal berjalan di path ruang kerja ini",
+        "body": "Pastikan path ruang kerja saat ini ada.",
+        "bodyWithPath": "Agen saat ini gagal berjalan di path ruang kerja \"{{workspacePath}}\". Pastikan path ruang kerja tersebut ada."
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "Agen atau penyedia hulu gagal",
+        "body": "Aplikasi menerima kesalahan upstream tetapi tidak dapat mengklasifikasikan apakah berasal dari agen, penyedia, jaringan, atau lingkungan lokal."
+      },
+      "MCP_HTTP_RESPONSE_READ_FAILED": {
+        "title": "Gagal membaca respons pembantu tim",
+        "body": "AionUi tidak dapat membaca respons pembantu tim lokal. Coba lagi sekali, dan jika terus terjadi, mulai ulang aplikasi."
+      },
+      "MCP_TOOL_REMOTE_ERROR": {
+        "title": "Pembantu tim lokal menolak permintaan",
+        "body": "Pembantu tim lokal mengembalikan kesalahan saat memproses permintaan ini. Tinjau detail di bawah dan coba lagi setelah menyesuaikan tindakan tim."
+      },
+      "MCP_TOOL_RESPONSE_UNEXPECTED": {
+        "title": "Pembantu tim mengembalikan respons yang tidak terduga",
+        "body": "AionUi menerima respons tak terduga dari pembantu tim lokal. Coba lagi sekali, dan laporkan jika masalah berlanjut."
+      },
+      "MCP_TCP_READ_FAILED": {
+        "title": "Gagal membaca dari pembantu tim lokal",
+        "body": "AionUi tidak dapat membaca respons TCP pembantu tim lokal. Coba lagi sekali, dan mulai ulang aplikasi jika terus gagal."
+      },
+      "TEAM_SERVICE_UNAVAILABLE": {
+        "title": "Layanan tim belum siap",
+        "body": "Sesi tim lokal masih dimulai atau telah terputus. Tunggu sebentar dan coba lagi."
+      },
+      "TEAM_ASSISTANT_ID_REQUIRED": {
+        "title": "Asisten rekan tim harus dipilih",
+        "body": "Pilih asisten yang sebenarnya dari katalog asisten yang tersedia sebelum membuat atau memunculkan rekan tim."
+      },
+      "TEAM_ASSISTANT_NOT_FOUND": {
+        "title": "Asisten yang dipilih tidak lagi tersedia",
+        "body": "Muat ulang katalog asisten, lalu pilih asisten lain untuk rekan tim ini."
+      },
+      "TEAM_ASSISTANT_FIELD_UNSUPPORTED": {
+        "title": "Permintaan menggunakan bidang identitas tim lama",
+        "body": "Tindakan tim ini harus menggunakan assistant_id sebagai pengganti bidang backend atau agen lama."
+      }
+    }
+  },
+  "workspace": {
+    "title": "Proyek",
+    "pasteConfirm_title": "Tempel berkas",
+    "pasteConfirm_message": "Apakah Anda yakin ingin menempel '{{name}}' ke folder yang dipilih ({{target}})?",
+    "pasteConfirm_paste": "Tempel",
+    "pasteConfirm_cancel": "Batal",
+    "pasteConfirm_noAsk": "Jangan tanya lagi",
+    "pasteConfirm_fileName": "Nama berkas",
+    "pasteConfirm_targetFolder": "Folder target",
+    "pasteConfirm_multipleFiles": "{{count}} berkas",
+    "empty": "Kosong",
+    "emptyDescription": "Berkas akan muncul di sini setelah mengunggah berkas atau membuka folder",
+    "searchPlaceholder": "Cari berkas...",
+    "createNewConversation": "Buat obrolan baru dalam proyek saat ini",
+    "search.empty": "Hasil pencarian kosong",
+    "addFile": "Tambah Berkas",
+    "refresh": "Muat ulang",
+    "temporarySpace": "Ruang Sementara",
+    "dragOverlayTitle": "Jatuhkan untuk mengimpor",
+    "dragOverlayDesc": "Seret berkas atau folder ke sini untuk menyalinnya ke proyek ini.",
+    "dragOverlayHint": "Tips: jatuhkan di mana saja untuk mengimpor ke folder yang dipilih.",
+    "dragNoFiles": "Tidak terdeteksi berkas yang valid. Silakan seret dari Finder/Explorer.",
+    "dragFailed": "Gagal mengimpor berkas yang dijatuhkan.",
+    "contextMenu": {
+      "open": "Buka",
+      "openLocation": "Tampilkan dalam folder",
+      "preview": "Pratinjau",
+      "previewFailed": "Gagal mempratinjau",
+      "deleteTitle": "Hapus berkas",
+      "deleteConfirm": "Tindakan ini akan menghapus berkas dari sistem Anda. Lanjutkan?",
+      "deleteSuccess": "Berhasil dihapus",
+      "deleteFailed": "Gagal menghapus",
+      "rename": "Ganti nama",
+      "renameTitle": "Ganti nama",
+      "renamePlaceholder": "Masukkan nama baru",
+      "renameSuccess": "Berhasil diganti namanya",
+      "renameFailed": "Ganti nama gagal",
+      "renameEmpty": "Nama tidak boleh kosong",
+      "renameTimeout": "Permintaan ganti nama kedaluwarsa, silakan coba lagi",
+      "addToChat": "Tambahkan ke obrolan",
+      "addedToChat": "Ditambahkan ke obrolan",
+      "openFailed": "Gagal membuka",
+      "revealFailed": "Gagal membuka folder yang berisi",
+      "download": "Unduh",
+      "downloadSuccess": "Unduhan berhasil",
+      "downloadFailed": "Unduhan gagal"
+    },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "Berkas berada di luar Sandbox proyek, tidak dapat dipratinjau.",
+        "notFound": "Berkas tidak ada atau telah dihapus.",
+        "timeout": "Pembacaan berkas kedaluwarsa. Silakan coba lagi."
+      }
+    },
+    "changes": {
+      "tab": "Perubahan",
+      "filesTab": "Berkas",
+      "currentBranchLabel": "Cabang saat ini",
+      "summary": "{{count}} berkas diubah",
+      "insertions": "+{{count}} penambahan",
+      "deletions": "-{{count}} penghapusan",
+      "empty": "Belum ada perubahan",
+      "emptyDescription": "Perubahan berkas akan muncul di sini saat AI mengubah berkas",
+      "refresh": "Muat ulang",
+      "staged": "Perubahan Staged",
+      "unstaged": "Perubahan",
+      "changedFiles": "Berkas yang Diubah",
+      "stage": "Stage",
+      "stageAll": "Stage Semua Perubahan",
+      "unstage": "Unstage",
+      "unstageAll": "Unstage Semua Perubahan",
+      "discard": "Buang Perubahan",
+      "reset": "Kembalikan Perubahan",
+      "noUnstaged": "Tidak ada perubahan yang belum di-stage",
+      "noStaged": "Tidak ada perubahan yang di-stage"
+    },
+    "openWorkspace": "Buka folder proyek",
+    "openWith": {
+      "vscode": "VS Code",
+      "terminal": "Terminal",
+      "explorer": "File Explorer",
+      "browser": "Browser"
+    }
+  },
+  "minimap": {
+    "searchAria": "Cari percakapan",
+    "searchHint": "Klik di sini untuk mencari kata kunci",
+    "empty": "Belum ada giliran tanya jawab",
+    "noMatch": "Tidak ditemukan konten yang cocok",
+    "count": "{{count}} giliran",
+    "count_one": "{{count}} giliran",
+    "count_other": "{{count}} giliran"
+  },
+  "chat": {
+    "noModelSelected": "Tidak ada model yang dipilih untuk sesi saat ini, tidak dapat mengirim pesan",
+    "sendMessageTo": "Kirim pesan ke {{model}}",
+    "processing": "Memproses...",
+    "quotaExceededTitle": "Kuota model tercapai",
+    "quotaExceededBody": "Kuota model saat ini habis. Beralih ke {{model}} untuk melanjutkan?",
+    "quotaExceededNoFallback": "Kuota model tercapai. Silakan beralih ke model lain yang tersedia.",
+    "quotaSwitched": "Beralih ke {{model}}.",
+    "apiErrorNoCli": "Terjadi kesalahan API. Tidak ada agen CLI yang tersedia untuk cadangan.",
+    "apiErrorSwitchFailed": "Gagal membuat percakapan cadangan.",
+    "apiErrorSwitched": "Kesalahan API, otomatis beralih ke {{cli}} CLI",
+    "confirmationLoadError": "Gagal memuat dialog konfirmasi",
+    "tryAnotherAgent": "Coba agen lain:",
+    "switchAgentFailed": "Gagal beralih agen",
+    "speech": {
+      "recordTooltip": "Mulai masukan suara",
+      "recordTooltipWithShortcut": "Masukan suara cmd+M",
+      "pickFileTooltip": "Pilih berkas audio",
+      "stopTooltip": "Hentikan perekaman",
+      "processing": "Mentranskripsikan audio...",
+      "unsupported": "Masukan suara tidak tersedia di lingkungan ini",
+      "startShort": "Mik",
+      "stopShort": "Henti",
+      "transcribingShort": "...",
+      "audioCaptureError": "Tidak terdeteksi mikrofon",
+      "emptyTranscript": "Tidak terdeteksi ucapan",
+      "fileTooLarge": "Berkas audio terlalu besar",
+      "networkError": "Kesalahan jaringan saat mentranskripsikan audio",
+      "notConfigured": "Pidato-ke-teks belum dikonfigurasi",
+      "permissionDenied": "Izin mikrofon ditolak",
+      "recordingUnsupported": "Perekaman langsung tidak didukung di sini. Silakan unggah berkas audio sebagai gantinya",
+      "transcriptionFailed": "Transkripsi audio gagal",
+      "genericError": "Masukan suara gagal. Silakan coba lagi"
+    }
+  },
+  "sideQuestion": {
+    "title": "Pertanyaan Sampingan",
+    "description": "Ajukan pertanyaan cepat tentang percakapan saat ini",
+    "started": "Memulai pertanyaan sampingan...",
+    "answered": "Pertanyaan sampingan terjawab.",
+    "noAnswer": "Pertanyaan sampingan tidak memiliki jawaban yang jelas dalam percakapan saat ini.",
+    "loading": "Berpikir...",
+    "parentTaskRunning": "Tugas utama masih berjalan di latar belakang.",
+    "dismissHint": "Tekan Escape, Enter, atau Spasi untuk menutup",
+    "unsupported": "Pertanyaan sampingan tidak tersedia untuk percakapan ini.",
+    "alreadyRunning": "Pertanyaan sampingan sudah berjalan.",
+    "attachmentsNotAllowed": "Pertanyaan sampingan tidak dapat menyertakan berkas atau cuplikan DOM.",
+    "emptyQuestion": "Silakan masukkan pertanyaan sampingan setelah /btw.",
+    "toolsRequired": "/btw hanya dapat menjawab pertanyaan berdasarkan isi percakapan ini. Ia tidak memiliki akses untuk mencari, menjelajah, atau mengambil informasi baru.",
+    "error": "Gagal menjawab pertanyaan sampingan."
+  },
+  "commandQueue": {
+    "title": "Kotak draf",
+    "clear": "Kosongkan kotak draf",
+    "edit": "Ubah",
+    "editing": "Mengubah",
+    "editPlaceholder": "Perbarui perintah antrean sebelum dijalankan.",
+    "cancelEdit": "Batal",
+    "saveEdit": "Simpan",
+    "moreActions": "Tindakan lainnya",
+    "reorder": "Seret untuk menyusun ulang perintah antrean",
+    "remove": "Hapus",
+    "files": "{{count}} berkas",
+    "files_one": "{{count}} berkas",
+    "files_other": "{{count}} berkas",
+    "pausedAfterFailure": "Perintah antrean berikutnya tidak dapat dimulai. Ubah, susun ulang, atau hapus untuk melanjutkan.",
+    "emptyInput": "Perintah antrean tidak boleh kosong.",
+    "queueFull": "Antrean penuh. Hapus perintah sebelum menambahkan lagi.",
+    "inputTooLong": "Perintah antrean ini terlalu panjang. Persingkat sebelum mengirim.",
+    "tooManyFiles": "Terlalu banyak berkas yang dilampirkan pada perintah antrean ini.",
+    "queueTooLarge": "Data antrean terlalu besar untuk disimpan dengan aman. Hapus beberapa perintah antrean terlebih dahulu.",
+    "sendNow": "Kirim sekarang",
+    "modeToggle": "Alihkan mode kirim",
+    "help": "Bantuan",
+    "helpIntro": "Pesan yang Anda kirim saat AI membalas menunggu di sini.",
+    "helpAuto": ": dikirim otomatis satu per satu setelah setiap balasan selesai.",
+    "helpManual": ": disimpan di sini tanpa dikirim; kirim masing-masing dengan Kirim sekarang.",
+    "clearConfirmTitle": "Kosongkan kotak draf kirim?",
+    "clearConfirmContent": "Semua pesan tertunda akan dihapus. Tindakan ini tidak dapat dibatalkan.",
+    "mode": {
+      "auto": "Kirim otomatis",
+      "manual": "Kirim manual"
+    },
+    "addToQueue": "Simpan ke Kotak draf",
+    "addToQueueShortcut": "⌘ + Enter / Ctrl + Enter",
+    "midturnBlocked": "Agen ini masih bekerja, sehingga pesan tidak dapat dikirim langsung. Simpan ke Kotak draf dan kirim nanti.",
+    "enterShortcut": "Enter",
+    "actionMode": "Pilih tindakan kirim",
+    "midturnBlockedSendHint": "Agen ini masih bekerja, sehingga pesan tidak dapat dikirim langsung. Simpan ke Kotak draf dan kirim nanti.",
+    "addToQueueBusyHint": "Simpan ke Kotak draf dan kirim nanti."
+  },
+  "contextUsage": {
+    "contextUsed": "konteks digunakan",
+    "tokensUsed": "{{tokens}} token digunakan",
+    "windowUnknown": "Ukuran jendela konteks tidak diketahui",
+    "sessionCost": "Biaya sesi",
+    "input": "Input",
+    "output": "Output",
+    "thought": "Penalaran",
+    "cachedRead": "Bacaan cache",
+    "cachedWrite": "Tulisan cache"
+  },
+  "skill_generator": {
+    "title": "Hasilkan Skill/Aturan",
+    "generate": "Hasilkan",
+    "description": "Analisis riwayat percakapan untuk menghasilkan:",
+    "type_skill": "Skill (Python)",
+    "type_rule": "Aturan (JSON/MD)",
+    "name_label": "Nama Agen:",
+    "name_placeholder": "mis. Excel Translator",
+    "menu_generate": "Hasilkan dari Riwayat",
+    "menu_load": "Muat Aturan/Skill",
+    "load_title": "Muat Aturan/Skill",
+    "load_error": "Gagal memuat berkas",
+    "no_files": "Tidak ditemukan berkas yang relevan dalam proyek",
+    "read_error": "Gagal membaca berkas",
+    "rule_loaded": "Aturan berhasil dimuat",
+    "no_workspace": "Tidak ada proyek yang dikonfigurasi",
+    "name_required": "Silakan masukkan nama untuk preset",
+    "no_history": "Tidak ditemukan riwayat percakapan",
+    "request_sent": "Permintaan dikirim ke agen",
+    "failed": "Gagal menghasilkan",
+    "preset_registered": "Preset agen berhasil didaftarkan!"
+  },
+  "thinking": {
+    "complete": "Penalaran selesai",
+    "label": "Berpikir..."
+  },
+  "skills": {
+    "loaded": "Skill Dimuat",
+    "slashHint": "Skill"
+  },
+  "mcp": {
+    "loaded": "MCP Dimuat",
+    "managementHint": "Jika MCP tampak tidak normal, biasanya disebabkan oleh konfigurasi JSON MCP. Buka pengaturan Alat dan ujilah di sana.",
+    "openSettings": "Buka pengaturan Alat",
+    "status": {
+      "loaded": "Dimuat",
+      "failed": "Gagal",
+      "unsupported": "Tidak didukung"
+    },
+    "selected": "MCP yang Dipilih"
+  },
+  "runtimePreparing": {
+    "sendboxHint": "Menyiapkan lingkungan runtime. Startup pertama mungkin memerlukan waktu sedikit lebih lama."
+  },
+  "sendbox": {
+    "hint": "Ketik / untuk perintah, @ untuk merujuk berkas, ↑/↓ untuk riwayat pesan",
+    "mediaPathFallback": "Agen ini tidak memiliki dukungan bawaan untuk jenis berkas ini; berkas akan dikirim sebagai path berkas.",
+    "hintWithSessions": "Ketik / untuk perintah, @ untuk berkas, @@ untuk percakapan, ↑/↓ untuk riwayat"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Permintaan ini tidak menghasilkan balasan yang terlihat."
+      },
+      "ACP_EMPTY_TURN_NEEDS_AUTH": {
+        "body": "Permintaan ini tidak menghasilkan balasan yang terlihat. Jika Anda sudah masuk, ini mungkin masalah backend atau koneksi sementara — coba lagi atau mulai percakapan baru. Jika Anda belum masuk, Anda dapat masuk — {{hint}}."
+      },
+      "ACP_EMPTY_TURN_TOKEN_LIMIT": {
+        "body": "Permintaan ini tidak menghasilkan balasan yang terlihat. Percakapan saat ini mungkin mendekati batas panjang konteks — coba lagi, atau mulai percakapan baru dan coba lagi."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Permintaan ini mencapai batas token keluaran model sebelum balasan yang terlihat dihasilkan."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Permintaan ini mencapai batas permintaan model sebelum balasan yang terlihat dihasilkan."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "Model menolak permintaan ini sebelum menghasilkan balasan yang terlihat."
+      },
+      "ANTIGRAVITY_STEPS_FAILED": {
+        "body": "{{count}} langkah gagal dan TIDAK berlaku. agy mengakhiri giliran tersebut sebagai berhasil, jadi periksa hasilnya bukan balasannya."
+      },
+      "CLI_VERSION_OLDER": {
+        "body": "{{cli}} yang diinstal lebih lama dari versi yang diverifikasi AionUi; beberapa fitur mungkin hilang. Pertimbangkan untuk meningkatkan {{cli}}. (terinstal {{reported}} / diverifikasi oleh AionUi: {{verified}})"
+      },
+      "CLI_VERSION_NEWER": {
+        "body": "{{cli}} yang diinstal lebih baru dari versi yang diverifikasi AionUi. Seharusnya tetap berfungsi; laporkan hal apa pun yang berperilaku aneh. (terinstal {{reported}} / diverifikasi oleh AionUi: {{verified}})"
+      },
+      "CODEX_RETRYING": {
+        "body": "{{detail}} (percobaan {{attempts}}, {{elapsed}} sejauh ini — penyedia agen terus memutus koneksi; AionUi sedang menunggunya.)"
+      }
+    }
+  },
+  "notFound": "Percakapan tidak ditemukan atau telah dihapus",
+  "explorer": {
+    "addFolder": "Tambahkan folder ke proyek",
+    "refreshFiles": "Muat ulang berkas",
+    "refreshChanges": "Muat ulang perubahan",
+    "collapseAll": "Ciutkan semua",
+    "removeFolder": "Hapus dari proyek",
+    "attachDuplicate": "Folder ini sudah ada dalam proyek",
+    "attachOverlap": "Folder ini tumpang tindih dengan folder yang sudah ada dalam proyek",
+    "attachFailed": "Tidak dapat menambahkan folder",
+    "removeFailed": "Tidak dapat menghapus folder",
+    "contextMenu": {
+      "rename": "Ganti nama",
+      "newFile": "Berkas baru",
+      "newDir": "Folder baru",
+      "addToChat": "Tambahkan ke obrolan",
+      "copyRelativePath": "Salin path relatif",
+      "copyAbsolutePath": "Salin path absolut"
+    },
+    "namePlaceholder": "Nama",
+    "deleteConfirm": "Hapus “{{name}}”? Tindakan ini tidak dapat dibatalkan.",
+    "renameFailed": "Tidak dapat mengganti nama",
+    "newFileFailed": "Tidak dapat membuat berkas",
+    "newDirFailed": "Tidak dapat membuat folder",
+    "tabs": {
+      "files": "Berkas",
+      "changes": "Perubahan"
+    },
+    "addedToChat": "{{name}} ditambahkan ke obrolan",
+    "imported": "Mengimpor {{count}} berkas",
+    "importPartialFailed": "{{copied}} disalin, {{failed}} gagal (konflik nama atau tidak didukung)",
+    "importFailed": "Gagal mengimpor berkas",
+    "copyNodeFailed": "Gagal menyalin",
+    "moveNodeFailed": "Gagal memindahkan",
+    "search": {
+      "placeholder": "Cari berkas berdasarkan nama",
+      "searching": "Mencari…",
+      "empty": "Tidak ada berkas yang cocok",
+      "limitReached": "Menampilkan {{count}} pertama — saring untuk mempersempit"
+    },
+    "scm": {
+      "notARepository": "Bukan folder yang dikontrol versi",
+      "noChanges": "Tidak ada perubahan",
+      "loading": "Memuat perubahan…",
+      "loadFailed": "Tidak dapat memuat perubahan",
+      "groups": {
+        "staged": "Perubahan Staged",
+        "unstaged": "Perubahan",
+        "changes": "Perubahan",
+        "blocked": "Perlu diselesaikan"
+      },
+      "sections": {
+        "repositories": "Repositori",
+        "changes": "Perubahan"
+      },
+      "viewAsTree": "Tampilkan sebagai pohon",
+      "viewAsList": "Tampilkan sebagai daftar",
+      "worktree": "Worktree",
+      "expandWorktrees": "Tampilkan worktree",
+      "collapseWorktrees": "Sembunyikan worktree",
+      "state": {
+        "created": "Ditambahkan",
+        "modified": "Diubah",
+        "deleted": "Dihapus",
+        "renamed": "Diganti namanya",
+        "conflicted": "Konflik",
+        "unknown": "Status tidak dikenal"
+      },
+      "badge": {
+        "created": "A",
+        "modified": "M",
+        "deleted": "D",
+        "renamed": "R",
+        "conflicted": "!",
+        "unknown": "?"
+      },
+      "conflictedHint": "Selesaikan konflik ini di luar AionUi terlebih dahulu",
+      "opaqueHint": "Status ini berasal dari backend yang lebih baru — ditampilkan hanya-baca",
+      "degraded": "Muat ulang berjalan dalam mode yang lebih lambat karena indeks git tidak dapat diperbarui",
+      "truncated": "Terlalu banyak perubahan untuk dicantumkan — hanya menampilkan bagian pertama",
+      "renamedFrom": "{{from}} → {{to}}",
+      "diff": {
+        "loading": "Memuat diff…",
+        "failed": "Tidak dapat memuat diff",
+        "binary": "Berkas biner — tidak ada diff teks",
+        "truncated": "Diff dipotong (berkas besar)",
+        "empty": "Tidak ada perubahan tekstual",
+        "close": "Tutup diff"
+      },
+      "actions": {
+        "stage": "Stage perubahan",
+        "unstage": "Unstage perubahan",
+        "discard": "Buang perubahan",
+        "stageAll": "Stage semua",
+        "unstageAll": "Unstage semua",
+        "blockedHint": "Selesaikan konflik di luar AionUi sebelum melakukan stage atau membuang",
+        "confirmDiscardTitle": "Buang perubahan?",
+        "confirmDiscardTracked": "Edit pada {{count}} berkas akan hilang. Tindakan ini tidak dapat dibatalkan.",
+        "confirmDiscardUntracked": "{{count}} berkas baru akan dipindahkan ke sampah.",
+        "confirmDiscardMixed": "Edit pada {{tracked}} berkas akan hilang dan tidak dapat dibatalkan; {{untracked}} berkas baru dipindahkan ke sampah.",
+        "discardConfirmButton": "Buang",
+        "okStage": "{{count}} berkas di-stage",
+        "okStage_one": "{{count}} berkas di-stage",
+        "okStage_other": "{{count}} berkas di-stage",
+        "okUnstage": "{{count}} berkas di-unstage",
+        "okUnstage_one": "{{count}} berkas di-unstage",
+        "okUnstage_other": "{{count}} berkas di-unstage",
+        "okDiscard": "{{count}} berkas dibuang",
+        "okDiscard_one": "{{count}} berkas dibuang",
+        "okDiscard_other": "{{count}} berkas dibuang",
+        "partial": "{{succeeded}} dari {{total}} selesai — {{failed}} tidak dapat diselesaikan",
+        "partialDetail": "Tidak selesai: {{files}}",
+        "rejectedBlocked": "Tidak ada yang diubah — selesaikan konflik terlebih dahulu",
+        "rejectedUnsupported": "Repositori ini tidak mendukung tindakan tersebut",
+        "rejectedFailed": "Tindakan tidak dapat diselesaikan",
+        "retry": "Coba lagi",
+        "notSent": "Permintaan tidak mencapai backend — tidak ada yang diubah. Anda dapat mencoba lagi.",
+        "outcomeUnknown": "Koneksi terputus sebelum balasan diterima — tindakan ini mungkin sudah selesai atau belum. Muat ulang dan periksa daftar berkas sebelum mencoba lagi.",
+        "allFailed": "Tidak satu pun dari {{count}} berkas dapat diproses",
+        "allFailed_one": "Tidak satu pun dari {{count}} berkas dapat diproses",
+        "allFailed_other": "Tidak satu pun dari {{count}} berkas dapat diproses"
+      }
+    },
+    "pathCopied": "Path disalin",
+    "copyFailed": "Gagal menyalin path"
+  },
+  "terminal": {
+    "running": "Berjalan",
+    "stopped": "Berhenti",
+    "exited": "Keluar {{code}}",
+    "stop": "Hentikan",
+    "truncated": "(output sebelumnya dipotong)"
+  },
+  "emptyState": {
+    "greeting": "Hai! Beri tahu saya apa yang Anda butuhkan dan saya akan mulai."
+  },
+  "crossSession": {
+    "mentionAgain": "Sebut percakapan {{name}} dalam kotak pesan",
+    "mentionAgainHint": "Klik untuk menyebut percakapan ini dalam kotak pesan",
+    "mentionUnavailable": "Percakapan tersebut tidak dapat lagi disebut.",
+    "mentionFailed": "Tidak dapat menyebut percakapan tersebut.",
+    "fromBadge": "Dari percakapan {{name}}",
+    "otherWorkspace": "ruang kerja berbeda",
+    "rateLimitedTitle": "Pesan lintas-percakapan mungkin berputar",
+    "rateLimited": "Pesan otomatis antara \"{{from}}\" dan \"{{to}}\" sangat sering dan mungkin berputar.",
+    "stopBoth": "Hentikan kedua percakapan",
+    "disableFeature": "Matikan pesan lintas-percakapan"
+  },
+  "planBar": {
+    "title": "Rencana",
+    "progress": "{{completed}}/{{total}}",
+    "expand": "Bentangkan rencana",
+    "collapse": "Ciutkan rencana"
+  }
+}

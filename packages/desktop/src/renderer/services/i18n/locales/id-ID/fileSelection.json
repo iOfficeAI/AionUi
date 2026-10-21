@@ -1,0 +1,15 @@
+{
+  "selectFile": "Pilih Berkas",
+  "selectDirectory": "Pilih Direktori",
+  "pleaseSelectFile": "Silakan pilih berkas",
+  "pleaseSelectDirectory": "Silakan pilih direktori",
+  "webFsPicker": {
+    "loadFailed": "Tidak dapat membuka direktori ini",
+    "titleDirectory": "Pilih folder di server",
+    "titleFile": "Pilih berkas di server",
+    "selectedCount": "{{count}} dipilih",
+    "up": "Naik",
+    "go": "Buka",
+    "empty": "Tidak ada apa-apa di sini"
+  }
+}
