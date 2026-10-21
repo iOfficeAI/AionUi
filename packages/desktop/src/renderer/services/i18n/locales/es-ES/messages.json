@@ -97,5 +97,17 @@
   "requestDetails": "Detalles de la solicitud:",
   "delivery": {
     "pending": "No leído"
+  },
+  "walkthrough": {
+    "title": "Resumen de Ejecución (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "Copiar resumen",
+    "copySuccess": "Resumen copiado al portapapeles",
+    "copyFailed": "Error al copiar resumen",
+    "expand": "Expandir",
+    "collapse": "Contraer",
+    "sectionsCount": "{{count}} secciones",
+    "sectionsCount_one": "{{count}} sección",
+    "sectionsCount_other": "{{count}} secciones"
   }
 }

@@ -1,0 +1,179 @@
+/**
+ * @license
+ * Copyright 2026 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.card {
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary-6) 28%, var(--color-border-2));
+  border-radius: 12px;
+  background: var(--color-bg-2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--color-primary-6) 45%, var(--color-border-2));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid transparent;
+  background: var(--color-fill-1);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.16s ease;
+}
+
+.headerExpanded {
+  border-bottom-color: var(--color-border-2);
+}
+
+.headerLeft {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconBox {
+  display: flex;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+}
+
+.title {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-text-1);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.headerRight {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 12px;
+}
+
+.counterBadge {
+  color: var(--color-text-3);
+  font-size: 12px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.summaryBox {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  color: var(--color-text-2);
+  background: var(--color-fill-1);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.section {
+  overflow: hidden;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  background: var(--color-bg-1);
+  transition: border-color 0.16s ease;
+}
+
+.section:hover {
+  border-color: color-mix(in srgb, var(--color-primary-6) 30%, var(--color-border-2));
+}
+
+.sectionHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-fill-1);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.16s ease;
+}
+
+.sectionHeader:hover {
+  background: var(--color-fill-2);
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionTitle {
+  color: var(--color-text-1);
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sectionContent {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.actionButton:global(.arco-btn) {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--color-text-2);
+}
+
+.actionButton:global(.arco-btn):hover {
+  color: var(--color-text-1);
+  background: var(--color-fill-2);
+}

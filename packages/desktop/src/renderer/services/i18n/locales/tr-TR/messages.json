@@ -97,5 +97,17 @@
   "requestDetails": "İstek ayrıntıları:",
   "delivery": {
     "pending": "Okunmadı"
+  },
+  "walkthrough": {
+    "title": "Yürütme Özeti (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "Özeti Kopyala",
+    "copySuccess": "Özet panoya kopyalandı",
+    "copyFailed": "Özet kopyalanamadı",
+    "expand": "Genişlet",
+    "collapse": "Daralt",
+    "sectionsCount": "{{count}} bölüm",
+    "sectionsCount_one": "{{count}} bölüm",
+    "sectionsCount_other": "{{count}} bölüm"
   }
 }

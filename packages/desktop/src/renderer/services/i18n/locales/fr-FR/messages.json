@@ -97,5 +97,17 @@
   "requestDetails": "Détails de la demande :",
   "delivery": {
     "pending": "Non lu"
+  },
+  "walkthrough": {
+    "title": "Récapitulatif d'exécution (Walkthrough)",
+    "badge": "Walkthrough",
+    "copy": "Copier le récapitulatif",
+    "copySuccess": "Récapitulatif copié dans le presse-papiers",
+    "copyFailed": "Échec de la copie du récapitulatif",
+    "expand": "Développer",
+    "collapse": "Réduire",
+    "sectionsCount": "{{count}} sections",
+    "sectionsCount_one": "{{count}} section",
+    "sectionsCount_other": "{{count}} sections"
   }
 }

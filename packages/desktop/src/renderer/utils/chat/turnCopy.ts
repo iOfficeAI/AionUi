@@ -6,6 +6,10 @@
 
 import { hasThinkTags, stripThinkTags } from './thinkTagFilter';
 import { hasSkillSuggest, stripSkillSuggest } from './skillSuggestParser';
+import {
+  hasWalkthrough,
+  cleanWalkthroughForClipboard,
+} from '@renderer/pages/conversation/Messages/components/WalkthroughCard/walkthroughParser';
 
 /**
  * Turn-level copy support. An AI reply can be split into several stored text
@@ -97,6 +101,9 @@ export function buildTurnClipboardText(segments: string[]): string {
       }
       if (hasSkillSuggest(cleaned)) {
         cleaned = stripSkillSuggest(cleaned);
+      }
+      if (hasWalkthrough(cleaned)) {
+        cleaned = cleanWalkthroughForClipboard(cleaned);
       }
       return cleaned.trim();
     })
