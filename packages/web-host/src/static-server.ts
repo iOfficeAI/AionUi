@@ -14,6 +14,7 @@ import http, { type IncomingMessage, type Server, type ServerResponse } from 'no
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
 import serveHandler from 'serve-handler';
+import { isFetchForbiddenPort } from './backend-launcher.js';
 
 export type StaticServerOptions = {
   staticDir: string;
@@ -33,6 +34,7 @@ export type StaticServerHandle = {
 
 const DEFAULT_PORT = 25808;
 const CONNECTION_DRAIN_TIMEOUT_MS = 1000;
+const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
 
 /** Refuse a remote listener unless the backend actually enforces authentication. */
 async function assertRemoteBackendRequiresAuth(backendPort: number): Promise<void> {
@@ -186,6 +188,9 @@ function peekWsRoute(buf: Buffer): boolean | null {
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
   const port = opts.port ?? DEFAULT_PORT;
+  if (port !== 0 && isFetchForbiddenPort(port)) {
+    throw new Error(`WebUI port ${port} is blocked by Fetch; choose another port`);
+  }
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
   if (allowRemote) await assertRemoteBackendRequiresAuth(opts.backendPort);
@@ -285,20 +290,33 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     client.on('end', onEarlyEnd);
   });
 
+  let actualPort = 0;
   try {
-    await new Promise<void>((resolve, reject) => {
-      tcp_server.once('error', reject);
-      tcp_server.listen(port, host, () => {
-        tcp_server.off('error', reject);
-        resolve();
+    for (let attempt = 0; attempt < FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS; attempt++) {
+      await new Promise<void>((resolve, reject) => {
+        tcp_server.once('error', reject);
+        tcp_server.listen(port, host, () => {
+          tcp_server.off('error', reject);
+          resolve();
+        });
       });
-    });
+      actualPort = (tcp_server.address() as { port: number } | null)?.port ?? 0;
+      if (actualPort > 0 && !isFetchForbiddenPort(actualPort)) break;
+
+      // A port selected by the OS can still be blocked by browsers and Node's
+      // fetch. Reject the live listener and retry, retaining the accepted socket
+      // instead of reserving/releasing a port before the final bind.
+      for (const socket of connections) socket.destroy();
+      await new Promise<void>((resolve) => tcp_server.close(() => resolve()));
+    }
+    if (actualPort === 0 || isFetchForbiddenPort(actualPort)) {
+      throw new Error('Failed to get a fetch-compatible WebUI port');
+    }
   } catch (error) {
     await new Promise<void>((resolve) => http_server.close(() => resolve()));
     throw error;
   }
 
-  const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
   const localUrl = `http://127.0.0.1:${actualPort}`;
   const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;

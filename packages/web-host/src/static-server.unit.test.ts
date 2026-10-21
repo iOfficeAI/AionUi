@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net';
 import net from 'node:net';
 import { once } from 'node:events';
 import { startStaticServer, type StaticServerHandle } from './static-server.js';
+import { isFetchForbiddenPort } from './backend-launcher.js';
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
@@ -20,12 +21,58 @@ async function startMockBackend(
   handler: (req: http.IncomingMessage, res: http.ServerResponse) => void
 ): Promise<{ port: number; close: () => Promise<void> }> {
   const server = http.createServer(handler);
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
-  const port = (server.address() as AddressInfo).port;
-  return {
-    port,
-    close: () => new Promise<void>((r) => server.close(() => r())),
-  };
+  for (let attempt = 0; attempt < 50; attempt++) {
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', () => {
+        server.off('error', reject);
+        resolve();
+      });
+    });
+    const port = (server.address() as AddressInfo).port;
+    if (!isFetchForbiddenPort(port)) {
+      return {
+        port,
+        close: () => new Promise<void>((r) => server.close(() => r())),
+      };
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+  throw new Error('No fetch-compatible mock backend port could be bound');
+}
+
+// Bind a real Fetch-blocked port, rather than fabricating server.address(). The
+// candidates let this run even if another local service owns one of the ports.
+async function availableBlockedPort(): Promise<number> {
+  for (const port of [10080, 6697, 6669, 6000]) {
+    const server = net.createServer();
+    const bound = await new Promise<boolean>((resolve) => {
+      server.once('error', () => resolve(false));
+      server.listen(port, '127.0.0.1', () => resolve(true));
+    });
+    if (bound) {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      return port;
+    }
+  }
+  throw new Error('No Fetch-blocked test port could be bound');
+}
+
+function forceOuterPort(blockedPort: number, everyAttempt = false): net.Server[] {
+  const originalListen = net.Server.prototype.listen;
+  const listeners: net.Server[] = [];
+  let forced = false;
+  vi.spyOn(net.Server.prototype, 'listen').mockImplementation(function (this: net.Server, ...args: unknown[]) {
+    if (!listeners.includes(this)) listeners.push(this);
+    // Keep the internal HTTP listener real and ephemeral. Only control the
+    // OS-selected port of the browser-facing TCP listener.
+    if (!(this instanceof http.Server) && args[0] === 0 && (!forced || everyAttempt)) {
+      args[0] = blockedPort;
+      forced = true;
+    }
+    return Reflect.apply(originalListen, this, args) as net.Server;
+  });
+  return listeners;
 }
 
 describe('static-server', () => {
@@ -38,6 +85,7 @@ describe('static-server', () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     if (handle) {
       await handle.stop();
       handle = null;
@@ -57,6 +105,38 @@ describe('static-server', () => {
     expect(r.status).toBe(200);
     const text = await r.text();
     expect(text).toContain('<title>root</title>');
+  });
+
+  it('retries a Fetch-blocked ephemeral listener before advertising the WebUI URL', async () => {
+    const blockedPort = await availableBlockedPort();
+    forceOuterPort(blockedPort);
+    handle = await startStaticServer({ staticDir, backendPort: 1, port: 0 });
+
+    const response = await fetch(`${handle.localUrl}/`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('<title>root</title>');
+    expect(handle.port).not.toBe(blockedPort);
+  });
+
+  it('bounds blocked ephemeral-port retries and closes every startup listener on failure', async () => {
+    const blockedPort = await availableBlockedPort();
+    const listeners = forceOuterPort(blockedPort, true);
+    await expect(
+      startStaticServer({ staticDir, backendPort: 1, port: 0 }).then((started) => {
+        handle = started;
+        return started;
+      })
+    ).rejects.toThrow('Failed to get a fetch-compatible WebUI port');
+    expect(listeners.every((server) => !server.listening)).toBe(true);
+  });
+
+  it('rejects an explicitly configured Fetch-blocked WebUI port', async () => {
+    await expect(
+      startStaticServer({ staticDir, backendPort: 1, port: 10080 }).then((started) => {
+        handle = started;
+        return started;
+      })
+    ).rejects.toThrow('WebUI port 10080 is blocked by Fetch');
   });
 
   it('SPA fallback: /chat/123 returns index.html', async () => {

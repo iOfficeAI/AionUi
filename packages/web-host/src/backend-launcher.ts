@@ -270,7 +270,8 @@ function delayMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isFetchForbiddenPort(port: number): boolean {
+/** Port policy shared by backend probes and browser-facing WebUI listeners. */
+export function isFetchForbiddenPort(port: number): boolean {
   return FETCH_FORBIDDEN_PORTS.has(port);
 }
 
