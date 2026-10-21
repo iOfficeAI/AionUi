@@ -133,7 +133,7 @@ const SystemModalContent: React.FC = () => {
         if (typeof storedPromptTimeout === 'number' && storedPromptTimeout > 0) {
           setPromptTimeout(storedPromptTimeout);
         }
-        if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
+        if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout >= 0) {
           setAgentIdleTimeout(storedAgentIdleTimeout);
         }
         // Normalized rather than range-checked inline: the same clamp guards the
@@ -275,7 +275,7 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   const handleAgentIdleTimeoutBlur = useCallback(() => {
-    const clamped = Math.max(1, Math.min(60, agentIdleTimeout || 5));
+    const clamped = Math.max(0, Math.min(9999, agentIdleTimeout ?? 5));
     setAgentIdleTimeout(clamped);
     void setClientBusinessSetting('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
@@ -411,7 +411,8 @@ const SystemModalContent: React.FC = () => {
           value={agentIdleTimeout}
           onChange={handleAgentIdleTimeoutChange}
           onBlur={handleAgentIdleTimeoutBlur}
-          max={60}
+          min={0}
+          max={9999}
           step={5}
           style={{ width: 120 }}
           suffix='min'
