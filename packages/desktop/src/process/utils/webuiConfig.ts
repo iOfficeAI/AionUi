@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { httpRequest, isBackendHttpError } from '@/common/adapter/httpBridge';
 import { startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
@@ -17,6 +17,13 @@ const WEBUI_CONFIG_FILE = 'webui.config.json';
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
+const DESKTOP_WEBUI_AUTH_RETRY_DELAYS_MS = [100, 250, 500, 1000, 2000] as const;
+
+type DesktopWebUIPreferences = {
+  enabled: boolean;
+  allowRemote: boolean;
+  port: number | undefined;
+};
 
 /**
  * Read WebUI preferences from the backend's /api/settings/client store.
@@ -29,22 +36,15 @@ const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
  * yet the Settings page still showed the Switch as "on" (reading the SQLite
  * value), so users clicked the saved URL and got ERR_CONNECTION_REFUSED.
  */
-async function readWebUIDesktopPreferences(): Promise<{
-  enabled: boolean;
-  allowRemote: boolean;
-  port: number | undefined;
-}> {
-  try {
-    const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
-    const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
-    const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
-    const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
-    const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
-    return { enabled, allowRemote, port };
-  } catch (error) {
-    console.error('[WebUI] Failed to read preferences from backend:', error);
-    return { enabled: false, allowRemote: false, port: undefined };
-  }
+async function readWebUIDesktopPreferences(): Promise<DesktopWebUIPreferences> {
+  const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client', undefined, {
+    silentStatuses: [401],
+  });
+  const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
+  const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
+  const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
+  const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
+  return { enabled, allowRemote, port };
 }
 
 async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {
@@ -316,7 +316,28 @@ export function getDesktopWebUIStatus(): {
 }
 
 export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
-  const { enabled, allowRemote, port } = await readWebUIDesktopPreferences();
+  const readPreferencesAfterAuthentication = async (attempt = 0): Promise<DesktopWebUIPreferences | undefined> => {
+    try {
+      return await readWebUIDesktopPreferences();
+    } catch (error) {
+      const canRetryAuthentication = isBackendHttpError(error) && error.status === 401;
+      const retryDelay = DESKTOP_WEBUI_AUTH_RETRY_DELAYS_MS[attempt];
+      if (!canRetryAuthentication || retryDelay === undefined) {
+        console.error('[WebUI] Failed to read preferences from backend:', error);
+        return undefined;
+      }
+
+      // The external session exchange has no main-process completion signal, so retry only its recoverable startup failure.
+      await new Promise<void>((resolve) => setTimeout(resolve, retryDelay));
+      return readPreferencesAfterAuthentication(attempt + 1);
+    }
+  };
+
+  const preferences = await readPreferencesAfterAuthentication();
+
+  if (!preferences) return;
+
+  const { enabled, allowRemote, port } = preferences;
   if (!enabled) return;
 
   const preferredPort = port ?? DEFAULT_WEBUI_PORT;
