@@ -4,6 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
+import net from 'node:net';
+import { once } from 'node:events';
 import { startStaticServer, type StaticServerHandle } from './static-server.js';
 
 async function mkRendererFixture(): Promise<string> {
@@ -399,7 +401,11 @@ describe('static-server', () => {
   });
 
   it('network URL populated only when allowRemote=true', async () => {
-    const backend = await startMockBackend((_req, res) => res.end('nope'));
+    const backend = await startMockBackend((_req, res) =>
+      res
+        .writeHead(401, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ success: false, code: 'UNAUTHORIZED' }))
+    );
     stopBackend = backend.close;
     const h1 = await startStaticServer({
       staticDir,
@@ -419,5 +425,95 @@ describe('static-server', () => {
     // may still be undefined on CI machines without a LAN interface
     expect(typeof h2.networkUrl === 'string' || h2.networkUrl === undefined).toBe(true);
     await h2.stop();
+  });
+
+  it('refuses remote access to a backend that accepts anonymous protected requests', async () => {
+    const backend = await startMockBackend((_req, res) => res.writeHead(200).end('{}'));
+    stopBackend = backend.close;
+    await expect(
+      startStaticServer({ staticDir, backendPort: backend.port, port: 0, allowRemote: true }).then((started) => {
+        handle = started;
+        return started;
+      })
+    ).rejects.toThrow('Remote WebUI requires an authenticated backend');
+  });
+
+  it.each([302, 404, 500])('refuses remote access when auth probe returns %s', async (status) => {
+    const backend = await startMockBackend((_req, res) => res.writeHead(status).end());
+    stopBackend = backend.close;
+    await expect(
+      startStaticServer({ staticDir, backendPort: backend.port, port: 0, allowRemote: true }).then((started) => {
+        handle = started;
+        return started;
+      })
+    ).rejects.toThrow();
+  });
+
+  it('allows authenticated remote backends and sends no credentials during its probe', async () => {
+    const probes: Array<{ path?: string; cookie?: string; authorization?: string }> = [];
+    const backend = await startMockBackend((req, res) => {
+      probes.push({ path: req.url, cookie: req.headers.cookie, authorization: req.headers.authorization });
+      res
+        .writeHead(401, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ success: false, code: 'UNAUTHORIZED' }));
+    });
+    stopBackend = backend.close;
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, allowRemote: true });
+    expect(probes).toEqual([{ path: '/api/settings/client', cookie: undefined, authorization: undefined }]);
+    expect((await fetch(`${handle.localUrl}/api/settings/client`)).status).toBe(401);
+  });
+
+  it('does not accept an unrelated HTML error page as proof of backend authentication', async () => {
+    const backend = await startMockBackend((_req, res) =>
+      res.writeHead(401, { 'content-type': 'text/html' }).end('<h1>Unauthorized</h1>')
+    );
+    stopBackend = backend.close;
+    await expect(
+      startStaticServer({ staticDir, backendPort: backend.port, port: 0, allowRemote: true }).then((started) => {
+        handle = started;
+        return started;
+      })
+    ).rejects.toThrow();
+  });
+
+  it.each(['idle', 'websocket'])('bounds shutdown with an open %s connection', async (kind) => {
+    const backendSockets = new Set<net.Socket>();
+    const backend = net.createServer((socket) => {
+      backendSockets.add(socket);
+      socket.on('close', () => backendSockets.delete(socket));
+      socket.once('data', () =>
+        socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n')
+      );
+    });
+    backend.listen(0, '127.0.0.1');
+    await once(backend, 'listening');
+    const backendPort = (backend.address() as AddressInfo).port;
+    handle = await startStaticServer({ staticDir, backendPort, port: 0 });
+    const client = net.connect(handle.port, '127.0.0.1');
+    await once(client, 'connect');
+    if (kind === 'websocket') {
+      const response = once(client, 'data');
+      client.write('GET /ws HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
+      await response;
+    }
+    const stopping = handle.stop();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const outcome = await Promise.race([
+        stopping.then(() => 'stopped'),
+        new Promise<string>((resolve) => {
+          timer = setTimeout(() => resolve('timeout'), 1500);
+        }),
+      ]);
+      expect(outcome).toBe('stopped');
+      await expect(handle.stop()).resolves.toBeUndefined();
+    } finally {
+      clearTimeout(timer);
+      client.destroy();
+      for (const socket of backendSockets) socket.destroy();
+      await stopping;
+      await new Promise<void>((resolve) => backend.close(() => resolve()));
+      handle = null;
+    }
   });
 });

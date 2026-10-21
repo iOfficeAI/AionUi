@@ -867,6 +867,7 @@
   "checkForUpdates": "更新を確認",
   "checkingForUpdates": "アップデートを確認中...",
   "includePrereleaseUpdates": "プレリリース/dev ビルドを含める",
+  "loadModelConfigFailed": "保存済みのモデル設定を読み込めません。再試行してください。",
   "saveModelConfigFailed": "モデル設定の保存に失敗しました",
   "healthCheck": "ヘルスチェック",
   "clearStatus": "ステータスをクリア",

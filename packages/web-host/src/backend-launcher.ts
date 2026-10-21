@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { mkdirSync, statSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
+import { StringDecoder } from 'node:string_decoder';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
@@ -95,6 +96,8 @@ export type BackendLaunchOptions = {
    * process.env and will likely report wrong/empty dirs.
    */
   dirs?: BackendDirConfig;
+  /** Desktop-only trusted access; WebUI-owned backends must enforce authentication. */
+  local?: boolean;
 };
 
 export type BackendHandle = {
@@ -527,7 +530,8 @@ export class BackendLifecycleManager {
 
   constructor(
     private readonly appMeta: AppMetadata,
-    private readonly resolveBackend: BackendBinaryResolver
+    private readonly resolveBackend: BackendBinaryResolver,
+    private readonly local = true
   ) {}
 
   get port(): number {
@@ -665,7 +669,7 @@ export class BackendLifecycleManager {
     const args = buildSpawnArgs({
       port: this._port,
       dbPath,
-      local: true,
+      local: this.local,
       parentPid: process.pid,
       logDir,
       workDir: dirs?.workDir,
@@ -802,9 +806,14 @@ export class BackendLifecycleManager {
       }, BACKEND_PORT_REPORT_TIMEOUT_MS);
     });
 
+    const stdoutDecoder = new StringDecoder('utf8');
+    let pendingStdout = '';
     this.childProcess.stdout?.on('data', (data: Buffer) => {
       stdoutTail = appendOutputTail(stdoutTail, data);
-      for (const line of data.toString().split('\n')) {
+      pendingStdout += stdoutDecoder.write(data);
+      const lines = pendingStdout.split('\n');
+      pendingStdout = lines.pop() ?? '';
+      for (const line of lines) {
         const trimmed = line.trim();
         const port = parseAioncoreListeningPort(trimmed);
         if (port !== undefined) {
@@ -888,7 +897,6 @@ export class BackendLifecycleManager {
 
     startupSettled = true;
     this._status = 'running';
-    this.restartCount = 0;
     if (healthOrReady.kind === 'ready') {
       console.info(
         `[aioncore] ready signal received on port ${this._port}, elapsed_ms=${Date.now() - startupStartedAt}, data-dir: ${dbPath}`
@@ -1005,7 +1013,6 @@ export class BackendLifecycleManager {
       if (this.childProcess !== childProcess || this._status !== 'starting') return;
       if (outcome.kind === 'health' && !outcome.health.ok) return;
       this._status = 'running';
-      this.restartCount = 0;
       const elapsedMs =
         outcome.kind === 'health'
           ? (outcome.health.diagnostics.healthCheckElapsedMs ?? Date.now() - startupStartedAt)
@@ -1076,7 +1083,7 @@ export class BackendLifecycleManager {
  * directly to preserve current stop/port getter semantics).
  */
 export async function startBackend(opts: BackendLaunchOptions): Promise<BackendHandle> {
-  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend);
+  const manager = new BackendLifecycleManager(opts.app, opts.resolveBackend, opts.local ?? true);
   const dataDir = opts.dataDir ?? '';
   if (!dataDir) {
     throw new Error('startBackend: dataDir is required');

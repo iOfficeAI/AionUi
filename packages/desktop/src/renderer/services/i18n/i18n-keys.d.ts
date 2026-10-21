@@ -2112,6 +2112,7 @@ export type I18nKey =
   | 'settings.lark.waitingConnection'
   | 'settings.latency'
   | 'settings.lightMode'
+  | 'settings.loadModelConfigFailed'
   | 'settings.logDir'
   | 'settings.mcp'
   | 'settings.mcpAddServer'

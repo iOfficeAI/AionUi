@@ -32,6 +32,30 @@ export type StaticServerHandle = {
 };
 
 const DEFAULT_PORT = 25808;
+const CONNECTION_DRAIN_TIMEOUT_MS = 1000;
+
+/** Refuse a remote listener unless the backend actually enforces authentication. */
+async function assertRemoteBackendRequiresAuth(backendPort: number): Promise<void> {
+  const message = 'Remote WebUI requires an authenticated backend; Local mode can only be served on loopback';
+  try {
+    // Do not send the desktop process's cookie, runtime token or other credentials.
+    const response = await fetch(`http://127.0.0.1:${backendPort}/api/settings/client`, {
+      credentials: 'omit',
+      redirect: 'error',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (![401, 403].includes(response.status) || !response.headers.get('content-type')?.includes('application/json')) {
+      await response.body?.cancel();
+      throw new Error(message);
+    }
+    const body = (await response.json()) as { success?: unknown; code?: unknown };
+    if (body.success !== false || !['UNAUTHORIZED', 'FORBIDDEN', 'USER_CONTEXT_REQUIRED'].includes(String(body.code))) {
+      throw new Error(message);
+    }
+  } catch (cause) {
+    throw new Error(message, { cause });
+  }
+}
 
 // Ranges that are non-internal IPv4 yet never a reachable LAN address, so we
 // must never advertise them as the WebUI access URL even when they are the only
@@ -96,6 +120,7 @@ function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort
       res.destroy();
     }
   });
+  res.once('close', () => proxy.destroy());
   req.pipe(proxy);
 }
 
@@ -163,6 +188,12 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   const port = opts.port ?? DEFAULT_PORT;
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
+  if (allowRemote) await assertRemoteBackendRequiresAuth(opts.backendPort);
+  const connections = new Set<Socket>();
+  const trackConnection = (socket: Socket): void => {
+    connections.add(socket);
+    socket.once('close', () => connections.delete(socket));
+  };
 
   // The HTTP server listens only on loopback — user traffic hits the outer
   // net.Server first. We route to this server for everything except WS
@@ -202,6 +233,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
       }
     }
   });
+  http_server.on('connection', trackConnection);
 
   // Internal HTTP server — 127.0.0.1 ephemeral port, never visible to the user.
   await new Promise<void>((resolve, reject) => {
@@ -221,6 +253,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   // server (everything else). Both routes use raw TCP splice — no reliance
   // on http.Server's upgrade event.
   const tcp_server = net.createServer((client: Socket) => {
+    trackConnection(client);
     let peeked = Buffer.alloc(0);
     let settled = false;
     const cleanup = (): void => {
@@ -252,18 +285,24 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     client.on('end', onEarlyEnd);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    tcp_server.once('error', reject);
-    tcp_server.listen(port, host, () => {
-      tcp_server.off('error', reject);
-      resolve();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      tcp_server.once('error', reject);
+      tcp_server.listen(port, host, () => {
+        tcp_server.off('error', reject);
+        resolve();
+      });
     });
-  });
+  } catch (error) {
+    await new Promise<void>((resolve) => http_server.close(() => resolve()));
+    throw error;
+  }
 
   const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
   const localUrl = `http://127.0.0.1:${actualPort}`;
   const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;
+  let stopping: Promise<void> | undefined;
 
   return {
     port: actualPort,
@@ -271,12 +310,23 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     localUrl,
     networkUrl,
     lanIP,
-    stop: () =>
-      new Promise<void>((resolve) => {
-        tcp_server.close(() => {
-          http_server.close(() => resolve());
-        });
-      }),
+    stop: () => {
+      stopping ??= (async () => {
+        // Stop accepting work, allow active HTTP requests a brief drain, then
+        // close idle and upgraded connections that server.close cannot end.
+        const deadline = setTimeout(() => {
+          for (const socket of connections) socket.destroy();
+        }, CONNECTION_DRAIN_TIMEOUT_MS);
+        deadline.unref();
+        try {
+          await new Promise<void>((resolve) => tcp_server.close(() => resolve()));
+          await new Promise<void>((resolve) => http_server.close(() => resolve()));
+        } finally {
+          clearTimeout(deadline);
+        }
+      })();
+      return stopping;
+    },
   };
 }
 

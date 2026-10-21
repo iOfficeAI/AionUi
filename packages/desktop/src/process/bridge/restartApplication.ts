@@ -7,7 +7,7 @@
 import type { IAppRestartResult } from '@/common/adapter/ipcBridge';
 import type { App } from 'electron';
 
-type RestartableApp = Pick<App, 'isPackaged' | 'relaunch' | 'exit'>;
+type RestartableApp = Pick<App, 'isPackaged' | 'relaunch' | 'quit'>;
 
 export function restartApplication(app: RestartableApp): IAppRestartResult {
   if (!app.isPackaged) {
@@ -21,7 +21,8 @@ export function restartApplication(app: RestartableApp): IAppRestartResult {
 
   console.info('[AionUi] Relaunching application to apply changes');
   app.relaunch();
-  app.exit(0);
+  // Normal quit runs the persistence drain and backend shutdown handlers.
+  app.quit();
   return {
     restarted: true,
     manualRestartRequired: false,

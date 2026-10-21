@@ -13,6 +13,7 @@ describe('restartApplication', () => {
       isPackaged: false,
       relaunch: vi.fn(),
       exit: vi.fn(),
+      quit: vi.fn(),
     };
 
     const result = restartApplication(app);
@@ -26,11 +27,12 @@ describe('restartApplication', () => {
     expect(app.exit).not.toHaveBeenCalled();
   });
 
-  it('relaunches packaged builds immediately', () => {
+  it('relaunches packaged builds through normal quit cleanup', () => {
     const app = {
       isPackaged: true,
       relaunch: vi.fn(),
       exit: vi.fn(),
+      quit: vi.fn(),
     };
 
     const result = restartApplication(app);
@@ -40,6 +42,7 @@ describe('restartApplication', () => {
       manualRestartRequired: false,
     });
     expect(app.relaunch).toHaveBeenCalledTimes(1);
-    expect(app.exit).toHaveBeenCalledWith(0);
+    expect(app.quit).toHaveBeenCalledTimes(1);
+    expect(app.exit).not.toHaveBeenCalled();
   });
 });

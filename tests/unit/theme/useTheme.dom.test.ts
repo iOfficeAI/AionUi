@@ -12,6 +12,8 @@ vi.mock('@/common/config/configService', () => ({
   configService: {
     get: configGetMock,
     whenReady: vi.fn().mockResolvedValue(undefined),
+    isInitialized: () => true,
+    subscribe: () => () => {},
   },
 }));
 

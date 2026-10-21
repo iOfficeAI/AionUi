@@ -867,6 +867,7 @@
   "checkForUpdates": "Güncellemeleri kontrol et",
   "checkingForUpdates": "Güncellemeler denetleniyor...",
   "includePrereleaseUpdates": "Ön sürüm/geliştirici sürümlerini dahil et",
+  "loadModelConfigFailed": "Kaydedilen model ayarları yüklenemedi. Lütfen tekrar deneyin.",
   "saveModelConfigFailed": "Model yapılandırması kaydedilemedi",
   "healthCheck": "Sağlık Kontrolü",
   "clearStatus": "Durumu Temizle",
