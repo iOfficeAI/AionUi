@@ -869,6 +869,8 @@
   "includePrereleaseUpdates": "프리릴리즈/dev 빌드 포함",
   "saveModelConfigFailed": "모델 구성 저장 실패",
   "healthCheck": "상태 확인",
+  "checkAllHealth": "모두 확인",
+  "healthCheckAllSummary": "상태 확인 완료: 사용 가능 {{available}}개, 사용 불가 {{unavailable}}개",
   "clearStatus": "상태 지우기",
   "healthStatusCleared": "상태가 초기화되었습니다",
   "latency": "지연 시간",
