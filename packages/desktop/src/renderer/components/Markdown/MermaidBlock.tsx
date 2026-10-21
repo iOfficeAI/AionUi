@@ -74,13 +74,10 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
   } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
 
-  // Reset the view whenever a fresh diagram renders so a re-render never leaves the
-  // user staring at an off-screen, zoomed-in fragment of the previous diagram.
-  // A re-render also replaces the overlay content, so close it as well.
-  useEffect(() => {
-    setTransform({ scale: 1, x: 0, y: 0 });
-    setIsZoomOpen(false);
-  }, [svg]);
+  // NOTE: the fresh-diagram reset (transform + overlay) happens inline in the
+  // render effect below, batched together with setSvg. Keeping it in a separate
+  // [svg] effect left a window where the post-commit reset could land after a
+  // user's first zoom click and silently swallow it (flaky on slow CI runners).
 
   const zoomBy = (delta: number) =>
     setTransform((prev) => ({
@@ -179,6 +176,12 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true, enablePanZoom
 
         if (!cancelled) {
           setSvg(withResponsiveSvg(renderedSvg));
+          // Reset the view whenever a fresh diagram renders so a re-render never leaves the
+          // user staring at an off-screen, zoomed-in fragment of the previous diagram.
+          // A re-render also replaces the overlay content, so close it as well. Batched with
+          // setSvg on purpose (see the NOTE above the pan/zoom state).
+          setTransform({ scale: 1, x: 0, y: 0 });
+          setIsZoomOpen(false);
           setIsRendering(false);
           setViewMode(preferredViewModeRef.current === 'source' ? 'source' : 'preview');
         }
