@@ -9,7 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
@@ -228,13 +228,22 @@ export function buildSpawnEnv(dirs?: BackendDirConfig): NodeJS.ProcessEnv {
   // build/Release only, and node-gyp-build skips that directory for any
   // non-empty value, aborting the agent before the ACP handshake (#4070).
   const { PREBUILDS_ONLY: _prebuildsOnly, ...parentEnv } = process.env;
-  if (!dirs) return parentEnv;
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...parentEnv,
-    AIONUI_CACHE_DIR: dirs.cacheDir,
-    AIONUI_WORK_DIR: dirs.workDir,
-    AIONUI_LOG_DIR: dirs.logDir,
   };
+
+  if (dirs) {
+    env.AIONUI_CACHE_DIR = dirs.cacheDir;
+    env.AIONUI_WORK_DIR = dirs.workDir;
+    env.AIONUI_LOG_DIR = dirs.logDir;
+  }
+
+  const bundledExtensionsPath = process.env.AIONUI_BUNDLED_EXTENSIONS_PATH;
+  if (!env.AIONUI_EXTENSIONS_PATH && bundledExtensionsPath && existsSync(bundledExtensionsPath)) {
+    env.AIONUI_EXTENSIONS_PATH = bundledExtensionsPath;
+  }
+
+  return env;
 }
 
 const FETCH_FORBIDDEN_PORTS = new Set([

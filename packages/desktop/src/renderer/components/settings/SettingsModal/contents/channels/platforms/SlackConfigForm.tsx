@@ -20,7 +20,7 @@ import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
-} from './assistantBinding';
+} from '../assistantBinding';
 
 /**
  * Preference row component
@@ -53,14 +53,14 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-interface DiscordConfigFormProps {
+interface SlackConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GoogleModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
   onTokenChange?: (token: string) => void;
 }
 
-const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
+const SlackConfigForm: React.FC<SlackConfigFormProps> = ({
   pluginStatus,
   modelSelection,
   onStatusChange,
@@ -70,6 +70,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
   const [botToken, setBotToken] = useState('');
+  const [appToken, setAppToken] = useState('');
   const [testLoading, setTestLoading] = useState(false);
   const [tokenTested, setTokenTested] = useState(false);
   const [testedBotUsername, setTestedBotUsername] = useState<string | null>(null);
@@ -78,7 +79,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
-  // Assistant selection (used for Discord conversations)
+  // Assistant selection (used for Slack conversations)
   const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [hasBrokenSavedAssistant, setHasBrokenSavedAssistant] = useState(false);
@@ -89,7 +90,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     try {
       const pairings = await channel.getPendingPairings.invoke();
       if (pairings) {
-        setPendingPairings(pairings.filter((p) => p.platformType === 'discord'));
+        setPendingPairings(pairings.filter((p) => p.platformType === 'slack'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load pending pairings:', error);
@@ -104,7 +105,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     try {
       const users = await channel.getAuthorizedUsers.invoke();
       if (users) {
-        setAuthorizedUsers(users.filter((u) => u.platformType === 'discord'));
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'slack'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load authorized users:', error);
@@ -125,7 +126,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          channel.getPlatformSettings.invoke({ platform: 'discord' }),
+          channel.getPlatformSettings.invoke({ platform: 'slack' }),
         ]);
 
         setAvailableAssistants(assistantList);
@@ -139,7 +140,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
         setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[DiscordConfig] Failed to load assistants:', error);
+        console.error('[SlackConfig] Failed to load assistants:', error);
       }
     };
 
@@ -149,12 +150,12 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
       await channel.setAssistantSetting.invoke({
-        platform: 'discord',
+        platform: 'slack',
         assistant: buildChannelAssistantBinding(assistant),
       });
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[DiscordConfig] Failed to save assistant:', error);
+      console.error('[SlackConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -162,7 +163,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
-      if (request.platformType !== 'discord') return;
+      if (request.platformType !== 'slack') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -185,12 +186,26 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     return () => unsubscribe();
   }, []);
 
-  // Test Discord connection (validates the Bot Token via GET /users/@me)
+  // Test Slack connection (only validates the Bot Token via auth.test)
   const handleTestConnection = async () => {
-    const trimmedToken = botToken.trim();
+    const trimmedBotToken = botToken.trim();
+    const trimmedAppToken = appToken.trim();
 
-    if (!trimmedToken) {
-      Message.warning(t('settings.assistant.tokenRequired', 'Please enter a bot token'));
+    if (!trimmedBotToken) {
+      Message.warning(t('settings.assistant.slackBotTokenRequired', 'Please enter a Bot Token (xoxb-)'));
+      return;
+    }
+    if (!trimmedAppToken) {
+      Message.warning(t('settings.assistant.slackAppTokenRequired', 'Please enter an App-Level Token (xapp-)'));
+      return;
+    }
+    // Soft prefix validation (hard validation happens on the backend)
+    if (!trimmedBotToken.startsWith('xoxb-')) {
+      Message.warning(t('settings.assistant.slackBotTokenPrefix', 'Bot Token should start with "xoxb-"'));
+      return;
+    }
+    if (!trimmedAppToken.startsWith('xapp-')) {
+      Message.warning(t('settings.assistant.slackAppTokenPrefix', 'App-Level Token should start with "xapp-"'));
       return;
     }
 
@@ -198,10 +213,12 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     setTokenTested(false);
     setTestedBotUsername(null);
     try {
-      // testPlugin returns { success, bot_username?, error? } directly
+      // testPlugin returns { success, bot_username?, error? } directly.
+      // Slack test only validates the Bot Token (auth.test); the App-Level
+      // Token is only needed when starting the Socket Mode connection.
       const result = await channel.testPlugin.invoke({
-        plugin_id: 'discord',
-        token: trimmedToken,
+        plugin_id: 'slack',
+        token: trimmedBotToken,
       });
 
       if (result.success) {
@@ -228,32 +245,44 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     }
   };
 
-  // Auto-enable plugin after successful test
+  // Auto-enable plugin after successful test (submits both tokens)
   const handleAutoEnable = async () => {
     try {
       // enablePlugin returns void; success if no throw
       await channel.enablePlugin.invoke({
-        plugin_id: 'discord',
-        config: { credentials: { token: botToken.trim() } },
+        plugin_id: 'slack',
+        config: {
+          credentials: {
+            token: botToken.trim(),
+            app_token: appToken.trim(),
+          },
+        },
       });
 
-      Message.success(t('settings.assistant.discordPluginEnabled', 'Discord bot enabled'));
+      Message.success(t('settings.assistant.slackPluginEnabled', 'Slack bot enabled'));
       const plugins = await channel.getPluginStatus.invoke();
       if (plugins) {
-        const discordPlugin = plugins.find((p) => p.type === 'discord');
-        onStatusChange(discordPlugin || null);
+        const slackPlugin = plugins.find((p) => p.type === 'slack');
+        onStatusChange(slackPlugin || null);
       }
     } catch (error: unknown) {
       console.error('[ChannelSettings] Auto-enable failed:', error);
     }
   };
 
-  // Reset token tested state when the token changes
-  const handleTokenChange = (value: string) => {
+  // Reset token tested state when the bot token changes
+  const handleBotTokenChange = (value: string) => {
     setBotToken(value);
     setTokenTested(false);
     setTestedBotUsername(null);
     onTokenChange?.(value);
+  };
+
+  // Reset token tested state when the app token changes
+  const handleAppTokenChange = (value: string) => {
+    setAppToken(value);
+    setTokenTested(false);
+    setTestedBotUsername(null);
   };
 
   // Approve pairing
@@ -312,21 +341,59 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
     ? resolveAssistantName(selectedAssistant, localeKey, selectedAssistant.name)
     : t('settings.assistant.name', 'Assistant');
 
-  // Token is locked once there are authorized users (mirrors Telegram/Slack).
-  const tokenLocked = authorizedUsers.length > 0;
+  // Tokens are locked once there are authorized users (mirrors Telegram).
+  const tokensLocked = authorizedUsers.length > 0;
 
   return (
     <div className='flex flex-col gap-24px'>
-      {/* Bot Token */}
+      {/* Bot Token (xoxb-) */}
       <PreferenceRow
-        label={t('settings.assistant.discordBotToken', 'Bot Token')}
+        label={t('settings.assistant.slackBotToken', 'Bot Token')}
         description={t(
-          'settings.assistant.discordBotTokenDesc',
-          'Create a Discord application, add a Bot, enable the MESSAGE CONTENT intent, and copy the Bot Token.'
+          'settings.assistant.slackBotTokenDesc',
+          'Create a Slack app, install it to your workspace, then copy the Bot User OAuth Token (xoxb-).'
+        )}
+      >
+        {tokensLocked ? (
+          <Tooltip
+            content={t(
+              'settings.assistant.tokenLocked',
+              'Please close the Channel and delete all authorized users before modifying the configuration'
+            )}
+          >
+            <span>
+              <Input.Password
+                value={botToken}
+                onChange={handleBotTokenChange}
+                placeholder={tokensLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'xoxb-...'}
+                style={{ width: 260 }}
+                visibilityToggle
+                disabled={tokensLocked}
+              />
+            </span>
+          </Tooltip>
+        ) : (
+          <Input.Password
+            value={botToken}
+            onChange={handleBotTokenChange}
+            placeholder={tokensLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'xoxb-...'}
+            style={{ width: 260 }}
+            visibilityToggle
+            disabled={tokensLocked}
+          />
+        )}
+      </PreferenceRow>
+
+      {/* App-Level Token (xapp-) */}
+      <PreferenceRow
+        label={t('settings.assistant.slackAppToken', 'App-Level Token')}
+        description={t(
+          'settings.assistant.slackAppTokenDesc',
+          'Enable Socket Mode and generate an App-Level Token with the connections:write scope (xapp-).'
         )}
       >
         <div className='flex items-center gap-8px'>
-          {tokenLocked ? (
+          {tokensLocked ? (
             <Tooltip
               content={t(
                 'settings.assistant.tokenLocked',
@@ -335,26 +402,26 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
             >
               <span>
                 <Input.Password
-                  value={botToken}
-                  onChange={handleTokenChange}
-                  placeholder={tokenLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'MTAx...'}
+                  value={appToken}
+                  onChange={handleAppTokenChange}
+                  placeholder={tokensLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'xapp-...'}
                   style={{ width: 260 }}
                   visibilityToggle
-                  disabled={tokenLocked}
+                  disabled={tokensLocked}
                 />
               </span>
             </Tooltip>
           ) : (
             <Input.Password
-              value={botToken}
-              onChange={handleTokenChange}
-              placeholder={tokenLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'MTAx...'}
+              value={appToken}
+              onChange={handleAppTokenChange}
+              placeholder={tokensLocked || pluginStatus?.hasToken ? '••••••••••••••••' : 'xapp-...'}
               style={{ width: 260 }}
               visibilityToggle
-              disabled={tokenLocked}
+              disabled={tokensLocked}
             />
           )}
-          {tokenLocked ? (
+          {tokensLocked ? (
             <Tooltip
               content={t(
                 'settings.assistant.tokenLocked',
@@ -362,13 +429,13 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
               )}
             >
               <span>
-                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={tokenLocked}>
+                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={tokensLocked}>
                   {t('settings.assistant.testConnection', 'Test')}
                 </Button>
               </span>
             </Tooltip>
           ) : (
-            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={tokenLocked}>
+            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={tokensLocked}>
               {t('settings.assistant.testConnection', 'Test')}
             </Button>
           )}
@@ -381,7 +448,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
           label={t('settings.assistant.name', 'Assistant')}
           description={
             <div className='flex flex-col gap-4px'>
-              <span>{t('settings.assistant.agentDescDiscord', 'Used for Discord conversations')}</span>
+              <span>{t('settings.assistant.agentDescSlack', 'Used for Slack conversations')}</span>
               {hasBrokenSavedAssistant && (
                 <span className='text-orange-6'>
                   {t(
@@ -442,7 +509,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
       {/* Default Model Selection */}
       <PreferenceRow
         label={t('settings.assistant.defaultModel', 'Default Model')}
-        description={t('settings.assistant.defaultModelDescDiscord', 'Model used for Discord conversations')}
+        description={t('settings.assistant.defaultModelDescSlack', 'Model used for Slack conversations')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}
@@ -463,10 +530,7 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
           <div className='text-14px text-t-secondary space-y-8px'>
             <p className='m-0'>
               <strong>1.</strong>{' '}
-              {t(
-                'settings.assistant.discordStep1',
-                'Open Discord and mention your bot in a server channel, or send it a DM'
-              )}
+              {t('settings.assistant.slackStep1', 'Open Slack and mention your bot in a channel, or send it a DM')}
               {pluginStatus.botUsername && (
                 <span className='ms-4px'>
                   <code className='bg-fill-2 px-6px py-2px rd-4px'>@{pluginStatus.botUsername}</code>
@@ -475,21 +539,18 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
             </p>
             <p className='m-0'>
               <strong>2.</strong>{' '}
-              {t('settings.assistant.discordStep2', 'Send any message or @mention to initiate pairing')}
+              {t('settings.assistant.slackStep2', 'Send any message or @mention to initiate pairing')}
             </p>
             <p className='m-0'>
               <strong>3.</strong>{' '}
               {t(
-                'settings.assistant.discordStep3',
+                'settings.assistant.slackStep3',
                 'A pairing request will appear below. Click "Approve" to authorize the user.'
               )}
             </p>
             <p className='m-0'>
               <strong>4.</strong>{' '}
-              {t(
-                'settings.assistant.discordStep4',
-                'Once approved, you can start chatting with the assistant in Discord!'
-              )}
+              {t('settings.assistant.slackStep4', 'Once approved, you can start chatting with the assistant in Slack!')}
             </p>
           </div>
         </div>
@@ -627,4 +688,4 @@ const DiscordConfigForm: React.FC<DiscordConfigFormProps> = ({
   );
 };
 
-export default DiscordConfigForm;
+export default SlackConfigForm;
