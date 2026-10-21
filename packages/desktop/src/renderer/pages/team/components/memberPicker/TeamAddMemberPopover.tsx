@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TeamAssistant } from '@/common/types/team/teamTypes';
@@ -6,9 +6,11 @@ import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
 import { useTeamAssistantOptions } from '../../hooks/useTeamAssistantOptions';
+import { useTeamMemberRecency } from '../../hooks/useTeamMemberRecency';
 import { useTeamTabs } from '../../hooks/TeamTabsContext';
 import type { TeamAssistantOption } from '../assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from '../teamCreateModelResolver';
+import { sortCandidatesByRecency } from '../../utils/teamMemberRecency';
 import TeamAssistantPickerDropdown from './TeamAssistantPickerDropdown';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
@@ -22,9 +24,15 @@ type Props = {
 const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) => {
   const { t, i18n } = useTranslation();
   const { assistants } = useTeamAssistantOptions(i18n?.language ?? 'en-US');
+  const { recency, recordUse } = useTeamMemberRecency();
   const { addAssistant, switchTab, assistants: teamMembers = [] } = useTeamTabs();
   const [visible, setVisible] = useState(false);
   const [pendingAssistantId, setPendingAssistantId] = useState<string | undefined>();
+
+  // Most-recently-used ordering: candidates the user just added float to the
+  // top so repeated adds of the same type are near one-click. Never-used
+  // candidates keep the original order behind the used ones.
+  const sortedAssistants = useMemo(() => sortCandidatesByRecency(assistants, recency), [assistants, recency]);
 
   // Leader 会话草稿：用于「告诉 Leader」预填提示词。Hook 必须无条件调用，
   // 未知 Leader 会话时传空串（不写入）。按 Leader 后端选 acp/aionrs 草稿。
@@ -68,6 +76,9 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
       const created: TeamAssistant = await addAssistant(input);
       setVisible(false);
       switchTab(created.slot_id);
+      // Fire-and-forget: recency is a best-effort local preference; a failed
+      // persist must not surface an error for an add that already succeeded.
+      void recordUse(assistant.id).catch(() => {});
     } catch (error) {
       Message.error(getConversationCreateErrorMessage(error, t));
     } finally {
@@ -77,7 +88,7 @@ const TeamAddMemberPopover: React.FC<Props> = ({ children, disabled = false }) =
 
   return (
     <TeamAssistantPickerDropdown
-      assistants={assistants}
+      assistants={sortedAssistants}
       onSelect={handleSelect}
       visible={visible}
       onVisibleChange={setVisible}
