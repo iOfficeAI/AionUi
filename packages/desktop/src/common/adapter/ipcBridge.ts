@@ -659,6 +659,35 @@ export interface IRendererLogEntry {
   data?: unknown;
 }
 
+export interface ModelQuotaBucket {
+  id: string;
+  name: string;
+  description?: string;
+  window?: string;
+  remainingFraction: number;
+  resetTime?: string;
+}
+
+export interface ModelQuotaGroup {
+  name: string;
+  description?: string;
+  agentId?: string;
+  agentName?: string;
+  buckets: ModelQuotaBucket[];
+}
+
+export interface ModelQuotaData {
+  groups: ModelQuotaGroup[];
+  description?: string;
+  updatedAt: number;
+}
+
+export interface ModelQuotaResult {
+  success: boolean;
+  data?: ModelQuotaData;
+  error?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -724,6 +753,10 @@ export const application = {
     'app.set-gpu-override'
   ),
   writeRendererLog: bridge.buildProvider<void, IRendererLogEntry>('app.write-renderer-log'),
+  getModelQuota: bridge.buildProvider<
+    ModelQuotaResult,
+    { agentName?: string; cliPath?: string; forceRefresh?: boolean } | void
+  >('app.get-model-quota'),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
   ),
