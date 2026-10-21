@@ -186,3 +186,24 @@ describe.each(scenarios)('$name file-selection no-leak guard', ({ render: render
     expect(emitAndCount(appendEvent, undefined)).toBeGreaterThan(0); // broadcast
   });
 });
+
+/**
+ * Same guard on the composer-fill lane: `sendbox.fill` used to carry no target,
+ * so a slash-command pick in one column filled every mounted send box.
+ */
+describe.each(scenarios)('$name sendbox.fill no-leak guard', ({ render: renderBox }) => {
+  const emitFillAndCount = (target: string | undefined) => {
+    mutateMock.mockClear();
+    act(() => {
+      emitter.emit('sendbox.fill', '/review ', target);
+    });
+    return mutateMock.mock.calls.length;
+  };
+
+  it('rejects a fill targeting a different conversation, accepts matching/broadcast', () => {
+    renderBox();
+    expect(emitFillAndCount(OTHER)).toBe(0); // reject path — composer untouched
+    expect(emitFillAndCount(CONV)).toBeGreaterThan(0); // accept path
+    expect(emitFillAndCount(undefined)).toBeGreaterThan(0); // broadcast
+  });
+});

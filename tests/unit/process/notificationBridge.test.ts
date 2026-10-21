@@ -54,11 +54,18 @@ vi.mock('@/common/electronSafe', () => ({
 
 vi.mock('fs', () => ({ default: { existsSync: () => false }, existsSync: () => false }));
 
-import { showNotification, setNotificationMainWindow } from '@/process/bridge/notificationBridge';
+import {
+  registerNotificationAppWindow,
+  resetNotificationAppWindowsForTest,
+  setNotificationMainWindow,
+  showNotification,
+} from '@/process/bridge/notificationBridge';
 
 const makeWindow = (focused: boolean) => ({
   isDestroyed: () => false,
   isFocused: () => focused,
+  // Registered as an app window, which subscribes to its 'closed' event.
+  once: vi.fn(),
   isMinimized: () => false,
   restore: vi.fn(),
   show: vi.fn(),
@@ -68,6 +75,7 @@ const makeWindow = (focused: boolean) => ({
 let logSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  resetNotificationAppWindowsForTest();
   notificationEnabled = true;
   clickedEmit.mockClear();
   platformSend.mockClear();
@@ -91,6 +99,32 @@ describe('showNotification', () => {
     setNotificationMainWindow(makeWindow(true) as never);
     await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
     expect(FakeElectronNotification.instances).toHaveLength(0);
+  });
+
+  /**
+   * A second app window (a detached conversation) is a place the user reads
+   * replies, so its focus has to suppress the notification too — the gate used
+   * to ask only the main window.
+   */
+  it('does not notify when a second app window is focused', async () => {
+    setNotificationMainWindow(makeWindow(false) as never);
+    registerNotificationAppWindow(makeWindow(true) as never);
+    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    expect(FakeElectronNotification.instances).toHaveLength(0);
+  });
+
+  it('still notifies when every registered app window is unfocused', async () => {
+    setNotificationMainWindow(makeWindow(false) as never);
+    registerNotificationAppWindow(makeWindow(false) as never);
+    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    expect(FakeElectronNotification.instances).toHaveLength(1);
+  });
+
+  it('ignores a destroyed app window when deciding whether the app is focused', async () => {
+    setNotificationMainWindow(makeWindow(false) as never);
+    registerNotificationAppWindow({ ...makeWindow(true), isDestroyed: () => true } as never);
+    await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
+    expect(FakeElectronNotification.instances).toHaveLength(1);
   });
 
   it('does not notify when the setting is disabled', async () => {
@@ -119,10 +153,10 @@ describe('showNotification', () => {
     expect(logSpy).toHaveBeenCalledWith('[Notification] Skipped: notifications are disabled in settings');
   });
 
-  it('logs when skipping because the main window is focused', async () => {
+  it('logs when skipping because an app window is focused', async () => {
     setNotificationMainWindow(makeWindow(true) as never);
     await showNotification({ title: 'AionUi', body: 'done', conversation_id: 'c1' });
-    expect(logSpy).toHaveBeenCalledWith('[Notification] Skipped: main window is focused');
+    expect(logSpy).toHaveBeenCalledWith('[Notification] Skipped: an app window is focused');
   });
 
   it('logs after calling show() including the isSupported result', async () => {
