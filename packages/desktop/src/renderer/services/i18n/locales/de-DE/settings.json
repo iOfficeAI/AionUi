@@ -309,7 +309,10 @@
     "applied": "Theme angewendet: {{name}}",
     "applyFailed": "Theme anwenden fehlgeschlagen",
     "cleared": "Zum Standardstil zurückgesetzt",
-    "deleteConfirm": "Bist du sicher, dass du dieses Theme löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteConfirm": "Bist du sicher, dass du dieses Theme löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "systemThemePreferences": "Einstellungen für Systemdesign",
+    "preferredLightTheme": "Bevorzugtes helles Design",
+    "preferredDarkTheme": "Bevorzugtes dunkles Design"
   },
   "geminiBaseUrl": "Gemini API Basis-URL",
   "cacheDir": "Cache-Verzeichnis",

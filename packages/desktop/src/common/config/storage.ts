@@ -45,6 +45,10 @@ export interface IConfigStorageRefer {
   'theme.activeId': string;
   /** User-created themes */
   'theme.userThemes': Theme[];
+  /** Preferred dark theme when following system */
+  'theme.systemDarkThemeId'?: string;
+  /** Preferred light theme when following system */
+  'theme.systemLightThemeId'?: string;
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）

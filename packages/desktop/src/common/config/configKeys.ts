@@ -21,6 +21,8 @@ export type ConfigKeyMap = {
   'webui.desktop.port': number | undefined;
   'theme.activeId': string;
   'theme.userThemes': Theme[];
+  'theme.systemDarkThemeId': string;
+  'theme.systemLightThemeId': string;
   'workspace.pasteConfirm': boolean | undefined;
   'guid.lastAssistantId': string | undefined;
   /** User-defined order for the enabled assistant picker surfaces. */

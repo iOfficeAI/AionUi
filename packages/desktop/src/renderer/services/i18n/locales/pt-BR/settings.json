@@ -309,7 +309,10 @@
     "applied": "Tema aplicado: {{name}}",
     "applyFailed": "Falha ao aplicar tema",
     "cleared": "Estilo restaurado para o padrão",
-    "deleteConfirm": "Tem certeza de que deseja excluir este tema? Esta ação não pode ser desfeita."
+    "deleteConfirm": "Tem certeza de que deseja excluir este tema? Esta ação não pode ser desfeita.",
+    "systemThemePreferences": "Preferências de tema do sistema",
+    "preferredLightTheme": "Tema claro preferido",
+    "preferredDarkTheme": "Tema escuro preferido"
   },
   "geminiBaseUrl": "URL Base da API Gemini",
   "cacheDir": "Diretório de Cache",

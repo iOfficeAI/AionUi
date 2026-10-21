@@ -9,7 +9,7 @@ import type { Theme } from '@/common/theme/types';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
-import { Button, Message, Modal } from '@arco-design/web-react';
+import { Button, Message, Modal, Select } from '@arco-design/web-react';
 import { EditTwo, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,7 @@ import CssThemeModal from './CssThemeModal.tsx';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils.ts';
 import { resolveExtensionAssetUrl } from '@renderer/utils/platform.ts';
-import { LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
+import { LIGHT_THEME_ID, DARK_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 
 interface ThemePreviewPalette {
   appBg: string;
@@ -245,6 +245,12 @@ const CssThemeSettings: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
   const [hoveredThemeId, setHoveredThemeId] = useState<string | null>(null);
+  const [systemDarkThemeId, setSystemDarkThemeId] = useState<string>(() => {
+    return (configService.get('theme.systemDarkThemeId') as string) || DARK_THEME_ID;
+  });
+  const [systemLightThemeId, setSystemLightThemeId] = useState<string>(() => {
+    return (configService.get('theme.systemLightThemeId') as string) || LIGHT_THEME_ID;
+  });
 
   const activeThemeId = activeId ?? activeTheme?.id ?? DEFAULT_THEME_ID;
 
@@ -343,6 +349,34 @@ const CssThemeSettings: React.FC = () => {
   }, []);
 
   /**
+   * 跟随系统时，更新深色主题偏好 / Update preferred dark theme when following system
+   */
+  const handleSystemDarkThemeChange = useCallback(
+    async (themeId: string) => {
+      setSystemDarkThemeId(themeId);
+      await configService.set('theme.systemDarkThemeId', themeId);
+      if (activeThemeId === SYSTEM_THEME_ID) {
+        await selectTheme(SYSTEM_THEME_ID);
+      }
+    },
+    [activeThemeId, selectTheme]
+  );
+
+  /**
+   * 跟随系统时，更新浅色主题偏好 / Update preferred light theme when following system
+   */
+  const handleSystemLightThemeChange = useCallback(
+    async (themeId: string) => {
+      setSystemLightThemeId(themeId);
+      await configService.set('theme.systemLightThemeId', themeId);
+      if (activeThemeId === SYSTEM_THEME_ID) {
+        await selectTheme(SYSTEM_THEME_ID);
+      }
+    },
+    [activeThemeId, selectTheme]
+  );
+
+  /**
    * 打开编辑主题弹窗 / Open edit theme modal
    */
   const handleEditTheme = useCallback((theme: Theme, e: React.MouseEvent) => {
@@ -421,6 +455,22 @@ const CssThemeSettings: React.FC = () => {
               await selectTheme(LIGHT_THEME_ID);
             }
 
+            // 如果删除的主题被设为跟随系统时的偏好主题，重置回默认 / Reset preferred system theme if deleted
+            if (systemDarkThemeId === themeId) {
+              setSystemDarkThemeId(DARK_THEME_ID);
+              await configService.set('theme.systemDarkThemeId', DARK_THEME_ID);
+            }
+            if (systemLightThemeId === themeId) {
+              setSystemLightThemeId(LIGHT_THEME_ID);
+              await configService.set('theme.systemLightThemeId', LIGHT_THEME_ID);
+            }
+            if (
+              activeThemeId === SYSTEM_THEME_ID &&
+              (systemDarkThemeId === themeId || systemLightThemeId === themeId)
+            ) {
+              await selectTheme(SYSTEM_THEME_ID);
+            }
+
             setThemes(updatedThemes);
             setModalVisible(false);
             setEditingTheme(null);
@@ -432,7 +482,7 @@ const CssThemeSettings: React.FC = () => {
         },
       });
     },
-    [themes, activeThemeId, selectTheme, t]
+    [themes, activeThemeId, selectTheme, systemDarkThemeId, systemLightThemeId, t]
   );
 
   return (
@@ -505,6 +555,39 @@ const CssThemeSettings: React.FC = () => {
           );
         })}
       </div>
+
+      {/* 跟随系统偏好设置 / Preferences when following system */}
+      {activeThemeId === SYSTEM_THEME_ID && (
+        <div className='p-16px rounded-12px bg-fill-2 border border-border-2 space-y-12px mt-8px'>
+          <div className='text-14px font-medium text-t-primary'>{t('settings.cssTheme.systemThemePreferences')}</div>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-16px'>
+            <div className='flex flex-col gap-6px'>
+              <span className='text-13px text-t-secondary'>{t('settings.cssTheme.preferredLightTheme')}</span>
+              <Select
+                className='w-full !rounded-8px'
+                value={systemLightThemeId}
+                onChange={handleSystemLightThemeChange}
+              >
+                {themes.map((t) => (
+                  <Select.Option key={t.id} value={t.id}>
+                    {t.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+            <div className='flex flex-col gap-6px'>
+              <span className='text-13px text-t-secondary'>{t('settings.cssTheme.preferredDarkTheme')}</span>
+              <Select className='w-full !rounded-8px' value={systemDarkThemeId} onChange={handleSystemDarkThemeChange}>
+                {themes.map((t) => (
+                  <Select.Option key={t.id} value={t.id}>
+                    {t.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 主题编辑弹窗 / Theme edit modal */}
       <CssThemeModal
