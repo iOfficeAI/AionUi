@@ -18,7 +18,6 @@ import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/Mess
 import MessageQuestion from './MessageQuestion';
 import MessagePermission from './components/MessagePermission';
 import MessageAcpTerminalOutput from '@renderer/pages/conversation/Messages/acp/MessageAcpTerminalOutput';
-import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 import classNames from 'classnames';
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -39,9 +38,8 @@ import {
 } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
 import MessageTips from './components/MessageTips';
-import MessageToolCall from './components/MessageToolCall';
-import MessageToolGroup from './components/MessageToolGroup';
-import MessageToolGroupSummary from './components/MessageToolGroupSummary';
+import UnifiedToolRenderer from './ToolBlocks/UnifiedToolRenderer';
+import ToolGroupBlock from './ToolBlocks/ToolGroupBlock';
 import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
@@ -285,9 +283,19 @@ const MessageItem: React.FC<{
         case 'tips':
           return <MessageTips message={message}></MessageTips>;
         case 'tool_call':
-          return <MessageToolCall message={message}></MessageToolCall>;
-        case 'tool_group':
-          return <MessageToolGroup message={message}></MessageToolGroup>;
+          return <UnifiedToolRenderer message={message}></UnifiedToolRenderer>;
+        case 'tool_group': {
+          const confirmationItems = message.content.filter((item) => item.confirmationDetails) as never[];
+          const toolItems = message.content.filter((item) => !item.confirmationDetails);
+          return (
+            <ToolGroupBlock
+              messages={[{ ...message, content: toolItems } as never]}
+              confirmationItems={confirmationItems}
+              messageId={message.id}
+              conversationId={message.conversation_id}
+            ></ToolGroupBlock>
+          );
+        }
         case 'agent_status':
           return <MessageAgentStatus message={message}></MessageAgentStatus>;
         case 'permission':
@@ -297,7 +305,7 @@ const MessageItem: React.FC<{
         case 'ask':
           return <MessageQuestion message={message}></MessageQuestion>;
         case 'acp_tool_call':
-          return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+          return <UnifiedToolRenderer message={message}></UnifiedToolRenderer>;
         case 'acp_terminal_output':
           return <MessageAcpTerminalOutput message={message}></MessageAcpTerminalOutput>;
         case 'thinking':
@@ -704,7 +712,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
-          {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
+          {item.type === 'tool_summary' && <ToolGroupBlock messages={item.messages}></ToolGroupBlock>}
         </div>
       );
     }
