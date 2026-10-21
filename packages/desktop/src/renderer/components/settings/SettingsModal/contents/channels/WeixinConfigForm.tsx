@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import {
+  ChannelWorkspaceField,
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
@@ -461,6 +462,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           variant='settings'
         />
       </PreferenceRow>
+
+      <ChannelWorkspaceField platform='weixin' />
 
       {/* Next Steps Guide - shown when connected but no authorized users yet */}
       {pluginStatus?.connected && authorizedUsers.length === 0 && (
