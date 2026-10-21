@@ -290,20 +290,19 @@ closePreviewByIdentity('markdown', undefined, {
 ### Integrate with Send Box
 
 ```tsx
-function SendBox() {
+function SendBox({ conversation_id }) {
   const { setSendBoxHandler } = usePreviewContext();
   const [text, setText] = useState('');
 
   useEffect(() => {
-    // Register handler
-    setSendBoxHandler((content) => {
+    // Register this send box for its conversation; the returned unregister
+    // removes only this registration, so a sibling send box on the same
+    // conversation stays reachable. Omit conversation_id for a composer that
+    // belongs to no conversation.
+    return setSendBoxHandler((content) => {
       setText((prev) => prev + content);
-    });
-
-    return () => {
-      setSendBoxHandler(null);
-    };
-  }, [setSendBoxHandler]);
+    }, conversation_id);
+  }, [setSendBoxHandler, conversation_id]);
 
   return <textarea value={text} onChange={(e) => setText(e.target.value)} />;
 }

@@ -8,9 +8,8 @@ import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
-import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
-import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import type { SortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
@@ -20,12 +19,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
-import SortableConversationRow from './SortableConversationRow';
+import SortableConversationRow, { DraggableConversationRow } from './SortableConversationRow';
+import SplitGroupRow from './SplitGroupRow';
+import { useConversationDrag } from './hooks/ConversationDragContext';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
-import { useDragAndDrop } from './hooks/useDragAndDrop';
+import { useSplitGroupMutations } from './hooks/useSplitGroupMutations';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+import { placeSplitGroupPills } from './utils/splitGroupHelpers';
+
+/** While a drop would fuse rather than reorder, the pinned rows stay put instead of making room. */
+const keepRowsInPlace: SortingStrategy = () => null;
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -35,11 +40,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onBatchModeChange,
   afterPinnedContent,
 }) => {
-  const { id } = useParams();
+  const { id, groupId } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const { dropTarget } = useConversationDrag();
+  const { removeMember: removeSplitGroupMember, renameGroup: renameSplitGroup } = useSplitGroupMutations();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   const {
@@ -53,6 +60,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    splitGroups,
     handleToggleWorkspace,
     collapsedSections,
     toggleSection,
@@ -111,6 +119,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     renameLoading,
     dropdownVisibleId,
     handleConversationClick,
+    handleSplitGroupOpen,
     handleArchive,
     handleBatchArchive,
     handleEditStart,
@@ -139,11 +148,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     isManualUnread,
   });
 
-  const { sensors, handleDragEnd, isDragEnabled } = useDragAndDrop({
-    pinnedConversations,
-    batchMode,
-    collapsed,
-  });
+  // Rows are drag sources and drop targets wherever a drop can mean something,
+  // which is everywhere but batch selection. Width says nothing about it — the
+  // collapsed rail and a narrow window are layouts the handle has to fit into —
+  // and neither does the pointer: the drag provider's touch sensor waits for a
+  // hold before it drags, so a finger keeps its scroll and still gets to move
+  // rows. A member row can only fuse with a plain row that is a drop target,
+  // so the two kinds of row must agree on where dragging exists.
+  const isDragEnabled = !batchMode;
 
   // Fork-lineage badge support: resolve a parent conversation's display name
   // from the already-loaded sidebar list (no extra fetch; unresolved = the
@@ -210,11 +222,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     ]
   );
 
-  const renderConversation = (conversation: TChatConversation, dimIcon = false) => {
-    const rowProps = getConversationRowProps(conversation);
-    return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
-  };
-
   // Collect all sortable IDs for the pinned section
   const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
 
@@ -249,6 +256,67 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         .filter((section) => section.items.length > 0),
     [timelineSections]
   );
+
+  // Split groups: the rows of a group collapse into one pill, rendered in the
+  // slot of whichever member comes first in the list's own order (pinned →
+  // projects → conversations); the other members' rows are hidden. Batch
+  // selection needs every row and its checkbox, so it shows plain rows.
+  const splitGroupPlacement = useMemo(() => {
+    if (batchMode) return placeSplitGroupPills([], []);
+    const orderedIds = [
+      ...pinnedIds,
+      ...projectGroups.flatMap((group) => group.conversations.map((conversation) => conversation.id)),
+      ...conversationOnlySections.flatMap((section) =>
+        section.items.flatMap((item) => (item.conversation ? [item.conversation.id] : []))
+      ),
+    ];
+    return placeSplitGroupPills(orderedIds, splitGroups);
+  }, [batchMode, pinnedIds, projectGroups, conversationOnlySections, splitGroups]);
+
+  // Sortable pinned rows exclude the pill slots: a pill is a drop target, not
+  // a row that takes part in the reorder.
+  const sortablePinnedIds = useMemo(
+    () =>
+      pinnedIds.filter(
+        (pinnedId) => !splitGroupPlacement.hiddenIds.has(pinnedId) && !splitGroupPlacement.pillByLeaderId.has(pinnedId)
+      ),
+    [pinnedIds, splitGroupPlacement]
+  );
+
+  const renderConversation = (conversation: TChatConversation, dimIcon = false, sortable = false) => {
+    if (splitGroupPlacement.hiddenIds.has(conversation.id)) return null;
+
+    const group = splitGroupPlacement.pillByLeaderId.get(conversation.id);
+    if (group) {
+      return (
+        <SplitGroupRow
+          key={group.id}
+          group={group}
+          collapsed={collapsed}
+          tooltipEnabled={tooltipEnabled}
+          batchMode={batchMode}
+          selected={groupId === group.id || group.members.some((member) => member.id === id)}
+          dimIcon={dimIcon}
+          isGenerating={isConversationGenerating}
+          isWaitingConfirmation={isConversationWaitingConfirmation}
+          hasUnread={(conversation_id) => hasCompletionUnread(conversation_id) || isManualUnread(conversation_id)}
+          getJobStatus={getJobStatus}
+          onOpen={handleSplitGroupOpen}
+          onRemoveMember={(target, member_id) => void removeSplitGroupMember(target.id, member_id)}
+          onRenameGroup={(target, name) => renameSplitGroup(target.id, name)}
+          getMemberRowProps={getConversationRowProps}
+        />
+      );
+    }
+
+    const rowProps = getConversationRowProps(conversation);
+    if (!isDragEnabled) return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
+    return sortable ? (
+      <SortableConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />
+    ) : (
+      <DraggableConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />
+    );
+  };
 
   if (timelineSections.length === 0 && pinnedConversations.length === 0) {
     return (
@@ -382,33 +450,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       </AionModal>
 
       <div>
-        {/* L1: Pinned section */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragEnd={handleDragEnd}
-        >
-          {pinnedConversations.length > 0 && (
-            <div className='min-w-0'>
-              {!collapsed && <SectionLabel sectionKey='pinned' label={t('conversation.history.pinnedSection')} />}
-              {!collapsedSections.has('pinned') && (
-                <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
-                  <div className='min-w-0'>
-                    {pinnedConversations.map((conversation) => {
-                      const props = getConversationRowProps(conversation);
-                      return isDragEnabled ? (
-                        <SortableConversationRow key={conversation.id} {...props} />
-                      ) : (
-                        <ConversationRow key={conversation.id} {...props} />
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              )}
-            </div>
-          )}
-        </DndContext>
+        {/* L1: Pinned section. The DndContext lives in ConversationDragContext,
+            above the Layout, so a row can also be dropped on the open chat area. */}
+        {pinnedConversations.length > 0 && (
+          <div className='min-w-0'>
+            {!collapsed && <SectionLabel sectionKey='pinned' label={t('conversation.history.pinnedSection')} />}
+            {!collapsedSections.has('pinned') && (
+              <SortableContext
+                items={sortablePinnedIds}
+                strategy={dropTarget?.intent === 'onto' ? keepRowsInPlace : verticalListSortingStrategy}
+              >
+                <div className='min-w-0'>
+                  {pinnedConversations.map((conversation) => renderConversation(conversation, false, true))}
+                </div>
+              </SortableContext>
+            )}
+          </div>
+        )}
 
         {/* Slot 由父级（Sider）填入：例如 Team / CronJob sections，位于「置顶」之后、「项目」之前 */}
         {afterPinnedContent}

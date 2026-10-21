@@ -70,7 +70,7 @@ export const useConversations = () => {
     groupedHistory,
   } = useConversationHistoryContext();
 
-  const { pinnedConversations, timelineSections } = groupedHistory;
+  const { pinnedConversations, timelineSections, splitGroups } = groupedHistory;
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
@@ -222,6 +222,7 @@ export const useConversations = () => {
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    splitGroups,
     handleToggleWorkspace,
     collapsedSections,
     toggleSection,
