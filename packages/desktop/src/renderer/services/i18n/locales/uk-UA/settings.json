@@ -1429,5 +1429,20 @@
   "crossSessionMessageDesc": "Дозволяє агентам надсилати повідомлення до ваших інших розмов. Вимкнення також відключає згадку @@ у полі введення.",
   "crossSessionMessageDisabledBanner": "Повідомлення між розмовами вимкнено, згадка @@ недоступна.",
   "crossSessionMessageResume": "Увімкнути знову",
-  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами"
+  "crossSessionMessageUpdateFailed": "Не вдалося оновити налаштування повідомлень між розмовами",
+  "autoModel": {
+    "title": "Auto model routing",
+    "description": "Bind planner, worker, and utility slots for long-running aionrs agents. Phase 1 resolves a concrete model when you pick Auto; Phase 2 will switch slots without rebuilding the agent.",
+    "preference": "When slots are Automatic",
+    "preferenceCost": "Prefer lower cost",
+    "preferenceBalance": "Balance cost and quality",
+    "preferenceQuality": "Prefer higher quality",
+    "automatic": "Automatic",
+    "slot": {
+      "planner": "Planner model",
+      "worker": "Worker model",
+      "utility": "Utility model"
+    },
+    "phaseNote": "On the same provider, Auto hot-swaps planner/worker models before each send without rebuilding the agent. Cross-provider switches still rebuild."
+  }
 }

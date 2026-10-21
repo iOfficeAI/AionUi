@@ -782,5 +782,11 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "展开计划",
     "collapse": "收起计划"
+  },
+  "autoModel": {
+    "groupTitle": "Auto",
+    "optionLabel": "Auto（规划/执行路由）",
+    "pill": "Auto · {{phase}}/{{model}}",
+    "noCandidates": "没有可用于 Auto 的模型"
   }
 }
