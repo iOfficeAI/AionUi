@@ -16,6 +16,7 @@ export type ConfigKeyMap = {
   'ui.fontWeight.markdown': string | undefined;
   'ui.fontWeight.code': string | undefined;
   'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
+  'window.detachedBounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;
   'webui.desktop.port': number | undefined;

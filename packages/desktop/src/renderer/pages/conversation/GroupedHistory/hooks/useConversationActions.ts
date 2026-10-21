@@ -11,8 +11,9 @@ import { refreshConversationCache } from '@/renderer/pages/conversation/utils/co
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
+import { DetachedWindowOpenError, detachedWindowActions } from '@/renderer/utils/ui/detachedWindow';
 import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -51,6 +52,7 @@ export const useConversationActions = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const clickRequestIdRef = useRef(0);
 
   // Close dropdown when entering batch mode
   useEffect(() => {
@@ -60,7 +62,7 @@ export const useConversationActions = ({
   }, [batchMode]);
 
   const handleConversationClick = useCallback(
-    (conversation: TChatConversation) => {
+    async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
       if (batchMode) {
         toggleSelectedConversation(conversation);
@@ -71,12 +73,35 @@ export const useConversationActions = ({
 
       markAsRead(conversation.id);
 
+      const requestId = ++clickRequestIdRef.current;
+      const focused = await detachedWindowActions.focusConversation(conversation.id).catch(() => false);
+      if (requestId !== clickRequestIdRef.current) return;
+      if (focused) {
+        onSessionClick?.();
+        return;
+      }
+
       void navigate(`/conversation/${conversation.id}`);
       if (onSessionClick) {
         onSessionClick();
       }
     },
     [batchMode, toggleSelectedConversation, markAsRead, navigate, onSessionClick]
+  );
+
+  const handleOpenDetached = useCallback(
+    async (conversation: TChatConversation) => {
+      setDropdownVisibleId(null);
+      await detachedWindowActions.openConversation(conversation.id).catch((error: unknown) => {
+        console.error('[AionUi] Failed to open detached conversation window:', error);
+        const key =
+          error instanceof DetachedWindowOpenError && error.reason === 'popupBlocked'
+            ? 'conversation.history.popupBlocked'
+            : 'conversation.history.openInNewWindowFailed';
+        Message.error(t(key));
+      });
+    },
+    [t]
   );
 
   const removeConversation = useCallback(
@@ -333,6 +358,7 @@ export const useConversationActions = ({
     handleOpenMenu,
     handleToggleManualUnread,
     handleCreateCronTask,
+    handleOpenDetached,
     handleArchiveProject,
     archiveProjectTarget,
     archiveProjectLoading,

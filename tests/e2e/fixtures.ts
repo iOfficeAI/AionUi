@@ -118,24 +118,120 @@ async function ensureRendererAppMounted(page: Page): Promise<void> {
   }
 }
 
+/**
+ * The main window's webContents id, published by the main process in
+ * `createWindow`. `null` when the app has not created it yet (or is an older
+ * build without the marker), in which case window resolution falls back to the
+ * pre-marker rule — the one and only non-DevTools window, see `isMainWindow`.
+ */
+async function readMainWindowId(electronApp: ElectronApplication): Promise<number | null> {
+  return electronApp
+    .evaluate(() => (globalThis as typeof globalThis & { __aionuiMainWindowId?: number }).__aionuiMainWindowId ?? null)
+    .catch(() => null);
+}
+
+/** How long a window gets to expose its own id before it is judged. */
+const WINDOW_ID_TIMEOUT_MS = 5_000;
+
+/**
+ * Read `window.__windowId`, waiting for the preload to publish it. A window
+ * that never publishes one resolves to `null`.
+ */
+async function readPageWindowId(page: Page): Promise<number | null> {
+  return page
+    .waitForFunction(() => (window as Window & { __windowId?: number }).__windowId ?? null, undefined, {
+      timeout: WINDOW_ID_TIMEOUT_MS,
+    })
+    .then((handle) => handle.jsonValue() as Promise<number | null>)
+    .catch(() => null);
+}
+
+/**
+ * True when this page is the main window. Matching on the published id rather
+ * than "the first non-DevTools window" keeps the suite correct once the app can
+ * open a second window: a detached conversation window is a perfectly ordinary
+ * non-DevTools window and would otherwise be picked at random.
+ *
+ * When the marker exists, a window must prove its id — a slow preload used to
+ * read as "no id yet", which any window can claim, so a detached window could be
+ * accepted as the main one.
+ *
+ * Without the marker the answer is a guess, and it is only sound when there is
+ * nothing to confuse it with: a build that publishes no marker can open one
+ * window, so the sole non-DevTools window is the main one. More than one
+ * candidate means either the marker has not been published yet or the build is
+ * not what we think it is — in both cases keep waiting rather than guess, which
+ * is what stops a detached window from being accepted on the event path.
+ */
+async function isMainWindow(
+  electronApp: ElectronApplication,
+  page: Page,
+  mainWindowId: number | null
+): Promise<boolean> {
+  if (isDevToolsWindow(page)) return false;
+  if (mainWindowId !== null) return (await readPageWindowId(page)) === mainWindowId;
+  const candidates = electronApp.windows().filter((win) => !isDevToolsWindow(win));
+  return candidates.length === 1 && candidates[0] === page;
+}
+
+/**
+ * Everything known about why the main window could not be resolved: the marker
+ * the main process published, and the id every candidate window claimed. This
+ * is the difference between "the suite is broken" and "the preload never ran in
+ * window 3".
+ */
+async function describeUnresolvedMainWindow(
+  electronApp: ElectronApplication,
+  mainWindowId: number | null
+): Promise<string> {
+  const candidates = electronApp.windows().filter((win) => !isDevToolsWindow(win));
+  const observed = await Promise.all(
+    candidates.map(async (win) => `    ${win.url()} → __windowId=${String(await readPageWindowId(win))}`)
+  );
+  return [
+    'Failed to resolve the main renderer window.',
+    `  main process __aionuiMainWindowId: ${mainWindowId === null ? 'not published' : mainWindowId}`,
+    `  non-DevTools windows seen: ${candidates.length}`,
+    ...(observed.length > 0 ? observed : ['    (none)']),
+  ].join('\n');
+}
+
 async function resolveMainWindow(electronApp: ElectronApplication): Promise<Page> {
-  const existingMainWindow = electronApp.windows().find((win) => !isDevToolsWindow(win));
-  if (existingMainWindow) {
-    await ensureRendererAppMounted(existingMainWindow);
-    return existingMainWindow;
-  }
+  let mainWindowId: number | null = null;
+
+  /**
+   * Ask the question of everything open right now, not only of the window that
+   * just fired an event. Two facts move independently — the marker appears when
+   * the main process publishes it, and windows appear when they open — so a
+   * candidate rejected on one pass can be the main window on the next without
+   * any new window arriving. Re-testing only newly-evented windows would wait
+   * for an event that has already happened and time out with the answer on
+   * screen.
+   */
+  const findMainWindowNow = async (): Promise<Page | null> => {
+    mainWindowId ??= await readMainWindowId(electronApp);
+    const candidates = electronApp.windows();
+    const candidateIsMain = await Promise.all(candidates.map((win) => isMainWindow(electronApp, win, mainWindowId)));
+    return candidates.find((_win, index) => candidateIsMain[index]) ?? null;
+  };
 
   const resolveWindowBefore = async (deadline: number): Promise<Page> => {
+    const found = await findMainWindowNow();
+    if (found) {
+      await ensureRendererAppMounted(found);
+      return found;
+    }
+
     if (Date.now() >= deadline) {
-      throw new Error('Failed to resolve main renderer window (non-DevTools).');
+      // No window proved it is the main one. Guessing here is how a detached
+      // window ends up masquerading as main and a broken preload goes unnoticed
+      // for a whole suite run, so fail with what was actually observed.
+      throw new Error(await describeUnresolvedMainWindow(electronApp, mainWindowId));
     }
 
-    const win = await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
-    if (win && !isDevToolsWindow(win)) {
-      await ensureRendererAppMounted(win);
-      return win;
-    }
-
+    // A new window is the usual reason the answer changes; the timeout doubles
+    // as the pacing for re-reading the marker when no window event is coming.
+    await electronApp.waitForEvent('window', { timeout: 1_000 }).catch(() => null);
     return resolveWindowBefore(deadline);
   };
 

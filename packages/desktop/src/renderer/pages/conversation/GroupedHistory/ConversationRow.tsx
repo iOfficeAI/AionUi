@@ -21,6 +21,7 @@ import {
   Inbox,
   MessageOne,
   MoreOne,
+  Newlybuild,
   Pushpin,
   Robot,
   Timer,
@@ -58,6 +59,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMenuVisibleChange,
     onEditStart,
     onCreateCronTask,
+    onOpenDetached,
     onArchive,
     onExport,
     onTogglePin,
@@ -286,6 +288,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onCreateCronTask(conversation);
                       return;
                     }
+                    if (key === 'openDetached') {
+                      onOpenDetached?.(conversation);
+                      return;
+                    }
                     if (key === 'export') {
                       onExport?.(conversation);
                       return;
@@ -319,6 +325,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     <div className='flex items-center gap-8px'>
                       <Timer theme='outline' size='14' />
                       <span>{t('conversation.history.createCronTask')}</span>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='openDetached'>
+                    <div className='flex items-center gap-8px'>
+                      <Newlybuild theme='outline' size='14' />
+                      <span>{t('conversation.history.openInNewWindow')}</span>
                     </div>
                   </Menu.Item>
                   {onExport && (

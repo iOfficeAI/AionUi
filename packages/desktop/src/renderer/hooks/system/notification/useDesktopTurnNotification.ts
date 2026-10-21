@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { getWindowId, isElectronDesktop } from '@/renderer/utils/platform';
 import { getSnapshotConversationName } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 import { createBrowserNotificationController, truncateConversationName } from './browserNotificationCore';
 
@@ -53,7 +53,12 @@ export const useDesktopTurnNotification = (): void => {
         // Both turn-completed and confirmation (permission / question) kinds
         // fire a native notification. The main process still gates on the
         // setting and skips when the window is focused.
-        void ipcBridge.notification.show.invoke({ title: 'AionUi', body, conversation_id: conversationId });
+        void ipcBridge.notification.show.invoke({
+          title: 'AionUi',
+          body,
+          conversation_id: conversationId,
+          source_web_contents_id: getWindowId(),
+        });
       },
     });
 
