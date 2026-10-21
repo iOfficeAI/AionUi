@@ -2040,6 +2040,7 @@ export type I18nKey =
   | 'settings.gemini'
   | 'settings.geminiApiKey'
   | 'settings.geminiBaseUrl'
+  | 'settings.getApiKey'
   | 'settings.goToModelSettings'
   | 'settings.googleCloudProjectPlaceholder'
   | 'settings.googleLogin'

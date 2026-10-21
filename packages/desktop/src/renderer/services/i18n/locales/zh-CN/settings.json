@@ -376,6 +376,7 @@
   "baseUrlHint": "系统会自动拼接请求路径",
   "modelNotFoundAfterUrlChange": "模型 {{model}} 在新地址未找到，如不可用请重新选择。",
   "apiKey": "API Key",
+  "getApiKey": "获取 API Key",
   "deleteModelConfirm": "是否删除该模型？",
   "deleteAllModelConfirm": "是否删除所有模型？",
   "modelCount": "模型",

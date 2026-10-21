@@ -376,6 +376,7 @@
   "baseUrlHint": "시스템이 자동으로 요청 경로를 추가합니다",
   "modelNotFoundAfterUrlChange": "모델 {{model}}을(를) 새 주소에서 찾을 수 없습니다. 사용할 수 없는 경우 다시 선택하세요.",
   "apiKey": "API 키",
+  "getApiKey": "API 키 받기",
   "deleteModelConfirm": "이 모델을 삭제하시겠습니까?",
   "deleteAllModelConfirm": "모든 모델을 삭제하시겠습니까?",
   "modelCount": "모델",
