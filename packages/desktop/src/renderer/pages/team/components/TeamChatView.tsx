@@ -303,7 +303,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   })();
 
   return (
-    <div className='relative flex flex-col flex-1 h-full min-h-0'>
+    <div className='relative flex flex-col flex-1 h-full min-h-0 w-full min-w-0'>
       {/* Active Knowledge Repo chip if member has assigned repos */}
       {(() => {
         const currentMember =

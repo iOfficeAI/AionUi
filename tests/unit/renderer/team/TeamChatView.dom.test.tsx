@@ -477,6 +477,27 @@ describe('TeamChatView', () => {
     expect(props.teamRuntime?.isActive).toBe(false);
   });
 
+  it('renders root container with full width and min-width 0 to prevent shrinking in single/fullscreen flex views', () => {
+    usePresetAssistantInfoMock.mockReturnValue({ info: { name: 'A', logo: '📋', isEmoji: true, backend: 'claude' } });
+    const { container } = render(
+      <TeamChatView
+        team_id='team-1'
+        slot_id='slot-a'
+        conversation={{
+          id: 'conv-a',
+          type: 'acp',
+          name: 'Team - A',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: { workspace: '/tmp' },
+        }}
+      />
+    );
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('w-full');
+    expect(root.className).toContain('min-w-0');
+  });
+
   it('is wrapped in React.memo to keep inactive chat views quiet on team switches', () => {
     expect((TeamChatView as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'));
   });

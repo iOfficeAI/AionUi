@@ -558,7 +558,10 @@ const AssistantChatSlot: React.FC<{
     const handleSlotRunStateStale = useCallback(() => onRunStateStale('pause.result'), [onRunStateStale]);
 
     return (
-      <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
+      <div
+        className='flex flex-col h-full w-full min-w-0'
+        style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}
+      >
         {showHeader && (
           <div className='flex items-center justify-between gap-8px px-12px h-36px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
             <TeamAgentIdentity
@@ -587,7 +590,7 @@ const AssistantChatSlot: React.FC<{
             />
           </div>
         )}
-        <div className='relative flex flex-col flex-1 min-h-0'>
+        <div className='relative flex flex-col flex-1 min-h-0 w-full min-w-0'>
           {conversation ? (
             <TeamChatView
               conversation={conversation as TChatConversation}
@@ -1029,7 +1032,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                   const hasNext = assistants.length > 1 && activeIdx < assistants.length - 1;
                   const currentSlotId = currentAssistant?.slot_id ?? activeSlotId;
                   return (
-                    <div className='flex-1 h-full relative'>
+                    <div className='flex-1 h-full w-full min-w-0 relative'>
                       {/* Prev member arrow — single view */}
                       {hasPrev && (
                         <Tooltip content={`${t('team.prevMember')} (Alt+←)`} position='right'>
@@ -1057,7 +1060,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                         return (
                           <div
                             key={`${assistant.slot_id}-${taskEpoch}`}
-                            className='h-full w-full'
+                            className='h-full w-full flex flex-col min-w-0'
                             style={{ display: isCurrentSlot ? 'flex' : 'none' }}
                           >
                             <AssistantChatSlot

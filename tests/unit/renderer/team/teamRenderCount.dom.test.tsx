@@ -45,6 +45,7 @@ describe('Render-Count Optimizations & Tab Overflow Batching', () => {
             <div
               key={item.slotId}
               data-testid={`slot-wrapper-${item.slotId}`}
+              className='h-full w-full flex flex-col min-w-0'
               style={{ display: item.slotId === activeSlotId ? 'flex' : 'none' }}
             >
               <MemoizedMockChatSlot slotId={item.slotId} title={item.title} onRender={item.spy} />
@@ -62,8 +63,12 @@ describe('Render-Count Optimizations & Tab Overflow Batching', () => {
       expect(slot2RenderSpy).toHaveBeenCalledTimes(1);
       expect(slot3RenderSpy).toHaveBeenCalledTimes(1);
 
-      // Verify slot-1 is visible, slot-2 and slot-3 are hidden via CSS
-      expect(screen.getByTestId('slot-wrapper-slot-1')).toHaveStyle({ display: 'flex' });
+      // Verify slot-1 is visible, slot-2 and slot-3 are hidden via CSS, and layout has full width flex-col
+      const activeSlotWrapper = screen.getByTestId('slot-wrapper-slot-1');
+      expect(activeSlotWrapper).toHaveStyle({ display: 'flex' });
+      expect(activeSlotWrapper.className).toContain('w-full');
+      expect(activeSlotWrapper.className).toContain('flex-col');
+      expect(activeSlotWrapper.className).toContain('min-w-0');
       expect(screen.getByTestId('slot-wrapper-slot-2')).toHaveStyle({ display: 'none' });
       expect(screen.getByTestId('slot-wrapper-slot-3')).toHaveStyle({ display: 'none' });
 
