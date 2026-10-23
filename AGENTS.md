@@ -84,6 +84,16 @@ See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflo
 - **No scope expansion**: implementation plans and reviews must not create extra tasks, phases, or acceptance criteria for cleanup unless the user asks for that scope.
 - **Ignored working docs**: `docs/superpowers/` is intentionally gitignored for local Superpowers specs and plans. Do not force-add or otherwise commit files from this directory.
 
+### Cloud & Network Drive Safety
+
+When running tools (`Glob`, `grep`, `search_code`, directory traversal) on cloud-synced mounts (such as `G:\My Drive`, OneDrive), network shares, or virtual filesystems:
+
+- **Never run unconstrained recursive `Glob` (`**/\*`)\*\*: Virtual filesystems (VFS) trigger synchronous cloud RPCs and metadata hydration for every subfolder, resulting in thread deadlocks or API rate-limit hangs.
+- **Enforce shallow depth or specific paths**: Use shallow single-level patterns (e.g., `*Resume*` or `*/*Resume*` without `**`), or enumerate immediate folders directly.
+- **Use depth-bounded shell searches**: When searching nested folders on `G:\` or network drives, prefer PowerShell with `-Depth`:
+  `powershell -NoProfile -Command "Get-ChildItem -Path '<path>' -Filter '*<pattern>*' -Recurse -Depth 2 -File"`
+- **Ignore Reparse Points**: Never follow Windows reparse points or Google Drive `.gshortcut` targets to prevent cyclic references and unbounded traversals.
+
 ### During Development
 
 Auto-fix as you edit:

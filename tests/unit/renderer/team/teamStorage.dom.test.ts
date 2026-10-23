@@ -35,5 +35,6 @@ describe('pruneOrphanTeamStorage', () => {
     expect(TEAM_STORAGE_PREFIXES).toContain('team-pending-permissions-');
     expect(TEAM_STORAGE_PREFIXES).toContain('team-memory-');
     expect(TEAM_STORAGE_PREFIXES).toContain('team-agent-memory-');
+    expect(TEAM_STORAGE_PREFIXES).toContain('team-watchdog-interval-');
   });
 });

@@ -19,6 +19,7 @@ import {
   LinkCloud,
   Puzzle,
   Robot,
+  Switch as SwitchIcon,
   System,
   Toolkit,
 } from '@icon-park/react';
@@ -41,6 +42,12 @@ type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
     model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
+    gateway: {
+      id: 'gateway',
+      label: t('settings.modelProviderHub', { defaultValue: 'Model Provider Hub' }),
+      icon: <SwitchIcon theme='outline' size='16' />,
+      path: 'gateway',
+    },
     assistants: {
       id: 'assistants',
       label: t('settings.assistants', { defaultValue: 'Assistants' }),
@@ -88,7 +95,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]).filter((item): item is NavItem => Boolean(item));
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
@@ -119,7 +126,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       }
       const { relativeTo: rawAnchor, placement } = tab.position;
       const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
-      if (!result.some((item) => item.id === anchor)) {
+      if (!result.some((item) => item?.id === anchor)) {
         unanchored.push(tab);
         continue;
       }
@@ -147,7 +154,9 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     };
 
     for (let i = result.length - 1; i >= 0; i--) {
-      const id = result[i].id;
+      const item = result[i];
+      if (!item) continue;
+      const id = item.id;
       const afters = afterMap.get(id);
       if (afters) result.splice(i + 1, 0, ...afters.map(toNavItem));
       const befores = beforeMap.get(id);
@@ -155,12 +164,12 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     }
 
     if (unanchored.length > 0) {
-      const sysIdx = result.findIndex((item) => item.id === 'system');
+      const sysIdx = result.findIndex((item) => item?.id === 'system');
       const idx = sysIdx >= 0 ? sysIdx : result.length;
       result.splice(idx, 0, ...unanchored.map(toNavItem));
     }
 
-    return result;
+    return result.filter((item): item is NavItem => Boolean(item));
   }, [isDesktop, t, extensionTabs, resolveExtTabName]);
 
   // Keep only horizontal padding on the scroll container — vertical padding is

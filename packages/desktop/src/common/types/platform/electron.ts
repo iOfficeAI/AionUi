@@ -153,6 +153,9 @@ export interface ElectronBridgeAPI {
   teamRejectPlan?: (
     params: import('../teamwork').RejectTeamPlanParams
   ) => Promise<import('../teamwork').RejectTeamPlanResponse>;
+  teamCancelScoping?: (
+    params: import('../teamwork').CancelTeamScopingParams
+  ) => Promise<import('../teamwork').CancelTeamScopingResponse>;
   teamGetScopingState?: (
     params: import('../teamwork').GetTeamScopingStateParams
   ) => Promise<import('../teamwork').GetTeamScopingStateResponse>;
@@ -201,6 +204,65 @@ export interface ElectronBridgeAPI {
   knowledgeRepoCheckEnvironment?: (repoId: string) => Promise<Array<{ binary: string; present: boolean }>>;
   knowledgeRepoProvisionWorkingCopy?: (params: { repoId: string; projectId: string }) => Promise<string>;
   knowledgeRepoSetEnvVars?: (params: { id: string; envVars: Record<string, string> }) => Promise<void>;
+  // Gateway & Combos APIs
+  gatewayGetStatus?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayStatus;
+    error?: string;
+  }>;
+  gatewayGetAccounts?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayAccount[];
+    error?: string;
+  }>;
+  gatewaySaveAccount?: (
+    account: import('../gateway/gatewayTypes').GatewayAccount
+  ) => Promise<{ success: boolean; error?: string }>;
+  gatewayDeleteAccount?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  gatewayGetCombos?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayCombo[];
+    error?: string;
+  }>;
+  gatewaySaveCombo?: (
+    combo: import('../gateway/gatewayTypes').GatewayCombo
+  ) => Promise<{ success: boolean; error?: string }>;
+  gatewayDeleteCombo?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  gatewayGetLogs?: (params?: { limit?: number; offset?: number }) => Promise<{
+    success: boolean;
+    data?: { logs: import('../gateway/gatewayTypes').GatewayTelemetryLog[]; total: number };
+    error?: string;
+  }>;
+  gatewayClearLogs?: () => Promise<{ success: boolean; error?: string }>;
+  gatewayResetCooldown?: (accountId: string) => Promise<{ success: boolean; error?: string }>;
+  gatewaySyncBackend?: () => Promise<{ success: boolean; error?: string }>;
+  gatewaySyncLocalOmniRoute?: () => Promise<{
+    success: boolean;
+    data?: {
+      importedAccounts: number;
+      importedCombos: number;
+      serverRunning: boolean;
+      serverPort: number;
+      message?: string;
+    };
+    error?: string;
+  }>;
+  gatewayCheckOmniRouteStatus?: () => Promise<{
+    success: boolean;
+    isRunning?: boolean;
+    port?: number;
+    error?: string;
+  }>;
+  gatewayGoogleOAuthLogin?: () => Promise<{
+    success: boolean;
+    email?: string;
+    name?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    error?: string;
+  }>;
+  onGatewayLogAdded?: (callback: (log: import('../gateway/gatewayTypes').GatewayTelemetryLog) => void) => () => void;
+  onGatewayQuotaUpdated?: (callback: (account: import('../gateway/gatewayTypes').GatewayAccount) => void) => () => void;
 }
 
 export type BackendStartupFailureReason =

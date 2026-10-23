@@ -17,8 +17,9 @@ import {
   BookOne,
 } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
-import type { TeamAssistant, TeammateStatus } from '@/common/types/team/teamTypes';
+import type { ITeamSlotWork, TeamAssistant, TeammateStatus } from '@/common/types/team/teamTypes';
 import { restrictToHorizontalAxis } from '@/renderer/utils/ui/dndModifiers';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
@@ -508,7 +509,9 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
     [filteredAssistants]
   );
 
-  const updateTabOverflow = useCallback(() => {
+  const overflowRafRef = useRef<number | null>(null);
+
+  const measureTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
     const overflow = container.scrollWidth > container.clientWidth + 1;
@@ -548,6 +551,16 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
     setVisibleSlotIds(visible);
   }, []);
 
+  const updateTabOverflow = useCallback(() => {
+    if (overflowRafRef.current !== null) {
+      cancelAnimationFrame(overflowRafRef.current);
+    }
+    overflowRafRef.current = requestAnimationFrame(() => {
+      overflowRafRef.current = null;
+      measureTabOverflow();
+    });
+  }, [measureTabOverflow]);
+
   useEffect(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
@@ -557,6 +570,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
     observer.observe(container);
     updateTabOverflow();
     return () => {
+      if (overflowRafRef.current !== null) {
+        cancelAnimationFrame(overflowRafRef.current);
+        overflowRafRef.current = null;
+      }
       container.removeEventListener('scroll', updateTabOverflow);
       window.removeEventListener('resize', updateTabOverflow);
       observer.disconnect();
@@ -781,16 +798,17 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
           {addAssistant ? (
             <div className='flex items-center shrink-0 border-s border-solid border-[color:var(--border-base)] ms-6px ps-6px'>
               <TeamAddMemberPopover disabled={memberOpsDisabled}>
-                <Button
-                  type='text'
-                  size='small'
-                  disabled={memberOpsDisabled}
-                  data-testid='team-tab-add-member'
-                  icon={<Plus theme='outline' size='14' />}
-                  className='h-28px px-8px text-12px font-medium rounded-6px text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)]'
-                >
-                  {t('team.addMember.title', { defaultValue: 'Add member' })}
-                </Button>
+                <Tooltip content={t('team.addMember.title', { defaultValue: 'Add member' })} position='bottom'>
+                  <Button
+                    type='text'
+                    size='mini'
+                    disabled={memberOpsDisabled}
+                    data-testid='team-tab-add-member'
+                    className='h-18px px-4px text-10px font-semibold rounded-4px leading-none text-[color:var(--text-secondary)] hover:text-[color:var(--brand)] hover:bg-[color:var(--bg-2)]'
+                  >
+                    {t('team.addMember.btn', { defaultValue: '+Mate' })}
+                  </Button>
+                </Tooltip>
               </TeamAddMemberPopover>
             </div>
           ) : null}
@@ -831,6 +849,96 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
           }}
         />
       )}
+    </div>
+  );
+};
+
+export type TeamActiveMembersProps = {
+  assistants: TeamAssistant[];
+  statusMap: Map<string, { status: TeammateStatus }>;
+  activeSlotId?: string;
+  colorOf: (slot_id: string | undefined) => string;
+  onSelectMember: (slot_id: string) => void;
+  slotWorkBySlot?: Record<string, ITeamSlotWork | undefined>;
+};
+
+export const TeamActiveMembers: React.FC<TeamActiveMembersProps> = ({
+  assistants,
+  statusMap,
+  activeSlotId,
+  colorOf,
+  onSelectMember,
+  slotWorkBySlot,
+}) => {
+  const { t } = useTranslation();
+
+  const activeAssistants = useMemo(() => {
+    return assistants.filter((assistant) => {
+      const status = statusMap.get(assistant.slot_id)?.status;
+      if (status === 'active') return true;
+      const work = slotWorkBySlot?.[assistant.slot_id];
+      return work?.state === 'starting' || work?.state === 'running';
+    });
+  }, [assistants, statusMap, slotWorkBySlot]);
+
+  if (activeAssistants.length === 0) return null;
+
+  return (
+    <div
+      className='flex items-center gap-8px min-w-0 max-w-full overflow-x-auto no-scrollbar py-2px'
+      data-testid='team-active-members'
+    >
+      <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_40%,transparent)]' />
+      {activeAssistants.map((assistant) => {
+        const isCurrent = assistant.slot_id === activeSlotId;
+        const color = colorOf(assistant.slot_id);
+        const displayName = assistant.assistant_name || 'Assistant';
+
+        return (
+          <Tooltip
+            key={assistant.slot_id}
+            content={t('team.activeMembers.workingTooltip', {
+              name: displayName,
+              defaultValue: `${displayName} is working`,
+            })}
+            position='bottom'
+          >
+            <div
+              role='button'
+              tabIndex={0}
+              data-testid={`team-active-member-${assistant.slot_id}`}
+              className={classNames(
+                'group flex items-center h-26px px-8px rounded-full cursor-pointer select-none border transition-all duration-150 shrink-0 gap-6px',
+                isCurrent
+                  ? 'bg-fill-3 border-[rgb(var(--primary-6))] shadow-sm'
+                  : 'bg-fill-1 border-transparent hover:bg-fill-2 hover:border-[color:var(--border-base)]'
+              )}
+              onClick={() => onSelectMember(assistant.slot_id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectMember(assistant.slot_id);
+                }
+              }}
+            >
+              <TeamAgentIdentity
+                assistant_name={assistant.assistant_name}
+                assistant_backend={assistant.assistant_backend}
+                icon={assistant.icon}
+                conversation_id={assistant.conversation_id}
+                isLeader={assistant.role === 'leader'}
+                className='min-w-0 !gap-6px'
+                logoClassName='w-18px h-18px object-cover rounded-full'
+                avatarClassName='w-18px h-18px rounded-full flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0'
+                nameClassName='text-12px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none max-w-100px'
+                nameStyle={{ color }}
+                nameTestId={`team-active-member-name-${assistant.slot_id}`}
+                avatarOverlay={<AgentStatusBadge status='active' overlay />}
+              />
+            </div>
+          </Tooltip>
+        );
+      })}
     </div>
   );
 };

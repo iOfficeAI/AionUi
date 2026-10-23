@@ -1,0 +1,109 @@
+/**
+ * @license
+ * Copyright 2026 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* Claude Code Filetree Inspired Shimmer Animations */
+
+@keyframes shimmerSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
+}
+
+/* Purple Shimmer for Agent Reads and Searches */
+.shimmerRead {
+  background: linear-gradient(
+    90deg,
+    rgba(147, 51, 234, 0.12) 0%,
+    rgba(168, 85, 247, 0.4) 50%,
+    rgba(147, 51, 234, 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.8s infinite linear;
+  border-radius: 4px;
+}
+
+.textShimmerRead {
+  color: #a855f7 !important;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+/* Orange Shimmer for Agent Writes and Edits */
+.shimmerWrite {
+  background: linear-gradient(
+    90deg,
+    rgba(249, 115, 22, 0.14) 0%,
+    rgba(251, 146, 60, 0.45) 50%,
+    rgba(249, 115, 22, 0.14) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.5s infinite linear;
+  border-radius: 4px;
+}
+
+.textShimmerWrite {
+  color: #f97316 !important;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+}
+
+/* Green Shimmer for Git Operations / Commits */
+.shimmerCommit {
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.12) 0%,
+    rgba(52, 211, 153, 0.4) 50%,
+    rgba(16, 185, 129, 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.8s infinite linear;
+  border-radius: 4px;
+}
+
+.textShimmerCommit {
+  color: #10b981 !important;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* Pulse indicator dot */
+.pulseDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: pulseGlow 1.2s infinite ease-in-out;
+}
+
+.pulseDotRead {
+  background-color: #a855f7;
+  box-shadow: 0 0 6px #a855f7;
+}
+
+.pulseDotWrite {
+  background-color: #f97316;
+  box-shadow: 0 0 6px #f97316;
+}
+
+.pulseDotCommit {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}

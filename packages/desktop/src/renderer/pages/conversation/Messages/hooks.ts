@@ -931,6 +931,54 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
   );
 };
 
+type CachedMessages = {
+  items: TMessage[];
+  pagination: MessagePaginationState;
+};
+
+const messageListMemoryCache = new Map<string, CachedMessages>();
+const MAX_CACHED_CONVERSATION_MESSAGES = 50;
+
+function setMemoryCachedMessages(key: string, data: CachedMessages) {
+  if (messageListMemoryCache.has(key)) {
+    messageListMemoryCache.delete(key);
+  } else if (messageListMemoryCache.size >= MAX_CACHED_CONVERSATION_MESSAGES) {
+    const oldestKey = messageListMemoryCache.keys().next().value;
+    if (oldestKey) messageListMemoryCache.delete(oldestKey);
+  }
+  messageListMemoryCache.set(key, data);
+}
+
+/**
+ * Prefetches the initial page of messages for a conversation into the memory cache.
+ * Safe to call on hover / pre-navigation; errors are silently ignored.
+ */
+export async function prefetchConversationMessages(conversationId: string): Promise<void> {
+  if (!conversationId || messageListMemoryCache.has(conversationId)) return;
+  try {
+    const result = await loadLatestConversationMessages(conversationId, {
+      limit: DEFAULT_MESSAGE_PAGE_LIMIT,
+      contentMode: 'compact',
+    });
+    const messages = result?.items?.map(normalizeDbMessage);
+    if (messages && Array.isArray(messages)) {
+      setMemoryCachedMessages(conversationId, {
+        items: messages,
+        pagination: {
+          oldestCursor: result.oldest_cursor ?? undefined,
+          newestCursor: result.newest_cursor ?? undefined,
+          hasMoreBefore: result.has_more_before,
+          hasMoreAfter: result.has_more_after,
+          isLoadingBefore: false,
+          isLoadingAnchor: false,
+        },
+      });
+    }
+  } catch {
+    // Prefetch failures should never disrupt the caller
+  }
+}
+
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   const list = useMessageList();
@@ -943,7 +991,13 @@ export const useMessageLstCache = (key: string) => {
   const listRef = useRef(list);
   useEffect(() => {
     listRef.current = list;
-  }, [list]);
+    if (key && list.length > 0) {
+      const existing = messageListMemoryCache.get(key);
+      if (existing) {
+        existing.items = list;
+      }
+    }
+  }, [key, list]);
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
     const result = await loadLatestConversationMessages(key, {
       limit: DEFAULT_MESSAGE_PAGE_LIMIT,
@@ -951,15 +1005,20 @@ export const useMessageLstCache = (key: string) => {
     });
     const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
-      update((currentList) => mergeLoadedPageWithCurrent(key, messages, currentList));
-      setPagination({
+      const nextPagination: MessagePaginationState = {
         oldestCursor: result.oldest_cursor ?? undefined,
         newestCursor: result.newest_cursor ?? undefined,
         hasMoreBefore: result.has_more_before,
         hasMoreAfter: result.has_more_after,
         isLoadingBefore: false,
         isLoadingAnchor: false,
+      };
+      update((currentList) => {
+        const merged = mergeLoadedPageWithCurrent(key, messages, currentList);
+        setMemoryCachedMessages(key, { items: merged, pagination: nextPagination });
+        return merged;
       });
+      setPagination(nextPagination);
       return messages;
     }
     return [];
@@ -968,8 +1027,15 @@ export const useMessageLstCache = (key: string) => {
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
-    setLoading(true);
-    setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
+    const cached = messageListMemoryCache.get(key);
+    if (cached && cached.items.length > 0) {
+      update(() => cached.items);
+      setPagination(cached.pagination);
+      setLoading(false);
+    } else {
+      setLoading(true);
+      setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });
+    }
     void loadMessages()
       .catch((error) => {
         console.error('[useMessageLstCache] Failed to load messages from database:', error);
@@ -982,11 +1048,12 @@ export const useMessageLstCache = (key: string) => {
     return () => {
       cancelled = true;
     };
-  }, [key, loadMessages, setLoading, setPagination]);
+  }, [key, loadMessages, setLoading, setPagination, update]);
 
   useEffect(() => {
     if (!key) return;
     const handleClear = (clearedId: string) => {
+      messageListMemoryCache.delete(clearedId);
       if (clearedId === key) {
         update(() => []);
         setPagination({ ...EMPTY_MESSAGE_PAGINATION_STATE });

@@ -403,6 +403,7 @@
   "customOpenAI": "自定义(兼容OpenAI)",
   "platformCustom": "自定义",
   "platformNewApi": "New API",
+  "gatewayCombos": "网关与组合模型",
   "modelProtocol": "请求协议",
   "modelProtocolTip": "选择该模型的 API 请求格式。new-api 网关将使用所选协议路由到上游服务。",
   "configureModel": "配置模型",
@@ -1425,5 +1426,15 @@
   "backupFailed": "备份数据失败",
   "openBackupDir": "打开目录",
   "mcpServers": "MCP 服务与工具",
-  "browserAutomation": "浏览器自动化"
+  "browserAutomation": "浏览器自动化",
+  "platformGeminiGoogleLogin": "Google 登录 (Gemini / Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "请先通过 Google 账号登录",
+  "googleLoginHint": "使用 Google 账号登录以使用 Gemini 和 Antigravity 模型，无需 API Key",
+  "omnirouteTip": "通过 OmniRoute 网关连接，支持 Claude、Google Antigravity 及 Gemini，无需单独输入 API Key。",
+  "modelProviderHub": "模型供应商中心",
+  "dataDir": "数据存储目录",
+  "dataDirDesc": "存储和备份所有数据（数据库、工作区文件、配置和日志）的统一文件夹",
+  "changeDataDir": "更改数据存储目录",
+  "dataDirRestartConfirm": "更改数据存储目录需要重启 AionUi。AionUi 将首先扫描所选文件夹并加载数据，且不会删除任何现有文件。是否立即重启？"
 }

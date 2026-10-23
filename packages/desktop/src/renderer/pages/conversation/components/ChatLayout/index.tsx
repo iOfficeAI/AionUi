@@ -29,6 +29,7 @@ import './chat-layout.css';
 const ChatLayout: React.FC<{
   children: React.ReactNode;
   title?: React.ReactNode;
+  titleExtra?: React.ReactNode;
   sider: React.ReactNode;
   siderTitle?: React.ReactNode;
   backend?: string;
@@ -202,7 +203,7 @@ const ChatLayout: React.FC<{
         'h-40px flex items-center justify-between px-16px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
       )}
     >
-      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
+      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-12px'>
         <ChatTitleEditor
           editingTitle={editingTitle}
           titleDraft={titleDraft}
@@ -227,6 +228,7 @@ const ChatLayout: React.FC<{
             ))
           }
         />
+        {props.titleExtra}
       </FlexFullContainer>
       <div className='flex items-center gap-12px shrink-0'>{props.headerExtra}</div>
     </ArcoLayout.Header>

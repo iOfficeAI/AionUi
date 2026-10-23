@@ -17,6 +17,8 @@ import { registerBrowserBridge } from './browserBridge';
 import { registerTeamworkHandlers } from '../services/teamwork/teamworkHandler';
 import { registerTeamScopingHandlers } from '../services/teamwork/teamScopingHandler';
 import { registerKnowledgeRepoBridge } from './knowledgeRepoBridge';
+import { registerGatewayBridge } from './gatewayBridge';
+import { getGatewayService } from '../services/gateway';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -34,6 +36,12 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   registerTeamworkHandlers();
   registerTeamScopingHandlers();
   registerKnowledgeRepoBridge();
+  registerGatewayBridge();
+  void getGatewayService()
+    .start()
+    .catch((err) => {
+      console.error('[Gateway] Failed to start gateway service:', err);
+    });
 }
 
 export {

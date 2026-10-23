@@ -22,18 +22,21 @@ export const TeamworkPanel: React.FC<TeamworkPanelProps> = ({ conversation_id, w
   const { t } = useTranslation();
   const [session, setSession] = useState<TeamworkSessionState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dismissedSessionId, setDismissedSessionId] = useState<string | null>(null);
 
   // Load initial session state
   const refreshState = useCallback(async () => {
     try {
       const res = await teamwork.getState({ conversationId: conversation_id });
       if (res.success && res.session) {
-        setSession(res.session);
+        if (res.session.sessionId !== dismissedSessionId) {
+          setSession(res.session);
+        }
       }
     } catch (err) {
       console.warn('[TeamworkPanel] Failed to fetch state:', err);
     }
-  }, [conversation_id]);
+  }, [conversation_id, dismissedSessionId]);
 
   useEffect(() => {
     void refreshState();
@@ -41,14 +44,16 @@ export const TeamworkPanel: React.FC<TeamworkPanelProps> = ({ conversation_id, w
     // Subscribe to realtime status updates from the orchestrator
     const unsubscribe = teamwork.onStatusUpdate((updatedState) => {
       if (updatedState.conversationId === conversation_id) {
-        setSession(updatedState);
+        if (updatedState.sessionId !== dismissedSessionId) {
+          setSession(updatedState);
+        }
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [conversation_id, refreshState]);
+  }, [conversation_id, dismissedSessionId, refreshState]);
 
   const handleSubmitInterview = async (answers: Record<string, string>) => {
     if (!session) return;
@@ -92,15 +97,15 @@ export const TeamworkPanel: React.FC<TeamworkPanelProps> = ({ conversation_id, w
 
   const handleAbort = async () => {
     if (!session) return;
+    const currentId = session.sessionId;
+    setDismissedSessionId(currentId);
     setLoading(true);
     try {
-      const res = await teamwork.abort({
-        sessionId: session.sessionId,
+      await teamwork.abort({
+        sessionId: currentId,
         reason: 'User cancelled',
       });
-      if (res.success && res.session) {
-        setSession(res.session);
-      }
+      setSession(null);
     } catch (err) {
       Message.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -108,10 +113,20 @@ export const TeamworkPanel: React.FC<TeamworkPanelProps> = ({ conversation_id, w
     }
   };
 
-  if (!session) return null;
+  const handleDismiss = () => {
+    if (session) {
+      setDismissedSessionId(session.sessionId);
+    }
+    setSession(null);
+  };
+
+  if (!session || session.sessionId === dismissedSessionId) return null;
 
   return (
-    <div data-testid='teamwork-panel' className={`${getChatSurfaceWidthClass()} shrink-0 px-2`}>
+    <div
+      data-testid='teamwork-panel'
+      className={`${getChatSurfaceWidthClass()} shrink-0 px-2 max-h-[85vh] flex flex-col`}
+    >
       {session.phase === 'interview' && (
         <InterviewView session={session} onSubmit={handleSubmitInterview} onAbort={handleAbort} loading={loading} />
       )}
@@ -126,6 +141,7 @@ export const TeamworkPanel: React.FC<TeamworkPanelProps> = ({ conversation_id, w
           session={session}
           onConfirmPlan={session.phase === 'plan_ready' ? handleConfirmPlan : undefined}
           onAbort={session.phase === 'executing' || session.phase === 'verifying' ? handleAbort : undefined}
+          onDismiss={handleDismiss}
           loading={loading}
         />
       )}

@@ -763,7 +763,11 @@
       }
     },
     "pathCopied": "パスをコピーしました",
-    "copyFailed": "パスのコピーに失敗しました"
+    "copyFailed": "パスのコピーに失敗しました",
+    "showSizes": "ファイルサイズを表示",
+    "showDates": "更新日時を表示",
+    "followAgentOn": "エージェント追跡中（自動展開）",
+    "followAgentOff": "エージェント追跡を無効化"
   },
   "terminal": {
     "running": "実行中",

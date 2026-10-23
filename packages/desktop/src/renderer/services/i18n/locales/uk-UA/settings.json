@@ -1439,5 +1439,16 @@
   "backupFailed": "Не вдалося створити резервну копію даних",
   "openBackupDir": "Відкрити папку",
   "mcpServers": "Сервери та інструменти MCP",
-  "browserAutomation": "Автоматизація браузера"
+  "browserAutomation": "Автоматизація браузера",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "Вхід через Google (Gemini та Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "Будь ласка, спочатку увійдіть через Google",
+  "googleLoginHint": "Увійдіть через обліковий запис Google, щоб використовувати моделі Gemini та Antigravity без API-ключа",
+  "omnirouteTip": "Підключення через шлюз OmniRoute. Підтримує Claude, Google Antigravity та Gemini без окремих API-ключів.",
+  "modelProviderHub": "Хаб провайдерів моделей",
+  "dataDir": "Папка зберігання даних",
+  "dataDirDesc": "Єдина папка для зберігання та резервного копіювання всіх даних (база даних, робоча область, налаштування та логи)",
+  "changeDataDir": "Змінити папку зберігання даних",
+  "dataDirRestartConfirm": "Зміна папки зберігання даних потребує перезапуску AionUi. AionUi просканує вибрану папку та завантажить дані без видалення наявних файлів. Перезапустити зараз?"
 }

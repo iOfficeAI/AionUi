@@ -7,7 +7,7 @@
 import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { getPlatformServices } from '@/common/platform';
+import { getPlatformServices, getUserDataDir } from '@/common/platform';
 import { application } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type {
@@ -433,10 +433,12 @@ export const ProcessChatMessage = chatMessageFile;
 export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
+  const currentDataDir = getUserDataDir();
   // electron-log writes to the platform-standard logs directory
   const logDir = dirConfig?.logDir || getPlatformServices().paths.getLogsDir();
 
   return {
+    dataDir: dirConfig?.dataDir || currentDataDir,
     cacheDir: cacheDir,
     // getDataPath() returns CLI-safe path (symlink on macOS) to avoid spaces
     // getDataPath() 返回 CLI 安全路径（macOS 上的符号链接）以避免空格问题

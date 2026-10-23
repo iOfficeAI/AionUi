@@ -1424,5 +1424,16 @@
   "backupFailed": "Datensicherung fehlgeschlagen",
   "openBackupDir": "Ordner öffnen",
   "mcpServers": "MCP-Server & Tools",
-  "browserAutomation": "Browser-Automatisierung"
+  "browserAutomation": "Browser-Automatisierung",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "Google-Anmeldung (Gemini & Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "Bitte melden Sie sich zuerst mit Google an",
+  "googleLoginHint": "Melden Sie sich mit Ihrem Google-Konto an, um Gemini- und Antigravity-Modelle ohne API-Schlüssel zu nutzen",
+  "omnirouteTip": "Verbindung über das OmniRoute-Gateway. Unterstützt Claude, Google Antigravity und Gemini ohne separate API-Schlüssel.",
+  "modelProviderHub": "Modellanbieter-Hub",
+  "dataDir": "Datenspeicherverzeichnis",
+  "dataDirDesc": "Zentraler Ordner, in dem alle Daten (Datenbank, Arbeitsbereich, Konfiguration und Protokolle) gespeichert und gesichert werden",
+  "changeDataDir": "Datenspeicherverzeichnis ändern",
+  "dataDirRestartConfirm": "Das Ändern des Datenspeicherverzeichnisses erfordert einen Neustart von AionUi. AionUi scannt den ausgewählten Ordner und lädt die Daten, ohne bestehende Dateien zu löschen. Jetzt neu starten?"
 }

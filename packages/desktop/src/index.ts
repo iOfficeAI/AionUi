@@ -394,6 +394,14 @@ function markBackendReady(backendPort: number, source: string): void {
   broadcastBackendStartupState(null);
   void ensureAdminUserOnce(backendPort);
   scheduleBackendMigrations();
+  void (async () => {
+    try {
+      const { getGatewayService } = await import('./process/services/gateway');
+      await getGatewayService().syncWithBackend();
+    } catch {
+      // ignore
+    }
+  })();
 }
 
 function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
@@ -597,6 +605,19 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     console.error('[AionUi] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
   });
 
+  mainWindow.webContents.on('console-message', (event, ...args) => {
+    const level = typeof event === 'number' ? event : ((event as any)?.level ?? 0);
+    const message = typeof event === 'number' ? args[0] : ((event as any)?.message ?? '');
+    const line = typeof event === 'number' ? args[1] : ((event as any)?.lineNumber ?? 0);
+    const sourceId = typeof event === 'number' ? args[2] : ((event as any)?.sourceId ?? '');
+    const levelName = ['verbose', 'info', 'warning', 'error'][level] || 'log';
+    if (level >= 2) {
+      console.warn(`[Renderer:${levelName}] ${message} (${sourceId}:${line})`);
+    } else {
+      console.log(`[Renderer:${levelName}] ${message}`);
+    }
+  });
+
   // Recovery policy for renderer crashes: reload with backoff for ordinary
   // crashes, escalate to a throttled app relaunch when the renderer cannot
   // launch at all (e.g. app files replaced by an update while running).
@@ -648,6 +669,10 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   mainWindow.webContents.on('unresponsive', () => {
     console.warn('[AionUi] Renderer became unresponsive');
+  });
+
+  mainWindow.on('close', (event) => {
+    console.log('[AionUi] Main window close event received. defaultPrevented:', event.defaultPrevented);
   });
 
   mainWindow.on('closed', () => {

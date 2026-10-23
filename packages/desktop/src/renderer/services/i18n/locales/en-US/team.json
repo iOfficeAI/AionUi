@@ -22,6 +22,10 @@
     "editTeam": "Edit Team",
     "deleteFailed": "Failed to delete team"
   },
+  "activeMembers": {
+    "title": "Active Members",
+    "workingTooltip": "{{name}} is working"
+  },
   "newAgent": "New Assistant",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Assistant not configured yet.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -358,5 +363,24 @@
     "runSetup": "Run Setup",
     "envVars": "Environment Variables",
     "conflictsWarning": "Rule conflicts detected: higher-priority repo took precedence."
+  },
+  "watchdog": {
+    "title": "Auto-Watchdog",
+    "off": "Watchdog: Off",
+    "active": "Watchdog: {{minutes}}m",
+    "tooltipOff": "Auto-Watchdog: Disabled. Click to enable 2m/5m auto-retry when stuck.",
+    "tooltipActive": "Auto-Watchdog: Monitoring every {{minutes}}m. Auto-stops and retries if stalled.",
+    "menuTitle": "Auto-Watchdog Interval",
+    "optionOff": "Off",
+    "option2m": "Every 2 minutes",
+    "option5m": "Every 5 minutes",
+    "option10m": "Every 10 minutes",
+    "checkNow": "Check Progress & Retry Now",
+    "triggerToast": "Prompt stalled for over {{minutes}}m without progress. Auto-stopping and retrying...",
+    "retrySuccess": "Watchdog successfully retried the prompt.",
+    "stoppedOnly": "Stalled process was stopped and reset. Please re-enter your prompt.",
+    "healthy": "Team is active and currently processing.",
+    "idle": "Team is idle. No active process to retry.",
+    "maxRetriesReached": "Process stalled repeatedly. Auto-recovery stopped. Please check agent configuration."
   }
 }

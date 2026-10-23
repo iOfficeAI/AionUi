@@ -22,6 +22,10 @@
     "editTeam": "Modifier l'équipe",
     "deleteFailed": "Échec de la suppression de l'équipe"
   },
+  "activeMembers": {
+    "title": "Membres actifs",
+    "workingTooltip": "{{name}} est au travail"
+  },
   "newAgent": "Nouvel agent",
   "noMessages": "Aucun message pour l'instant.",
   "agentNotConfigured": "Agent non configuré.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Ajouter un membre",
+    "btn": "+Mate",
     "subtitle": "Le même assistant peut être ajouté plusieurs fois",
     "searchAssistants": "Rechercher des assistants...",
     "addFailed": "Échec de l'ajout du membre",
@@ -312,5 +317,24 @@
     "planRejected": "Plan renvoyé pour révision.",
     "startScopingTooltip": "Démarrer l'entretien de cadrage et de vérification",
     "buttonLabel": "Porte de cadrage"
+  },
+  "watchdog": {
+    "title": "Chien de garde automatique",
+    "off": "Surveillance : Désactivée",
+    "active": "Surveillance : {{minutes}}m",
+    "tooltipOff": "Surveillance automatique : Désactivée. Cliquez pour activer la reprise automatique de 2m/5m en cas de blocage.",
+    "tooltipActive": "Surveillance automatique : Surveillance toutes les {{minutes}}m. Arrête et réessaie automatiquement en cas de blocage.",
+    "menuTitle": "Intervalle de surveillance",
+    "optionOff": "Désactivé",
+    "option2m": "Toutes les 2 minutes",
+    "option5m": "Toutes les 5 minutes",
+    "option10m": "Toutes les 10 minutes",
+    "checkNow": "Vérifier la progression et réessayer maintenant",
+    "triggerToast": "L'exécution est bloquée depuis plus de {{minutes}}m sans progression. Arrêt et nouvel essai automatiques...",
+    "retrySuccess": "La surveillance a relancé l'invite avec succès.",
+    "stoppedOnly": "Le processus bloqué a été arrêté et réinitialisé. Veuillez renvoyer votre message.",
+    "healthy": "L'équipe est active et traite normalement.",
+    "idle": "L'équipe est inactive. Aucun processus actif à relancer.",
+    "maxRetriesReached": "Le processus s'est bloqué à plusieurs reprises. Arrêt de la récupération automatique. Veuillez vérifier la configuration de l'agent."
   }
 }

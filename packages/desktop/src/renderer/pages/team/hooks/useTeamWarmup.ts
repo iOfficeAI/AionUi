@@ -35,8 +35,15 @@ export type TeamWarmupState = {
   retry: () => void;
 };
 
+const warmedUpTeamIds = new Set<string>();
+
+export const resetWarmedUpTeamsForTest = (): void => {
+  warmedUpTeamIds.clear();
+};
+
 export function useTeamWarmup(team_id: string): TeamWarmupState {
-  const [phase, setPhase] = useState<TeamWarmupPhase>(team_id ? 'warming' : 'ready');
+  const isAlreadyWarmed = Boolean(team_id && warmedUpTeamIds.has(team_id));
+  const [phase, setPhase] = useState<TeamWarmupPhase>(isAlreadyWarmed ? 'ready' : team_id ? 'warming' : 'ready');
   const [runtimeStatus, setRuntimeStatus] = useState<Map<string, TeamWarmupMemberState>>(() => new Map());
   const [ensureAttempt, setEnsureAttempt] = useState(0);
 
@@ -48,8 +55,10 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     }
 
     let cancelled = false;
-    setPhase('warming');
-    setRuntimeStatus(new Map<string, TeamWarmupMemberState>());
+    if (!warmedUpTeamIds.has(team_id)) {
+      setPhase('warming');
+      setRuntimeStatus(new Map<string, TeamWarmupMemberState>());
+    }
 
     const unsubRuntime = ipcBridge.team.agentRuntimeStatusChanged.on((event: ITeamAgentRuntimeStatusEvent) => {
       if (event.team_id !== team_id || cancelled) return;
@@ -65,8 +74,10 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
       if (event.status === 'starting') {
         setPhase('warming');
       } else if (event.status === 'ready') {
+        warmedUpTeamIds.add(team_id);
         setPhase('ready');
       } else if (event.status === 'failed') {
+        warmedUpTeamIds.delete(team_id);
         setPhase('error');
       } else if (event.status === 'stopped') {
         // Idle-reclaim stop: keep the current warmup phase. The stopped state is
@@ -86,13 +97,17 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
     if (!team_id) return;
 
     let cancelled = false;
-    setPhase('warming');
+    if (!warmedUpTeamIds.has(team_id)) {
+      setPhase('warming');
+    }
     ipcBridge.team.ensureSession
       .invoke({ team_id })
       .then(() => {
+        warmedUpTeamIds.add(team_id);
         if (!cancelled) setPhase('ready');
       })
       .catch(() => {
+        warmedUpTeamIds.delete(team_id);
         if (!cancelled) setPhase('error');
       });
 
@@ -103,6 +118,7 @@ export function useTeamWarmup(team_id: string): TeamWarmupState {
 
   const retry = useCallback(() => {
     if (!team_id) return;
+    warmedUpTeamIds.delete(team_id);
     setPhase('warming');
     setEnsureAttempt((attempt) => attempt + 1);
   }, [team_id]);

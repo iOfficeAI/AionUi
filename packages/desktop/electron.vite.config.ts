@@ -36,13 +36,23 @@ function iconParkPlugin() {
         /import\s+\{\s+([a-zA-Z, ]*)\s+\}\s+from\s+['"]@icon-park\/react['"](;?)/g,
         function (str, match) {
           if (!match) return str;
-          const components = match.split(',');
+          const components = match
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+          const parsed = components.map((comp: string) => {
+            const parts = comp.split(/\s+as\s+/);
+            if (parts.length === 2) {
+              return { orig: parts[0].trim(), alias: parts[1].trim() };
+            }
+            return { orig: comp, alias: comp };
+          });
           const importComponent = str.replace(
             match,
-            components.map((key: string) => `${key} as _${key.trim()}`).join(', ')
+            parsed.map(({ orig, alias }: { orig: string; alias: string }) => `${orig} as _${alias}`).join(', ')
           );
           const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
-          ${components.map((key: string) => `const ${key.trim()} = IconParkHOC(_${key.trim()})`).join(';\n')}`;
+          ${parsed.map(({ alias }: { alias: string }) => `const ${alias} = IconParkHOC(_${alias})`).join(';\n')}`;
           return importComponent + ';' + hoc;
         }
       );

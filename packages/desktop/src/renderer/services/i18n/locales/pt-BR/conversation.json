@@ -769,7 +769,11 @@
       }
     },
     "pathCopied": "Caminho copiado",
-    "copyFailed": "Falha ao copiar o caminho"
+    "copyFailed": "Falha ao copiar o caminho",
+    "showSizes": "Mostrar tamanhos dos arquivos",
+    "showDates": "Mostrar datas dos arquivos",
+    "followAgentOn": "Seguindo atividade do agente (auto-revelar)",
+    "followAgentOff": "Seguir agente desativado"
   },
   "terminal": {
     "running": "Executando",

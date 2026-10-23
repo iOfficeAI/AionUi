@@ -1424,5 +1424,16 @@
   "backupFailed": "پشتیبان‌گیری داده‌ها ناموفق بود",
   "openBackupDir": "باز کردن پوشه",
   "mcpServers": "سرورها و ابزارهای MCP",
-  "browserAutomation": "اتوماسیون مرورگر"
+  "browserAutomation": "اتوماسیون مرورگر",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "ورود با گوگل (Gemini و Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "لطفاً ابتدا با حساب گوگل وارد شوید",
+  "googleLoginHint": "با حساب گوگل خود وارد شوید تا بدون کلید API از مدل‌های Gemini و Antigravity استفاده کنید",
+  "omnirouteTip": "اتصال از طریق درگاه OmniRoute. پشتیبانی از Claude، Google Antigravity و Gemini بدون نیاز به کلیدهای API جداگانه.",
+  "modelProviderHub": "مرکز ارائه‌دهندگان مدل",
+  "dataDir": "مسیر ذخیره‌سازی داده‌ها",
+  "dataDirDesc": "پوشه یکپارچه که همه داده‌ها (پایگاه داده، فضای کاری، تنظیمات و گزارش‌ها) در آن ذخیره و پشتیبان‌گیری می‌شوند",
+  "changeDataDir": "تغییر مسیر ذخیره‌سازی داده‌ها",
+  "dataDirRestartConfirm": "تغییر پوشه ذخیره‌سازی داده نیازمند راه‌اندازی مجدد AionUi است. AionUi ابتدا پوشه انتخاب‌شده را اسکن کرده و بدون حذف فایل‌های موجود، داده‌ها را بارگذاری می‌کند. آیا اکنون راه‌اندازی مجدد شود؟"
 }

@@ -56,10 +56,19 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
     return allProviders.filter(hasAvailableModels);
   }, [modelConfig]);
 
-  const formatGeminiModelLabel = useCallback((_provider: { platform?: string } | undefined, modelName?: string) => {
-    if (!modelName) return '';
-    return modelName;
-  }, []);
+  const formatGeminiModelLabel = useCallback(
+    (provider: { platform?: string; id?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      if (provider?.id === 'aionui-native-gateway' || provider?.platform === 'custom') {
+        if (modelName.includes(':')) {
+          const [accName, mName] = modelName.split(':');
+          return `${mName} (${accName})`;
+        }
+      }
+      return modelName;
+    },
+    []
+  );
 
   const [current_model, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);

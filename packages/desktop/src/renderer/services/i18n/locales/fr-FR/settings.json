@@ -1424,5 +1424,16 @@
   "backupFailed": "Échec de la sauvegarde des données",
   "openBackupDir": "Ouvrir le dossier",
   "mcpServers": "Serveurs et outils MCP",
-  "browserAutomation": "Automatisation du navigateur"
+  "browserAutomation": "Automatisation du navigateur",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "Connexion Google (Gemini & Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "Veuillez d'abord vous connecter avec Google",
+  "googleLoginHint": "Connectez-vous avec votre compte Google pour utiliser les modèles Gemini et Antigravity sans clé API",
+  "omnirouteTip": "Connexion via la passerelle OmniRoute. Prend en charge Claude, Google Antigravity et Gemini sans clés API distinctes.",
+  "modelProviderHub": "Hub des fournisseurs de modèles",
+  "dataDir": "Répertoire de stockage des données",
+  "dataDirDesc": "Dossier unique où toutes les données (base de données, espace de travail, configuration et journaux) sont stockées et sauvegardées",
+  "changeDataDir": "Changer le répertoire de stockage des données",
+  "dataDirRestartConfirm": "Changer le dossier de stockage des données nécessite de redémarrer AionUi. AionUi analysera le dossier sélectionné et chargera les données sans supprimer aucun fichier existant. Voulez-vous redémarrer maintenant ?"
 }

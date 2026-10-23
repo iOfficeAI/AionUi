@@ -22,6 +22,10 @@
     "editTeam": "编辑团队",
     "deleteFailed": "删除团队失败"
   },
+  "activeMembers": {
+    "title": "工作中成员",
+    "workingTooltip": "{{name}} 正在工作中"
+  },
   "newAgent": "新助手",
   "noMessages": "暂无消息。",
   "agentNotConfigured": "助手尚未配置。",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "添加成员",
+    "btn": "+Mate",
     "subtitle": "同一助手可被反复添加",
     "searchAssistants": "搜索助手...",
     "addFailed": "添加成员失败",
@@ -312,5 +317,24 @@
     "planRejected": "计划已退回修改。",
     "startScopingTooltip": "启动结构化范围界定与验证面试",
     "buttonLabel": "范围界定门禁"
+  },
+  "watchdog": {
+    "title": "自动看门狗",
+    "off": "看门狗：已关闭",
+    "active": "看门狗：{{minutes}}分钟",
+    "tooltipOff": "自动看门狗：未启用。点击可启用 2分钟/5分钟 卡死自动重试。",
+    "tooltipActive": "自动看门狗：每 {{minutes}} 分钟检查一次，发现卡死时自动停止并重试。",
+    "menuTitle": "自动看门狗检查间隔",
+    "optionOff": "关闭",
+    "option2m": "每 2 分钟",
+    "option5m": "每 5 分钟",
+    "option10m": "每 10 分钟",
+    "checkNow": "立即检查进度并重试",
+    "triggerToast": "提示词已停滞超过 {{minutes}} 分钟无进度，正在自动停止并重试...",
+    "retrySuccess": "看门狗已成功自动重试提示词。",
+    "stoppedOnly": "已停止卡死的进程，请重新输入提示词。",
+    "healthy": "团队正在正常运行中。",
+    "idle": "团队处于空闲状态，无运行中的任务。",
+    "maxRetriesReached": "多次重试仍卡死，已停止自动恢复。请检查智能体配置。"
   }
 }

@@ -642,6 +642,10 @@
   "notFound": "会话不存在或已被删除",
   "explorer": {
     "addFolder": "添加文件夹到项目",
+    "showSizes": "显示文件大小",
+    "showDates": "显示修改日期",
+    "followAgentOn": "跟随 Agent: 开启",
+    "followAgentOff": "跟随 Agent: 关闭",
     "refreshFiles": "刷新文件",
     "refreshChanges": "刷新变更",
     "collapseAll": "全部折叠",

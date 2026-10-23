@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Button, Card, Collapse, Input, Space, Tag, Typography } from '@arco-design/web-react';
-import { CheckOne, CloseOne, Edit, FileTextOne, PreviewOpen } from '@icon-park/react';
+import { CheckOne, CloseOne, CloseSmall, Edit, FileTextOne, PreviewOpen } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { TeamworkPlan } from '@/common/types/teamwork';
 
@@ -20,6 +20,7 @@ export type PlanApprovalViewProps = {
   originalRequestDoc?: string;
   onApprovePlan: (planMarkdown?: string) => Promise<void>;
   onRejectPlan: (reason?: string) => Promise<void>;
+  onCancel?: () => void;
   loading?: boolean;
 };
 
@@ -28,6 +29,7 @@ export const PlanApprovalView: React.FC<PlanApprovalViewProps> = ({
   originalRequestDoc,
   onApprovePlan,
   onRejectPlan,
+  onCancel,
   loading = false,
 }) => {
   const { t } = useTranslation();
@@ -83,6 +85,16 @@ export const PlanApprovalView: React.FC<PlanApprovalViewProps> = ({
               ? t('team.scoping.previewMode', { defaultValue: 'Preview' })
               : t('team.scoping.editPlan', { defaultValue: 'Edit Markdown' })}
           </Button>
+          {onCancel && (
+            <Button
+              type='text'
+              size='mini'
+              className='!p-0 h-6 w-6 text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+              onClick={onCancel}
+              icon={<CloseSmall theme='outline' size='18' />}
+              aria-label={t('team.scoping.cancel', { defaultValue: 'Cancel' })}
+            />
+          )}
         </Space>
       }
     >
@@ -184,6 +196,11 @@ export const PlanApprovalView: React.FC<PlanApprovalViewProps> = ({
           })}
         </Text>
         <Space>
+          {onCancel && (
+            <Button size='small' onClick={onCancel} icon={<CloseOne />}>
+              {t('team.scoping.cancel', { defaultValue: 'Cancel' })}
+            </Button>
+          )}
           <Button size='small' onClick={handleReject} icon={<CloseOne />}>
             {t('team.scoping.requestRevision', { defaultValue: 'Reject / Revise' })}
           </Button>

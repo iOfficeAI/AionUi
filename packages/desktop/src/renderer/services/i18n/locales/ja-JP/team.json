@@ -22,6 +22,10 @@
     "editTeam": "チームを編集",
     "deleteFailed": "チームの削除に失敗しました"
   },
+  "activeMembers": {
+    "title": "稼働中のメンバー",
+    "workingTooltip": "{{name}} は作業中です"
+  },
   "newAgent": "新しいアシスタント",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "アシスタントはまだ設定されていません。",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -312,5 +317,24 @@
     "planRejected": "計画が見直しに戻されました。",
     "startScopingTooltip": "構造化スコープおよび検証インタビューを開始",
     "buttonLabel": "スコープゲート"
+  },
+  "watchdog": {
+    "title": "自動ウォッチドッグ",
+    "off": "ウォッチドッグ: オフ",
+    "active": "ウォッチドッグ: {{minutes}}分",
+    "tooltipOff": "自動ウォッチドッグ: 無効。クリックして2分/5分のスタック時自動再試行を有効化。",
+    "tooltipActive": "自動ウォッチドッグ: {{minutes}}分ごとに監視中。停止時に自動中断して再試行します。",
+    "menuTitle": "自動ウォッチドッグ間隔",
+    "optionOff": "オフ",
+    "option2m": "2分ごと",
+    "option5m": "5分ごと",
+    "option10m": "10分ごと",
+    "checkNow": "進捗を確認して今すぐ再試行",
+    "triggerToast": "プロンプトが{{minutes}}分以上停止しています。自動停止して再試行しています...",
+    "retrySuccess": "ウォッチドッグがプロンプトの再試行に成功しました。",
+    "stoppedOnly": "停止したプロセスをリセットしました。プロンプトを再入力してください。",
+    "healthy": "チームはアクティブで正常に処理中です。",
+    "idle": "チームはアイドル状態です。再試行するプロセスはありません。",
+    "maxRetriesReached": "プロセスが繰り返し停止しました。自動回復を停止しました。エージェントの設定を確認してください。"
   }
 }

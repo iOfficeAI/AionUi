@@ -22,6 +22,10 @@
     "editTeam": "Team bearbeiten",
     "deleteFailed": "Team konnte nicht gelöscht werden"
   },
+  "activeMembers": {
+    "title": "Aktive Mitglieder",
+    "workingTooltip": "{{name}} arbeitet"
+  },
   "newAgent": "Neuer Agent",
   "noMessages": "Noch keine Nachrichten.",
   "agentNotConfigured": "Agent noch nicht konfiguriert.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -312,5 +317,24 @@
     "planRejected": "Plan zur Überarbeitung zurückgesendet.",
     "startScopingTooltip": "Strukturiertes Scoping- und Verifizierungsinterview starten",
     "buttonLabel": "Scoping-Gate"
+  },
+  "watchdog": {
+    "title": "Auto-Watchdog",
+    "off": "Watchdog: Aus",
+    "active": "Watchdog: {{minutes}}m",
+    "tooltipOff": "Auto-Watchdog: Deaktiviert. Klicken, um automatischen Wiederholungsversuch nach 2m/5m bei Stillstand zu aktivieren.",
+    "tooltipActive": "Auto-Watchdog: Überwacht alle {{minutes}}m. Stoppt und wiederholt bei Stillstand automatisch.",
+    "menuTitle": "Auto-Watchdog-Intervall",
+    "optionOff": "Aus",
+    "option2m": "Alle 2 Minuten",
+    "option5m": "Alle 5 Minuten",
+    "option10m": "Alle 10 Minuten",
+    "checkNow": "Fortschritt prüfen & jetzt wiederholen",
+    "triggerToast": "Eingabe hängt seit über {{minutes}}m ohne Fortschritt. Wird automatisch gestoppt und wiederholt...",
+    "retrySuccess": "Watchdog hat die Eingabe erfolgreich wiederholt.",
+    "stoppedOnly": "Blockierter Prozess wurde gestoppt und zurückgesetzt. Bitte geben Sie Ihre Eingabe erneut ein.",
+    "healthy": "Team ist aktiv und verarbeitet derzeit.",
+    "idle": "Team ist inaktiv. Kein aktiver Prozess zum Wiederholen.",
+    "maxRetriesReached": "Prozess ist wiederholt hängen geblieben. Automatische Wiederherstellung beendet. Bitte Agentenkonfiguration prüfen."
   }
 }

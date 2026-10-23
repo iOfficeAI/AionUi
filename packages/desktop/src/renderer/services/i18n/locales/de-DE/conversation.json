@@ -764,7 +764,11 @@
       }
     },
     "pathCopied": "Pfad kopiert",
-    "copyFailed": "Pfad konnte nicht kopiert werden"
+    "copyFailed": "Pfad konnte nicht kopiert werden",
+    "showSizes": "Dateigrößen anzeigen",
+    "showDates": "Änderungsdaten anzeigen",
+    "followAgentOn": "Agent-Aktivität folgen (Automatisches Einblenden)",
+    "followAgentOff": "Agent-Aktivität nicht folgen"
   },
   "terminal": {
     "running": "Läuft",

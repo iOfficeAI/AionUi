@@ -11,7 +11,10 @@ import { setCurrentProject } from '@/renderer/pages/conversation/explorer/curren
 import { setCurrentConversation } from '@/renderer/pages/conversation/explorer/currentConversationStore';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { getSnapshotConversationProjectId } from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import {
+  getSnapshotConversation,
+  getSnapshotConversationProjectId,
+} from '@/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
@@ -22,9 +25,16 @@ const ChatConversationIndex: React.FC = () => {
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
 
-  const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
-    return getConversationOrNull(id!);
-  });
+  const snapshotConversation = id ? getSnapshotConversation(id) : undefined;
+  const { data, isLoading, mutate } = useSWR(
+    id ? `conversation/${id}` : null,
+    () => {
+      return getConversationOrNull(id!);
+    },
+    {
+      fallbackData: snapshotConversation,
+    }
+  );
 
   // Close preview only when the isolation scope changes, not on every
   // conversation switch. Same-scope conversations keep the preview open. The
@@ -106,7 +116,7 @@ const ChatConversationIndex: React.FC = () => {
     navigate('/', { replace: true });
   }, [id, isLoading, data, navigate, t]);
 
-  if (isLoading) return <Spin loading></Spin>;
+  if (isLoading && !data) return <Spin loading></Spin>;
   return <ChatConversation conversation={data ?? undefined}></ChatConversation>;
 };
 

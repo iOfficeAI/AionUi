@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
@@ -47,10 +48,9 @@ import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/f
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import { Button, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { Brain, Lightning, MagicHat, Plan, Shield } from '@icon-park/react';
+import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { extractTeamworkTask, isTeamworkSlashCommand } from '@/common/chat/slash/antigravityCommands';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
@@ -438,37 +438,12 @@ Please check your local CLI tool authentication status`,
   // read it — every send path has to both forward and release it.
   const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
   const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
-  const [isTeamworkMode, setIsTeamworkMode] = useState(false);
 
   // Supporting agents (mid-turn delivery) send immediately, busy or not.
   // Non-supporting agents can no longer send while the agent is replying —
   // that path is hard-blocked with a toast; the only way to queue a message
   // while busy is the explicit "add to queue" entry (handleAddToQueue below).
   const onSendHandler = async (message: string): Promise<void | false> => {
-    // Intercept execution for Teamwork mode before file edits occur
-    if (isTeamworkSlashCommand(message) || isTeamworkMode) {
-      const task = extractTeamworkTask(message) || message;
-      clearFiles();
-      setSelectedSessions([]);
-      emitter.emit('acp.selected.file.clear');
-      try {
-        const res = await ipcBridge.teamwork.initiate({
-          conversationId: conversation_id,
-          userRequest: task,
-          workspace: conversationContext?.workspace,
-        });
-        if (res.success) {
-          Message.info(t('team.teamwork.interviewTitle'));
-          return;
-        } else if (res.error) {
-          Message.error(res.error);
-        }
-      } catch (err) {
-        Message.error(err instanceof Error ? err.message : String(err));
-      }
-      return;
-    }
-
     if (!supportsMidturnDelivery && isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -877,17 +852,17 @@ Please check your local CLI tool authentication status`,
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            <Tooltip content={t('team.teamwork.modeTooltip')}>
-              <Button
-                size='mini'
-                type={isTeamworkMode ? 'primary' : 'secondary'}
-                shape='round'
-                icon={<Plan theme='outline' size='14' />}
-                onClick={() => setIsTeamworkMode((prev) => !prev)}
-              >
-                {t('team.teamwork.modeLabel')}
-              </Button>
-            </Tooltip>
+            {!isMobile && (
+              <div className='min-w-0 max-w-180px [&_button]:max-w-full [&_button_span]:truncate'>
+                <AcpModelSelector
+                  conversation_id={conversation_id}
+                  backend={backend}
+                  prepareRuntime={prepareRuntimeConfig}
+                  prepareSetRuntime={teamPermission?.warmupSession}
+                  configOptionsPort={teamPermission?.configOptionsPort}
+                />
+              </div>
+            )}
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}

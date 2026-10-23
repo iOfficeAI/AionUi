@@ -602,6 +602,7 @@ const GuidPage: React.FC = () => {
       setSelectedAcpModel={setGuidSelectedAcpModel}
       thoughtLevelOption={isGeminiMode ? null : agentSelection.currentThoughtLevelOption}
       onThoughtLevelSelect={setGuidSelectedThoughtLevel}
+      formatGeminiModelLabel={modelSelection.formatGeminiModelLabel}
     />
   );
 

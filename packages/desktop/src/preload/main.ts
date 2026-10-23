@@ -119,6 +119,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   teamSubmitInterviewAnswers: (params: unknown) => ipcRenderer.invoke('team:submitInterviewAnswers', params),
   teamApprovePlan: (params: unknown) => ipcRenderer.invoke('team:approvePlan', params),
   teamRejectPlan: (params: unknown) => ipcRenderer.invoke('team:rejectPlan', params),
+  teamCancelScoping: (params: unknown) => ipcRenderer.invoke('team:cancelScoping', params),
   teamGetScopingState: (params: unknown) => ipcRenderer.invoke('team:getScopingState', params),
   onTeamScopingStatusChanged: (callback: (event: unknown) => void) => {
     const handler = (_event: unknown, data: unknown) => callback(data);
@@ -145,6 +146,35 @@ contextBridge.exposeInMainWorld('electronAPI', {
   knowledgeRepoProvisionWorkingCopy: (params: unknown) =>
     ipcRenderer.invoke('knowledgeRepo:provisionWorkingCopy', params),
   knowledgeRepoSetEnvVars: (params: unknown) => ipcRenderer.invoke('knowledgeRepo:setEnvVars', params),
+  // Gateway & Combos APIs
+  gatewayGetStatus: () => ipcRenderer.invoke('gateway:getStatus'),
+  gatewayGetAccounts: () => ipcRenderer.invoke('gateway:getAccounts'),
+  gatewaySaveAccount: (account: unknown) => ipcRenderer.invoke('gateway:saveAccount', account),
+  gatewayDeleteAccount: (id: string) => ipcRenderer.invoke('gateway:deleteAccount', id),
+  gatewayGetCombos: () => ipcRenderer.invoke('gateway:getCombos'),
+  gatewaySaveCombo: (combo: unknown) => ipcRenderer.invoke('gateway:saveCombo', combo),
+  gatewayDeleteCombo: (id: string) => ipcRenderer.invoke('gateway:deleteCombo', id),
+  gatewayGetLogs: (params?: unknown) => ipcRenderer.invoke('gateway:getLogs', params),
+  gatewayClearLogs: () => ipcRenderer.invoke('gateway:clearLogs'),
+  gatewayResetCooldown: (accountId: string) => ipcRenderer.invoke('gateway:resetCooldown', accountId),
+  gatewaySyncBackend: () => ipcRenderer.invoke('gateway:syncBackend'),
+  gatewaySyncLocalOmniRoute: () => ipcRenderer.invoke('gateway:syncLocalOmniRoute'),
+  gatewayCheckOmniRouteStatus: () => ipcRenderer.invoke('gateway:checkOmniRouteStatus'),
+  gatewayGoogleOAuthLogin: () => ipcRenderer.invoke('gateway:googleOAuthLogin'),
+  onGatewayLogAdded: (callback: (log: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('gateway:logAdded', handler);
+    return () => {
+      ipcRenderer.off('gateway:logAdded', handler);
+    };
+  },
+  onGatewayQuotaUpdated: (callback: (account: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on('gateway:quotaUpdated', handler);
+    return () => {
+      ipcRenderer.off('gateway:quotaUpdated', handler);
+    };
+  },
 });
 
 // Synchronously fetch aioncore port and expose to renderer via

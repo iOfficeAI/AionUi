@@ -14,7 +14,7 @@
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 
-const buildLogoAssetUrl = (path: string): string => {
+export const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
 };
 
@@ -22,7 +22,14 @@ const buildLogoAssetUrl = (path: string): string => {
  * 平台类型
  * Platform type
  */
-export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api' | 'bedrock';
+export type PlatformType =
+  | 'gemini'
+  | 'gemini-vertex-ai'
+  | 'gemini-with-google-auth'
+  | 'anthropic'
+  | 'custom'
+  | 'new-api'
+  | 'bedrock';
 
 /**
  * 模型平台配置接口
@@ -82,7 +89,22 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     i18nKey: 'settings.platformNewApi',
   },
 
-  // 官方 Gemini 平台
+  // 官方 Gemini 平台及 Google 登录 (免 API Key)
+  {
+    name: 'Google Login (Gemini & Antigravity)',
+    value: 'gemini-google-login',
+    logo: buildLogoAssetUrl('ai-major/gemini.svg'),
+    platform: 'gemini-with-google-auth',
+    i18nKey: 'settings.platformGeminiGoogleLogin',
+  },
+  {
+    name: 'OmniRoute Gateway',
+    value: 'omniroute',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'custom',
+    base_url: 'http://localhost:20128/v1',
+    i18nKey: 'settings.platformOmniroute',
+  },
   {
     name: 'Gemini',
     value: 'gemini',
@@ -354,7 +376,9 @@ export const getProviderLogo = ({
  * Get official Gemini platforms
  */
 export const getGeminiPlatforms = (): PlatformConfig[] => {
-  return MODEL_PLATFORMS.filter((p) => p.platform === 'gemini' || p.platform === 'gemini-vertex-ai');
+  return MODEL_PLATFORMS.filter(
+    (p) => p.platform === 'gemini' || p.platform === 'gemini-vertex-ai' || p.platform === 'gemini-with-google-auth'
+  );
 };
 
 /**
@@ -362,7 +386,21 @@ export const getGeminiPlatforms = (): PlatformConfig[] => {
  * Check if platform is Gemini type
  */
 export const isGeminiPlatform = (platform: PlatformType): boolean => {
-  return platform === 'gemini' || platform === 'gemini-vertex-ai';
+  return platform === 'gemini' || platform === 'gemini-vertex-ai' || platform === 'gemini-with-google-auth';
+};
+
+/**
+ * Check if platform uses Google OAuth (no API key needed)
+ */
+export const isGoogleLoginPlatform = (platform: PlatformType | string): boolean => {
+  return platform === 'gemini-with-google-auth';
+};
+
+/**
+ * Check if option is OmniRoute gateway
+ */
+export const isOmnirouteOption = (value: string): boolean => {
+  return value === 'omniroute';
 };
 
 /**

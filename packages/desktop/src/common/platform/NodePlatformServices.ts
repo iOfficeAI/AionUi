@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
-import { getPortableUserDataDir } from './userDataPath';
+import { getUserDataDir } from './userDataPath';
 
 class NodeWorkerProcess implements IWorkerProcess {
   constructor(private readonly cp: ChildProcess) {}
@@ -36,10 +36,10 @@ const _pkg = (() => {
 
 export class NodePlatformServices implements IPlatformServices {
   paths = {
-    getDataDir: () => process.env.DATA_DIR ?? getPortableUserDataDir(),
+    getDataDir: () => process.env.DATA_DIR ?? getUserDataDir(),
     getTempDir: () => os.tmpdir(),
     getHomeDir: () => os.homedir(),
-    getLogsDir: () => process.env.LOGS_DIR ?? path.join(getPortableUserDataDir(), 'logs'),
+    getLogsDir: () => process.env.LOGS_DIR ?? path.join(getUserDataDir(), 'logs'),
     getAppPath: (): string | null => process.cwd(),
     isPackaged: () => process.env.IS_PACKAGED === 'true',
     getSystemPath: (_name: 'desktop' | 'home' | 'downloads'): string | null => null,

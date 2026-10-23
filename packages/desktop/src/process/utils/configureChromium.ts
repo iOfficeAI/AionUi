@@ -13,14 +13,14 @@ import { configurePortableUserData } from '@/common/platform/userDataPath';
 import { getDevAppName } from '@/common/platform';
 import { applyGpuRecoveryFlags } from './gpuRecovery';
 
-// Configure portable user data path inside application directory
-configurePortableUserData(app);
-
-// In development mode, set application name for environment separation
+// In development mode, set application name for environment separation before configuring paths
 if (!app.isPackaged && process.env.AIONUI_E2E_TEST !== '1') {
   const devAppName = getDevAppName();
   app.setName(devAppName);
 }
+
+// Configure user data path (portable if enabled, OS userData otherwise)
+configurePortableUserData(app);
 
 // app.disableHardwareAcceleration() must run before app is ready.
 applyGpuRecoveryFlags();

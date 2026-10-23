@@ -5,15 +5,213 @@
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 let configuredUserDataDir: string | null = null;
 
 const PORTABLE_MARKER_FILE = 'portable-location.json';
+export const DATA_LOCATION_FILE = 'data-location.json';
 
 type PortableMarker = {
   lastDataDir: string;
 };
+
+/**
+ * Reads any user-configured custom data directory from data-location.json.
+ * Checks both the application root folder and the standard OS user data folder.
+ */
+export function getStoredCustomDataDir(): string | null {
+  // Check 1: In application root directory
+  try {
+    const rootDir = findAppRootDir();
+    const locFile = path.join(rootDir, DATA_LOCATION_FILE);
+    if (fs.existsSync(locFile)) {
+      const parsed = JSON.parse(fs.readFileSync(locFile, 'utf8')) as { dataDir?: string };
+      if (parsed?.dataDir && typeof parsed.dataDir === 'string' && parsed.dataDir.trim() !== '') {
+        const resolved = path.resolve(parsed.dataDir.trim());
+        if (fs.existsSync(resolved)) {
+          return resolved;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Check 2: In standard OS user data directory
+  try {
+    const defaultData = getDefaultUserDataDir();
+    const locFile = path.join(defaultData, DATA_LOCATION_FILE);
+    if (fs.existsSync(locFile)) {
+      const parsed = JSON.parse(fs.readFileSync(locFile, 'utf8')) as { dataDir?: string };
+      if (parsed?.dataDir && typeof parsed.dataDir === 'string' && parsed.dataDir.trim() !== '') {
+        const resolved = path.resolve(parsed.dataDir.trim());
+        if (fs.existsSync(resolved)) {
+          return resolved;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+/**
+ * Persists a user-selected custom data directory to data-location.json in both
+ * the application root folder and the standard OS user data folder.
+ */
+export function setStoredCustomDataDir(targetDir: string): void {
+  const norm = path.resolve(targetDir);
+  const data = JSON.stringify({ dataDir: norm, updatedAt: new Date().toISOString() }, null, 2);
+
+  // Write to app root directory if accessible
+  try {
+    const rootDir = findAppRootDir();
+    fs.writeFileSync(path.join(rootDir, DATA_LOCATION_FILE), data, 'utf8');
+  } catch (err) {
+    console.warn('[AionUi] Failed to write data-location.json in app root:', err);
+  }
+
+  // Write to standard OS user data directory
+  try {
+    const defaultData = getDefaultUserDataDir();
+    if (!fs.existsSync(defaultData)) {
+      fs.mkdirSync(defaultData, { recursive: true });
+    }
+    fs.writeFileSync(path.join(defaultData, DATA_LOCATION_FILE), data, 'utf8');
+  } catch (err) {
+    console.warn('[AionUi] Failed to write data-location.json in default user data:', err);
+  }
+}
+
+/**
+ * Clears the stored custom data directory pointer (used in testing).
+ */
+export function clearStoredCustomDataDir(): void {
+  try {
+    const rootDir = findAppRootDir();
+    const rootFile = path.join(rootDir, DATA_LOCATION_FILE);
+    if (fs.existsSync(rootFile)) fs.unlinkSync(rootFile);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const defaultData = getDefaultUserDataDir();
+    const defaultFile = path.join(defaultData, DATA_LOCATION_FILE);
+    if (fs.existsSync(defaultFile)) fs.unlinkSync(defaultFile);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Checks whether a given directory is located in a system-protected installation directory
+ * (e.g. C:\Program Files, /Applications, /usr) where mutable user data must not be written.
+ */
+export function isSystemInstallationDir(dir: string): boolean {
+  if (!dir) return false;
+  const norm = path.resolve(dir).toLowerCase();
+
+  if (process.platform === 'win32') {
+    const systemDirs = [
+      process.env.ProgramFiles,
+      process.env['ProgramFiles(x86)'],
+      process.env.ProgramW6432,
+      process.env.SystemRoot,
+      process.env.windir,
+      'C:\\Program Files',
+      'C:\\Program Files (x86)',
+      'C:\\Windows',
+    ].filter(Boolean) as string[];
+
+    for (const sysDir of systemDirs) {
+      const normSys = path.resolve(sysDir).toLowerCase();
+      if (norm === normSys || norm.startsWith(normSys + path.sep)) {
+        return true;
+      }
+    }
+  } else if (process.platform === 'darwin') {
+    const normSys = ['/applications', '/system', '/library'];
+    for (const sysDir of normSys) {
+      if (norm === sysDir || norm.startsWith(sysDir + '/')) {
+        return true;
+      }
+    }
+  } else {
+    // Linux and other Unix
+    const normSys = ['/usr', '/opt', '/var', '/etc'];
+    for (const sysDir of normSys) {
+      if (norm === sysDir || norm.startsWith(sysDir + '/')) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Determines whether the application should run in portable storage mode.
+ * In portable mode, data is stored in the application folder rather than the OS-standard %APPDATA% directory.
+ */
+export function isPortableMode(appRoot?: string): boolean {
+  // 1. Explicit environment variable overrides
+  if (process.env.AIONUI_PORTABLE === '1' || process.env.AIONUI_PORTABLE === 'true') {
+    return true;
+  }
+  if (process.env.AIONUI_PORTABLE === '0' || process.env.AIONUI_PORTABLE === 'false') {
+    return false;
+  }
+  if (process.env.AIONUI_DATA_DIR && process.env.AIONUI_DATA_DIR.trim() !== '') {
+    return true;
+  }
+  if (process.env.AIONUI_APP_ROOT && process.env.AIONUI_APP_ROOT.trim() !== '') {
+    return true;
+  }
+  if (process.env.PORTABLE_EXECUTABLE_DIR && process.env.PORTABLE_EXECUTABLE_DIR.trim() !== '') {
+    return true;
+  }
+
+  const root = appRoot || findAppRootDir();
+
+  // 2. System installation directories are NEVER portable
+  if (isSystemInstallationDir(root)) {
+    return false;
+  }
+
+  // 3. Explicit portable marker file next to executable or in app root
+  if (fs.existsSync(path.join(root, '.portable')) || fs.existsSync(path.join(root, 'portable'))) {
+    return true;
+  }
+
+  // 4. In development mode (inside git repo root with AionUi package.json)
+  if (isAionUiRoot(root)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Get OS standard user data directory path when portable mode is not active.
+ */
+export function getDefaultUserDataDir(): string {
+  const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
+  const appName = isMultiInstance ? 'AionUi-2' : 'AionUi';
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+    return path.join(appData, appName);
+  }
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Application Support', appName);
+  }
+  const configHome = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+  return path.join(configHome, appName);
+}
 
 /**
  * Checks whether a given directory is the root of the AionUi project repository.
@@ -45,7 +243,12 @@ export function findAppRootDir(): string {
     return path.dirname(path.resolve(process.env.AIONUI_DATA_DIR.trim()));
   }
 
-  // 3. Packaged app: directory containing executable
+  // 3. Electron-builder portable executable directory
+  if (process.env.PORTABLE_EXECUTABLE_DIR && process.env.PORTABLE_EXECUTABLE_DIR.trim() !== '') {
+    return path.resolve(process.env.PORTABLE_EXECUTABLE_DIR.trim());
+  }
+
+  // 4. Packaged app: directory containing executable
   if (process.versions?.electron && process.execPath) {
     const isPackaged = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
       ? fs.existsSync((process as NodeJS.Process & { resourcesPath?: string }).resourcesPath!)
@@ -59,13 +262,13 @@ export function findAppRootDir(): string {
     }
   }
 
-  // 4. Dev mode: check current working directory
+  // 5. Dev mode: check current working directory
   const cwd = process.cwd();
   if (isAionUiRoot(cwd)) {
     return cwd;
   }
 
-  // 5. Walk up from __dirname
+  // 6. Walk up from __dirname
   let candidate = __dirname;
   for (let i = 0; i < 7; i++) {
     if (isAionUiRoot(candidate)) {
@@ -89,6 +292,26 @@ export function getPortableUserDataDir(): string {
   const rootDir = findAppRootDir();
   const subDir = process.env.AIONUI_MULTI_INSTANCE === '1' ? 'data-2' : 'data';
   return path.join(rootDir, subDir);
+}
+
+/**
+ * Get active user data directory based on portable detection.
+ */
+export function getUserDataDir(): string {
+  if (configuredUserDataDir) {
+    return configuredUserDataDir;
+  }
+  if (process.env.AIONUI_DATA_DIR && process.env.AIONUI_DATA_DIR.trim() !== '') {
+    return path.resolve(process.env.AIONUI_DATA_DIR.trim());
+  }
+  const custom = getStoredCustomDataDir();
+  if (custom) {
+    return custom;
+  }
+  if (isPortableMode()) {
+    return getPortableUserDataDir();
+  }
+  return getDefaultUserDataDir();
 }
 
 /**
@@ -216,26 +439,17 @@ export function migrateLegacyUserDataIfNeeded(
 
   if (targetStat) {
     const targetIsEmpty = isDbEmptyOrFresh(targetDb);
-    if (!targetIsEmpty && sourceDbStat.size <= targetStat.size && sourceDbStat.mtimeMs <= targetStat.mtimeMs) {
+    if (!targetIsEmpty) {
+      // Target directory already contains valid user data — NEVER overwrite or delete existing data
       return;
     }
     console.log(
-      `[AionUi:Portable] Source database at ${sourceDir} has newer/larger data than target (${sourceDbStat.size} vs ${targetStat.size} bytes, targetIsEmpty=${targetIsEmpty}). Migrating...`
+      `[AionUi:Portable] Target database is empty. Migrating existing user data from ${sourceDir} to ${targetDataDir}...`
     );
   }
 
   console.log(`[AionUi:Portable] Migrating existing user data from ${sourceDir} to ${targetDataDir}...`);
   try {
-    const targetAionui = path.join(targetDataDir, 'aionui');
-    const targetWal = path.join(targetAionui, 'aionui-backend.db-wal');
-    const targetShm = path.join(targetAionui, 'aionui-backend.db-shm');
-    try {
-      if (fs.existsSync(targetWal)) fs.unlinkSync(targetWal);
-      if (fs.existsSync(targetShm)) fs.unlinkSync(targetShm);
-    } catch {
-      // ignore
-    }
-
     // Only copy relevant AionUi data: the database directory, config, and auth/settings files
     const ESSENTIAL_ITEMS = ['aionui', 'config', 'auth.enc', 'analytics.json', 'gpu.config.json'];
     for (const item of ESSENTIAL_ITEMS) {
@@ -364,7 +578,113 @@ export function rebasePortableDatabase(targetDataDir: string): void {
 }
 
 /**
- * Configure Electron app to store all data into the application folder itself.
+ * Scans the selected data directory on startup, ensures all necessary structure exists,
+ * locates or restores existing database/configs if needed, and never deletes existing data.
+ */
+export function scanAndPrepareDataDir(targetDataDir: string): void {
+  if (!fs.existsSync(targetDataDir)) {
+    try {
+      fs.mkdirSync(targetDataDir, { recursive: true });
+    } catch (err) {
+      console.warn(`[AionUi] Failed to create data directory ${targetDataDir}:`, err);
+      return;
+    }
+  }
+
+  const aionuiDir = path.join(targetDataDir, 'aionui');
+  const configDir = path.join(targetDataDir, 'config');
+  const logsDir = path.join(targetDataDir, 'logs');
+  const crashDir = path.join(targetDataDir, 'crashDumps');
+
+  try {
+    if (!fs.existsSync(aionuiDir)) fs.mkdirSync(aionuiDir, { recursive: true });
+    if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    if (!fs.existsSync(crashDir)) fs.mkdirSync(crashDir, { recursive: true });
+  } catch (err) {
+    console.warn(`[AionUi] Failed to ensure subdirectories in ${targetDataDir}:`, err);
+  }
+
+  const targetDb = path.join(aionuiDir, 'aionui-backend.db');
+  const hasValidTargetDb = fs.existsSync(targetDb) && fs.statSync(targetDb).size > 0;
+
+  if (!hasValidTargetDb) {
+    // 1. Check if aionui-backend.db exists at root of targetDataDir (e.g. if user placed DB directly in folder)
+    const rootDb = path.join(targetDataDir, 'aionui-backend.db');
+    if (fs.existsSync(rootDb) && fs.statSync(rootDb).size > 0) {
+      console.log(
+        `[AionUi] Found database at root of ${targetDataDir}, copying to ${targetDb} without deleting source...`
+      );
+      try {
+        fs.copyFileSync(rootDb, targetDb);
+        const rootWal = `${rootDb}-wal`;
+        if (fs.existsSync(rootWal)) fs.copyFileSync(rootWal, `${targetDb}-wal`);
+        const rootShm = `${rootDb}-shm`;
+        if (fs.existsSync(rootShm)) fs.copyFileSync(rootShm, `${targetDb}-shm`);
+      } catch (err) {
+        console.warn(`[AionUi] Failed to copy root DB to aionui/:`, err);
+      }
+    } else {
+      // 2. Scan for backup subdirectories inside targetDataDir
+      try {
+        const entries = fs.readdirSync(targetDataDir, { withFileTypes: true });
+        let newestBackupDir: string | null = null;
+        let newestBackupTime = 0;
+
+        for (const entry of entries) {
+          if (entry.isDirectory() && /^(aionui|data)[-_]backup/i.test(entry.name)) {
+            const backupPath = path.join(targetDataDir, entry.name);
+            const backupDb = path.join(backupPath, 'aionui-backend.db');
+            if (fs.existsSync(backupDb) && fs.statSync(backupDb).size > 0) {
+              const mtime = fs.statSync(backupDb).mtimeMs;
+              if (mtime > newestBackupTime) {
+                newestBackupTime = mtime;
+                newestBackupDir = backupPath;
+              }
+            }
+          }
+        }
+
+        if (newestBackupDir) {
+          console.log(`[AionUi] Restoring database from backup ${newestBackupDir} without deleting anything...`);
+          const backupDb = path.join(newestBackupDir, 'aionui-backend.db');
+          fs.copyFileSync(backupDb, targetDb);
+          const backupWal = `${backupDb}-wal`;
+          if (fs.existsSync(backupWal)) fs.copyFileSync(backupWal, `${targetDb}-wal`);
+          const backupShm = `${backupDb}-shm`;
+          if (fs.existsSync(backupShm)) fs.copyFileSync(backupShm, `${targetDb}-shm`);
+
+          const backupConfig = path.join(newestBackupDir, 'config');
+          if (fs.existsSync(backupConfig)) {
+            copyDirectoryContentsSync(backupConfig, configDir);
+          }
+        }
+      } catch (err) {
+        console.warn(`[AionUi] Error while scanning for backup folders:`, err);
+      }
+    }
+  }
+
+  // Ensure portable-location.json is up to date
+  try {
+    const markerPath = path.join(targetDataDir, PORTABLE_MARKER_FILE);
+    const markerData: PortableMarker = { lastDataDir: aionuiDir };
+    fs.writeFileSync(markerPath, JSON.stringify(markerData, null, 2), 'utf8');
+  } catch {
+    // ignore
+  }
+
+  // Rebase stored paths in SQLite database if location moved or drive letter changed
+  try {
+    rebasePortableDatabase(targetDataDir);
+  } catch (err) {
+    console.warn(`[AionUi] Rebase database error:`, err);
+  }
+}
+
+/**
+ * Configure Electron app to store all data into the application folder itself when in portable mode,
+ * or use the standard OS-level userData directory when installed normally.
  */
 export function configurePortableUserData(app: Electron.App): string {
   if (configuredUserDataDir) {
@@ -375,24 +695,73 @@ export function configurePortableUserData(app: Electron.App): string {
   const e2eDir = process.env.AIONUI_E2E_TEST === '1' ? process.env.AIONUI_E2E_USER_DATA_DIR : undefined;
   if (e2eDir && e2eDir.trim() !== '') {
     const resolvedE2e = path.resolve(e2eDir.trim());
-    fs.mkdirSync(resolvedE2e, { recursive: true });
-    app.setPath('userData', resolvedE2e);
-    configuredUserDataDir = resolvedE2e;
-    return resolvedE2e;
+    try {
+      fs.mkdirSync(resolvedE2e, { recursive: true });
+      scanAndPrepareDataDir(resolvedE2e);
+      app.setPath('userData', resolvedE2e);
+      configuredUserDataDir = resolvedE2e;
+      return resolvedE2e;
+    } catch (err) {
+      console.warn(`[AionUi] Failed to create E2E userData directory ${resolvedE2e}:`, err);
+    }
   }
 
-  const targetDataDir = getPortableUserDataDir();
-  fs.mkdirSync(targetDataDir, { recursive: true });
+  const customDir = getStoredCustomDataDir();
+  const hasEnvDir = Boolean(process.env.AIONUI_DATA_DIR && process.env.AIONUI_DATA_DIR.trim() !== '');
+  const portable = isPortableMode();
 
-  if (!process.env.VITEST) {
+  // If NOT in portable mode and no custom directory configured, use standard OS userData
+  if (!portable && !customDir && !hasEnvDir) {
+    try {
+      const defaultUserData = app.getPath('userData');
+      fs.mkdirSync(defaultUserData, { recursive: true });
+      scanAndPrepareDataDir(defaultUserData);
+      configuredUserDataDir = defaultUserData;
+      return defaultUserData;
+    } catch {
+      const fallback = getDefaultUserDataDir();
+      try {
+        fs.mkdirSync(fallback, { recursive: true });
+        app.setPath('userData', fallback);
+      } catch {
+        // ignore
+      }
+      scanAndPrepareDataDir(fallback);
+      configuredUserDataDir = fallback;
+      return fallback;
+    }
+  }
+
+  const targetDataDir = getUserDataDir();
+  try {
+    fs.mkdirSync(targetDataDir, { recursive: true });
+  } catch (err) {
+    console.warn(`[AionUi:Portable] Failed to create portable user data directory at ${targetDataDir}:`, err);
+    // Graceful fallback to standard OS userData
+    try {
+      const defaultUserData = app.getPath('userData');
+      fs.mkdirSync(defaultUserData, { recursive: true });
+      configuredUserDataDir = defaultUserData;
+      return defaultUserData;
+    } catch {
+      const fallback = getDefaultUserDataDir();
+      configuredUserDataDir = fallback;
+      return fallback;
+    }
+  }
+
+  // First scan the folder to find/restore database and configs without deleting anything
+  scanAndPrepareDataDir(targetDataDir);
+
+  if (!process.env.VITEST && !customDir) {
     migrateLegacyUserDataIfNeeded(app, targetDataDir);
   }
 
   app.setPath('userData', targetDataDir);
 
   const logsDir = path.join(targetDataDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
   try {
+    fs.mkdirSync(logsDir, { recursive: true });
     app.setPath('logs', logsDir);
   } catch {
     // ignore
@@ -405,8 +774,6 @@ export function configurePortableUserData(app: Electron.App): string {
   } catch {
     // ignore
   }
-
-  rebasePortableDatabase(targetDataDir);
 
   configuredUserDataDir = targetDataDir;
   return targetDataDir;

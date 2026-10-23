@@ -241,6 +241,38 @@ describe('TeamScopingManager & Scoping Engine', () => {
       expect(res.state?.error).toBe('Missing security considerations');
     });
 
+    it('should cancel scoping session and set status to idle and notify listeners', async () => {
+      const listener = vi.fn();
+      const unsubscribe = manager.onStatusUpdate(listener);
+
+      await manager.initiateScoping({
+        team_id: 'team-cancel',
+        userRequest: 'Cancel scoping session',
+        workspace: tempDir,
+      });
+
+      expect(manager.getState('team-cancel')?.status).toBe('scoping');
+
+      const res = await manager.cancelScoping({ team_id: 'team-cancel' });
+      expect(res.success).toBe(true);
+      expect(res.state?.status).toBe('idle');
+      expect(manager.getState('team-cancel')?.status).toBe('idle');
+
+      expect(listener).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          team_id: 'team-cancel',
+          state: expect.objectContaining({ status: 'idle' }),
+        })
+      );
+
+      unsubscribe();
+    });
+
+    it('should handle cancelScoping gracefully when team state does not exist', async () => {
+      const res = await manager.cancelScoping({ team_id: 'non-existent' });
+      expect(res.success).toBe(true);
+    });
+
     it('should trigger Auditor verification gate and advance milestones upon pass', async () => {
       await manager.initiateScoping({
         team_id: 'team-audit',

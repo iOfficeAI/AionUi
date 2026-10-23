@@ -764,7 +764,11 @@
       }
     },
     "pathCopied": "Ruta copiada",
-    "copyFailed": "No se pudo copiar la ruta"
+    "copyFailed": "No se pudo copiar la ruta",
+    "showSizes": "Mostrar tamaños de archivo",
+    "showDates": "Mostrar fechas de archivo",
+    "followAgentOn": "Siguiendo actividad del agente (auto-desplegar)",
+    "followAgentOff": "Seguimiento de agente desactivado"
   },
   "terminal": {
     "running": "En ejecución",

@@ -1424,5 +1424,16 @@
   "backupFailed": "Veri yedekleme başarısız oldu",
   "openBackupDir": "Klasörü Aç",
   "mcpServers": "MCP Sunucuları ve Araçları",
-  "browserAutomation": "Tarayıcı Otomasyonu"
+  "browserAutomation": "Tarayıcı Otomasyonu",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "Google ile Giriş (Gemini ve Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "Lütfen önce Google ile giriş yapın",
+  "googleLoginHint": "API anahtarı olmadan Google hesabınızla Gemini ve Antigravity modellerini kullanmak için giriş yapın",
+  "omnirouteTip": "OmniRoute ağ geçidi üzerinden bağlanın. Ayrı API anahtarları olmadan Claude, Google Antigravity ve Gemini'yi destekler.",
+  "modelProviderHub": "Model Sağlayıcı Merkezi",
+  "dataDir": "Veri Depolama Dizini",
+  "dataDirDesc": "Tüm verilerin (veritabanı, çalışma alanı, yapılandırma ve günlükler) depolandığı ve yedeklendiği birleşik klasör",
+  "changeDataDir": "Veri depolama dizinini değiştir",
+  "dataDirRestartConfirm": "Veri depolama klasörünü değiştirmek AionUi'nin yeniden başlatılmasını gerektirir. AionUi seçilen klasörü tarayacak ve mevcut dosyaları silmeden verileri yükleyecektir. Şimdi yeniden başlatmak istiyor musunuz?"
 }

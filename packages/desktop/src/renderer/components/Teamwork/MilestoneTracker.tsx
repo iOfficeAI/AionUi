@@ -7,7 +7,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Card, Collapse, Space, Steps, Tag, Typography } from '@arco-design/web-react';
-import { Check, CheckOne, Close, CloseOne, FileCode, LoadingFour, Plan, PlayOne, Time } from '@icon-park/react';
+import {
+  Check,
+  CheckOne,
+  Close,
+  CloseOne,
+  CloseSmall,
+  FileCode,
+  LoadingFour,
+  Plan,
+  PlayOne,
+  Time,
+} from '@icon-park/react';
 import type { MilestoneStatus, TeamworkMilestone, TeamworkSessionState } from '@/common/types/teamwork';
 import { AgentStatusBadge } from './AgentStatusBadge';
 
@@ -15,6 +26,7 @@ export type MilestoneTrackerProps = {
   session: TeamworkSessionState;
   onConfirmPlan?: () => Promise<void>;
   onAbort?: () => void;
+  onDismiss?: () => void;
   loading?: boolean;
 };
 
@@ -22,6 +34,7 @@ export const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
   session,
   onConfirmPlan,
   onAbort,
+  onDismiss,
   loading = false,
 }) => {
   const { t } = useTranslation();
@@ -93,12 +106,24 @@ export const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
             </Typography.Title>
           </div>
 
-          <AgentStatusBadge
-            role={session.activeRole || 'sentinel'}
-            isExecuting={isExecuting}
-            activeToolCall={session.activeToolCall}
-            tokenConsumption={session.tokenConsumption}
-          />
+          <div className='flex items-center gap-2'>
+            <AgentStatusBadge
+              role={session.activeRole || 'sentinel'}
+              isExecuting={isExecuting}
+              activeToolCall={session.activeToolCall}
+              tokenConsumption={session.tokenConsumption}
+            />
+            {onDismiss && (
+              <Button
+                type='text'
+                size='mini'
+                className='!p-0 h-6 w-6 text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+                onClick={onDismiss}
+                icon={<CloseSmall theme='outline' size='18' />}
+                aria-label={t('team.teamwork.abort')}
+              />
+            )}
+          </div>
         </div>
       }
     >
@@ -140,7 +165,7 @@ export const MilestoneTracker: React.FC<MilestoneTrackerProps> = ({
       )}
 
       {/* Milestones List */}
-      <div className='space-y-3'>
+      <div className='space-y-3 max-h-[min(50vh,420px)] overflow-y-auto pr-2'>
         {milestones.map((milestone, index) => {
           const isActive = session.activeMilestoneId === milestone.id;
 

@@ -16,11 +16,21 @@ import { Button, Dropdown, Menu, Tree } from '@arco-design/web-react';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { TreeProps } from '@arco-design/web-react';
 import { Caution, MoreOne } from '@icon-park/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // File-tree icons (catppuccin file-icon theme), now owned by the explorer.
 import FileTypeIcon from './fileIcon/FileTypeIcon';
+import { useScm } from '../SourceControl/scmStore';
+import type { ScmResource } from '../SourceControl/scmModel';
+import { useFileTreeActivity, checkNodeShimmer } from './fileTree/fileTreeActivityStore';
+import {
+  useFileTreeMetadata,
+  requestFileMetadata,
+  formatFileSize,
+  formatFileAge,
+} from './fileTree/fileTreeMetadataStore';
+import styles from './fileTree/fileTreeShimmer.module.css';
 
 import { getFilesFromDropEvent } from '@/renderer/services/FileService';
 import { isMacOS } from '@/renderer/utils/platform';
@@ -107,6 +117,58 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
 }) => {
   const view = useExplorerView();
   const { t } = useTranslation();
+  const scm = useScm();
+  const { activities } = useFileTreeActivity();
+  const { mode: metaMode, cache: statCache } = useFileTreeMetadata();
+
+  // Index SCM resources by relative path for instant O(1) lookup in file tree rows
+  const scmFileMap = useMemo(() => {
+    const map = new Map<string, ScmResource>();
+    if (!scm?.repositories || !scm?.statuses) return map;
+    for (const repo of scm.repositories) {
+      if (!repo?.repo_id) continue;
+      const status = scm.statuses[repo.repo_id];
+      if (status?.resources) {
+        for (const res of status.resources) {
+          const path = res?.file?.relative_path || res?.repo_relative_path || '';
+          if (path) {
+            map.set(path, res);
+          }
+        }
+      }
+    }
+    return map;
+  }, [scm?.repositories, scm?.statuses]);
+
+  // Aggregate changed file counts for directory nodes
+  const scmDirCountsMap = useMemo(() => {
+    const counts = new Map<string, { modified: number; created: number; deleted: number }>();
+    if (!scm?.repositories || !scm?.statuses) return counts;
+    for (const repo of scm.repositories) {
+      if (!repo?.repo_id) continue;
+      const status = scm.statuses[repo.repo_id];
+      if (status?.resources) {
+        for (const res of status.resources) {
+          const path = res?.file?.relative_path || res?.repo_relative_path || '';
+          if (!path) continue;
+          const segs = path.split('/').filter(Boolean);
+          segs.pop();
+          let currentDir = '';
+          for (const seg of segs) {
+            currentDir = currentDir ? `${currentDir}/${seg}` : seg;
+            const prev = counts.get(currentDir) || { modified: 0, created: 0, deleted: 0 };
+            const next = { ...prev };
+            if (res.state === 'created') next.created++;
+            else if (res.state === 'deleted') next.deleted++;
+            else next.modified++;
+            counts.set(currentDir, next);
+          }
+        }
+      }
+    }
+    return counts;
+  }, [scm?.repositories, scm?.statuses]);
+
   // Key of the node currently under a drag (for the drop highlight).
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   // The node being dragged internally (set on dragStart, cleared on dragEnd).
@@ -284,20 +346,105 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       // wrapper span the full row, and this fills that wrapper so the right-click
       // context menu (its <Dropdown trigger='contextMenu'> is attached to this span)
       // and the drop-target highlight both cover the whole row, not just the label.
+      // Active shimmer (reads = purple, writes = orange, commits = green)
+      const shimmerTone = checkNodeShimmer(activities, rel, name);
+      const isShimmering = shimmerTone !== null;
+
+      // Git status for this node
+      const scmFile = isFile ? scmFileMap.get(rel) : undefined;
+      const gitState = scmFile?.state;
+      const isModified = gitState === 'modified';
+      const isCreated = gitState === 'created';
+      const isDeleted = gitState === 'deleted';
+
+      // Git folder aggregate counts
+      const dirCounts = !isFile ? scmDirCountsMap.get(rel) : undefined;
+
+      // Metadata: size or age
+      let metaText = '';
+      if (isFile) {
+        requestFileMetadata(peId, rel);
+        const stat = statCache.get(`${peId}:${rel}`);
+        if (metaMode === 'size') {
+          metaText = formatFileSize(stat?.size);
+        } else {
+          metaText = formatFileAge(stat?.lastModified);
+        }
+      }
+
+      // Shimmer classes
+      const shimmerRowClass =
+        shimmerTone === 'read'
+          ? styles.shimmerRead
+          : shimmerTone === 'write'
+            ? styles.shimmerWrite
+            : shimmerTone === 'commit'
+              ? styles.shimmerCommit
+              : '';
+
+      const shimmerTextClass =
+        shimmerTone === 'read'
+          ? styles.textShimmerRead
+          : shimmerTone === 'write'
+            ? styles.textShimmerWrite
+            : shimmerTone === 'commit'
+              ? styles.textShimmerCommit
+              : '';
+
+      // Git text color
+      const gitTextColor = isCreated
+        ? 'text-success'
+        : isModified
+          ? 'text-warning'
+          : isDeleted
+            ? 'text-danger line-through'
+            : '';
+
       const title = (
         <span
           data-runtime-status={status}
           data-drop-target={dragOverKey === key || undefined}
-          className={`flex items-center gap-4px min-w-0 w-full${degraded ? ' text-t-secondary' : ''}${dragOverKey === key ? ' bg-aou-2 rd-4px' : ''}`}
+          className={`flex items-center justify-between gap-4px min-w-0 w-full px-2px py-1px transition-colors duration-150 ${shimmerRowClass} ${degraded ? ' text-t-secondary' : ''}${dragOverKey === key ? ' bg-aou-2 rd-4px' : ''}`}
           {...dragProps}
           {...dropProps}
         >
-          <FileTypeIcon node={{ name, relativePath: keyToRef(key).relative_path, isFile }} expanded={isExpanded} />
-          {/* File names are code-like; bidi-neutral leading dots (.claude) must not flip under RTL. */}
-          <span dir='ltr' className='overflow-hidden text-ellipsis whitespace-nowrap'>
-            {name}
+          {/* Left section: icon + name */}
+          <span className='flex items-center gap-4px min-w-0 flex-1 overflow-hidden'>
+            <FileTypeIcon node={{ name, relativePath: keyToRef(key).relative_path, isFile }} expanded={isExpanded} />
+            {/* File names are code-like; bidi-neutral leading dots (.claude) must not flip under RTL. */}
+            <span
+              dir='ltr'
+              className={`overflow-hidden text-ellipsis whitespace-nowrap text-12px ${isShimmering ? shimmerTextClass : gitTextColor || 'text-t-primary'}`}
+              title={name}
+            >
+              {name}
+            </span>
+            {degraded && <Caution theme='outline' size='14' className='flex-shrink-0' />}
           </span>
-          {degraded && <Caution theme='outline' size='14' className='flex-shrink-0' />}
+
+          {/* Right section: Git diff / status badge + Size or Age metadata */}
+          <span className='flex items-center gap-4px flex-shrink-0 text-10px font-mono select-none pe-2px'>
+            {/* Folder changes aggregate */}
+            {dirCounts && (
+              <span className='flex items-center gap-3px'>
+                {dirCounts.created > 0 && <span className='text-success'>+{dirCounts.created}</span>}
+                {dirCounts.modified > 0 && <span className='text-warning'>M:{dirCounts.modified}</span>}
+                {dirCounts.deleted > 0 && <span className='text-danger'>-{dirCounts.deleted}</span>}
+              </span>
+            )}
+
+            {/* File git status letter */}
+            {isCreated && <span className='text-success font-semibold'>U</span>}
+            {isModified && <span className='text-warning font-semibold'>M</span>}
+            {isDeleted && <span className='text-danger font-semibold'>D</span>}
+
+            {/* File metadata (size or relative age) */}
+            {metaText && (
+              <span className='text-t-tertiary ml-2px min-w-32px text-right font-mono text-10px opacity-75'>
+                {metaText}
+              </span>
+            )}
+          </span>
         </span>
       );
       const removable = isRoot && data?.role ? canRemoveRoot(data.role, peId, workspacePeId) : false;
@@ -447,6 +594,11 @@ export const ExplorerPanel: React.FC<ExplorerPanelProps> = ({
       workspacePeId,
       t,
       view.expanded,
+      activities,
+      scmFileMap,
+      scmDirCountsMap,
+      metaMode,
+      statCache,
     ]
   );
 

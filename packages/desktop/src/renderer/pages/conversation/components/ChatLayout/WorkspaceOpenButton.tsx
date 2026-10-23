@@ -77,7 +77,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
     const checkTools = async () => {
       try {
-        const installed = await ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' });
+        const installed = (await ipcBridge.shell?.checkToolInstalled?.invoke?.({ tool: 'vscode' })) ?? false;
         setVscodeInstalled(installed);
       } catch (error) {
         console.warn('[WorkspaceOpenButton] Failed to check VS Code:', error);

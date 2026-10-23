@@ -15,6 +15,7 @@ const SkillDetailPage = React.lazy(() => import('@renderer/pages/settings/Skills
 const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const AppearanceSettings = React.lazy(() => import('@renderer/pages/settings/AppearanceSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
+const GatewaySettings = React.lazy(() => import('@renderer/pages/settings/GatewaySettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
@@ -26,10 +27,55 @@ const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/Schedul
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
 
+import { Button } from '@arco-design/web-react';
+
+class RouteErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[Router] Uncaught render error in route:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className='flex flex-col items-center justify-center h-full p-24px text-center'>
+          <div className='text-18px font-600 mb-8px text-t-primary'>Something went wrong loading this page</div>
+          <div className='text-13px text-t-secondary max-w-500px mb-16px font-mono bg-fill-2 p-12px rounded-6px'>
+            {this.state.error?.message || 'Unknown error'}
+          </div>
+          <Button
+            type='primary'
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.hash = '#/guid';
+            }}
+          >
+            Return to Home
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
-  <Suspense fallback={<AppLoader />}>
-    <Component />
-  </Suspense>
+  <RouteErrorBoundary>
+    <Suspense fallback={<AppLoader />}>
+      <Component />
+    </Suspense>
+  </RouteErrorBoundary>
 );
 
 /**
@@ -80,6 +126,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
             element={TEAM_MODE_ENABLED ? withRouteFallback(TeamIndex) : <Navigate to='/guid' replace />}
           />
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
+          <Route path='/settings/gateway' element={withRouteFallback(GatewaySettings)} />
           <Route path='/assistants' element={withRouteFallback(AssistantSettings)} />
           {/* Assistants moved out of Settings to a top-level entry; keep a redirect
               so old deep links / back-nav still land on the new page. */}

@@ -14,6 +14,7 @@ export type AionrsModelSelection = {
   getAvailableModels: (provider: IProvider) => string[];
   handleSelectModel: (provider: IProvider, modelName: string) => Promise<void>;
   getDisplayModelName: (modelName?: string) => string;
+  formatModelLabel?: (provider: { platform?: string; id?: string } | undefined, modelName?: string) => string;
 };
 
 export type UseAionrsModelSelectionOptions = {
@@ -69,5 +70,6 @@ export const useAionrsModelSelection = ({
     getAvailableModels,
     handleSelectModel,
     getDisplayModelName,
+    formatModelLabel,
   };
 };

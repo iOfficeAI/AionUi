@@ -22,6 +22,10 @@
     "editTeam": "Editar equipo",
     "deleteFailed": "Error al eliminar el equipo"
   },
+  "activeMembers": {
+    "title": "Miembros activos",
+    "workingTooltip": "{{name}} está trabajando"
+  },
   "newAgent": "Nuevo agente",
   "noMessages": "Sin mensajes aún.",
   "agentNotConfigured": "Agente aún no configurado.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -312,5 +317,24 @@
     "planRejected": "Plan devuelto para revisión.",
     "startScopingTooltip": "Iniciar entrevista estructurada de delimitación y verificación",
     "buttonLabel": "Puerta de delimitación"
+  },
+  "watchdog": {
+    "title": "Vigilante automático",
+    "off": "Vigilante: Desactivado",
+    "active": "Vigilante: {{minutes}}m",
+    "tooltipOff": "Vigilante automático: Desactivado. Clic para activar reintento automático de 2m/5m al bloquearse.",
+    "tooltipActive": "Vigilante automático: Supervisando cada {{minutes}}m. Detiene y reintenta automáticamente si se bloquea.",
+    "menuTitle": "Intervalo de vigilancia",
+    "optionOff": "Desactivado",
+    "option2m": "Cada 2 minutos",
+    "option5m": "Cada 5 minutos",
+    "option10m": "Cada 10 minutos",
+    "checkNow": "Verificar progreso y reintentar ahora",
+    "triggerToast": "El mensaje lleva más de {{minutes}}m detenido sin avance. Deteniendo y reintentando automáticamente...",
+    "retrySuccess": "El vigilante ha reintentado el mensaje con éxito.",
+    "stoppedOnly": "El proceso bloqueado se detuvo y se reinició. Por favor, vuelva a enviar su mensaje.",
+    "healthy": "El equipo está activo y procesando normalmente.",
+    "idle": "El equipo está inactivo. No hay proceso activo que reintentar.",
+    "maxRetriesReached": "El proceso se bloqueó repetidamente. Recuperación automática finalizada. Verifique la configuración del agente."
   }
 }

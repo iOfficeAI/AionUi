@@ -9,7 +9,6 @@ import type { ChatFileRef } from '@/common/types/chatFile';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import ConversationPlanBar from '@renderer/pages/conversation/PlanBar/ConversationPlanBar';
-import { TeamworkPanel } from '@renderer/components/Teamwork';
 import { usePlanRecovery } from '@renderer/pages/conversation/PlanBar/usePlanRecovery';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
@@ -99,7 +98,6 @@ const AionrsChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <ConversationPlanBar conversation_id={conversation_id} />
-          <TeamworkPanel conversation_id={conversation_id} workspace={workspace} />
           <AionrsSendBox
             conversation_id={conversation_id}
             modelSelection={modelSelection}

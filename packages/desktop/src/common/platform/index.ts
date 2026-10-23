@@ -96,4 +96,16 @@ export type {
   INetworkService,
 } from './IPlatformServices';
 
-export { configurePortableUserData, getPortableUserDataDir } from './userDataPath';
+export {
+  clearStoredCustomDataDir,
+  configurePortableUserData,
+  DATA_LOCATION_FILE,
+  getDefaultUserDataDir,
+  getPortableUserDataDir,
+  getStoredCustomDataDir,
+  getUserDataDir,
+  isPortableMode,
+  isSystemInstallationDir,
+  scanAndPrepareDataDir,
+  setStoredCustomDataDir,
+} from './userDataPath';

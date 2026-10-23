@@ -765,7 +765,11 @@
       }
     },
     "pathCopied": "Yol kopyalandı",
-    "copyFailed": "Yol kopyalanamadı"
+    "copyFailed": "Yol kopyalanamadı",
+    "showSizes": "Dosya boyutlarını göster",
+    "showDates": "Dosya tarihlerini göster",
+    "followAgentOn": "Ajan etkinliğini izle (otomatik açma)",
+    "followAgentOff": "Ajan izleme kapalı"
   },
   "terminal": {
     "running": "Çalışıyor",

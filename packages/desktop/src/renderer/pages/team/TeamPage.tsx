@@ -1,13 +1,19 @@
 import { Button, Dropdown, Menu, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
-import { Audit, FullScreen, Left, MoreOne, OffScreen, Peoples, Right } from '@icon-park/react';
+import { FullScreen, Left, MoreOne, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
-import { teamScoping } from '@/common/adapter/ipcBridge';
-import type { ITeamSlotWork, TeamAssistant, TeamContextResetAvailability, TTeam } from '@/common/types/team/teamTypes';
+import type {
+  ITeamSlotWork,
+  TeamAssistant,
+  TeamContextResetAvailability,
+  TeammateStatus,
+  TTeam,
+} from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import {
   classifyConfigSetError,
@@ -21,20 +27,21 @@ import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { Browser } from '@icon-park/react';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
-import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
+import { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
 import AcpRuntimeRestartButton, { useAcpRuntimeRestart } from '@/renderer/components/agent/AcpRuntimeRestartButton';
-import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
-import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
-import TeamTabs from './components/TeamTabs';
+import TeamTabs, { TeamActiveMembers } from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
+import AgentStatusBadge from './components/AgentStatusBadge';
 import TeamViewToggle from './components/TeamViewToggle';
 import TeamNewTaskButton from './components/TeamNewTaskButton';
 import TeamActivityView from './activity/TeamActivityView';
 import TeamWarmupOverlay from './components/TeamWarmupOverlay';
 import { useTeamViewMode } from './hooks/useTeamViewMode';
+import type { ChatFileRef } from '@/common/types/chatFile';
+import { TeamWatchdogToggle, useTeamWatchdog } from './watchdog';
 import { useTeamWarmup, type TeamWarmupMemberState, type TeamWarmupPhase } from './hooks/useTeamWarmup';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamIdentityProvider } from './identity/TeamIdentityContext';
@@ -76,52 +83,6 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
-};
-
-/** Compact aionrs model selector for the agent header */
-const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
-  conversation_id,
-  initialModel,
-}) => {
-  const { t } = useTranslation();
-  const teamPermission = useTeamPermission();
-  const onSelectModel = useCallback(
-    async (_provider: IProvider, modelName: string) => {
-      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
-      return Boolean(ok);
-    },
-    [conversation_id]
-  );
-  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
-  const runtimeConfig = useAcpConfigOptions({
-    conversation_id,
-    prepareSetRuntime: teamPermission?.warmupSession,
-    configOptionsPort: teamPermission?.configOptionsPort,
-    enabled: Boolean(conversation_id),
-  });
-  const handleThoughtLevelSetOption = useCallback(
-    async (optionId: string, value: string) => {
-      try {
-        const result = await runtimeConfig.setConfigOption(optionId, value);
-        Message.success(t('agent.thoughtLevel.switchSuccess'));
-        return result;
-      } catch (error) {
-        Message.error(t(configErrorMessageKey(error)));
-        throw error;
-      }
-    },
-    [runtimeConfig, t]
-  );
-  return (
-    <AionrsModelSelector
-      selection={modelSelection}
-      disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
-      thoughtLevel={runtimeConfig.thoughtLevel}
-      setStatus={runtimeConfig.setStatus}
-      onSetThoughtLevel={handleThoughtLevelSetOption}
-    />
-  );
 };
 
 const contextResetAvailabilityMessageKey = (availability: TeamContextResetAvailability) => {
@@ -400,17 +361,8 @@ const TeamAgentControls: React.FC<{
   const conversation = propConversation ?? fetchedConversation;
 
   const isAionrs = conversation?.type === 'aionrs';
-  const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
-
-  const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
-    () => ({
-      status: warmupStatus ?? (warmupDisabled ? 'dormant' : runtimeAvailabilityToWarmupStatus(fallbackAvailability)),
-      trigger: warmupDisabled ? undefined : buildTeamRetryStartHandler({ team_id, slot_id: assistant.slot_id }),
-    }),
-    [warmupStatus, fallbackAvailability, warmupDisabled, team_id, assistant.slot_id]
-  );
   const runtimeActionAvailability = resolveRuntimeActionAvailability({
     warmupStatus,
     warmupDisabled: Boolean(warmupDisabled),
@@ -437,19 +389,6 @@ const TeamAgentControls: React.FC<{
   return (
     <div className='flex items-center gap-8px shrink-0'>
       {conversation && <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />}
-      {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
-        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
-          <AcpModelSelector
-            key={assistant.conversation_id}
-            conversation_id={assistant.conversation_id}
-            backend={assistant.assistant_backend}
-            initialModelId={initialModelId}
-            prepareSetRuntime={teamPermission?.warmupSession}
-            configOptionsPort={teamPermission?.configOptionsPort}
-            warmup={warmup}
-          />
-        </div>
-      )}
       {assistant.conversation_id && !isAionrs && isAcpLike && isLeader && (
         <div className='shrink-0'>
           <AcpRuntimeRestartButton
@@ -471,15 +410,6 @@ const TeamAgentControls: React.FC<{
             runtimeAvailability={runtimeActionAvailability}
             contextResetAvailability={contextResetAvailability}
             onRuntimeChanged={handleRuntimeChanged}
-          />
-        </div>
-      )}
-      {!isMobile && isAionrs && assistant.conversation_id && (
-        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
-          <AionrsHeaderModelSelector
-            key={assistant.conversation_id}
-            conversation_id={assistant.conversation_id}
-            initialModel={conversation?.model as TProviderWithModel | undefined}
           />
         </div>
       )}
@@ -518,85 +448,90 @@ const AssistantChatSlot: React.FC<{
   warmupDisabled?: boolean;
   /** 是否展示独立列头（单聊视图与单成员时隐藏，由顶部 Row 2 统一呈现） */
   showHeader?: boolean;
-}> = ({
-  assistant,
-  team_id,
-  isLeader,
-  color,
-  isFullscreen = false,
-  onToggleFullscreen,
-  teamRunView,
-  onTeamRunAck,
-  onTeamSlotPaused,
-  onRunStateStale,
-  warmupStatus,
-  fallbackAvailability,
-  warmupDisabled,
-  showHeader = true,
-}) => {
-  const { data: conversation, mutate: mutateConversation } = useSWR(
-    assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
-    () => getConversationOrNull(assistant.conversation_id)
-  );
+  onPromptSent?: (payload: { input: string; files?: ChatFileRef[]; slot_id?: string }) => void;
+}> = React.memo(
+  ({
+    assistant,
+    team_id,
+    isLeader,
+    color,
+    isFullscreen = false,
+    onToggleFullscreen,
+    teamRunView,
+    onTeamRunAck,
+    onTeamSlotPaused,
+    onRunStateStale,
+    warmupStatus,
+    fallbackAvailability,
+    warmupDisabled,
+    showHeader = true,
+    onPromptSent,
+  }) => {
+    const { data: conversation, mutate: mutateConversation } = useSWR(
+      assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
+      () => getConversationOrNull(assistant.conversation_id)
+    );
 
-  const handleRuntimeChanged = useCallback(async () => {
-    await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
-  }, [mutateConversation, onRunStateStale]);
+    const handleRuntimeChanged = useCallback(async () => {
+      await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
+    }, [mutateConversation, onRunStateStale]);
 
-  return (
-    <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
-      {showHeader && (
-        <div className='flex items-center justify-between gap-8px px-12px h-36px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
-          <TeamAgentIdentity
-            assistant_name={assistant.assistant_name}
-            assistant_backend={assistant.assistant_backend}
-            icon={assistant.icon}
-            conversation_id={assistant.conversation_id}
-            isLeader={isLeader}
-            className='min-w-0'
-            nameClassName='text-13px font-600'
-            nameStyle={{ color }}
-          />
-          <TeamAgentControls
-            assistant={assistant}
-            team_id={team_id}
-            isLeader={isLeader}
-            isFullscreen={isFullscreen}
-            onToggleFullscreen={onToggleFullscreen}
-            teamRunView={teamRunView}
-            onRunStateStale={onRunStateStale}
-            warmupStatus={warmupStatus}
-            fallbackAvailability={fallbackAvailability}
-            warmupDisabled={warmupDisabled}
-            conversation={conversation}
-            onRuntimeChanged={handleRuntimeChanged}
-          />
-        </div>
-      )}
-      <div className='relative flex flex-col flex-1 min-h-0'>
-        {conversation ? (
-          <TeamChatView
-            conversation={conversation as TChatConversation}
-            team_id={team_id}
-            slot_id={assistant.slot_id}
-            assistant_name={assistant.assistant_name}
-            assistant_backend={assistant.assistant_backend}
-            agent_icon={assistant.icon}
-            isLeader={isLeader}
-            teamRunView={teamRunView}
-            onTeamRunAck={onTeamRunAck}
-            onTeamSlotPaused={onTeamSlotPaused}
-            onRunStateStale={() => onRunStateStale('pause.result')}
-          />
-        ) : (
-          <div className='flex flex-1 items-center justify-center'>
-            <Spin loading />
+    return (
+      <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
+        {showHeader && (
+          <div className='flex items-center justify-between gap-8px px-12px h-36px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
+            <TeamAgentIdentity
+              assistant_name={assistant.assistant_name}
+              assistant_backend={assistant.assistant_backend}
+              icon={assistant.icon}
+              conversation_id={assistant.conversation_id}
+              isLeader={isLeader}
+              className='min-w-0'
+              nameClassName='text-13px font-600'
+              nameStyle={{ color }}
+            />
+            <TeamAgentControls
+              assistant={assistant}
+              team_id={team_id}
+              isLeader={isLeader}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={onToggleFullscreen}
+              teamRunView={teamRunView}
+              onRunStateStale={onRunStateStale}
+              warmupStatus={warmupStatus}
+              fallbackAvailability={fallbackAvailability}
+              warmupDisabled={warmupDisabled}
+              conversation={conversation}
+              onRuntimeChanged={handleRuntimeChanged}
+            />
           </div>
         )}
+        <div className='relative flex flex-col flex-1 min-h-0'>
+          {conversation ? (
+            <TeamChatView
+              conversation={conversation as TChatConversation}
+              team_id={team_id}
+              slot_id={assistant.slot_id}
+              assistant_name={assistant.assistant_name}
+              assistant_backend={assistant.assistant_backend}
+              agent_icon={assistant.icon}
+              isLeader={isLeader}
+              teamRunView={teamRunView}
+              onTeamRunAck={onTeamRunAck}
+              onTeamSlotPaused={onTeamSlotPaused}
+              onRunStateStale={() => onRunStateStale('pause.result')}
+              onPromptSent={onPromptSent}
+            />
+          ) : (
+            <div className='flex flex-1 items-center justify-center'>
+              <Spin loading />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
 
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({
@@ -608,7 +543,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
 }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
+  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation, statusMap } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -623,12 +558,14 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   const activeAssistant = assistants.find((assistant) => assistant.slot_id === activeSlotId);
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
   const teamRun = useTeamRunView(team.id);
+  const watchdog = useTeamWatchdog({ team_id: team.id, teamRun, statusMap, assistants });
 
   // 进团队 warmup：以团队会话整体就绪为闸门（ensureSession resolve = 全员成功）。遮罩覆盖对话区。
   // runtimeStatus 是各成员逐个的真实唤醒信号，用于遮罩头像的「唤醒中→点亮」及失败态定位。
   // 仅在「唤醒进行中」禁用改成员；失败态（error/timeout）要放开，让用户能移除失败成员来自救。
   const isWarmingUp = warmupPhase === 'warming';
   const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
+
   const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
     unit: 'px',
     defaultWidth: 540,
@@ -800,6 +737,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     if (assistants[target]) handleTabClick(assistants[target].slot_id);
   }, [assistants, activeSlotId, handleTabClick]);
 
+  const handleExitFullscreen = useCallback(() => setViewMode('parallel'), [setViewMode]);
+
   // Keyboard navigation: Alt+Left / Alt+Right to cycle through members
   useEffect(() => {
     if (assistants.length <= 1) return;
@@ -914,6 +853,20 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     [handleTabClick, slotPendingCounts, isWarmingUp, warmupFailedSlotIds, rightControls]
   );
 
+  const activeMembersSlot = useMemo(
+    () => (
+      <TeamActiveMembers
+        assistants={assistants}
+        statusMap={statusMap}
+        activeSlotId={activeSlotId}
+        colorOf={colorOf}
+        onSelectMember={handleTabClick}
+        slotWorkBySlot={teamRun.state.slotWorkBySlot}
+      />
+    ),
+    [assistants, statusMap, activeSlotId, colorOf, handleTabClick, teamRun.state.slotWorkBySlot]
+  );
+
   return (
     <TeamPermissionProvider
       team_id={team.id}
@@ -926,6 +879,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
         {messageContext}
         <ChatLayout
           title={team.name}
+          titleExtra={activeMembersSlot}
           siderTitle={siderTitle}
           sider={sider}
           workspaceEnabled={workspaceEnabled}
@@ -940,6 +894,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
           headerExtra={
             <div className='flex items-center gap-10px'>
               {assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
+              <TeamWatchdogToggle
+                intervalMs={watchdog.intervalMs}
+                onChangeInterval={watchdog.setIntervalMs}
+                onCheckAndRetryNow={watchdog.checkAndRetryNow}
+                isMonitoring={watchdog.isMonitoring}
+                isRecovering={watchdog.isRecovering}
+              />
               <Tooltip content={t('conversation.browser.title', 'Browser')} position='bottom'>
                 <Button
                   size='small'
@@ -956,27 +917,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                   void mutateDispatchConversation();
                 }}
               />
-              <Tooltip
-                content={t('team.scoping.startScopingTooltip', {
-                  defaultValue: 'Start Structured Scoping & Verification Interview',
-                })}
-                position='bottom'
-              >
-                <Button
-                  size='small'
-                  type='secondary'
-                  icon={<Audit theme='outline' size='14' />}
-                  onClick={async () => {
-                    await teamScoping.initiate({
-                      team_id: team.id,
-                      userRequest: team.name,
-                      workspace: team.workspace,
-                    });
-                  }}
-                >
-                  {t('team.scoping.buttonLabel', { defaultValue: 'Scoping Gate' })}
-                </Button>
-              </Tooltip>
             </div>
           }
           headerLeading={
@@ -1003,12 +943,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                 // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
                 // 左右导航箭头让用户在多个成员之间切换，解决单聊视图下成员不可见的问题。
                 (() => {
-                  const assistant = currentAssistant;
-                  if (!assistant) return null;
-                  const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
                   const activeIdx = assistants.findIndex((a) => a.slot_id === activeSlotId);
                   const hasPrev = assistants.length > 1 && activeIdx > 0;
                   const hasNext = assistants.length > 1 && activeIdx < assistants.length - 1;
+                  const currentSlotId = currentAssistant?.slot_id ?? activeSlotId;
                   return (
                     <div className='flex-1 h-full relative'>
                       {/* Prev member arrow — single view */}
@@ -1032,25 +970,39 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                           </div>
                         </Tooltip>
                       )}
-                      <AssistantChatSlot
-                        key={`${assistant.slot_id}-${taskEpoch}`}
-                        assistant={assistant}
-                        team_id={team.id}
-                        isLeader={isLeaderSlot}
-                        color={colorOf(assistant.slot_id)}
-                        isFullscreen
-                        onToggleFullscreen={() => setViewMode('parallel')}
-                        teamRunView={teamRun.state}
-                        onTeamRunAck={teamRun.applyAck}
-                        onTeamSlotPaused={teamRun.applyLocalPause}
-                        onRunStateStale={teamRun.reconcile}
-                        warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
-                        fallbackAvailability={
-                          isLeaderSlot ? teamWarmupPhaseAvailability(warmupPhase) : assistant.context_reset.availability
-                        }
-                        warmupDisabled={isWarmingUp}
-                        showHeader={false}
-                      />
+                      {assistants.map((assistant) => {
+                        const isCurrentSlot = assistant.slot_id === currentSlotId;
+                        const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                        return (
+                          <div
+                            key={`${assistant.slot_id}-${taskEpoch}`}
+                            className='h-full w-full'
+                            style={{ display: isCurrentSlot ? 'flex' : 'none' }}
+                          >
+                            <AssistantChatSlot
+                              assistant={assistant}
+                              team_id={team.id}
+                              isLeader={isLeaderSlot}
+                              color={colorOf(assistant.slot_id)}
+                              isFullscreen
+                              onToggleFullscreen={handleExitFullscreen}
+                              teamRunView={teamRun.state}
+                              onTeamRunAck={teamRun.applyAck}
+                              onTeamSlotPaused={teamRun.applyLocalPause}
+                              onRunStateStale={teamRun.reconcile}
+                              warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
+                              fallbackAvailability={
+                                isLeaderSlot
+                                  ? teamWarmupPhaseAvailability(warmupPhase)
+                                  : assistant.context_reset.availability
+                              }
+                              warmupDisabled={isWarmingUp}
+                              showHeader={false}
+                              onPromptSent={watchdog.recordSentPrompt}
+                            />
+                          </div>
+                        );
+                      })}
                       {/* Next member arrow — single view */}
                       {hasNext && (
                         <Tooltip content={`${t('team.nextMember')} (Alt+→)`} position='left'>
@@ -1148,6 +1100,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
                             }
                             warmupDisabled={isWarmingUp}
                             showHeader={assistants.length > 1}
+                            onPromptSent={watchdog.recordSentPrompt}
                           />
                         </div>
                       );

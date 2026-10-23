@@ -50,13 +50,13 @@ import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/f
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
 import { Button, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { Brain, Lightning, MagicHat, Plan, Shield } from '@icon-park/react';
+import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { extractTeamworkTask, isTeamworkSlashCommand } from '@/common/chat/slash/antigravityCommands';
 import { classifyConversationBusyError } from '../conversationBusyError';
 import { useAionrsMessage, type UseAionrsMessageReturn } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+import AionrsModelSelector from './AionrsModelSelector';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -203,6 +203,19 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxProps & { messageState: UseAionr
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
 
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
@@ -400,37 +413,12 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxProps & { messageState: UseAionr
   // read it — every send path has to both forward and release it.
   const [selectedSessions, setSelectedSessions] = useState<SessionRef[]>([]);
   const { enabled: crossSessionEnabled } = useCrossSessionMessageEnabled();
-  const [isTeamworkMode, setIsTeamworkMode] = useState(false);
 
   // aionrs backends never support mid-turn delivery: while the agent is
   // replying, sending is hard-blocked with a toast instead of implicitly
   // enqueuing. The only way to queue a message while busy is the explicit
   // "add to queue" entry (handleAddToQueue below).
   const onSendHandler = async (message: string): Promise<void | false> => {
-    // Intercept execution for Teamwork mode before file edits occur
-    if (isTeamworkSlashCommand(message) || isTeamworkMode) {
-      const task = extractTeamworkTask(message) || message;
-      clearFiles();
-      setSelectedSessions([]);
-      emitter.emit('aionrs.selected.file.clear');
-      try {
-        const res = await ipcBridge.teamwork.initiate({
-          conversationId: conversation_id,
-          userRequest: task,
-          workspace: conversationContext?.workspace,
-        });
-        if (res.success) {
-          Message.info(t('team.teamwork.interviewTitle'));
-          return;
-        } else if (res.error) {
-          Message.error(res.error);
-        }
-      } catch (err) {
-        Message.error(err instanceof Error ? err.message : String(err));
-      }
-      return;
-    }
-
     if (isBusy) {
       Message.warning(
         t('conversation.commandQueue.midturnBlocked', {
@@ -844,17 +832,17 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxProps & { messageState: UseAionr
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            <Tooltip content={t('team.teamwork.modeTooltip')}>
-              <Button
-                size='mini'
-                type={isTeamworkMode ? 'primary' : 'secondary'}
-                shape='round'
-                icon={<Plan theme='outline' size='14' />}
-                onClick={() => setIsTeamworkMode((prev) => !prev)}
-              >
-                {t('team.teamwork.modeLabel')}
-              </Button>
-            </Tooltip>
+            {!isMobile && (
+              <div className='min-w-0 max-w-180px [&_button]:max-w-full [&_button_span]:truncate'>
+                <AionrsModelSelector
+                  selection={modelSelection}
+                  disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
+                  thoughtLevel={runtimeConfig.thoughtLevel}
+                  setStatus={runtimeConfig.setStatus}
+                  onSetThoughtLevel={handleThoughtLevelSetOption}
+                />
+              </div>
+            )}
             <AgentModeSelector
               backend='aionrs'
               conversation_id={conversation_id}

@@ -22,6 +22,10 @@
     "editTeam": "編輯團隊",
     "deleteFailed": "刪除團隊失敗"
   },
+  "activeMembers": {
+    "title": "工作中成員",
+    "workingTooltip": "{{name}} 正在工作中"
+  },
   "newAgent": "新助手",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "助手尚未設定。",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "新增成員",
+    "btn": "+Mate",
     "subtitle": "同一助手可被反覆新增",
     "searchAssistants": "搜尋助手...",
     "addFailed": "新增成員失敗",
@@ -312,5 +317,24 @@
     "planRejected": "計畫已退回修改。",
     "startScopingTooltip": "啟動結構化範疇界定與驗證面試",
     "buttonLabel": "範疇界定門禁"
+  },
+  "watchdog": {
+    "title": "自動看門狗",
+    "off": "看門狗：已關閉",
+    "active": "看門狗：{{minutes}}分鐘",
+    "tooltipOff": "自動看門狗：未啟用。點擊可啟用 2分鐘/5分鐘 卡死自動重試。",
+    "tooltipActive": "自動看門狗：每 {{minutes}} 分鐘檢查一次，發現卡死時自動停止並重試。",
+    "menuTitle": "自動看門狗檢查間隔",
+    "optionOff": "關閉",
+    "option2m": "每 2 分鐘",
+    "option5m": "每 5 分鐘",
+    "option10m": "每 10 分鐘",
+    "checkNow": "立即檢查進度並重試",
+    "triggerToast": "提示詞已停滯超過 {{minutes}} 分鐘無進度，正在自動停止並重試...",
+    "retrySuccess": "看門狗已成功自動重試提示詞。",
+    "stoppedOnly": "已停止卡死的程序，請重新輸入提示詞。",
+    "healthy": "團隊正在正常運行中。",
+    "idle": "團隊處於空閒狀態，無運行中的任務。",
+    "maxRetriesReached": "多次重試仍卡死，已停止自動恢復。請檢查智慧體配置。"
   }
 }

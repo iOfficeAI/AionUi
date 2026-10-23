@@ -26,6 +26,8 @@ export type SiderItemProps = {
   onMenuAction?: (key: string) => void;
   onClick?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 };
 
 const SiderItem: React.FC<SiderItemProps> = ({
@@ -37,6 +39,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
   onMenuAction,
   onClick,
   onContextMenu,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const layout = useLayoutContext();
@@ -93,6 +97,8 @@ const SiderItem: React.FC<SiderItemProps> = ({
           )}
           onClick={onClick}
           onContextMenu={onContextMenu}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
         >
           {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
           <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>

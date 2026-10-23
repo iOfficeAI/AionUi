@@ -763,7 +763,11 @@
       }
     },
     "pathCopied": "경로가 복사되었습니다",
-    "copyFailed": "경로 복사에 실패했습니다"
+    "copyFailed": "경로 복사에 실패했습니다",
+    "showSizes": "파일 크기 표시",
+    "showDates": "수정일 표시",
+    "followAgentOn": "에이전트 활동 추적 중 (자동 펼치기)",
+    "followAgentOff": "에이전트 활동 추적 꺼짐"
   },
   "terminal": {
     "running": "실행 중",

@@ -28,8 +28,11 @@ import {
 } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSWRConfig } from 'swr';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { prefetchConversationMessages } from '@/renderer/pages/conversation/Messages/hooks';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
@@ -68,6 +71,34 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     getJobStatus,
   } = props;
   const { t } = useTranslation();
+  const { mutate } = useSWRConfig();
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    if (batchMode || selected) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      void mutate(`conversation/${conversation.id}`, () => getConversationOrNull(conversation.id), {
+        revalidate: false,
+      });
+      void prefetchConversationMessages(conversation.id);
+    }, 60);
+  };
+
+  const handleMouseLeave = () => {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+      prefetchTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (prefetchTimerRef.current) {
+        clearTimeout(prefetchTimerRef.current);
+      }
+    };
+  }, []);
+
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
   // Fork-lineage badge: present only on forked conversations (extra.fork is
@@ -184,6 +215,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         )}
         onClick={handleRowClick}
         onContextMenu={handleRowContextMenu}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {batchMode && (
           <span

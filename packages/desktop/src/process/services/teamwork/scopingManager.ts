@@ -9,6 +9,8 @@ import path from 'path';
 import type {
   ApproveTeamPlanParams,
   ApproveTeamPlanResponse,
+  CancelTeamScopingParams,
+  CancelTeamScopingResponse,
   GetTeamScopingStateResponse,
   ITeamScopingStatusChangedEvent,
   InitiateTeamScopingParams,
@@ -462,6 +464,22 @@ export class TeamScopingManager {
 
     state.status = 'scoping';
     state.error = reason || 'Plan rejected for revision.';
+    this.notify(state);
+
+    return { success: true, state };
+  }
+
+  /**
+   * Cancel scoping interview or reset scoping session to idle.
+   */
+  async cancelScoping(params: CancelTeamScopingParams): Promise<CancelTeamScopingResponse> {
+    const { team_id } = params;
+    const state = this.states.get(team_id);
+    if (!state) {
+      return { success: true };
+    }
+
+    state.status = 'idle';
     this.notify(state);
 
     return { success: true, state };

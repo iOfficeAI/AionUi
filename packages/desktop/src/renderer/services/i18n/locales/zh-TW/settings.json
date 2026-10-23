@@ -1426,5 +1426,16 @@
   "backupFailed": "備份資料失敗",
   "openBackupDir": "開啟目錄",
   "mcpServers": "MCP 服務與工具",
-  "browserAutomation": "瀏覽器自動化"
+  "browserAutomation": "瀏覽器自動化",
+  "gatewayCombos": "閘道與組合模型",
+  "platformGeminiGoogleLogin": "Google 登入 (Gemini / Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "請先透過 Google 帳號登入",
+  "googleLoginHint": "使用 Google 帳號登入以使用 Gemini 與 Antigravity 模型，無需 API Key",
+  "omnirouteTip": "透過 OmniRoute 閘道連線，支援 Claude、Google Antigravity 及 Gemini，無需個別輸入 API Key。",
+  "modelProviderHub": "模型供應商中心",
+  "dataDir": "資料儲存目錄",
+  "dataDirDesc": "儲存與備份所有資料（資料庫、工作區檔案、設定與記錄）的統一資料夾",
+  "changeDataDir": "變更資料儲存目錄",
+  "dataDirRestartConfirm": "變更資料儲存目錄需要重新啟動 AionUi。AionUi 將首先掃描所選資料夾並載入資料，且不會刪除任何現有檔案。是否立即重新啟動？"
 }

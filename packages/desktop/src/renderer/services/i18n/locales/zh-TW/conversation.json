@@ -763,7 +763,11 @@
       }
     },
     "pathCopied": "已複製路徑",
-    "copyFailed": "複製路徑失敗"
+    "copyFailed": "複製路徑失敗",
+    "showSizes": "顯示檔案大小",
+    "showDates": "顯示修改時間",
+    "followAgentOn": "追蹤 Agent 活動（自動展開）",
+    "followAgentOff": "已停止追蹤 Agent 活動"
   },
   "terminal": {
     "running": "執行中",

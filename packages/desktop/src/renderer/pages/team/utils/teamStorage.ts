@@ -14,6 +14,7 @@ export const TEAM_STORAGE_PREFIXES = [
   'team-activity-controls-',
   'team-memory-',
   'team-agent-memory-',
+  'team-watchdog-interval-',
 ] as const;
 
 /**

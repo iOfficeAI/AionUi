@@ -763,7 +763,11 @@
       }
     },
     "pathCopied": "Chemin copié",
-    "copyFailed": "Échec de la copie du chemin"
+    "copyFailed": "Échec de la copie du chemin",
+    "showSizes": "Afficher la taille des fichiers",
+    "showDates": "Afficher les dates",
+    "followAgentOn": "Suivi de l'activité de l'agent (dépliage auto)",
+    "followAgentOff": "Suivi de l'agent désactivé"
   },
   "terminal": {
     "running": "En cours",

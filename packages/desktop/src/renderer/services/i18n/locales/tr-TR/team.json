@@ -22,6 +22,10 @@
     "editTeam": "Takımı Düzenle",
     "deleteFailed": "Takım silinemedi"
   },
+  "activeMembers": {
+    "title": "Aktif Üyeler",
+    "workingTooltip": "{{name}} çalışıyor"
+  },
   "newAgent": "Yeni Asistan",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Asistan henüz yapılandırılmadı.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -312,5 +317,24 @@
     "planRejected": "Plan revizyon için geri gönderildi.",
     "startScopingTooltip": "Yapılandırılmış Kapsam ve Doğrulama Mülakatını Başlat",
     "buttonLabel": "Kapsam Kapısı"
+  },
+  "watchdog": {
+    "title": "Otomatik Gözlemci (Watchdog)",
+    "off": "Gözlemci: Kapalı",
+    "active": "Gözlemci: {{minutes}}dk",
+    "tooltipOff": "Otomatik Gözlemci: Devre dışı. Takılma durumunda 2dk/5dk otomatik yeniden denemeyi etkinleştirmek için tıklayın.",
+    "tooltipActive": "Otomatik Gözlemci: Her {{minutes}} dakikada bir kontrol ediliyor. Donarsa otomatik durdurur ve yeniden dener.",
+    "menuTitle": "Otomatik Gözlemci Aralığı",
+    "optionOff": "Kapalı",
+    "option2m": "Her 2 dakikada bir",
+    "option5m": "Her 5 dakikada bir",
+    "option10m": "Her 10 dakikada bir",
+    "checkNow": "İlerlemeyi Kontrol Et ve Şimdi Yeniden Dene",
+    "triggerToast": "İstem {{minutes}} dakikadan uzun süredir ilerlemeden takılı kaldı. Otomatik durduruluyor ve yeniden deneniyor...",
+    "retrySuccess": "Gözlemci istemi başarıyla yeniden denedi.",
+    "stoppedOnly": "Takılan işlem durduruldu ve sıfırlandı. Lütfen isteminizi yeniden gönderin.",
+    "healthy": "Takım aktif ve normal şekilde çalışıyor.",
+    "idle": "Takım boşta. Yeniden denenecek aktif işlem yok.",
+    "maxRetriesReached": "İşlem defalarca takıldı. Otomatik kurtarma durduruldu. Lütfen ajan yapılandırmasını kontrol edin."
   }
 }

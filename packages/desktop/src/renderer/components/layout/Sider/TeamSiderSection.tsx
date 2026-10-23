@@ -7,7 +7,7 @@
 import { Delete, Edit, EditOne, FolderClose, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
 import { Dropdown, Input, Menu, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
@@ -109,6 +109,38 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
     },
     [navigate, onSessionClick]
   );
+
+  const prefetchTimerRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const handleTeamHover = useCallback(
+    (team_id: string) => {
+      if (prefetchTimerRef.current.has(team_id)) return;
+      const timer = setTimeout(() => {
+        void globalMutate(`team/${team_id}`, () => ipcBridge.team.get.invoke({ id: team_id }), {
+          revalidate: false,
+        });
+        prefetchTimerRef.current.delete(team_id);
+      }, 60);
+      prefetchTimerRef.current.set(team_id, timer);
+    },
+    [globalMutate]
+  );
+
+  const handleTeamHoverLeave = useCallback((team_id: string) => {
+    const timer = prefetchTimerRef.current.get(team_id);
+    if (timer) {
+      clearTimeout(timer);
+      prefetchTimerRef.current.delete(team_id);
+    }
+  }, []);
+
+  useEffect(() => {
+    const activeTimers = prefetchTimerRef.current;
+    return () => {
+      activeTimers.forEach((timer) => clearTimeout(timer));
+      activeTimers.clear();
+    };
+  }, []);
 
   // Archive-first: teams are archived (not hard-deleted) from the sider. The
   // backend team list excludes archived rows, so the refresh drops it here;
@@ -247,6 +279,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                         isActive ? '!bg-active' : 'hover:bg-fill-3 active:bg-fill-4'
                       )}
                       onClick={() => handleTeamClick(team.id)}
+                      onMouseEnter={() => handleTeamHover(team.id)}
+                      onMouseLeave={() => handleTeamHoverLeave(team.id)}
                     >
                       {isRunning ? (
                         <span
@@ -349,6 +383,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                     menuItems={menuItems}
                     onMenuAction={(key) => handleMenuAction(key, team)}
                     onClick={() => handleTeamClick(team.id)}
+                    onMouseEnter={() => handleTeamHover(team.id)}
+                    onMouseLeave={() => handleTeamHoverLeave(team.id)}
                   />
                   {teamBadge > 0 && (
                     <span

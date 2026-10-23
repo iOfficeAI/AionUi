@@ -668,10 +668,12 @@ export const application = {
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
   systemInfo: withResponseMap(
-    httpGet<{ cache_dir: string; work_dir: string; log_dir: string; platform: string; arch: string }, void>(
-      '/api/system/info'
-    ),
+    httpGet<
+      { cache_dir: string; work_dir: string; log_dir: string; platform: string; arch: string; data_dir?: string },
+      void
+    >('/api/system/info'),
     (raw) => ({
+      dataDir: raw.data_dir,
       cacheDir: raw.cache_dir,
       workDir: raw.work_dir,
       logDir: raw.log_dir,
@@ -682,9 +684,10 @@ export const application = {
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
   // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
   // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
-  updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string; logDir?: string }>(
-    'update-system-info'
-  ),
+  updateSystemInfo: bridge.buildProvider<
+    void,
+    { dataDir?: string; cacheDir?: string; workDir?: string; logDir?: string }
+  >('update-system-info'),
   backupData: bridge.buildProvider<{ success: boolean; backupPath?: string }, { targetDir: string }>(
     'application.backup-data'
   ),
@@ -1057,6 +1060,10 @@ export const googleAuth = {
     success: false,
     msg: 'Google Auth not available in backend mode',
   }),
+  /** Trigger Google OAuth sign-in flow (opens browser). */
+  login: httpPost<{ success: boolean; account?: string; error?: string }, { proxy?: string }>('/api/google/auth/login'),
+  /** Sign out of Google account. */
+  logout: httpPost<{ success: boolean }, void>('/api/google/auth/logout'),
 };
 
 // ---------------------------------------------------------------------------
@@ -2577,6 +2584,12 @@ export const teamScoping = {
   rejectPlan: async (params: import('../types/teamwork').RejectTeamPlanParams) => {
     if (typeof window !== 'undefined' && window.electronAPI?.teamRejectPlan) {
       return window.electronAPI.teamRejectPlan(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  cancel: async (params: import('../types/teamwork').CancelTeamScopingParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamCancelScoping) {
+      return window.electronAPI.teamCancelScoping(params);
     }
     return { success: false, error: 'Team scoping is only supported in desktop mode' };
   },

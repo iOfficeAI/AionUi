@@ -8,14 +8,22 @@ import fs from 'fs';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearStoredCustomDataDir,
   copyDirectoryContentsSync,
   findAppRootDir,
+  getDefaultUserDataDir,
   getPortableUserDataDir,
+  getStoredCustomDataDir,
+  getUserDataDir,
   isAionUiRoot,
+  isPortableMode,
+  isSystemInstallationDir,
   migrateLegacyUserDataIfNeeded,
   rebasePortableDatabase,
   resetConfiguredUserDataDirForTesting,
   configurePortableUserData,
+  scanAndPrepareDataDir,
+  setStoredCustomDataDir,
 } from '@/common/platform/userDataPath';
 
 describe('userDataPath (Portable storage)', () => {
@@ -29,6 +37,8 @@ describe('userDataPath (Portable storage)', () => {
     delete process.env.AIONUI_MULTI_INSTANCE;
     delete process.env.AIONUI_E2E_TEST;
     delete process.env.AIONUI_E2E_USER_DATA_DIR;
+    delete process.env.AIONUI_PORTABLE;
+    delete process.env.PORTABLE_EXECUTABLE_DIR;
   });
 
   afterEach(() => {
@@ -144,6 +154,58 @@ describe('userDataPath (Portable storage)', () => {
       expect(mockApp.setPath).toHaveBeenCalledWith('logs', path.join(expectedData, 'logs'));
       expect(mockApp.setPath).toHaveBeenCalledWith('crashDumps', path.join(expectedData, 'crashDumps'));
     });
+
+    it('falls back to default OS userData when not in portable mode', () => {
+      process.env.AIONUI_PORTABLE = '0';
+      const defaultPath = path.join(tempTestDir, 'default-userData');
+
+      const mockApp = {
+        setPath: vi.fn(),
+        getPath: vi.fn((name: string) => (name === 'userData' ? defaultPath : '/mock/' + name)),
+      };
+
+      expect(isPortableMode()).toBe(false);
+
+      // When called with non-portable app, configurePortableUserData should not redirect to data/
+      const result = configurePortableUserData(mockApp as unknown as Electron.App);
+      expect(result).toBe(defaultPath);
+      expect(mockApp.setPath).not.toHaveBeenCalledWith('userData', expect.stringContaining('data'));
+    });
+  });
+
+  describe('isSystemInstallationDir and isPortableMode', () => {
+    it('identifies Windows Program Files as a system installation directory', () => {
+      expect(isSystemInstallationDir('C:\\Program Files\\AionUi')).toBe(true);
+      expect(isSystemInstallationDir('C:\\Program Files (x86)\\AionUi')).toBe(true);
+      expect(isSystemInstallationDir('C:\\Windows\\System32')).toBe(true);
+    });
+
+    it('disallows portable mode in system installation directories even if files exist', () => {
+      expect(isPortableMode('C:\\Program Files\\AionUi')).toBe(false);
+      expect(isPortableMode('C:\\Program Files (x86)\\AionUi')).toBe(false);
+    });
+
+    it('enables portable mode when explicit marker or env var is set', () => {
+      const portableDir = path.join(tempTestDir, 'portable-drive');
+      fs.mkdirSync(portableDir, { recursive: true });
+
+      expect(isPortableMode(portableDir)).toBe(false);
+
+      fs.writeFileSync(path.join(portableDir, '.portable'), '');
+      expect(isPortableMode(portableDir)).toBe(true);
+    });
+
+    it('getUserDataDir returns portable path when portable, default path otherwise', () => {
+      const appRoot = path.join(tempTestDir, 'app-portable');
+      fs.mkdirSync(appRoot, { recursive: true });
+      process.env.AIONUI_APP_ROOT = appRoot;
+
+      expect(getUserDataDir()).toBe(path.join(appRoot, 'data'));
+
+      delete process.env.AIONUI_APP_ROOT;
+      process.env.AIONUI_PORTABLE = '0';
+      expect(getUserDataDir()).toBe(getDefaultUserDataDir());
+    });
   });
 
   describe('rebasePortableDatabase', () => {
@@ -153,6 +215,70 @@ describe('userDataPath (Portable storage)', () => {
       rebasePortableDatabase(targetDir);
       // No DB, should not throw
       expect(true).toBe(true);
+    });
+  });
+
+  describe('custom data location and scanAndPrepareDataDir', () => {
+    afterEach(() => {
+      clearStoredCustomDataDir();
+    });
+
+    it('persists and retrieves custom data directory', () => {
+      const customFolder = path.join(tempTestDir, 'my-custom-folder');
+      fs.mkdirSync(customFolder, { recursive: true });
+
+      setStoredCustomDataDir(customFolder);
+      expect(getStoredCustomDataDir()).toBe(path.resolve(customFolder));
+      expect(getUserDataDir()).toBe(path.resolve(customFolder));
+
+      clearStoredCustomDataDir();
+      expect(getStoredCustomDataDir()).toBeNull();
+    });
+
+    it('scans and creates subdirectories without deleting anything', () => {
+      const targetDir = path.join(tempTestDir, 'target-scan');
+      fs.mkdirSync(targetDir, { recursive: true });
+
+      // Put an existing file in targetDir
+      fs.writeFileSync(path.join(targetDir, 'user-note.txt'), 'do not delete');
+
+      scanAndPrepareDataDir(targetDir);
+
+      expect(fs.existsSync(path.join(targetDir, 'aionui'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'config'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'logs'))).toBe(true);
+      expect(fs.existsSync(path.join(targetDir, 'crashDumps'))).toBe(true);
+      expect(fs.readFileSync(path.join(targetDir, 'user-note.txt'), 'utf8')).toBe('do not delete');
+    });
+
+    it('locates database at root and copies to aionui/ without deleting source', () => {
+      const targetDir = path.join(tempTestDir, 'target-with-root-db');
+      fs.mkdirSync(targetDir, { recursive: true });
+      const rootDb = path.join(targetDir, 'aionui-backend.db');
+      fs.writeFileSync(rootDb, 'sqlite-dummy-content');
+
+      scanAndPrepareDataDir(targetDir);
+
+      const nestedDb = path.join(targetDir, 'aionui', 'aionui-backend.db');
+      expect(fs.existsSync(nestedDb)).toBe(true);
+      expect(fs.readFileSync(nestedDb, 'utf8')).toBe('sqlite-dummy-content');
+      // Root DB must NOT be deleted
+      expect(fs.existsSync(rootDb)).toBe(true);
+    });
+
+    it('scans and restores from backup subdirectory if aionui-backend.db is absent', () => {
+      const targetDir = path.join(tempTestDir, 'target-with-backup');
+      const backupDir = path.join(targetDir, 'aionui-backup-20260101');
+      fs.mkdirSync(backupDir, { recursive: true });
+      fs.writeFileSync(path.join(backupDir, 'aionui-backend.db'), 'backup-db-content');
+
+      scanAndPrepareDataDir(targetDir);
+
+      const targetDb = path.join(targetDir, 'aionui', 'aionui-backend.db');
+      expect(fs.existsSync(targetDb)).toBe(true);
+      expect(fs.readFileSync(targetDb, 'utf8')).toBe('backup-db-content');
+      // Backup must NOT be deleted
+      expect(fs.existsSync(path.join(backupDir, 'aionui-backend.db'))).toBe(true);
     });
   });
 });

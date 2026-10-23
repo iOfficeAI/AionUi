@@ -642,6 +642,10 @@
   "notFound": "Conversation not found or has been deleted",
   "explorer": {
     "addFolder": "Add folder to project",
+    "showSizes": "Show file sizes",
+    "showDates": "Show modification dates",
+    "followAgentOn": "Follow agent: ON",
+    "followAgentOff": "Follow agent: OFF",
     "refreshFiles": "Refresh files",
     "refreshChanges": "Refresh changes",
     "collapseAll": "Collapse all",

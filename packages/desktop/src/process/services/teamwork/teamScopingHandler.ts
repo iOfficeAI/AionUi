@@ -8,6 +8,8 @@ import { ipcMain, type IpcMainInvokeEvent, BrowserWindow } from 'electron';
 import type {
   ApproveTeamPlanParams,
   ApproveTeamPlanResponse,
+  CancelTeamScopingParams,
+  CancelTeamScopingResponse,
   GetTeamScopingStateParams,
   GetTeamScopingStateResponse,
   ITeamScopingStatusChangedEvent,
@@ -92,6 +94,20 @@ export function registerTeamScopingHandlers(): void {
     async (_event: IpcMainInvokeEvent, params: RejectTeamPlanParams): Promise<RejectTeamPlanResponse> => {
       try {
         return await manager.rejectPlan(params);
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'team:cancelScoping',
+    async (_event: IpcMainInvokeEvent, params: CancelTeamScopingParams): Promise<CancelTeamScopingResponse> => {
+      try {
+        return await manager.cancelScoping(params);
       } catch (error) {
         return {
           success: false,

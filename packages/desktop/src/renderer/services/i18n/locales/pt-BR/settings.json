@@ -1427,5 +1427,16 @@
   "backupFailed": "Falha ao fazer backup dos dados",
   "openBackupDir": "Abrir Pasta",
   "mcpServers": "Servidores e ferramentas MCP",
-  "browserAutomation": "Automação do navegador"
+  "browserAutomation": "Automação do navegador",
+  "gatewayCombos": "Gateway & Combos",
+  "platformGeminiGoogleLogin": "Login com Google (Gemini e Antigravity)",
+  "platformOmniroute": "OmniRoute (Claude / Antigravity / Gemini)",
+  "googleLoginRequired": "Por favor, faça login com o Google primeiro",
+  "googleLoginHint": "Faça login com sua conta Google para usar modelos Gemini e Antigravity sem chave de API",
+  "omnirouteTip": "Conecte-se pelo gateway OmniRoute. Suporta Claude, Google Antigravity e Gemini sem necessidade de chaves de API individuais.",
+  "modelProviderHub": "Central de Provedores de Modelos",
+  "dataDir": "Diretório de Armazenamento de Dados",
+  "dataDirDesc": "Pasta única onde todos os dados (banco de dados, espaço de trabalho, configurações e logs) são armazenados e salvos",
+  "changeDataDir": "Alterar diretório de armazenamento de dados",
+  "dataDirRestartConfirm": "Alterar a pasta de armazenamento de dados requer reiniciar o AionUi. O AionUi verificará a pasta selecionada e carregará os dados sem excluir nenhum arquivo existente. Deseja reiniciar agora?"
 }

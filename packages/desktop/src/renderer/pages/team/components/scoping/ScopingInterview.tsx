@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Button, Card, Input, Radio, Space, Tag, Typography, Progress } from '@arco-design/web-react';
-import { CheckOne, CloseOne, SettingTwo } from '@icon-park/react';
+import { CheckOne, CloseOne, CloseSmall, SettingTwo } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import type { ScopingQuestion } from '@/common/types/teamwork';
 
@@ -72,9 +72,21 @@ export const ScopingInterview: React.FC<ScopingInterviewProps> = ({
     await onSubmitAnswers(answers);
   };
 
+  // Allow pressing Escape to cancel the interview
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
   return (
     <Card
-      className='mb-4 border border-[var(--color-border-2)] rounded-lg shadow-sm bg-[var(--color-bg-2)]'
+      className='mb-4 border border-[var(--color-border-2)] rounded-lg shadow-sm bg-[var(--color-bg-2)] max-h-[80vh] flex flex-col [&>.arco-card-body]:flex [&>.arco-card-body]:flex-col [&>.arco-card-body]:min-h-0'
       title={
         <Space align='center'>
           <SettingTwo theme='filled' size='18' className='text-[var(--color-primary)]' />
@@ -96,24 +108,35 @@ export const ScopingInterview: React.FC<ScopingInterviewProps> = ({
             })}
           </Text>
           <Progress percent={progressPercent} size='small' className='w-20' showText={false} />
+          <Button
+            type='text'
+            size='mini'
+            className='!p-0 h-5 w-5 text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
+            onClick={onCancel}
+            icon={<CloseSmall theme='outline' size='16' />}
+            aria-label={t('team.scoping.cancel', { defaultValue: 'Cancel' })}
+          />
         </Space>
       }
     >
-      <Paragraph className='text-[var(--color-text-2)] text-xs mb-4'>
+      <Paragraph className='text-[var(--color-text-2)] text-xs mb-3 shrink-0'>
         {t('team.scoping.interviewSubtitle', {
           defaultValue:
             'The Lead/Sentinel agent is scoping technical bounds and milestone acceptance criteria before team agents touch files.',
         })}
       </Paragraph>
 
-      <div className='p-3 rounded mb-4 bg-[var(--color-fill-2)] border border-[var(--color-border-1)]'>
+      <div className='p-3 rounded mb-3 bg-[var(--color-fill-2)] border border-[var(--color-border-1)] shrink-0'>
         <Text className='font-semibold text-xs block mb-1 text-[var(--color-text-1)]'>
           {t('team.scoping.originalRequest', { defaultValue: 'User Request:' })}
         </Text>
         <Text className='text-xs text-[var(--color-text-2)] italic'>{userRequest}</Text>
       </div>
 
-      <div className='space-y-4 max-h-[360px] overflow-y-auto pr-1'>
+      <div
+        className='flex-1 min-h-0 space-y-4 max-h-[50vh] overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]'
+        tabIndex={0}
+      >
         {questions.map((q, idx) => (
           <div key={q.id} className='p-3 rounded border border-[var(--color-border-2)] bg-[var(--color-bg-1)]'>
             <div className='flex items-center justify-between mb-2'>
@@ -155,7 +178,7 @@ export const ScopingInterview: React.FC<ScopingInterviewProps> = ({
         ))}
       </div>
 
-      <div className='flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--color-border-1)]'>
+      <div className='flex justify-end gap-2 mt-3 pt-3 border-t border-[var(--color-border-1)] shrink-0'>
         <Button size='small' onClick={onCancel} icon={<CloseOne />}>
           {t('team.scoping.cancel', { defaultValue: 'Cancel' })}
         </Button>

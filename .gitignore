@@ -242,3 +242,7 @@ graphify-out/
 .analysis/
 temp/
 .playwright-mcp/
+.kilo/
+capture_screen.ps1
+screenshot_window.png
+/src/

@@ -38,6 +38,7 @@ type GuidModelSelectorProps = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
   thoughtLevelOption?: AgentRuntimeDerivedOption | null;
   onThoughtLevelSelect?: (value: string) => void;
+  formatGeminiModelLabel?: (provider: { platform?: string; id?: string } | undefined, modelName?: string) => string;
 };
 
 /** Composite id for a provider+model pair, so the shared flat model list can track selection. */
@@ -53,6 +54,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   setSelectedAcpModel,
   thoughtLevelOption,
   onThoughtLevelSelect,
+  formatGeminiModelLabel,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -65,8 +67,11 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 
   const geminiSelectedLabel = React.useMemo(() => {
     if (!current_model?.use_model) return '';
+    if (formatGeminiModelLabel) {
+      return formatGeminiModelLabel(current_model, current_model.use_model);
+    }
     return current_model.use_model;
-  }, [current_model?.use_model]);
+  }, [current_model, formatGeminiModelLabel]);
 
   const geminiButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
@@ -126,7 +131,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         models: available_models.map((modelName) => {
           const id = providerCompositeId(provider.id, modelName);
           providerModelLookup.set(id, { provider, modelName });
-          return { id, label: modelName };
+          return { id, label: formatGeminiModelLabel ? formatGeminiModelLabel(provider, modelName) : modelName };
         }),
       });
     }

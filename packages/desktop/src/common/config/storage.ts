@@ -115,6 +115,7 @@ export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
 
 export interface IEnvStorageRefer {
   'aionui.dir': {
+    dataDir?: string;
     workDir: string;
     cacheDir: string;
     logDir?: string;

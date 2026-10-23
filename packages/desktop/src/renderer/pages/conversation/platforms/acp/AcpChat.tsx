@@ -8,7 +8,6 @@ import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import ConversationPlanBar from '@renderer/pages/conversation/PlanBar/ConversationPlanBar';
-import { TeamworkPanel } from '@renderer/components/Teamwork';
 import { usePlanRecovery } from '@renderer/pages/conversation/PlanBar/usePlanRecovery';
 import { CHAT_SURFACE_CONTAINER_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -98,7 +97,6 @@ const AcpChat: React.FC<{
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
           <ConversationPlanBar conversation_id={conversation_id} />
-          <TeamworkPanel conversation_id={conversation_id} workspace={workspace} />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}

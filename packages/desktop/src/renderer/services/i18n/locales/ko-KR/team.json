@@ -22,6 +22,10 @@
     "editTeam": "팀 편집",
     "deleteFailed": "팀 삭제에 실패했습니다"
   },
+  "activeMembers": {
+    "title": "작업 중인 멤버",
+    "workingTooltip": "{{name}} 작업 중"
+  },
   "newAgent": "새 어시스턴트",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "어시스턴트가 아직 구성되지 않았습니다.",
@@ -95,6 +99,7 @@
   },
   "addMember": {
     "title": "Add member",
+    "btn": "+Mate",
     "subtitle": "The same assistant can be added repeatedly",
     "searchAssistants": "Search assistants...",
     "addFailed": "Failed to add member",
@@ -312,5 +317,24 @@
     "planRejected": "계획이 수정 요청되었습니다.",
     "startScopingTooltip": "구조화된 범위 지정 및 검증 인터뷰 시작",
     "buttonLabel": "범위 지정 게이트"
+  },
+  "watchdog": {
+    "title": "자동 감시 (Auto-Watchdog)",
+    "off": "감시: 꺼짐",
+    "active": "감시: {{minutes}}분",
+    "tooltipOff": "자동 감시: 비활성화됨. 클릭하여 중단 시 2분/5분 자동 재시도를 활성화합니다.",
+    "tooltipActive": "자동 감시: {{minutes}}분마다 모니터링 중. 멈춤 시 자동 중단 및 재시도합니다.",
+    "menuTitle": "자동 감시 주기",
+    "optionOff": "꺼짐",
+    "option2m": "2분마다",
+    "option5m": "5분마다",
+    "option10m": "10분마다",
+    "checkNow": "진행 상태 확인 및 지금 재시도",
+    "triggerToast": "프롬프트가 {{minutes}}분 이상 멈춰 있습니다. 자동 중단 및 재시도 중...",
+    "retrySuccess": "감시 장치가 프롬프트를 성공적으로 재시도했습니다.",
+    "stoppedOnly": "멈춘 프로세스가 중단 및 재설정되었습니다. 프롬프트를 다시 입력해주세요.",
+    "healthy": "팀이 활성 상태이며 정상적으로 처리 중입니다.",
+    "idle": "팀이 유휴 상태입니다. 재시도할 프로세스가 없습니다.",
+    "maxRetriesReached": "프로세스가 반복해서 멈췄습니다. 자동 복구를 중단했습니다. 에이전트 구성을 확인하세요."
   }
 }

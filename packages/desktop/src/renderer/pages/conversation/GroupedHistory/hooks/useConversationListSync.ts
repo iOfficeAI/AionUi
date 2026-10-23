@@ -332,6 +332,14 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
   return name ? name : undefined;
 };
 
+/**
+ * Synchronous lookup of a full conversation object from the in-memory list snapshot.
+ * Used for zero-delay route mounting on conversation switch.
+ */
+export const getSnapshotConversation = (conversation_id: string): TChatConversation | undefined => {
+  return conversationsState.find((item) => item.id === conversation_id);
+};
+
 let refreshRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
 const refreshConversations = () => {

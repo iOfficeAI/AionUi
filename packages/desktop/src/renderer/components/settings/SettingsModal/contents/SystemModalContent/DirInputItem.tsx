@@ -27,11 +27,13 @@ const DirInputItem: React.FC<{
       {(value, form) => {
         const current_value = form.getFieldValue(field) || '';
         const actionTooltip =
-          field === 'workDir'
-            ? t('settings.changeWorkDir')
-            : field === 'backupDir'
-              ? t('settings.changeBackupDir')
-              : t('settings.changeLogDir');
+          field === 'dataDir'
+            ? t('settings.changeDataDir')
+            : field === 'workDir'
+              ? t('settings.changeWorkDir')
+              : field === 'backupDir'
+                ? t('settings.changeBackupDir')
+                : t('settings.changeLogDir');
 
         const handlePick = () => {
           ipcBridge.dialog.showOpen

@@ -270,6 +270,16 @@ export type GetTeamScopingStateResponse = {
   error?: string;
 };
 
+export type CancelTeamScopingParams = {
+  team_id: string;
+};
+
+export type CancelTeamScopingResponse = {
+  success: boolean;
+  state?: TeamScopingState;
+  error?: string;
+};
+
 export type ITeamScopingStatusChangedEvent = {
   team_id: string;
   state: TeamScopingState;
