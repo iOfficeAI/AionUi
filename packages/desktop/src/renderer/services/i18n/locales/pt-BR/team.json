@@ -189,5 +189,20 @@
       "idle_notification": "Aviso de inatividade",
       "shutdown_request": "Pedido de encerramento"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "Alterar líder da equipe",
+    "menuItem": "Definir {{name}} como líder da equipe",
+    "makeLeadAction": "Definir como líder",
+    "confirmTitle": "Alterar o líder da equipe?",
+    "confirmContent": "Definir {{nextLead}} como líder da equipe no lugar de {{currentLead}}? As conversas e o histórico da equipe serão mantidos.",
+    "confirmButton": "Alterar líder",
+    "busy": "Um membro da equipe ainda está trabalhando. Aguarde a conclusão e tente novamente.",
+    "runtimeStarting": "Um membro da equipe está iniciando. Aguarde a inicialização terminar e tente novamente.",
+    "failed": "Não foi possível alterar o líder da equipe. Tente novamente.",
+    "busyNotStarted": "Um membro da equipe recebeu um trabalho, mas ainda não começou. Aguarde um pouco e tente novamente.",
+    "interruptConfirmTitle": "Interromper o trabalho atual e alterar o líder da equipe?",
+    "interruptConfirmContent": "Isso interromperá o trabalho atual de {{busyMembers}} e definirá {{nextLead}} como líder da equipe no lugar de {{currentLead}}. As conversas e o histórico da equipe serão mantidos.",
+    "interruptConfirmButton": "Interromper e alterar líder"
   }
 }
