@@ -413,4 +413,29 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   );
 };
 
-export default ConversationRow;
+export const areConversationRowPropsEqual = (
+  prev: Readonly<ConversationRowProps>,
+  next: Readonly<ConversationRowProps>
+): boolean => {
+  return (
+    prev.selected === next.selected &&
+    prev.isGenerating === next.isGenerating &&
+    prev.isWaitingConfirmation === next.isWaitingConfirmation &&
+    prev.hasUnread === next.hasUnread &&
+    prev.isManualUnread === next.isManualUnread &&
+    prev.collapsed === next.collapsed &&
+    prev.tooltipEnabled === next.tooltipEnabled &&
+    prev.batchMode === next.batchMode &&
+    prev.checked === next.checked &&
+    prev.menuVisible === next.menuVisible &&
+    prev.dimIcon === next.dimIcon &&
+    prev.dragHandle === next.dragHandle &&
+    prev.conversation.id === next.conversation.id &&
+    prev.conversation.modified_at === next.conversation.modified_at &&
+    prev.conversation.name === next.conversation.name &&
+    prev.conversation.extra === next.conversation.extra &&
+    prev.getJobStatus(prev.conversation.id) === next.getJobStatus(next.conversation.id)
+  );
+};
+
+export default React.memo(ConversationRow, areConversationRowPropsEqual);

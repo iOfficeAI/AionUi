@@ -126,4 +126,68 @@ describe('Render-Count Optimizations & Tab Overflow Batching', () => {
       rafSpy.mockRestore();
     });
   });
+
+  describe('Real Component React.memo & Quiet Switch Targets', () => {
+    it('verifies SiderItem, TeamTabs, and ConversationRow are exported as React.memo components', async () => {
+      const { default: SiderItem } = await import('@/renderer/components/layout/Sider/SiderItem');
+      const { default: TeamTabs } = await import('@/renderer/pages/team/components/TeamTabs');
+      const { default: ConversationRow } = await import('@/renderer/pages/conversation/GroupedHistory/ConversationRow');
+
+      expect((SiderItem as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'));
+      expect((TeamTabs as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'));
+      expect((ConversationRow as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'));
+    });
+
+    it('keeps inactive conversation rows quiet on chat switch via areConversationRowPropsEqual', async () => {
+      const { areConversationRowPropsEqual } =
+        await import('@/renderer/pages/conversation/GroupedHistory/ConversationRow');
+
+      const conv3 = { id: 'conv-3', name: 'Chat 3', updated_at: 300, extra: {} } as any;
+
+      const baseProps = {
+        conversation: conv3,
+        isGenerating: false,
+        isWaitingConfirmation: false,
+        hasUnread: false,
+        isManualUnread: false,
+        collapsed: false,
+        tooltipEnabled: false,
+        batchMode: false,
+        checked: false,
+        selected: false,
+        menuVisible: false,
+        dimIcon: false,
+        onToggleChecked: vi.fn(),
+        onConversationClick: vi.fn(),
+        onOpenMenu: vi.fn(),
+        onMenuVisibleChange: vi.fn(),
+        onEditStart: vi.fn(),
+        onCreateCronTask: vi.fn(),
+        onArchive: vi.fn(),
+        onDelete: vi.fn(),
+        onTogglePin: vi.fn(),
+        onToggleManualUnread: vi.fn(),
+        getJobStatus: () => 'none' as const,
+      };
+
+      // Unchanged row stays quiet (returns true)
+      expect(areConversationRowPropsEqual(baseProps, { ...baseProps })).toBe(true);
+
+      // Selected change re-renders the row (returns false)
+      expect(areConversationRowPropsEqual(baseProps, { ...baseProps, selected: true })).toBe(false);
+
+      // Generating/unread/confirmation changes trigger re-render
+      expect(areConversationRowPropsEqual(baseProps, { ...baseProps, isGenerating: true })).toBe(false);
+      expect(areConversationRowPropsEqual(baseProps, { ...baseProps, hasUnread: true })).toBe(false);
+      expect(areConversationRowPropsEqual(baseProps, { ...baseProps, isWaitingConfirmation: true })).toBe(false);
+
+      // Conversation edit (title/timestamp) triggers re-render
+      expect(
+        areConversationRowPropsEqual(baseProps, { ...baseProps, conversation: { ...conv3, name: 'New Title' } })
+      ).toBe(false);
+      expect(
+        areConversationRowPropsEqual(baseProps, { ...baseProps, conversation: { ...conv3, modified_at: 999 } })
+      ).toBe(false);
+    });
+  });
 });

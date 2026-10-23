@@ -476,4 +476,8 @@ describe('TeamChatView', () => {
     const props = acpChatMock.mock.calls[0]?.[0] as { teamRuntime?: { isActive?: boolean } };
     expect(props.teamRuntime?.isActive).toBe(false);
   });
+
+  it('is wrapped in React.memo to keep inactive chat views quiet on team switches', () => {
+    expect((TeamChatView as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'));
+  });
 });

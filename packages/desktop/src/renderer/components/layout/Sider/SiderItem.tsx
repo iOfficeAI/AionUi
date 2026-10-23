@@ -169,4 +169,4 @@ const SiderItem: React.FC<SiderItemProps> = ({
   );
 };
 
-export default SiderItem;
+export default React.memo(SiderItem);

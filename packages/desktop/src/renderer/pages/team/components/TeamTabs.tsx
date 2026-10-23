@@ -53,205 +53,207 @@ type TeamTabViewProps = {
   onAssignRepos?: (slot_id: string) => void;
 };
 
-const TeamTabView: React.FC<TeamTabViewProps> = ({
-  slot_id,
-  assistant_name,
-  assistant_backend,
-  icon,
-  conversation_id,
-  isActive,
-  status,
-  isLeader,
-  warmupFailed = false,
-  color,
-  pendingCount = 0,
-  dragActive,
-  onSwitch,
-  onRename,
-  onRemove,
-  onAssignRepos,
-}) => {
-  const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(assistant_name);
-  const [hovered, setHovered] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  // Leader stays fixed at index 0 and never takes part in sorting.
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
-    id: slot_id,
-    disabled: isLeader,
-  });
+const TeamTabView: React.FC<TeamTabViewProps> = React.memo(
+  ({
+    slot_id,
+    assistant_name,
+    assistant_backend,
+    icon,
+    conversation_id,
+    isActive,
+    status,
+    isLeader,
+    warmupFailed = false,
+    color,
+    pendingCount = 0,
+    dragActive,
+    onSwitch,
+    onRename,
+    onRemove,
+    onAssignRepos,
+  }) => {
+    const { t } = useTranslation();
+    const [editing, setEditing] = useState(false);
+    const [editValue, setEditValue] = useState(assistant_name);
+    const [hovered, setHovered] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    // Leader stays fixed at index 0 and never takes part in sorting.
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+      id: slot_id,
+      disabled: isLeader,
+    });
 
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [editing]);
-
-  const commitRename = useCallback(() => {
-    const nextValue = inputRef.current?.value ?? editValue;
-    const trimmed = nextValue.trim();
-    setEditing(false);
-    if (trimmed && trimmed !== assistant_name && onRename) {
-      setEditValue(trimmed);
-      onRename(slot_id, trimmed);
-    } else {
-      setEditValue(assistant_name);
-    }
-  }, [editValue, assistant_name, slot_id, onRename]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        commitRename();
-      } else if (e.key === 'Escape') {
-        setEditValue(assistant_name);
-        setEditing(false);
+    useEffect(() => {
+      if (editing) {
+        inputRef.current?.focus();
+        inputRef.current?.select();
       }
-    },
-    [commitRename, assistant_name]
-  );
+    }, [editing]);
 
-  const startEditing = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setEditValue(assistant_name);
-      setEditing(true);
-    },
-    [assistant_name]
-  );
+    const commitRename = useCallback(() => {
+      const nextValue = inputRef.current?.value ?? editValue;
+      const trimmed = nextValue.trim();
+      setEditing(false);
+      if (trimmed && trimmed !== assistant_name && onRename) {
+        setEditValue(trimmed);
+        onRename(slot_id, trimmed);
+      } else {
+        setEditValue(assistant_name);
+      }
+    }, [editValue, assistant_name, slot_id, onRename]);
 
-  // 胶囊底色恒定浅灰（hover / 选中都不改底色，避免压低彩色名字可读性）；
-  // 选中态用一圈成员自己的身份色边框表示（与彩色名字呼应，明显但不脏）。身份色只落在名字与边框上。
-  // 拖拽走 dnd-kit sortable：hover 时手柄内联出现在头像前（同改名/移除按钮的「hover 增宽」语言，
-  // 不遮头像和状态点），拖动时兄弟胶囊实时让位（transform 平移），松手原位落地。
-  // dragActive 期间冻结其他胶囊的 hover 增宽（拖动经过时布局不能跳）；正被拖动的胶囊则保持
-  // 手柄和按钮可见，宽度全程恒定。
-  const showDragHandle = !isLeader && !editing && ((hovered && !dragActive) || isDragging);
-  const showHoverActions = !editing && ((hovered && !dragActive) || isDragging);
-  return (
-    <div
-      ref={setNodeRef}
-      data-testid={`team-tab-${slot_id}`}
-      data-team-tab-role={isLeader ? 'leader' : 'teammate'}
-      data-active={isActive ? 'true' : 'false'}
-      className='relative flex items-center gap-6px ps-6px pe-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)]'
-      style={{
-        ['--mc' as string]: color,
-        borderColor: isActive ? color : 'transparent',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.72 : undefined,
-        zIndex: isDragging ? 1 : undefined,
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => !editing && onSwitch(slot_id)}
-      onDoubleClick={onRename ? startEditing : undefined}
-    >
-      {showDragHandle && (
-        <span
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          role='button'
-          aria-label={t('team.reorderMember', { defaultValue: 'Drag to reorder member' })}
-          data-testid={`team-tab-drag-${slot_id}`}
-          className={`shrink-0 flex items-center justify-center w-14px h-20px text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
-          style={{ touchAction: 'none' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Drag theme='outline' size='13' fill='currentColor' />
-        </span>
-      )}
-      {editing ? (
-        <input
-          ref={inputRef}
-          className='text-15px flex-1 min-w-0 bg-transparent border-none outline-none text-[color:var(--color-text-1)] p-0'
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={commitRename}
-          onKeyDown={handleKeyDown}
-        />
-      ) : (
-        <div className='min-w-0 flex-1 flex items-center gap-4px'>
-          {pendingCount > 0 && (
-            <span
-              className='shrink-0 text-14px leading-none animate-wiggle'
-              title={`${pendingCount} pending permission request(s)`}
-            >
-              ‼️
-            </span>
-          )}
-          <TeamAgentIdentity
-            assistant_name={assistant_name}
-            assistant_backend={assistant_backend}
-            icon={icon}
-            conversation_id={conversation_id}
-            isLeader={isLeader}
-            className='min-w-0 flex-1 !gap-6px'
-            logoClassName={`w-22px h-22px object-cover rounded-full ${warmupFailed ? 'grayscale' : ''}`}
-            avatarClassName={`w-22px h-22px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0 ${warmupFailed ? 'grayscale' : ''}`}
-            nameClassName='text-13px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none'
-            nameStyle={{ color }}
-            nameTestId={`team-tab-name-${slot_id}`}
-            avatarOverlay={
-              warmupFailed ? (
-                <span
-                  data-testid={`team-tab-failed-${slot_id}`}
-                  className='absolute -end-2px -bottom-2px w-12px h-12px rounded-full flex items-center justify-center text-9px font-700 text-white'
-                  style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-base)' }}
-                >
-                  !
-                </span>
-              ) : (
-                <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
-              )
-            }
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          commitRename();
+        } else if (e.key === 'Escape') {
+          setEditValue(assistant_name);
+          setEditing(false);
+        }
+      },
+      [commitRename, assistant_name]
+    );
+
+    const startEditing = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditValue(assistant_name);
+        setEditing(true);
+      },
+      [assistant_name]
+    );
+
+    // 胶囊底色恒定浅灰（hover / 选中都不改底色，避免压低彩色名字可读性）；
+    // 选中态用一圈成员自己的身份色边框表示（与彩色名字呼应，明显但不脏）。身份色只落在名字与边框上。
+    // 拖拽走 dnd-kit sortable：hover 时手柄内联出现在头像前（同改名/移除按钮的「hover 增宽」语言，
+    // 不遮头像和状态点），拖动时兄弟胶囊实时让位（transform 平移），松手原位落地。
+    // dragActive 期间冻结其他胶囊的 hover 增宽（拖动经过时布局不能跳）；正被拖动的胶囊则保持
+    // 手柄和按钮可见，宽度全程恒定。
+    const showDragHandle = !isLeader && !editing && ((hovered && !dragActive) || isDragging);
+    const showHoverActions = !editing && ((hovered && !dragActive) || isDragging);
+    return (
+      <div
+        ref={setNodeRef}
+        data-testid={`team-tab-${slot_id}`}
+        data-team-tab-role={isLeader ? 'leader' : 'teammate'}
+        data-active={isActive ? 'true' : 'false'}
+        className='relative flex items-center gap-6px ps-6px pe-10px h-34px max-w-220px cursor-pointer rounded-999px border border-solid transition-colors duration-150 shrink-0 bg-[color:var(--bg-2)]'
+        style={{
+          ['--mc' as string]: color,
+          borderColor: isActive ? color : 'transparent',
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isDragging ? 0.72 : undefined,
+          zIndex: isDragging ? 1 : undefined,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onClick={() => !editing && onSwitch(slot_id)}
+        onDoubleClick={onRename ? startEditing : undefined}
+      >
+        {showDragHandle && (
+          <span
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            role='button'
+            aria-label={t('team.reorderMember', { defaultValue: 'Drag to reorder member' })}
+            data-testid={`team-tab-drag-${slot_id}`}
+            className={`shrink-0 flex items-center justify-center w-14px h-20px text-[color:var(--text-tertiary)] hover:text-[color:var(--text-primary)] ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            style={{ touchAction: 'none' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Drag theme='outline' size='13' fill='currentColor' />
+          </span>
+        )}
+        {editing ? (
+          <input
+            ref={inputRef}
+            className='text-15px flex-1 min-w-0 bg-transparent border-none outline-none text-[color:var(--color-text-1)] p-0'
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={handleKeyDown}
           />
-        </div>
-      )}
-      {/* hover 时胶囊变宽、露出操作按钮；失焦则收起（胶囊变窄，只剩头像+文字）。拖拽期间冻结，避免布局跳动。 */}
-      {showHoverActions && onRename && (
-        <span
-          data-testid={`team-tab-edit-${slot_id}`}
-          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-primary)] transition-colors duration-150'
-          onClick={startEditing}
-        >
-          <Edit theme='outline' size='13' fill='currentColor' />
-        </span>
-      )}
-      {showHoverActions && onAssignRepos && (
-        <span
-          data-testid={`team-tab-repos-${slot_id}`}
-          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--brand)] transition-colors duration-150'
-          title='Attach Knowledge Repos'
-          onClick={(e) => {
-            e.stopPropagation();
-            onAssignRepos(slot_id);
-          }}
-        >
-          <BookOne theme='outline' size='13' fill='currentColor' />
-        </span>
-      )}
-      {showHoverActions && !isLeader && onRemove && (
-        <span
-          data-testid={`team-tab-remove-${slot_id}`}
-          className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--color-danger-6)] transition-colors duration-150'
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(slot_id);
-          }}
-        >
-          <CloseSmall theme='outline' size='14' fill='currentColor' />
-        </span>
-      )}
-    </div>
-  );
-};
+        ) : (
+          <div className='min-w-0 flex-1 flex items-center gap-4px'>
+            {pendingCount > 0 && (
+              <span
+                className='shrink-0 text-14px leading-none animate-wiggle'
+                title={`${pendingCount} pending permission request(s)`}
+              >
+                ‼️
+              </span>
+            )}
+            <TeamAgentIdentity
+              assistant_name={assistant_name}
+              assistant_backend={assistant_backend}
+              icon={icon}
+              conversation_id={conversation_id}
+              isLeader={isLeader}
+              className='min-w-0 flex-1 !gap-6px'
+              logoClassName={`w-22px h-22px object-cover rounded-full ${warmupFailed ? 'grayscale' : ''}`}
+              avatarClassName={`w-22px h-22px rounded-full flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0 ${warmupFailed ? 'grayscale' : ''}`}
+              nameClassName='text-13px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none'
+              nameStyle={{ color }}
+              nameTestId={`team-tab-name-${slot_id}`}
+              avatarOverlay={
+                warmupFailed ? (
+                  <span
+                    data-testid={`team-tab-failed-${slot_id}`}
+                    className='absolute -end-2px -bottom-2px w-12px h-12px rounded-full flex items-center justify-center text-9px font-700 text-white'
+                    style={{ background: 'var(--danger)', border: '1.5px solid var(--bg-base)' }}
+                  >
+                    !
+                  </span>
+                ) : (
+                  <AgentStatusBadge status={status} testId={`team-tab-status-${slot_id}`} />
+                )
+              }
+            />
+          </div>
+        )}
+        {/* hover 时胶囊变宽、露出操作按钮；失焦则收起（胶囊变窄，只剩头像+文字）。拖拽期间冻结，避免布局跳动。 */}
+        {showHoverActions && onRename && (
+          <span
+            data-testid={`team-tab-edit-${slot_id}`}
+            className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--text-primary)] transition-colors duration-150'
+            onClick={startEditing}
+          >
+            <Edit theme='outline' size='13' fill='currentColor' />
+          </span>
+        )}
+        {showHoverActions && onAssignRepos && (
+          <span
+            data-testid={`team-tab-repos-${slot_id}`}
+            className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--brand)] transition-colors duration-150'
+            title='Attach Knowledge Repos'
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssignRepos(slot_id);
+            }}
+          >
+            <BookOne theme='outline' size='13' fill='currentColor' />
+          </span>
+        )}
+        {showHoverActions && !isLeader && onRemove && (
+          <span
+            data-testid={`team-tab-remove-${slot_id}`}
+            className='shrink-0 flex items-center justify-center w-20px h-20px rounded-6px text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-3)] hover:text-[color:var(--color-danger-6)] transition-colors duration-150'
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(slot_id);
+            }}
+          >
+            <CloseSmall theme='outline' size='14' fill='currentColor' />
+          </span>
+        )}
+      </div>
+    );
+  }
+);
 
 type TeamMembersDropdownProps = {
   assistants: TeamAssistant[];
@@ -613,6 +615,42 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
     }
   }, []);
 
+  const handleTabSwitch = useCallback(
+    (slot_id: string) => {
+      switchTab(slot_id);
+      onTabClick?.(slot_id);
+    },
+    [switchTab, onTabClick]
+  );
+
+  const handleTabRename = useMemo<((sid: string, name: string) => void) | undefined>(
+    () =>
+      renameAssistant && !memberOpsDisabled
+        ? (sid: string, name: string): void => {
+            void renameAssistant(sid, name);
+          }
+        : undefined,
+    [renameAssistant, memberOpsDisabled]
+  );
+
+  const handleTabRemove = useMemo<((sid: string) => void) | undefined>(
+    () =>
+      removeAssistant && !memberOpsDisabled
+        ? (sid: string): void => {
+            void removeAssistant(sid);
+          }
+        : undefined,
+    [removeAssistant, memberOpsDisabled]
+  );
+
+  const handleTabAssignRepos = useCallback(
+    (sid: string) => {
+      const target = assistants.find((a) => a.slot_id === sid);
+      if (target) setAssignRepoAssistant(target);
+    },
+    [assistants]
+  );
+
   if (assistants.length === 0) return null;
 
   return (
@@ -678,22 +716,10 @@ const TeamTabs: React.FC<TeamTabsProps> = ({
                         color={colorOf(assistant.slot_id)}
                         pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
                         dragActive={dragActive}
-                        onSwitch={(slot_id) => {
-                          switchTab(slot_id);
-                          onTabClick?.(slot_id);
-                        }}
-                        onRename={
-                          renameAssistant && !memberOpsDisabled
-                            ? (sid, name) => void renameAssistant(sid, name)
-                            : undefined
-                        }
-                        onRemove={
-                          removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined
-                        }
-                        onAssignRepos={(sid) => {
-                          const target = assistants.find((a) => a.slot_id === sid);
-                          if (target) setAssignRepoAssistant(target);
-                        }}
+                        onSwitch={handleTabSwitch}
+                        onRename={handleTabRename}
+                        onRemove={handleTabRemove}
+                        onAssignRepos={handleTabAssignRepos}
                       />
                     );
                   })
@@ -862,85 +888,80 @@ export type TeamActiveMembersProps = {
   slotWorkBySlot?: Record<string, ITeamSlotWork | undefined>;
 };
 
-export const TeamActiveMembers: React.FC<TeamActiveMembersProps> = ({
-  assistants,
-  statusMap,
-  activeSlotId,
-  colorOf,
-  onSelectMember,
-  slotWorkBySlot,
-}) => {
-  const { t } = useTranslation();
+export const TeamActiveMembers: React.FC<TeamActiveMembersProps> = React.memo(
+  ({ assistants, statusMap, activeSlotId, colorOf, onSelectMember, slotWorkBySlot }) => {
+    const { t } = useTranslation();
 
-  const activeAssistants = useMemo(() => {
-    return assistants.filter((assistant) => {
-      const status = statusMap.get(assistant.slot_id)?.status;
-      if (status === 'active') return true;
-      const work = slotWorkBySlot?.[assistant.slot_id];
-      return work?.state === 'starting' || work?.state === 'running';
-    });
-  }, [assistants, statusMap, slotWorkBySlot]);
+    const activeAssistants = useMemo(() => {
+      return assistants.filter((assistant) => {
+        const status = statusMap.get(assistant.slot_id)?.status;
+        if (status === 'active') return true;
+        const work = slotWorkBySlot?.[assistant.slot_id];
+        return work?.state === 'starting' || work?.state === 'running';
+      });
+    }, [assistants, statusMap, slotWorkBySlot]);
 
-  if (activeAssistants.length === 0) return null;
+    if (activeAssistants.length === 0) return null;
 
-  return (
-    <div
-      className='flex items-center gap-8px min-w-0 max-w-full overflow-x-auto no-scrollbar py-2px'
-      data-testid='team-active-members'
-    >
-      <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_40%,transparent)]' />
-      {activeAssistants.map((assistant) => {
-        const isCurrent = assistant.slot_id === activeSlotId;
-        const color = colorOf(assistant.slot_id);
-        const displayName = assistant.assistant_name || 'Assistant';
+    return (
+      <div
+        className='flex items-center gap-8px min-w-0 max-w-full overflow-x-auto no-scrollbar py-2px'
+        data-testid='team-active-members'
+      >
+        <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_40%,transparent)]' />
+        {activeAssistants.map((assistant) => {
+          const isCurrent = assistant.slot_id === activeSlotId;
+          const color = colorOf(assistant.slot_id);
+          const displayName = assistant.assistant_name || 'Assistant';
 
-        return (
-          <Tooltip
-            key={assistant.slot_id}
-            content={t('team.activeMembers.workingTooltip', {
-              name: displayName,
-              defaultValue: `${displayName} is working`,
-            })}
-            position='bottom'
-          >
-            <div
-              role='button'
-              tabIndex={0}
-              data-testid={`team-active-member-${assistant.slot_id}`}
-              className={classNames(
-                'group flex items-center h-26px px-8px rounded-full cursor-pointer select-none border transition-all duration-150 shrink-0 gap-6px',
-                isCurrent
-                  ? 'bg-fill-3 border-[rgb(var(--primary-6))] shadow-sm'
-                  : 'bg-fill-1 border-transparent hover:bg-fill-2 hover:border-[color:var(--border-base)]'
-              )}
-              onClick={() => onSelectMember(assistant.slot_id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelectMember(assistant.slot_id);
-                }
-              }}
+          return (
+            <Tooltip
+              key={assistant.slot_id}
+              content={t('team.activeMembers.workingTooltip', {
+                name: displayName,
+                defaultValue: `${displayName} is working`,
+              })}
+              position='bottom'
             >
-              <TeamAgentIdentity
-                assistant_name={assistant.assistant_name}
-                assistant_backend={assistant.assistant_backend}
-                icon={assistant.icon}
-                conversation_id={assistant.conversation_id}
-                isLeader={assistant.role === 'leader'}
-                className='min-w-0 !gap-6px'
-                logoClassName='w-18px h-18px object-cover rounded-full'
-                avatarClassName='w-18px h-18px rounded-full flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0'
-                nameClassName='text-12px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none max-w-100px'
-                nameStyle={{ color }}
-                nameTestId={`team-active-member-name-${assistant.slot_id}`}
-                avatarOverlay={<AgentStatusBadge status='active' overlay />}
-              />
-            </div>
-          </Tooltip>
-        );
-      })}
-    </div>
-  );
-};
+              <div
+                role='button'
+                tabIndex={0}
+                data-testid={`team-active-member-${assistant.slot_id}`}
+                className={classNames(
+                  'group flex items-center h-26px px-8px rounded-full cursor-pointer select-none border transition-all duration-150 shrink-0 gap-6px',
+                  isCurrent
+                    ? 'bg-fill-3 border-[rgb(var(--primary-6))] shadow-sm'
+                    : 'bg-fill-1 border-transparent hover:bg-fill-2 hover:border-[color:var(--border-base)]'
+                )}
+                onClick={() => onSelectMember(assistant.slot_id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectMember(assistant.slot_id);
+                  }
+                }}
+              >
+                <TeamAgentIdentity
+                  assistant_name={assistant.assistant_name}
+                  assistant_backend={assistant.assistant_backend}
+                  icon={assistant.icon}
+                  conversation_id={assistant.conversation_id}
+                  isLeader={assistant.role === 'leader'}
+                  className='min-w-0 !gap-6px'
+                  logoClassName='w-18px h-18px object-cover rounded-full'
+                  avatarClassName='w-18px h-18px rounded-full flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0'
+                  nameClassName='text-12px font-600 whitespace-nowrap overflow-hidden text-ellipsis select-none max-w-100px'
+                  nameStyle={{ color }}
+                  nameTestId={`team-active-member-name-${assistant.slot_id}`}
+                  avatarOverlay={<AgentStatusBadge status='active' overlay />}
+                />
+              </div>
+            </Tooltip>
+          );
+        })}
+      </div>
+    );
+  }
+);
 
-export default TeamTabs;
+export default React.memo(TeamTabs);

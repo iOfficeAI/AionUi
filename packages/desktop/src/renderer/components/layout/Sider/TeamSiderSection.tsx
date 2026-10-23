@@ -27,6 +27,81 @@ const TEAM_PINNED_KEY = 'team-pinned-ids';
 
 type SiderTooltipProps = React.ComponentProps<typeof Tooltip>;
 
+type TeamSiderRowProps = {
+  team: TTeam;
+  isPinned: boolean;
+  selected: boolean;
+  isRunning: boolean;
+  menuItems: SiderMenuItem[];
+  teamBadge: number;
+  onMenuAction: (key: string, team: TTeam) => void;
+  onTeamClick: (team_id: string) => void;
+  onTeamHover: (team_id: string) => void;
+  onTeamHoverLeave: (team_id: string) => void;
+};
+
+const TeamSiderRow: React.FC<TeamSiderRowProps> = React.memo(
+  ({
+    team,
+    isPinned,
+    selected,
+    isRunning,
+    menuItems,
+    teamBadge,
+    onMenuAction,
+    onTeamClick,
+    onTeamHover,
+    onTeamHoverLeave,
+  }) => {
+    const handleAction = useCallback((key: string) => onMenuAction(key, team), [onMenuAction, team]);
+    const handleClick = useCallback(() => onTeamClick(team.id), [onTeamClick, team.id]);
+    const handleHover = useCallback(() => onTeamHover(team.id), [onTeamHover, team.id]);
+    const handleHoverLeave = useCallback(() => onTeamHoverLeave(team.id), [onTeamHoverLeave, team.id]);
+
+    const icon = useMemo(
+      () =>
+        isRunning ? (
+          <span data-testid={`team-spinner-${team.id}`} className='flex items-center justify-center'>
+            <Spin size={16} />
+          </span>
+        ) : (
+          <Peoples
+            data-testid={`team-icon-${team.id}`}
+            theme='outline'
+            size='16'
+            fill='currentColor'
+            style={{ lineHeight: 0 }}
+          />
+        ),
+      [isRunning, team.id]
+    );
+
+    return (
+      <div className='relative group'>
+        <SiderItem
+          icon={icon}
+          name={team.name}
+          selected={selected}
+          pinned={isPinned && !isRunning}
+          menuItems={menuItems}
+          onMenuAction={handleAction}
+          onClick={handleClick}
+          onMouseEnter={handleHover}
+          onMouseLeave={handleHoverLeave}
+        />
+        {teamBadge > 0 && (
+          <span
+            className='absolute end-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'
+            style={{ lineHeight: 1 }}
+          >
+            {teamBadge > 99 ? '99+' : teamBadge}
+          </span>
+        )}
+      </div>
+    );
+  }
+);
+
 interface TeamSiderSectionProps {
   collapsed: boolean;
   pathname: string;
@@ -354,49 +429,21 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
           </div>
           {expanded &&
             sortedTeams.length > 0 &&
-            sortedTeams.map((team) => {
-              const isPinned = pinnedIds.includes(team.id);
-              const menuItems = getMenuItems(team);
-              const teamBadge = teamBadgeCounts.get(team.id) ?? 0;
-              const isRunning = isTeamRunning(team.id);
-              return (
-                <div key={team.id} className='relative group'>
-                  <SiderItem
-                    icon={
-                      isRunning ? (
-                        <span data-testid={`team-spinner-${team.id}`} className='flex items-center justify-center'>
-                          <Spin size={16} />
-                        </span>
-                      ) : (
-                        <Peoples
-                          data-testid={`team-icon-${team.id}`}
-                          theme='outline'
-                          size='16'
-                          fill='currentColor'
-                          style={{ lineHeight: 0 }}
-                        />
-                      )
-                    }
-                    name={team.name}
-                    selected={pathname.startsWith(`/team/${team.id}`)}
-                    pinned={isPinned && !isRunning}
-                    menuItems={menuItems}
-                    onMenuAction={(key) => handleMenuAction(key, team)}
-                    onClick={() => handleTeamClick(team.id)}
-                    onMouseEnter={() => handleTeamHover(team.id)}
-                    onMouseLeave={() => handleTeamHoverLeave(team.id)}
-                  />
-                  {teamBadge > 0 && (
-                    <span
-                      className='absolute end-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'
-                      style={{ lineHeight: 1 }}
-                    >
-                      {teamBadge > 99 ? '99+' : teamBadge}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+            sortedTeams.map((team) => (
+              <TeamSiderRow
+                key={team.id}
+                team={team}
+                isPinned={pinnedIds.includes(team.id)}
+                selected={pathname.startsWith(`/team/${team.id}`)}
+                isRunning={isTeamRunning(team.id)}
+                menuItems={getMenuItems(team)}
+                teamBadge={teamBadgeCounts.get(team.id) ?? 0}
+                onMenuAction={handleMenuAction}
+                onTeamClick={handleTeamClick}
+                onTeamHover={handleTeamHover}
+                onTeamHoverLeave={handleTeamHoverLeave}
+              />
+            ))}
         </div>
       )}
       <TeamCreateModal

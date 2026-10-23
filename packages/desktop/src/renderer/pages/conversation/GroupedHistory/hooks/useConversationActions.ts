@@ -12,7 +12,7 @@ import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -49,6 +49,10 @@ export const useConversationActions = ({
   const [renameLoading, setRenameLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
   const { id } = useParams();
+  const idRef = useRef(id);
+  useEffect(() => {
+    idRef.current = id;
+  }, [id]);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -87,12 +91,12 @@ export const useConversationActions = ({
       }
 
       emitter.emit('conversation.deleted', conversation_id);
-      if (id === conversation_id) {
+      if (idRef.current === conversation_id) {
         void navigate('/');
       }
       return true;
     },
-    [id, navigate]
+    [navigate]
   );
 
   const handleBatchArchive = useCallback(() => {
@@ -239,14 +243,14 @@ export const useConversationActions = ({
         });
       } else {
         requestConversationSendBoxPrefill(conversation.id, prefillPrompt);
-        if (id !== conversation.id) {
+        if (idRef.current !== conversation.id) {
           void navigate(`/conversation/${conversation.id}`);
         }
       }
 
       onSessionClick?.();
     },
-    [id, navigate, onSessionClick, t]
+    [navigate, onSessionClick, t]
   );
 
   /**

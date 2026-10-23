@@ -555,6 +555,8 @@ const AssistantChatSlot: React.FC<{
       await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
     }, [mutateConversation, onRunStateStale]);
 
+    const handleSlotRunStateStale = useCallback(() => onRunStateStale('pause.result'), [onRunStateStale]);
+
     return (
       <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
         {showHeader && (
@@ -598,7 +600,7 @@ const AssistantChatSlot: React.FC<{
               teamRunView={teamRunView}
               onTeamRunAck={onTeamRunAck}
               onTeamSlotPaused={onTeamSlotPaused}
-              onRunStateStale={() => onRunStateStale('pause.result')}
+              onRunStateStale={handleSlotRunStateStale}
               onPromptSent={onPromptSent}
             />
           ) : (

@@ -329,4 +329,4 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   );
 };
 
-export default TeamChatView;
+export default React.memo(TeamChatView);
