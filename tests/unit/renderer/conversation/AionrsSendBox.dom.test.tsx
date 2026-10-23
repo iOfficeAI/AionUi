@@ -269,6 +269,16 @@ vi.mock('@arco-design/web-react', () => ({
   Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Space: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Dropdown: ({ children, droplist }: { children?: React.ReactNode; droplist?: React.ReactNode }) => (
+    <div>
+      {children}
+      {droplist}
+    </div>
+  ),
+  Menu: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+    Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    ItemGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  }),
   Button: ({
     children,
     onClick,
@@ -282,6 +292,9 @@ vi.mock('@arco-design/web-react', () => ({
       {children}
     </button>
   ),
+}));
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+  default: () => null,
 }));
 vi.mock('@icon-park/react', () => ({
   Brain: () => null,

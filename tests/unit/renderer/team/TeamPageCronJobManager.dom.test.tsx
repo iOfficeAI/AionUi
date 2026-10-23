@@ -147,9 +147,11 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
 
 import { ipcBridge } from '@/common';
 import TeamPage from '@/renderer/pages/team/TeamPage';
+import { resetWarmedUpTeamsForTest } from '@/renderer/pages/team/hooks/useTeamWarmup';
 
 describe('TeamPage cron job manager', () => {
   beforeEach(() => {
+    resetWarmedUpTeamsForTest();
     vi.clearAllMocks();
     getConversationOrNullMock.mockReset();
     cronJobManagerMock.mockClear();
