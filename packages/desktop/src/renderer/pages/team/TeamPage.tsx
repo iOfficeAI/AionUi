@@ -27,7 +27,9 @@ import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import { Browser } from '@icon-park/react';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
-import { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
+import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
+import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
+import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import AcpRuntimeRestartButton, { useAcpRuntimeRestart } from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
@@ -321,6 +323,52 @@ const TeamAgentActions: React.FC<{
   );
 };
 
+/** Compact aionrs model selector for the agent header */
+const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
+  conversation_id,
+  initialModel,
+}) => {
+  const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
+  const onSelectModel = useCallback(
+    async (_provider: IProvider, modelName: string) => {
+      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversation_id]
+  );
+  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id,
+    prepareSetRuntime: teamPermission?.warmupSession,
+    configOptionsPort: teamPermission?.configOptionsPort,
+    enabled: Boolean(conversation_id),
+  });
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
+  return (
+    <AionrsModelSelector
+      selection={modelSelection}
+      disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
+      thoughtLevel={runtimeConfig.thoughtLevel}
+      setStatus={runtimeConfig.setStatus}
+      onSetThoughtLevel={handleThoughtLevelSetOption}
+    />
+  );
+};
+
 /** Teammate action & model controls rendered either in Row 2 (single view / 1-agent) or in the column header (parallel view) */
 const TeamAgentControls: React.FC<{
   assistant: TeamAssistant;
@@ -361,8 +409,17 @@ const TeamAgentControls: React.FC<{
   const conversation = propConversation ?? fetchedConversation;
 
   const isAionrs = conversation?.type === 'aionrs';
+  const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
+
+  const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
+    () => ({
+      status: warmupStatus ?? (warmupDisabled ? 'dormant' : runtimeAvailabilityToWarmupStatus(fallbackAvailability)),
+      trigger: warmupDisabled ? undefined : buildTeamRetryStartHandler({ team_id, slot_id: assistant.slot_id }),
+    }),
+    [warmupStatus, fallbackAvailability, warmupDisabled, team_id, assistant.slot_id]
+  );
   const runtimeActionAvailability = resolveRuntimeActionAvailability({
     warmupStatus,
     warmupDisabled: Boolean(warmupDisabled),
@@ -389,6 +446,19 @@ const TeamAgentControls: React.FC<{
   return (
     <div className='flex items-center gap-8px shrink-0'>
       {conversation && <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />}
+      {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
+        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
+          <AcpModelSelector
+            key={assistant.conversation_id}
+            conversation_id={assistant.conversation_id}
+            backend={assistant.assistant_backend}
+            initialModelId={initialModelId}
+            prepareSetRuntime={teamPermission?.warmupSession}
+            configOptionsPort={teamPermission?.configOptionsPort}
+            warmup={warmup}
+          />
+        </div>
+      )}
       {assistant.conversation_id && !isAionrs && isAcpLike && isLeader && (
         <div className='shrink-0'>
           <AcpRuntimeRestartButton
@@ -410,6 +480,15 @@ const TeamAgentControls: React.FC<{
             runtimeAvailability={runtimeActionAvailability}
             contextResetAvailability={contextResetAvailability}
             onRuntimeChanged={handleRuntimeChanged}
+          />
+        </div>
+      )}
+      {!isMobile && isAionrs && assistant.conversation_id && (
+        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
+          <AionrsHeaderModelSelector
+            key={assistant.conversation_id}
+            conversation_id={assistant.conversation_id}
+            initialModel={conversation?.model as TProviderWithModel | undefined}
           />
         </div>
       )}

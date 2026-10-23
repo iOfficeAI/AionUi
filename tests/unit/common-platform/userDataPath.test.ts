@@ -180,6 +180,13 @@ describe('userDataPath (Portable storage)', () => {
       expect(isSystemInstallationDir('C:\\Windows\\System32')).toBe(true);
     });
 
+    it('identifies macOS and Linux system directories', () => {
+      expect(isSystemInstallationDir('/Applications/AionUi.app')).toBe(true);
+      expect(isSystemInstallationDir('/usr/bin/aionui')).toBe(true);
+      expect(isSystemInstallationDir('/opt/aionui')).toBe(true);
+      expect(isSystemInstallationDir('/etc/aionui')).toBe(true);
+    });
+
     it('disallows portable mode in system installation directories even if files exist', () => {
       expect(isPortableMode('C:\\Program Files\\AionUi')).toBe(false);
       expect(isPortableMode('C:\\Program Files (x86)\\AionUi')).toBe(false);

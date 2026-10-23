@@ -114,9 +114,26 @@ export function clearStoredCustomDataDir(): void {
  */
 export function isSystemInstallationDir(dir: string): boolean {
   if (!dir) return false;
-  const norm = path.resolve(dir).toLowerCase();
+
+  // Cross-platform check for Windows-style drive paths (e.g. C:\Program Files, C:/Windows)
+  const winNorm = dir.replace(/\\/g, '/').toLowerCase();
+  const winMatch = winNorm.match(/^[a-z]:\/(.+)$/);
+  if (winMatch) {
+    const subPath = winMatch[1];
+    if (
+      subPath === 'program files' ||
+      subPath.startsWith('program files/') ||
+      subPath === 'program files (x86)' ||
+      subPath.startsWith('program files (x86)/') ||
+      subPath === 'windows' ||
+      subPath.startsWith('windows/')
+    ) {
+      return true;
+    }
+  }
 
   if (process.platform === 'win32') {
+    const norm = path.resolve(dir).toLowerCase();
     const systemDirs = [
       process.env.ProgramFiles,
       process.env['ProgramFiles(x86)'],
@@ -134,20 +151,16 @@ export function isSystemInstallationDir(dir: string): boolean {
         return true;
       }
     }
-  } else if (process.platform === 'darwin') {
-    const normSys = ['/applications', '/system', '/library'];
-    for (const sysDir of normSys) {
-      if (norm === sysDir || norm.startsWith(sysDir + '/')) {
-        return true;
-      }
-    }
-  } else {
-    // Linux and other Unix
-    const normSys = ['/usr', '/opt', '/var', '/etc'];
-    for (const sysDir of normSys) {
-      if (norm === sysDir || norm.startsWith(sysDir + '/')) {
-        return true;
-      }
+  }
+
+  // POSIX paths (macOS & Linux)
+  const normUnix = (
+    dir.startsWith('/') ? dir.replace(/\\/g, '/') : path.resolve(dir).replace(/\\/g, '/')
+  ).toLowerCase();
+  const unixDirs = ['/applications', '/system', '/library', '/usr', '/opt', '/var', '/etc', '/bin', '/sbin'];
+  for (const sysDir of unixDirs) {
+    if (normUnix === sysDir || normUnix.startsWith(sysDir + '/')) {
+      return true;
     }
   }
 

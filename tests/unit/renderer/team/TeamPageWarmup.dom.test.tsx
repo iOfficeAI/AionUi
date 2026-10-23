@@ -194,9 +194,11 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
 
 import { ipcBridge } from '@/common';
 import TeamPage from '@/renderer/pages/team/TeamPage';
+import { resetWarmedUpTeamsForTest } from '@/renderer/pages/team/hooks/useTeamWarmup';
 
 describe('TeamPage teammate warmup wiring', () => {
   beforeEach(() => {
+    resetWarmedUpTeamsForTest();
     vi.clearAllMocks();
     acpSelectorPropsBySlot.clear();
     restartPropsBySlot.clear();
