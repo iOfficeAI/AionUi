@@ -664,6 +664,7 @@ brew install aionui
 - [⚙️ LLM Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Multi-platform AI model configuration
 - [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Integrate terminal AI agents
 - [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol server setup
+- [🛡️ PARALAX MCP](docs/guides/paralax-mcp.md) — Connect a policy-gated context gateway
 - [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Complete WebUI setup and configuration tutorial
 
 **🎯 Use Cases**
