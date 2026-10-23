@@ -879,6 +879,7 @@
   "checkForUpdates": "Verificar atualizações",
   "checkingForUpdates": "Verificando atualizações...",
   "includePrereleaseUpdates": "Incluir versões de pré-lançamento/dev",
+  "loadModelConfigFailed": "Não foi possível carregar as configurações de modelos salvas. Tente novamente.",
   "saveModelConfigFailed": "Falha ao salvar a configuração do modelo",
   "healthCheck": "Verificação de Saúde",
   "clearStatus": "Limpar status",

@@ -29,17 +29,21 @@ function getPersistedActiveId(): string {
   return (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
 }
 
+function applyPersistedTheme(): Theme {
+  const activeId = getPersistedActiveId();
+  const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
+  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+  applyTheme(resolved);
+  cacheAppearance(resolved);
+  // Seed other surfaces after loading persisted settings, including retries.
+  void seedElectronTheme(resolved).catch(() => {});
+  return resolved;
+}
+
 async function initActiveTheme(): Promise<Theme> {
   try {
     await configService.whenReady();
-    const activeId = getPersistedActiveId();
-    const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
-    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
-    applyTheme(resolved);
-    cacheAppearance(resolved);
-    // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
-    void seedElectronTheme(resolved).catch(() => {});
-    return resolved;
+    return applyPersistedTheme();
   } catch (e) {
     console.error('init theme failed', e);
     const fallback = resolveActiveTheme(LIGHT_THEME_ID, BUILTIN_THEMES);
@@ -62,10 +66,22 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
 
   useEffect(() => {
     let mounted = true;
+    let settingsChanged = false;
+    const refresh = () => {
+      settingsChanged = true;
+      const theme = applyPersistedTheme();
+      if (mounted) {
+        setActive(theme);
+        setActiveId(getPersistedActiveId());
+      }
+    };
+    const offActiveId = configService.subscribe('theme.activeId', refresh);
+    const offUserThemes = configService.subscribe('theme.userThemes', refresh);
     initialPromise
       ?.then((t) => {
-        if (mounted) {
-          setActive(t);
+        if (mounted && !settingsChanged) {
+          // A retry may already have succeeded before this hook mounted.
+          setActive(configService.isInitialized() ? applyPersistedTheme() : t);
           setActiveId(getPersistedActiveId());
         }
       })
@@ -83,6 +99,8 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>, string 
     return () => {
       mounted = false;
       off?.();
+      offActiveId();
+      offUserThemes();
       offSystemWatch();
     };
   }, []);

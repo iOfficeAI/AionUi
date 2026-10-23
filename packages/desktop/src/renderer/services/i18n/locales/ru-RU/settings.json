@@ -871,6 +871,7 @@
   "checkForUpdates": "Проверить обновления",
   "checkingForUpdates": "Проверка обновлений...",
   "includePrereleaseUpdates": "Включить предварительные/dev сборки",
+  "loadModelConfigFailed": "Не удалось загрузить сохранённые настройки моделей. Повторите попытку.",
   "saveModelConfigFailed": "Не удалось сохранить конфигурацию модели",
   "healthCheck": "Проверка здоровья",
   "clearStatus": "Очистить статус",

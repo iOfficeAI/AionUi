@@ -15,6 +15,7 @@ type QuitCleanupDeps = {
   markExplicitQuit: () => void;
   destroyTray: () => void;
   disposeCronResumeListener: () => void;
+  flushPendingWrites?: () => Promise<void>;
   stopBackend: () => Promise<void>;
   destroyPetWindow: () => Promise<void> | void;
   logInfo: (message: string) => void;
@@ -55,6 +56,8 @@ async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
   const cleanup = async () => {
     deps.disposeCronResumeListener();
 
+    // The pending writes can use the backend; stopping it first loses them.
+    await deps.flushPendingWrites?.();
     await deps.stopBackend().catch((err) => deps.logError('[App] Failed to stop backend:', err));
 
     try {

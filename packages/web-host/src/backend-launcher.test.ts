@@ -349,6 +349,33 @@ describe('findAvailablePort', () => {
 });
 
 describe('BackendLifecycleManager.start (success path)', () => {
+  it('reads listening and ready markers split across pipe chunks', async () => {
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x');
+    const starting = mgr.start('/db');
+    child.stdout?.emit('data', Buffer.from('log message\nAIONCORE_LIST'));
+    child.stdout?.emit('data', Buffer.from('ENING {"host":"127.0.0.1","port":55555}\r'));
+    child.stdout?.emit('data', Buffer.from('\nAIONCORE_RE'));
+    child.stdout?.emit('data', Buffer.from('ADY\n'));
+    await expect(starting).resolves.toBe(55555);
+    expect(mgr.status).toBe('running');
+    fetchSpy.mockRestore();
+  });
+
+  it('can launch an authenticated backend for standalone WebUI', async () => {
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x', false);
+    const starting = mgr.start('/db');
+    emitListening(child, 55555);
+    await starting;
+    expect(vi.mocked(spawn).mock.calls[0][1]).not.toContain('--local');
+    fetchSpy.mockRestore();
+  });
+
   it('lets aioncore choose the backend port and waits for the reported listening event', async () => {
     vi.mocked(createServer).mockImplementation(() => {
       throw new Error('launcher must not pre-bind backend ports');
@@ -1247,6 +1274,33 @@ describe('BackendLifecycleManager.stop', () => {
 });
 
 describe('BackendLifecycleManager crash restart', () => {
+  it('limits repeated crashes even when each replacement reports healthy', async () => {
+    vi.useFakeTimers();
+    const children: ChildProcess[] = [];
+    vi.mocked(spawn).mockImplementation(() => {
+      const child = makeFakeChild();
+      children.push(child);
+      return child;
+    });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x');
+    const starting = mgr.start('/db');
+    emitListening(children[0], 55555);
+    await starting;
+    for (let retry = 0; retry < 3; retry += 1) {
+      children[retry].emit('exit', 1, null);
+      await vi.advanceTimersByTimeAsync(2 ** retry * 1000);
+      emitListening(children[retry + 1], 55555);
+      await vi.advanceTimersByTimeAsync(0);
+    }
+    children[3].emit('exit', 1, null);
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(children).toHaveLength(4);
+    expect(mgr.status).toBe('error');
+    fetchSpy.mockRestore();
+    vi.clearAllTimers();
+  });
+
   it('restarts on the existing backend port after an unexpected exit', async () => {
     const child1 = makeFakeChild();
     const child2 = makeFakeChild();

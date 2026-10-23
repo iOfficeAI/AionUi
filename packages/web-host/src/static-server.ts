@@ -14,6 +14,7 @@ import http, { type IncomingMessage, type Server, type ServerResponse } from 'no
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
 import serveHandler from 'serve-handler';
+import { isFetchForbiddenPort } from './backend-launcher.js';
 
 export type StaticServerOptions = {
   staticDir: string;
@@ -32,6 +33,31 @@ export type StaticServerHandle = {
 };
 
 const DEFAULT_PORT = 25808;
+const CONNECTION_DRAIN_TIMEOUT_MS = 1000;
+const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
+
+/** Refuse a remote listener unless the backend actually enforces authentication. */
+async function assertRemoteBackendRequiresAuth(backendPort: number): Promise<void> {
+  const message = 'Remote WebUI requires an authenticated backend; Local mode can only be served on loopback';
+  try {
+    // Do not send the desktop process's cookie, runtime token or other credentials.
+    const response = await fetch(`http://127.0.0.1:${backendPort}/api/settings/client`, {
+      credentials: 'omit',
+      redirect: 'error',
+      signal: AbortSignal.timeout(5000),
+    });
+    if (![401, 403].includes(response.status) || !response.headers.get('content-type')?.includes('application/json')) {
+      await response.body?.cancel();
+      throw new Error(message);
+    }
+    const body = (await response.json()) as { success?: unknown; code?: unknown };
+    if (body.success !== false || !['UNAUTHORIZED', 'FORBIDDEN', 'USER_CONTEXT_REQUIRED'].includes(String(body.code))) {
+      throw new Error(message);
+    }
+  } catch (cause) {
+    throw new Error(message, { cause });
+  }
+}
 
 // Ranges that are non-internal IPv4 yet never a reachable LAN address, so we
 // must never advertise them as the WebUI access URL even when they are the only
@@ -96,6 +122,7 @@ function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort
       res.destroy();
     }
   });
+  res.once('close', () => proxy.destroy());
   req.pipe(proxy);
 }
 
@@ -161,8 +188,17 @@ function peekWsRoute(buf: Buffer): boolean | null {
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
   const port = opts.port ?? DEFAULT_PORT;
+  if (port !== 0 && isFetchForbiddenPort(port)) {
+    throw new Error(`WebUI port ${port} is blocked by Fetch; choose another port`);
+  }
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
+  if (allowRemote) await assertRemoteBackendRequiresAuth(opts.backendPort);
+  const connections = new Set<Socket>();
+  const trackConnection = (socket: Socket): void => {
+    connections.add(socket);
+    socket.once('close', () => connections.delete(socket));
+  };
 
   // The HTTP server listens only on loopback — user traffic hits the outer
   // net.Server first. We route to this server for everything except WS
@@ -202,6 +238,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
       }
     }
   });
+  http_server.on('connection', trackConnection);
 
   // Internal HTTP server — 127.0.0.1 ephemeral port, never visible to the user.
   await new Promise<void>((resolve, reject) => {
@@ -221,6 +258,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   // server (everything else). Both routes use raw TCP splice — no reliance
   // on http.Server's upgrade event.
   const tcp_server = net.createServer((client: Socket) => {
+    trackConnection(client);
     let peeked = Buffer.alloc(0);
     let settled = false;
     const cleanup = (): void => {
@@ -252,18 +290,37 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     client.on('end', onEarlyEnd);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    tcp_server.once('error', reject);
-    tcp_server.listen(port, host, () => {
-      tcp_server.off('error', reject);
-      resolve();
-    });
-  });
+  let actualPort = 0;
+  try {
+    for (let attempt = 0; attempt < FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS; attempt++) {
+      await new Promise<void>((resolve, reject) => {
+        tcp_server.once('error', reject);
+        tcp_server.listen(port, host, () => {
+          tcp_server.off('error', reject);
+          resolve();
+        });
+      });
+      actualPort = (tcp_server.address() as { port: number } | null)?.port ?? 0;
+      if (actualPort > 0 && !isFetchForbiddenPort(actualPort)) break;
 
-  const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
+      // A port selected by the OS can still be blocked by browsers and Node's
+      // fetch. Reject the live listener and retry, retaining the accepted socket
+      // instead of reserving/releasing a port before the final bind.
+      for (const socket of connections) socket.destroy();
+      await new Promise<void>((resolve) => tcp_server.close(() => resolve()));
+    }
+    if (actualPort === 0 || isFetchForbiddenPort(actualPort)) {
+      throw new Error('Failed to get a fetch-compatible WebUI port');
+    }
+  } catch (error) {
+    await new Promise<void>((resolve) => http_server.close(() => resolve()));
+    throw error;
+  }
+
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
   const localUrl = `http://127.0.0.1:${actualPort}`;
   const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;
+  let stopping: Promise<void> | undefined;
 
   return {
     port: actualPort,
@@ -271,12 +328,23 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     localUrl,
     networkUrl,
     lanIP,
-    stop: () =>
-      new Promise<void>((resolve) => {
-        tcp_server.close(() => {
-          http_server.close(() => resolve());
-        });
-      }),
+    stop: () => {
+      stopping ??= (async () => {
+        // Stop accepting work, allow active HTTP requests a brief drain, then
+        // close idle and upgraded connections that server.close cannot end.
+        const deadline = setTimeout(() => {
+          for (const socket of connections) socket.destroy();
+        }, CONNECTION_DRAIN_TIMEOUT_MS);
+        deadline.unref();
+        try {
+          await new Promise<void>((resolve) => tcp_server.close(() => resolve()));
+          await new Promise<void>((resolve) => http_server.close(() => resolve()));
+        } finally {
+          clearTimeout(deadline);
+        }
+      })();
+      return stopping;
+    },
   };
 }
 

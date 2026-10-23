@@ -47,9 +47,7 @@ describe('persistOnQuit', () => {
     expect(appQuit).not.toHaveBeenCalled();
 
     resolveWrite?.();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     expect(appQuit).toHaveBeenCalled();
   });
 
@@ -62,6 +60,28 @@ describe('persistOnQuit', () => {
     const preventDefault = vi.fn();
     fireAppEvent('before-quit', { preventDefault });
     expect(preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('also drains writes added while an earlier write is flushing', async () => {
+    let finishFirst: (() => void) | undefined;
+    let finishSecond: (() => void) | undefined;
+    trackPersistedWrite(
+      new Promise<void>((resolve) => {
+        finishFirst = resolve;
+      })
+    );
+    fireAppEvent('before-quit', { preventDefault: vi.fn() });
+    trackPersistedWrite(
+      new Promise<void>((resolve) => {
+        finishSecond = resolve;
+      })
+    );
+    finishFirst?.();
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    expect(appQuit).not.toHaveBeenCalled();
+    finishSecond?.();
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    expect(appQuit).toHaveBeenCalledTimes(1);
   });
 
   it('still allows quit when a tracked write rejects', async () => {
@@ -77,9 +97,7 @@ describe('persistOnQuit', () => {
     expect(preventDefault).toHaveBeenCalled();
 
     rejectWrite?.(new Error('disk full'));
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     expect(appQuit).toHaveBeenCalled();
   });
 
@@ -101,9 +119,7 @@ describe('persistOnQuit', () => {
     expect(appQuit).not.toHaveBeenCalled();
 
     resolveWrite?.();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise<void>((resolve) => setImmediate(resolve));
     expect(appQuit).toHaveBeenCalled();
   });
 });
