@@ -25,6 +25,9 @@ import { emitter } from '../../../utils/emitter';
 import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
+import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
@@ -36,6 +39,15 @@ import { resolveConversationBackend } from '../utils/conversationAssistantIdenti
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import SingleChatEmptyState from './SingleChatEmptyState';
 import { useActiveLease } from '../hooks/useActiveLease';
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
+
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
@@ -173,6 +185,24 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   // header space; the dropdown stays available on desktop and tablets ≥768px.
   const isMobile = Boolean(layout?.isMobile);
   const { t } = useTranslation();
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id: conversation.id,
+    enabled: !isMobile,
+  });
+
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
 
   const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
   const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
@@ -190,6 +220,14 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
+        {!isMobile && (
+          <AionrsModelSelector
+            selection={modelSelection}
+            thoughtLevel={runtimeConfig.thoughtLevel}
+            setStatus={runtimeConfig.setStatus}
+            onSetThoughtLevel={handleThoughtLevelSetOption}
+          />
+        )}
         <div className='shrink-0'>
           <Tooltip content={t('conversation.browser.title')}>
             <Button
@@ -278,6 +316,7 @@ const ChatConversation: React.FC<{
   conversation?: TChatConversation;
   hideSendBox?: boolean;
 }> = ({ conversation, hideSendBox }) => {
+  const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
   const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
   const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
     unit: 'px',
@@ -287,7 +326,12 @@ const ChatConversation: React.FC<{
     storageKey: 'aionui-chat-browser-width-px',
   });
   const { t } = useTranslation();
-  const runtimeView = useConversationRuntimeView(conversation?.id);
+  // Stable identity: the selector reports readiness from an effect keyed on this
+  // callback, so an inline arrow would re-run it on every render.
+  const handleRuntimeReadyChange = useCallback(
+    (ready: boolean) => setRuntimeReadyConversationId(ready ? (conversation?.id ?? null) : null),
+    [conversation?.id]
+  );
   useActiveLease({ type: 'conversation', id: conversation?.id });
   const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
@@ -373,6 +417,39 @@ const ChatConversation: React.FC<{
     );
   }, [t]);
 
+  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
+  // For other conversations, show disabled model selector.
+  // Mobile: model selection moves into the sendbox `+` action sheet, so the
+  // header selector is suppressed to free up vertical space.
+  const modelSelector = useMemo(() => {
+    if (!conversation || isAionrsConversation) return undefined;
+    if (isMobile) return undefined;
+    if (isLegacyReadOnlyConversation) return undefined;
+    // Antigravity included: the backend discovers agy's model list and writes it
+    // into the same catalog the ACP picker reads, so it must not fall through to
+    // the disabled selector below.
+    if (conversation.type === 'acp' || conversation.type === 'antigravity') {
+      const extra = conversation.extra as { current_model_id?: string };
+      return (
+        <AcpModelSelector
+          conversation_id={conversation.id}
+          backend={resolvedConversationBackend}
+          initialModelId={extra.current_model_id}
+          onRuntimeReadyChange={handleRuntimeReadyChange}
+          waitForWarmup
+        />
+      );
+    }
+    return <GoogleModelSelector disabled={true} />;
+  }, [
+    conversation,
+    isAionrsConversation,
+    isMobile,
+    isLegacyReadOnlyConversation,
+    resolvedConversationBackend,
+    handleRuntimeReadyChange,
+  ]);
+
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
   }
@@ -397,11 +474,12 @@ const ChatConversation: React.FC<{
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
+      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
       {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
         <div className='shrink-0'>
           <AcpRuntimeRestartButton
             conversation_id={conversation.id}
-            availability={runtimeView.hydrated ? 'ready' : 'initializing'}
+            availability={runtimeReadyConversationId === conversation.id ? 'ready' : 'initializing'}
           />
         </div>
       )}

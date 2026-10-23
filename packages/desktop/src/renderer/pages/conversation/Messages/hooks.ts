@@ -939,6 +939,10 @@ type CachedMessages = {
 const messageListMemoryCache = new Map<string, CachedMessages>();
 const MAX_CACHED_CONVERSATION_MESSAGES = 50;
 
+export const clearMessageListMemoryCacheForTest = (): void => {
+  messageListMemoryCache.clear();
+};
+
 function setMemoryCachedMessages(key: string, data: CachedMessages) {
   if (messageListMemoryCache.has(key)) {
     messageListMemoryCache.delete(key);

@@ -91,7 +91,7 @@ const AionrsModelSelector: React.FC<{
   // so the shared model list can track selection, and map it back on select.
   const modelGroups: RuntimeSelectorModelGroup[] = [];
   const modelLookup = new Map<string, { provider: (typeof providers)[number]; modelName: string }>();
-  for (const provider of providers) {
+  for (const provider of providers ?? []) {
     const models = getAvailableModels(provider);
     if (!models.length) continue;
     modelGroups.push({
