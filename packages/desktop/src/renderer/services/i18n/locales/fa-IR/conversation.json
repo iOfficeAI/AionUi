@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "حذف پروژه",
+    "deleteProjectTitle": "حذف پروژه",
+    "deleteProjectConfirm": "پروژه «{{name}}» حذف شود؟ تمام {{count}} گفتگوی این پروژه برای همیشه حذف خواهند شد. این اقدام قابل بازگشت نیست.",
+    "deleteProjectSuccess": "پروژه حذف شد"
   },
   "historySearch": {
     "tooltip": "جستجوی پیام‌ها",
@@ -544,7 +548,13 @@
     "output": "خروجی",
     "thought": "تفکر",
     "cachedRead": "خواندن حافظه پنهان",
-    "cachedWrite": "نوشتن حافظه پنهان"
+    "cachedWrite": "نوشتن حافظه پنهان",
+    "cache": "حافظه پنهان",
+    "total": "مجموع",
+    "replyTokens": "توکن‌های پاسخ",
+    "chatTotal": "مجموع گفتگو",
+    "sessionTotal": "مجموع پنجره گفتگو",
+    "contextWindow": "پنجره زمینه"
   },
   "skill_generator": {
     "title": "ساخت مهارت/قانون",
@@ -753,7 +763,11 @@
       }
     },
     "pathCopied": "مسیر کپی شد",
-    "copyFailed": "کپی مسیر ناموفق بود"
+    "copyFailed": "کپی مسیر ناموفق بود",
+    "showSizes": "نمایش اندازه فایل‌ها",
+    "showDates": "نمایش تاریخ فایل‌ها",
+    "followAgentOn": "ردیابی فعالیت ایجنت (باز کردن خودکار)",
+    "followAgentOff": "ردیابی ایجنت غیرفعال شد"
   },
   "terminal": {
     "running": "در حال اجرا",
@@ -782,5 +796,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "گسترش برنامه",
     "collapse": "جمع کردن برنامه"
+  },
+  "browser": {
+    "stop": "توقف",
+    "retry": "تلاش مجدد",
+    "title": "مرورگر",
+    "addressBarPlaceholder": "نشانی یا جستجو را وارد کنید...",
+    "navigate": "برو",
+    "back": "بازگشت",
+    "forward": "جلو",
+    "refresh": "بازنشانی",
+    "close": "بستن",
+    "loading": "در حال بارگذاری...",
+    "profiles": "نمایه‌ها",
+    "clearData": "پاک کردن داده‌های نمایه",
+    "clearDataConfirm": "آیا تمام کوکی‌ها و حافظه محلی برای این نمایه پاک شوند؟",
+    "clearDataSuccess": "داده‌های نمایه با موفقیت پاک شدند",
+    "backendEmbedded": "داخلی",
+    "backendChrome": "کروم خارجی",
+    "launchChrome": "اجرای کروم",
+    "chromeConnected": "متصل شد",
+    "safetyGateTitle": "تأیید اقدام لازم است",
+    "safetyGateDesc": "یک اقدام خودکار قبل از ادامه نیاز به تأیید شما دارد.",
+    "safetyApprove": "تأیید",
+    "safetyReject": "رد",
+    "safetyRemember": "به‌خاطر سپردن انتخاب (تأیید خودکار)",
+    "safetyTarget": "حساب هدف",
+    "safetyCaption": "کپشن / محتوا",
+    "safetyMedia": "فایل رسانه"
   }
 }

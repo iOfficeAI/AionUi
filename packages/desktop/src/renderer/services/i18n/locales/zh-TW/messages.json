@@ -97,5 +97,13 @@
   "requestDetails": "請求內容：",
   "delivery": {
     "pending": "未讀"
-  }
+  },
+  "slash.antigravity.goal": "運行長時間任務，徹底執行直至完全達成目標",
+  "slash.antigravity.teamworkPreview": "用於複雜專案的多智能體協同工作流程",
+  "slash.antigravity.plan": "在執行前制定詳細的逐步實施計畫",
+  "slash.antigravity.grillMe": "透過互動式提問深入對齊設計決策與權衡",
+  "slash.antigravity.boost": "深度思考、戰略規劃與嚴密驗證",
+  "slash.antigravity.browser": "網路瀏覽、文件檢索與線上研究",
+  "slash.antigravity.schedule": "定時任務或週期性計畫執行",
+  "slash.antigravity.learn": "沉澱經驗、規則與規範以供後續任務復用"
 }

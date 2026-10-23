@@ -110,6 +110,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 import SystemModalContent from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent';
 
 const defaultSystemInfo = {
+  dataDir: '/data',
   cacheDir: '/cache',
   workDir: '/work',
   logDir: '/logs',
@@ -154,65 +155,67 @@ describe('SystemModalContent directory settings', () => {
     systemInfoMock.mockResolvedValue(defaultSystemInfo);
     updateSystemInfoMock.mockResolvedValue(undefined);
     restartMock.mockResolvedValue({ restarted: true, manualRestartRequired: false });
-    showOpenMock.mockResolvedValue(['/new-logs']);
+    showOpenMock.mockResolvedValue(['/new-data']);
   });
 
-  it('persists a selected log directory and restarts with the updated directory config', async () => {
+  it('persists a selected data directory and restarts with the updated directory config', async () => {
     const user = userEvent.setup();
     const { container } = renderContent();
 
-    await screen.findByText('/logs');
-    const logDirItem = screen.getByText('settings.logDir').closest('.arco-form-item');
-    expect(logDirItem).not.toBeNull();
+    await screen.findByText('/data');
+    const dataDirItem = screen.getByText('settings.dataDir').closest('.arco-form-item');
+    expect(dataDirItem).not.toBeNull();
 
-    const pickButton = within(logDirItem as HTMLElement).getByRole('button');
+    const pickButton = within(dataDirItem as HTMLElement).getByRole('button', { name: 'settings.changeDataDir' });
     await user.click(pickButton);
 
     await waitFor(() => {
       expect(updateSystemInfoMock).toHaveBeenCalledWith({
+        dataDir: '/new-data',
         cacheDir: '/cache',
         workDir: '/work',
-        logDir: '/new-logs',
+        logDir: '/logs',
       });
     });
     expect(restartMock).toHaveBeenCalledTimes(1);
-    expect(container).toHaveTextContent('/new-logs');
+    expect(container).toHaveTextContent('/new-data');
   });
 
   it('shows the update failure reason when changing a directory fails', async () => {
     const user = userEvent.setup();
     updateSystemInfoMock.mockRejectedValueOnce(new Error('permission denied'));
-    showOpenMock.mockResolvedValueOnce(['/new-work']);
+    showOpenMock.mockResolvedValueOnce(['/new-data']);
     const { container } = renderContent();
 
-    await screen.findByText('/work');
-    const workDirItem = screen.getByText('settings.workDir').closest('.arco-form-item');
-    expect(workDirItem).not.toBeNull();
+    await screen.findByText('/data');
+    const dataDirItem = screen.getByText('settings.dataDir').closest('.arco-form-item');
+    expect(dataDirItem).not.toBeNull();
 
-    await user.click(within(workDirItem as HTMLElement).getByRole('button'));
+    await user.click(within(dataDirItem as HTMLElement).getByRole('button', { name: 'settings.changeDataDir' }));
 
     await screen.findByText('permission denied');
-    expect(container).toHaveTextContent('/work');
+    expect(container).toHaveTextContent('/data');
     expect(restartMock).not.toHaveBeenCalled();
   });
 
-  it('opens the directory picker when clicking the work directory field body', async () => {
+  it('opens the directory picker when clicking the data directory field body', async () => {
     const user = userEvent.setup();
-    showOpenMock.mockResolvedValueOnce(['/new-work']);
+    showOpenMock.mockResolvedValueOnce(['/new-data']);
     renderContent();
 
-    await screen.findByText('/work');
-    const workDirItem = screen.getByText('settings.workDir').closest('.arco-form-item');
-    expect(workDirItem).not.toBeNull();
-    const fieldBody = (workDirItem as HTMLElement).querySelector('.aion-dir-input');
+    await screen.findByText('/data');
+    const dataDirItem = screen.getByText('settings.dataDir').closest('.arco-form-item');
+    expect(dataDirItem).not.toBeNull();
+    const fieldBody = (dataDirItem as HTMLElement).querySelector('.aion-dir-input');
     expect(fieldBody).not.toBeNull();
 
     await user.click(fieldBody as HTMLElement);
 
     await waitFor(() => {
       expect(updateSystemInfoMock).toHaveBeenCalledWith({
+        dataDir: '/new-data',
         cacheDir: '/cache',
-        workDir: '/new-work',
+        workDir: '/work',
         logDir: '/logs',
       });
     });
@@ -223,43 +226,39 @@ describe('SystemModalContent directory settings', () => {
     restartMock.mockResolvedValueOnce({ restarted: false, manualRestartRequired: true, reason: 'dev-mode' });
     const { container } = renderContent();
 
-    await screen.findByText('/logs');
-    const logDirItem = screen.getByText('settings.logDir').closest('.arco-form-item');
-    expect(logDirItem).not.toBeNull();
+    await screen.findByText('/data');
+    const dataDirItem = screen.getByText('settings.dataDir').closest('.arco-form-item');
+    expect(dataDirItem).not.toBeNull();
 
-    await user.click(within(logDirItem as HTMLElement).getByRole('button'));
+    await user.click(within(dataDirItem as HTMLElement).getByRole('button', { name: 'settings.changeDataDir' }));
 
     await waitFor(() => {
       expect(updateSystemInfoMock).toHaveBeenCalledWith({
+        dataDir: '/new-data',
         cacheDir: '/cache',
         workDir: '/work',
-        logDir: '/new-logs',
+        logDir: '/logs',
       });
     });
     expect(restartMock).toHaveBeenCalledTimes(1);
     expect(messageInfoMock).toHaveBeenCalledWith('settings.restartManualRequired');
-    expect(container).toHaveTextContent('/new-logs');
+    expect(container).toHaveTextContent('/new-data');
   });
 
   it('shows field-specific tooltip text when hovering the folder action button', async () => {
     const user = userEvent.setup();
     renderContent();
 
-    await screen.findByText('/work');
-    const workDirItem = screen.getByText('settings.workDir').closest('.arco-form-item');
-    const logDirItem = screen.getByText('settings.logDir').closest('.arco-form-item');
-    expect(workDirItem).not.toBeNull();
-    expect(logDirItem).not.toBeNull();
+    await screen.findByText('/data');
+    const dataDirItem = screen.getByText('settings.dataDir').closest('.arco-form-item');
+    expect(dataDirItem).not.toBeNull();
 
-    const workDirButton = within(workDirItem as HTMLElement).getByRole('button');
-    const logDirButton = within(logDirItem as HTMLElement).getByRole('button');
+    const dataDirButton = within(dataDirItem as HTMLElement).getByRole('button', { name: 'settings.changeDataDir' });
 
-    await user.hover(workDirButton);
-    expect(await screen.findByText('settings.changeWorkDir')).toBeInTheDocument();
+    await user.hover(dataDirButton);
+    expect(await screen.findByText('settings.changeDataDir')).toBeInTheDocument();
 
-    await user.unhover(workDirButton);
-    await user.hover(logDirButton);
-    expect(await screen.findByText('settings.changeLogDir')).toBeInTheDocument();
+    await user.unhover(dataDirButton);
   });
 
   it('loads ACP timeouts from backend client settings', async () => {

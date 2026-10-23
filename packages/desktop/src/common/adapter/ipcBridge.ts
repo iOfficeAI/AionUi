@@ -668,10 +668,12 @@ export const application = {
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
   systemInfo: withResponseMap(
-    httpGet<{ cache_dir: string; work_dir: string; log_dir: string; platform: string; arch: string }, void>(
-      '/api/system/info'
-    ),
+    httpGet<
+      { cache_dir: string; work_dir: string; log_dir: string; platform: string; arch: string; data_dir?: string },
+      void
+    >('/api/system/info'),
     (raw) => ({
+      dataDir: raw.data_dir,
       cacheDir: raw.cache_dir,
       workDir: raw.work_dir,
       logDir: raw.log_dir,
@@ -682,8 +684,12 @@ export const application = {
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
   // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
   // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
-  updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string; logDir?: string }>(
-    'update-system-info'
+  updateSystemInfo: bridge.buildProvider<
+    void,
+    { dataDir?: string; cacheDir?: string; workDir?: string; logDir?: string }
+  >('update-system-info'),
+  backupData: bridge.buildProvider<{ success: boolean; backupPath?: string }, { targetDir: string }>(
+    'application.backup-data'
   ),
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
@@ -1054,6 +1060,10 @@ export const googleAuth = {
     success: false,
     msg: 'Google Auth not available in backend mode',
   }),
+  /** Trigger Google OAuth sign-in flow (opens browser). */
+  login: httpPost<{ success: boolean; account?: string; error?: string }, { proxy?: string }>('/api/google/auth/login'),
+  /** Sign out of Google account. */
+  logout: httpPost<{ success: boolean }, void>('/api/google/auth/logout'),
 };
 
 // ---------------------------------------------------------------------------
@@ -2306,6 +2316,10 @@ export const team = {
     (p) => `/api/teams/${p.id}/name`,
     (p) => ({ name: p.name })
   ),
+  updateTeam: bridge.buildProvider<
+    void,
+    { id: string; name?: string; workspace?: string; leader_assistant_id?: string }
+  >('team.update-team'),
   setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
     (p) => `/api/teams/${p.team_id}/session-mode`,
     (p) => ({ mode: p.session_mode })
@@ -2503,4 +2517,203 @@ export const sidebar = {
   deleteArchivedProject: httpDelete<import('@/common/types/sidebar').ArchiveDeleteResult, { project_id: string }>(
     (p) => `/api/sidebar/archived/project/${encodeURIComponent(p.project_id)}`
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Teamwork Multi-Agent Orchestration — routed via Electron IPC
+// ---------------------------------------------------------------------------
+
+export const teamwork = {
+  initiate: async (params: import('../types/teamwork').InitiateTeamworkRequest) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamworkInitiate) {
+      return window.electronAPI.teamworkInitiate(params);
+    }
+    return { success: false, error: 'Teamwork is only supported in desktop mode' };
+  },
+  submitInterview: async (params: import('../types/teamwork').SubmitInterviewRequest) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamworkSubmitInterview) {
+      return window.electronAPI.teamworkSubmitInterview(params);
+    }
+    return { success: false, error: 'Teamwork is only supported in desktop mode' };
+  },
+  confirmPlan: async (params: import('../types/teamwork').ConfirmPlanRequest) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamworkConfirmPlan) {
+      return window.electronAPI.teamworkConfirmPlan(params);
+    }
+    return { success: false, error: 'Teamwork is only supported in desktop mode' };
+  },
+  abort: async (params: import('../types/teamwork').AbortTeamworkRequest) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamworkAbort) {
+      return window.electronAPI.teamworkAbort(params);
+    }
+    return { success: false, error: 'Teamwork is only supported in desktop mode' };
+  },
+  getState: async (params: import('../types/teamwork').GetTeamworkStateRequest) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamworkGetState) {
+      return window.electronAPI.teamworkGetState(params);
+    }
+    return { success: false, error: 'Teamwork is only supported in desktop mode' };
+  },
+  onStatusUpdate: (callback: (state: import('../types/teamwork').TeamworkSessionState) => void) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.onTeamworkStatusUpdate) {
+      return window.electronAPI.onTeamworkStatusUpdate(callback);
+    }
+    return () => {};
+  },
+};
+
+export const teamScoping = {
+  initiate: async (params: import('../types/teamwork').InitiateTeamScopingParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamInitiateScoping) {
+      return window.electronAPI.teamInitiateScoping(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  submitInterviewAnswers: async (params: import('../types/teamwork').SubmitTeamInterviewAnswersParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamSubmitInterviewAnswers) {
+      return window.electronAPI.teamSubmitInterviewAnswers(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  approvePlan: async (params: import('../types/teamwork').ApproveTeamPlanParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamApprovePlan) {
+      return window.electronAPI.teamApprovePlan(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  rejectPlan: async (params: import('../types/teamwork').RejectTeamPlanParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamRejectPlan) {
+      return window.electronAPI.teamRejectPlan(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  cancel: async (params: import('../types/teamwork').CancelTeamScopingParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamCancelScoping) {
+      return window.electronAPI.teamCancelScoping(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  getState: async (params: import('../types/teamwork').GetTeamScopingStateParams) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.teamGetScopingState) {
+      return window.electronAPI.teamGetScopingState(params);
+    }
+    return { success: false, error: 'Team scoping is only supported in desktop mode' };
+  },
+  onStatusChanged: (callback: (event: import('../types/teamwork').ITeamScopingStatusChangedEvent) => void) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.onTeamScopingStatusChanged) {
+      return window.electronAPI.onTeamScopingStatusChanged(callback);
+    }
+    return () => {};
+  },
+};
+
+export const knowledgeRepo = {
+  list: async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoList) {
+      return window.electronAPI.knowledgeRepoList();
+    }
+    return [];
+  },
+  get: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoGet) {
+      return window.electronAPI.knowledgeRepoGet(id);
+    }
+    return undefined;
+  },
+  add: async (params: { name: string; gitUrl: string; ref?: string; subpath?: string; authToken?: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoAdd) {
+      return window.electronAPI.knowledgeRepoAdd(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  update: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoUpdate) {
+      return window.electronAPI.knowledgeRepoUpdate(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  rollback: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRollback) {
+      return window.electronAPI.knowledgeRepoRollback(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  pin: async (params: { id: string; pin: boolean }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoPin) {
+      return window.electronAPI.knowledgeRepoPin(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  setTrust: async (params: { id: string; trustStatus: import('../types/knowledgeRepo').KnowledgeRepoTrustStatus }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetTrust) {
+      return window.electronAPI.knowledgeRepoSetTrust(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  remove: async (id: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRemove) {
+      return window.electronAPI.knowledgeRepoRemove(id);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  buildInstructions: async (params: {
+    memberName: string;
+    rolePrompt?: string;
+    repoIds: string[];
+    whenToUseHint?: string;
+    tokenBudget?: number;
+  }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoBuildInstructions) {
+      return window.electronAPI.knowledgeRepoBuildInstructions(params);
+    }
+    return {
+      instructions: '',
+      estimatedTokens: 0,
+      budgetExceeded: false,
+      budgetLimitTokens: 8000,
+      conflicts: [],
+    };
+  },
+  buildTeamCapabilityCards: async (
+    members: Array<{
+      slot_id: string;
+      assistant_name: string;
+      knowledgeRepoIds?: string[];
+      whenToUseHint?: string;
+    }>
+  ) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoBuildTeamCapabilityCards) {
+      return window.electronAPI.knowledgeRepoBuildTeamCapabilityCards(members);
+    }
+    return [];
+  },
+  setTaskRunning: async (params: { repoIds: string[]; isRunning: boolean }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetTaskRunning) {
+      return window.electronAPI.knowledgeRepoSetTaskRunning(params);
+    }
+  },
+  runSetup: async (params: { repoId: string; projectId?: string; command: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoRunSetup) {
+      return window.electronAPI.knowledgeRepoRunSetup(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  checkEnvironment: async (repoId: string) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoCheckEnvironment) {
+      return window.electronAPI.knowledgeRepoCheckEnvironment(repoId);
+    }
+    return [];
+  },
+  provisionWorkingCopy: async (params: { repoId: string; projectId: string }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoProvisionWorkingCopy) {
+      return window.electronAPI.knowledgeRepoProvisionWorkingCopy(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
+  setEnvVars: async (params: { id: string; envVars: Record<string, string> }) => {
+    if (typeof window !== 'undefined' && window.electronAPI?.knowledgeRepoSetEnvVars) {
+      return window.electronAPI.knowledgeRepoSetEnvVars(params);
+    }
+    throw new Error('Knowledge repos are only supported in desktop mode');
+  },
 };

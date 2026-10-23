@@ -97,5 +97,13 @@
   "requestDetails": "请求内容：",
   "delivery": {
     "pending": "未读"
-  }
+  },
+  "slash.antigravity.goal": "运行长时间任务，彻底执行直至完全达成目标",
+  "slash.antigravity.teamworkPreview": "用于复杂项目的多智能体协作工作流",
+  "slash.antigravity.plan": "在执行前制定详细的逐步实施计划",
+  "slash.antigravity.grillMe": "通过交互式提问深入对齐设计决策与权衡",
+  "slash.antigravity.boost": "深度思考、战略规划与严密验证",
+  "slash.antigravity.browser": "网络浏览、文档检索与在线研究",
+  "slash.antigravity.schedule": "定时任务或周期性计划执行",
+  "slash.antigravity.learn": "沉淀经验、规则与规范以供后续任务复用"
 }

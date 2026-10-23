@@ -38,12 +38,13 @@ export interface TabFadeState {
 export const useTabOverflow = (deps: unknown[] = []) => {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [tabFadeState, setTabFadeState] = useState<TabFadeState>({ left: false, right: false });
+  const overflowRafRef = useRef<number | null>(null);
 
   /**
    * 更新 Tab 溢出状态
    * Update tab overflow state
    */
-  const updateTabOverflow = useCallback(() => {
+  const measureTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
     if (!container) return;
 
@@ -66,6 +67,16 @@ export const useTabOverflow = (deps: unknown[] = []) => {
       return nextState;
     });
   }, []);
+
+  const updateTabOverflow = useCallback(() => {
+    if (overflowRafRef.current !== null) {
+      cancelAnimationFrame(overflowRafRef.current);
+    }
+    overflowRafRef.current = requestAnimationFrame(() => {
+      overflowRafRef.current = null;
+      measureTabOverflow();
+    });
+  }, [measureTabOverflow]);
 
   // 当依赖项变化时更新溢出状态
   // Update overflow state when dependencies change
@@ -91,6 +102,10 @@ export const useTabOverflow = (deps: unknown[] = []) => {
     }
 
     return () => {
+      if (overflowRafRef.current !== null) {
+        cancelAnimationFrame(overflowRafRef.current);
+        overflowRafRef.current = null;
+      }
       container.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateTabOverflow);
       if (resizeObserver) {

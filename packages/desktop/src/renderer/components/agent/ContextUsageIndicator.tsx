@@ -9,6 +9,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { TokenUsageCost, TokenUsageData } from '@/common/config/storage';
+import { extractTokenMetrics } from '@/common/chat/tokenUsage';
 import { formatCurrency, formatNumber } from '@/renderer/services/i18n/format';
 
 interface ContextUsageIndicatorProps {
@@ -21,6 +22,7 @@ interface ContextUsageIndicatorProps {
   context_limit: number;
   className?: string;
   size?: number;
+  cumulativeUsage?: TokenUsageData | null;
 }
 
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
@@ -28,14 +30,16 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   context_limit,
   className = '',
   size = 20,
+  cumulativeUsage,
 }) => {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language;
+  const locale = i18n?.language ?? 'en-US';
 
   const hasWindow = context_limit > 0;
+  const effectiveUsage = tokenUsage ?? cumulativeUsage;
 
   const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {
-    if (!tokenUsage) {
+    if (!effectiveUsage) {
       return {
         percentage: 0,
         displayTotal: '0',
@@ -45,7 +49,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       };
     }
 
-    const total = tokenUsage.total_tokens;
+    const total = effectiveUsage.total_tokens;
     if (!hasWindow) {
       return {
         percentage: 0,
@@ -65,9 +69,24 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       isWarning: pct > 70,
       isDanger: pct > 90,
     };
-  }, [tokenUsage, context_limit, hasWindow, locale]);
+  }, [effectiveUsage, context_limit, hasWindow, locale]);
 
-  if (!tokenUsage) {
+  const windowMetrics = useMemo(() => {
+    return extractTokenMetrics(cumulativeUsage ?? tokenUsage);
+  }, [cumulativeUsage, tokenUsage]);
+
+  const chatWindowInlineSummary = useMemo(() => {
+    if (windowMetrics.total <= 0) return '';
+    const parts = [
+      `${t('conversation.contextUsage.total', 'Total')}: ${formatTokenCount(windowMetrics.total, locale)}`,
+      `${t('conversation.contextUsage.input', 'In')}: ${formatTokenCount(windowMetrics.input, locale)}`,
+      `${t('conversation.contextUsage.output', 'Out')}: ${formatTokenCount(windowMetrics.output, locale)}`,
+      `${t('conversation.contextUsage.cache', 'Cache')}: ${formatTokenCount(windowMetrics.cache, locale)}`,
+    ];
+    return parts.join(' · ');
+  }, [windowMetrics, locale, t]);
+
+  if (!tokenUsage && !cumulativeUsage) {
     return null;
   }
 
@@ -89,7 +108,8 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     return 'var(--color-fill-3)';
   };
 
-  const breakdown = tokenUsage.breakdown;
+  const currentUsageForBreakdown = tokenUsage ?? cumulativeUsage;
+  const breakdown = currentUsageForBreakdown?.breakdown;
   const breakdownParts: string[] = [];
   if (breakdown) {
     if (typeof breakdown.input_tokens === 'number') {
@@ -112,6 +132,11 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
         `${t('conversation.contextUsage.cachedWrite', 'Cache write')} ${formatTokenCount(breakdown.cached_write_tokens, locale)}`
       );
     }
+    if (breakdown.cached_tokens && !breakdown.cached_read_tokens) {
+      breakdownParts.push(
+        `${t('conversation.contextUsage.cache', 'Cache')} ${formatTokenCount(breakdown.cached_tokens, locale)}`
+      );
+    }
     if (breakdown.thought_tokens) {
       breakdownParts.push(
         `${t('conversation.contextUsage.thought', 'Thinking')} ${formatTokenCount(breakdown.thought_tokens, locale)}`
@@ -121,9 +146,10 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
 
   const details = (
     <>
-      {tokenUsage.cost && (
+      {currentUsageForBreakdown?.cost && (
         <div className='text-12px text-t-secondary mt-4px'>
-          {t('conversation.contextUsage.sessionCost', 'Session cost')} ≈ {formatCostAmount(tokenUsage.cost, locale)}
+          {t('conversation.contextUsage.sessionCost', 'Session cost')} ≈{' '}
+          {formatCostAmount(currentUsageForBreakdown.cost, locale)}
         </div>
       )}
       {breakdownParts.length > 0 && (
@@ -135,58 +161,134 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   // Percentages are only honest against an agent-reported window size —
   // never substitute a hardcoded per-model default here. Without a window
   // the popover reports the raw count and says the window is unknown.
-  const popoverContent = hasWindow ? (
-    <div className='p-8px min-w-160px'>
-      <div className='text-14px font-medium text-t-primary'>
-        {formatPercentage(percentage, locale)} · {displayTotal} / {displayLimit}{' '}
-        {t('conversation.contextUsage.contextUsed', 'context used')}
-      </div>
-      {details}
-    </div>
-  ) : (
-    <div className='p-8px min-w-160px'>
-      <div className='text-14px font-medium text-t-primary'>
-        {t('conversation.contextUsage.tokensUsed', '{{tokens}} tokens used', { tokens: displayTotal })}
-      </div>
-      <div className='text-12px text-t-secondary mt-4px'>
-        {t('conversation.contextUsage.windowUnknown', 'Context window size unknown')}
-      </div>
-      {details}
+  const popoverContent = (
+    <div className='p-8px min-w-180px text-12px'>
+      {cumulativeUsage && (
+        <div className='mb-8px pb-8px border-b border-b-border'>
+          <div className='font-semibold text-13px text-t-primary mb-4px'>
+            {t('conversation.contextUsage.sessionTotal', 'Chat window total')}
+          </div>
+          <div className='flex flex-col gap-3px text-t-secondary'>
+            <div className='flex justify-between font-medium text-t-primary'>
+              <span>{t('conversation.contextUsage.total', 'Total')}</span>
+              <span>{formatNumber(windowMetrics.total, locale)}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span>{t('conversation.contextUsage.input', 'Input')}</span>
+              <span>{formatNumber(windowMetrics.input, locale)}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span>{t('conversation.contextUsage.output', 'Output')}</span>
+              <span>{formatNumber(windowMetrics.output, locale)}</span>
+            </div>
+            {windowMetrics.cacheRead > 0 && (
+              <div className='flex justify-between'>
+                <span>{t('conversation.contextUsage.cachedRead', 'Cache read')}</span>
+                <span>{formatNumber(windowMetrics.cacheRead, locale)}</span>
+              </div>
+            )}
+            {windowMetrics.cacheWrite > 0 && (
+              <div className='flex justify-between'>
+                <span>{t('conversation.contextUsage.cachedWrite', 'Cache write')}</span>
+                <span>{formatNumber(windowMetrics.cacheWrite, locale)}</span>
+              </div>
+            )}
+            {windowMetrics.cache > 0 && windowMetrics.cacheRead === 0 && windowMetrics.cacheWrite === 0 && (
+              <div className='flex justify-between'>
+                <span>{t('conversation.contextUsage.cache', 'Cache')}</span>
+                <span>{formatNumber(windowMetrics.cache, locale)}</span>
+              </div>
+            )}
+            {windowMetrics.thought > 0 && (
+              <div className='flex justify-between'>
+                <span>{t('conversation.contextUsage.thought', 'Thinking')}</span>
+                <span>{formatNumber(windowMetrics.thought, locale)}</span>
+              </div>
+            )}
+            {windowMetrics.cost && (
+              <div className='flex justify-between pt-3px border-t border-t-border mt-2px'>
+                <span>{t('conversation.contextUsage.sessionCost', 'Session cost')}</span>
+                <span>≈ {formatCostAmount(windowMetrics.cost, locale)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {hasWindow ? (
+        <div>
+          {cumulativeUsage && (
+            <div className='font-semibold text-13px text-t-primary mb-4px'>
+              {t('conversation.contextUsage.contextWindow', 'Context window')}
+            </div>
+          )}
+          <div className='text-14px font-medium text-t-primary'>
+            {formatPercentage(percentage, locale)} · {displayTotal} / {displayLimit}{' '}
+            {t('conversation.contextUsage.contextUsed', 'context used')}
+          </div>
+          {details}
+        </div>
+      ) : (
+        <div>
+          {cumulativeUsage && (
+            <div className='font-semibold text-13px text-t-primary mb-4px'>
+              {t('conversation.contextUsage.contextWindow', 'Context window')}
+            </div>
+          )}
+          <div className='text-14px font-medium text-t-primary'>
+            {t('conversation.contextUsage.tokensUsed', '{{tokens}} tokens used', { tokens: displayTotal })}
+          </div>
+          <div className='text-12px text-t-secondary mt-4px'>
+            {t('conversation.contextUsage.windowUnknown', 'Context window size unknown')}
+          </div>
+          {details}
+        </div>
+      )}
     </div>
   );
 
   return (
     <Popover content={popoverContent} position='top' trigger='hover' className='context-usage-popover'>
-      <div
-        className={`context-usage-indicator cursor-pointer flex items-center justify-center ${className}`}
-        style={{ width: 32, height: 32 }}
-      >
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-          {/* 背景圆环 */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill='none'
-            stroke={getTrackColor()}
-            strokeWidth={strokeWidth}
-          />
-          {/* 进度圆环 — only when the denominator is known; otherwise the hollow track alone signals "count available, window unknown" */}
-          {hasWindow && (
+      <div className={`flex items-center gap-6px ${className}`}>
+        {windowMetrics.total > 0 && (
+          <div
+            data-testid='chat-window-token-usage'
+            className='hidden sm:inline-flex items-center text-11px text-t-secondary select-none px-6px py-2px rounded-4px bg-fill-1 hover:bg-fill-2 transition-colors cursor-pointer'
+          >
+            <span>{chatWindowInlineSummary}</span>
+          </div>
+        )}
+        <div
+          data-testid='context-usage-indicator'
+          className='context-usage-indicator cursor-pointer flex items-center justify-center'
+          style={{ width: 32, height: 32 }}
+        >
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+            {/* 背景圆环 */}
             <circle
               cx={size / 2}
               cy={size / 2}
               r={radius}
               fill='none'
-              stroke={getStrokeColor()}
+              stroke={getTrackColor()}
               strokeWidth={strokeWidth}
-              strokeLinecap='round'
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
             />
-          )}
-        </svg>
+            {/* 进度圆环 — only when the denominator is known; otherwise the hollow track alone signals "count available, window unknown" */}
+            {hasWindow && (
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill='none'
+                stroke={getStrokeColor()}
+                strokeWidth={strokeWidth}
+                strokeLinecap='round'
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                style={{ transition: 'stroke-dashoffset 0.3s ease, stroke 0.3s ease' }}
+              />
+            )}
+          </svg>
+        </div>
       </div>
     </Popover>
   );

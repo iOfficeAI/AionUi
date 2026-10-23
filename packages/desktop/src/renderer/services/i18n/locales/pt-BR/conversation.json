@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Excluir projeto",
+    "deleteProjectTitle": "Excluir projeto",
+    "deleteProjectConfirm": "Excluir projeto \"{{name}}\"? Todas as {{count}} conversas neste projeto serão excluídas permanentemente. Esta ação não pode ser desfeita.",
+    "deleteProjectSuccess": "Projeto excluído"
   },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",
@@ -550,7 +554,13 @@
     "output": "Saída",
     "thought": "Raciocínio",
     "cachedRead": "Leitura de cache",
-    "cachedWrite": "Escrita de cache"
+    "cachedWrite": "Escrita de cache",
+    "cache": "Cache",
+    "total": "Total",
+    "replyTokens": "Tokens de resposta",
+    "chatTotal": "Total do chat",
+    "sessionTotal": "Total da janela de chat",
+    "contextWindow": "Janela de contexto"
   },
   "skill_generator": {
     "title": "Gerar Habilidade/Regra",
@@ -759,7 +769,11 @@
       }
     },
     "pathCopied": "Caminho copiado",
-    "copyFailed": "Falha ao copiar o caminho"
+    "copyFailed": "Falha ao copiar o caminho",
+    "showSizes": "Mostrar tamanhos dos arquivos",
+    "showDates": "Mostrar datas dos arquivos",
+    "followAgentOn": "Seguindo atividade do agente (auto-revelar)",
+    "followAgentOff": "Seguir agente desativado"
   },
   "terminal": {
     "running": "Executando",
@@ -788,5 +802,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expandir plano",
     "collapse": "Recolher plano"
+  },
+  "browser": {
+    "stop": "Parar",
+    "retry": "Tentar novamente",
+    "title": "Navegador",
+    "addressBarPlaceholder": "Digite uma URL ou pesquise...",
+    "navigate": "Ir",
+    "back": "Voltar",
+    "forward": "Avançar",
+    "refresh": "Recarregar",
+    "close": "Fechar",
+    "loading": "Carregando...",
+    "profiles": "Perfis",
+    "clearData": "Limpar dados do perfil",
+    "clearDataConfirm": "Limpar todos os cookies e armazenamento local deste perfil?",
+    "clearDataSuccess": "Dados do perfil limpos com sucesso",
+    "backendEmbedded": "Embutido",
+    "backendChrome": "Chrome externo",
+    "launchChrome": "Iniciar Chrome",
+    "chromeConnected": "Conectado",
+    "safetyGateTitle": "Aprovação de ação necessária",
+    "safetyGateDesc": "Uma ação automatizada requer sua aprovação antes de prosseguir.",
+    "safetyApprove": "Aprovar",
+    "safetyReject": "Rejeitar",
+    "safetyRemember": "Lembrar escolha (autoaprovar)",
+    "safetyTarget": "Conta de destino",
+    "safetyCaption": "Legenda / Conteúdo",
+    "safetyMedia": "Arquivo de mídia"
   }
 }

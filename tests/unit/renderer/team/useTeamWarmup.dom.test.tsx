@@ -34,10 +34,11 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { useTeamWarmup } from '@/renderer/pages/team/hooks/useTeamWarmup';
+import { resetWarmedUpTeamsForTest, useTeamWarmup } from '@/renderer/pages/team/hooks/useTeamWarmup';
 
 describe('useTeamWarmup', () => {
   beforeEach(() => {
+    resetWarmedUpTeamsForTest();
     ensureSessionMock.mockReset();
     runtimeListener = undefined;
     sessionStatusListener = undefined;

@@ -69,11 +69,15 @@ const AionrsModelSelector: React.FC<{
     );
   }
 
-  const { providers, getAvailableModels, handleSelectModel } = selection;
+  const { providers, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
 
   const label = getModelDisplayLabel({
     selected_value: current_model?.use_model,
-    selectedLabel: current_model?.use_model || '',
+    selectedLabel: current_model?.use_model
+      ? formatModelLabel
+        ? formatModelLabel(current_model, current_model.use_model)
+        : current_model.use_model
+      : '',
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
@@ -87,7 +91,7 @@ const AionrsModelSelector: React.FC<{
   // so the shared model list can track selection, and map it back on select.
   const modelGroups: RuntimeSelectorModelGroup[] = [];
   const modelLookup = new Map<string, { provider: (typeof providers)[number]; modelName: string }>();
-  for (const provider of providers) {
+  for (const provider of providers ?? []) {
     const models = getAvailableModels(provider);
     if (!models.length) continue;
     modelGroups.push({
@@ -96,7 +100,7 @@ const AionrsModelSelector: React.FC<{
       models: models.map((modelName) => {
         const id = compositeId(provider.id, modelName);
         modelLookup.set(id, { provider, modelName });
-        return { id, label: modelName };
+        return { id, label: formatModelLabel ? formatModelLabel(provider, modelName) : modelName };
       }),
     });
   }

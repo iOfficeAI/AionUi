@@ -51,6 +51,7 @@ import { CloseSmall, Plus, Quote } from '@icon-park/react';
 import { chatFileRefKey } from '@/common/types/chatFile';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
+import { expandAntigravitySlashCommand, getAntigravitySlashCommands } from '@/common/chat/slash/antigravityCommands';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -622,6 +623,7 @@ const SendBox: React.FC<{
       // The `name === 'export'` branch below and the conversationExport hook are
       // kept intact for a future per-platform re-enable.
     }
+    commands.push(...getAntigravitySlashCommands(t));
     return commands;
   }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
 
@@ -1619,7 +1621,9 @@ const SendBox: React.FC<{
     clearDomSnippets();
     setReplyQuote(null);
 
-    onSend(finalMessage)
+    const expandedMessage = expandAntigravitySlashCommand(finalMessage);
+
+    onSend(expandedMessage)
       .then((result) => {
         if (result === false) {
           setInput(finalMessage);

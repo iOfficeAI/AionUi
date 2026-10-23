@@ -10,12 +10,13 @@ import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
-import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
-import { History } from '@icon-park/react';
+import { Browser, History } from '@icon-park/react';
+import BrowserPanel from './BrowserPanel';
+import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -25,12 +26,12 @@ import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
+import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import AcpRuntimeRestartButton from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
-import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
-import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
@@ -38,7 +39,7 @@ import { resolveConversationBackend } from '../utils/conversationAssistantIdenti
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import SingleChatEmptyState from './SingleChatEmptyState';
 import { useActiveLease } from '../hooks/useActiveLease';
-// import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
+import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -188,6 +189,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     conversation_id: conversation.id,
     enabled: !isMobile,
   });
+
   const handleThoughtLevelSetOption = useCallback(
     async (optionId: string, value: string) => {
       try {
@@ -201,6 +203,15 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     },
     [runtimeConfig, t]
   );
+
+  const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
+  const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: 540,
+    minWidth: 320,
+    maxWidth: 960,
+    storageKey: 'aionui-browser-width-px',
+  });
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -217,6 +228,17 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
             onSetThoughtLevel={handleThoughtLevelSetOption}
           />
         )}
+        <div className='shrink-0'>
+          <Tooltip content={t('conversation.browser.title')}>
+            <Button
+              icon={<Browser theme='outline' size='16' />}
+              onClick={() => setIsBrowserOpen((prev) => !prev)}
+              shape='circle'
+              size='small'
+              type={isBrowserOpen ? 'primary' : 'secondary'}
+            />
+          </Tooltip>
+        </div>
       </div>
     ),
     workspaceEnabled,
@@ -245,22 +267,47 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 
   return (
     <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
-      <AionrsChat
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        emptySlot={emptySlot}
-        modelSelection={modelSelection}
-        session_mode={conversation.extra?.session_mode}
-        cron_job_id={cronJobId}
-        loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-        loadedMcpStatuses={
-          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-        }
-        agent_name={presetAssistantInfo?.name}
-        assistantId={aionrsAssistantId}
-        forkCapability={conversation.fork_capability}
-      />
+      <div className='relative flex flex-row flex-1 h-full w-full overflow-hidden'>
+        <div className='relative flex flex-col flex-1 h-full min-w-0 overflow-hidden'>
+          <AionrsChat
+            conversation_id={conversation.id}
+            workspace={conversation.extra.workspace}
+            emptySlot={emptySlot}
+            modelSelection={modelSelection}
+            session_mode={conversation.extra?.session_mode}
+            cron_job_id={cronJobId}
+            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+            loadedMcpStatuses={
+              (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+            }
+            agent_name={presetAssistantInfo?.name}
+            assistantId={aionrsAssistantId}
+            forkCapability={conversation.fork_capability}
+          />
+        </div>
+        <div
+          className='relative flex flex-col h-full bg-[var(--color-bg-2)] border-l border-[var(--color-border-2)]'
+          style={{
+            display: isBrowserOpen ? 'flex' : 'none',
+            width: `${browserWidthPx}px`,
+            minWidth: '320px',
+            maxWidth: '85%',
+          }}
+        >
+          {createBrowserDragHandle({
+            className: 'absolute top-0 bottom-0 z-30 cursor-col-resize',
+            style: { width: '8px', left: '-4px' },
+            linePlacement: 'start',
+            reverse: true,
+          })}
+          <BrowserPanel
+            initialUrl='https://www.google.com'
+            visible={isBrowserOpen}
+            onClose={() => setIsBrowserOpen(false)}
+          />
+        </div>
+      </div>
     </ChatLayout>
   );
 };
@@ -270,6 +317,14 @@ const ChatConversation: React.FC<{
   hideSendBox?: boolean;
 }> = ({ conversation, hideSendBox }) => {
   const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
+  const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
+  const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: 540,
+    minWidth: 320,
+    maxWidth: 960,
+    storageKey: 'aionui-chat-browser-width-px',
+  });
   const { t } = useTranslation();
   // Stable identity: the selector reports readiness from an effect keyed on this
   // callback, so an inline arrow would re-run it on every render.
@@ -386,7 +441,14 @@ const ChatConversation: React.FC<{
       );
     }
     return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation, resolvedConversationBackend]);
+  }, [
+    conversation,
+    isAionrsConversation,
+    isMobile,
+    isLegacyReadOnlyConversation,
+    resolvedConversationBackend,
+    handleRuntimeReadyChange,
+  ]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
@@ -421,6 +483,17 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      <div className='shrink-0'>
+        <Tooltip content={t('conversation.browser.title')}>
+          <Button
+            icon={<Browser theme='outline' size='16' />}
+            onClick={() => setIsBrowserOpen((prev) => !prev)}
+            shape='circle'
+            size='small'
+            type={isBrowserOpen ? 'primary' : 'secondary'}
+          />
+        </Tooltip>
+      </div>
     </div>
   );
 
@@ -440,7 +513,30 @@ const ChatConversation: React.FC<{
       }
       conversation_id={conversation?.id}
     >
-      {conversationNode}
+      <div className='relative flex flex-row flex-1 h-full w-full overflow-hidden'>
+        <div className='relative flex flex-col flex-1 h-full min-w-0 overflow-hidden'>{conversationNode}</div>
+        <div
+          className='relative flex flex-col h-full bg-[var(--color-bg-2)] border-l border-[var(--color-border-2)]'
+          style={{
+            display: isBrowserOpen ? 'flex' : 'none',
+            width: `${browserWidthPx}px`,
+            minWidth: '320px',
+            maxWidth: '85%',
+          }}
+        >
+          {createBrowserDragHandle({
+            className: 'absolute top-0 bottom-0 z-30 cursor-col-resize',
+            style: { width: '8px', left: '-4px' },
+            linePlacement: 'start',
+            reverse: true,
+          })}
+          <BrowserPanel
+            initialUrl='https://www.google.com'
+            visible={isBrowserOpen}
+            onClose={() => setIsBrowserOpen(false)}
+          />
+        </div>
+      </div>
     </ChatLayout>
   );
 };

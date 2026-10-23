@@ -22,6 +22,247 @@ export interface ElectronBridgeAPI {
   // Forward feedback diagnostics logs to the main process console / 转发反馈诊断日志到主进程控制台
   logFeedbackEvent?: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) => void;
   recoverCorruptedDatabase?: () => Promise<void>;
+  // Browser automation commands
+  browserNavigate?: (url: string) => Promise<{ error?: string; success: boolean; url?: string }>;
+  browserClick?: (selector: string) => Promise<{ error?: string; success: boolean }>;
+  browserType?: (selector: string, text: string) => Promise<{ error?: string; success: boolean }>;
+  browserScroll?: (
+    x: number,
+    y: number
+  ) => Promise<{ error?: string; scrollX?: number; scrollY?: number; success: boolean }>;
+  browserScreenshot?: () => Promise<{ data?: string; error?: string; success: boolean }>;
+  browserGetProfiles?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').BrowserProfile[];
+  }>;
+  browserGetActiveProfile?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').BrowserProfile;
+  }>;
+  browserSetActiveProfile?: (
+    id: string
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserCreateProfile?: (
+    input: import('../../browser').CreateProfileInput
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserUpdateProfile?: (
+    input: import('../../browser').UpdateProfileInput
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').BrowserProfile }>;
+  browserDeleteProfile?: (id: string) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserClearProfileData?: (id: string) => Promise<import('../../browser').ClearProfileDataResult>;
+  browserProbeExternalChrome?: (
+    port?: number
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').ExternalChromeStatus }>;
+  browserLaunchExternalChrome?: (
+    config: import('../../browser').ExternalChromeConfig
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').ExternalChromeStatus }>;
+  browserExecuteAction?: (
+    request: import('../../browser').BrowserActionRequest
+  ) => Promise<import('../../browser').ActionResult>;
+  browserGetSnapshot?: (options?: import('../../browser').SnapshotOptions) => Promise<{
+    error?: string;
+    success: boolean;
+    data?: { url: string; title: string; tree: import('../../browser').AccessibilitySnapshotNode[] };
+  }>;
+  browserTakeScreenshot?: (
+    options?: import('../../browser').ScreenshotOptions
+  ) => Promise<{ error?: string; success: boolean; data?: string }>;
+  browserWaitForDownload?: (
+    options?: import('../../browser').DownloadOptions
+  ) => Promise<{ error?: string; success: boolean; data?: import('../../browser').DownloadRecord }>;
+  browserGetDownloads?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser').DownloadRecord[];
+  }>;
+  browserGetToolDefinitions?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: Array<{ name: string; description: string; parameters: Record<string, unknown> }>;
+  }>;
+  browserCallTool?: (payload: { tool: string; args?: Record<string, unknown>; taskId?: string }) => Promise<{
+    success: boolean;
+    tool: string;
+    data?: unknown;
+    error?: string;
+    failureScreenshot?: string;
+    durationMs: number;
+  }>;
+  browserCancelToolTask?: (taskId: string) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserGetWorkflows?: () => Promise<{
+    error?: string;
+    success: boolean;
+    data?: import('../../browser/workflowTypes').BrowserWorkflowDefinition[];
+  }>;
+  browserExecuteWorkflow?: (payload: {
+    workflowId: string;
+    params?: Record<string, unknown>;
+    profileId?: string;
+  }) => Promise<import('../../browser/workflowTypes').BrowserWorkflowExecutionResult>;
+  browserPostSocial?: (
+    options: import('../../browser/safetyTypes').SocialPostOptions
+  ) => Promise<import('../../browser/safetyTypes').SocialPostResult>;
+  browserRespondSafetyApproval?: (payload: {
+    requestId: string;
+    approved: boolean;
+    rememberChoice?: boolean;
+  }) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserSetSafetyAutoApprove?: (payload: {
+    actionType: import('../../browser/safetyTypes').SafetyActionType;
+    enabled: boolean;
+  }) => Promise<{ error?: string; success: boolean }>;
+  browserGetSafetyAutoApprove?: (
+    actionType: import('../../browser/safetyTypes').SafetyActionType
+  ) => Promise<{ error?: string; success: boolean; data?: boolean }>;
+  browserSetSocialDailyCap?: (cap: number) => Promise<{ error?: string; success: boolean }>;
+  browserGetSocialDailyCap?: () => Promise<{ error?: string; success: boolean; data?: number }>;
+  browserGetSocialDailyCount?: (platform: string) => Promise<{ error?: string; success: boolean; data?: number }>;
+  onBrowserToolProgress?: (callback: (event: unknown) => void) => () => void;
+  onBrowserSafetyApprovalRequest?: (
+    callback: (request: import('../../browser/safetyTypes').SafetyGateRequest) => void
+  ) => () => void;
+  // Teamwork Multi-Agent Orchestration APIs
+  teamworkInitiate?: (
+    params: import('../teamwork').InitiateTeamworkRequest
+  ) => Promise<import('../teamwork').InitiateTeamworkResponse>;
+  teamworkSubmitInterview?: (
+    params: import('../teamwork').SubmitInterviewRequest
+  ) => Promise<import('../teamwork').SubmitInterviewResponse>;
+  teamworkConfirmPlan?: (
+    params: import('../teamwork').ConfirmPlanRequest
+  ) => Promise<import('../teamwork').ConfirmPlanResponse>;
+  teamworkAbort?: (
+    params: import('../teamwork').AbortTeamworkRequest
+  ) => Promise<import('../teamwork').AbortTeamworkResponse>;
+  teamworkGetState?: (
+    params: import('../teamwork').GetTeamworkStateRequest
+  ) => Promise<import('../teamwork').GetTeamworkStateResponse>;
+  onTeamworkStatusUpdate?: (callback: (state: import('../teamwork').TeamworkSessionState) => void) => () => void;
+  // Team Scoping & Verification APIs
+  teamInitiateScoping?: (
+    params: import('../teamwork').InitiateTeamScopingParams
+  ) => Promise<import('../teamwork').InitiateTeamScopingResponse>;
+  teamSubmitInterviewAnswers?: (
+    params: import('../teamwork').SubmitTeamInterviewAnswersParams
+  ) => Promise<import('../teamwork').SubmitTeamInterviewAnswersResponse>;
+  teamApprovePlan?: (
+    params: import('../teamwork').ApproveTeamPlanParams
+  ) => Promise<import('../teamwork').ApproveTeamPlanResponse>;
+  teamRejectPlan?: (
+    params: import('../teamwork').RejectTeamPlanParams
+  ) => Promise<import('../teamwork').RejectTeamPlanResponse>;
+  teamCancelScoping?: (
+    params: import('../teamwork').CancelTeamScopingParams
+  ) => Promise<import('../teamwork').CancelTeamScopingResponse>;
+  teamGetScopingState?: (
+    params: import('../teamwork').GetTeamScopingStateParams
+  ) => Promise<import('../teamwork').GetTeamScopingStateResponse>;
+  onTeamScopingStatusChanged?: (
+    callback: (event: import('../teamwork').ITeamScopingStatusChangedEvent) => void
+  ) => () => void;
+  // Knowledge Repos APIs
+  knowledgeRepoList?: () => Promise<import('../knowledgeRepo').KnowledgeRepo[]>;
+  knowledgeRepoGet?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo | undefined>;
+  knowledgeRepoAdd?: (params: {
+    name: string;
+    gitUrl: string;
+    ref?: string;
+    subpath?: string;
+    authToken?: string;
+  }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoUpdate?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoRollback?: (id: string) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoPin?: (params: { id: string; pin: boolean }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoSetTrust?: (params: {
+    id: string;
+    trustStatus: import('../knowledgeRepo').KnowledgeRepoTrustStatus;
+  }) => Promise<import('../knowledgeRepo').KnowledgeRepo>;
+  knowledgeRepoRemove?: (id: string) => Promise<void>;
+  knowledgeRepoBuildInstructions?: (params: {
+    memberName: string;
+    rolePrompt?: string;
+    repoIds: string[];
+    whenToUseHint?: string;
+    tokenBudget?: number;
+  }) => Promise<import('../knowledgeRepo').EffectiveInstructionResult>;
+  knowledgeRepoBuildTeamCapabilityCards?: (
+    members: Array<{
+      slot_id: string;
+      assistant_name: string;
+      knowledgeRepoIds?: string[];
+      whenToUseHint?: string;
+    }>
+  ) => Promise<import('../knowledgeRepo').TeammateCapabilityCard[]>;
+  knowledgeRepoSetTaskRunning?: (params: { repoIds: string[]; isRunning: boolean }) => Promise<void>;
+  knowledgeRepoRunSetup?: (params: {
+    repoId: string;
+    projectId?: string;
+    command: string;
+  }) => Promise<{ success: boolean; output: string }>;
+  knowledgeRepoCheckEnvironment?: (repoId: string) => Promise<Array<{ binary: string; present: boolean }>>;
+  knowledgeRepoProvisionWorkingCopy?: (params: { repoId: string; projectId: string }) => Promise<string>;
+  knowledgeRepoSetEnvVars?: (params: { id: string; envVars: Record<string, string> }) => Promise<void>;
+  // Gateway & Combos APIs
+  gatewayGetStatus?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayStatus;
+    error?: string;
+  }>;
+  gatewayGetAccounts?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayAccount[];
+    error?: string;
+  }>;
+  gatewaySaveAccount?: (
+    account: import('../gateway/gatewayTypes').GatewayAccount
+  ) => Promise<{ success: boolean; error?: string }>;
+  gatewayDeleteAccount?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  gatewayGetCombos?: () => Promise<{
+    success: boolean;
+    data?: import('../gateway/gatewayTypes').GatewayCombo[];
+    error?: string;
+  }>;
+  gatewaySaveCombo?: (
+    combo: import('../gateway/gatewayTypes').GatewayCombo
+  ) => Promise<{ success: boolean; error?: string }>;
+  gatewayDeleteCombo?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  gatewayGetLogs?: (params?: { limit?: number; offset?: number }) => Promise<{
+    success: boolean;
+    data?: { logs: import('../gateway/gatewayTypes').GatewayTelemetryLog[]; total: number };
+    error?: string;
+  }>;
+  gatewayClearLogs?: () => Promise<{ success: boolean; error?: string }>;
+  gatewayResetCooldown?: (accountId: string) => Promise<{ success: boolean; error?: string }>;
+  gatewaySyncBackend?: () => Promise<{ success: boolean; error?: string }>;
+  gatewaySyncLocalOmniRoute?: () => Promise<{
+    success: boolean;
+    data?: {
+      importedAccounts: number;
+      importedCombos: number;
+      serverRunning: boolean;
+      serverPort: number;
+      message?: string;
+    };
+    error?: string;
+  }>;
+  gatewayCheckOmniRouteStatus?: () => Promise<{
+    success: boolean;
+    isRunning?: boolean;
+    port?: number;
+    error?: string;
+  }>;
+  gatewayGoogleOAuthLogin?: () => Promise<{
+    success: boolean;
+    email?: string;
+    name?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    error?: string;
+  }>;
+  onGatewayLogAdded?: (callback: (log: import('../gateway/gatewayTypes').GatewayTelemetryLog) => void) => () => void;
+  onGatewayQuotaUpdated?: (callback: (account: import('../gateway/gatewayTypes').GatewayAccount) => void) => () => void;
 }
 
 export type BackendStartupFailureReason =

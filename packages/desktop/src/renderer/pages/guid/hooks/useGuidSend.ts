@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { type ChatFileRef, chatFileRefPath } from '@/common/types/chatFile';
+import { expandAntigravitySlashCommand } from '@/common/chat/slash/antigravityCommands';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
@@ -215,8 +216,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         // initial message, so the window opens idle on the empty state instead of
         // auto-sending a blank first turn.
         if (input.trim()) {
+          const expandedInput = expandAntigravitySlashCommand(input);
           const initialMessage = {
-            input,
+            input: expandedInput,
             files: files.length > 0 ? files : undefined,
           };
           sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
@@ -269,8 +271,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       // initial message, so the window opens idle on the empty state instead of
       // auto-sending a blank first turn.
       if (input.trim()) {
+        const expandedInput = expandAntigravitySlashCommand(input);
         const initialMessage = {
-          input,
+          input: expandedInput,
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));

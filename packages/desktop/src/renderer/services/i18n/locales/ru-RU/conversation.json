@@ -93,7 +93,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Удалить проект",
+    "deleteProjectTitle": "Удалить проект",
+    "deleteProjectConfirm": "Удалить проект «{{name}}»? Все диалоги ({{count}}) в этом проекте будут безвозвратно удалены. Это действие нельзя отменить.",
+    "deleteProjectSuccess": "Проект удален"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -552,7 +556,13 @@
     "output": "Вывод",
     "thought": "Размышление",
     "cachedRead": "Чтение кэша",
-    "cachedWrite": "Запись кэша"
+    "cachedWrite": "Запись кэша",
+    "cache": "Кэш",
+    "total": "Всего",
+    "replyTokens": "Токены ответа",
+    "chatTotal": "Всего в чате",
+    "sessionTotal": "Всего в окне чата",
+    "contextWindow": "Окно контекста"
   },
   "skill_generator": {
     "title": "Создать навык/правило",
@@ -769,7 +779,11 @@
       }
     },
     "pathCopied": "Путь скопирован",
-    "copyFailed": "Не удалось скопировать путь"
+    "copyFailed": "Не удалось скопировать путь",
+    "showSizes": "Показать размеры файлов",
+    "showDates": "Показать даты файлов",
+    "followAgentOn": "Отслеживание агента (автораскрытие)",
+    "followAgentOff": "Отслеживание агента отключено"
   },
   "terminal": {
     "running": "Выполняется",
@@ -798,5 +812,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Развернуть план",
     "collapse": "Свернуть план"
+  },
+  "browser": {
+    "stop": "Стоп",
+    "retry": "Повторить",
+    "title": "Браузер",
+    "addressBarPlaceholder": "Введите URL или поисковый запрос...",
+    "navigate": "Перейти",
+    "back": "Назад",
+    "forward": "Вперед",
+    "refresh": "Обновить",
+    "close": "Закрыть",
+    "loading": "Загрузка...",
+    "profiles": "Профили",
+    "clearData": "Очистить данные профиля",
+    "clearDataConfirm": "Очистить все файлы cookie и локальное хранилище для этого профиля?",
+    "clearDataSuccess": "Данные профиля успешно очищены",
+    "backendEmbedded": "Встроенный",
+    "backendChrome": "Внешний Chrome",
+    "launchChrome": "Запустить Chrome",
+    "chromeConnected": "Подключено",
+    "safetyGateTitle": "Требуется подтверждение действия",
+    "safetyGateDesc": "Автоматическое действие требует вашего подтверждения перед выполнением.",
+    "safetyApprove": "Подтвердить",
+    "safetyReject": "Отклонить",
+    "safetyRemember": "Запомнить выбор (автоодобрение)",
+    "safetyTarget": "Целевой аккаунт",
+    "safetyCaption": "Подпись / Содержимое",
+    "safetyMedia": "Медиафайл"
   }
 }

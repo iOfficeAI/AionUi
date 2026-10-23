@@ -97,5 +97,13 @@
   "requestDetails": "Detalles de la solicitud:",
   "delivery": {
     "pending": "No leído"
-  }
+  },
+  "slash.antigravity.goal": "Ejecutar una tarea prolongada minuciosamente hasta su finalización",
+  "slash.antigravity.teamworkPreview": "Flujo de trabajo colaborativo multiagente para proyectos complejos",
+  "slash.antigravity.plan": "Planificación paso a paso de la implementación antes de ejecutar",
+  "slash.antigravity.grillMe": "Entrevista interactiva para alinear decisiones de diseño y compensaciones",
+  "slash.antigravity.boost": "Pensamiento profundo, planificación estratégica y verificación rigurosa",
+  "slash.antigravity.browser": "Navegación web, búsqueda de documentación e investigación online",
+  "slash.antigravity.schedule": "Programación recurrente o ejecución con temporizador",
+  "slash.antigravity.learn": "Conservar aprendizajes y directrices para futuras tareas"
 }

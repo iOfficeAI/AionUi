@@ -10,9 +10,9 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
-import { Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Form, Input, Message, Select, Switch } from '@arco-design/web-react';
+import { CheckOne, Loading, PreviewOpen, Refresh, Search } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
@@ -25,11 +25,15 @@ import {
   getPlatformByValue,
   isCustomOption,
   isGeminiPlatform,
+  isGoogleLoginPlatform,
   isNewApiPlatform,
+  isOmnirouteOption,
   type PlatformConfig,
 } from '@/renderer/utils/model/modelPlatforms';
 import { ProviderLogo } from '@/renderer/components/agent/ThemedLogo';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
+import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
+import { openExternalUrl } from '@/renderer/utils/platform';
 
 /**
  * Protocol icon configurations
@@ -183,6 +187,93 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
 };
 
 /**
+ * Google Sign-In Section
+ * Shown when the user selects the "Gemini (Google Login)" platform.
+ * Replaces the API key field with a friendly OAuth button + status display.
+ */
+const GoogleSignInSection: React.FC<{
+  isAuthenticated: boolean;
+  accountEmail?: string;
+  isLoading: boolean;
+  onSignIn: () => void;
+  onSignOut: () => void;
+}> = ({ isAuthenticated, accountEmail, isLoading, onSignIn, onSignOut }) => {
+  const { t } = useTranslation();
+
+  if (isAuthenticated || accountEmail) {
+    return (
+      <div
+        className='flex items-center justify-between rounded-8px px-12px py-10px border'
+        style={{
+          borderColor: 'rgba(52, 168, 83, 0.4)',
+          backgroundColor: 'rgba(52, 168, 83, 0.06)',
+        }}
+      >
+        <div className='flex items-center gap-10px'>
+          {/* Google G icon */}
+          <div
+            className='w-28px h-28px rounded-full flex items-center justify-center shrink-0'
+            style={{ background: 'linear-gradient(135deg, #4285F4 0%, #34A853 50%, #EA4335 100%)' }}
+          >
+            <span className='text-white text-12px font-700'>G</span>
+          </div>
+          <div>
+            <div className='flex items-center gap-6px'>
+              <CheckOne theme='filled' size={14} fill='#34A853' />
+              <span className='text-13px font-500 text-t-primary'>{t('settings.googleLoginSuccess')}</span>
+            </div>
+            <div className='text-11px text-t-secondary mt-1px font-mono'>
+              {accountEmail || t('settings.personalAuth', 'Google Account')}
+            </div>
+          </div>
+        </div>
+        <Button type='text' size='mini' status='danger' onClick={onSignOut} loading={isLoading}>
+          {t('settings.googleLogout')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className='flex flex-col gap-8px'>
+      <Button
+        type='secondary'
+        onClick={onSignIn}
+        loading={isLoading}
+        className='w-full !h-40px !rounded-8px flex items-center justify-center'
+      >
+        <span className='flex items-center gap-8px'>
+          <svg width='18' height='18' viewBox='0 0 18 18' xmlns='http://www.w3.org/2000/svg'>
+            <g fill='none' fillRule='evenodd'>
+              <path
+                d='M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z'
+                fill='#4285F4'
+              />
+              <path
+                d='M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z'
+                fill='#34A853'
+              />
+              <path
+                d='M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z'
+                fill='#FBBC05'
+              />
+              <path
+                d='M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z'
+                fill='#EA4335'
+              />
+            </g>
+          </svg>
+          <span className='text-14px font-500 text-t-primary'>
+            {isLoading ? t('settings.protocolDetecting') : t('settings.googleLogin')}
+          </span>
+        </span>
+      </Button>
+      <p className='text-11px text-t-secondary text-center'>{t('settings.googleLoginHint')}</p>
+    </div>
+  );
+};
+
+/**
  * 平台下拉选项渲染（第一层）
  * Platform dropdown option renderer (first level)
  *
@@ -228,6 +319,57 @@ const AddPlatformModal = ModalHOC<{
   const isBedrock = platform === 'bedrock';
   const isGemini = isGeminiPlatform(platform);
   const isNewApi = isNewApiPlatform(platform);
+  const isGoogleLogin = isGoogleLoginPlatform(platform);
+  const isOmniroute = isOmnirouteOption(platformValue);
+
+  // Google Auth state — read current auth status from the shared hook
+  const { isGoogleAuth: isGoogleAuthenticated } = useGoogleAuthModels();
+  const [googleAuthLoading, setGoogleAuthLoading] = useState(false);
+  const [googleAccount, setGoogleAccount] = useState<string | undefined>(undefined);
+
+  // When the user switches to the Google Login platform, check auth status
+  useEffect(() => {
+    if (isGoogleLogin && isGoogleAuthenticated) {
+      // Try to get the account from the status endpoint
+      ipcBridge.googleAuth.status
+        .invoke({})
+        .then((res) => {
+          if (res.success && res.data?.account) {
+            setGoogleAccount(res.data.account);
+          }
+        })
+        .catch(() => {});
+    } else if (!isGoogleLogin) {
+      setGoogleAccount(undefined);
+    }
+  }, [isGoogleLogin, isGoogleAuthenticated]);
+
+  // Pre-fill defaults for OmniRoute and Google Login
+  useEffect(() => {
+    if (isOmniroute) {
+      if (!form.getFieldValue('api_key')) {
+        form.setFieldValue('api_key', 'sk-9465108bb15ed26b-1477ab-600eaeb5');
+      }
+      if (!form.getFieldValue('base_url')) {
+        form.setFieldValue('base_url', 'http://localhost:20128/v1');
+      }
+      const currentModels = form.getFieldValue('model');
+      if (!currentModels || (Array.isArray(currentModels) && currentModels.length === 0)) {
+        form.setFieldValue('model', [
+          'antigravity/claude-sonnet-4-6',
+          'antigravity/claude-opus-4-6-thinking',
+          'antigravity/gemini-3.8-flash-tiered',
+          'antigravity/gemini-3-flash',
+          'claude-web/claude-sonnet-4-6',
+        ]);
+      }
+    } else if (isGoogleLogin) {
+      const currentModels = form.getFieldValue('model');
+      if (!currentModels || (Array.isArray(currentModels) && currentModels.length === 0)) {
+        form.setFieldValue('model', ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash']);
+      }
+    }
+  }, [isOmniroute, isGoogleLogin, form]);
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
@@ -255,6 +397,66 @@ const AddPlatformModal = ModalHOC<{
   // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes
   // We'll build it dynamically in onFocus
   const modelListState = useModeModeList(platform, actualBaseUrl, api_key, true, undefined);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    setGoogleAuthLoading(true);
+    try {
+      const res = await ipcBridge.googleAuth.login.invoke({});
+      if (res && res.success) {
+        setGoogleAccount(res.account || 'Google Account (Connected)');
+        message.success(t('settings.googleLoginSuccess'));
+        void modelListState.mutate();
+      } else {
+        message.warning('Google login is handled via OmniRoute. Please select OmniRoute from the platforms list.');
+      }
+    } catch {
+      message.warning('Google login is handled via OmniRoute. Please select OmniRoute from the platforms list.');
+    } finally {
+      setGoogleAuthLoading(false);
+    }
+  }, [t, message, modelListState]);
+
+  const handleGoogleSignOut = useCallback(async () => {
+    setGoogleAuthLoading(true);
+    try {
+      await ipcBridge.googleAuth.logout.invoke();
+      setGoogleAccount(undefined);
+      message.success(t('settings.googleLogout'));
+    } catch {
+      setGoogleAccount(undefined);
+      message.success(t('settings.googleLogout'));
+    } finally {
+      setGoogleAuthLoading(false);
+    }
+  }, [t, message]);
+
+  const availableModelOptions = useMemo(() => {
+    if (isFullUrl) return [];
+    if (isGoogleLogin) {
+      const defaultGoogleModels = [
+        { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro' },
+        { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash' },
+        { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash' },
+      ];
+      if (modelListState.data?.models && modelListState.data.models.length > 0) {
+        return modelListState.data.models;
+      }
+      return defaultGoogleModels;
+    }
+    if (isOmniroute) {
+      const defaultOmnirouteModels = [
+        { label: 'claude-3-7-sonnet', value: 'claude-3-7-sonnet' },
+        { label: 'claude-3-5-sonnet', value: 'claude-3-5-sonnet' },
+        { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro' },
+        { label: 'antigravity-gemini-2.5-pro', value: 'antigravity-gemini-2.5-pro' },
+      ];
+      if (modelListState.data?.models && modelListState.data.models.length > 0) {
+        return modelListState.data.models;
+      }
+      return defaultOmnirouteModels;
+    }
+    return modelListState.data?.models || [];
+  }, [isFullUrl, isGoogleLogin, isOmniroute, modelListState.data?.models]);
 
   // 协议检测 Hook / Protocol detection hook
   // 启用检测的条件：
@@ -338,6 +540,37 @@ const AddPlatformModal = ModalHOC<{
   }, [modelListState.data?.fix_base_url, form]);
 
   const handleSubmit = () => {
+    // For Google Login platform, bypass API key validation
+    if (isGoogleLogin) {
+      if (!isGoogleAuthenticated && !googleAccount) {
+        message.warning(t('settings.googleLoginRequired'));
+        return;
+      }
+      const name = selectedPlatform?.i18nKey ? t(selectedPlatform.i18nKey) : (selectedPlatform?.name ?? platformValue);
+      const selectedModels: string[] = Array.isArray(form.getFieldValue('model'))
+        ? (form.getFieldValue('model') as string[])
+        : form.getFieldValue('model')
+          ? [form.getFieldValue('model') as string]
+          : ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+      const provider: IProvider = {
+        id: uuid(),
+        platform: 'gemini-with-google-auth',
+        name,
+        base_url: '',
+        api_key: '',
+        models: selectedModels,
+        is_full_url: false,
+      };
+      onSubmit(provider);
+      modalCtrl.close();
+      return;
+    }
+
+    // For OmniRoute platform, default api_key if empty
+    if (isOmniroute && !form.getFieldValue('api_key')) {
+      form.setFieldValue('api_key', 'omniroute');
+    }
+
     form
       .validate()
       .then((values) => {
@@ -458,11 +691,19 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* Base URL - shown for every platform (except Bedrock) so users can
+          {/* OmniRoute Tip */}
+          {isOmniroute && (
+            <div className='p-10px rounded-8px bg-fill-2 text-12px text-t-secondary mb-12px flex items-center gap-8px border border-solid border-[var(--color-border-2)]'>
+              <CheckOne theme='filled' size={16} fill='#10A37F' />
+              <span>{t('settings.omnirouteTip')}</span>
+            </div>
+          )}
+
+          {/* Base URL - shown for every platform (except Bedrock and Google Login) so users can
               see and edit the endpoint. Preset platforms are prefilled with their
               default URL and offer a reset button to restore it. */}
           <Form.Item
-            hidden={isBedrock}
+            hidden={isBedrock || isGoogleLogin}
             label={
               <span className='inline-flex items-center gap-4px'>
                 {t('settings.apiEndpoint', 'API 请求地址')}
@@ -506,7 +747,7 @@ const AddPlatformModal = ModalHOC<{
             A negative marginTop would overlap the Input's bottom edge and
             intercept clicks on its lower rim (see ELECTRON-1K4).
           */}
-          {(isCustom || isNewApi) && !isBedrock && (
+          {(isCustom || isNewApi) && !isBedrock && !isGoogleLogin && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 12 }}>
               <Switch size='small' checked={isFullUrl} onChange={setIsFullUrl} />
               <span className='text-12px text-t-secondary'>{t('settings.fullUrlMode', '完整 URL')}</span>
@@ -518,12 +759,25 @@ const AddPlatformModal = ModalHOC<{
             </div>
           )}
 
+          {/* Google Sign-In Section — shown only for Google Login platform */}
+          {isGoogleLogin && (
+            <Form.Item label={t('settings.googleLogin', 'Google Login')}>
+              <GoogleSignInSection
+                isAuthenticated={isGoogleAuthenticated || Boolean(googleAccount)}
+                accountEmail={googleAccount}
+                isLoading={googleAuthLoading}
+                onSignIn={handleGoogleSignIn}
+                onSignOut={handleGoogleSignOut}
+              />
+            </Form.Item>
+          )}
+
           {/* API Key */}
           <Form.Item
-            hidden={isBedrock}
+            hidden={isBedrock || isGoogleLogin}
             label={t('settings.apiKey')}
-            required={!isBedrock}
-            rules={[{ required: !isBedrock }]}
+            required={!isBedrock && !isGoogleLogin && !isOmniroute}
+            rules={[{ required: !isBedrock && !isGoogleLogin && !isOmniroute }]}
             field={'api_key'}
             extra={
               <div className='space-y-2px'>
@@ -699,8 +953,8 @@ const AddPlatformModal = ModalHOC<{
                         }
                         return;
                       }
-                      // For Gemini, no api_key check needed
-                      if (!isGemini && !api_key) {
+                      // For Gemini, Google Login, and OmniRoute, no api_key check needed
+                      if (!isGemini && !isGoogleLogin && !isOmniroute && !api_key) {
                         message.warning(t('settings.pleaseEnterApiKey'));
                         return;
                       }
@@ -712,7 +966,7 @@ const AddPlatformModal = ModalHOC<{
                   />
                 )
               }
-              options={isFullUrl ? [] : modelListState.data?.models || []}
+              options={availableModelOptions}
             />
           </Form.Item>
 

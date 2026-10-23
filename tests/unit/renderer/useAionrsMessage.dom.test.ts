@@ -199,3 +199,173 @@ describe('useAionrsMessage turn clock', () => {
     nowSpy.mockRestore();
   });
 });
+
+describe('useAionrsMessage token usage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetConversationTurnClockForTests();
+    conversationUpdateInvokeMock.mockResolvedValue(undefined);
+    responseStreamHandlerRef.current = undefined;
+  });
+
+  it('updates tokenUsage and persists it on finish event with breakdown', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAionrsMessage('conv-1'));
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+    expect(result.current.tokenUsage).toBeNull();
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'finish',
+        data: {
+          input_tokens: 1000,
+          output_tokens: 200,
+          cached_read_tokens: 500,
+          cached_write_tokens: 100,
+          cached_tokens: 300,
+          thought_tokens: 50,
+          total_tokens: 1200,
+        },
+        conversation_id: 'conv-1',
+      } as unknown as IResponseMessage);
+    });
+
+    expect(result.current.tokenUsage).toEqual({
+      total_tokens: 1200,
+      breakdown: {
+        input_tokens: 1000,
+        output_tokens: 200,
+        cached_read_tokens: 500,
+        cached_write_tokens: 100,
+        cached_tokens: 300,
+        thought_tokens: 50,
+      },
+    });
+
+    expect(conversationUpdateInvokeMock).toHaveBeenCalledWith({
+      id: 'conv-1',
+      updates: {
+        extra: {
+          last_token_usage: {
+            total_tokens: 1200,
+            breakdown: {
+              input_tokens: 1000,
+              output_tokens: 200,
+              cached_read_tokens: 500,
+              cached_write_tokens: 100,
+              cached_tokens: 300,
+              thought_tokens: 50,
+            },
+          },
+        },
+      },
+      merge_extra: true,
+    });
+  });
+
+  it('handles alias token keys (prompt_tokens, completion_tokens, etc.)', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAionrsMessage('conv-1'));
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'finish',
+        data: {
+          prompt_tokens: 800,
+          completion_tokens: 150,
+          cache_read_input_tokens: 400,
+          cache_creation_input_tokens: 50,
+          cache_tokens: 200,
+          reasoning_tokens: 40,
+        },
+        conversation_id: 'conv-1',
+      } as unknown as IResponseMessage);
+    });
+
+    expect(result.current.tokenUsage).toEqual({
+      total_tokens: 950,
+      breakdown: {
+        input_tokens: 800,
+        output_tokens: 150,
+        cached_read_tokens: 400,
+        cached_write_tokens: 50,
+        cached_tokens: 200,
+        thought_tokens: 40,
+      },
+    });
+  });
+
+  it('hydrates tokenUsage from conversation extra on mount', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue({
+      type: 'aionrs',
+      extra: {
+        last_token_usage: {
+          total_tokens: 3000,
+          breakdown: { input_tokens: 2000, output_tokens: 1000 },
+        },
+      },
+    } as never);
+
+    const { result } = renderHook(() => useAionrsMessage('conv-1'));
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    expect(result.current.tokenUsage).toEqual({
+      total_tokens: 3000,
+      breakdown: { input_tokens: 2000, output_tokens: 1000 },
+    });
+    expect(result.current.cumulativeTokenUsage).toEqual({
+      total_tokens: 3000,
+      breakdown: { input_tokens: 2000, output_tokens: 1000 },
+    });
+  });
+
+  it('preserves tokenUsage when resetState is called', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAionrsMessage('conv-1'));
+    await waitFor(() => {
+      expect(result.current.hasHydratedRunningState).toBe(true);
+    });
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'finish',
+        data: {
+          total_tokens: 500,
+          input_tokens: 400,
+          output_tokens: 100,
+        },
+        conversation_id: 'conv-1',
+      } as unknown as IResponseMessage);
+    });
+
+    expect(result.current.tokenUsage).toEqual({
+      total_tokens: 500,
+      breakdown: {
+        input_tokens: 400,
+        output_tokens: 100,
+      },
+    });
+
+    act(() => {
+      result.current.resetState();
+    });
+
+    expect(result.current.tokenUsage).toEqual({
+      total_tokens: 500,
+      breakdown: {
+        input_tokens: 400,
+        output_tokens: 100,
+      },
+    });
+  });
+});

@@ -22,6 +22,8 @@ const {
   draftMutateMock,
   draftContentRef,
   runtimeViewIsProcessingRef,
+  tokenUsageRef,
+  cumulativeTokenUsageRef,
 } = vi.hoisted(() => ({
   ensureConversationRuntimeMock: vi.fn().mockResolvedValue({ recovered: false, config_options: [], runtime: null }),
   sendMessageInvokeMock: vi.fn().mockResolvedValue(undefined),
@@ -37,6 +39,8 @@ const {
   draftMutateMock: vi.fn(),
   draftContentRef: { current: '' },
   runtimeViewIsProcessingRef: { current: false },
+  tokenUsageRef: { current: null as unknown },
+  cumulativeTokenUsageRef: { current: null as unknown },
 }));
 
 vi.mock('@/common', () => ({
@@ -262,6 +266,19 @@ vi.mock('@arco-design/web-react', () => ({
     success: vi.fn(),
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Space: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  Dropdown: ({ children, droplist }: { children?: React.ReactNode; droplist?: React.ReactNode }) => (
+    <div>
+      {children}
+      {droplist}
+    </div>
+  ),
+  Menu: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+    Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    ItemGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  }),
   Button: ({
     children,
     onClick,
@@ -276,10 +293,14 @@ vi.mock('@arco-design/web-react', () => ({
     </button>
   ),
 }));
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector', () => ({
+  default: () => null,
+}));
 vi.mock('@icon-park/react', () => ({
   Brain: () => null,
   MagicHat: () => null,
   Shield: () => null,
+  Plan: () => null,
 }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: translateMock }),
@@ -288,6 +309,8 @@ vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsMessage', () =>
   useAionrsMessage: () => ({
     thought: { subject: '', description: '' },
     running: false,
+    tokenUsage: tokenUsageRef.current,
+    cumulativeTokenUsage: cumulativeTokenUsageRef.current,
     setActiveMsgId: vi.fn(),
     setWaitingResponse: vi.fn(),
     resetState: vi.fn(),
@@ -309,6 +332,8 @@ describe('AionrsSendBox', () => {
     useTeamPermissionMock.mockReturnValue(null);
     draftContentRef.current = '';
     runtimeViewIsProcessingRef.current = false;
+    tokenUsageRef.current = null;
+    cumulativeTokenUsageRef.current = null;
   });
 
   it('does not warm up team session when draft content changes', async () => {
@@ -549,5 +574,35 @@ describe('AionrsSendBox', () => {
       expect(props.onAddToDraft).toBeDefined();
       expect(props.addToDraftDisabled).toBe(true);
     });
+  });
+
+  it('renders ContextUsageIndicator when tokenUsage is reported', async () => {
+    tokenUsageRef.current = {
+      total_tokens: 1500,
+      breakdown: {
+        input_tokens: 1000,
+        output_tokens: 500,
+      },
+    };
+
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+    await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
+
+    expect(screen.getByTestId('context-usage-indicator')).toBeInTheDocument();
+  });
+
+  it('renders ContextUsageIndicator when cumulativeTokenUsage is reported', async () => {
+    cumulativeTokenUsageRef.current = {
+      total_tokens: 3000,
+      breakdown: {
+        input_tokens: 2000,
+        output_tokens: 1000,
+      },
+    };
+
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+    await waitFor(() => expect(ensureConversationRuntimeMock).toHaveBeenCalledWith('conv-1'));
+
+    expect(screen.getByTestId('context-usage-indicator')).toBeInTheDocument();
   });
 });

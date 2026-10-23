@@ -14,6 +14,7 @@ import {
   LinkCloud,
   Puzzle,
   Speed,
+  Switch as SwitchIcon,
   System,
   Toolkit,
 } from '@icon-park/react';
@@ -28,6 +29,7 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 export const BUILTIN_TAB_IDS = [
   'agent',
   'model',
+  'gateway',
   'skills',
   'tools',
   'appearance',
@@ -86,6 +88,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
       model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
+      gateway: {
+        id: 'gateway',
+        label: t('settings.modelProviderHub', { defaultValue: 'Model Provider Hub' }),
+        icon: <SwitchIcon />,
+        path: 'gateway',
+      },
       agent: {
         id: 'agent',
         label: t('settings.agents', { defaultValue: 'Agents' }),
@@ -123,7 +131,9 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     };
 
     // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode
-    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet').map((id) => builtinMap[id]);
+    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet')
+      .map((id) => builtinMap[id])
+      .filter((item): item is SiderItem => Boolean(item));
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -137,7 +147,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       }
       const { relativeTo: rawAnchor, placement } = tab.position;
       const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
-      if (!result.some((item) => item.id === anchor)) {
+      if (!result.some((item) => item?.id === anchor)) {
         unanchored.push(tab);
         continue;
       }
@@ -164,7 +174,9 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
 
     // Insert anchored tabs (reverse iteration to preserve indices)
     for (let i = result.length - 1; i >= 0; i--) {
-      const builtinId = result[i].id;
+      const item = result[i];
+      if (!item) continue;
+      const builtinId = item.id;
       const afters = afterMap.get(builtinId);
       if (afters) {
         result.splice(i + 1, 0, ...afters.map(toSiderItem));

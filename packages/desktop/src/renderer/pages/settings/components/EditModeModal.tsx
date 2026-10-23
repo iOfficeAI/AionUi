@@ -19,6 +19,9 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     // Watch bedrockAuthMethod only for UI conditional rendering (not for auto-refresh)
     const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
     const isBedrock = data?.platform === 'bedrock';
+    const isGoogleLogin = data?.platform === 'gemini-with-google-auth';
+    const isOmniroute =
+      data?.platform === 'custom' && (data?.base_url?.includes('51820') || data?.base_url?.includes('13408'));
 
     // Watch the live form values so editing the Base URL (or API key) re-keys the
     // model-list SWR cache. Without this the list would keep fetching from the
@@ -214,11 +217,19 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               </div>
             )}
 
+            {/* Google Login banner if applicable */}
+            {isGoogleLogin && (
+              <div className='p-12px rounded-8px bg-fill-2 text-13px text-t-primary mb-16px flex items-center gap-8px border border-solid border-[var(--color-border-2)]'>
+                <span className='font-500'>Google Login:</span>
+                <span className='text-t-secondary'>Connected via Google OAuth (No API Key needed)</span>
+              </div>
+            )}
+
             <Form.Item
-              hidden={isBedrock}
+              hidden={isBedrock || isGoogleLogin}
               label={t('settings.apiKey')}
-              required={!isBedrock}
-              rules={[{ required: !isBedrock }]}
+              required={!isBedrock && !isGoogleLogin && !isOmniroute}
+              rules={[{ required: !isBedrock && !isGoogleLogin && !isOmniroute }]}
               field={'api_key'}
               extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
             >

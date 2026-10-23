@@ -1,9 +1,74 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TChatConversation } from '@/common/config/storage';
 import ChatConversation from '@/renderer/pages/conversation/components/ChatConversation';
+
+beforeAll(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'debug').mockImplementation(() => {});
+});
+
+afterAll(() => {
+  vi.restoreAllMocks();
+});
+
+afterEach(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  cleanup();
+});
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    whenReady: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn(),
+    set: vi.fn().mockResolvedValue(undefined),
+    setLocal: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+  },
+  fetchJson: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('@/renderer/pages/conversation/components/BrowserPanel', () => ({
+  __esModule: true,
+  default: () => null,
+  BrowserPanel: () => null,
+}));
+
+vi.mock('@/renderer/components/agent/AcpRuntimeRestartButton', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+vi.mock('@/renderer/pages/conversation/hooks/useActiveLease', () => ({
+  useActiveLease: vi.fn(),
+}));
+
+vi.mock('@/common', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    ipcBridge: {
+      conversation: {
+        getAssociateConversation: { invoke: vi.fn().mockResolvedValue([]) },
+        getRuntimeStatus: { invoke: vi.fn().mockResolvedValue({ status: 'ready' }) },
+        stop: { invoke: vi.fn().mockResolvedValue({ runtime: {} }) },
+        update: { invoke: vi.fn().mockResolvedValue(true) },
+        createWithConversation: { invoke: vi.fn().mockResolvedValue({}) },
+      },
+    },
+  };
+});
 
 const usePresetAssistantInfoMock = vi.fn();
 const acpChatMock = vi.fn(() => <div data-testid='mock-acp-chat'>acp chat</div>);

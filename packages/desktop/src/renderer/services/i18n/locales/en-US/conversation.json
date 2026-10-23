@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Delete project",
+    "deleteProjectTitle": "Delete project",
+    "deleteProjectConfirm": "Delete project \"{{name}}\"? All {{count}} conversation(s) in this project will be deleted permanently. This action cannot be undone.",
+    "deleteProjectSuccess": "Project deleted"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -544,7 +548,13 @@
     "output": "Output",
     "thought": "Thinking",
     "cachedRead": "Cache read",
-    "cachedWrite": "Cache write"
+    "cachedWrite": "Cache write",
+    "cache": "Cache",
+    "total": "Total",
+    "replyTokens": "Reply tokens",
+    "chatTotal": "Chat total",
+    "sessionTotal": "Chat window total",
+    "contextWindow": "Context window"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",
@@ -632,6 +642,10 @@
   "notFound": "Conversation not found or has been deleted",
   "explorer": {
     "addFolder": "Add folder to project",
+    "showSizes": "Show file sizes",
+    "showDates": "Show modification dates",
+    "followAgentOn": "Follow agent: ON",
+    "followAgentOff": "Follow agent: OFF",
     "refreshFiles": "Refresh files",
     "refreshChanges": "Refresh changes",
     "collapseAll": "Collapse all",
@@ -782,5 +796,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Expand plan",
     "collapse": "Collapse plan"
+  },
+  "browser": {
+    "stop": "Stop",
+    "retry": "Retry",
+    "title": "Browser",
+    "addressBarPlaceholder": "Enter URL or search...",
+    "navigate": "Go",
+    "back": "Back",
+    "forward": "Forward",
+    "refresh": "Reload",
+    "close": "Close",
+    "loading": "Loading...",
+    "profiles": "Profiles",
+    "clearData": "Clear Profile Data",
+    "clearDataConfirm": "Clear all cookies and local storage for this profile?",
+    "clearDataSuccess": "Profile data cleared successfully",
+    "backendEmbedded": "Embedded",
+    "backendChrome": "External Chrome",
+    "launchChrome": "Launch Chrome",
+    "chromeConnected": "Connected",
+    "safetyGateTitle": "Action Approval Required",
+    "safetyGateDesc": "An automated action requires your approval before proceeding.",
+    "safetyApprove": "Approve",
+    "safetyReject": "Reject",
+    "safetyRemember": "Remember choice (auto-approve)",
+    "safetyTarget": "Target Account",
+    "safetyCaption": "Caption / Content",
+    "safetyMedia": "Media File"
   }
 }

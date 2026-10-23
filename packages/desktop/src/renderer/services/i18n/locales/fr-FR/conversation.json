@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Supprimer le projet",
+    "deleteProjectTitle": "Supprimer le projet",
+    "deleteProjectConfirm": "Supprimer le projet « {{name}} » ? Toutes les {{count}} conversation(s) de ce projet seront définitivement supprimées. Cette action est irréversible.",
+    "deleteProjectSuccess": "Projet supprimé"
   },
   "historySearch": {
     "tooltip": "Rechercher des messages",
@@ -544,7 +548,13 @@
     "output": "Sortie",
     "thought": "Réflexion",
     "cachedRead": "Lecture du cache",
-    "cachedWrite": "Écriture du cache"
+    "cachedWrite": "Écriture du cache",
+    "cache": "Cache",
+    "total": "Total",
+    "replyTokens": "Tokens de réponse",
+    "chatTotal": "Total du chat",
+    "sessionTotal": "Total de la fenêtre de chat",
+    "contextWindow": "Fenêtre de contexte"
   },
   "skill_generator": {
     "title": "Générer une compétence/règle",
@@ -753,7 +763,11 @@
       }
     },
     "pathCopied": "Chemin copié",
-    "copyFailed": "Échec de la copie du chemin"
+    "copyFailed": "Échec de la copie du chemin",
+    "showSizes": "Afficher la taille des fichiers",
+    "showDates": "Afficher les dates",
+    "followAgentOn": "Suivi de l'activité de l'agent (dépliage auto)",
+    "followAgentOff": "Suivi de l'agent désactivé"
   },
   "terminal": {
     "running": "En cours",
@@ -782,5 +796,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Développer le plan",
     "collapse": "Réduire le plan"
+  },
+  "browser": {
+    "stop": "Arrêter",
+    "retry": "Réessayer",
+    "title": "Navigateur",
+    "addressBarPlaceholder": "Entrer une URL ou rechercher...",
+    "navigate": "Aller",
+    "back": "Précédent",
+    "forward": "Suivant",
+    "refresh": "Actualiser",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "profiles": "Profils",
+    "clearData": "Effacer les données du profil",
+    "clearDataConfirm": "Effacer tous les cookies et le stockage local pour ce profil ?",
+    "clearDataSuccess": "Données du profil effacées avec succès",
+    "backendEmbedded": "Intégré",
+    "backendChrome": "Chrome externe",
+    "launchChrome": "Lancer Chrome",
+    "chromeConnected": "Connecté",
+    "safetyGateTitle": "Approbation de l'action requise",
+    "safetyGateDesc": "Une action automatisée nécessite votre approbation avant de continuer.",
+    "safetyApprove": "Approuver",
+    "safetyReject": "Refuser",
+    "safetyRemember": "Mémoriser le choix (auto-approuver)",
+    "safetyTarget": "Compte cible",
+    "safetyCaption": "Légende / Contenu",
+    "safetyMedia": "Fichier média"
   }
 }

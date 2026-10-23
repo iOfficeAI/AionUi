@@ -97,5 +97,13 @@
   "requestDetails": "リクエスト内容:",
   "delivery": {
     "pending": "未読"
-  }
+  },
+  "slash.antigravity.goal": "目標が完全に達成されるまでタスクを徹底的に実行",
+  "slash.antigravity.teamworkPreview": "複雑なプロジェクト向けマルチエージェント協調ワークフロー",
+  "slash.antigravity.plan": "実行前の詳細なステップ別実装計画を作成",
+  "slash.antigravity.grillMe": "設計の意思決定とトレードオフを詰める対話形式の質問",
+  "slash.antigravity.boost": "深い思考、戦略的計画、厳密な検証",
+  "slash.antigravity.browser": "Webブラウジング、ドキュメント検索、オンライン調査",
+  "slash.antigravity.schedule": "定期実行またはタイマーによるスケジュールタスク",
+  "slash.antigravity.learn": "今後のタスクで活用するための知見やルールの蓄積"
 }

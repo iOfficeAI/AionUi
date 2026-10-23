@@ -20,7 +20,7 @@ import {
 } from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
+import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -75,6 +75,8 @@ const SystemModalContent: React.FC = () => {
   const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
   const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [backupDir, setBackupDir] = useState<string>(configService.get('system.backupDir') ?? '');
+  const [backingUp, setBackingUp] = useState(false);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -114,6 +116,8 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    const savedBackupDir = configService.get('system.backupDir') ?? '';
+    setBackupDir(savedBackupDir);
   }, [isDesktop]);
 
   useEffect(() => {
@@ -348,7 +352,13 @@ const SystemModalContent: React.FC = () => {
   useEffect(() => {
     if (systemInfo) {
       initializingRef.current = true;
-      form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
+      const currentEffectiveDir = systemInfo.dataDir || systemInfo.workDir;
+      form.setFieldsValue({
+        dataDir: currentEffectiveDir,
+        workDir: systemInfo.workDir,
+        logDir: systemInfo.logDir,
+        backupDir: configService.get('system.backupDir') ?? '',
+      });
       requestAnimationFrame(() => {
         initializingRef.current = false;
       });
@@ -452,11 +462,15 @@ const SystemModalContent: React.FC = () => {
     },
   ];
 
-  const saveDirConfigValidate = (_values: { workDir: string; logDir: string }): Promise<unknown> => {
+  const saveDirConfigValidate = (_values: {
+    dataDir?: string;
+    workDir?: string;
+    logDir?: string;
+  }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
-        content: t('settings.restartConfirm'),
+        content: t('settings.dataDirRestartConfirm'),
         onOk: resolve,
         onCancel: reject,
       });
@@ -465,25 +479,90 @@ const SystemModalContent: React.FC = () => {
 
   const savingRef = useRef(false);
 
+  const handleBackupDirChange = useCallback((newDir: string) => {
+    setBackupDir(newDir);
+    void configService.set('system.backupDir', newDir);
+    configService.setLocal('system.backupDir', newDir);
+  }, []);
+
+  const handleBackupData = useCallback(async () => {
+    const currentTarget = form.getFieldValue('dataDir') || systemInfo?.dataDir || systemInfo?.workDir;
+    if (!currentTarget) {
+      try {
+        const data = await ipcBridge.dialog.showOpen.invoke({
+          properties: ['openDirectory', 'createDirectory'],
+        });
+        if (!data?.[0]) return;
+        const chosen = data[0];
+        form.setFieldValue('dataDir', chosen);
+
+        setBackingUp(true);
+        const res = await ipcBridge.application.backupData.invoke({ targetDir: chosen });
+        if (res.success) {
+          Message.success(t('settings.backupSuccess', { path: res.backupPath || chosen }));
+        } else {
+          Message.error(t('settings.backupFailed'));
+        }
+      } catch (err) {
+        console.error('Backup error:', err);
+        Message.error(t('settings.backupFailed'));
+      } finally {
+        setBackingUp(false);
+      }
+      return;
+    }
+
+    setBackingUp(true);
+    try {
+      const res = await ipcBridge.application.backupData.invoke({ targetDir: currentTarget });
+      if (res.success) {
+        Message.success(t('settings.backupSuccess', { path: res.backupPath || currentTarget }));
+      } else {
+        Message.error(t('settings.backupFailed'));
+      }
+    } catch (err) {
+      console.error('Backup error:', err);
+      Message.error(t('settings.backupFailed'));
+    } finally {
+      setBackingUp(false);
+    }
+  }, [form, systemInfo, t]);
+
   const handleValuesChange = useCallback(
     async (_changedValue: unknown, allValues: Record<string, string>) => {
       if (initializingRef.current || savingRef.current || !systemInfo) return;
-      const { workDir, logDir } = allValues;
-      const needsRestart = workDir !== systemInfo.workDir || logDir !== systemInfo.logDir;
+      const { dataDir, workDir, logDir, backupDir: newBackupDir } = allValues;
+      if (newBackupDir !== undefined && newBackupDir !== backupDir) {
+        handleBackupDirChange(newBackupDir);
+      }
+
+      const currentEffectiveDir = systemInfo.dataDir || systemInfo.workDir;
+      const dataDirChanged = dataDir !== undefined && dataDir !== currentEffectiveDir;
+      const legacyDirsChanged =
+        (workDir !== undefined && workDir !== systemInfo.workDir) ||
+        (logDir !== undefined && logDir !== systemInfo.logDir);
+
+      const needsRestart = dataDirChanged || legacyDirsChanged;
       if (!needsRestart) return;
 
       savingRef.current = true;
       setError(null);
       try {
-        await saveDirConfigValidate({ workDir, logDir });
-        // Pass systemInfo.cacheDir as-is: cacheDir is no longer user-editable
-        // (removed from UI), but the backend IPC interface still expects it.
-        // Passing the current value ensures existing custom paths are preserved.
-        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir, logDir });
+        await saveDirConfigValidate({ dataDir, workDir, logDir });
+        await ipcBridge.application.updateSystemInfo.invoke({
+          dataDir: dataDir || currentEffectiveDir,
+          cacheDir: systemInfo.cacheDir,
+          workDir: workDir || systemInfo.workDir,
+          logDir: logDir || systemInfo.logDir,
+        });
         const restartResult = await ipcBridge.application.restart.invoke();
         notifyManualRestartRequired(restartResult, t);
       } catch (caughtError: unknown) {
-        form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
+        form.setFieldsValue({
+          dataDir: currentEffectiveDir,
+          workDir: systemInfo.workDir,
+          logDir: systemInfo.logDir,
+        });
         if (caughtError) {
           setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
         }
@@ -491,7 +570,7 @@ const SystemModalContent: React.FC = () => {
         savingRef.current = false;
       }
     },
-    [systemInfo, form, saveDirConfigValidate, t]
+    [backupDir, form, handleBackupDirChange, saveDirConfigValidate, systemInfo, t]
   );
 
   return (
@@ -552,8 +631,35 @@ const SystemModalContent: React.FC = () => {
               </Collapse.Item>
             </Collapse>
             <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
-              <DirInputItem label={t('settings.workDir')} field='workDir' />
-              <DirInputItem label={t('settings.logDir')} field='logDir' />
+              <DirInputItem
+                label={t('settings.dataDir')}
+                field='dataDir'
+                extra={
+                  <div className='flex items-center justify-between mt-6px text-12px text-t-secondary'>
+                    <span>{t('settings.dataDirDesc')}</span>
+                    <div className='flex items-center gap-8px'>
+                      {isDesktop &&
+                        Boolean(form.getFieldValue('dataDir') || systemInfo?.dataDir || systemInfo?.workDir) && (
+                          <Button
+                            size='mini'
+                            type='secondary'
+                            onClick={() => {
+                              const dir = form.getFieldValue('dataDir') || systemInfo?.dataDir || systemInfo?.workDir;
+                              if (dir) void ipcBridge.shell.showItemInFolder.invoke(dir);
+                            }}
+                          >
+                            {t('settings.openBackupDir')}
+                          </Button>
+                        )}
+                      {isDesktop && (
+                        <Button size='mini' type='primary' loading={backingUp} onClick={() => void handleBackupData()}>
+                          {backingUp ? t('settings.backingUp') : t('settings.backupNow')}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                }
+              />
               {error && (
                 <Alert
                   className='mt-16px'

@@ -15,6 +15,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import {
   Attention,
+  Delete,
   EditOne,
   Export,
   FolderClose,
@@ -27,8 +28,11 @@ import {
 } from '@icon-park/react';
 import ForkBranchIcon from '@renderer/components/base/ForkBranchIcon';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSWRConfig } from 'swr';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { prefetchConversationMessages } from '@/renderer/pages/conversation/Messages/hooks';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
@@ -59,6 +63,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onEditStart,
     onCreateCronTask,
     onArchive,
+    onDelete,
     onExport,
     onTogglePin,
     onToggleManualUnread,
@@ -66,6 +71,34 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     getJobStatus,
   } = props;
   const { t } = useTranslation();
+  const { mutate } = useSWRConfig();
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    if (batchMode || selected) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      void mutate(`conversation/${conversation.id}`, () => getConversationOrNull(conversation.id), {
+        revalidate: false,
+      });
+      void prefetchConversationMessages(conversation.id);
+    }, 60);
+  };
+
+  const handleMouseLeave = () => {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+      prefetchTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (prefetchTimerRef.current) {
+        clearTimeout(prefetchTimerRef.current);
+      }
+    };
+  }, []);
+
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
   // Fork-lineage badge: present only on forked conversations (extra.fork is
@@ -182,6 +215,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         )}
         onClick={handleRowClick}
         onContextMenu={handleRowContextMenu}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {batchMode && (
           <span
@@ -292,6 +327,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     }
                     if (key === 'archive') {
                       onArchive(conversation);
+                      return;
+                    }
+                    if (key === 'delete') {
+                      onDelete(conversation);
                     }
                   }}
                 >
@@ -335,6 +374,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.archive')}</span>
                     </div>
                   </Menu.Item>
+                  <Menu.Item key='delete'>
+                    <div className='flex items-center gap-8px text-danger'>
+                      <Delete theme='outline' size='14' />
+                      <span>{t('conversation.history.deleteTitle')}</span>
+                    </div>
+                  </Menu.Item>
                 </Menu>
               }
               trigger='click'
@@ -368,4 +413,29 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   );
 };
 
-export default ConversationRow;
+export const areConversationRowPropsEqual = (
+  prev: Readonly<ConversationRowProps>,
+  next: Readonly<ConversationRowProps>
+): boolean => {
+  return (
+    prev.selected === next.selected &&
+    prev.isGenerating === next.isGenerating &&
+    prev.isWaitingConfirmation === next.isWaitingConfirmation &&
+    prev.hasUnread === next.hasUnread &&
+    prev.isManualUnread === next.isManualUnread &&
+    prev.collapsed === next.collapsed &&
+    prev.tooltipEnabled === next.tooltipEnabled &&
+    prev.batchMode === next.batchMode &&
+    prev.checked === next.checked &&
+    prev.menuVisible === next.menuVisible &&
+    prev.dimIcon === next.dimIcon &&
+    prev.dragHandle === next.dragHandle &&
+    prev.conversation.id === next.conversation.id &&
+    prev.conversation.modified_at === next.conversation.modified_at &&
+    prev.conversation.name === next.conversation.name &&
+    prev.conversation.extra === next.conversation.extra &&
+    prev.getJobStatus(prev.conversation.id) === next.getJobStatus(next.conversation.id)
+  );
+};
+
+export default React.memo(ConversationRow, areConversationRowPropsEqual);

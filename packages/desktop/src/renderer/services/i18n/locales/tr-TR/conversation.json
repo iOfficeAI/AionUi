@@ -89,7 +89,11 @@
     "archiveProject": "Archive project",
     "archiveProjectTitle": "Archive project",
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
-    "archiving": "Archiving..."
+    "archiving": "Archiving...",
+    "deleteProject": "Projeyi sil",
+    "deleteProjectTitle": "Projeyi sil",
+    "deleteProjectConfirm": "\"{{name}}\" projesi silinsin mi? Bu projedeki {{count}} konuşma kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "deleteProjectSuccess": "Proje silindi"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -529,7 +533,13 @@
     "output": "Çıktı",
     "thought": "Düşünme",
     "cachedRead": "Önbellek okuma",
-    "cachedWrite": "Önbellek yazma"
+    "cachedWrite": "Önbellek yazma",
+    "cache": "Önbellek",
+    "total": "Toplam",
+    "replyTokens": "Yanıt belirteçleri",
+    "chatTotal": "Sohbet toplamı",
+    "sessionTotal": "Sohbet penceresi toplamı",
+    "contextWindow": "Bağlam penceresi"
   },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",
@@ -755,7 +765,11 @@
       }
     },
     "pathCopied": "Yol kopyalandı",
-    "copyFailed": "Yol kopyalanamadı"
+    "copyFailed": "Yol kopyalanamadı",
+    "showSizes": "Dosya boyutlarını göster",
+    "showDates": "Dosya tarihlerini göster",
+    "followAgentOn": "Ajan etkinliğini izle (otomatik açma)",
+    "followAgentOff": "Ajan izleme kapalı"
   },
   "terminal": {
     "running": "Çalışıyor",
@@ -784,5 +798,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "Planı genişlet",
     "collapse": "Planı daralt"
+  },
+  "browser": {
+    "stop": "Durdur",
+    "retry": "Yeniden dene",
+    "title": "Tarayıcı",
+    "addressBarPlaceholder": "URL girin veya arayın...",
+    "navigate": "Git",
+    "back": "Geri",
+    "forward": "İleri",
+    "refresh": "Yenile",
+    "close": "Kapat",
+    "loading": "Yükleniyor...",
+    "profiles": "Profiller",
+    "clearData": "Profil Verilerini Temizle",
+    "clearDataConfirm": "Bu profil için tüm çerezler ve yerel depolama temizlensin mi?",
+    "clearDataSuccess": "Profil verileri başarıyla temizlendi",
+    "backendEmbedded": "Gömülü",
+    "backendChrome": "Harici Chrome",
+    "launchChrome": "Chrome'u Başlat",
+    "chromeConnected": "Bağlandı",
+    "safetyGateTitle": "Eylem Onayı Gerekli",
+    "safetyGateDesc": "Devam etmeden önce otomatik bir eylem için onayınız gereklidir.",
+    "safetyApprove": "Onayla",
+    "safetyReject": "Reddet",
+    "safetyRemember": "Seçimi hatırla (otomatik onayla)",
+    "safetyTarget": "Hedef Hesap",
+    "safetyCaption": "Açıklama / İçerik",
+    "safetyMedia": "Medya Dosyası"
   }
 }

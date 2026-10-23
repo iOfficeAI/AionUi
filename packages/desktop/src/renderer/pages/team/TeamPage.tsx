@@ -1,12 +1,19 @@
 import { Button, Dropdown, Menu, Message, Modal, Spin, Tooltip } from '@arco-design/web-react';
 import { FullScreen, Left, MoreOne, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
-import type { ITeamSlotWork, TeamAssistant, TeamContextResetAvailability, TTeam } from '@/common/types/team/teamTypes';
+import type {
+  ITeamSlotWork,
+  TeamAssistant,
+  TeamContextResetAvailability,
+  TeammateStatus,
+  TTeam,
+} from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import {
   classifyConfigSetError,
@@ -15,21 +22,28 @@ import {
 } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
+import BrowserPanel from '@/renderer/pages/conversation/components/BrowserPanel';
+import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
+import { Browser } from '@icon-park/react';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import { buildTeamRetryStartHandler } from './components/teamSendRuntime';
 import AcpModelSelector, { type AcpWarmupStatus } from '@/renderer/components/agent/AcpModelSelector';
-import AcpRuntimeRestartButton, { useAcpRuntimeRestart } from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import AcpRuntimeRestartButton, { useAcpRuntimeRestart } from '@/renderer/components/agent/AcpRuntimeRestartButton';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
-import TeamTabs from './components/TeamTabs';
+import TeamTabs, { TeamActiveMembers } from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
+import AgentStatusBadge from './components/AgentStatusBadge';
 import TeamViewToggle from './components/TeamViewToggle';
+import TeamNewTaskButton from './components/TeamNewTaskButton';
 import TeamActivityView from './activity/TeamActivityView';
 import TeamWarmupOverlay from './components/TeamWarmupOverlay';
 import { useTeamViewMode } from './hooks/useTeamViewMode';
+import type { ChatFileRef } from '@/common/types/chatFile';
+import { TeamWatchdogToggle, useTeamWatchdog } from './watchdog';
 import { useTeamWarmup, type TeamWarmupMemberState, type TeamWarmupPhase } from './hooks/useTeamWarmup';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamIdentityProvider } from './identity/TeamIdentityContext';
@@ -71,52 +85,6 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
-};
-
-/** Compact aionrs model selector for the agent header */
-const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
-  conversation_id,
-  initialModel,
-}) => {
-  const { t } = useTranslation();
-  const teamPermission = useTeamPermission();
-  const onSelectModel = useCallback(
-    async (_provider: IProvider, modelName: string) => {
-      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
-      return Boolean(ok);
-    },
-    [conversation_id]
-  );
-  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
-  const runtimeConfig = useAcpConfigOptions({
-    conversation_id,
-    prepareSetRuntime: teamPermission?.warmupSession,
-    configOptionsPort: teamPermission?.configOptionsPort,
-    enabled: Boolean(conversation_id),
-  });
-  const handleThoughtLevelSetOption = useCallback(
-    async (optionId: string, value: string) => {
-      try {
-        const result = await runtimeConfig.setConfigOption(optionId, value);
-        Message.success(t('agent.thoughtLevel.switchSuccess'));
-        return result;
-      } catch (error) {
-        Message.error(t(configErrorMessageKey(error)));
-        throw error;
-      }
-    },
-    [runtimeConfig, t]
-  );
-  return (
-    <AionrsModelSelector
-      selection={modelSelection}
-      disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
-      thoughtLevel={runtimeConfig.thoughtLevel}
-      setStatus={runtimeConfig.setStatus}
-      onSetThoughtLevel={handleThoughtLevelSetOption}
-    />
-  );
 };
 
 const contextResetAvailabilityMessageKey = (availability: TeamContextResetAvailability) => {
@@ -355,59 +323,96 @@ const TeamAgentActions: React.FC<{
   );
 };
 
-/** Fetches conversation for a single assistant and renders TeamChatView */
-const AssistantChatSlot: React.FC<{
+/** Compact aionrs model selector for the agent header */
+const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
+  conversation_id,
+  initialModel,
+}) => {
+  const { t } = useTranslation();
+  const teamPermission = useTeamPermission();
+  const onSelectModel = useCallback(
+    async (_provider: IProvider, modelName: string) => {
+      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversation_id]
+  );
+  const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
+  const runtimeConfig = useAcpConfigOptions({
+    conversation_id,
+    prepareSetRuntime: teamPermission?.warmupSession,
+    configOptionsPort: teamPermission?.configOptionsPort,
+    enabled: Boolean(conversation_id),
+  });
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      try {
+        const result = await runtimeConfig.setConfigOption(optionId, value);
+        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        return result;
+      } catch (error) {
+        Message.error(t(configErrorMessageKey(error)));
+        throw error;
+      }
+    },
+    [runtimeConfig, t]
+  );
+  return (
+    <AionrsModelSelector
+      selection={modelSelection}
+      disabled={runtimeConfig.isConfigOptionBlocked?.('model') ?? false}
+      thoughtLevel={runtimeConfig.thoughtLevel}
+      setStatus={runtimeConfig.setStatus}
+      onSetThoughtLevel={handleThoughtLevelSetOption}
+    />
+  );
+};
+
+/** Teammate action & model controls rendered either in Row 2 (single view / 1-agent) or in the column header (parallel view) */
+const TeamAgentControls: React.FC<{
   assistant: TeamAssistant;
   team_id: string;
   isLeader: boolean;
-  /** 成员身份色（列头名字 / 列身淡底）。 */
-  color: string;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   teamRunView: TeamRunViewState;
-  onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
-  onTeamSlotPaused: ReturnType<typeof useTeamRunView>['applyLocalPause'];
   onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
-  /** Teammate runtime status observed after subscribing to warmup events. */
   warmupStatus?: AcpWarmupStatus;
-  /** Server-derived fallback used when the renderer subscribed after the runtime event. */
   fallbackAvailability: TeamContextResetAvailability;
-  /** 整队 warming 期间为 true —— 此时不下发手动触发器。 */
   warmupDisabled?: boolean;
+  conversation?: TChatConversation | null;
+  onRuntimeChanged?: () => Promise<void>;
 }> = ({
   assistant,
   team_id,
   isLeader,
-  color,
   isFullscreen = false,
   onToggleFullscreen,
   teamRunView,
-  onTeamRunAck,
-  onTeamSlotPaused,
   onRunStateStale,
   warmupStatus,
   fallbackAvailability,
   warmupDisabled,
+  conversation: propConversation,
+  onRuntimeChanged: propOnRuntimeChanged,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const teamPermission = useTeamPermission();
   const isMobile = layout?.isMobile ?? false;
-  const { data: conversation, mutate: mutateConversation } = useSWR(
-    assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
+
+  const { data: fetchedConversation, mutate: mutateConversation } = useSWR(
+    !propConversation && assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
     () => getConversationOrNull(assistant.conversation_id)
   );
+  const conversation = propConversation ?? fetchedConversation;
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike = conversation?.type === 'acp' || isAcpLikeBackend(assistant.assistant_backend);
   const cronJobId = resolveCronJobId(conversation?.extra);
-  // No model-change handler here on purpose: the team config-option request that
-  // switches the runtime also persists the selection onto the roster, so there is
-  // no second call to chain. Chaining one used to mean a failure after a
-  // successful switch reported the switch itself as failed.
-  // Reuse the existing single-teammate attach/warmup path; withhold the trigger
-  // while the whole team is warming so manual wake is gated by phase.
+
   const warmup = useMemo<{ status: AcpWarmupStatus; trigger?: () => Promise<void> }>(
     () => ({
       status: warmupStatus ?? (warmupDisabled ? 'dormant' : runtimeAvailabilityToWarmupStatus(fallbackAvailability)),
@@ -429,105 +434,185 @@ const AssistantChatSlot: React.FC<{
       : assistant.context_reset.supported
         ? runtimeActionAvailability
         : assistant.context_reset.availability;
+
   const handleRuntimeChanged = useCallback(async () => {
-    await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
-  }, [mutateConversation, onRunStateStale]);
-  // 抬头不叠身份色底（避免压低彩色名字的可读性）；成员身份仅由抬头里的“彩色名字”承担。
-  // 列身体保留极淡身份色底作弱提示，不影响气泡阅读。
+    if (propOnRuntimeChanged) {
+      await propOnRuntimeChanged();
+    } else {
+      await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
+    }
+  }, [propOnRuntimeChanged, mutateConversation, onRunStateStale]);
+
   return (
-    <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
-      <div className='flex items-center justify-between gap-8px px-12px h-40px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
-        <TeamAgentIdentity
-          assistant_name={assistant.assistant_name}
-          assistant_backend={assistant.assistant_backend}
-          icon={assistant.icon}
-          conversation_id={assistant.conversation_id}
-          isLeader={isLeader}
-          className='min-w-0'
-          nameClassName='text-13px font-600'
-          nameStyle={{ color }}
-        />
-        <div className='flex items-center gap-8px shrink-0'>
-          {conversation && <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />}
-          {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
-            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
-              <AcpModelSelector
-                key={assistant.conversation_id}
-                conversation_id={assistant.conversation_id}
-                backend={assistant.assistant_backend}
-                initialModelId={initialModelId}
-                prepareSetRuntime={teamPermission?.warmupSession}
-                configOptionsPort={teamPermission?.configOptionsPort}
-                warmup={warmup}
-              />
-            </div>
-          )}
-          {assistant.conversation_id && !isAionrs && isAcpLike && isLeader && (
-            <div className='shrink-0'>
-              <AcpRuntimeRestartButton
-                conversation_id={assistant.conversation_id}
-                team={{ team_id, slot_id: assistant.slot_id }}
-                availability={restartDisabled ? 'initializing' : 'ready'}
-                disabled={restartDisabled}
-                disabledReason={
-                  restartDisabled ? t(contextResetAvailabilityMessageKey(runtimeActionAvailability)) : undefined
-                }
-              />
-            </div>
-          )}
-          {assistant.conversation_id && !isAionrs && isAcpLike && !isLeader && (
-            <div className='shrink-0'>
-              <TeamAgentActions
-                assistant={assistant}
-                team_id={team_id}
-                runtimeAvailability={runtimeActionAvailability}
-                contextResetAvailability={contextResetAvailability}
-                onRuntimeChanged={handleRuntimeChanged}
-              />
-            </div>
-          )}
-          {!isMobile && isAionrs && assistant.conversation_id && (
-            <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
-              <AionrsHeaderModelSelector
-                key={assistant.conversation_id}
-                conversation_id={assistant.conversation_id}
-                initialModel={conversation?.model as TProviderWithModel | undefined}
-              />
-            </div>
-          )}
-          {/* 移除入口统一到顶部胶囊（team-tab-remove-*），抬头这里不再重复放 X。 */}
+    <div className='flex items-center gap-8px shrink-0'>
+      {conversation && <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />}
+      {!isMobile && assistant.conversation_id && !isAionrs && isAcpLike && (
+        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
+          <AcpModelSelector
+            key={assistant.conversation_id}
+            conversation_id={assistant.conversation_id}
+            backend={assistant.assistant_backend}
+            initialModelId={initialModelId}
+            prepareSetRuntime={teamPermission?.warmupSession}
+            configOptionsPort={teamPermission?.configOptionsPort}
+            warmup={warmup}
+          />
+        </div>
+      )}
+      {assistant.conversation_id && !isAionrs && isAcpLike && isLeader && (
+        <div className='shrink-0'>
+          <AcpRuntimeRestartButton
+            conversation_id={assistant.conversation_id}
+            team={{ team_id, slot_id: assistant.slot_id }}
+            availability={restartDisabled ? 'initializing' : 'ready'}
+            disabled={restartDisabled}
+            disabledReason={
+              restartDisabled ? t(contextResetAvailabilityMessageKey(runtimeActionAvailability)) : undefined
+            }
+          />
+        </div>
+      )}
+      {assistant.conversation_id && !isAionrs && isAcpLike && !isLeader && (
+        <div className='shrink-0'>
+          <TeamAgentActions
+            assistant={assistant}
+            team_id={team_id}
+            runtimeAvailability={runtimeActionAvailability}
+            contextResetAvailability={contextResetAvailability}
+            onRuntimeChanged={handleRuntimeChanged}
+          />
+        </div>
+      )}
+      {!isMobile && isAionrs && assistant.conversation_id && (
+        <div className='min-w-0 max-w-160px [&_button]:max-w-full [&_button_span]:truncate'>
+          <AionrsHeaderModelSelector
+            key={assistant.conversation_id}
+            conversation_id={assistant.conversation_id}
+            initialModel={conversation?.model as TProviderWithModel | undefined}
+          />
+        </div>
+      )}
+      {onToggleFullscreen && (
+        <Tooltip content={isFullscreen ? t('team.view.parallel') : t('team.view.single')} position='bottom'>
           <div
             className='shrink-0 flex items-center justify-center leading-none cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
-            onClick={() => onToggleFullscreen?.()}
+            onClick={() => onToggleFullscreen()}
           >
             {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
           </div>
-        </div>
-      </div>
-      <div className='relative flex flex-col flex-1 min-h-0'>
-        {conversation ? (
-          <TeamChatView
-            conversation={conversation as TChatConversation}
-            team_id={team_id}
-            slot_id={assistant.slot_id}
-            assistant_name={assistant.assistant_name}
-            assistant_backend={assistant.assistant_backend}
-            agent_icon={assistant.icon}
-            isLeader={isLeader}
-            teamRunView={teamRunView}
-            onTeamRunAck={onTeamRunAck}
-            onTeamSlotPaused={onTeamSlotPaused}
-            onRunStateStale={() => onRunStateStale('pause.result')}
-          />
-        ) : (
-          <div className='flex flex-1 items-center justify-center'>
-            <Spin loading />
-          </div>
-        )}
-      </div>
+        </Tooltip>
+      )}
     </div>
   );
 };
+
+/** Fetches conversation for a single assistant and renders TeamChatView */
+const AssistantChatSlot: React.FC<{
+  assistant: TeamAssistant;
+  team_id: string;
+  isLeader: boolean;
+  /** 成员身份色（列头名字 / 列身淡底）。 */
+  color: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  teamRunView: TeamRunViewState;
+  onTeamRunAck: ReturnType<typeof useTeamRunView>['applyAck'];
+  onTeamSlotPaused: ReturnType<typeof useTeamRunView>['applyLocalPause'];
+  onRunStateStale: ReturnType<typeof useTeamRunView>['reconcile'];
+  /** Teammate runtime status observed after subscribing to warmup events. */
+  warmupStatus?: AcpWarmupStatus;
+  /** Server-derived fallback used when the renderer subscribed after the runtime event. */
+  fallbackAvailability: TeamContextResetAvailability;
+  /** 整队 warming 期间为 true —— 此时不下发手动触发器。 */
+  warmupDisabled?: boolean;
+  /** 是否展示独立列头（单聊视图与单成员时隐藏，由顶部 Row 2 统一呈现） */
+  showHeader?: boolean;
+  onPromptSent?: (payload: { input: string; files?: ChatFileRef[]; slot_id?: string }) => void;
+}> = React.memo(
+  ({
+    assistant,
+    team_id,
+    isLeader,
+    color,
+    isFullscreen = false,
+    onToggleFullscreen,
+    teamRunView,
+    onTeamRunAck,
+    onTeamSlotPaused,
+    onRunStateStale,
+    warmupStatus,
+    fallbackAvailability,
+    warmupDisabled,
+    showHeader = true,
+    onPromptSent,
+  }) => {
+    const { data: conversation, mutate: mutateConversation } = useSWR(
+      assistant.conversation_id ? ['team-conversation', assistant.conversation_id] : null,
+      () => getConversationOrNull(assistant.conversation_id)
+    );
+
+    const handleRuntimeChanged = useCallback(async () => {
+      await Promise.all([mutateConversation(), onRunStateStale('context-reset.result')]);
+    }, [mutateConversation, onRunStateStale]);
+
+    const handleSlotRunStateStale = useCallback(() => onRunStateStale('pause.result'), [onRunStateStale]);
+
+    return (
+      <div className='flex flex-col h-full' style={{ background: `color-mix(in srgb, ${color} 4%, var(--bg-base))` }}>
+        {showHeader && (
+          <div className='flex items-center justify-between gap-8px px-12px h-36px shrink-0 border-b border-solid border-[color:var(--border-base)] relative z-10 bg-1'>
+            <TeamAgentIdentity
+              assistant_name={assistant.assistant_name}
+              assistant_backend={assistant.assistant_backend}
+              icon={assistant.icon}
+              conversation_id={assistant.conversation_id}
+              isLeader={isLeader}
+              className='min-w-0'
+              nameClassName='text-13px font-600'
+              nameStyle={{ color }}
+            />
+            <TeamAgentControls
+              assistant={assistant}
+              team_id={team_id}
+              isLeader={isLeader}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={onToggleFullscreen}
+              teamRunView={teamRunView}
+              onRunStateStale={onRunStateStale}
+              warmupStatus={warmupStatus}
+              fallbackAvailability={fallbackAvailability}
+              warmupDisabled={warmupDisabled}
+              conversation={conversation}
+              onRuntimeChanged={handleRuntimeChanged}
+            />
+          </div>
+        )}
+        <div className='relative flex flex-col flex-1 min-h-0'>
+          {conversation ? (
+            <TeamChatView
+              conversation={conversation as TChatConversation}
+              team_id={team_id}
+              slot_id={assistant.slot_id}
+              assistant_name={assistant.assistant_name}
+              assistant_backend={assistant.assistant_backend}
+              agent_icon={assistant.icon}
+              isLeader={isLeader}
+              teamRunView={teamRunView}
+              onTeamRunAck={onTeamRunAck}
+              onTeamSlotPaused={onTeamSlotPaused}
+              onRunStateStale={handleSlotRunStateStale}
+              onPromptSent={onPromptSent}
+            />
+          ) : (
+            <div className='flex flex-1 items-center justify-center'>
+              <Spin loading />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
 
 /** Inner component that reads active tab from context and renders the chat layout */
 const TeamPageContent: React.FC<TeamPageContentProps> = ({
@@ -539,7 +624,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
 }) => {
   const { t } = useTranslation();
   useActiveLease({ type: 'team', id: team.id });
-  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation } = useTeamTabs();
+  const { assistants, activeSlotId, switchTab, colorOf, colorOfConversation, statusMap } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -549,15 +634,26 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
   // 视图模式（并行/单聊），按团队记忆。单聊 = 全屏当前选中成员。
   const [viewMode, setViewMode] = useTeamViewMode(team.id);
   const isSingleView = viewMode === 'single';
+  const [taskEpoch, setTaskEpoch] = useState(0);
 
   const activeAssistant = assistants.find((assistant) => assistant.slot_id === activeSlotId);
   const leadAssistant = assistants.find((assistant) => assistant.role === 'leader');
   const teamRun = useTeamRunView(team.id);
+  const watchdog = useTeamWatchdog({ team_id: team.id, teamRun, statusMap, assistants });
 
   // 进团队 warmup：以团队会话整体就绪为闸门（ensureSession resolve = 全员成功）。遮罩覆盖对话区。
   // runtimeStatus 是各成员逐个的真实唤醒信号，用于遮罩头像的「唤醒中→点亮」及失败态定位。
   // 仅在「唤醒进行中」禁用改成员；失败态（error/timeout）要放开，让用户能移除失败成员来自救。
   const isWarmingUp = warmupPhase === 'warming';
+  const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false);
+
+  const { splitRatio: browserWidthPx, createDragHandle: createBrowserDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: 540,
+    minWidth: 320,
+    maxWidth: 960,
+    storageKey: 'aionui-team-browser-width-px',
+  });
 
   const leaderConversationId = leadAssistant?.conversation_id ?? '';
   const isLeaderAssistant = activeAssistant?.role === 'leader';
@@ -722,6 +818,29 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     if (assistants[target]) handleTabClick(assistants[target].slot_id);
   }, [assistants, activeSlotId, handleTabClick]);
 
+  const handleExitFullscreen = useCallback(() => setViewMode('parallel'), [setViewMode]);
+
+  // Keyboard navigation: Alt+Left / Alt+Right to cycle through members
+  useEffect(() => {
+    if (assistants.length <= 1) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = (target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) {
+        return;
+      }
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        scrollToPrev();
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        scrollToNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [assistants.length, scrollToPrev, scrollToNext]);
+
   // Every time the page mounts, scroll + flash the active tab
   useEffect(() => {
     if (activeSlotId && assistants.length > 0) {
@@ -778,6 +897,30 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
     return ids.size > 0 ? ids : undefined;
   }, [warmupPhase, warmupRuntimeStatus]);
 
+  const isSingle = isSingleView || assistants.length === 1;
+  const currentAssistant =
+    assistants.find((candidate) => candidate.slot_id === activeSlotId) ?? leadAssistant ?? assistants[0];
+  const isCurrentLeader = currentAssistant ? currentAssistant.slot_id === leadAssistant?.slot_id : false;
+
+  const rightControls =
+    isSingle && currentAssistant ? (
+      <TeamAgentControls
+        key={currentAssistant.slot_id}
+        assistant={currentAssistant}
+        team_id={team.id}
+        isLeader={isCurrentLeader}
+        isFullscreen={isSingleView}
+        onToggleFullscreen={assistants.length > 1 ? () => setViewMode(isSingleView ? 'parallel' : 'single') : undefined}
+        teamRunView={teamRun.state}
+        onRunStateStale={teamRun.reconcile}
+        warmupStatus={warmupRuntimeStatus.get(currentAssistant.slot_id)?.status}
+        fallbackAvailability={
+          isCurrentLeader ? teamWarmupPhaseAvailability(warmupPhase) : currentAssistant.context_reset.availability
+        }
+        warmupDisabled={isWarmingUp}
+      />
+    ) : undefined;
+
   const tabsSlot = useMemo(
     () => (
       <TeamTabs
@@ -785,9 +928,24 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
         pendingCounts={slotPendingCounts}
         warmingUp={isWarmingUp}
         failedSlotIds={warmupFailedSlotIds}
+        rightSlot={rightControls}
       />
     ),
-    [handleTabClick, slotPendingCounts, isWarmingUp, warmupFailedSlotIds]
+    [handleTabClick, slotPendingCounts, isWarmingUp, warmupFailedSlotIds, rightControls]
+  );
+
+  const activeMembersSlot = useMemo(
+    () => (
+      <TeamActiveMembers
+        assistants={assistants}
+        statusMap={statusMap}
+        activeSlotId={activeSlotId}
+        colorOf={colorOf}
+        onSelectMember={handleTabClick}
+        slotWorkBySlot={teamRun.state.slotWorkBySlot}
+      />
+    ),
+    [assistants, statusMap, activeSlotId, colorOf, handleTabClick, teamRun.state.slotWorkBySlot]
   );
 
   return (
@@ -802,160 +960,283 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({
         {messageContext}
         <ChatLayout
           title={team.name}
+          titleExtra={activeMembersSlot}
           siderTitle={siderTitle}
           sider={sider}
           workspaceEnabled={workspaceEnabled}
           previewHosted={Boolean(teamProjectId)}
           tabsSlot={tabsSlot}
-          conversation_id={activeAssistant?.conversation_id}
+          conversation_id={undefined}
           agent_name={undefined}
           workspacePath={effectiveWorkspace}
           isTemporaryWorkspace={isTeamWorkspaceTemporary}
           workspacePreferenceKey={team.id}
           onRenameTitle={onRenameTeam}
-          headerExtra={assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          headerExtra={
+            <div className='flex items-center gap-10px'>
+              {assistants.length > 1 ? <TeamViewToggle value={viewMode} onChange={setViewMode} /> : undefined}
+              <TeamWatchdogToggle
+                intervalMs={watchdog.intervalMs}
+                onChangeInterval={watchdog.setIntervalMs}
+                onCheckAndRetryNow={watchdog.checkAndRetryNow}
+                isMonitoring={watchdog.isMonitoring}
+                isRecovering={watchdog.isRecovering}
+              />
+              <Tooltip content={t('conversation.browser.title', 'Browser')} position='bottom'>
+                <Button
+                  size='small'
+                  type={isBrowserOpen ? 'primary' : 'secondary'}
+                  icon={<Browser theme='outline' size='14' />}
+                  onClick={() => setIsBrowserOpen((prev) => !prev)}
+                />
+              </Tooltip>
+              <TeamNewTaskButton
+                team={team}
+                teamRunView={teamRun.state}
+                onTaskReset={() => {
+                  setTaskEpoch((prev) => prev + 1);
+                  void mutateDispatchConversation();
+                }}
+              />
+            </div>
+          }
           headerLeading={
-            <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
-              <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+            <span className='inline-flex w-24px h-24px rounded-6px bg-fill-2 items-center justify-center shrink-0 leading-none text-t-primary border border-solid border-[color:var(--border-base)]'>
+              <Peoples theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
             </span>
           }
         >
-          <div className='relative flex h-full'>
-            <TeamWarmupOverlay
-              phase={warmupPhase}
-              assistants={assistants}
-              runtimeStatus={warmupRuntimeStatus}
-              colorOf={colorOf}
-              onRetry={onRetryWarmup}
-            />
-            {viewMode === 'board' ? (
-              // 看板视图：只读展现全队 mailbox 与 task-board。
-              <div className='flex-1 h-full min-w-0'>
-                <TeamActivityView team={team} />
-              </div>
-            ) : isSingleView ? (
-              // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
-              (() => {
-                const assistant =
-                  assistants.find((candidate) => candidate.slot_id === activeSlotId) ?? leadAssistant ?? assistants[0];
-                if (!assistant) return null;
-                const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
-                return (
-                  <div className='flex-1 h-full'>
-                    <AssistantChatSlot
-                      assistant={assistant}
-                      team_id={team.id}
-                      isLeader={isLeaderSlot}
-                      color={colorOf(assistant.slot_id)}
-                      isFullscreen
-                      onToggleFullscreen={() => setViewMode('parallel')}
-                      teamRunView={teamRun.state}
-                      onTeamRunAck={teamRun.applyAck}
-                      onTeamSlotPaused={teamRun.applyLocalPause}
-                      onRunStateStale={teamRun.reconcile}
-                      warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
-                      fallbackAvailability={
-                        isLeaderSlot ? teamWarmupPhaseAvailability(warmupPhase) : assistant.context_reset.availability
-                      }
-                      warmupDisabled={isWarmingUp}
-                    />
-                  </div>
-                );
-              })()
-            ) : (
-              <>
-                {showLeftArrow && (
-                  <div
-                    className='absolute start-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-                    style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
-                    onClick={scrollToPrev}
-                  >
-                    <div
-                      className='w-32px h-32px rd-full flex items-center justify-center'
-                      style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
-                    >
-                      <Left size='24' fill='#fff' />
-                    </div>
-                  </div>
-                )}
-                <div
-                  ref={scrollContainerRef}
-                  className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
-                  style={{ scrollSnapType: 'x proximity' }}
-                >
-                  {assistants.map((assistant, index) => {
-                    const isSingle = assistants.length <= 2;
-                    const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
-                    const isLastColumn = index === assistants.length - 1;
-                    return (
-                      <div
-                        key={assistant.slot_id}
-                        ref={(el) => {
-                          assistantRefs.current[assistant.slot_id] = el;
-                        }}
-                        data-slot-id={assistant.slot_id}
-                        data-role={isLeaderSlot ? 'leader' : 'member'}
-                        // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
-                        className={`relative h-full ${isLastColumn ? '' : 'border-e border-solid border-[color:var(--border-base)]'}`}
-                        style={{
-                          // Always flex-grow to fill available space; each slot starts at 400px
-                          // basis so the layout is stable, but spare room is distributed evenly
-                          // instead of leaving empty gaps to the right. When the team is wider
-                          // than the viewport we preserve the 400px floor (prevents shrinking
-                          // into unreadable cards) so horizontal scroll kicks in naturally.
-                          flex: '1 1 400px',
-                          minWidth: isSingle ? '240px' : '400px',
-                          scrollSnapAlign: 'start',
-                        }}
-                      >
-                        <AssistantChatSlot
-                          assistant={assistant}
-                          team_id={team.id}
-                          isLeader={isLeaderSlot}
-                          color={colorOf(assistant.slot_id)}
-                          onToggleFullscreen={() => {
-                            switchTab(assistant.slot_id);
-                            setViewMode('single');
-                          }}
-                          teamRunView={teamRun.state}
-                          onTeamRunAck={teamRun.applyAck}
-                          onTeamSlotPaused={teamRun.applyLocalPause}
-                          onRunStateStale={teamRun.reconcile}
-                          warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
-                          fallbackAvailability={
-                            isLeaderSlot
-                              ? teamWarmupPhaseAvailability(warmupPhase)
-                              : assistant.context_reset.availability
-                          }
-                          warmupDisabled={isWarmingUp}
-                        />
-                      </div>
-                    );
-                  })}
+          <div className='relative flex flex-row flex-1 h-full w-full overflow-hidden'>
+            <div className='relative flex flex-col flex-1 h-full min-w-0 overflow-hidden'>
+              <TeamWarmupOverlay
+                phase={warmupPhase}
+                assistants={assistants}
+                runtimeStatus={warmupRuntimeStatus}
+                colorOf={colorOf}
+                onRetry={onRetryWarmup}
+              />
+              {viewMode === 'board' ? (
+                // 看板视图：只读展现全队 mailbox 与 task-board。
+                <div className='flex-1 h-full min-w-0'>
+                  <TeamActivityView team={team} />
                 </div>
-                {showRightArrow && (
-                  <div
-                    className='absolute end-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
-                    style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
-                    onClick={scrollToNext}
-                  >
-                    <div
-                      className='w-32px h-32px rd-full flex items-center justify-center'
-                      style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
-                    >
-                      <Right size='24' fill='#fff' />
+              ) : isSingleView ? (
+                // 单聊视图：全屏显示当前选中成员（activeSlotId），找不到时回退到 Leader。
+                // 左右导航箭头让用户在多个成员之间切换，解决单聊视图下成员不可见的问题。
+                (() => {
+                  const activeIdx = assistants.findIndex((a) => a.slot_id === activeSlotId);
+                  const hasPrev = assistants.length > 1 && activeIdx > 0;
+                  const hasNext = assistants.length > 1 && activeIdx < assistants.length - 1;
+                  const currentSlotId = currentAssistant?.slot_id ?? activeSlotId;
+                  return (
+                    <div className='flex-1 h-full relative'>
+                      {/* Prev member arrow — single view */}
+                      {hasPrev && (
+                        <Tooltip content={`${t('team.prevMember')} (Alt+←)`} position='right'>
+                          <div
+                            className='absolute start-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer group'
+                            style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
+                            onClick={scrollToPrev}
+                          >
+                            <div
+                              className='w-32px h-32px rd-full flex items-center justify-center transition-transform duration-150 group-hover:scale-110'
+                              style={{
+                                background: 'var(--color-bg-3)',
+                                border: '1.5px solid var(--color-border-2)',
+                                lineHeight: 0,
+                              }}
+                            >
+                              <Left size='18' fill='currentColor' style={{ color: 'var(--color-text-1)' }} />
+                            </div>
+                          </div>
+                        </Tooltip>
+                      )}
+                      {assistants.map((assistant) => {
+                        const isCurrentSlot = assistant.slot_id === currentSlotId;
+                        const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                        return (
+                          <div
+                            key={`${assistant.slot_id}-${taskEpoch}`}
+                            className='h-full w-full'
+                            style={{ display: isCurrentSlot ? 'flex' : 'none' }}
+                          >
+                            <AssistantChatSlot
+                              assistant={assistant}
+                              team_id={team.id}
+                              isLeader={isLeaderSlot}
+                              color={colorOf(assistant.slot_id)}
+                              isFullscreen
+                              onToggleFullscreen={handleExitFullscreen}
+                              teamRunView={teamRun.state}
+                              onTeamRunAck={teamRun.applyAck}
+                              onTeamSlotPaused={teamRun.applyLocalPause}
+                              onRunStateStale={teamRun.reconcile}
+                              warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
+                              fallbackAvailability={
+                                isLeaderSlot
+                                  ? teamWarmupPhaseAvailability(warmupPhase)
+                                  : assistant.context_reset.availability
+                              }
+                              warmupDisabled={isWarmingUp}
+                              showHeader={false}
+                              onPromptSent={watchdog.recordSentPrompt}
+                            />
+                          </div>
+                        );
+                      })}
+                      {/* Next member arrow — single view */}
+                      {hasNext && (
+                        <Tooltip content={`${t('team.nextMember')} (Alt+→)`} position='left'>
+                          <div
+                            className='absolute end-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer group'
+                            style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
+                            onClick={scrollToNext}
+                          >
+                            <div
+                              className='w-32px h-32px rd-full flex items-center justify-center transition-transform duration-150 group-hover:scale-110'
+                              style={{
+                                background: 'var(--color-bg-3)',
+                                border: '1.5px solid var(--color-border-2)',
+                                lineHeight: 0,
+                              }}
+                            >
+                              <Right size='18' fill='currentColor' style={{ color: 'var(--color-text-1)' }} />
+                            </div>
+                          </div>
+                        </Tooltip>
+                      )}
                     </div>
+                  );
+                })()
+              ) : (
+                <>
+                  {showLeftArrow && (
+                    <Tooltip content={`${t('team.prevMember')} (Alt+←)`} position='right'>
+                      <div
+                        className='absolute start-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer group'
+                        style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
+                        onClick={scrollToPrev}
+                      >
+                        <div
+                          className='w-32px h-32px rd-full flex items-center justify-center transition-transform duration-150 group-hover:scale-110'
+                          style={{
+                            background: 'var(--color-bg-3)',
+                            border: '1.5px solid var(--color-border-2)',
+                            lineHeight: 0,
+                          }}
+                        >
+                          <Left size='18' fill='currentColor' style={{ color: 'var(--color-text-1)' }} />
+                        </div>
+                      </div>
+                    </Tooltip>
+                  )}
+                  <div
+                    ref={scrollContainerRef}
+                    className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
+                    style={{ scrollSnapType: 'x proximity' }}
+                  >
+                    {assistants.map((assistant, index) => {
+                      const isSingleCol = assistants.length <= 2;
+                      const isLeaderSlot = assistant.slot_id === leadAssistant?.slot_id;
+                      const isLastColumn = index === assistants.length - 1;
+                      return (
+                        <div
+                          key={`${assistant.slot_id}-${taskEpoch}`}
+                          ref={(el) => {
+                            assistantRefs.current[assistant.slot_id] = el;
+                          }}
+                          data-slot-id={assistant.slot_id}
+                          data-role={isLeaderSlot ? 'leader' : 'member'}
+                          // 列间灰色隔离线：除最后一列外，右侧加一条分隔线，避免多列浅底粘连看不清边界。
+                          className={`relative h-full ${isLastColumn ? '' : 'border-e border-solid border-[color:var(--border-base)]'}`}
+                          style={{
+                            // Always flex-grow to fill available space; each slot starts at 400px
+                            // basis so the layout is stable, but spare room is distributed evenly
+                            // instead of leaving empty gaps to the right. When the team is wider
+                            // than the viewport we preserve the 400px floor (prevents shrinking
+                            // into unreadable cards) so horizontal scroll kicks in naturally.
+                            flex: '1 1 400px',
+                            minWidth: isSingleCol ? '240px' : '400px',
+                            scrollSnapAlign: 'start',
+                          }}
+                        >
+                          <AssistantChatSlot
+                            assistant={assistant}
+                            team_id={team.id}
+                            isLeader={isLeaderSlot}
+                            color={colorOf(assistant.slot_id)}
+                            onToggleFullscreen={() => {
+                              switchTab(assistant.slot_id);
+                              setViewMode('single');
+                            }}
+                            teamRunView={teamRun.state}
+                            onTeamRunAck={teamRun.applyAck}
+                            onTeamSlotPaused={teamRun.applyLocalPause}
+                            onRunStateStale={teamRun.reconcile}
+                            warmupStatus={warmupRuntimeStatus.get(assistant.slot_id)?.status}
+                            fallbackAvailability={
+                              isLeaderSlot
+                                ? teamWarmupPhaseAvailability(warmupPhase)
+                                : assistant.context_reset.availability
+                            }
+                            warmupDisabled={isWarmingUp}
+                            showHeader={assistants.length > 1}
+                            onPromptSent={watchdog.recordSentPrompt}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </>
-            )}
+                  {showRightArrow && (
+                    <Tooltip content={`${t('team.nextMember')} (Alt+→)`} position='left'>
+                      <div
+                        className='absolute end-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer group'
+                        style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
+                        onClick={scrollToNext}
+                      >
+                        <div
+                          className='w-32px h-32px rd-full flex items-center justify-center transition-transform duration-150 group-hover:scale-110'
+                          style={{
+                            background: 'var(--color-bg-3)',
+                            border: '1.5px solid var(--color-border-2)',
+                            lineHeight: 0,
+                          }}
+                        >
+                          <Right size='18' fill='currentColor' style={{ color: 'var(--color-text-1)' }} />
+                        </div>
+                      </div>
+                    </Tooltip>
+                  )}
+                </>
+              )}
+            </div>
+            <div
+              className='relative flex flex-col h-full bg-[var(--color-bg-2)] border-l border-[var(--color-border-2)]'
+              style={{
+                display: isBrowserOpen ? 'flex' : 'none',
+                width: `${browserWidthPx}px`,
+                minWidth: '320px',
+                maxWidth: '85%',
+              }}
+            >
+              {createBrowserDragHandle({
+                className: 'absolute top-0 bottom-0 z-30 cursor-col-resize',
+                style: { width: '8px', left: '-4px' },
+                linePlacement: 'start',
+                reverse: true,
+              })}
+              <BrowserPanel
+                initialUrl='https://www.google.com'
+                visible={isBrowserOpen}
+                onClose={() => setIsBrowserOpen(false)}
+              />
+            </div>
           </div>
         </ChatLayout>
       </TeamIdentityProvider>
     </TeamPermissionProvider>
   );
 };
-
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
   const { phase: warmupPhase, runtimeStatus: warmupRuntimeStatus, retry: retryWarmup } = useTeamWarmup(team.id);

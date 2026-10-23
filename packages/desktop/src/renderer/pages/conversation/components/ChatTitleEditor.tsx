@@ -53,10 +53,10 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       className={classNames(
         'group flex min-w-0 max-w-full items-center rounded-12px border border-solid border-transparent transition-all duration-180',
         editingTitle
-          ? 'bg-fill-2 border-[var(--color-fill-3)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
-          : 'hover:bg-fill-2 hover:border-[var(--color-fill-3)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus-within:bg-fill-2 focus-within:border-[var(--color-fill-3)] focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
+          ? 'w-full bg-fill-2 border-[var(--color-fill-3)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
+          : 'w-fit shrink-0 hover:bg-fill-2 hover:border-[var(--color-fill-3)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus-within:bg-fill-2 focus-within:border-[var(--color-fill-3)] focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
       )}
-      style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
+      style={{ width: editingTitle ? '100%' : 'fit-content', maxWidth: `${titleAreaMaxWidth}px` }}
     >
       {leading && <div className='shrink-0 flex items-center ps-8px'>{leading}</div>}
       {editingTitle && canRenameTitle ? (

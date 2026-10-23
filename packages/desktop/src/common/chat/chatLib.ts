@@ -7,6 +7,7 @@
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
+import type { TokenUsageData } from '../config/storage';
 import { uuid } from '../utils';
 import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
 
@@ -114,6 +115,7 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * reload), and backends without turn-anchored forks.
    */
   backend_turn_id?: string;
+  token_usage?: TokenUsageData;
 }
 
 export type CronMessageMeta = {
@@ -135,6 +137,7 @@ export type IMessageText = IMessage<
     senderAgentType?: string;
     /** Sender teammate's conversation id — lets the renderer resolve preset avatars via their conversation extras. */
     senderConversationId?: string;
+    token_usage?: TokenUsageData;
   }
 >;
 
@@ -472,6 +475,8 @@ type RawTextMessageContent = {
   senderConversationId?: unknown;
   sender_conversation_id?: unknown;
   senderConversationID?: unknown;
+  token_usage?: unknown;
+  tokenUsage?: unknown;
 };
 
 type NormalizeTextMessageContentOptions = {
@@ -513,6 +518,11 @@ const normalizeTextMessageContentObject = (
   const cronMeta = isCronMessageMeta(data.cronMeta) ? data.cronMeta : undefined;
   const replace = options?.replace === true || data.replace === true;
   const teammateMessage = Boolean(data.teammateMessage) || Boolean(data.teammate_message);
+  const tokenUsage = isObject(data.token_usage)
+    ? (data.token_usage as unknown as TokenUsageData)
+    : isObject(data.tokenUsage)
+      ? (data.tokenUsage as unknown as TokenUsageData)
+      : undefined;
 
   return {
     content,
@@ -522,6 +532,7 @@ const normalizeTextMessageContentObject = (
     ...(senderName ? { senderName } : {}),
     ...(senderAgentType ? { senderAgentType } : {}),
     ...(senderConversationId ? { senderConversationId } : {}),
+    ...(tokenUsage ? { token_usage: tokenUsage } : {}),
   };
 };
 

@@ -6,7 +6,10 @@
 
 import type { BrowserWindow } from 'electron';
 import { app, session } from 'electron';
+import { existsSync } from 'fs';
+import path from 'path';
 import { ipcBridge } from '@/common';
+import { getDataPath } from '@process/utils';
 import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
@@ -282,4 +285,136 @@ export function initApplicationBridge(): void {
       return { success: false, msg: e.message || e.toString() };
     }
   });
+
+  ipcBridge.team.updateTeam.provider(async ({ id, name, workspace, leader_assistant_id }) => {
+    const db = await openBackendDb();
+    if (!db) return;
+    try {
+      const now = Date.now();
+      const teamRow = db.get<{ folder_id?: string; agents?: string; lead_agent_id?: string }>(
+        'SELECT folder_id, agents, lead_agent_id FROM teams WHERE id = ?',
+        id
+      );
+      if (!teamRow) return;
+
+      if (workspace !== undefined) {
+        const ws = workspace.trim();
+        db.run('UPDATE teams SET workspace = ?, updated_at = ? WHERE id = ?', ws, now, id);
+
+        if (teamRow.folder_id) {
+          const normalizedPath = ws.replace(/\\/g, '/');
+          const uri = normalizedPath.startsWith('/')
+            ? `file://${encodeURI(normalizedPath)}`
+            : `file:///${encodeURI(normalizedPath)}`;
+          const canonical = uri.toLowerCase();
+          db.run(
+            'UPDATE folders SET resource_uri = ?, resource_canonical = ?, updated_at = ? WHERE folder_id = ?',
+            uri,
+            canonical,
+            now,
+            teamRow.folder_id
+          );
+        }
+
+        db.run(
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.workspace', ?), updated_at = ?
+           WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
+          ws,
+          now,
+          id
+        );
+      }
+
+      if (name !== undefined) {
+        const trimmedName = name.trim();
+        db.run('UPDATE teams SET name = ?, updated_at = ? WHERE id = ?', trimmedName, now, id);
+        db.run(
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.team_name', ?), updated_at = ?
+           WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
+          trimmedName,
+          now,
+          id
+        );
+      }
+
+      if (leader_assistant_id !== undefined) {
+        try {
+          const agentsList = JSON.parse(teamRow.agents || '[]');
+          if (Array.isArray(agentsList)) {
+            for (const a of agentsList) {
+              a.role = a.slot_id === leader_assistant_id ? 'leader' : 'teammate';
+            }
+            db.run(
+              'UPDATE teams SET lead_agent_id = ?, agents = ?, updated_at = ? WHERE id = ?',
+              leader_assistant_id,
+              JSON.stringify(agentsList),
+              now,
+              id
+            );
+          } else {
+            db.run('UPDATE teams SET lead_agent_id = ?, updated_at = ? WHERE id = ?', leader_assistant_id, now, id);
+          }
+        } catch {
+          db.run('UPDATE teams SET lead_agent_id = ?, updated_at = ? WHERE id = ?', leader_assistant_id, now, id);
+        }
+
+        db.run(
+          `UPDATE conversations
+           SET extra = json_set(extra, '$.role',
+             CASE WHEN json_extract(extra, '$.slot_id') = ? THEN 'leader' ELSE 'teammate' END
+           ), updated_at = ?
+           WHERE COALESCE(NULLIF(json_extract(extra, '$.team_id'), ''), NULLIF(json_extract(extra, '$.teamId'), '')) = ?`,
+          leader_assistant_id,
+          now,
+          id
+        );
+      }
+    } catch (err) {
+      console.error('[TeamBridge] Failed to update team in database:', err);
+    } finally {
+      db.close();
+    }
+  });
+}
+
+async function openBackendDb() {
+  const dbPath = path.join(getDataPath(), 'aionui-backend.db');
+  if (!existsSync(dbPath)) return null;
+
+  if (typeof (process.versions as Record<string, unknown>)?.bun === 'string') {
+    type BunSqliteDatabase = {
+      new (path: string): {
+        prepare: (sql: string) => {
+          run: (...params: unknown[]) => unknown;
+          get: (...params: unknown[]) => unknown;
+        };
+        close: () => void;
+      };
+    };
+    const bunSqliteModule = 'bun:sqlite';
+    const { Database } = (await import(/* @vite-ignore */ bunSqliteModule)) as { Database: BunSqliteDatabase };
+    const db = new Database(dbPath);
+    return {
+      run: (sql: string, ...params: unknown[]) => db.prepare(sql).run(...params),
+      get: <T = unknown>(sql: string, ...params: unknown[]): T | undefined =>
+        db.prepare(sql).get(...params) as T | undefined,
+      close: () => db.close(),
+    };
+  }
+
+  try {
+    const { BetterSqlite3Driver } = await import('@process/services/database/drivers/BetterSqlite3Driver');
+    const driver = new BetterSqlite3Driver(dbPath);
+    return {
+      run: (sql: string, ...params: unknown[]) => driver.prepare(sql).run(...params),
+      get: <T = unknown>(sql: string, ...params: unknown[]): T | undefined =>
+        driver.prepare(sql).get(...params) as T | undefined,
+      close: () => driver.close(),
+    };
+  } catch (err) {
+    console.error('[TeamBridge] Failed to initialize SQLite driver:', err);
+    return null;
+  }
 }

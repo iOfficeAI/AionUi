@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
 import type { IMessageAcpToolCall, IMessageText, IMessageThinking } from '@/common/chat/chatLib';
 import {
+  clearMessageListMemoryCacheForTest,
   MessageListLoadingProvider,
   MessageListProvider,
   MessagePaginationProvider,
@@ -143,6 +144,7 @@ async function flushMessageQueue(): Promise<void> {
 
 describe('message merging', () => {
   beforeEach(() => {
+    clearMessageListMemoryCacheForTest();
     vi.useFakeTimers();
   });
 

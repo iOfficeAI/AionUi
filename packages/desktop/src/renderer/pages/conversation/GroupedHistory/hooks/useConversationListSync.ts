@@ -332,12 +332,26 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
   return name ? name : undefined;
 };
 
+/**
+ * Synchronous lookup of a full conversation object from the in-memory list snapshot.
+ * Used for zero-delay route mounting on conversation switch.
+ */
+export const getSnapshotConversation = (conversation_id: string): TChatConversation | undefined => {
+  return conversationsState.find((item) => item.id === conversation_id);
+};
+
+let refreshRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
 const refreshConversations = () => {
   void ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
     .then((result) => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
+        if (refreshRetryTimer) {
+          clearTimeout(refreshRetryTimer);
+          refreshRetryTimer = null;
+        }
         const filteredData = items.filter((conv) => {
           // Legacy rows from the pre-provider-probe health check flow are hidden
           // from normal history. New health checks must not create conversations.
@@ -356,17 +370,24 @@ const refreshConversations = () => {
         return;
       }
 
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
-      emitStoreChange();
+      // If the backend returns an error or non-array (e.g. transient SQLite cloud sync lock),
+      // do not wipe out conversations from the UI. Preserve existing state and retry.
+      console.warn(
+        '[WorkspaceGroupedHistory] Invalid conversations response, preserving state and retrying in 2s:',
+        result
+      );
+      if (!refreshRetryTimer) {
+        refreshRetryTimer = setTimeout(refreshConversations, 2000);
+      }
     })
     .catch((error) => {
-      console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
-      emitStoreChange();
+      console.error(
+        '[WorkspaceGroupedHistory] Failed to load conversations, preserving state and retrying in 2s:',
+        error
+      );
+      if (!refreshRetryTimer) {
+        refreshRetryTimer = setTimeout(refreshConversations, 2000);
+      }
     });
 };
 

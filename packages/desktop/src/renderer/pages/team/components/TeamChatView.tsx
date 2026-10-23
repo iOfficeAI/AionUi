@@ -1,8 +1,8 @@
 import { ipcBridge } from '@/common';
 import type { ChatFileRef } from '@/common/types/chatFile';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Message, Spin } from '@arco-design/web-react';
-import React, { Suspense, useCallback } from 'react';
+import { Message, Spin, Tag } from '@arco-design/web-react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
@@ -19,12 +19,11 @@ import TeamChatEmptyState from './TeamChatEmptyState';
 import { useTeamTabs } from '@/renderer/pages/team/hooks/TeamTabsContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import { injectRetainedSkillsIntoPrompt } from '../utils/teamMemoryManager';
 
-const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
-const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
-const LegacyReadOnlyConversation = React.lazy(
-  () => import('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation')
-);
+import AcpChat from '@/renderer/pages/conversation/platforms/acp/AcpChat';
+import AionrsChat from '@/renderer/pages/conversation/platforms/aionrs/AionrsChat';
+import LegacyReadOnlyConversation from '@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation';
 
 // Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
@@ -115,6 +114,7 @@ type TeamChatViewProps = {
   onTeamRunAck?: (ack: ITeamRunAck) => void;
   onRunStateStale?: () => Promise<TeamRunReconcileResult>;
   onTeamSlotPaused?: (slot_id: string) => void;
+  onPromptSent?: (payload: { input: string; files?: ChatFileRef[]; slot_id?: string }) => void;
 };
 
 /**
@@ -134,9 +134,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamRunAck,
   onRunStateStale,
   onTeamSlotPaused,
+  onPromptSent,
 }) => {
   const { t } = useTranslation();
-  const { activeSlotId, switchTab } = useTeamTabs();
+  const { activeSlotId, switchTab, assistants = [] } = useTeamTabs();
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const capabilitySnapshot = conversation.extra as TeamConversationCapabilitySnapshot | undefined;
   // Single source of truth for the team greeting. Each *Chat simply forwards
@@ -153,19 +154,28 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
       isLeader={isLeader}
     />
   ) : undefined;
+
   const teamSendMessage = useCallback<TeamSendOverride>(
     async ({ input, files }) => {
       if (!team_id) throw new Error('Missing team id for team send');
+
+      const enrichedInput = injectRetainedSkillsIntoPrompt(team_id, input);
+      onPromptSent?.({ input: enrichedInput, files, slot_id: isLeader ? undefined : slot_id });
       if (isLeader) {
-        const ack = await ipcBridge.team.sendMessage.invoke({ team_id, input, files });
+        const ack = await ipcBridge.team.sendMessage.invoke({ team_id, input: enrichedInput, files });
         onTeamRunAck?.(ack);
         return;
       }
       if (!slot_id) throw new Error('Missing slot id for team agent send');
-      const ack = await ipcBridge.team.sendMessageToAgent.invoke({ team_id, slot_id, input, files });
+      const ack = await ipcBridge.team.sendMessageToAgent.invoke({
+        team_id,
+        slot_id,
+        input: enrichedInput,
+        files,
+      });
       onTeamRunAck?.(ack);
     },
-    [isLeader, onTeamRunAck, slot_id, team_id]
+    [conversation.extra?.workspace, isLeader, onPromptSent, onTeamRunAck, slot_id, team_id]
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
   const resolvedAssistantBackend =
@@ -292,7 +302,31 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     }
   })();
 
-  return <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>;
+  return (
+    <div className='relative flex flex-col flex-1 h-full min-h-0'>
+      {/* Active Knowledge Repo chip if member has assigned repos */}
+      {(() => {
+        const currentMember =
+          assistants?.find((a) => a.slot_id === slot_id) ||
+          (isLeader ? assistants?.find((a) => a.role === 'leader') : undefined);
+        if (currentMember?.knowledgeRepoIds && currentMember.knowledgeRepoIds.length > 0) {
+          return (
+            <div className='px-3 py-1 flex items-center gap-6px bg-[var(--color-bg-2)] border-b border-[var(--color-border-2)] text-12px'>
+              <Tag color='arcoblue' size='small'>
+                {t('team.knowledgeRepos.usingChip', {
+                  repo: currentMember.knowledgeRepoIds[0],
+                  skill: currentMember.whenToUseHint || 'pipelines & rules',
+                  defaultValue: `Using: ${currentMember.knowledgeRepoIds[0]} → ${currentMember.whenToUseHint || 'pipeline'}`,
+                })}
+              </Tag>
+            </div>
+          );
+        }
+        return null;
+      })()}
+      <Suspense fallback={<Spin loading className='flex flex-1 items-center justify-center' />}>{content}</Suspense>
+    </div>
+  );
 };
 
-export default TeamChatView;
+export default React.memo(TeamChatView);

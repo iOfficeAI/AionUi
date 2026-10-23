@@ -115,6 +115,7 @@ export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
 
 export interface IEnvStorageRefer {
   'aionui.dir': {
+    dataDir?: string;
     workDir: string;
     cacheDir: string;
     logDir?: string;
@@ -218,6 +219,7 @@ export interface TokenUsageBreakdown {
   thought_tokens?: number;
   cached_read_tokens?: number;
   cached_write_tokens?: number;
+  cached_tokens?: number;
 }
 
 export interface TokenUsageCost {
@@ -276,6 +278,10 @@ export type TChatConversation =
           last_token_usage?: TokenUsageData;
           /** Context window capacity from usage_update */
           last_context_limit?: number;
+          /** Per-turn token usage keyed by turn msg_id */
+          turns_token_usage?: Record<string, TokenUsageData>;
+          /** Cumulative token usage for the entire conversation session */
+          cumulative_token_usage?: TokenUsageData;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           session_mode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
@@ -481,6 +487,10 @@ export type TChatConversation =
         is_health_check?: boolean;
         /** Last token usage stats */
         last_token_usage?: TokenUsageData;
+        /** Per-turn token usage keyed by turn msg_id */
+        turns_token_usage?: Record<string, TokenUsageData>;
+        /** Cumulative token usage for the entire conversation session */
+        cumulative_token_usage?: TokenUsageData;
         /** Cron job ID that spawned this conversation */
         cron_job_id?: string;
       }

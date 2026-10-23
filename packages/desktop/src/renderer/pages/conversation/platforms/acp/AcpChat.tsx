@@ -86,6 +86,8 @@ const AcpChat: React.FC<{
         assistantId,
         forkCapability,
         promptCapability,
+        turnsTokenUsage: messageState.turnsTokenUsage,
+        cumulativeTokenUsage: messageState.cumulativeTokenUsage,
       }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>

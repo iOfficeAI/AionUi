@@ -97,5 +97,13 @@
   "requestDetails": "جزئیات درخواست:",
   "delivery": {
     "pending": "خوانده‌نشده"
-  }
+  },
+  "slash.antigravity.goal": "اجرای کامل و دقیق یک کار طولانی‌مدت تا رسیدن به هدف",
+  "slash.antigravity.teamworkPreview": "گردش کار تیمی چندعاملی برای پروژه‌های پیچیده",
+  "slash.antigravity.plan": "برنامه‌ریزی گام‌به‌گام پیاده‌سازی پیش از اجرا",
+  "slash.antigravity.grillMe": "مصاحبه تعاملی برای هماهنگی تصمیمات طراحی و مصالحه‌ها",
+  "slash.antigravity.boost": "تفکر عمیق، برنامه‌ریزی استراتژیک و اعتبارسنجی دقیق",
+  "slash.antigravity.browser": "مرور وب، جستجوی مستندات و پژوهش آنلاین",
+  "slash.antigravity.schedule": "زمان‌بندی تکرارشونده یا اجرای زمان‌دار",
+  "slash.antigravity.learn": "ذخیره تجربیات و قواعد برای استفاده در کارهای آینده"
 }

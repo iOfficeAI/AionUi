@@ -18,13 +18,22 @@ import { useTranslation } from 'react-i18next';
 const DirInputItem: React.FC<{
   label: string;
   field: string;
-}> = ({ label, field }) => {
+  extra?: React.ReactNode;
+  onCustomChange?: (value: string) => void;
+}> = ({ label, field, extra, onCustomChange }) => {
   const { t } = useTranslation();
   return (
-    <Form.Item label={label} field={field}>
+    <Form.Item label={label} field={field} extra={extra}>
       {(value, form) => {
         const current_value = form.getFieldValue(field) || '';
-        const actionTooltip = field === 'workDir' ? t('settings.changeWorkDir') : t('settings.changeLogDir');
+        const actionTooltip =
+          field === 'dataDir'
+            ? t('settings.changeDataDir')
+            : field === 'workDir'
+              ? t('settings.changeWorkDir')
+              : field === 'backupDir'
+                ? t('settings.changeBackupDir')
+                : t('settings.changeLogDir');
 
         const handlePick = () => {
           ipcBridge.dialog.showOpen
@@ -35,6 +44,7 @@ const DirInputItem: React.FC<{
             .then((data) => {
               if (data?.[0]) {
                 form.setFieldValue(field, data[0]);
+                onCustomChange?.(data[0]);
               }
             })
             .catch((error) => {

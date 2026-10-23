@@ -7,12 +7,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAssistantMock = vi.fn();
+const listProvidersMock = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     assistants: {
       get: {
         invoke: (...args: unknown[]) => getAssistantMock(...args),
+      },
+    },
+    mode: {
+      listProviders: {
+        invoke: (...args: unknown[]) => listProvidersMock(...args),
       },
     },
   },
@@ -23,6 +29,7 @@ import { resolveDefaultTeamAgentModel } from '@/renderer/pages/team/components/t
 describe('resolveDefaultTeamAgentModel', () => {
   beforeEach(() => {
     getAssistantMock.mockReset();
+    listProvidersMock.mockReset();
   });
 
   it('prefers the assistant fixed default model over agent-level fallbacks', async () => {
@@ -133,7 +140,21 @@ describe('resolveDefaultTeamAgentModel', () => {
     ).resolves.toBe('');
   });
 
-  it('keeps the default placeholder for aionrs assistants', async () => {
+  it('resolves active provider model for aionrs assistants when available', async () => {
+    listProvidersMock.mockResolvedValue([
+      { id: 'p1', name: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini'], enabled: true },
+    ]);
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_backend: 'aionrs',
+      })
+    ).resolves.toBe('gpt-4o');
+  });
+
+  it('keeps the default placeholder for aionrs assistants when no providers configured', async () => {
+    listProvidersMock.mockResolvedValue([]);
+
     await expect(
       resolveDefaultTeamAgentModel({
         assistant_backend: 'aionrs',

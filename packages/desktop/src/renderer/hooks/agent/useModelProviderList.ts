@@ -30,14 +30,60 @@ export const useProvidersQuery = () => {
   return useSWR<IProvider[]>(PROVIDERS_SWR_KEY, fetchProviders, PROVIDERS_SWR_OPTIONS);
 };
 
+export const GATEWAY_PROVIDER_ID = 'aionui-native-gateway';
+export const GATEWAY_SWR_KEY = 'gateway_combos_accounts';
+
+const GATEWAY_SWR_OPTIONS: SWRConfiguration<string[], Error> = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  shouldRetryOnError: false,
+};
+
+export const fetchGatewayModels = async (): Promise<string[]> => {
+  if (typeof window === 'undefined' || !window.electronAPI?.gatewayGetCombos) {
+    return [];
+  }
+  try {
+    const [combosRes, accountsRes] = await Promise.all([
+      window.electronAPI.gatewayGetCombos(),
+      window.electronAPI.gatewayGetAccounts
+        ? window.electronAPI.gatewayGetAccounts()
+        : Promise.resolve({ success: false, data: [] }),
+    ]);
+
+    const modelsSet = new Set<string>();
+    if (combosRes?.success && Array.isArray(combosRes.data)) {
+      for (const c of combosRes.data) {
+        if (c.enabled) {
+          modelsSet.add(c.name);
+        }
+      }
+    }
+    if (accountsRes?.success && Array.isArray(accountsRes.data)) {
+      for (const a of accountsRes.data) {
+        if (a.enabled) {
+          for (const m of a.models) {
+            modelsSet.add(m);
+            modelsSet.add(`${a.name}:${m}`);
+          }
+        }
+      }
+    }
+    return Array.from(modelsSet);
+  } catch {
+    return [];
+  }
+};
+
 /**
- * Shared hook that builds the provider list (including Google Auth)
+ * Shared hook that builds the provider list (including Google Auth and Native Gateway)
  * and exposes helpers consumed by both conversation and channel settings.
  */
 export const useModelProviderList = (): ModelProviderListResult => {
   const { isGoogleAuth } = useGoogleAuthModels();
 
   const { data: modelConfig } = useProvidersQuery();
+  const { data: gatewayModels } = useSWR<string[]>(GATEWAY_SWR_KEY, fetchGatewayModels, GATEWAY_SWR_OPTIONS);
 
   // Mutable cache for available-model filtering
   const available_modelsCacheRef = useRef(new Map<string, string[]>());
@@ -45,7 +91,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
   // 当 modelConfig 变化时清除缓存
   useEffect(() => {
     available_modelsCacheRef.current.clear();
-  }, [modelConfig]);
+  }, [modelConfig, gatewayModels]);
 
   const getAvailableModels = useCallback((provider: IProvider): string[] => {
     // 包含 model_enabled 状态到缓存 key 中
@@ -89,14 +135,47 @@ export const useModelProviderList = (): ModelProviderListResult => {
       } as unknown as IProvider;
       list = [googleProvider, ...list];
     }
+
+    const hasGateway = list.some((p) => p.id === GATEWAY_PROVIDER_ID);
+    if (!hasGateway && gatewayModels && gatewayModels.length > 0) {
+      const gatewayProvider: IProvider = {
+        id: GATEWAY_PROVIDER_ID,
+        name: 'Gateway & Combos (OmniRoute)',
+        platform: 'custom',
+        base_url: 'http://127.0.0.1:13408/v1',
+        api_key: 'sk-aionui-gateway',
+        models: gatewayModels,
+        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
+        enabled: true,
+      };
+      list = [gatewayProvider, ...list];
+    } else if (hasGateway && gatewayModels && gatewayModels.length > 0) {
+      list = list.map((p) => {
+        if (p.id === GATEWAY_PROVIDER_ID) {
+          const merged = Array.from(new Set([...(p.models || []), ...gatewayModels]));
+          return { ...p, models: merged };
+        }
+        return p;
+      });
+    }
+
     // 过滤掉没有可用模型的 provider
     return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [getAvailableModels, isGoogleAuth, modelConfig]);
+  }, [gatewayModels, getAvailableModels, isGoogleAuth, modelConfig]);
 
-  const formatModelLabel = useCallback((_provider: { platform?: string } | undefined, modelName?: string) => {
-    if (!modelName) return '';
-    return modelName;
-  }, []);
+  const formatModelLabel = useCallback(
+    (provider: { platform?: string; id?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      if (provider?.id === GATEWAY_PROVIDER_ID || provider?.platform === 'custom') {
+        if (modelName.includes(':')) {
+          const [accName, mName] = modelName.split(':');
+          return `${mName} (${accName})`;
+        }
+      }
+      return modelName;
+    },
+    []
+  );
 
   return { providers, getAvailableModels, formatModelLabel };
 };

@@ -49,6 +49,7 @@ import {
   buildRenameRequest,
   buildTransferRequest,
   joinRel,
+  keyToRef,
   parentRel,
   peKey,
   type DragPeRef,
@@ -63,6 +64,10 @@ import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
 import { ScmPanel } from '../SourceControl/ScmPanel';
 import { rediscoverRepos, refreshAllRepos } from '../SourceControl/scmStore';
+import { FileTreeHeader } from './fileTree/FileTreeHeader';
+import { FileTreeFooter } from './fileTree/FileTreeFooter';
+import { initFileTreeActivityListener } from './fileTree/fileTreeActivityStore';
+import { useExplorerView } from './useExplorerView';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -177,6 +182,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const activeConversationId = useCurrentConversation();
+  const view = useExplorerView();
   const { data, isLoading, mutate } = useSWR(projectId ? `explorer-project/${projectId}` : null, (key: string) => {
     // Derive the project id from the SWR key, not the captured `projectId`
     // closure, so a fetch's result can never be filed under a different key.
@@ -198,6 +204,10 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     if (!projectId || !detail) return;
     dispatchWorkspaceHasFilesEvent(detail.explorer.entries.length > 0, undefined, false);
   }, [projectId, detail]);
+
+  useEffect(() => {
+    return initFileTreeActivityListener();
+  }, []);
 
   // Open a file in the preview panel. The tree only knows `{pe_id, relative_path}`,
   // mapped to a Project ChatFileRef — content is read over `/api/fs/content` (text/
@@ -509,99 +519,22 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
-  const tabButton = (key: 'files' | 'changes', label: string) => (
-    <Button
-      type='text'
-      size='small'
-      className={`flex-shrink-0 !px-8px ${activeTab === key ? '!text-t-primary !font-medium !bg-2' : '!text-t-secondary'}`}
-      onClick={() => setActiveTab(key)}
-    >
-      {label}
-    </Button>
-  );
+  const selectedPath = view.selected
+    ? keyToRef(view.selected).relative_path ||
+      (roots.find((r) => r.pe_id === keyToRef(view.selected).pe_id)?.title ?? '')
+    : null;
 
   return (
     <div className='h-full flex flex-col min-h-0'>
-      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control.
-          Tabs are left-aligned and scroll horizontally when they overflow; the
-          attach + open-externally cluster is pinned right (flex-shrink-0) with
-          container padding, so it never scrolls with the tabs nor clips at narrow
-          widths.
-
-          左内边距 12px 是本面板的对齐基准线，三处必须一致（见下方 SearchPanel 与
-          arco-override.css 的 .workspace-tree 规则）：外框一律从 12px 起，框内内容
-          （tab 文字 / 搜索图标 / 树箭头）一律从 20px 起。12px 不是随手取的——侧栏
-          的拖宽把手正好盖住最左 12px 且层级更高，任何落在其左侧的东西都点不到。
-
-          The 12px left padding is this panel's alignment baseline and must match in
-          all three places (see SearchPanel below and the .workspace-tree rules in
-          arco-override.css): outer boxes start at 12px, their inner content (tab
-          text / search icon / tree arrow) starts at 20px. 12px is not arbitrary —
-          the sider's resize handle covers the leftmost 12px and sits above this
-          content, so anything placed to its left cannot be clicked. */}
-      <div className='flex items-center gap-4px ps-12px pe-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
-        <div className='flex items-center gap-2px overflow-x-auto flex-1 min-w-0'>
-          {tabButton('files', t('conversation.explorer.tabs.files'))}
-          {tabButton('changes', t('conversation.explorer.tabs.changes'))}
-        </div>
-        <div className='flex items-center gap-2px flex-shrink-0'>
-          {/* Right cluster order (VS Code parity): project-scope actions first (add
-              folder, open workspace), then view actions grouped at the far right
-              (refresh, collapse-all). Refresh shows on both tabs (tab-scoped
-              behavior); collapse-all only on Files, since Changes has no tree.
-
-              Tooltip 与相邻按钮保持同一形态（mini），观感一致。注意：Arco 的 Tooltip
-              不能包裹 Dropdown（会取到非 DOM 节点而崩），这里包的是普通 Button，安全。
-              Note: an Arco Tooltip must not wrap a Dropdown (it would resolve a
-              non-DOM node and crash); wrapping a plain Button like this is safe. */}
-          <Tooltip content={t('conversation.explorer.addFolder')} mini position='br'>
-            <Button
-              type='text'
-              size='small'
-              className='flex items-center justify-center'
-              icon={<FolderPlus theme='outline' size='16' />}
-              aria-label={t('conversation.explorer.addFolder')}
-              onClick={handleAddFolder}
-            />
-          </Tooltip>
-          {workspacePath && <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />}
-          <Tooltip
-            content={
-              activeTab === 'changes'
-                ? t('conversation.explorer.refreshChanges')
-                : t('conversation.explorer.refreshFiles')
-            }
-            mini
-            position='br'
-          >
-            <Button
-              type='text'
-              size='small'
-              className='flex items-center justify-center'
-              loading={refreshing}
-              icon={<Refresh theme='outline' size='16' />}
-              aria-label={
-                activeTab === 'changes'
-                  ? t('conversation.explorer.refreshChanges')
-                  : t('conversation.explorer.refreshFiles')
-              }
-              onClick={() => void handleRefreshActiveTab()}
-            />
-          </Tooltip>
-          {activeTab === 'files' && (
-            <Tooltip content={t('conversation.explorer.collapseAll')} mini position='br'>
-              <Button
-                type='text'
-                size='small'
-                className='flex items-center justify-center'
-                icon={<FoldUpOne theme='outline' size='16' />}
-                aria-label={t('conversation.explorer.collapseAll')}
-                onClick={() => collapseAll()}
-              />
-            </Tooltip>
-          )}
-        </div>
-      </div>
+      <FileTreeHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        workspacePath={workspacePath}
+        refreshing={refreshing}
+        onRefresh={handleRefreshActiveTab}
+        onAddFolder={handleAddFolder}
+        onCollapseAll={collapseAll}
+      />
       {/* Files tab (explorer): kept mounted across tab switches so the tree + WS
           state survive (only hidden when the changes tab is active). */}
       {/* Search area is persistent at the top of the files tab; the tree renders
@@ -647,6 +580,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           <ScmPanel projectId={projectId} />
         </div>
       )}
+      {activeTab === 'files' && <FileTreeFooter selectedPath={selectedPath} />}
       <Modal
         title={nameDialog ? t(nameDialogTitleKey(nameDialog.mode)) : ''}
         visible={nameDialog !== null}

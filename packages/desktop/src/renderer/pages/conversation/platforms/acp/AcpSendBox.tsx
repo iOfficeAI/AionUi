@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
@@ -46,7 +47,7 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { ChatFileRef } from '@/common/types/chatFile';
-import { Button, Message, Tag } from '@arco-design/web-react';
+import { Button, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -122,6 +123,7 @@ const AcpSendBox: React.FC<{
     hasThinkingMessage,
     slashCommands,
     tokenUsage,
+    cumulativeTokenUsage,
     context_limit,
   } = messageState;
   const { t } = useTranslation();
@@ -850,6 +852,17 @@ Please check your local CLI tool authentication status`,
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
+            {!isMobile && (
+              <div className='min-w-0 max-w-180px [&_button]:max-w-full [&_button_span]:truncate'>
+                <AcpModelSelector
+                  conversation_id={conversation_id}
+                  backend={backend}
+                  prepareRuntime={prepareRuntimeConfig}
+                  prepareSetRuntime={teamPermission?.warmupSession}
+                  configOptionsPort={teamPermission?.configOptionsPort}
+                />
+              </div>
+            )}
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}
@@ -930,7 +943,13 @@ Please check your local CLI tool authentication status`,
                 {t('team.interruptAndSend')}
               </Button>
             )}
-            {tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} context_limit={context_limit} /> : undefined}
+            {tokenUsage || cumulativeTokenUsage ? (
+              <ContextUsageIndicator
+                tokenUsage={tokenUsage}
+                cumulativeUsage={cumulativeTokenUsage}
+                context_limit={context_limit}
+              />
+            ) : undefined}
           </>
         }
         onAddToDraft={handleAddToQueue}
