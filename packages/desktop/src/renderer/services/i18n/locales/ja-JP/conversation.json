@@ -655,7 +655,8 @@
     "newDirFailed": "フォルダーの作成に失敗しました",
     "tabs": {
       "files": "ファイル",
-      "changes": "変更"
+      "changes": "変更",
+      "terminal": "ターミナル"
     },
     "addedToChat": "{{name}} をチャットに追加しました",
     "imported": "{{count}} 件のファイルをインポートしました",
@@ -760,7 +761,8 @@
     "stopped": "停止済み",
     "exited": "終了コード {{code}}",
     "stop": "停止",
-    "truncated": "(以前の出力は切り捨て)"
+    "truncated": "(以前の出力は切り捨て)",
+    "executingInTerminal": "ターミナルで実行中..."
   },
   "emptyState": {
     "greeting": "こんにちは！ご要望を教えてください。すぐに取りかかります。"

@@ -202,5 +202,9 @@
   },
   "selectedCount": "{{count}} seçili",
   "selectedSkills": "Seçili beceriler",
-  "aiAssistant": "Yapay Zekâ Asistanı"
+  "aiAssistant": "Yapay Zekâ Asistanı",
+  "terminal": "Terminal",
+  "runInTerminal": "Terminalde Çalıştır",
+  "clearTerminal": "Terminali Temizle",
+  "restartTerminal": "Terminali Yeniden Başlat"
 }

@@ -655,7 +655,8 @@
     "newDirFailed": "Couldn't create folder",
     "tabs": {
       "files": "Files",
-      "changes": "Changes"
+      "changes": "Changes",
+      "terminal": "Terminal"
     },
     "addedToChat": "Added {{name}} to chat",
     "imported": "Imported {{count}} file(s)",
@@ -760,7 +761,8 @@
     "stopped": "Stopped",
     "exited": "Exit {{code}}",
     "stop": "Stop",
-    "truncated": "(earlier output truncated)"
+    "truncated": "(earlier output truncated)",
+    "executingInTerminal": "Executing in terminal..."
   },
   "emptyState": {
     "greeting": "Hi! Tell me what you need and I'll get started."

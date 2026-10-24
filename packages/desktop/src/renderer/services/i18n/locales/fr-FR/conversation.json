@@ -655,7 +655,8 @@
     "newDirFailed": "Échec de la création du dossier",
     "tabs": {
       "files": "Fichiers",
-      "changes": "Modifications"
+      "changes": "Modifications",
+      "terminal": "Terminal"
     },
     "addedToChat": "{{name}} ajouté au chat",
     "imported": "{{count}} fichier(s) importé(s)",
@@ -760,7 +761,8 @@
     "stopped": "Arrêté",
     "exited": "Code {{code}}",
     "stop": "Arrêter",
-    "truncated": "(sortie antérieure tronquée)"
+    "truncated": "(sortie antérieure tronquée)",
+    "executingInTerminal": "Exécution dans le terminal..."
   },
   "emptyState": {
     "greeting": "Bonjour ! Dites-moi ce dont vous avez besoin et je commence."

@@ -202,5 +202,9 @@
   },
   "selectedCount": "選択済み {{count}}",
   "selectedSkills": "選択済みスキル",
-  "aiAssistant": "AI アシスタント"
+  "aiAssistant": "AI アシスタント",
+  "terminal": "ターミナル",
+  "runInTerminal": "ターミナルで実行",
+  "clearTerminal": "ターミナルをクリア",
+  "restartTerminal": "ターミナルを再起動"
 }

@@ -656,7 +656,8 @@
     "newDirFailed": "No se pudo crear la carpeta",
     "tabs": {
       "files": "Archivos",
-      "changes": "Cambios"
+      "changes": "Cambios",
+      "terminal": "Terminal"
     },
     "addedToChat": "Se añadió {{name}} al chat",
     "imported": "{{count}} archivo(s) importado(s)",
@@ -761,7 +762,8 @@
     "stopped": "Detenido",
     "exited": "Salida {{code}}",
     "stop": "Detener",
-    "truncated": "(salida anterior truncada)"
+    "truncated": "(salida anterior truncada)",
+    "executingInTerminal": "Ejecutando en el terminal..."
   },
   "emptyState": {
     "greeting": "¡Hola! Dime qué necesitas y empiezo enseguida."

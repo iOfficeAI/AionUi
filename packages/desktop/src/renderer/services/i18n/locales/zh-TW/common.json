@@ -202,5 +202,9 @@
   },
   "selectedCount": "已選 {{count}}",
   "selectedSkills": "已選技能",
-  "aiAssistant": "AI 助手"
+  "aiAssistant": "AI 助手",
+  "terminal": "終端機",
+  "runInTerminal": "在終端機執行",
+  "clearTerminal": "清除終端機",
+  "restartTerminal": "重啟終端機"
 }

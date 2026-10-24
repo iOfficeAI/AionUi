@@ -661,7 +661,8 @@
     "newDirFailed": "Não foi possível criar a pasta",
     "tabs": {
       "files": "Arquivos",
-      "changes": "Alterações"
+      "changes": "Alterações",
+      "terminal": "Terminal"
     },
     "addedToChat": "{{name}} adicionado ao chat",
     "imported": "{{count}} arquivo(s) importado(s)",
@@ -766,7 +767,8 @@
     "stopped": "Parado",
     "exited": "Saída {{code}}",
     "stop": "Parar",
-    "truncated": "(saída anterior truncada)"
+    "truncated": "(saída anterior truncada)",
+    "executingInTerminal": "Executando no terminal..."
   },
   "emptyState": {
     "greeting": "Olá! Diga o que você precisa e eu já começo."

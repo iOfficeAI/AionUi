@@ -77,9 +77,20 @@ describe('useProjectPanelCollapse (P3 host collapse)', () => {
     window.addEventListener(WORKSPACE_STATE_EVENT, listener);
     const { unmount } = renderHook(() => useProjectPanelCollapse({ projectId: 'p4', isMobile: false, active: true }));
     fireToggle();
-    window.removeEventListener(WORKSPACE_STATE_EVENT, listener);
-    unmount();
     // Initial broadcast (expanded=false) + after toggle (collapsed=true).
     expect(states).toContain(true);
+  });
+
+  it('expands panel when WORKSPACE_ENSURE_OPEN_EVENT is dispatched', () => {
+    localStorage.setItem('project-panel-collapse:p5', 'collapsed');
+    const { result } = renderHook(() => useProjectPanelCollapse({ projectId: 'p5', isMobile: false, active: true }));
+    expect(result.current.collapsed).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('aionui-workspace-ensure-open'));
+    });
+
+    expect(result.current.collapsed).toBe(false);
+    expect(localStorage.getItem('project-panel-collapse:p5')).toBe('expanded');
   });
 });

@@ -202,5 +202,9 @@
   },
   "selectedCount": "Selected {{count}}",
   "selectedSkills": "Selected skills",
-  "aiAssistant": "AI Assistant"
+  "aiAssistant": "AI Assistant",
+  "terminal": "Terminal",
+  "runInTerminal": "Run in Terminal",
+  "clearTerminal": "Clear Terminal",
+  "restartTerminal": "Restart Terminal"
 }

@@ -1,10 +1,12 @@
 import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import {
+  WORKSPACE_ENSURE_OPEN_EVENT,
   WORKSPACE_HAS_FILES_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
   type WorkspaceHasFilesDetail,
 } from '@/renderer/utils/workspace/workspaceEvents';
+
 import { useEffect, useRef, useState } from 'react';
 
 type UseWorkspaceCollapseParams = {
@@ -95,9 +97,24 @@ export function useWorkspaceCollapse({
         return newState;
       });
     };
+    const handleEnsureOpen = () => {
+      if (!workspaceEnabled) return;
+      if (rightCollapsedRef.current) {
+        setRightSiderCollapsed(false);
+        if (preferenceKey) {
+          try {
+            localStorage.setItem(`workspace-preference-${preferenceKey}`, 'expanded');
+          } catch {
+            // ignore
+          }
+        }
+      }
+    };
     window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+    window.addEventListener(WORKSPACE_ENSURE_OPEN_EVENT, handleEnsureOpen);
     return () => {
       window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+      window.removeEventListener(WORKSPACE_ENSURE_OPEN_EVENT, handleEnsureOpen);
     };
   }, [workspaceEnabled, preferenceKey]);
 

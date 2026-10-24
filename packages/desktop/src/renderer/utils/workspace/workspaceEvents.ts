@@ -1,4 +1,5 @@
 export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
+export const WORKSPACE_ENSURE_OPEN_EVENT = 'aionui-workspace-ensure-open';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
 
@@ -49,4 +50,10 @@ export function dispatchWorkspaceHasFilesEvent(
       detail: { hasFiles, conversation_id, isInitial },
     })
   );
+}
+
+/** Dispatch an event to ensure the workspace panel is open (expand if collapsed). */
+export function dispatchWorkspaceEnsureOpenEvent(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(WORKSPACE_ENSURE_OPEN_EVENT));
 }

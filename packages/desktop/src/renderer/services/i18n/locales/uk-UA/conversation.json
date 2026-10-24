@@ -663,7 +663,8 @@
     "newDirFailed": "Не вдалося створити папку",
     "tabs": {
       "files": "Файли",
-      "changes": "Зміни"
+      "changes": "Зміни",
+      "terminal": "Термінал"
     },
     "addedToChat": "{{name}} додано в чат",
     "imported": "Імпортовано файлів: {{count}}",
@@ -776,7 +777,8 @@
     "stopped": "Зупинено",
     "exited": "Код {{code}}",
     "stop": "Зупинити",
-    "truncated": "(ранній вивід обрізано)"
+    "truncated": "(ранній вивід обрізано)",
+    "executingInTerminal": "Виконується в терміналі..."
   },
   "emptyState": {
     "greeting": "Вітаю! Розкажіть, що потрібно, і я почну."
