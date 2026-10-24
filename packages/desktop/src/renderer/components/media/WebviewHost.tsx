@@ -51,7 +51,7 @@ const MAX_ZOOM_FACTOR = 1.5;
  * Shared webview host component — extracted from URLViewer.
  *
  * Features:
- * - Link/window.open/form interception → internal navigation
+ * - Link/window.open interception → internal navigation; native form submission
  * - Self-managed history stacks (back / forward)
  * - Loading indicator
  * - Partition support for cache isolation
@@ -208,7 +208,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       setCanGoForward(Boolean(webviewEl.canGoForward?.()));
     };
 
-    // Inject script to intercept links / window.open / form submissions
+    // Intercept links and window.open; preserve native form methods, fields, and submitters.
     const injectClickInterceptor = () => {
       webviewEl
         .executeJavaScript(
@@ -241,13 +241,6 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
             return originalOpen.apply(this, arguments);
           };
 
-          document.addEventListener('submit', function(e) {
-            const form = e.target;
-            if (form && form.action && /^https?:/i.test(form.action)) {
-              e.preventDefault();
-              window.postMessage({ type: '__WEBVIEW_HOST_NAVIGATE__', url: form.action }, '*');
-            }
-          }, true);
         })();
         true;
       `
