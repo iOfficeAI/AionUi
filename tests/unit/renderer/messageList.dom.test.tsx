@@ -177,6 +177,9 @@ function createTextMessage(): IMessageText {
 type AcpToolCallOptions = {
   id?: string;
   status?: IMessageAcpToolCall['content']['update']['status'];
+  title?: string;
+  rawInput?: Record<string, unknown>;
+  raw_input?: Record<string, unknown>;
   content?: IMessageAcpToolCall['content']['update']['content'];
   truncated?: boolean;
 };
@@ -184,9 +187,23 @@ type AcpToolCallOptions = {
 function createAcpToolCall({
   id = 'acp-edit-1',
   status = 'completed',
+  title = 'Edit file',
+  rawInput,
+  raw_input,
   content,
   truncated = false,
 }: AcpToolCallOptions = {}): IMessageAcpToolCall {
+  const update: IMessageAcpToolCall['content']['update'] & { raw_input?: Record<string, unknown> } = {
+    sessionUpdate: 'tool_call_update',
+    tool_call_id: id,
+    status,
+    title,
+    kind: 'edit',
+    rawInput,
+    raw_input,
+    content,
+  };
+
   return {
     id,
     msg_id: id,
@@ -204,14 +221,7 @@ function createAcpToolCall({
             },
           }
         : {}),
-      update: {
-        sessionUpdate: 'tool_call_update',
-        tool_call_id: id,
-        status,
-        title: 'Edit file',
-        kind: 'edit',
-        content,
-      },
+      update,
     },
     created_at: 2,
   } as IMessageAcpToolCall;
@@ -477,6 +487,73 @@ describe('MessageList', () => {
 
     expect(screen.getByTestId('tool-summary')).toHaveTextContent('acp-read-1');
     expect(screen.queryByTestId('acp-tool-call')).not.toBeInTheDocument();
+  });
+
+  it('renders a completed ACP task summary as an assistant message', () => {
+    const message = createAcpToolCall({
+      id: 'task-complete-live',
+      title: 'task_complete',
+      rawInput: { summary: '**Completed** the requested change.' },
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={[message]}>{children}</Wrapper>,
+    });
+
+    expect(screen.getByTestId(`msgtext-${message.id}`)).toHaveTextContent('**Completed** the requested change.');
+    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+  });
+
+  it('renders a persisted snake-case ACP task summary as an assistant message', () => {
+    const message = createAcpToolCall({
+      id: 'task-complete-history',
+      title: 'task_complete',
+      raw_input: { summary: '# Historical result' },
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={[message]}>{children}</Wrapper>,
+    });
+
+    expect(screen.getByTestId(`msgtext-${message.id}`)).toHaveTextContent('# Historical result');
+    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+  });
+
+  it('falls back to ACP task completion content when the raw summary is absent', () => {
+    const message = createAcpToolCall({
+      id: 'task-complete-content',
+      title: 'task_complete',
+      content: [{ type: 'content', content: { type: 'text', text: 'Fallback result' } }],
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={[message]}>{children}</Wrapper>,
+    });
+
+    expect(screen.getByTestId(`msgtext-${message.id}`)).toHaveTextContent('Fallback result');
+    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+  });
+
+  it('keeps incomplete or empty task completions in View Steps', () => {
+    const runningMessage = createAcpToolCall({
+      id: 'task-complete-running',
+      status: 'in_progress',
+      title: 'task_complete',
+      rawInput: { summary: 'Not final yet' },
+    });
+    const emptyMessage = createAcpToolCall({
+      id: 'task-complete-empty',
+      title: 'task_complete',
+      rawInput: { summary: '   ' },
+    });
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={[runningMessage, emptyMessage]}>{children}</Wrapper>,
+    });
+
+    expect(screen.getByTestId('tool-summary')).toHaveTextContent(`${runningMessage.id},${emptyMessage.id}`);
+    expect(screen.queryByTestId(`msgtext-${runningMessage.id}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`msgtext-${emptyMessage.id}`)).not.toBeInTheDocument();
   });
 
   it('keeps malformed ACP diffs in View Steps instead of showing misleading stats', () => {
