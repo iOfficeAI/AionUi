@@ -98,6 +98,12 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
 export const getDataPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
   const dataPath = path.join(rootPath, 'aionui');
+  // Codex validates writable roots lexically and rejects a symlinked root.
+  // Packaged AionUI therefore passes the real Application Support path to the
+  // backend; dev keeps the historical CLI-safe symlink isolation.
+  if (getPlatformServices().paths.isPackaged()) {
+    return dataPath;
+  }
   return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
