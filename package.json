@@ -148,6 +148,7 @@
     "postcss": "^8.5.8",
     "pptx2json": "^0.0.10",
     "process": "^0.11.10",
+    "proxy-addr": "2.0.8",
     "qrcode-terminal": "^0.12.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
