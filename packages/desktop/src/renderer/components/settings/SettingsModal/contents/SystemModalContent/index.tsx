@@ -20,7 +20,7 @@ import {
 } from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
+import { Alert, Collapse, Form, InputNumber, Message, Modal, Select, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -75,6 +75,7 @@ const SystemModalContent: React.FC = () => {
   const [previewLimitMb, setPreviewLimitMb] = useState<number>(DEFAULT_TEXT_PREVIEW_LIMIT_MB);
   const previewLimitDraftRef = useRef<string>(String(DEFAULT_TEXT_PREVIEW_LIMIT_MB));
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
+  const [sendKey, setSendKey] = useState<'enter' | 'modifier'>('enter');
 
   useEffect(() => {
     if (!isDesktop) {
@@ -114,6 +115,7 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    setSendKey(configService.get('input.sendKey') ?? 'enter');
   }, [isDesktop]);
 
   useEffect(() => {
@@ -341,6 +343,18 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleSendKeyChange = useCallback(
+    (value: 'enter' | 'modifier') => {
+      const previous = sendKey;
+      setSendKey(value);
+      configService.set('input.sendKey', value).catch(() => {
+        setSendKey(previous);
+        configService.setLocal('input.sendKey', previous);
+      });
+    },
+    [sendKey]
+  );
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -363,6 +377,22 @@ const SystemModalContent: React.FC = () => {
       description: startOnBoot.supported ? t('settings.startOnBootDesc') : t('settings.startOnBootUnsupported'),
       component: (
         <Switch checked={startOnBoot.enabled} onChange={handleStartOnBootChange} disabled={!startOnBoot.supported} />
+      ),
+    },
+    {
+      key: 'sendKey',
+      label: t('settings.sendKey'),
+      description: t('settings.sendKeyDesc'),
+      component: (
+        <Select
+          value={sendKey}
+          onChange={handleSendKeyChange}
+          style={{ width: 200 }}
+          getPopupContainer={() => document.body}
+        >
+          <Select.Option value='enter'>{t('settings.sendKeyEnter')}</Select.Option>
+          <Select.Option value='modifier'>{t('settings.sendKeyModifier')}</Select.Option>
+        </Select>
       ),
     },
     {
