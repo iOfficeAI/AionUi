@@ -150,5 +150,6 @@ When opening a PR, fill in the PR body using [.github/pull_request_template.md](
 | **i18n**         | Internationalization workflow and standards                                 | Adding or changing user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
 | **testing**      | Testing workflow and quality standards                                      | Writing tests, changing runtime behavior, fixing bugs, or claiming behavior is verified                |
 | **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                                       |
+| **walkthrough**  | Task completion walkthrough standards and format                            | Finishing a task or execution, delivering walkthroughs                                                 |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

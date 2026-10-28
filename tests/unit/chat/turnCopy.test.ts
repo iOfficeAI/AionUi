@@ -83,6 +83,18 @@ describe('buildTurnClipboardText', () => {
     expect(joined).toContain('tail');
   });
 
+  it('cleans walkthrough tags while keeping markdown content in turn copy', () => {
+    const joined = buildTurnClipboardText([
+      'Done!',
+      '[WALKTHROUGH]\n# Walkthrough: Feature\n## Delivered\n- Item 1\n[/WALKTHROUGH]',
+    ]);
+    expect(joined).not.toContain('[WALKTHROUGH]');
+    expect(joined).not.toContain('[/WALKTHROUGH]');
+    expect(joined).toContain('Done!');
+    expect(joined).toContain('# Walkthrough: Feature');
+    expect(joined).toContain('## Delivered');
+  });
+
   it('drops segments that clean down to nothing', () => {
     expect(buildTurnClipboardText(['<think>only draft</think>', 'kept'])).toBe('kept');
   });

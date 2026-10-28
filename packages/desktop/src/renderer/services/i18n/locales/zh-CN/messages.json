@@ -97,5 +97,17 @@
   "requestDetails": "请求内容：",
   "delivery": {
     "pending": "未读"
+  },
+  "walkthrough": {
+    "title": "任务执行总结",
+    "badge": "Walkthrough",
+    "copy": "复制总结",
+    "copySuccess": "已复制总结到剪贴板",
+    "copyFailed": "复制总结失败",
+    "expand": "展开",
+    "collapse": "折叠",
+    "sectionsCount": "{{count}} 个模块",
+    "sectionsCount_one": "{{count}} 个模块",
+    "sectionsCount_other": "{{count}} 个模块"
   }
 }

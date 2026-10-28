@@ -97,5 +97,17 @@
   "requestDetails": "請求內容：",
   "delivery": {
     "pending": "未讀"
+  },
+  "walkthrough": {
+    "title": "任務執行總結",
+    "badge": "Walkthrough",
+    "copy": "複製總結",
+    "copySuccess": "已複製總結至剪貼簿",
+    "copyFailed": "複製總結失敗",
+    "expand": "展開",
+    "collapse": "摺疊",
+    "sectionsCount": "{{count}} 個模組",
+    "sectionsCount_one": "{{count}} 個模組",
+    "sectionsCount_other": "{{count}} 個模組"
   }
 }

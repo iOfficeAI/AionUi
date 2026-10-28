@@ -97,5 +97,17 @@
   "requestDetails": "Detalhes da solicitação:",
   "delivery": {
     "pending": "Não lido"
+  },
+  "walkthrough": {
+    "title": "Walkthrough da Execução",
+    "badge": "Walkthrough",
+    "copy": "Copiar Walkthrough",
+    "copySuccess": "Walkthrough copiado para a área de transferência",
+    "copyFailed": "Falha ao copiar walkthrough",
+    "expand": "Expandir",
+    "collapse": "Recolher",
+    "sectionsCount": "{{count}} seções",
+    "sectionsCount_one": "{{count}} seção",
+    "sectionsCount_other": "{{count}} seções"
   }
 }
