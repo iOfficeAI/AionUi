@@ -7,6 +7,7 @@
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
 import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
+import ChannelMattermostLogo from '@/renderer/assets/channel-logos/mattermost.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
@@ -28,6 +29,7 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
     telegram: { src: ChannelTelegramLogo, alt: 'Telegram' },
     lark: { src: ChannelLarkLogo, alt: 'Lark' },
     dingtalk: { src: ChannelDingTalkLogo, alt: 'DingTalk' },
+    mattermost: { src: ChannelMattermostLogo, alt: 'Mattermost' },
     slack: { src: ChannelSlackLogo, alt: 'Slack' },
     discord: { src: ChannelDiscordLogo, alt: 'Discord' },
     weixin: { src: ChannelWeixinLogo, alt: 'WeChat' },

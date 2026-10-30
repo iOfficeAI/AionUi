@@ -1,4 +1,4 @@
-import type { ConfigKey, ConfigKeyMap } from './configKeys';
+import type { ConfigKey, ConfigKeyMap, ConfigValue } from './configKeys';
 
 type Subscriber = (value: unknown) => void;
 
@@ -76,17 +76,17 @@ class ConfigServiceImpl {
     return this.initialize();
   }
 
-  get<K extends ConfigKey>(key: K): ConfigKeyMap[K] | undefined {
-    return this.cache.get(key) as ConfigKeyMap[K] | undefined;
+  get<K extends ConfigKey>(key: K): ConfigValue<K> | undefined {
+    return this.cache.get(key) as ConfigValue<K> | undefined;
   }
 
-  async set<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): Promise<void> {
+  async set<K extends ConfigKey>(key: K, value: ConfigValue<K>): Promise<void> {
     this.cache.set(key, value);
     this.notify(key, value);
     await fetchJson<void>('PUT', '/api/settings/client', { [key]: value });
   }
 
-  setLocal<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): void {
+  setLocal<K extends ConfigKey>(key: K, value: ConfigValue<K>): void {
     this.cache.set(key, value);
     this.notify(key, value);
   }
@@ -97,7 +97,9 @@ class ConfigServiceImpl {
     await fetchJson<void>('PUT', '/api/settings/client', { [key]: null });
   }
 
-  async setBatch(entries: Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>): Promise<void> {
+  async setBatch(
+    entries: Partial<{ [K in keyof ConfigKeyMap]: ConfigKeyMap[K] }> & Record<string, unknown>
+  ): Promise<void> {
     for (const [key, value] of Object.entries(entries)) {
       this.cache.set(key, value);
       this.notify(key as ConfigKey, value);
