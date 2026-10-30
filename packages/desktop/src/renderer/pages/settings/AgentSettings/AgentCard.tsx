@@ -26,6 +26,7 @@ type AgentCardProps =
       onTestConnection: () => void;
       onConfigure: () => void;
       isTesting?: boolean;
+      onToggle?: (enabled: boolean) => void;
     }
   | {
       type: 'custom';
@@ -106,8 +107,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const logos = useAgentLogos();
   const { agent, boundAssistants, onTestConnection, onConfigure, isTesting } = props;
 
-  const isCustom = props.type === 'custom';
-  const isDisabled = isCustom && agent.enabled === false;
+  const isDisabled = agent.enabled === false;
   const diagnostics = formatManagedAgentDiagnosticMessage(t, agent);
   const displayStatus = resolveDisplayStatus(agent.status, agent.last_check_error_code);
 
@@ -178,6 +178,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         >
           {t('settings.agentManagement.testConnection')}
         </Button>
+        {props.type === 'official' && props.onToggle ? (
+          <Switch size='small' checked={agent.enabled !== false} onChange={props.onToggle} />
+        ) : null}
         {/* Both agent kinds get an explicit Edit button that opens the same
             configuration page the whole row links to (status, path/env
             overrides, bound assistants). */}

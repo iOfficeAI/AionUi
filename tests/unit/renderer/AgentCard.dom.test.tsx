@@ -85,7 +85,7 @@ describe('AgentCard (custom variant)', () => {
 
 const renderOfficial = (
   agent: Record<string, unknown>,
-  handlers: Partial<{ onTestConnection: () => void; onConfigure: () => void }> = {}
+  handlers: Partial<{ onTestConnection: () => void; onConfigure: () => void; onToggle: (v: boolean) => void }> = {}
 ) =>
   render(
     <AgentCard
@@ -94,6 +94,7 @@ const renderOfficial = (
       boundAssistants={[]}
       onTestConnection={handlers.onTestConnection ?? vi.fn()}
       onConfigure={handlers.onConfigure ?? vi.fn()}
+      onToggle={handlers.onToggle}
     />
   );
 
@@ -208,5 +209,49 @@ describe('AgentCard (official variant)', () => {
 
     fireEvent.click(screen.getByText('common.edit'));
     expect(onConfigure).toHaveBeenCalled();
+  });
+
+  it('fires onToggle when the official-agent switch is clicked', () => {
+    const onToggle = vi.fn();
+    const { container } = render(
+      <AgentCard
+        type='official'
+        agent={
+          {
+            id: 'claude',
+            name: 'Claude Code',
+            agent_type: 'acp',
+            agent_source: 'builtin',
+            backend: 'claude',
+            enabled: true,
+            installed: true,
+            status: 'online',
+          } as never
+        }
+        boundAssistants={[]}
+        onTestConnection={vi.fn()}
+        onConfigure={vi.fn()}
+        onToggle={onToggle}
+      />
+    );
+
+    const toggle = container.querySelector('[role="switch"]') as HTMLElement;
+    fireEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalled();
+  });
+
+  it('renders no official-agent switch when onToggle is absent', () => {
+    const { container } = renderOfficial({
+      id: 'aionrs',
+      name: 'Aion CLI',
+      agent_type: 'aionrs',
+      agent_source: 'internal',
+      backend: 'aionrs',
+      enabled: true,
+      installed: true,
+      status: 'online',
+    });
+
+    expect(container.querySelector('[role="switch"]')).toBeNull();
   });
 });

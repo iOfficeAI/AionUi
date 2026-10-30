@@ -9,7 +9,7 @@
  * derives the detected/custom sections from it.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
@@ -61,6 +61,9 @@ vi.mock('@renderer/hooks/agent/useManagedAgents', () => ({
   useManagedAgents: () => useManagedAgents(),
 }));
 
+// Hoisted so individual tests can drive/assert the enable toggle bridge call.
+const setAgentEnabled = vi.hoisted(() => vi.fn());
+
 // Bridge is only touched by user-action handlers, not on render — stub the
 // shape the handlers reference so the import resolves.
 vi.mock('@/common', () => ({
@@ -69,7 +72,7 @@ vi.mock('@/common', () => ({
       createCustomAgent: { invoke: vi.fn() },
       updateCustomAgent: { invoke: vi.fn() },
       deleteCustomAgent: { invoke: vi.fn() },
-      setAgentEnabled: { invoke: vi.fn() },
+      setAgentEnabled: { invoke: setAgentEnabled },
       checkManagedAgentHealthById: { invoke: vi.fn() },
     },
     // Bound-assistant avatar stacks fetch the assistant list via SWR.
@@ -148,6 +151,15 @@ const makeAgents = () => [
 ];
 
 describe('LocalAgents', () => {
+  beforeEach(() => {
+    setAgentEnabled.mockReset();
+    setAgentEnabled.mockResolvedValue(undefined);
+    navigate.mockReset();
+    messageSuccess.mockReset();
+    messageWarning.mockReset();
+    messageError.mockReset();
+  });
+
   it('runs the health probe and shows a success toast after an official-agent test connection succeeds', async () => {
     const refreshCatalog = vi.fn().mockResolvedValue(undefined);
     useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn(), refreshCatalog });
@@ -409,7 +421,8 @@ describe('LocalAgents', () => {
 
     render(<LocalAgents />);
 
-    fireEvent.click(screen.getByRole('switch'));
+    const switches = screen.getAllByRole('switch');
+    fireEvent.click(switches[switches.length - 1]);
 
     await waitFor(() => {
       expect(ipcBridge.acpConversation.setAgentEnabled.invoke).toHaveBeenCalledWith({
@@ -449,5 +462,67 @@ describe('LocalAgents', () => {
     fireEvent.click(unavailableTab);
     expect(screen.queryByText('Aion CLI')).toBeNull();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
+
+  it('keeps Aion CLI enabled without a switch and toggles detected ACP agents', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({
+      agents: [
+        { id: 'aionrs', name: 'Aion CLI', agent_type: 'aionrs', agent_source: 'internal', backend: 'aionrs' },
+        { id: 'acp-claude', name: 'Claude Code', agent_type: 'acp', agent_source: 'builtin', backend: 'claude' },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog,
+    });
+
+    const { container } = render(<LocalAgents />);
+
+    const aionRow = container.querySelector('[data-testid="agent-row-aionrs"]') as HTMLElement;
+    const claudeRow = container.querySelector('[data-testid="agent-row-acp-claude"]') as HTMLElement;
+    expect(aionRow.querySelector('[role="switch"]')).toBeNull();
+
+    fireEvent.click(claudeRow.querySelector('[role="switch"]') as HTMLElement);
+
+    await waitFor(() => expect(setAgentEnabled).toHaveBeenCalledWith({ id: 'acp-claude', enabled: false }));
+    await waitFor(() => expect(refreshCatalog).toHaveBeenCalled());
+  });
+
+  it('toggles a custom agent off through the shared handler', async () => {
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({
+      agents: [
+        { id: 'custom-1', name: 'My Agent', agent_type: 'acp', agent_source: 'custom', command: 'sh', enabled: true },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog,
+    });
+
+    const { container } = render(<LocalAgents />);
+
+    const toggle = container.querySelector('[role="switch"]') as HTMLElement;
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(setAgentEnabled).toHaveBeenCalledWith({ id: 'custom-1', enabled: false }));
+  });
+
+  it('surfaces a failed official-agent toggle without crashing', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setAgentEnabled.mockRejectedValueOnce(new Error('backend down'));
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({
+      agents: [
+        { id: 'acp-claude', name: 'Claude Code', agent_type: 'acp', agent_source: 'builtin', backend: 'claude' },
+      ],
+      revalidate: vi.fn(),
+      refreshCatalog,
+    });
+
+    const { container } = render(<LocalAgents />);
+    fireEvent.click(container.querySelector('[role="switch"]') as HTMLElement);
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('toggle agent failed:', expect.any(Error)));
+    expect(messageError).toHaveBeenCalledWith('backend down');
+    expect(refreshCatalog).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
