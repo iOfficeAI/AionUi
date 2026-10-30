@@ -1,0 +1,13 @@
+This skill reuses the Playwright icon assets from `.codex/skills/playwright/assets/`.
+
+The local `playwright` skill attributes those assets to the Microsoft
+`playwright-cli` repository.
+
+Copyright (c) Microsoft Corporation.
+
+Licensed under the Apache License, Version 2.0.
+See LICENSE.txt in this directory.
+
+Modifications:
+- Repackaged the existing repository Playwright assets for this `js_repl`-focused skill.
+- Wrote new skill instructions for persistent browser debugging.
