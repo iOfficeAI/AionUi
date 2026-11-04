@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, getPresetProviders, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +31,20 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+});
+
+describe('Runcrate preset provider', () => {
+  const entry = MODEL_PLATFORMS.find((p) => p.value === 'Runcrate');
+
+  it('points at the OpenAI-compatible endpoint', () => {
+    expect(entry?.name).toBe('Runcrate');
+    expect(entry?.base_url).toBe('https://api.runcrate.ai/v1');
+    expect(entry?.platform).toBe('custom');
+  });
+
+  it('is offered as a preset provider with a logo', () => {
+    expect(getPresetProviders()).toContain(entry);
+    expect(entry?.logo).toBeTruthy();
   });
 });
