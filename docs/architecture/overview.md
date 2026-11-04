@@ -14,8 +14,9 @@ AionUi is not a single program. Three runtimes cooperate at all times:
 | **Main process** | Electron/Node.js — windows, OS integration | `packages/desktop/src/process/`          |
 | **aioncore**     | Standalone backend binary, HTTP server     | shipped in `resources/bundled-aioncore/` |
 
-The first two are TypeScript in this repository. The third is a separate binary that
-the main process launches on startup (`process/startup/backendStartup.ts`) and resolves
+The first two are TypeScript in this repository. The third is built from a separate
+repository and bundled into the installer, which is why you will not find it in a fresh
+clone. The main process launches it on startup (`process/startup/backendStartup.ts`) and resolves
 via `process/backend/binaryResolver.ts`.
 
 **Never mix runtime APIs.** The renderer has no Node.js access; the main process has no
@@ -30,8 +31,8 @@ There are exactly two channels, and picking the right one matters:
 │  Renderer (React, no Node.js APIs)         │
 └───────────┬────────────────────┬───────────┘
             │                    │
-   IPC bridge│            HTTP   │
-   (preload) │                   │
+   IPC bridge│        HTTP       │
+   (preload) │   (httpBridge)    │
             ▼                    ▼
 ┌───────────────────────┐  ┌──────────────────────────┐
 │ Main process          │  │ aioncore (HTTP, 127.0.0.1)│
@@ -64,8 +65,13 @@ Node.js from the renderer.
 
 Conversations, agents, assistants, model providers, skills, MCP servers, scheduled
 tasks and their persistence all live in aioncore, reached over plain HTTP through
-`packages/desktop/src/renderer/api/client.ts`. The renderer calls REST endpoints on
-`127.0.0.1`; the main process is not in that path.
+`packages/desktop/src/common/adapter/httpBridge.ts`. In the desktop app that resolves to
+`http://127.0.0.1:<backend port>`; in the WebUI it becomes a same-origin relative path,
+which is why the one code path serves both shells. The main process is not in that path
+at all — no IPC hop, no proxying.
+
+(`renderer/api/client.ts` is a small standalone client factory, not this path. Use
+`httpBridge` unless you have a reason not to.)
 
 This is why most feature work does **not** touch the Electron main process at all.
 
@@ -73,8 +79,14 @@ This is why most feature work does **not** touch the Electron main process at al
 
 `packages/desktop/src/common/` is the only place both runtimes may import from. It holds
 cross-process types, config, theme tokens, platform adapters and the model-provider API
-clients. Code here must not assume either a DOM or a Node.js environment — see
-`common/electronSafe.ts` for the guard pattern.
+clients (`common/api/` — the rotating Anthropic/Gemini/OpenAI clients and protocol
+converters).
+
+Code here must not assume either a DOM or a Node.js environment. When shared code does
+need a platform capability, call `getPlatformServices()` from `@/common/platform` — that
+indirection is what keeps the same module working under Electron and under plain Node in
+the WebUI. Do **not** import `common/electronSafe.ts`: it is marked `@internal` and only
+three specific modules are allowed to touch it.
 
 ## Beyond the desktop app
 
