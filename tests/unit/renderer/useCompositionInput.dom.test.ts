@@ -6,7 +6,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 
@@ -34,6 +34,21 @@ const createKeyDownEvent = ({
     preventDefault: vi.fn(),
     shiftKey,
   } as unknown as ReactKeyboardEvent;
+};
+
+const TOUCH_QUERY = '(hover: none) and (pointer: coarse)';
+
+const stubMatchMedia = (touchPrimary: boolean) => {
+  window.matchMedia = vi.fn((query: string) => ({
+    matches: query === TOUCH_QUERY && touchPrimary,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
 };
 
 describe('useCompositionInput Enter handling', () => {
@@ -126,5 +141,69 @@ describe('useCompositionInput Enter handling', () => {
 
     expect(onKeyDownIntercept).toHaveBeenCalledTimes(1);
     expect(onEnterPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('useCompositionInput Enter handling on touch-first devices', () => {
+  afterEach(() => {
+    // jsdom has no matchMedia; each test installs its own stub
+    delete (window as { matchMedia?: unknown }).matchMedia;
+  });
+
+  it('sends on Enter on devices with a hover-capable fine pointer', () => {
+    stubMatchMedia(false);
+    const { result } = renderHook(() => useCompositionInput());
+    const onEnterPress = vi.fn();
+    const onKeyDown = result.current.createKeyDownHandler(onEnterPress);
+    const event = createKeyDownEvent();
+
+    act(() => {
+      onKeyDown(event);
+    });
+
+    expect(onEnterPress).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the native newline on Enter on touch-first devices instead of sending', () => {
+    stubMatchMedia(true);
+    const { result } = renderHook(() => useCompositionInput());
+    const onEnterPress = vi.fn();
+    const onKeyDown = result.current.createKeyDownHandler(onEnterPress);
+    const event = createKeyDownEvent();
+
+    act(() => {
+      onKeyDown(event);
+    });
+
+    expect(onEnterPress).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('still lets intercepts consume Enter on touch-first devices (e.g. picking a menu item)', () => {
+    stubMatchMedia(true);
+    const { result } = renderHook(() => useCompositionInput());
+    const onEnterPress = vi.fn();
+    const onKeyDownIntercept = vi.fn(() => true);
+    const onKeyDown = result.current.createKeyDownHandler(onEnterPress, onKeyDownIntercept);
+
+    act(() => {
+      onKeyDown(createKeyDownEvent());
+    });
+
+    expect(onKeyDownIntercept).toHaveBeenCalledTimes(1);
+    expect(onEnterPress).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Enter-to-send when matchMedia is unavailable', () => {
+    const { result } = renderHook(() => useCompositionInput());
+    const onEnterPress = vi.fn();
+    const onKeyDown = result.current.createKeyDownHandler(onEnterPress);
+
+    act(() => {
+      onKeyDown(createKeyDownEvent());
+    });
+
+    expect(onEnterPress).toHaveBeenCalledTimes(1);
   });
 });
