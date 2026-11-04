@@ -14,11 +14,18 @@ export const copyText = async (text: string): Promise<void> => {
   }
 
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      // Secure context but the Clipboard API still rejected (sandboxed iframe
+      // without clipboard-write, enterprise policy, unfocused document, etc.).
+      // Fall through to the execCommand fallback below.
+      console.warn('[copyText] navigator.clipboard.writeText failed, falling back to execCommand:', error);
+    }
   }
 
-  // Fallback for non-secure contexts (WebUI over HTTP)
+  // Fallback for non-secure contexts (WebUI over HTTP) or a rejected Clipboard API
   const previousActiveElement = document.activeElement as HTMLElement | null;
   const textArea = document.createElement('textarea');
   textArea.value = text;
