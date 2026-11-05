@@ -189,5 +189,20 @@
       "idle_notification": "유휴 알림",
       "shutdown_request": "종료 요청"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "팀 리더 변경",
+    "menuItem": "{{name}}을(를) 팀 리더로 지정",
+    "makeLeadAction": "리더로 지정",
+    "confirmTitle": "팀 리더를 변경할까요?",
+    "confirmContent": "{{currentLead}} 대신 {{nextLead}}을(를) 팀 리더로 지정할까요? 기존 대화와 팀 기록은 유지됩니다.",
+    "confirmButton": "리더 변경",
+    "busy": "아직 작업 중인 팀원이 있습니다. 작업이 끝난 뒤 다시 시도하세요.",
+    "runtimeStarting": "시작 중인 팀원이 있습니다. 시작이 완료될 때까지 기다린 뒤 다시 시도하세요.",
+    "failed": "팀 리더를 변경하지 못했습니다. 다시 시도하세요.",
+    "busyNotStarted": "팀원이 작업을 할당받았지만 아직 시작하지 않았습니다. 잠시 기다린 뒤 다시 시도하세요.",
+    "interruptConfirmTitle": "현재 작업을 중단하고 팀 리더를 변경할까요?",
+    "interruptConfirmContent": "{{busyMembers}}의 현재 작업을 중단하고 {{currentLead}} 대신 {{nextLead}}을(를) 팀 리더로 지정합니다. 기존 대화와 팀 기록은 유지됩니다.",
+    "interruptConfirmButton": "중단하고 리더 변경"
   }
 }

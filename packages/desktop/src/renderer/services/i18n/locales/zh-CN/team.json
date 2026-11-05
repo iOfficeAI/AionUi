@@ -189,5 +189,20 @@
       "idle_notification": "空闲通知",
       "shutdown_request": "关闭请求"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "更换团队负责人",
+    "menuItem": "将 {{name}} 设为团队负责人",
+    "makeLeadAction": "设为负责人",
+    "confirmTitle": "更换团队负责人？",
+    "confirmContent": "将 {{nextLead}} 设为团队负责人，取代 {{currentLead}}？现有对话和团队历史会保留。",
+    "confirmButton": "更换负责人",
+    "busy": "有团队成员仍在工作。请等待其完成后重试。",
+    "runtimeStarting": "有团队成员正在启动。请等待其启动完成后重试。",
+    "failed": "无法更换团队负责人，请重试。",
+    "busyNotStarted": "有团队成员已领取任务但尚未开始。请稍等片刻后重试。",
+    "interruptConfirmTitle": "中断当前工作并更换团队负责人？",
+    "interruptConfirmContent": "这将停止 {{busyMembers}} 的当前工作，并将 {{nextLead}} 设为团队负责人，取代 {{currentLead}}。现有对话和团队历史会保留。",
+    "interruptConfirmButton": "中断并更换负责人"
   }
 }

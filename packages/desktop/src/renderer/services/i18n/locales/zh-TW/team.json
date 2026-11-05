@@ -189,5 +189,20 @@
       "idle_notification": "閒置通知",
       "shutdown_request": "關閉請求"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "變更團隊負責人",
+    "menuItem": "將 {{name}} 設為團隊負責人",
+    "makeLeadAction": "設為負責人",
+    "confirmTitle": "要變更團隊負責人嗎？",
+    "confirmContent": "要由 {{nextLead}} 取代 {{currentLead}} 成為團隊負責人嗎？現有對話和團隊歷史會保留。",
+    "confirmButton": "變更負責人",
+    "busy": "仍有團隊成員正在工作。請等待工作完成後再試一次。",
+    "runtimeStarting": "有團隊成員正在啟動。請等候啟動完成後再試一次。",
+    "failed": "無法變更團隊負責人，請再試一次。",
+    "busyNotStarted": "有團隊成員已領取工作但尚未開始。請稍候片刻後再試一次。",
+    "interruptConfirmTitle": "要中斷目前工作並變更團隊負責人嗎？",
+    "interruptConfirmContent": "這會停止 {{busyMembers}} 的目前工作，並將 {{nextLead}} 設為團隊負責人，取代 {{currentLead}}。現有對話和團隊歷史會保留。",
+    "interruptConfirmButton": "中斷並變更負責人"
   }
 }

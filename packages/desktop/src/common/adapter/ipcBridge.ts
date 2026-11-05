@@ -2277,6 +2277,13 @@ export const team = {
   removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
   ),
+  setLead: withResponseMap(
+    httpPost<TTeam, { team_id: string; slot_id: string }>(
+      (p) => `/api/teams/${p.team_id}/lead`,
+      (p) => ({ slot_id: p.slot_id })
+    ),
+    fromBackendTeam
+  ),
   stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   getConfigOptions: httpGet<GetConfigOptionsResponse, { team_id: string; conversation_id: string }>(

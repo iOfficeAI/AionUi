@@ -189,5 +189,20 @@
       "idle_notification": "Idle notice",
       "shutdown_request": "Shutdown request"
     }
+  },
+  "leadTransfer": {
+    "settingsAction": "Change team lead",
+    "menuItem": "Make {{name}} the team lead",
+    "makeLeadAction": "Make team lead",
+    "confirmTitle": "Change team lead?",
+    "confirmContent": "Make {{nextLead}} the team lead instead of {{currentLead}}? Existing conversations and team history will be kept.",
+    "confirmButton": "Change lead",
+    "busy": "A team member is still working. Wait for it to finish, then try again.",
+    "runtimeStarting": "A team member is starting. Wait for it to finish starting, then try again.",
+    "failed": "Couldn't change the team lead. Please try again.",
+    "busyNotStarted": "A team member has claimed work that has not started yet. Wait a moment, then try again.",
+    "interruptConfirmTitle": "Interrupt current work and change team lead?",
+    "interruptConfirmContent": "This will stop the active work for {{busyMembers}} and make {{nextLead}} team lead instead of {{currentLead}}. Existing conversations and team history will be kept.",
+    "interruptConfirmButton": "Interrupt and change lead"
   }
 }

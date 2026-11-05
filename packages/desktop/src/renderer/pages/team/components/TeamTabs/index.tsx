@@ -1,3 +1,4 @@
+import { Dropdown, Menu } from '@arco-design/web-react';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -6,10 +7,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import type { TeammateStatus } from '@/common/types/team/teamTypes';
 import { restrictToHorizontalAxis } from '@/renderer/utils/ui/dndModifiers';
-import AgentStatusBadge from './AgentStatusBadge';
-import TeamAgentIdentity from './TeamAgentIdentity';
-import { useTeamTabs } from '../hooks/TeamTabsContext';
-import TeamAddMemberPopover from './memberPicker/TeamAddMemberPopover';
+import AgentStatusBadge from '../AgentStatusBadge';
+import TeamAgentIdentity from '../TeamAgentIdentity';
+import { useTeamTabs } from '../../hooks/TeamTabsContext';
+import TeamAddMemberPopover from '../memberPicker/TeamAddMemberPopover';
+import TeamLeadTransferConfirmation from './TeamLeadTransferConfirmation';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -33,6 +35,7 @@ type TeamTabViewProps = {
   onSwitch: (slot_id: string) => void;
   onRename?: (slot_id: string, new_name: string) => void;
   onRemove?: (slot_id: string) => void;
+  onMakeLead?: (slot_id: string) => void;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
@@ -51,6 +54,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   onSwitch,
   onRename,
   onRemove,
+  onMakeLead,
 }) => {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -111,7 +115,17 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   // 手柄和按钮可见，宽度全程恒定。
   const showDragHandle = !isLeader && !editing && ((hovered && !dragActive) || isDragging);
   const showHoverActions = !editing && ((hovered && !dragActive) || isDragging);
-  return (
+  const canMakeLead = !isLeader && Boolean(onMakeLead);
+  const leadContextMenu = canMakeLead ? (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (String(key) === 'make-lead') onMakeLead?.(slot_id);
+      }}
+    >
+      <Menu.Item key='make-lead'>{t('team.leadTransfer.makeLeadAction', { defaultValue: 'Make team lead' })}</Menu.Item>
+    </Menu>
+  ) : null;
+  const tabContent = (
     <div
       ref={setNodeRef}
       data-testid={`team-tab-${slot_id}`}
@@ -219,6 +233,12 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
       )}
     </div>
   );
+  if (!canMakeLead) return tabContent;
+  return (
+    <Dropdown trigger='contextMenu' droplist={leadContextMenu} position='br'>
+      {tabContent}
+    </Dropdown>
+  );
 };
 
 type TeamTabsProps = {
@@ -244,6 +264,8 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
     switchTab,
     renameAssistant,
     removeAssistant,
+    setLeadAssistant,
+    membershipMutationBusy,
     reorderAssistants,
     addAssistant,
     colorOf,
@@ -252,12 +274,18 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   // 就全部放开。后端对增删改成员本身有并发锁保证串行，前端不需要再叠一层忙碌禁用
   // （否则删完一个成员，后端重建剩余成员时又会把胶囊锁住，出现「删一个卡一下」的怪体验）。
   const memberOpsDisabled = warmingUp;
+  const leadTransferDisabled = warmingUp || membershipMutationBusy;
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
   // 拖拽进行中：冻结所有胶囊的 hover 增宽（改名/移除按钮），否则拖动经过时
   // 目标胶囊变宽→布局跳→hover 丢失→又变窄，形成闪烁循环。
   const [dragActive, setDragActive] = useState(false);
+  const [pendingLeadTransfer, setPendingLeadTransfer] = useState<{
+    slotId: string;
+    currentLeadName: string;
+    nextLeadName: string;
+  } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   // Only teammates are sortable; the leader pill is rendered outside the sortable id list.
   const sortableIds = useMemo(
@@ -302,6 +330,21 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
   );
 
   const handleDragCancel = useCallback(() => setDragActive(false), []);
+
+  const handleMakeLead = useCallback(
+    (slot_id: string) => {
+      if (!setLeadAssistant || leadTransferDisabled) return;
+      const currentLead = assistants.find((assistant) => assistant.role === 'leader');
+      const nextLead = assistants.find((assistant) => assistant.slot_id === slot_id);
+      if (!currentLead || !nextLead || nextLead.role === 'leader') return;
+      setPendingLeadTransfer({
+        slotId: slot_id,
+        currentLeadName: currentLead.assistant_name,
+        nextLeadName: nextLead.assistant_name,
+      });
+    },
+    [assistants, leadTransferDisabled, setLeadAssistant, t]
+  );
 
   if (assistants.length === 0) return null;
 
@@ -350,6 +393,11 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
                       renameAssistant && !memberOpsDisabled ? (sid, name) => void renameAssistant(sid, name) : undefined
                     }
                     onRemove={removeAssistant && !memberOpsDisabled ? (sid) => void removeAssistant(sid) : undefined}
+                    onMakeLead={
+                      setLeadAssistant && !leadTransferDisabled && assistant.role !== 'leader'
+                        ? handleMakeLead
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -404,6 +452,17 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts, warmingU
           </div>
         ) : null}
       </div>
+      {pendingLeadTransfer && setLeadAssistant && (
+        <TeamLeadTransferConfirmation
+          visible
+          currentLeadName={pendingLeadTransfer.currentLeadName}
+          nextLeadName={pendingLeadTransfer.nextLeadName}
+          onCancel={() => setPendingLeadTransfer(null)}
+          onConfirm={(interruptBusy, busyMembers) =>
+            setLeadAssistant(pendingLeadTransfer.slotId, interruptBusy, busyMembers)
+          }
+        />
+      )}
     </div>
   );
 };
