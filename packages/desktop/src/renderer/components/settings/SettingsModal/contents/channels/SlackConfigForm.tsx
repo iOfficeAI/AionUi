@@ -556,8 +556,8 @@ const SlackConfigForm: React.FC<SlackConfigFormProps> = ({
         </div>
       )}
 
-      {/* Pending Pairings - show when bot is enabled and no authorized users yet */}
-      {pluginStatus?.enabled && authorizedUsers.length === 0 && (
+      {/* Pending Pairings - show whenever the bot is enabled */}
+      {pluginStatus?.enabled && (
         <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
