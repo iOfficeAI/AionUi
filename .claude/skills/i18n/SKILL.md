@@ -25,10 +25,13 @@ This file is the **single source of truth**. All scripts, runtime code, and this
 ## File Structure
 
 ```
-src/common/config/i18n-config.json              # Single source of truth: languages, modules
-src/renderer/i18n/
+packages/desktop/src/common/config/i18n-config.json   # Single source of truth: languages, modules
+packages/desktop/src/renderer/services/i18n/
 ├── index.ts                             # i18next configuration
 ├── i18n-keys.d.ts                       # AUTO-GENERATED — do not edit manually
+├── direction.ts                         # RTL/LTR resolution
+├── format.ts                            # Formatting helpers
+├── list.ts                              # Language list for the UI
 └── locales/
     ├── <lang>/                          # One directory per language in i18n-config.json
     │   ├── index.ts                     # Barrel import for all modules
@@ -105,7 +108,7 @@ Get the current language list and module list. Do not skip this step.
 Before adding a new key, search for similar existing keys:
 
 ```bash
-grep -r "keyword" src/renderer/i18n/locales/en-US/
+grep -r "keyword" packages/desktop/src/renderer/services/i18n/locales/en-US/
 ```
 
 Reuse `common.*` keys when possible.
