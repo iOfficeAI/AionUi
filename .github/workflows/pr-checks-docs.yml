@@ -64,3 +64,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Docs-only PR, skipping unit tests."
+
+  # Coverage Test and I18n Check are required status checks on main. pr-checks.yml
+  # ignores '**/*.md' and 'docs/**', so on a docs-only PR they are never reported
+  # and branch protection waits on them forever — the PR cannot merge at all.
+  # Report them here for the same reason the unit-test jobs above are reported.
+  coverage-test:
+    name: Coverage Test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docs-only PR, no source changes to cover."
+
+  i18n-check:
+    name: I18n Check
+    runs-on: ubuntu-latest
+    steps:
+      # Translation data lives in *.json, which is outside this workflow's paths
+      # filter, so any real i18n change runs the full pr-checks.yml instead.
+      - run: echo "Docs-only PR, no i18n changes to validate."
