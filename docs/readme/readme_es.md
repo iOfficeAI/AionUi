@@ -228,7 +228,7 @@ Las mismas capacidades del Agent — lectura/escritura de archivos, búsqueda we
 - **Plataformas oficiales** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Proveedores en la nube** — AWS Bedrock, New API (puerta de enlace unificada de modelos AI)
 - **Plataformas chinas** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
-- **Plataformas internacionales** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Plataformas internacionales** — DeepSeek, MiniMax, Novita, OpenRouter, Requesty, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Modelos locales** — Ollama, LM Studio (a través de plataforma personalizada con endpoint API local)
 
 AionUi también admite el servicio de puerta de enlace [NewAPI](https://github.com/QuantumNous/new-api) — un centro unificado de modelos AI que agrega y distribuye varios LLMs. Cambia flexiblemente entre diferentes modelos en la misma interfaz para satisfacer diversos requisitos de tareas.

@@ -228,7 +228,7 @@ Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma,
 - **Resmi Platformlar** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Bulut Sağlayıcıları** — AWS Bedrock, New API (birleşik AI model ağ geçidi)
 - **Çin Platformları** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
-- **Uluslararası Platformlar** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Uluslararası Platformlar** — DeepSeek, MiniMax, Novita, OpenRouter, Requesty, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Yerel Modeller** — Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
 
 AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.

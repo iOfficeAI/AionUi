@@ -231,7 +231,7 @@ AionUi поставляется с полноценным движком ИИ-а
 - **Официальные платформы** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Облачные провайдеры** — AWS Bedrock, New API (унифицированный шлюз ИИ-моделей)
 - **Китайские платформы** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
-- **Международные платформы** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Международные платформы** — DeepSeek, MiniMax, Novita, OpenRouter, Requesty, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Локальные модели** — Ollama, LM Studio (через пользовательскую платформу с локальной API-точкой)
 
 AionUi также поддерживает шлюз-сервис [NewAPI](https://github.com/QuantumNous/new-api) — единый хаб ИИ-моделей, агрегирующий и распространяющий различные LLM. Гибкое переключение между разными моделями в одном интерфейсе для решения различных задач.

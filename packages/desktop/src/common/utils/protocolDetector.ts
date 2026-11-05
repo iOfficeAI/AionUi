@@ -208,6 +208,7 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       /api\.mistral\.ai/, // Mistral AI
       /api\.groq\.com/, // Groq
       /openrouter\.ai/, // OpenRouter
+      /requesty\.ai/, // Requesty
       /api\.together\.xyz/, // Together AI
       /api\.perplexity\.ai/, // Perplexity
       /dashscope\.aliyuncs\.com/, // 阿里云 DashScope

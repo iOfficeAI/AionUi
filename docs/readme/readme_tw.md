@@ -231,7 +231,7 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 - **官方平台** — Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
 - **雲端服務提供商** — AWS Bedrock、New API（統一 AI 模型閘道）
 - **中國平台** — Dashscope (Qwen)、Dashscope 編碼套餐、智譜、Moonshot (Kimi)、千帆 (百度)、混元 (騰訊)、零一萬物、ModelScope、InfiniAI、天翼雲、階躍星辰、SiliconFlow-CN、PPIO
-- **國際平台** — DeepSeek、MiniMax、Novita、OpenRouter、SiliconFlow、xAI、Ark (火山引擎)、Poe
+- **國際平台** — DeepSeek、MiniMax、Novita、OpenRouter、Requesty、SiliconFlow、xAI、Ark (火山引擎)、Poe
 - **本地模型** — Ollama、LM Studio（透過自訂平台設定本地 API 端點）
 
 AionUi 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 閘道服務 — 一個統一的 AI 模型中心，聚合和分發各種大語言模型。在同一個介面中靈活切換不同模型，滿足各種任務需求。
