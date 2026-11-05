@@ -10,6 +10,8 @@ export interface IChannelPluginStatus {
   activeUsers: number;
   botUsername?: string;
   hasToken?: boolean;
+  /** Lark region ("feishu"/"lark") from stored config, to restore the UI selector after reload. */
+  domain?: 'feishu' | 'lark';
   isExtension?: boolean;
   extensionMeta?: {
     credentialFields?: Array<{

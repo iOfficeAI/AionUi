@@ -2133,6 +2133,7 @@ function toPluginStatus(raw: RawPluginStatus): IChannelPluginStatus {
     hasToken: (raw.has_token ?? false) as boolean,
     isExtension: raw.is_extension as boolean | undefined,
     extensionMeta: raw.extension_meta as IChannelPluginStatus['extensionMeta'],
+    domain: raw.domain as IChannelPluginStatus['domain'],
   };
 }
 
@@ -2180,7 +2181,11 @@ export const channel = {
   disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
   testPlugin: httpPost<
     { success: boolean; bot_username?: string; error?: string },
-    { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
+    {
+      plugin_id: string;
+      token: string;
+      extra_config?: { app_id?: string; app_secret?: string; domain?: 'feishu' | 'lark' };
+    }
   >('/api/channel/plugins/test'),
   getPendingPairings: withResponseMap(httpGet<RawPairing[], void>('/api/channel/pairings'), (raw) =>
     raw.map(toPairing)

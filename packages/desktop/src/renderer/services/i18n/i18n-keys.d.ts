@@ -2098,6 +2098,7 @@ export type I18nKey =
   | 'settings.lark.optional'
   | 'settings.lark.pluginDisabled'
   | 'settings.lark.pluginEnabled'
+  | 'settings.lark.region'
   | 'settings.lark.showOptionalFields'
   | 'settings.lark.statusConnected'
   | 'settings.lark.statusConnecting'
