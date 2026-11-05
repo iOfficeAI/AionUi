@@ -15,13 +15,21 @@
 import { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 import { getCloseToTrayEnabled, getIsQuitting } from '@process/utils/tray';
+import { getDetachedWindowRegistry } from '@process/services/detachedWindowRegistry';
 
 /**
  * Resolve the window targeted by title-bar controls.
  * Prefer the focused window; fall back to the first live window so Linux
  * frameless close still works when focus is momentarily lost.
  */
-function resolveControlWindow(): BrowserWindow | null {
+function resolveControlWindow(webContentsId: number | null): BrowserWindow | null {
+  if (webContentsId !== null) {
+    const senderWindow = BrowserWindow.getAllWindows().find(
+      (window) => !window.isDestroyed() && window.webContents.id === webContentsId
+    );
+    if (senderWindow) return senderWindow;
+    return null;
+  }
   const focused = BrowserWindow.getFocusedWindow();
   if (focused && !focused.isDestroyed()) {
     return focused;
@@ -37,14 +45,18 @@ function resolveControlWindow(): BrowserWindow | null {
  * @param window - 要监听的 BrowserWindow 实例 / BrowserWindow instance to listen to
  */
 export function registerWindowMaximizeListeners(window: BrowserWindow): void {
+  // The emit is a broadcast to every renderer, so it carries the id of the
+  // window it is about; a renderer that is not that window ignores it.
+  const web_contents_id = window.webContents.id;
+
   // 当窗口最大化时通知渲染进程 / Notify renderer when window is maximized
   window.on('maximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: true });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: true, web_contents_id });
   });
 
   // 当窗口取消最大化时通知渲染进程 / Notify renderer when window is unmaximized
   window.on('unmaximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: false });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: false, web_contents_id });
   });
 }
 
@@ -56,9 +68,23 @@ export function registerWindowMaximizeListeners(window: BrowserWindow): void {
  * Register IPC handlers to respond to window control requests from renderer process
  */
 export function initWindowControlsBridge(): void {
+  ipcBridge.detachedWindow.open.provider(async ({ conversation_id }) => {
+    try {
+      await getDetachedWindowRegistry().openConversation(conversation_id);
+      return { success: true as const };
+    } catch (error) {
+      console.error('[AionUi] Failed to create detached conversation window:', error);
+      return { success: false as const, reason: 'window_open_failed' as const };
+    }
+  });
+
+  ipcBridge.detachedWindow.focus.provider(({ conversation_id }) =>
+    Promise.resolve(getDetachedWindowRegistry().focusConversation(conversation_id))
+  );
+
   // 最小化窗口 / Minimize window
-  ipcBridge.windowControls.minimize.provider(() => {
-    const window = resolveControlWindow();
+  ipcBridge.windowControls.minimize.provider(({ web_contents_id }) => {
+    const window = resolveControlWindow(web_contents_id);
     if (window) {
       window.minimize();
     }
@@ -66,8 +92,8 @@ export function initWindowControlsBridge(): void {
   });
 
   // 最大化窗口 / Maximize window
-  ipcBridge.windowControls.maximize.provider(() => {
-    const window = resolveControlWindow();
+  ipcBridge.windowControls.maximize.provider(({ web_contents_id }) => {
+    const window = resolveControlWindow(web_contents_id);
     if (window) {
       window.maximize();
     }
@@ -75,8 +101,8 @@ export function initWindowControlsBridge(): void {
   });
 
   // 取消最大化窗口 / Unmaximize window
-  ipcBridge.windowControls.unmaximize.provider(() => {
-    const window = resolveControlWindow();
+  ipcBridge.windowControls.unmaximize.provider(({ web_contents_id }) => {
+    const window = resolveControlWindow(web_contents_id);
     if (window) {
       window.unmaximize();
     }
@@ -88,12 +114,12 @@ export function initWindowControlsBridge(): void {
   // Honor close-to-tray here so we hide instead of destroying the window —
   // relying only on the BrowserWindow 'close' interceptor is not enough on
   // all Linux desktop environments when the close originates from renderer IPC.
-  ipcBridge.windowControls.close.provider(() => {
-    const window = resolveControlWindow();
+  ipcBridge.windowControls.close.provider(({ web_contents_id }) => {
+    const window = resolveControlWindow(web_contents_id);
     if (!window) {
       return Promise.resolve();
     }
-    if (getCloseToTrayEnabled() && !getIsQuitting()) {
+    if (!getDetachedWindowRegistry().isDetachedWindow(window) && getCloseToTrayEnabled() && !getIsQuitting()) {
       window.hide();
     } else {
       window.close();
@@ -102,8 +128,8 @@ export function initWindowControlsBridge(): void {
   });
 
   // 获取窗口是否最大化状态 / Get window maximized state
-  ipcBridge.windowControls.isMaximized.provider(() => {
-    const window = resolveControlWindow();
+  ipcBridge.windowControls.isMaximized.provider(({ web_contents_id }) => {
+    const window = resolveControlWindow(web_contents_id);
     return Promise.resolve(window?.isMaximized() ?? false);
   });
 

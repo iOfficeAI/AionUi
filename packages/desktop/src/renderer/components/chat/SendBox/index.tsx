@@ -348,6 +348,11 @@ const SendBox: React.FC<{
   const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
+  // Accept an addressed event only when it targets this box's conversation
+  // (undefined target = broadcast, back-compat). Prevents leaks across send
+  // boxes when several conversation views are mounted at once.
+  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
+    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
@@ -390,8 +395,24 @@ const SendBox: React.FC<{
   const highlightScrollRef = useRef<HTMLDivElement>(null);
 
   // Listen for reply events from message actions
-  useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
-  useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
+  useAddEventListener(
+    'sendbox.reply',
+    (quote, targetConversationId) => {
+      if (!acceptsTarget(targetConversationId)) return;
+      setReplyQuote(quote);
+    },
+    [conversationContext?.conversation_id]
+  );
+  useAddEventListener(
+    'sendbox.reply.clear',
+    (targetConversationId) => {
+      // Same guard as the reply itself: a send in one column must not wipe an
+      // unsent reply quote sitting in another.
+      if (!acceptsTarget(targetConversationId)) return;
+      setReplyQuote(null);
+    },
+    [conversationContext?.conversation_id]
+  );
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -403,11 +424,8 @@ const SendBox: React.FC<{
       const newValue = base ? `${base}\n\n${text}` : text;
       setInputRef.current(newValue);
     };
-    setSendBoxHandler(handler);
-    return () => {
-      setSendBoxHandler(null);
-    };
-  }, [setSendBoxHandler]);
+    return setSendBoxHandler(handler, conversationContext?.conversation_id);
+  }, [setSendBoxHandler, conversationContext?.conversation_id]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input
@@ -1086,12 +1104,6 @@ const SendBox: React.FC<{
       externalOwnedPathsRef.current.add(path);
     }
   }, []);
-
-  // Accept an append/set event only when it targets this box's conversation
-  // (undefined target = broadcast, back-compat). Prevents leaks across same-type
-  // send boxes on the multi-column team route.
-  const acceptsTarget = (targetConversationId: string | undefined): boolean =>
-    targetConversationId === undefined || targetConversationId === conversationContext?.conversation_id;
 
   useAddEventListener(
     'aionrs.selected.file.append',

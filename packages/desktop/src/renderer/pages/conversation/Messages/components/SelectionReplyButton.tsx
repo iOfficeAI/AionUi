@@ -6,6 +6,8 @@
 
 import type { TMessage } from '@/common/chat/chatLib';
 import { emitter } from '@/renderer/utils/emitter';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { resolveAnnouncementTarget } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useOptionalPreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -81,6 +83,7 @@ const BUTTON_HEIGHT = 32;
 const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
+  const conversationContext = useConversationContextSafe();
   const preview = useOptionalPreviewContext();
   const isMobile = layout?.isMobile ?? false;
   const [pos, setPos] = useState<ReplyPos | null>(null);
@@ -187,11 +190,15 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         className={itemClassName}
         onMouseDown={(e) => {
           e.preventDefault();
-          emitter.emit('sendbox.reply', {
-            messageId: pos.msgId,
-            content: pos.text,
-            position: pos.msgPos as 'left' | 'right' | 'center' | 'pop',
-          });
+          emitter.emit(
+            'sendbox.reply',
+            {
+              messageId: pos.msgId,
+              content: pos.text,
+              position: pos.msgPos as 'left' | 'right' | 'center' | 'pop',
+            },
+            resolveAnnouncementTarget(conversationContext?.conversation_id)
+          );
           dismiss();
         }}
       >

@@ -20,6 +20,25 @@ interface BridgeEventData {
   data: unknown;
 }
 
+const WINDOW_CONTROL_REQUEST = /^subscribe-window-controls:(?:minimize|maximize|unmaximize|close|is-maximized)$/;
+const NOTIFICATION_SHOW_REQUEST = 'subscribe-notification.show';
+
+/** Replace the renderer-provided window id with the authenticated IPC sender id. */
+export const bindTrustedIpcSender = (name: string, request: unknown, senderId: number): unknown => {
+  if (typeof request !== 'object' || request === null) return request;
+  const typedRequest = request as { id?: unknown; data?: unknown };
+  if (WINDOW_CONTROL_REQUEST.test(name)) {
+    return { ...typedRequest, data: { web_contents_id: senderId } };
+  }
+  if (name === NOTIFICATION_SHOW_REQUEST && typeof typedRequest.data === 'object' && typedRequest.data !== null) {
+    return {
+      ...typedRequest,
+      data: { ...typedRequest.data, source_web_contents_id: senderId },
+    };
+  }
+  return request;
+};
+
 const adapterWindowList: Array<BrowserWindow> = [];
 
 export { registerWebSocketBroadcaster, getBridgeEmitter };
@@ -90,9 +109,9 @@ bridge.adapter({
     // 保存 emitter 引用供 WebSocket 处理使用 / Save emitter reference for WebSocket handling
     setBridgeEmitter(emitter);
 
-    ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (_event, info) => {
+    ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (event, info) => {
       const { name, data } = JSON.parse(info) as BridgeEventData;
-      return Promise.resolve(emitter.emit(name, data));
+      return Promise.resolve(emitter.emit(name, bindTrustedIpcSender(name, data, event.sender.id)));
     });
   },
 });
