@@ -16,12 +16,22 @@ import { createSkillFileService } from '@process/services/skills';
 import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, resolveCliSafePath } from '@process/utils';
 
+import { fetchAgyQuota } from '@process/services/agentQuotaService';
+
 export function initApplicationBridgeCore(): void {
   const skillFiles = createSkillFileService();
   ipcBridge.fs.listSkillFiles.provider(({ skill_location }) => skillFiles.list(skill_location));
   ipcBridge.fs.readSkillFile.provider(({ skill_location, relative_path }) =>
     skillFiles.read(skill_location, relative_path)
   );
+
+  ipcBridge.application.getModelQuota.provider(async (params) => {
+    const opts = params && typeof params === 'object' ? params : undefined;
+    return await fetchAgyQuota({
+      cliPath: opts?.cliPath,
+      forceRefresh: opts?.forceRefresh,
+    });
+  });
 
   // application.systemInfo is served by the backend via HTTP; updateSystemInfo
   // and getPath below remain buildProvider (true IPC) because they need

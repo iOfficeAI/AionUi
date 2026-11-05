@@ -39,53 +39,104 @@ cli:
 # Check all build prerequisites are met
 [no-exit-message]
 preflight:
-    #!/usr/bin/env pwsh
-    $ErrorActionPreference = 'Continue'
-    $failed = $false
-    Write-Host "=========================================="
-    Write-Host "  AionUI Build Preflight Check"
-    Write-Host "=========================================="
-    Write-Host ""
-    Write-Host "[1/6] Node.js..."
-    try {
-        $nodeVer = (node --version 2>&1).Trim()
-        $major = [int]($nodeVer -replace '^v','').Split('.')[0]
-        if ($major -ge 22) { Write-Host "  OK  Node.js $nodeVer" }
-        else { Write-Host "  WARN  Node.js $nodeVer (recommend >= 22)" }
-    } catch { Write-Host "  FAIL  Node.js not found"; $failed = $true }
-    Write-Host "[2/6] bun..."
-    try {
-        $bunVer = (bun --version 2>&1).Trim()
-        Write-Host "  OK  bun $bunVer"
-    } catch { Write-Host "  FAIL  bun not found"; $failed = $true }
-    Write-Host "[3/6] Python (for native modules)..."
-    try {
-        $pyVer = (python --version 2>&1).Trim()
-        Write-Host "  OK  $pyVer"
-    } catch { Write-Host "  WARN  Python not found (needed for native module compilation)" }
-    Write-Host "[4/6] Dependencies (node_modules)..."
-    if ((Test-Path "node_modules") -and ((Test-Path "bun.lock") -or (Test-Path "package-lock.json"))) {
-        Write-Host "  OK  node_modules exists"
-    } else {
-        Write-Host "  WARN  node_modules missing - running: just install"
-        just install
-        if (Test-Path "node_modules") { Write-Host "  OK  node_modules installed" }
-        else { Write-Host "  FAIL  Failed to install dependencies"; $failed = $true }
-    }
-    Write-Host "[5/6] Native modules (better-sqlite3)..."
-    $nativeOk = (Test-Path "node_modules/better-sqlite3/build/Release/better_sqlite3.node") -or (Test-Path "node_modules/better-sqlite3/prebuilds")
-    if ($nativeOk) { Write-Host "  OK  better-sqlite3 native module found" }
-    else { Write-Host "  WARN  better-sqlite3 native binary missing - run: just rebuild-native" }
-    Write-Host "[6/6] Electron version..."
-    try {
-        $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim()
-        Write-Host "  OK  Electron $electronVer"
-    } catch { Write-Host "  FAIL  Cannot read Electron version"; $failed = $true }
-    Write-Host ""
-    Write-Host "=========================================="
-    if ($failed) { Write-Host "  PREFLIGHT FAILED"; exit 1 }
-    else { Write-Host "  PREFLIGHT PASSED" }
-    Write-Host "=========================================="
+    #!/usr/bin/env bash
+    if command -v pwsh >/dev/null 2>&1; then
+        pwsh -NoProfile -Command '
+        $ErrorActionPreference = "Continue"
+        $failed = $false
+        Write-Host "=========================================="
+        Write-Host "  AionUI Build Preflight Check"
+        Write-Host "=========================================="
+        Write-Host ""
+        Write-Host "[1/6] Node.js..."
+        try {
+            $nodeVer = (node --version 2>&1).Trim()
+            $major = [int]($nodeVer -replace "^v","").Split(".")[0]
+            if ($major -ge 22) { Write-Host "  OK  Node.js $nodeVer" }
+            else { Write-Host "  WARN  Node.js $nodeVer (recommend >= 22)" }
+        } catch { Write-Host "  FAIL  Node.js not found"; $failed = $true }
+        Write-Host "[2/6] bun..."
+        try {
+            $bunVer = (bun --version 2>&1).Trim()
+            Write-Host "  OK  bun $bunVer"
+        } catch { Write-Host "  FAIL  bun not found"; $failed = $true }
+        Write-Host "[3/6] Python (for native modules)..."
+        try {
+            $pyVer = (python --version 2>&1).Trim()
+            Write-Host "  OK  $pyVer"
+        } catch { Write-Host "  WARN  Python not found (needed for native module compilation)" }
+        Write-Host "[4/6] Dependencies (node_modules)..."
+        if ((Test-Path "node_modules") -and ((Test-Path "bun.lock") -or (Test-Path "package-lock.json"))) {
+            Write-Host "  OK  node_modules exists"
+        } else {
+            Write-Host "  WARN  node_modules missing - running: just install"
+            just install
+            if (Test-Path "node_modules") { Write-Host "  OK  node_modules installed" }
+            else { Write-Host "  FAIL  Failed to install dependencies"; $failed = $true }
+        }
+        Write-Host "[5/6] Native modules (better-sqlite3)..."
+        $nativeOk = (Test-Path "node_modules/better-sqlite3/build/Release/better_sqlite3.node") -or (Test-Path "node_modules/better-sqlite3/prebuilds")
+        if ($nativeOk) { Write-Host "  OK  better-sqlite3 native module found" }
+        else { Write-Host "  WARN  better-sqlite3 native binary missing - run: just rebuild-native" }
+        Write-Host "[6/6] Electron version..."
+        try {
+            $electronVer = (node -p "require(\"./package.json\").devDependencies.electron.replace(/[\^~]/g, \"\")" 2>&1).Trim()
+            Write-Host "  OK  Electron $electronVer"
+        } catch { Write-Host "  FAIL  Cannot read Electron version"; $failed = $true }
+        Write-Host ""
+        Write-Host "=========================================="
+        if ($failed) { Write-Host "  PREFLIGHT FAILED"; exit 1 }
+        else { Write-Host "  PREFLIGHT PASSED" }
+        Write-Host "=========================================="
+        '
+    else
+        echo "=========================================="
+        echo "  AionUI Build Preflight Check"
+        echo "=========================================="
+        echo ""
+        echo "[1/6] Node.js..."
+        if command -v node >/dev/null 2>&1; then
+            echo "  OK  Node.js $(node --version)"
+        else
+            echo "  FAIL  Node.js not found"
+            exit 1
+        fi
+        echo "[2/6] bun..."
+        if command -v bun >/dev/null 2>&1; then
+            echo "  OK  bun $(bun --version)"
+        else
+            echo "  FAIL  bun not found"
+            exit 1
+        fi
+        echo "[3/6] Python..."
+        if command -v python3 >/dev/null 2>&1; then
+            echo "  OK  $(python3 --version 2>&1)"
+        elif command -v python >/dev/null 2>&1; then
+            echo "  OK  $(python --version 2>&1)"
+        else
+            echo "  WARN  Python not found (needed for native module compilation)"
+        fi
+        echo "[4/6] Dependencies (node_modules)..."
+        if [ -d "node_modules" ]; then
+            echo "  OK  node_modules exists"
+        else
+            echo "  WARN  node_modules missing - running bun install..."
+            bun install
+        fi
+        echo "[5/6] Native modules (better-sqlite3)..."
+        if [ -f "node_modules/better-sqlite3/build/Release/better_sqlite3.node" ] || [ -d "node_modules/better-sqlite3/prebuilds" ]; then
+            echo "  OK  better-sqlite3 native module found"
+        else
+            echo "  WARN  better-sqlite3 native binary missing - run: just rebuild-native"
+        fi
+        echo "[6/6] Electron version..."
+        ELECTRON_VER=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+        echo "  OK  Electron $ELECTRON_VER"
+        echo ""
+        echo "=========================================="
+        echo "  PREFLIGHT PASSED"
+        echo "=========================================="
+    fi
 
 # Show current build environment info
 info:
