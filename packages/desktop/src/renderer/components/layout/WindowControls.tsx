@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Minus, CloseSmall } from '@icon-park/react';
 import { ipcBridge } from '@/common';
+import { getWindowId } from '@/renderer/utils/platform';
 
 const WindowMaximizeIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox='0 0 18 18' fill='none' stroke='currentColor' strokeWidth='1.4'>
@@ -41,7 +42,12 @@ const WindowControls: React.FC = () => {
       });
 
     // 订阅窗口最大化状态变化 / Subscribe to window maximize state changes
-    const unsubscribe = ipcBridge.windowControls.maximizedChanged.on(({ is_maximized }) => {
+    // The main process broadcasts to every renderer, so drop the events that
+    // belong to another window — otherwise a second window maximizing would
+    // flip this window's control into the restore state.
+    const ownWindowId = getWindowId();
+    const unsubscribe = ipcBridge.windowControls.maximizedChanged.on(({ is_maximized, web_contents_id }) => {
+      if (ownWindowId !== null && web_contents_id !== ownWindowId) return;
       if (isMounted) {
         setIsMaximized(is_maximized);
       }

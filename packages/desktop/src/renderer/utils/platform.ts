@@ -20,6 +20,17 @@ export const isElectronDesktop = (): boolean => {
 };
 
 /**
+ * The webContents id of the window this renderer runs in, or `null` outside
+ * Electron (WebUI browser mode, tests). Main-process broadcasts that concern a
+ * single window carry this id so the other windows can ignore them.
+ */
+export const getWindowId = (): number | null => {
+  if (typeof window === 'undefined') return null;
+  const id = (window as Window & { __windowId?: number | null }).__windowId;
+  return typeof id === 'number' ? id : null;
+};
+
+/**
  * Check if running on macOS
  * 检测是否运行在 macOS
  */
