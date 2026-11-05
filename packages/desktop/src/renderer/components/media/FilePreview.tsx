@@ -20,10 +20,29 @@ const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.
 const IMAGE_NOT_FOUND_B64_MARKER = 'kltYWdlIG5vdCBmb3VuZD';
 const MAX_IMAGE_RETRIES = 5;
 const IMAGE_RETRY_DELAY_MS = 800;
+const MAX_THUMB_WIDTH = 60;
+const MAX_THUMB_HEIGHT = 60;
 
 const isImageFile = (path: string): boolean => {
   const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
   return IMAGE_EXTS.has(ext);
+};
+
+/** Scale intrinsic image size to fit within max bounds while preserving aspect ratio. */
+export const fitImageWithinBounds = (
+  naturalWidth: number,
+  naturalHeight: number,
+  maxWidth = MAX_THUMB_WIDTH,
+  maxHeight = MAX_THUMB_HEIGHT
+): { width: number; height: number } => {
+  if (!(naturalWidth > 0) || !(naturalHeight > 0)) {
+    return { width: maxWidth, height: maxHeight };
+  }
+  const scale = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight, 1);
+  return {
+    width: Math.max(1, Math.round(naturalWidth * scale)),
+    height: Math.max(1, Math.round(naturalHeight * scale)),
+  };
 };
 
 interface FilePreviewProps {
@@ -49,6 +68,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   const { i18n } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
+  const [thumbSize, setThumbSize] = useState({ width: MAX_THUMB_WIDTH, height: MAX_THUMB_HEIGHT });
 
   useEffect(() => {
     // 获取文件大小
@@ -102,6 +122,29 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
     return undefined;
   }, [isImage, path]);
 
+  useEffect(() => {
+    if (!isImage || !imageUrl) {
+      setThumbSize({ width: MAX_THUMB_WIDTH, height: MAX_THUMB_HEIGHT });
+      return undefined;
+    }
+
+    let cancelled = false;
+    const probe = new window.Image();
+    probe.onload = () => {
+      if (cancelled) return;
+      setThumbSize(fitImageWithinBounds(probe.naturalWidth, probe.naturalHeight));
+    };
+    probe.onerror = () => {
+      if (cancelled) return;
+      setThumbSize({ width: MAX_THUMB_WIDTH, height: MAX_THUMB_HEIGHT });
+    };
+    probe.src = imageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isImage, imageUrl]);
+
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRemove();
@@ -111,18 +154,24 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
 
   if (isImage) {
     return withHint(
-      <div className='relative inline-block'>
+      <div className='relative inline-block' data-testid='file-preview-image'>
         <div className='rd-8px overflow-hidden border-1 border-solid b-color-border-2'>
           <Image
             src={imageUrl}
             alt={file_name}
-            width={60}
-            height={60}
-            className='object-cover cursor-pointer'
+            width={thumbSize.width}
+            height={thumbSize.height}
+            className='object-contain cursor-pointer'
             style={{ display: imageUrl ? 'block' : 'none' }}
             preview={Boolean(imageUrl)}
           />
-          {!imageUrl && <div className='w-60px h-60px bg-bg-3'></div>}
+          {!imageUrl && (
+            <div
+              className='bg-bg-3'
+              data-testid='file-preview-image-placeholder'
+              style={{ width: thumbSize.width, height: thumbSize.height }}
+            />
+          )}
         </div>
         {!readonly && (
           <div
