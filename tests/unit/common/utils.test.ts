@@ -147,7 +147,7 @@ describe('utils', () => {
       expect(resolveLocaleKey('tr-TR')).toBe('tr-TR');
     });
 
-    it('resolves ru, uk, pt, de, es, fr, and fa variants to supported locales', () => {
+    it('resolves ru, uk, pt, de, es, fr, fa, and id variants to supported locales', () => {
       expect(resolveLocaleKey('ru')).toBe('ru-RU');
       expect(resolveLocaleKey('ru-RU')).toBe('ru-RU');
       expect(resolveLocaleKey('uk')).toBe('uk-UA');
@@ -162,6 +162,8 @@ describe('utils', () => {
       expect(resolveLocaleKey('fr-FR')).toBe('fr-FR');
       expect(resolveLocaleKey('fa')).toBe('fa-IR');
       expect(resolveLocaleKey('fa-IR')).toBe('fa-IR');
+      expect(resolveLocaleKey('id')).toBe('id-ID');
+      expect(resolveLocaleKey('id-ID')).toBe('id-ID');
     });
 
     it('resolves unknown languages to en-US', () => {
@@ -181,6 +183,7 @@ describe('utils', () => {
       expect(resolveLocaleKey('ES')).toBe('es-ES');
       expect(resolveLocaleKey('FR')).toBe('fr-FR');
       expect(resolveLocaleKey('FA')).toBe('fa-IR');
+      expect(resolveLocaleKey('ID')).toBe('id-ID');
     });
 
     it('handles empty string', () => {

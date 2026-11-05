@@ -28,6 +28,7 @@ import deDE from './locales/de-DE/index';
 import esES from './locales/es-ES/index';
 import frFR from './locales/fr-FR/index';
 import faIR from './locales/fa-IR/index';
+import idID from './locales/id-ID/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
 // Re-exports
@@ -50,6 +51,7 @@ const localeData: LocaleData = {
   'es-ES': esES,
   'fr-FR': frFR,
   'fa-IR': faIR,
+  'id-ID': idID,
 };
 
 const fallbackLocale = localeData[DEFAULT_LANGUAGE] ?? {};

@@ -1,0 +1,59 @@
+{
+  "health": {
+    "detectedError": "Terdeteksi kesalahan pada agen saat ini ({{agent}})",
+    "autoSwitching": ". Sistem akan mencoba beralih secara otomatis.",
+    "evaluating": "Mengevaluasi latensi jaringan dan ketersediaan model...",
+    "checking": "Memeriksa endpoint {{agent}}...",
+    "foundBest": "Ditemukan alternatif terbaik",
+    "recommendSwitch": "Disarankan",
+    "available": "Tersedia",
+    "lowLatency": "Latensi Rendah",
+    "mediumLatency": "Latensi Sedang",
+    "highLatency": "Latensi Tinggi",
+    "bestMatch": "Paling Cocok",
+    "noAvailable": "Tidak ada agen yang tersedia di lingkungan saat ini",
+    "checkConfig": "Silakan periksa konfigurasi atau coba lagi nanti"
+  },
+  "setup": {
+    "connectionError": "Kesalahan Koneksi",
+    "notConfigured": "{{agent}} belum dikonfigurasi",
+    "authRequired": "Autentikasi atau kunci API diperlukan untuk menggunakan agen ini.",
+    "findingAlternatives": "Mencari alternatif yang tersedia...",
+    "checkingAgent": "Memeriksa {{agent}}...",
+    "alternativesFound": "Ditemukan {{count}} alternatif yang tersedia",
+    "autoSwitching": "Beralih otomatis ke agen terbaik yang tersedia...",
+    "configError": "Kesalahan konfigurasi. Silakan periksa pengaturan Anda atau pilih alternatif:",
+    "noAlternatives": "Tidak ditemukan agen yang tersedia",
+    "configureFirst": "Silakan konfigurasikan agen di Pengaturan terlebih dahulu.",
+    "switching": "Mengganti agen..."
+  },
+  "model": {
+    "switchSuccess": "Model berhasil diganti",
+    "switchFailed": "Gagal mengganti model",
+    "searchPlaceholder": "Cari model",
+    "noResults": "Tidak ada model yang cocok"
+  },
+  "config": {
+    "setting": "Menerapkan pengaturan...",
+    "commandAck": "Perintah terkirim, tetapi statusnya belum dikonfirmasi. Muat ulang atau coba lagi nanti.",
+    "timeout": "Konfirmasi pengaturan habis waktu. Status sebelumnya masih ditampilkan.",
+    "busy": "Pengaturan lain sedang diterapkan. Coba lagi nanti.",
+    "failed": "Gagal menerapkan pengaturan. Status sebelumnya masih ditampilkan."
+  },
+  "thoughtLevel": {
+    "label": "Tingkat Berpikir",
+    "switchSuccess": "Tingkat berpikir diganti",
+    "switchFailed": "Gagal mengganti tingkat berpikir"
+  },
+  "warmup": {
+    "clickToWake": "Klik untuk membangunkan anggota ini"
+  },
+  "runtimeRestart": {
+    "tooltip": "Hubungkan ulang agen",
+    "confirmContent": "Mulai ulang proses agen agar mengambil perubahan konfigurasi CLI eksternal (seperti pergantian channel). Riwayat obrolan tetap tersimpan dan sesi dilanjutkan bila memungkinkan.",
+    "success": "Agen terhubung ulang",
+    "failed": "Gagal menghubungkan ulang agen",
+    "initializingTooltip": "Agen sedang diinisialisasi. Hubungkan ulang setelah siap",
+    "processingTooltip": "Tunggu balasan saat ini selesai sebelum menghubungkan ulang"
+  }
+}

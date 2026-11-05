@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Masuk",
+  "brand": "AionUi",
+  "subtitle": "Selamat datang kembali, silakan masuk ke akun Anda",
+  "username": "Nama pengguna",
+  "usernamePlaceholder": "Masukkan nama pengguna Anda",
+  "password": "Kata sandi",
+  "passwordPlaceholder": "Masukkan kata sandi Anda",
+  "rememberMe": "Ingat saya",
+  "submit": "Masuk",
+  "submitting": "Sedang masuk...",
+  "success": "Masuk berhasil! Mengalihkan...",
+  "showPassword": "Tampilkan kata sandi",
+  "hidePassword": "Sembunyikan kata sandi",
+  "languageToggle": "Ganti bahasa",
+  "footerPrimary": "Ubah AI command-line Anda",
+  "footerSecondary": "Modern & Efisien",
+  "errors": {
+    "empty": "Silakan masukkan nama pengguna dan kata sandi",
+    "invalidCredentials": "Nama pengguna atau kata sandi salah",
+    "tooManyAttempts": "Terlalu banyak percobaan, silakan coba lagi nanti",
+    "networkError": "Koneksi gagal, silakan coba lagi",
+    "serverError": "Kesalahan server, silakan coba lagi nanti",
+    "unknown": "Masuk gagal, silakan coba lagi"
+  }
+}

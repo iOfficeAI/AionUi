@@ -14,11 +14,13 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('zh-CN')).toBe('zh-CN');
       expect(normalizeLanguageCode('de-DE')).toBe('de-DE');
       expect(normalizeLanguageCode('fa-IR')).toBe('fa-IR');
+      expect(normalizeLanguageCode('id-ID')).toBe('id-ID');
     });
 
     it('normalizes underscores to hyphens', () => {
       expect(normalizeLanguageCode('de_DE')).toBe('de-DE');
       expect(normalizeLanguageCode('fa_IR')).toBe('fa-IR');
+      expect(normalizeLanguageCode('id_ID')).toBe('id-ID');
       expect(normalizeLanguageCode('pt_BR')).toBe('pt-BR');
     });
 
@@ -44,11 +46,16 @@ describe('i18n', () => {
       expect(normalizeLanguageCode('es')).toBe('es-ES');
       expect(normalizeLanguageCode('fr')).toBe('fr-FR');
       expect(normalizeLanguageCode('fa')).toBe('fa-IR');
+      expect(normalizeLanguageCode('id')).toBe('id-ID');
     });
 
     it('resolves German regional variants to de-DE', () => {
       expect(normalizeLanguageCode('de-AT')).toBe('de-DE');
       expect(normalizeLanguageCode('de-CH')).toBe('de-DE');
+    });
+
+    it('resolves Indonesian regional variants to id-ID', () => {
+      expect(normalizeLanguageCode('id-ID')).toBe('id-ID');
     });
 
     it('falls back to the default language for unsupported codes', () => {

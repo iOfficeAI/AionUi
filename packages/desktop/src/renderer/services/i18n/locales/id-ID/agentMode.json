@@ -1,0 +1,22 @@
+{
+  "plan": "Mode Rencana",
+  "default": "Default",
+  "acceptEdits": "Terima Perubahan",
+  "autoEdit": "Edit Otomatis",
+  "auto_edit": "Edit Otomatis",
+  "read-only": "Hanya Baca",
+  "full-access": "Akses Penuh",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Otomatis Penuh (Tanpa Sandbox)",
+  "auto": "Otomatis",
+  "dontAsk": "Jangan Tanya",
+  "bypass": "Lewati (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Cerdas",
+  "build": "Mode Build",
+  "permission": "Izin",
+  "switchMode": "Mode Izin",
+  "switchSuccess": "Mode berhasil diganti",
+  "switchPendingNextTurn": "Berlaku mulai giliran berikutnya",
+  "switchFailed": "Gagal mengganti mode"
+}

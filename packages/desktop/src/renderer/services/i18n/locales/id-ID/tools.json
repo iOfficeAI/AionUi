@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Berkas tidak dikenal",
+  "newFile": "Berkas Baru",
+  "deletedFile": "Berkas Dihapus",
+  "modified": "Diubah",
+  "fileChanges": "Perubahan Berkas",
+  "shell": {
+    "displayName": "Perintah Shell",
+    "description": "Jalankan perintah shell"
+  },
+  "fileOps": {
+    "displayName": "Operasi Berkas",
+    "description": "Baca, tulis, dan ubah berkas"
+  },
+  "webSearch": {
+    "displayName": "Pencarian Web",
+    "description": "Cari konten web"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "Alat MCP: {{toolName}}",
+      "description": "Pemanggilan alat MCP: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Alat Tidak Dikenal",
+    "description": "Jenis alat tidak dikenal"
+  },
+  "status": {
+    "pending": "Menunggu",
+    "executing": "Menjalankan",
+    "success": "Berhasil",
+    "error": "Kesalahan",
+    "canceled": "Dibatalkan"
+  },
+  "titles": {
+    "web_search_started": "Pencarian Web Dimulai",
+    "web_search_completed": "Pencarian Web Selesai",
+    "web_search": "Pencarian Web",
+    "applying_patch": "Menerapkan Patch",
+    "patch_applied": "Patch Diterapkan",
+    "file_patch": "Patch Berkas",
+    "mcp_tool_starting": "Alat MCP: {{toolName}} (memulai)",
+    "mcp_tool": "Alat MCP: {{toolName}}",
+    "execute_command": "Jalankan: {{command}}",
+    "command_output": "Keluaran Perintah",
+    "command_completed": "Perintah Selesai",
+    "shell_command": "Perintah Shell"
+  },
+  "labels": {
+    "search_query": "Kueri Pencarian:",
+    "file_changes": "Perubahan Berkas:",
+    "tool_details": "Detail Alat:",
+    "tool": "Alat",
+    "arguments": "Argumen:",
+    "result": "Hasil:",
+    "command": "Perintah:",
+    "working_directory": "Direktori kerja:",
+    "exit_code": "Keluar: {{code}}",
+    "duration": "Durasi: {{seconds}}",
+    "auto_approved": "Disetujui otomatis",
+    "manual_approval": "Persetujuan manual"
+  },
+  "actions": {
+    "create": "buat",
+    "modify": "ubah",
+    "delete": "hapus"
+  }
+}

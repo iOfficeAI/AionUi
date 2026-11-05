@@ -14,7 +14,8 @@
     "de-DE",
     "es-ES",
     "fr-FR",
-    "fa-IR"
+    "fa-IR",
+    "id-ID"
   ],
   "modules": [
     "common",

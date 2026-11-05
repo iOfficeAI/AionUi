@@ -1,0 +1,193 @@
+{
+  "sider": {
+    "title": "Tim",
+    "createTeam": "Tim Baru",
+    "pin": "Sematkan",
+    "unpin": "Lepas sematan",
+    "rename": "Ganti nama",
+    "delete": "Hapus",
+    "renameTitle": "Ganti Nama Tim",
+    "renamePlaceholder": "Nama tim",
+    "deleteConfirm": "Hapus tim ini?",
+    "deleteConfirmContent": "Tindakan ini tidak dapat dibatalkan.",
+    "deleteOk": "Hapus",
+    "deleteCancel": "Batal",
+    "renameOk": "Simpan",
+    "renameCancel": "Batal",
+    "renameSuccess": "Tim diganti namanya",
+    "deleteSuccess": "Tim dihapus",
+    "archive": "Arsipkan",
+    "archiveSuccess": "Tim diarsipkan",
+    "archiveFailed": "Gagal mengarsipkan tim"
+  },
+  "newAgent": "Asisten Baru",
+  "noMessages": "Belum ada pesan.",
+  "agentNotConfigured": "Asisten belum dikonfigurasi.",
+  "stopAgentFailed": "Gagal menghentikan asisten ini. Silakan coba lagi.",
+  "work": {
+    "processingWithQueued": "Memproses… {{count}} dalam antrean",
+    "queued": "{{count}} dalam antrean",
+    "runtimeStarting": "Menunggu asisten ini mulai…",
+    "runtimeFailed": "Asisten ini gagal mulai.",
+    "removing": "Menghapus asisten ini…",
+    "sessionStopped": "Sesi tim telah berhenti.",
+    "retryStart": "Coba mulai lagi"
+  },
+  "sendBox": {
+    "placeholder": "Kirim pesan ke asisten ketua tim..."
+  },
+  "create": {
+    "title": "Tim Baru",
+    "namePlaceholder": "Nama tim",
+    "dispatchAgentPlaceholder": "Pilih asisten ketua tim",
+    "subAgentsPlaceholder": "Pilih asisten anggota tim",
+    "confirm": "Konfirmasi Buat",
+    "noSupportedAgents": "Tidak ada asisten yang didukung",
+    "supportedAgentsHint": "Saat ini mendukung asisten Claude dan Aion CLI. Asisten lain segera hadir.",
+    "leaderDesc": "Memahami tujuan Anda dan mengoordinasikan para asisten untuk menyelesaikan tugas",
+    "searchPlaceholder": "Cari",
+    "noSearchResults": "Tidak ditemukan hasil",
+    "step": {
+      "dispatch": "Ketua Tim",
+      "subAgents": "Anggota Tim",
+      "workspace": "Proyek"
+    },
+    "nameRequired": "Silakan masukkan nama tim",
+    "leaderRequired": "Silakan pilih ketua tim",
+    "selectFolder": "Pilih folder",
+    "recentLabel": "Terkini",
+    "chooseDifferentFolder": "Pilih folder lain",
+    "error": "Gagal membuat tim",
+    "selectedMembers": "Anggota terpilih",
+    "teamLeader": "Ketua Tim",
+    "currentLeader": "Ketua Saat Ini",
+    "setAsLeader": "Jadikan Ketua",
+    "teammate": "Rekan Setim",
+    "selectAtLeastOneMember": "Pilih setidaknya satu asisten sebagai Ketua Tim.",
+    "selectOneLeader": "Pilih satu Ketua Tim",
+    "subtitle": "Biarkan beberapa asisten AI bekerja sama dan berkolaborasi. Kami menyarankan satu tim fokus pada satu tujuan — buat tim terpisah untuk tugas yang berbeda.",
+    "nameLabel": "Nama tim",
+    "workspaceLabel": "Ruang kerja",
+    "allAssistantsWithCount": "Semua asisten ({{count}})",
+    "selectedMembersWithCount": "Anggota terpilih {{count}} · ⚑ = Ketua",
+    "selectedMembersTitleWithCount": "Anggota terpilih {{count}}",
+    "leaderLegend": "= Ketua",
+    "membersHelper": "Pilih anggota tim dan tetapkan satu Ketua. Asisten yang sama dapat dipilih berkali-kali.",
+    "memberHint": "Tidak ada asisten yang cocok sebagai anggota? Setelah dibuat, minta Ketua membuat anggota tim sementara di obrolan."
+  },
+  "removeAgent": {
+    "confirmTitle": "Hapus Anggota Tim",
+    "confirmContent": "Hapus anggota ini dari tim?",
+    "confirmContentActive": "Anggota ini sedang bekerja. Tetap hapus? Pekerjaannya saat ini akan terganggu."
+  },
+  "emptyState": {
+    "subtitle": "Jelaskan tujuan Anda dan saya akan menggerakkan tim untuk mengerjakannya",
+    "suggestions": {
+      "debate": "Adakan debat dengan para asisten di pihak yang berbeda",
+      "interview": "Rencanakan wawancara mendalam antar asisten",
+      "expert_review": "Minta beberapa ahli menganalisis masalah yang sama",
+      "add_member": "Bantu saya menambah anggota yang ahli di ___ ke tim"
+    },
+    "leaderGreeting": "Hai, saya Ketuanya. Saya memahami tujuan Anda dan mengoordinasikan tim — jelaskan yang Anda inginkan dan saya akan mengaturnya.",
+    "memberGreeting": "Hai, saya anggota tim. Saya mengikuti arahan Ketua dan Anda."
+  },
+  "addMember": {
+    "title": "Tambah anggota",
+    "subtitle": "Asisten yang sama dapat ditambahkan berulang kali",
+    "searchAssistants": "Cari asisten...",
+    "addFailed": "Gagal menambah anggota",
+    "noSearchResults": "Tidak ditemukan hasil",
+    "tellLeaderHint": "Tidak cocok? Anda juga dapat meminta Ketua untuk mengaturnya.",
+    "tellLeaderCta": "Beri tahu Ketua →",
+    "tellLeaderPrefill": "Bantu saya menambah anggota yang ahli di ___ ke tim"
+  },
+  "view": {
+    "label": "Tampilan",
+    "parallel": "Paralel",
+    "single": "Tunggal",
+    "board": "Papan"
+  },
+  "warmup": {
+    "title": "Membangunkan tim…",
+    "subtitle": "Menyiapkan para anggota",
+    "memberFailedTitle": "Anggota {{name}} gagal mulai",
+    "leaderFailedTitle": "Ketua {{name}} gagal mulai",
+    "genericFailedTitle": "Tim tidak dapat mulai",
+    "multiFailedTitle": "{{count}} anggota gagal mulai",
+    "leaderSuffix": " (Ketua)",
+    "unknownError": "gagal mulai",
+    "memberFailedHint": "Ganti modelnya di atas, atau hapus dari bilah di atas, lalu coba lagi.",
+    "leaderFailedHint": "Ganti modelnya di atas, lalu coba lagi.",
+    "retry": "Coba lagi"
+  },
+  "reorderMember": "Seret untuk menyusun ulang anggota",
+  "interruptAndSend": "Interupsi & kirim",
+  "interruptAgentFailed": "Gagal menginterupsi agen ini. Silakan coba lagi.",
+  "agentActions": {
+    "label": "Tindakan agen",
+    "reconnectDescription": "Mulai ulang proses agen dan pertahankan konteks saat ini.",
+    "disabled": {
+      "initializing": "Agen sedang diinisialisasi.",
+      "busy": "Tunggu balasan saat ini dan pekerjaan antrean selesai.",
+      "dormant": "Bangunkan anggota ini terlebih dahulu.",
+      "failed": "Coba mulai ulang anggota ini terlebih dahulu.",
+      "removing": "Anggota ini sedang dihapus.",
+      "sessionStopped": "Sesi tim telah berhenti.",
+      "unsupported": "Agen ini tidak mendukung memulai konteks baru.",
+      "leaderNotTargetable": "Ketua tim tidak dapat memulai konteks baru."
+    },
+    "contextReset": {
+      "title": "Mulai konteks baru",
+      "description": "Buat sesi backend baru. Riwayat obrolan dan tugas tetap tersimpan.",
+      "confirmTitle": "Mulai konteks baru untuk {{memberName}}?",
+      "confirmContent": "Ini akan menghentikan sesi agen saat ini dan membuat sesi backend baru untuk pesan berikutnya. Riwayat obrolan, tugas, berkas, model, dan pengaturan anggota tetap tersimpan, tetapi agen tidak lagi memiliki konteks penalaran dari sesi sebelumnya.",
+      "confirm": "Mulai konteks baru",
+      "success": "Konteks baru dimulai untuk {{memberName}}.",
+      "partialSuccess": "Konteks direset untuk {{memberName}}, tetapi agen gagal dimulai ulang. Gunakan Coba mulai lagi.",
+      "notApplied": "Tidak dapat memulai konteks baru. Konteks saat ini dipertahankan.",
+      "failed": "Gagal memulai konteks baru. Silakan coba lagi."
+    }
+  },
+  "systemNotice": {
+    "sender": "Tim",
+    "contextResetSuccess": "Konteks baru dimulai untuk {{memberName}}.",
+    "contextResetRuntimeFailed": "Konteks direset untuk {{memberName}}, tetapi agen gagal dimulai ulang."
+  },
+  "activity": {
+    "control": {
+      "sortNewest": "Terbaru",
+      "sortOldest": "Terlama",
+      "filterAll": "Semua",
+      "filterMessages": "Pesan",
+      "filterTasks": "Tugas",
+      "allMembers": "Semua anggota",
+      "showSystem": "Pesan sistem",
+      "showTerminal": "Tugas selesai"
+    },
+    "fallbackLane": "Tak ditetapkan / eksternal",
+    "empty": "Belum ada aktivitas",
+    "userIdentity": "Pengguna / eksternal",
+    "broadcast": "Siarkan ke semua",
+    "read": "Dibaca",
+    "unread": "Belum dibaca",
+    "attachments": "{{count}} berkas",
+    "attachments_one": "{{count}} berkas",
+    "attachments_other": "{{count}} berkas",
+    "expand": "Bentangkan",
+    "collapse": "Ciutkan",
+    "blockedBy": "terhalang oleh #{{id}}",
+    "blockedByNamed": "terhalang oleh {{name}}",
+    "blockerUnknown": "Tugas tidak tersedia",
+    "status": {
+      "pending": "Menunggu",
+      "in_progress": "Berlangsung",
+      "completed": "Selesai",
+      "deleted": "Dihapus"
+    },
+    "msgType": {
+      "message": "Pesan",
+      "idle_notification": "Pemberitahuan idle",
+      "shutdown_request": "Permintaan matikan"
+    }
+  }
+}

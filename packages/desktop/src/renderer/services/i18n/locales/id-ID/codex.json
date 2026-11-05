@@ -1,0 +1,133 @@
+{
+  "sendbox": {},
+  "network": {
+    "cloudflare_blocked": "Proteksi Cloudflare memblokir akses ke {{service}}. Saran: 1) Gunakan VPN 2) Ganti jaringan 3) Coba lagi nanti 4) Beralih ke layanan AI lain",
+    "network_timeout": "Jaringan habis waktu, mencoba menghubungkan ulang secara otomatis...",
+    "connection_refused": "Koneksi ditolak, silakan periksa apakah layanan Codex berjalan dengan baik.",
+    "unknown_error": "Kesalahan koneksi jaringan, silakan periksa pengaturan jaringan.",
+    "retry_attempt": "Mencoba ulang percobaan {{current}}...",
+    "cloudflare_blocked_title": "🚫 Layanan {{service}} diblokir proteksi Cloudflare",
+    "network_timeout_title": "⏱️ Koneksi jaringan habis waktu",
+    "connection_refused_title": "❌ Koneksi layanan ditolak",
+    "unknown_error_title": "🔌 Kesalahan koneksi jaringan",
+    "recovery_suggestions": "**Solusi yang Disarankan:**",
+    "technical_info": "**Informasi Teknis:**",
+    "error_type": "Jenis Kesalahan",
+    "retry_count": "Jumlah Percobaan Ulang",
+    "error_details": "Detail Kesalahan",
+    "quick_switch_title": "💡 **Opsi Beralih Cepat:**",
+    "quick_switch_content": "Saat layanan saat ini mengalami pembatasan jaringan, Anda dapat:\n\n1. **Segera Beralih Asisten AI**: Pilih asisten lain yang tersedia dari panel kiri\n2. **Periksa Status Layanan**: Ketersediaan tiap layanan AI dapat berbeda menurut wilayah\n3. **Optimalkan Jaringan**: Gunakan lingkungan jaringan yang stabil untuk meningkatkan keberhasilan koneksi\n4. **Coba Lagi Nanti**: Pembatasan jaringan biasanya bersifat sementara\n\n**Tips**: Disarankan mengonfigurasi beberapa layanan AI sebagai alternatif agar pekerjaan tetap berlanjut.",
+    "recovery_actions": {
+      "cloudflare_blocked": [
+        "• Gunakan VPN atau layanan proksi",
+        "• Ganti lingkungan jaringan (misalnya hotspot seluler)",
+        "• Tunggu 10-30 menit lalu coba lagi",
+        "• Bersihkan cache dan cookie browser",
+        "• Beralih ke layanan lain yang tersedia: ChatGPT, Claude, Qwen, Gemini"
+      ],
+      "network_timeout": [
+        "• Periksa apakah koneksi jaringan stabil",
+        "• Coba lagi operasi koneksi",
+        "• Beralih ke lingkungan jaringan yang lebih stabil",
+        "• Periksa pengaturan firewall"
+      ],
+      "connection_refused": [
+        "• Periksa apakah Codex CLI terpasang dengan benar",
+        "• Verifikasi konfigurasi layanan dan kunci API",
+        "• Mulai ulang aplikasi",
+        "• Periksa apakah port lokal sedang dipakai"
+      ],
+      "unknown": [
+        "• Periksa status koneksi jaringan",
+        "• Coba lagi operasi saat ini",
+        "• Ganti lingkungan jaringan",
+        "• Hubungi dukungan teknis"
+      ]
+    }
+  },
+  "thinking": {
+    "processing": "🤔 Codex sedang berpikir...",
+    "completed": "💭 Proses berpikir selesai",
+    "analyzing": "Menganalisis masalah dan merumuskan solusi...",
+    "composing": "Menyusun isi respons..."
+  },
+  "error": {
+    "system_init_failed": "Gagal menginisialisasi sistem Codex",
+    "invalid_message_format": "Format pesan tidak valid",
+    "invalid_input": "Masukan yang diberikan tidak valid",
+    "session_timeout": "Sesi habis waktu, silakan coba lagi",
+    "permission_denied": "Izin ditolak untuk operasi ini",
+    "context_error": "Terjadi kesalahan di {{context}}, silakan muat ulang atau coba lagi.",
+    "generic": "Komponen Codex mengalami pengecualian, silakan coba lagi nanti.",
+    "troubleshooting": "Saran Pemecahan Masalah",
+    "suggestion_1": "Periksa apakah koneksi jaringan stabil",
+    "suggestion_2": "Pastikan layanan Codex berjalan dengan baik",
+    "suggestion_3": "Coba mulai ulang aplikasi",
+    "suggestion_4": "Bersihkan cache browser dan penyimpanan lokal"
+  },
+  "performance": {
+    "virtualization_enabled": "Virtualisasi daftar diaktifkan untuk performa lebih baik",
+    "virtualization_disabled": "Virtualisasi daftar dinonaktifkan, menampilkan semua item",
+    "debounce_enabled": "Debounce masukan diaktifkan (jeda {{delay}}ms)",
+    "debounce_disabled": "Debounce masukan dinonaktifkan"
+  },
+  "config": {
+    "loaded": "Konfigurasi berhasil dimuat",
+    "updated": "Konfigurasi berhasil diperbarui",
+    "reset": "Konfigurasi dikembalikan ke default",
+    "validation_failed": "Validasi konfigurasi gagal",
+    "import_success": "Konfigurasi berhasil diimpor",
+    "import_failed": "Gagal mengimpor konfigurasi",
+    "export_success": "Konfigurasi berhasil diekspor"
+  },
+  "permissions": {
+    "allow_once": "Izinkan Sekali",
+    "allow_always": "Selalu Izinkan",
+    "reject_once": "Tolak Sekali",
+    "reject_always": "Selalu Tolak",
+    "allow_once_desc": "Beri izin hanya untuk permintaan ini",
+    "allow_always_desc": "Selalu beri izin untuk permintaan serupa",
+    "reject_once_desc": "Tolak hanya permintaan ini",
+    "reject_always_desc": "Selalu tolak permintaan serupa",
+    "processing": "Memproses...",
+    "response_sent": "Respons berhasil dikirim",
+    "choose_action": "Pilih tindakan:",
+    "titles": {
+      "exec_approval_request": "Izin Jalankan Perintah",
+      "apply_patch_approval_request": "Izin Terapkan Perubahan Berkas",
+      "command_execution": "Izin Eksekusi Perintah",
+      "file_write": "Izin Tulis Berkas",
+      "file_read": "Izin Baca Berkas"
+    },
+    "labels": {
+      "command": "Perintah:",
+      "directory": "Direktori:",
+      "reason": "Alasan:",
+      "files_to_modify": "Berkas yang akan diubah",
+      "summary": "Ringkasan:"
+    },
+    "descriptions": {
+      "command_execution": "Codex meminta menjalankan perintah sistem",
+      "file_write": "Codex meminta mengubah atau membuat berkas",
+      "file_read": "Codex meminta membaca isi berkas"
+    },
+    "command_execution": {
+      "allow_once_desc": "Izinkan eksekusi perintah ini saja",
+      "allow_always_desc": "Selalu izinkan semua permintaan eksekusi perintah",
+      "reject_once_desc": "Tolak eksekusi perintah ini saja",
+      "reject_always_desc": "Selalu tolak semua permintaan eksekusi perintah"
+    },
+    "file_write": {
+      "allow_once_desc": "Izinkan tulis berkas ini saja",
+      "allow_always_desc": "Selalu izinkan semua permintaan tulis berkas",
+      "reject_once_desc": "Tolak tulis berkas ini saja",
+      "reject_always_desc": "Selalu tolak semua permintaan tulis berkas"
+    },
+    "file_read": {
+      "allow_once_desc": "Izinkan baca berkas ini saja",
+      "allow_always_desc": "Selalu izinkan semua permintaan baca berkas",
+      "reject_once_desc": "Tolak baca berkas ini saja",
+      "reject_always_desc": "Selalu tolak semua permintaan baca berkas"
+    }
+  }
+}

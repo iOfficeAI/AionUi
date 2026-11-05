@@ -1,0 +1,17 @@
+{
+  "promptExamplesHint": "Coba instruksi berikut",
+  "defaultPrompts": {
+    "understand": "Kenali proyek ini dan jelaskan dengan kata-kata sederhana apa fungsinya dan dari mana harus memulai",
+    "cleanup": "Temukan berkas yang duplikat dan tidak berguna di folder ini lalu daftarkan untuk konfirmasi saya",
+    "create": "Buatkan saya halaman beranda pribadi yang indah dan bukakan untuk saya setelah selesai"
+  },
+  "selectAssistantHint": "Pilih asisten untuk memulai tugas",
+  "workspace": {
+    "workInProject": "Bekerja dalam proyek",
+    "optional": "Opsional",
+    "clearWorkspace": "Bersihkan",
+    "specifyWorkspace": "Pilih folder proyek",
+    "searchPlaceholder": "Cari proyek…",
+    "noProject": "Tanpa Proyek"
+  }
+}
