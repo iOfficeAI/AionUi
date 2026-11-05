@@ -1,4 +1,5 @@
 import type { IProvider } from '@/common/config/storage';
+import { isValidContextLimit, normalizeContextLimit } from '@/common/utils/modelCapabilities';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -139,9 +140,14 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         onOk={async () => {
           try {
             const values = await form.validate();
+            // Context window (optional): normalize the form's string into the
+            // integer the backend stores. A blank field keeps whatever the
+            // provider already had — the update endpoint has no "clear" shape.
+            const contextLimit = normalizeContextLimit(values.context_limit);
             const updatedProvider: IProvider = {
               ...data,
               ...values,
+              context_limit: contextLimit ?? data?.context_limit,
               // Ensure models is always an array
               models: Array.isArray(values.model) ? values.model : [values.model],
             };
@@ -292,6 +298,24 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               extra={t('settings.bedrock.profileHint')}
             >
               <Input placeholder='default' />
+            </Form.Item>
+
+            {/* 上下文窗口（可选）/ Context window (optional)
+                The backend sizes its automatic context compaction from this
+                value; without it a small-window model keeps getting asked for
+                more history than it accepts. */}
+            <Form.Item
+              label={t('settings.contextLimit')}
+              field={'context_limit'}
+              extra={<span className='text-11px text-t-secondary'>{t('settings.contextLimitEditTip')}</span>}
+              rules={[
+                {
+                  validator: (value, callback) =>
+                    isValidContextLimit(value) ? callback() : callback(t('settings.contextLimitInvalid')),
+                },
+              ]}
+            >
+              <Input type='number' placeholder='128000' allowClear />
             </Form.Item>
 
             {/* Model Selection */}

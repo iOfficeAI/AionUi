@@ -224,6 +224,26 @@ describe('normalizeAgentStreamError', () => {
     ).toBeUndefined();
   });
 
+  it('accepts adjust_context_window so a mis-set window reaches the UI', () => {
+    expect(
+      normalizeAgentStreamError({
+        message: 'Context window nearly full (130509 tokens used, limit 98500)',
+        code: 'USER_LLM_PROVIDER_CONTEXT_TOO_LARGE',
+        resolution: {
+          kind: 'adjust_context_window',
+          target: 'provider_settings',
+        },
+      })
+    ).toEqual({
+      message: 'Context window nearly full (130509 tokens used, limit 98500)',
+      code: 'USER_LLM_PROVIDER_CONTEXT_TOO_LARGE',
+      resolution: {
+        kind: 'adjust_context_window',
+        target: 'provider_settings',
+      },
+    });
+  });
+
   it('preserves workspace path metadata on structured errors', () => {
     expect(
       normalizeAgentStreamError({

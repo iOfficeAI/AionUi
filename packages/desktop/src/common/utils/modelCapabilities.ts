@@ -96,6 +96,35 @@ export const updateModelSettings = (
 };
 
 /**
+ * Parse the optional context-window field shared by the provider add/edit forms.
+ *
+ * Arco's number input hands back a string, and the backend stores the value as
+ * an integer, so every entry point normalizes through here instead of spreading
+ * the raw form value into the provider record. Anything that is not a positive
+ * whole number (empty, "abc", "12.5", 0) yields `undefined`, meaning "no limit
+ * configured" — the backend then falls back to its own conservative default.
+ */
+export const normalizeContextLimit = (raw: unknown): number | undefined => {
+  if (raw === undefined || raw === null) return undefined;
+  const text = String(raw).trim();
+  if (text === '') return undefined;
+  const parsed = Number(text);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+/**
+ * Arco Form predicate for the context-window field: empty (no limit) or a
+ * positive whole number. Kept separate from {@link normalizeContextLimit} so the
+ * form can tell "left blank" from "typed something unusable".
+ */
+export const isValidContextLimit = (raw: unknown): boolean => {
+  if (raw === undefined || raw === null) return true;
+  const text = String(raw).trim();
+  if (text === '') return true;
+  return normalizeContextLimit(text) !== undefined;
+};
+
+/**
  * Check whether a specific model within a provider has a given capability.
  * Returns true (supported), false (excluded), or undefined (unknown).
  */

@@ -138,6 +138,7 @@
       "check_provider_billing": "Check the model provider balance, credits, or quota.",
       "check_provider_base_url": "Check the model provider Base URL, API path, proxy, and API compatibility.",
       "change_model": "Choose a model that is available for the current account and supports this request.",
+      "adjust_context_window": "Send /compact to compress this conversation, and check that the provider's context window (Settings → Model providers → Edit → Context window) matches the model's real window.",
       "reduce_context": "Reduce the message content, referenced files, or context size, then retry.",
       "send_feedback": "Send feedback with logs so the team can investigate."
     },
@@ -302,7 +303,7 @@
       },
       "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
         "title": "Context is too large for the model",
-        "body": "The request exceeds the model context limit. Reduce message content, referenced files, or conversation history, then retry."
+        "body": "The request exceeds the model context limit. Send /compact to compress the conversation history, or reduce referenced files, then retry."
       },
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "Model provider returned an empty response",

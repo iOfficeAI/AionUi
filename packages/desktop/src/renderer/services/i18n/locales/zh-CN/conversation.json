@@ -138,6 +138,7 @@
       "check_provider_billing": "请检查模型服务商的余额、额度或配额。",
       "check_provider_base_url": "请检查模型服务商的 Base URL、接口路径、代理和 API 兼容性。",
       "change_model": "请选择当前账号可用且支持该请求的模型。",
+      "adjust_context_window": "可先发送 /compact 压缩本对话历史；并核对「设置 → 模型服务商 → 编辑 → 上下文窗口」是否等于该模型的真实窗口。",
       "reduce_context": "请减少消息内容、引用文件或上下文大小后重试。",
       "send_feedback": "请提交反馈并附带日志，方便团队排查。"
     },
@@ -302,7 +303,7 @@
       },
       "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
         "title": "上下文超出模型限制",
-        "body": "本次请求超出了模型上下文限制。请减少消息内容、引用文件或对话历史后重试。"
+        "body": "本次请求超出了模型上下文限制。可发送 /compact 压缩对话历史，或减少消息内容与引用文件后重试。"
       },
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "模型服务商返回了空响应",

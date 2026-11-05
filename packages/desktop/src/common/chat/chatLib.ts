@@ -153,6 +153,7 @@ export type AgentErrorResolutionKind =
   | 'check_provider_billing'
   | 'check_provider_base_url'
   | 'change_model'
+  | 'adjust_context_window'
   | 'reduce_context'
   | 'send_feedback';
 
@@ -575,6 +576,7 @@ const AGENT_ERROR_RESOLUTION_KINDS = new Set<AgentErrorResolutionKind>([
   'check_provider_billing',
   'check_provider_base_url',
   'change_model',
+  'adjust_context_window',
   'reduce_context',
   'send_feedback',
 ]);

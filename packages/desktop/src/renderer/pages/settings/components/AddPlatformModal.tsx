@@ -2,6 +2,8 @@ import type { IProvider } from '@/common/config/storage';
 import {
   type ModelImageInputChoice,
   type ModelOpenAiApiModeChoice,
+  isValidContextLimit,
+  normalizeContextLimit,
   supportsOpenAiApiMode,
   updateModelSettings,
 } from '@/common/utils/modelCapabilities';
@@ -346,6 +348,11 @@ const AddPlatformModal = ModalHOC<{
         const name = selectedPlatform?.i18nKey
           ? t(selectedPlatform.i18nKey)
           : (selectedPlatform?.name ?? values.platform);
+        // 上下文窗口（可选）/ Context window (optional). Only persisted when the
+        // user supplied a positive integer — the backend falls back to its own
+        // per-model default when the provider row carries no limit.
+        const contextLimit = normalizeContextLimit(values.context_limit);
+
         const provider: IProvider = {
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
@@ -358,6 +365,7 @@ const AddPlatformModal = ModalHOC<{
           // keep the single-value fallback for safety.
           models: Array.isArray(values.model) ? values.model : [values.model],
           is_full_url: isFullUrl,
+          ...(contextLimit ? { context_limit: contextLimit } : {}),
         };
 
         // Add Bedrock configuration if platform is Bedrock
@@ -759,6 +767,24 @@ const AddPlatformModal = ModalHOC<{
               />
             </Form.Item>
           )}
+
+          {/* 上下文窗口 / Context window
+              Optional per-model budget. The backend uses it to decide when to
+              compact an over-long conversation, so it is stored on the provider
+              row and read back per model instead of from a global setting. */}
+          <Form.Item
+            label={t('settings.contextLimit')}
+            field={'context_limit'}
+            extra={<span className='text-11px text-t-secondary'>{t('settings.contextLimitTip')}</span>}
+            rules={[
+              {
+                validator: (value, callback) =>
+                  isValidContextLimit(value) ? callback() : callback(t('settings.contextLimitInvalid')),
+              },
+            ]}
+          >
+            <Input type='number' placeholder='128000' allowClear />
+          </Form.Item>
         </Form>
       </div>
     </AionModal>
