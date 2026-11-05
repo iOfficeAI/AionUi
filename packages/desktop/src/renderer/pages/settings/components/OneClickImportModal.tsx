@@ -13,10 +13,34 @@ type DetectedMcpServer = IMcpServer & {
   import_skip_reason?: string;
 };
 
-const IMPORTABLE_AGENTS = [
-  { backend: 'claude', name: 'Claude' },
-  { backend: 'codex', name: 'Codex' },
-] as const;
+type AgentMcpConfig = {
+  source: string;
+  servers: DetectedMcpServer[];
+};
+
+/**
+ * Fallback agent list used when the backend scan endpoint fails or returns no
+ * sources. Mirrors the previous hardcoded behavior.
+ */
+const FALLBACK_AGENT_BACKENDS = ['claude', 'codex'] as const;
+
+const AGENT_DISPLAY_NAME_KEYS: Record<string, string> = {
+  claude: 'settings.mcpImportAgentClaude',
+  codex: 'settings.mcpImportAgentCodex',
+  gemini: 'settings.mcpImportAgentGemini',
+  qwen: 'settings.mcpImportAgentQwen',
+  codebuddy: 'settings.mcpImportAgentCodebuddy',
+  opencode: 'settings.mcpImportAgentOpencode',
+  aionrs: 'settings.mcpImportAgentAionrs',
+};
+
+/** Source used when importing from AionUi itself; importing from self is a no-op. */
+const SELF_SOURCE = 'aionui';
+
+const getAgentDisplayName = (source: string, t: ReturnType<typeof useTranslation>['t']): string => {
+  const key = AGENT_DISPLAY_NAME_KEYS[source];
+  return key ? t(key) : source;
+};
 
 const normalizeImportSkipReason = (reason: string | undefined) =>
   reason
@@ -68,7 +92,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
   onBatchImport,
 }) => {
   const { t } = useTranslation();
-  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
+  const [detectedAgents, setDetectedAgents] = useState<string[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [fetchedServers, setFetchedServers] = useState<DetectedMcpServer[]>([]);
   const [importedServers, setImportedServers] = useState<IMcpServer[]>([]);
@@ -155,16 +179,41 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
   };
 
   useEffect(() => {
-    if (visible) {
-      // 重置状态
-      setCurrentStep(1);
-      setSelectedAgent(IMPORTABLE_AGENTS[0].backend);
-      setFetchedServers([]);
-      setImportedServers([]);
-      setDetectedAgents([...IMPORTABLE_AGENTS]);
-      setLoadingImport(false);
-      setSubmittingImport(false);
-    }
+    if (!visible) return;
+
+    // 重置状态
+    setCurrentStep(1);
+    setSelectedAgent('');
+    setFetchedServers([]);
+    setImportedServers([]);
+    setDetectedAgents([]);
+    setLoadingImport(false);
+    setSubmittingImport(false);
+
+    let cancelled = false;
+
+    // Drive the agent list from the backend scan so every installed/supported
+    // agent appears. AionUi itself is excluded (importing from self is a no-op).
+    // Display names are resolved at render time (they depend on `t`); keeping
+    // `t` out of the deps avoids re-running this scan on every translation change.
+    mcpService.getAgentMcpConfigs
+      .invoke()
+      .then((configs) => {
+        if (cancelled) return;
+        const sources = configs.map((config) => config.source).filter((source) => source !== SELF_SOURCE);
+        setDetectedAgents(sources.length > 0 ? sources : [...FALLBACK_AGENT_BACKENDS]);
+        setSelectedAgent(sources[0] ?? FALLBACK_AGENT_BACKENDS[0]);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error('Failed to fetch agent MCP configs:', error);
+        setDetectedAgents([...FALLBACK_AGENT_BACKENDS]);
+        setSelectedAgent(FALLBACK_AGENT_BACKENDS[0]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [visible]);
 
   const handleNextStep = async () => {
@@ -269,8 +318,8 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({
         size='large'
       >
         {detectedAgents.map((agent) => (
-          <Select.Option key={agent.backend} value={agent.backend}>
-            {agent.name}
+          <Select.Option key={agent} value={agent}>
+            {getAgentDisplayName(agent, t)}
           </Select.Option>
         ))}
       </Select>
