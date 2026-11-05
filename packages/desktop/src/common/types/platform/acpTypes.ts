@@ -15,7 +15,17 @@ import type { TConversationRuntimeSummary } from '@/common/config/storage';
 export interface CustomAgentAdvancedOverrides {
   yolo_id?: string;
   native_skills_dirs?: string[];
-  behavior_policy?: { supports_side_question?: boolean };
+  behavior_policy?: {
+    supports_side_question?: boolean;
+    /**
+     * Gates team-mode eligibility for this agent. Seeded `false` for custom
+     * agents and read by the backend, so a custom ACP agent that genuinely
+     * speaks MCP stdio cannot join a team unless this is set. The backend
+     * accepts it on `/api/agents/custom`; it was simply unreachable from the
+     * editor, which dropped the key while parsing the JSON panel.
+     */
+    supports_team?: boolean;
+  };
   description?: string;
 }
 
