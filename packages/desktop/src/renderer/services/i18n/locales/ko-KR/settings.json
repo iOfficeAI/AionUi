@@ -309,7 +309,10 @@
     "applied": "적용된 테마: {{name}}",
     "applyFailed": "테마 적용 실패",
     "cleared": "기본 스타일로 복원됨",
-    "deleteConfirm": "이 테마를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+    "deleteConfirm": "이 테마를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "systemThemePreferences": "시스템 테마 환경설정",
+    "preferredLightTheme": "선호하는 라이트 테마",
+    "preferredDarkTheme": "선호하는 다크 테마"
   },
   "geminiBaseUrl": "Gemini API 기본 URL",
   "cacheDir": "캐시 디렉토리",

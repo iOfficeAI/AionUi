@@ -64,4 +64,26 @@ describe('resolveActiveTheme', () => {
   it('falls back to Light when system resolves to a missing Dark theme', () => {
     expect(resolveActiveTheme(SYSTEM_THEME_ID, [light, userTheme], true).id).toBe(LIGHT_THEME_ID);
   });
+  it('resolves system to preferred dark theme when prefersDark is true', () => {
+    expect(
+      resolveActiveTheme(SYSTEM_THEME_ID, themes, true, {
+        darkThemeId: 'u1',
+      }).id
+    ).toBe('u1');
+  });
+  it('resolves system to preferred light theme when prefersDark is false', () => {
+    const userLight: Theme = { ...userTheme, id: 'u2', appearance: 'light' };
+    expect(
+      resolveActiveTheme(SYSTEM_THEME_ID, [...themes, userLight], false, {
+        lightThemeId: 'u2',
+      }).id
+    ).toBe('u2');
+  });
+  it('falls back to default dark/light when preferred theme is not found', () => {
+    expect(
+      resolveActiveTheme(SYSTEM_THEME_ID, themes, true, {
+        darkThemeId: 'non-existent',
+      }).id
+    ).toBe(LIGHT_THEME_ID);
+  });
 });

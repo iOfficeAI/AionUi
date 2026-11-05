@@ -74,7 +74,12 @@ export function applyTheme(theme: Theme, root: Document = document): void {
 /** Resolve `activeId` locally, apply, persist, and publish to Electron for cross-window broadcast. */
 export async function setActiveTheme(activeId: string): Promise<Theme> {
   const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
-  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
+  const systemDarkThemeId = configService.get('theme.systemDarkThemeId') as string | undefined;
+  const systemLightThemeId = configService.get('theme.systemLightThemeId') as string | undefined;
+  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark(), {
+    darkThemeId: systemDarkThemeId,
+    lightThemeId: systemLightThemeId,
+  });
   applyTheme(resolved);
   await configService.set('theme.activeId', activeId);
   await publishThemeToElectron(resolved);
