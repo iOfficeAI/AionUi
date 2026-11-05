@@ -12,10 +12,12 @@ import { CronJobManager } from '@/renderer/pages/cron';
 import { resolveCronJobId } from '@/renderer/pages/cron/cronUtils';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useChatColumn } from '@/renderer/pages/conversation/hooks/chatColumnContext';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
+import classNames from 'classnames';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +40,7 @@ import { resolveConversationBackend } from '../utils/conversationAssistantIdenti
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 import SingleChatEmptyState from './SingleChatEmptyState';
 import { useActiveLease } from '../hooks/useActiveLease';
+import { useFocusedConversationRegistration } from '../hooks/focusedConversationStore';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const configErrorMessageKey = (error: unknown) => {
@@ -146,10 +149,13 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 
-const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; sliderTitle: React.ReactNode }> = ({
-  conversation,
-  sliderTitle,
-}) => {
+const AionrsConversationPanel: React.FC<{
+  conversation: AionrsConversation;
+  sliderTitle: React.ReactNode;
+  headerActions?: React.ReactNode;
+  previewHosted?: boolean;
+}> = ({ conversation, sliderTitle, headerActions, previewHosted }) => {
+  const { compactHeader } = useChatColumn();
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -207,23 +213,29 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
-      <div className='flex items-center gap-8px'>
+      <div className={classNames('flex items-center gap-8px', { 'flex-1 justify-end': compactHeader })}>
         <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         {!isMobile && (
-          <AionrsModelSelector
-            selection={modelSelection}
-            thoughtLevel={runtimeConfig.thoughtLevel}
-            setStatus={runtimeConfig.setStatus}
-            onSetThoughtLevel={handleThoughtLevelSetOption}
-          />
+          <div
+            className={compactHeader ? COMPACT_PICKER_CLASS : 'shrink-0'}
+            style={compactHeader ? COMPACT_PICKER_STYLE : undefined}
+          >
+            <AionrsModelSelector
+              selection={modelSelection}
+              thoughtLevel={runtimeConfig.thoughtLevel}
+              setStatus={runtimeConfig.setStatus}
+              onSetThoughtLevel={handleThoughtLevelSetOption}
+            />
+          </div>
         )}
+        {headerActions && <div className='shrink-0'>{headerActions}</div>}
       </div>
     ),
     workspaceEnabled,
     // For project conversations the preview panel is hoisted to the Layout-level
     // project host (structurally persistent across same-project conversation
     // switches — no remount). ChatLayout then renders chat only.
-    previewHosted: Boolean(conversation.project_id),
+    previewHosted: previewHosted ?? Boolean(conversation.project_id),
     workspacePath: conversation.extra?.workspace,
     // Key the workspace-panel collapse preference per-project (falls back to
     // conversation_id inside ChatLayout when there is no project) so the panel's
@@ -265,10 +277,33 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   );
 };
 
+/**
+ * The model picker inside a split column. Size containment keeps the picker's
+ * nowrap label from propping the header's action row open: the picker counts
+ * for its icon only, grows into whatever room the row has left (up to its
+ * full label), and is the first thing to give way when the title needs the
+ * space; the label truncates and marquees on hover as it does elsewhere.
+ */
+const COMPACT_PICKER_CLASS = 'min-w-0 [&_button]:max-w-full [&_button]:min-w-0 [&_button_span]:truncate';
+const COMPACT_PICKER_STYLE: React.CSSProperties = {
+  flex: '1 1 56px',
+  minWidth: 56,
+  maxWidth: 220,
+  contain: 'inline-size',
+};
+
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
   hideSendBox?: boolean;
-}> = ({ conversation, hideSendBox }) => {
+  /** Extra controls at the end of the header, after the model selector (a split column's ×). */
+  headerActions?: React.ReactNode;
+  /**
+   * Force the preview panel to the Layout-level host. Defaults to "when the
+   * conversation belongs to a project"; a split column passes `true` so every
+   * column shares the one hoisted panel instead of rendering its own.
+   */
+  previewHosted?: boolean;
+}> = ({ conversation, hideSendBox, headerActions, previewHosted }) => {
   const [runtimeReadyConversationId, setRuntimeReadyConversationId] = useState<string | null>(null);
   const { t } = useTranslation();
   // Stable identity: the selector reports readiness from an effect keyed on this
@@ -278,10 +313,17 @@ const ChatConversation: React.FC<{
     [conversation?.id]
   );
   useActiveLease({ type: 'conversation', id: conversation?.id });
+  // Announce this view to the focused-conversation store and let any pointer /
+  // focus event inside it claim focus. With a single conversation on screen the
+  // registration alone decides focus, so nothing changes; with several mounted
+  // it is the click that moves the Explorer target, the shortcuts and the
+  // preview to the column the user is actually working in.
+  const focusRegistration = useFocusedConversationRegistration(conversation?.id);
   const workspaceEnabled = Boolean(conversation?.extra?.workspace) && !conversation?.project_id;
   const cronJobId = resolveCronJobId(conversation?.extra);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
+  const { compactHeader } = useChatColumn();
 
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
@@ -389,7 +431,15 @@ const ChatConversation: React.FC<{
   }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation, resolvedConversationBackend]);
 
   if (conversation && conversation.type === 'aionrs') {
-    return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
+    return (
+      <AionrsConversationPanel
+        key={conversation.id}
+        conversation={conversation}
+        sliderTitle={sliderTitle}
+        headerActions={headerActions}
+        previewHosted={previewHosted}
+      />
+    );
   }
 
   // 如果有预设助手信息，使用预设助手的 logo 和名称；加载中时不进入 fallback；否则使用 backend 的 logo
@@ -406,13 +456,24 @@ const ChatConversation: React.FC<{
         };
 
   const headerExtraNode = (
-    <div className='flex items-center gap-8px'>
+    // In a column the row grows into the header's spare room so the picker
+    // can fill up to its label; the buttons keep hugging the right edge.
+    <div className={classNames('flex items-center gap-8px', { 'flex-1 justify-end': compactHeader })}>
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager conversation_id={conversation.id} cron_job_id={cronJobId} />
         </div>
       )}
-      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {modelSelector && (
+        // In a split column the picker's label truncates (down to its icon)
+        // before the conversation title loses any room.
+        <div
+          className={compactHeader ? COMPACT_PICKER_CLASS : 'shrink-0'}
+          style={compactHeader ? COMPACT_PICKER_STYLE : undefined}
+        >
+          {modelSelector}
+        </div>
+      )}
       {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
         <div className='shrink-0'>
           <AcpRuntimeRestartButton
@@ -421,27 +482,32 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      {headerActions && <div className='shrink-0'>{headerActions}</div>}
     </div>
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      previewHosted={Boolean(conversation?.project_id)}
-      workspacePath={conversation?.extra?.workspace}
-      workspacePreferenceKey={conversation?.project_id}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    // `display: contents` so the wrapper carries the focus handlers without
+    // generating a box — the chat layout stays the parent's direct flex child.
+    <div style={{ display: 'contents' }} {...focusRegistration}>
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        previewHosted={previewHosted ?? Boolean(conversation?.project_id)}
+        workspacePath={conversation?.extra?.workspace}
+        workspacePreferenceKey={conversation?.project_id}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </div>
   );
 };
 

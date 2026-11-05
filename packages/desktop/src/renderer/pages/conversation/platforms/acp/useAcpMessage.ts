@@ -104,7 +104,7 @@ export const useAcpMessage = (
   conversation_id: string,
   options?: { skipWarmup?: boolean; prepareRuntime?: () => Promise<void> }
 ): UseAcpMessageReturn => {
-  const mergeLiveMessage = useMergeLiveMessage();
+  const mergeLiveMessage = useMergeLiveMessage(conversation_id);
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({

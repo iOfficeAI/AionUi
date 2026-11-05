@@ -176,5 +176,8 @@
   "zoomIn": "확대",
   "zoomOut": "축소",
   "zoomReset": "보기 재설정",
-  "diagramZoomHint": "스크롤로 확대 • 드래그로 이동 • ESC로 닫기"
+  "diagramZoomHint": "스크롤로 확대 • 드래그로 이동 • ESC로 닫기",
+  "addToChatUnavailable": "추가할 곳이 없습니다: 포커스된 대화에 지금 입력창이 없습니다.",
+  "openFromOtherColumn": "“{{name}}”의 미리보기는 해당 열이 포커스되지 않아 표시되지 않았습니다.",
+  "openUnattributed": "미리보기가 표시되지 않았습니다: 여러 대화가 실행 중이어서 출처를 확인할 수 없습니다."
 }

@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { DragEndEvent } from '@dnd-kit/core';
-import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
-import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback } from 'react';
 
@@ -21,50 +19,37 @@ import {
   reindexSortOrders,
 } from '../utils/sortOrderHelpers';
 
-type UseDragAndDropParams = {
-  pinnedConversations: TChatConversation[];
-  batchMode: boolean;
-  collapsed: boolean;
+const persistSortOrder = async (conversation_id: string, sortOrder: number): Promise<void> => {
+  try {
+    await ipcBridge.conversation.update.invoke({
+      id: conversation_id,
+      updates: {
+        extra: {
+          sortOrder,
+        } as Partial<TChatConversation['extra']>,
+      } as Partial<TChatConversation>,
+      merge_extra: true,
+    });
+  } catch (error) {
+    console.error('[DragAndDrop] Failed to persist sort order:', error);
+  }
 };
 
-export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: UseDragAndDropParams) => {
-  const layout = useLayoutContext();
-  const isMobile = layout?.isMobile ?? false;
+/**
+ * Reorder the pinned section: move the dragged row into the dropped row's
+ * slot and persist a fractional sort order (re-indexing the whole section when
+ * neighbours get too close). The DndContext that feeds this lives in
+ * ConversationDragContext, which also decides that a drop *between* two pinned
+ * rows means reorder rather than fuse.
+ */
+export const usePinnedReorder = () => {
+  const {
+    groupedHistory: { pinnedConversations },
+  } = useConversationHistoryContext();
 
-  const isDragEnabled = !batchMode && !collapsed && !isMobile;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const persistSortOrder = useCallback(async (conversation_id: string, sortOrder: number) => {
-    try {
-      await ipcBridge.conversation.update.invoke({
-        id: conversation_id,
-        updates: {
-          extra: {
-            sortOrder,
-          } as Partial<TChatConversation['extra']>,
-        } as Partial<TChatConversation>,
-        merge_extra: true,
-      });
-    } catch (error) {
-      console.error('[DragAndDrop] Failed to persist sort order:', error);
-    }
-  }, []);
-
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      const { active, over } = event;
-
-      if (!over || active.id === over.id) return;
-
-      const activeIdStr = String(active.id);
-      const overIdStr = String(over.id);
+  const reorderPinned = useCallback(
+    async (active_id: string, over_id: string): Promise<void> => {
+      if (active_id === over_id) return;
 
       // Build pinned items list with sort orders
       const items = pinnedConversations.map((c) => ({
@@ -73,8 +58,8 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
       }));
       const itemsWithOrder = assignInitialSortOrders(items);
 
-      const oldIndex = itemsWithOrder.findIndex((i) => i.id === activeIdStr);
-      const newIndex = itemsWithOrder.findIndex((i) => i.id === overIdStr);
+      const oldIndex = itemsWithOrder.findIndex((i) => i.id === active_id);
+      const newIndex = itemsWithOrder.findIndex((i) => i.id === over_id);
 
       if (oldIndex === -1 || newIndex === -1) return;
 
@@ -84,10 +69,10 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
       const newSortOrder = computeSortOrder(before, after);
 
       // Check if reindex needed
-      if (needsReindex(reordered.map((i) => ({ sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder })))) {
+      if (needsReindex(reordered.map((i) => ({ sortOrder: i.id === active_id ? newSortOrder : i.sortOrder })))) {
         const finalOrder = reordered.map((i) => ({
           id: i.id,
-          sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder,
+          sortOrder: i.id === active_id ? newSortOrder : i.sortOrder,
         }));
         const reindexed = reindexSortOrders(finalOrder);
         await Promise.all(reindexed.map((item) => persistSortOrder(item.id, item.sortOrder)));
@@ -95,15 +80,11 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
         return;
       }
 
-      await persistSortOrder(activeIdStr, newSortOrder);
+      await persistSortOrder(active_id, newSortOrder);
       emitter.emit('chat.history.refresh');
     },
-    [pinnedConversations, persistSortOrder]
+    [pinnedConversations]
   );
 
-  return {
-    sensors,
-    handleDragEnd,
-    isDragEnabled,
-  };
+  return { reorderPinned };
 };
