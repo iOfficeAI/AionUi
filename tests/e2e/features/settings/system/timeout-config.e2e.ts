@@ -1,9 +1,9 @@
 /**
  * Timeout Configuration E2E Tests
  *
- * Covers: prompt timeout (InputNumber, 30–3600s, step 30s),
- * agent idle timeout (InputNumber, 1–60min, step 5min).
- * All operations via UI — zero invokeBridge, zero mock.
+ * Covers: prompt timeout (InputNumber, 30-3600s, step 30s),
+ * agent idle timeout (InputNumber, 0-9999min, step 5min).
+ * All operations via UI - zero invokeBridge, zero mock.
  */
 
 import { test, expect } from '../../../fixtures';
@@ -64,7 +64,7 @@ test.describe('Timeout Configuration', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────
-  // TC-TIMEOUT-01: Prompt timeout — set a valid value
+  // TC-TIMEOUT-01: Prompt timeout - set a valid value
   // ────────────────────────────────────────────────────────────────────────
 
   test('TC-TIMEOUT-01: should update prompt timeout via InputNumber', async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe('Timeout Configuration', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────
-  // TC-TIMEOUT-02: Agent idle timeout — set a valid value
+  // TC-TIMEOUT-02: Agent idle timeout - set a valid value
   // ────────────────────────────────────────────────────────────────────────
 
   test('TC-TIMEOUT-02: should update agent idle timeout via InputNumber', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('Timeout Configuration', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────
-  // TC-TIMEOUT-03: Boundary clamping — prompt timeout
+  // TC-TIMEOUT-03: Boundary clamping - prompt timeout
   // ────────────────────────────────────────────────────────────────────────
 
   test('TC-TIMEOUT-03: should clamp prompt timeout to boundaries on blur', async ({ page }) => {
@@ -134,7 +134,7 @@ test.describe('Timeout Configuration', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────
-  // TC-TIMEOUT-04: Boundary clamping — agent idle timeout
+  // TC-TIMEOUT-04: Boundary clamping - agent idle timeout
   // ────────────────────────────────────────────────────────────────────────
 
   test('TC-TIMEOUT-04: should clamp agent idle timeout to boundaries on blur', async ({ page }) => {
@@ -146,16 +146,16 @@ test.describe('Timeout Configuration', () => {
     await input.blur();
     await waitForSettle(page, 500);
 
-    const clampedLow = await readInputValue(input);
-    expect(Number(clampedLow)).toBeGreaterThanOrEqual(1);
-    await takeScreenshot(page, 'timeout-config/tc-timeout-04/02-clamped-low.png');
+    const disabledValue = await readInputValue(input);
+    expect(Number(disabledValue)).toBe(0);
+    await takeScreenshot(page, 'timeout-config/tc-timeout-04/02-disabled.png');
 
-    await clearAndType(page, input, '999');
+    await clearAndType(page, input, '9999');
     await input.blur();
     await waitForSettle(page, 500);
 
-    const clampedHigh = await readInputValue(input);
-    expect(Number(clampedHigh)).toBe(60);
-    await takeScreenshot(page, 'timeout-config/tc-timeout-04/03-clamped-high.png');
+    const maxValue = await readInputValue(input);
+    expect(Number(maxValue)).toBe(9999);
+    await takeScreenshot(page, 'timeout-config/tc-timeout-04/03-max.png');
   });
 });
