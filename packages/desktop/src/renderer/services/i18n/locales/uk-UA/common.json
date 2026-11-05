@@ -205,5 +205,6 @@
   },
   "selectedCount": "Вибрано {{count}}",
   "selectedSkills": "Вибрані навички",
-  "aiAssistant": "ШІ-асистент"
+  "aiAssistant": "ШІ-асистент",
+  "documentTitleWithName": "{{name}} - AionUi"
 }
