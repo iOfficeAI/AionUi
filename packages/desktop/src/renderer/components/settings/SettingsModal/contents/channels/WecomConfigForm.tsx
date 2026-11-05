@@ -521,9 +521,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
               </span>
             }
           />
-          {pluginStatus?.error && (
-            <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>
-          )}
+          {pluginStatus?.error && <div className='text-14px text-danger-6 mb-12px'>{pluginStatus.error}</div>}
           {pluginStatus?.connected && (
             <div className='text-14px text-t-secondary space-y-8px'>
               <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
