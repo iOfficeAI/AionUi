@@ -869,6 +869,8 @@
   "includePrereleaseUpdates": "プレリリース/dev ビルドを含める",
   "saveModelConfigFailed": "モデル設定の保存に失敗しました",
   "healthCheck": "ヘルスチェック",
+  "checkAllHealth": "すべてチェック",
+  "healthCheckAllSummary": "ヘルスチェック完了：{{available}} 件利用可能、{{unavailable}} 件利用不可",
   "clearStatus": "ステータスをクリア",
   "healthStatusCleared": "ヘルスステータスがクリアされました",
   "latency": "レイテンシ",

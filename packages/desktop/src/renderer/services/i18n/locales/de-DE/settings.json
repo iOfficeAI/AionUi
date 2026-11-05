@@ -871,6 +871,8 @@
   "includePrereleaseUpdates": "Vorveröffentlichungs-/Entwicklungs-Builds einschließen",
   "saveModelConfigFailed": "Modellkonfiguration speichern fehlgeschlagen",
   "healthCheck": "Gesundheitsprüfung",
+  "checkAllHealth": "Alle prüfen",
+  "healthCheckAllSummary": "Gesundheitsprüfung abgeschlossen: {{available}} verfügbar, {{unavailable}} nicht verfügbar",
   "clearStatus": "Status löschen",
   "healthStatusCleared": "Gesundheitsstatus gelöscht",
   "latency": "Latenz",

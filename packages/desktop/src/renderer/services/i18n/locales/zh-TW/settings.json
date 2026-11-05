@@ -881,6 +881,8 @@
   "includePrereleaseUpdates": "包含預發佈/dev 版本",
   "saveModelConfigFailed": "儲存模型設定失敗",
   "healthCheck": "健康檢測",
+  "checkAllHealth": "全部檢測",
+  "healthCheckAllSummary": "健康檢測完成：{{available}} 個可用，{{unavailable}} 個不可用",
   "clearStatus": "清除狀態",
   "healthStatusCleared": "健康狀態已清除",
   "latency": "延遲",
