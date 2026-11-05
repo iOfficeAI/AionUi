@@ -41,6 +41,8 @@ export interface PlatformConfig {
   base_url?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
+  /** 标注国际化 key（可选）：品牌名的本地化认知名，UI 语言有翻译时渲染为「Name（标注）」，否则不标注 / i18n key for a localized brand-name annotation */
+  annotationKey?: string;
 }
 
 /**
@@ -153,6 +155,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/qwen.svg'),
     platform: 'custom',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    annotationKey: 'settings.platformAnnotationDashscope',
   },
   {
     name: 'Dashscope Coding Plan',
@@ -169,6 +172,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/siliconflow.png'),
     platform: 'custom',
     base_url: 'https://api.siliconflow.cn/v1',
+    annotationKey: 'settings.platformAnnotationSiliconFlow',
   },
   {
     name: 'SiliconFlow',
@@ -176,6 +180,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/siliconflow.png'),
     platform: 'custom',
     base_url: 'https://api.siliconflow.com/v1',
+    annotationKey: 'settings.platformAnnotationSiliconFlow',
   },
   {
     name: 'Zhipu',
@@ -197,6 +202,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/volcengine.svg'),
     platform: 'custom',
     base_url: 'https://ark.cn-beijing.volces.com/api/v3',
+    annotationKey: 'settings.platformAnnotationArk',
   },
   {
     name: 'Qianfan',
@@ -204,6 +210,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/baidu.svg'),
     platform: 'custom',
     base_url: 'https://qianfan.baidubce.com/v2',
+    annotationKey: 'settings.platformAnnotationQianfan',
   },
   {
     name: 'Hunyuan',
@@ -211,6 +218,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/tencent.svg'),
     platform: 'custom',
     base_url: 'https://api.hunyuan.cloud.tencent.com/v1',
+    annotationKey: 'settings.platformAnnotationHunyuan',
   },
   {
     name: 'Lingyi',
@@ -239,6 +247,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/modelscope.svg'),
     platform: 'custom',
     base_url: 'https://api-inference.modelscope.cn/v1',
+    annotationKey: 'settings.platformAnnotationModelScope',
   },
   {
     name: 'InfiniAI',
@@ -253,6 +262,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/ctyun.svg'),
     platform: 'custom',
     base_url: 'https://wishub-x1.ctyun.cn/v1',
+    annotationKey: 'settings.platformAnnotationCtyun',
   },
   {
     name: 'StepFun',
@@ -384,4 +394,42 @@ export { isNewApiPlatform } from '@/common/utils/platformConstants';
 export const searchPlatformsByName = (keyword: string): PlatformConfig[] => {
   const lowerKeyword = keyword.toLowerCase();
   return MODEL_PLATFORMS.filter((p) => p.name.toLowerCase().includes(lowerKeyword));
+};
+
+/**
+ * 平台的显示基名：优先使用 i18nKey 翻译后的平台名，否则使用原始 name。
+ * 不含品牌标注（annotation），用于排序与提交时的 provider 名。
+ * Base display name: translated via i18nKey when present, otherwise the raw `name`.
+ */
+export const getPlatformBaseName = (platform: PlatformConfig, t: (key: string) => string): string => {
+  return platform.i18nKey ? t(platform.i18nKey) : platform.name;
+};
+
+/**
+ * 平台下拉的完整显示名：在基名基础上，若当前 UI 语言对该平台品牌有本地化标注
+ * （annotation i18n key 命中且有值）则渲染为「基名（标注）」，否则只显示基名。
+ * Full display label: `base（annotation）` when the current locale resolves the
+ * annotation key to a real value; otherwise just the base name.
+ */
+export const getPlatformDisplayName = (platform: PlatformConfig, t: (key: string) => string): string => {
+  const base = getPlatformBaseName(platform, t);
+  if (!platform.annotationKey) return base;
+  const annotation = t(platform.annotationKey);
+  // i18next returns the key itself when the locale has no translation — treat as "no annotation".
+  if (!annotation || annotation === platform.annotationKey) return base;
+  return `${base}（${annotation}）`;
+};
+
+/**
+ * 按显示基名做 locale-aware 字母排序（不改变入参数组）。
+ * Sort a copy of the platforms alphabetically by base display name using the
+ * current UI locale's collation rules.
+ */
+export const sortPlatformsByDisplayName = (
+  platforms: PlatformConfig[],
+  t: (key: string) => string,
+  locale: string
+): PlatformConfig[] => {
+  const collator = new Intl.Collator(locale);
+  return [...platforms].sort((a, b) => collator.compare(getPlatformBaseName(a, t), getPlatformBaseName(b, t)));
 };
