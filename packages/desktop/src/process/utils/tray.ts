@@ -46,6 +46,14 @@ export const shouldShowFromTray = (isVisible: boolean, isMinimized: boolean): bo
   return !isVisible || isMinimized;
 };
 
+/**
+ * The startup fallback should reveal a hidden window, but must not undo a
+ * user's explicit minimize action while the renderer is still loading.
+ */
+export const shouldShowMainWindowOnReady = (isVisible: boolean, isMinimized: boolean): boolean => {
+  return !isVisible && !isMinimized;
+};
+
 const showAndFocusMainWindow = (): void => {
   if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
   if (process.platform === 'darwin' && app.dock) {
