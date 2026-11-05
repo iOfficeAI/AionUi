@@ -7,9 +7,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
 
+const imagesEditMock = vi.hoisted(() => vi.fn());
+
 const openAIConstructorMock = vi.hoisted(() =>
   vi.fn(function OpenAIMock(_config: Record<string, unknown>) {
-    return {};
+    return { images: { edit: imagesEditMock } };
   })
 );
 
@@ -23,6 +25,7 @@ describe('OpenAIRotatingClient', () => {
 
   beforeEach(() => {
     openAIConstructorMock.mockClear();
+    imagesEditMock.mockReset();
     delete process.env.OPENAI_API_KEY;
   });
 
@@ -68,5 +71,18 @@ describe('OpenAIRotatingClient', () => {
       /Client not initialized/
     );
     expect(openAIConstructorMock).not.toHaveBeenCalled();
+  });
+
+  it('forwards createImageEdit to the SDK images.edit endpoint', async () => {
+    const response = { data: [{ b64_json: 'edited-image-data' }] };
+    imagesEditMock.mockResolvedValue(response);
+
+    const client = new OpenAIRotatingClient('sk-configured-key');
+    const params = { model: 'gpt-image-1', image: new Blob(), prompt: 'add a hat' } as never;
+
+    const result = await client.createImageEdit(params);
+
+    expect(result).toBe(response);
+    expect(imagesEditMock).toHaveBeenCalledWith(params, undefined);
   });
 });

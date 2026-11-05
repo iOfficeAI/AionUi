@@ -5,49 +5,22 @@
  */
 
 /**
- * Allowlist for built-in image generation tool.
+ * Image-generation model support check for the built-in tool.
  *
- * The tool currently only supports "form B" — OpenAI chat completions multimodal
- * output (model returns images via `message.images` or markdown). It does NOT
- * support "form A" (`/v1/images/generations` endpoint) or async/polling APIs.
+ * Since 2026-08 this delegates to the declarative media model catalog
+ * (`common/media/catalog`) — an entry resolving to an executable API form is
+ * what "supported" means, so the settings dropdown and the runtime can no
+ * longer drift apart. The legacy hardcoded rules (gemini / openrouter /
+ * antigravity × name pattern) live on as catalog Form B entries, so existing
+ * setups resolve exactly as before.
  *
- * Model selection therefore must be a platform+model allowlist of providers
- * known to work, rather than a coarse name-substring match. Otherwise users
- * see options like `gpt-image-1` / `dall-e-3` / `sd-3.5` in the dropdown that
- * are guaranteed to fail at runtime.
- *
- * Rules below mirror `useConfigModelListWithImage.ts` — the same providers we
- * auto-supplement with default image models. When #6 lands a form-A adapter,
- * extend this list accordingly.
+ * Renderer-safe: only imports from the catalog (no Node.js APIs).
  */
 
-type ProviderShape = {
-  platform?: string;
-  base_url?: string;
-  name?: string;
-};
+import { isMediaGenSupported, type MediaProviderShape } from '@/common/media/catalog';
 
-const IMAGE_NAME_PATTERN = /(image|banana|imagine)/i;
-
-const RULES: Array<{
-  id: string;
-  match: (provider: ProviderShape) => boolean;
-}> = [
-  {
-    id: 'gemini',
-    match: (p) => p.platform === 'gemini' || p.platform === 'gemini-vertex-ai',
-  },
-  {
-    id: 'openrouter',
-    match: (p) => !!p.base_url?.includes('openrouter.ai'),
-  },
-  {
-    id: 'antigravity',
-    match: (p) => !!p.name?.toLowerCase().includes('antigravity'),
-  },
-];
+type ProviderShape = MediaProviderShape;
 
 export const isImageGenSupported = (provider: ProviderShape, modelName: string): boolean => {
-  if (!IMAGE_NAME_PATTERN.test(modelName)) return false;
-  return RULES.some((rule) => rule.match(provider));
+  return isMediaGenSupported('image', provider, modelName);
 };
