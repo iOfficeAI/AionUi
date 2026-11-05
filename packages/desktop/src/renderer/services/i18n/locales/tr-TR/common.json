@@ -28,6 +28,8 @@
   "openInSystemBrowser": "Sistem tarayıcısında aç",
   "copySuccess": "Kopyalandı",
   "copyFailed": "Kopyalama başarısız",
+  "favoriteAssistant": "Favorilere ekle",
+  "unfavoriteAssistant": "Favorilerden çıkar",
   "download": "İndir",
   "close": "Kapat",
   "retry": "Tekrar Dene",

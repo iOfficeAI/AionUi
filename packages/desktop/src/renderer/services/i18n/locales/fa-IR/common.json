@@ -28,6 +28,8 @@
   "openInSystemBrowser": "باز کردن در مرورگر سیستم",
   "copySuccess": "کپی شد",
   "copyFailed": "کپی ناموفق بود",
+  "favoriteAssistant": "علامت‌گذاری به عنوان محبوب",
+  "unfavoriteAssistant": "حذف از محبوب‌ها",
   "download": "دانلود",
   "close": "بستن",
   "retry": "تلاش مجدد",

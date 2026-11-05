@@ -27,6 +27,8 @@
   "openInSystemBrowser": "Abrir en el navegador del sistema",
   "copySuccess": "Copiado",
   "copyFailed": "Error al copiar",
+  "favoriteAssistant": "Marcar como favorito",
+  "unfavoriteAssistant": "Quitar de favoritos",
   "download": "Descargar",
   "close": "Cerrar",
   "retry": "Reintentar",
