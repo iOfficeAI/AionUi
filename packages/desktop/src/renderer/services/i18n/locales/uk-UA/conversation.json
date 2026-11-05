@@ -95,6 +95,17 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "attentionCenter": {
+    "tooltip": "Потребує уваги",
+    "title": "Потребує уваги",
+    "count": "Непрочитаних: {{count}}",
+    "count_one": "Непрочитаних: {{count}}",
+    "count_other": "Непрочитаних: {{count}}",
+    "markAllAsRead": "Позначити все прочитаним",
+    "empty": "Немає елементів, що потребують уваги",
+    "completed": "Завдання завершено",
+    "manualUnread": "Позначено як непрочитане"
+  },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
     "title": "Пошук за вмістом діалогів",

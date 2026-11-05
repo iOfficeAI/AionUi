@@ -91,6 +91,17 @@
     "archiveProjectConfirm": "確定歸檔專案「{{name}}」嗎？專案下的 {{count}} 個對話也會一起歸檔。歸檔後可在設定的歸檔頁恢復或刪除。",
     "archiving": "歸檔中..."
   },
+  "attentionCenter": {
+    "tooltip": "需要處理",
+    "title": "需要處理",
+    "count": "{{count}} 個未讀項目",
+    "count_one": "{{count}} 個未讀項目",
+    "count_other": "{{count}} 個未讀項目",
+    "markAllAsRead": "全部標為已讀",
+    "empty": "目前沒有需要處理的項目",
+    "completed": "任務已完成",
+    "manualUnread": "已標記為未讀"
+  },
   "historySearch": {
     "tooltip": "搜尋訊息",
     "title": "搜尋對話內容",

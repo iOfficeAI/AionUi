@@ -91,6 +91,17 @@
     "archiveProjectConfirm": "Archive project \"{{name}}\"? Its {{count}} conversation(s) will be archived too. You can restore or delete them from Archived in Settings.",
     "archiving": "Archiving..."
   },
+  "attentionCenter": {
+    "tooltip": "Requer atenção",
+    "title": "Requer atenção",
+    "count": "{{count}} item não lido",
+    "count_one": "{{count}} item não lido",
+    "count_other": "{{count}} itens não lidos",
+    "markAllAsRead": "Marcar tudo como lido",
+    "empty": "Nada requer sua atenção",
+    "completed": "Tarefa concluída",
+    "manualUnread": "Marcado como não lido"
+  },
   "historySearch": {
     "tooltip": "Pesquisar mensagens",
     "title": "Pesquisar conteúdo da conversa",
