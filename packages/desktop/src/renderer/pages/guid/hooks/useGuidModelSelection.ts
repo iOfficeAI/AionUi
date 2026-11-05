@@ -7,8 +7,11 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import { hasAvailableModels } from '../utils/modelUtils';
+import { hasAvailableModels, getAvailableModels } from '../utils/modelUtils';
+import { readAutoModelSettings, resolveAutoModel } from '@/renderer/utils/autoModel';
+import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Build a unique key for a provider/model pair.
@@ -37,7 +40,9 @@ export type GuidModelSelectionResult = {
   isGoogleAuth: boolean;
   formatGeminiModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
   current_model: TProviderWithModel | undefined;
+  autoEnabled: boolean;
   setCurrentModel: (model_info: TProviderWithModel, options?: { persistPreference?: boolean }) => Promise<void>;
+  selectAutoModel: () => Promise<void>;
   resetCurrentModel: (options?: { persistPreference?: boolean }) => Promise<void>;
 };
 
@@ -48,6 +53,7 @@ export type GuidModelSelectionResult = {
  * @param agentKey - current provider-based agent (currently only 'aionrs')
  */
 export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): GuidModelSelectionResult => {
+  const { t } = useTranslation();
   const { isGoogleAuth } = useGoogleAuthModels();
   const { data: modelConfig } = useProvidersQuery();
 
@@ -62,15 +68,34 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
   }, []);
 
   const [current_model, _setCurrentModel] = useState<TProviderWithModel>();
+  const [autoEnabled, setAutoEnabled] = useState(false);
   const selectedModelKeyRef = useRef<string | null>(null);
 
   const setCurrentModel = useCallback(
     async (model_info: TProviderWithModel, _options?: { persistPreference?: boolean }) => {
       selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.use_model);
       _setCurrentModel(model_info);
+      setAutoEnabled(false);
     },
     []
   );
+
+  const selectAutoModel = useCallback(async () => {
+    try {
+      const resolved = resolveAutoModel({
+        phase: 'planner',
+        settings: readAutoModelSettings(),
+        providers: modelList,
+        getAvailableModels,
+      });
+      selectedModelKeyRef.current = buildModelKey(resolved.model.id, resolved.model.use_model);
+      _setCurrentModel(resolved.model);
+      setAutoEnabled(true);
+    } catch (error) {
+      console.error('Failed to resolve Auto model:', error);
+      Message.warning(t('conversation.autoModel.noCandidates', { defaultValue: 'No available models for Auto' }));
+    }
+  }, [modelList, t]);
 
   const resetCurrentModel = useCallback(
     async (options?: { persistPreference?: boolean }) => {
@@ -79,6 +104,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       }
 
       selectedModelKeyRef.current = null;
+      setAutoEnabled(false);
 
       const defaultModel = modelList[0];
       const resolvedUseModel = defaultModel?.models[0] ?? '';
@@ -102,6 +128,9 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       if (!modelList || modelList.length === 0) {
         return;
       }
+      if (autoEnabled) {
+        return;
+      }
       const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.use_model);
       if (isModelKeyAvailable(currentKey, modelList)) {
         if (!selectedModelKeyRef.current && currentKey) {
@@ -115,13 +144,15 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [agentKey, current_model?.id, current_model?.use_model, modelList, resetCurrentModel]);
+  }, [agentKey, autoEnabled, current_model?.id, current_model?.use_model, modelList, resetCurrentModel]);
   return {
     modelList,
     isGoogleAuth,
     formatGeminiModelLabel,
     current_model,
+    autoEnabled,
     setCurrentModel,
+    selectAutoModel,
     resetCurrentModel,
   };
 };
