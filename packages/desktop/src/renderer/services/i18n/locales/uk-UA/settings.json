@@ -384,6 +384,7 @@
   "baseUrlHint": "Система автоматично додасть шлях запиту",
   "modelNotFoundAfterUrlChange": "Модель {{model}} не знайдено за новою адресою; виберіть її знову, якщо не працює.",
   "apiKey": "API-ключ",
+  "getApiKey": "Отримати API-ключ",
   "deleteModelConfirm": "Ви впевнені, що хочете видалити цю модель?",
   "deleteAllModelConfirm": "Ви впевнені, що хочете видалити всі моделі?",
   "modelCount": "Модель",
