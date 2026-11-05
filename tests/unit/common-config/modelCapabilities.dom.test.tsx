@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => ({
   mutate: vi.fn(),
   onSubmit: vi.fn(),
   providerMutate: vi.fn(),
+  providerError: undefined as Error | undefined,
+  providersLoading: false,
   providers: [] as IProvider[],
   protocolReset: vi.fn(),
   singleModelValue: false,
@@ -115,7 +117,12 @@ vi.mock('@renderer/hooks/agent/useModeModeList', () => ({
 }));
 
 vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
-  useProvidersQuery: () => ({ data: mocks.providers, mutate: mocks.providerMutate }),
+  useProvidersQuery: () => ({
+    data: mocks.providers,
+    mutate: mocks.providerMutate,
+    error: mocks.providerError,
+    isLoading: mocks.providersLoading,
+  }),
 }));
 
 vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
@@ -599,6 +606,27 @@ describe('configured model list', () => {
   beforeEach(() => {
     mocks.providers.splice(0, mocks.providers.length, configuredProvider);
     mocks.updateProvider.mockResolvedValue(configuredProvider);
+    mocks.providerError = undefined;
+    mocks.providersLoading = false;
+    mocks.providerMutate.mockResolvedValue(undefined);
+  });
+
+  it('shows a load error and retry instead of claiming no models are configured', async () => {
+    mocks.providers.splice(0);
+    mocks.providerError = new Error('offline');
+    render(<ModelModalContent />);
+    expect(screen.getByText('settings.loadModelConfigFailed')).toBeInTheDocument();
+    expect(screen.queryByText('settings.noConfiguredModels')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
+    await waitFor(() => expect(mocks.providerMutate).toHaveBeenCalled());
+  });
+
+  it('shows loading instead of an empty configuration during the initial request', () => {
+    mocks.providers.splice(0);
+    mocks.providersLoading = true;
+    render(<ModelModalContent />);
+    expect(screen.getByText('common.loading')).toBeInTheDocument();
+    expect(screen.queryByText('settings.noConfiguredModels')).not.toBeInTheDocument();
   });
 
   it('shows explicit and automatic Vision and API mode states', () => {

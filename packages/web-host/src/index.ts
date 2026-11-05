@@ -37,6 +37,8 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
       dataDir: opts.dataDir,
       logDir: opts.logDir,
       dirs: opts.dirs,
+      // Browser access always uses backend authentication, even on loopback.
+      local: false,
     });
   } else {
     // useExistingBackend: create a fake handle

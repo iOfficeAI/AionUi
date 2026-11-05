@@ -67,4 +67,15 @@ describe('setActiveTheme', () => {
     await expect(setActiveTheme('dark')).rejects.toThrow('save failed');
     expect(publishMock).not.toHaveBeenCalled();
   });
+
+  it('keeps the applied appearance when saving a selection fails', async () => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.body.setAttribute('arco-theme', 'light');
+    configSetMock.mockRejectedValue(new Error('save failed'));
+
+    await expect(setActiveTheme('dark')).rejects.toThrow('save failed');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(document.body.getAttribute('arco-theme')).toBe('light');
+  });
 });

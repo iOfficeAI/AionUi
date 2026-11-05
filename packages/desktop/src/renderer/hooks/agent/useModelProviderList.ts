@@ -14,16 +14,21 @@ export interface ModelProviderListResult {
 
 export const PROVIDERS_SWR_KEY = 'providers';
 
-// Provider config is local application state. Keep it stable after the initial
-// load and refresh only through explicit mutate() calls after CRUD operations.
+// A transient startup/auth/network failure must not leave the shared provider
+// cache empty for the rest of the session. Retry a bounded number of times and
+// revalidate when the user returns or connectivity is restored.
 export const PROVIDERS_SWR_OPTIONS: SWRConfiguration<IProvider[], Error> = {
-  revalidateOnFocus: false,
-  revalidateOnReconnect: false,
-  shouldRetryOnError: false,
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+  shouldRetryOnError: true,
+  errorRetryCount: 3,
+  errorRetryInterval: 1000,
 };
 
 export const fetchProviders = async (): Promise<IProvider[]> => {
-  return (await ipcBridge.mode.listProviders.invoke()) ?? [];
+  const providers = await ipcBridge.mode.listProviders.invoke();
+  if (!Array.isArray(providers)) throw new Error('Invalid provider list response');
+  return providers;
 };
 
 export const useProvidersQuery = () => {

@@ -879,6 +879,7 @@
   "checkForUpdates": "檢查更新",
   "checkingForUpdates": "檢查新版本中",
   "includePrereleaseUpdates": "包含預發佈/dev 版本",
+  "loadModelConfigFailed": "無法載入已儲存的模型設定，請重試。",
   "saveModelConfigFailed": "儲存模型設定失敗",
   "healthCheck": "健康檢測",
   "clearStatus": "清除狀態",

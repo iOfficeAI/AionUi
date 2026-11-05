@@ -237,7 +237,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     click: () => {
       isQuitting = true;
       app.relaunch();
-      app.exit(0);
+      app.quit();
     },
   });
   template.push({ type: 'separator' });

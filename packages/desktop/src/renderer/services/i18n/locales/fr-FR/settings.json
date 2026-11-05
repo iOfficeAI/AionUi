@@ -879,6 +879,7 @@
   "checkForUpdates": "Vérifier les mises à jour",
   "checkingForUpdates": "Vérification des mises à jour...",
   "includePrereleaseUpdates": "Inclure les versions préliminaires/dev",
+  "loadModelConfigFailed": "Impossible de charger les paramètres de modèles enregistrés. Veuillez réessayer.",
   "saveModelConfigFailed": "Échec de l'enregistrement de la configuration du modèle",
   "healthCheck": "Vérification de santé",
   "clearStatus": "Effacer le statut",

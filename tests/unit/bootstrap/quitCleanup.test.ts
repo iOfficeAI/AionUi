@@ -12,12 +12,43 @@ type BeforeQuitEvent = {
 };
 
 const flushMicrotasks = async () => {
-  for (let i = 0; i < 6; i += 1) {
-    await Promise.resolve();
-  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
 };
 
 describe('installQuitCleanup', () => {
+  it('finishes pending writes before stopping the backend they use', async () => {
+    let beforeQuitHandler: ((event: BeforeQuitEvent) => void) | undefined;
+    let finishWrite: (() => void) | undefined;
+    const pendingWrite = new Promise<void>((resolve) => {
+      finishWrite = resolve;
+    });
+    const stopBackend = vi.fn().mockResolvedValue(undefined);
+    const quitApp = vi.fn();
+    installQuitCleanup({
+      onBeforeQuit: (handler) => {
+        beforeQuitHandler = handler;
+      },
+      quitApp,
+      setIsQuitting: vi.fn(),
+      markExplicitQuit: vi.fn(),
+      destroyTray: vi.fn(),
+      disposeCronResumeListener: vi.fn(),
+      flushPendingWrites: () => pendingWrite,
+      stopBackend,
+      destroyPetWindow: vi.fn(),
+      logInfo: vi.fn(),
+      logWarn: vi.fn(),
+      logError: vi.fn(),
+    });
+    beforeQuitHandler?.({ preventDefault: vi.fn() });
+    await flushMicrotasks();
+    expect(stopBackend).not.toHaveBeenCalled();
+    finishWrite?.();
+    await flushMicrotasks();
+    expect(stopBackend).toHaveBeenCalledTimes(1);
+    expect(quitApp).toHaveBeenCalledTimes(1);
+  });
+
   it('prevents the first quit until cleanup finishes, then requests quit again', async () => {
     const calls: string[] = [];
     let beforeQuitHandler: ((event: BeforeQuitEvent) => void) | undefined;

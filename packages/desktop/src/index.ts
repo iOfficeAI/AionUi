@@ -27,6 +27,7 @@ import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
+import { flushPersistedWrites } from './process/utils/persistOnQuit';
 import { shouldRegisterBackendStartup } from './process/startup/singleInstanceGating';
 import { ProcessConfig } from './process/utils/initStorage';
 import type { BackendStartupFailureInfo } from './common/types/platform/electron';
@@ -613,7 +614,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     if (action.kind === 'relaunch') {
       console.warn(`[AionUi] renderer cannot be recovered in-place (reason=${details.reason}); relaunching app`);
       app.relaunch();
-      app.exit(0);
+      app.quit();
       return;
     }
 
@@ -1152,6 +1153,7 @@ installQuitCleanup({
   },
   // Stop aioncore subprocess — backend shutdown kills all agent children
   // transitively (no separate frontend workerTaskManager remains).
+  flushPendingWrites: flushPersistedWrites,
   stopBackend: () => backendManager.stop(),
   destroyPetWindow: async () => {
     const { destroyPetWindow } = await import('./process/pet/petManager');

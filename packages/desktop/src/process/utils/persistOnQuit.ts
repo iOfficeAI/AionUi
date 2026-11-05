@@ -16,6 +16,13 @@ const pending = new Set<Promise<unknown>>();
 let installed = false;
 let flushing = false;
 
+/** Drain writes, including any registered while an earlier batch is settling. */
+export const flushPersistedWrites = async (): Promise<void> => {
+  while (pending.size > 0) {
+    await Promise.allSettled(pending);
+  }
+};
+
 const ensureHandlerInstalled = (): void => {
   if (installed) return;
   installed = true;
@@ -29,7 +36,7 @@ const ensureHandlerInstalled = (): void => {
     if (pending.size === 0) return;
     flushing = true;
     event.preventDefault();
-    Promise.allSettled(pending).finally(() => {
+    flushPersistedWrites().finally(() => {
       app.quit();
     });
   });

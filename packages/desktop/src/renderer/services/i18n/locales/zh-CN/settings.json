@@ -879,6 +879,7 @@
   "checkForUpdates": "检查更新",
   "checkingForUpdates": "检查新版本中",
   "includePrereleaseUpdates": "包含预发布/dev 版本",
+  "loadModelConfigFailed": "无法加载已保存的模型配置，请重试。",
   "saveModelConfigFailed": "保存模型配置失败",
   "healthCheck": "健康检测",
   "clearStatus": "清除状态",

@@ -867,6 +867,7 @@
   "checkForUpdates": "업데이트 확인",
   "checkingForUpdates": "업데이트 확인 중...",
   "includePrereleaseUpdates": "프리릴리즈/dev 빌드 포함",
+  "loadModelConfigFailed": "저장된 모델 설정을 불러올 수 없습니다. 다시 시도하세요.",
   "saveModelConfigFailed": "모델 구성 저장 실패",
   "healthCheck": "상태 확인",
   "clearStatus": "상태 지우기",

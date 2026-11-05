@@ -879,6 +879,7 @@
   "checkForUpdates": "بررسی به‌روزرسانی",
   "checkingForUpdates": "در حال بررسی به‌روزرسانی‌ها...",
   "includePrereleaseUpdates": "شامل نسخه‌های پیش‌انتشار/توسعه",
+  "loadModelConfigFailed": "تنظیمات ذخیره‌شده مدل‌ها بارگیری نشد. دوباره تلاش کنید.",
   "saveModelConfigFailed": "ذخیره پیکربندی مدل ناموفق بود",
   "healthCheck": "بررسی سلامت",
   "clearStatus": "پاک کردن وضعیت",

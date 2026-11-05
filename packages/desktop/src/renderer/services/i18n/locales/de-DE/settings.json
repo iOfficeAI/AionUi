@@ -869,6 +869,7 @@
   "checkForUpdates": "Nach Updates suchen",
   "checkingForUpdates": "Suche nach Updates...",
   "includePrereleaseUpdates": "Vorveröffentlichungs-/Entwicklungs-Builds einschließen",
+  "loadModelConfigFailed": "Die gespeicherten Modelleinstellungen konnten nicht geladen werden. Bitte erneut versuchen.",
   "saveModelConfigFailed": "Modellkonfiguration speichern fehlgeschlagen",
   "healthCheck": "Gesundheitsprüfung",
   "clearStatus": "Status löschen",

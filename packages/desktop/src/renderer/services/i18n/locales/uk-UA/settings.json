@@ -830,6 +830,7 @@
   "checkForUpdates": "Перевірити оновлення",
   "checkingForUpdates": "Перевірка оновлень...",
   "includePrereleaseUpdates": "Включити попередні/dev збірки",
+  "loadModelConfigFailed": "Не вдалося завантажити збережені налаштування моделей. Спробуйте ще раз.",
   "saveModelConfigFailed": "Не вдалося зберегти конфігурацію моделі",
   "healthCheck": "Перевірка здоров'я",
   "clearStatus": "Очистити статус",

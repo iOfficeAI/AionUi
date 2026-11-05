@@ -71,12 +71,12 @@ export function applyTheme(theme: Theme, root: Document = document): void {
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
 }
 
-/** Resolve `activeId` locally, apply, persist, and publish to Electron for cross-window broadcast. */
+/** Resolve `activeId`, persist, apply, and publish to Electron for cross-window broadcast. */
 export async function setActiveTheme(activeId: string): Promise<Theme> {
   const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
   const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
-  applyTheme(resolved);
   await configService.set('theme.activeId', activeId);
+  applyTheme(resolved);
   await publishThemeToElectron(resolved);
   return resolved;
 }

@@ -879,6 +879,7 @@
   "checkForUpdates": "Check for updates",
   "checkingForUpdates": "Checking for updates...",
   "includePrereleaseUpdates": "Include prerelease/dev builds",
+  "loadModelConfigFailed": "Unable to load saved model settings. Please retry.",
   "saveModelConfigFailed": "Failed to save model configuration",
   "healthCheck": "Health Check",
   "clearStatus": "Clear status",
