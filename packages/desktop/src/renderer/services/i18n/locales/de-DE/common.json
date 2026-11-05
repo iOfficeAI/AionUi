@@ -202,5 +202,9 @@
   "goBack": "Zurück",
   "selectedCount": "{{count}} ausgewählt",
   "selectedSkills": "Ausgewählte Skills",
-  "aiAssistant": "KI-Assistent"
+  "aiAssistant": "KI-Assistent",
+  "terminal": "Terminal",
+  "runInTerminal": "Im Terminal ausführen",
+  "clearTerminal": "Terminal leeren",
+  "restartTerminal": "Terminal neu starten"
 }

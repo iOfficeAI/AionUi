@@ -655,7 +655,8 @@
     "newDirFailed": "폴더를 만들지 못했습니다",
     "tabs": {
       "files": "파일",
-      "changes": "변경"
+      "changes": "변경",
+      "terminal": "터미널"
     },
     "addedToChat": "{{name}}을(를) 채팅에 추가했습니다",
     "imported": "{{count}}개 파일을 가져왔습니다",
@@ -760,7 +761,8 @@
     "stopped": "중지됨",
     "exited": "종료 코드 {{code}}",
     "stop": "중지",
-    "truncated": "(이전 출력 잘림)"
+    "truncated": "(이전 출력 잘림)",
+    "executingInTerminal": "터미널에서 실행 중..."
   },
   "emptyState": {
     "greeting": "안녕하세요! 필요한 것을 말씀해 주시면 바로 시작하겠습니다."

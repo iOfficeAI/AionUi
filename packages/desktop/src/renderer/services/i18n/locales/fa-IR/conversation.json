@@ -655,7 +655,8 @@
     "newDirFailed": "ایجاد پوشه ناموفق بود",
     "tabs": {
       "files": "پرونده‌ها",
-      "changes": "تغییرات"
+      "changes": "تغییرات",
+      "terminal": "ترمینال"
     },
     "addedToChat": "{{name}} به گفتگو افزوده شد",
     "imported": "{{count}} فایل وارد شد",
@@ -760,7 +761,8 @@
     "stopped": "متوقف شد",
     "exited": "کد خروج {{code}}",
     "stop": "توقف",
-    "truncated": "(خروجی قبلی کوتاه شد)"
+    "truncated": "(خروجی قبلی کوتاه شد)",
+    "executingInTerminal": "در حال اجرا در ترمینال..."
   },
   "emptyState": {
     "greeting": "سلام! بگویید چه نیاز دارید تا شروع کنم."

@@ -202,5 +202,9 @@
   },
   "selectedCount": "{{count}} انتخاب‌شده",
   "selectedSkills": "مهارت‌های انتخاب‌شده",
-  "aiAssistant": "دستیار هوش مصنوعی"
+  "aiAssistant": "دستیار هوش مصنوعی",
+  "terminal": "ترمینال",
+  "runInTerminal": "اجرا در ترمینال",
+  "clearTerminal": "پاک کردن ترمینال",
+  "restartTerminal": "راه‌اندازی مجدد ترمینال"
 }

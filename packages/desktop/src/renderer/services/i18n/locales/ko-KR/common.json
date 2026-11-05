@@ -202,5 +202,9 @@
   },
   "selectedCount": "선택됨 {{count}}",
   "selectedSkills": "선택된 스킬",
-  "aiAssistant": "AI 어시스턴트"
+  "aiAssistant": "AI 어시스턴트",
+  "terminal": "터미널",
+  "runInTerminal": "터미널에서 실행",
+  "clearTerminal": "터미널 지우기",
+  "restartTerminal": "터미널 재시작"
 }

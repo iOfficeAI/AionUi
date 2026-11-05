@@ -63,6 +63,7 @@ import { SearchPanel } from './search/SearchPanel';
 import type { SearchHit } from './search/searchModel';
 import { ScmPanel } from '../SourceControl/ScmPanel';
 import { rediscoverRepos, refreshAllRepos } from '../SourceControl/scmStore';
+import { TerminalPanel, listenTerminalExecEvent } from '../Terminal';
 
 export type ExplorerContainerProps = {
   /** Owning project id — scopes the store's fact cache + localStorage UI state. */
@@ -246,13 +247,28 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
   // ── File operations (A): rename + delete + create-file / create-dir ───────
   // All operate on the tree's `{pe_id, relative_path}` identity over WS fs/*
   // commands; the change is pushed back as a delta on the parent dir's
-  // subscription, so the tree updates itself (single source, no manual refetch).
   // Component switcher tab (host component switcher, this round in-container):
-  // 'files' = the Explorer, 'changes' = the Source Control panel. Switching tabs
-  // unmounts the inactive one for `changes`, which is safe because the SCM
-  // subscription is owned by its store per project, not by the component's mount
-  // (see ScmPanel's lifecycle note) — a tab switch never drops the backend watch.
-  const [activeTab, setActiveTab] = useState<'files' | 'changes'>('files');
+  // 'files' = the Explorer, 'changes' = the Source Control panel, 'terminal' = interactive terminal.
+  const [activeTab, setActiveTab] = useState<'files' | 'changes' | 'terminal'>('files');
+  const [terminalMounted, setTerminalMounted] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'terminal') {
+      setTerminalMounted(true);
+    }
+  }, [activeTab]);
+
+  // Switch to terminal tab when an external execute event is received for this project
+  useEffect(() => {
+    const unlisten = listenTerminalExecEvent(({ projectId: targetProjectId }) => {
+      if (!targetProjectId || targetProjectId === projectId) {
+        setTerminalMounted(true);
+        setActiveTab('terminal');
+      }
+    });
+    return unlisten;
+  }, [projectId]);
+
   // Busy flag for the top-bar refresh: spins the icon and disables re-click while a
   // refresh is in flight (so rapid clicks don't fan out redundant backend round-trips).
   const [refreshing, setRefreshing] = useState(false);
@@ -509,7 +525,7 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
     }
   };
 
-  const tabButton = (key: 'files' | 'changes', label: string) => (
+  const tabButton = (key: 'files' | 'changes' | 'terminal', label: string) => (
     <Button
       type='text'
       size='small'
@@ -522,27 +538,16 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
 
   return (
     <div className='h-full flex flex-col min-h-0'>
-      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control.
+      {/* Host component-switcher tab bar: 文件 = explorer, 变更 = source control, 终端 = terminal.
           Tabs are left-aligned and scroll horizontally when they overflow; the
           attach + open-externally cluster is pinned right (flex-shrink-0) with
           container padding, so it never scrolls with the tabs nor clips at narrow
-          widths.
-
-          左内边距 12px 是本面板的对齐基准线，三处必须一致（见下方 SearchPanel 与
-          arco-override.css 的 .workspace-tree 规则）：外框一律从 12px 起，框内内容
-          （tab 文字 / 搜索图标 / 树箭头）一律从 20px 起。12px 不是随手取的——侧栏
-          的拖宽把手正好盖住最左 12px 且层级更高，任何落在其左侧的东西都点不到。
-
-          The 12px left padding is this panel's alignment baseline and must match in
-          all three places (see SearchPanel below and the .workspace-tree rules in
-          arco-override.css): outer boxes start at 12px, their inner content (tab
-          text / search icon / tree arrow) starts at 20px. 12px is not arbitrary —
-          the sider's resize handle covers the leftmost 12px and sits above this
-          content, so anything placed to its left cannot be clicked. */}
+          widths. */}
       <div className='flex items-center gap-4px ps-12px pe-8px py-4px flex-shrink-0 border-b border-[var(--bg-3)]'>
         <div className='flex items-center gap-2px overflow-x-auto flex-1 min-w-0'>
           {tabButton('files', t('conversation.explorer.tabs.files'))}
           {tabButton('changes', t('conversation.explorer.tabs.changes'))}
+          {tabButton('terminal', t('conversation.explorer.tabs.terminal'))}
         </div>
         <div className='flex items-center gap-2px flex-shrink-0'>
           {/* Right cluster order (VS Code parity): project-scope actions first (add
@@ -647,6 +652,12 @@ export const ExplorerContainer: React.FC<ExplorerContainerProps> = ({ projectId 
           <ScmPanel projectId={projectId} />
         </div>
       )}
+      {terminalMounted && (
+        <div className='flex-1 min-h-0' style={activeTab === 'terminal' ? undefined : { display: 'none' }}>
+          <TerminalPanel projectId={projectId} cwd={workspacePath} visible={activeTab === 'terminal'} />
+        </div>
+      )}
+
       <Modal
         title={nameDialog ? t(nameDialogTitleKey(nameDialog.mode)) : ''}
         visible={nameDialog !== null}

@@ -5,12 +5,13 @@
  */
 
 import { Message } from '@arco-design/web-react';
-import { Copy, Down, Up } from '@icon-park/react';
+import { Copy, Down, PlayOne, Up } from '@icon-park/react';
 import katex from 'katex';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { dispatchTerminalExecEvent } from '@/renderer/pages/conversation/Terminal/terminalEvents';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
 import WavedromBlock from './WavedromBlock';
@@ -97,8 +98,23 @@ function CodeBlock(props: CodeBlockProps) {
     return <WavedromBlock code={formatCode(children)} style={props.codeStyle} enablePanZoom={props.diagramPanZoom} />;
   }
 
-  // Inline code (single line)
-  if (!String(children).includes('\n')) {
+  const SHELL_LANGUAGES = new Set([
+    'bash',
+    'sh',
+    'zsh',
+    'shell',
+    'shellscript',
+    'terminal',
+    'powershell',
+    'ps1',
+    'pwsh',
+    'cmd',
+    'bat',
+    'batch',
+  ]);
+
+  // Inline code (single line, no language specifier)
+  if (!String(children).includes('\n') && !match) {
     return (
       <code {...rest} className={className} style={{ fontWeight: 'bold' }}>
         {children}
@@ -107,12 +123,22 @@ function CodeBlock(props: CodeBlockProps) {
   }
 
   const isDiff = language === 'diff';
+  const isShell = SHELL_LANGUAGES.has(language.toLowerCase());
   const formattedContent = formatCode(children);
   const totalLines = formattedContent.split('\n').length;
   const canCollapse = totalLines > PREVIEW_LINES;
   const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
   const diffLines = isDiff ? formattedContent.split('\n') : [];
   const isDark = currentTheme === 'dark';
+
+  const handleRunInTerminal = () => {
+    dispatchTerminalExecEvent(formattedContent);
+    try {
+      Message.info(t('conversation.terminal.executingInTerminal', { defaultValue: 'Executing in terminal...' }));
+    } catch {
+      /* Shadow DOM portal may fail silently */
+    }
+  };
 
   const handleCopy = () => {
     void copyText(formattedContent)
@@ -182,6 +208,18 @@ function CodeBlock(props: CodeBlockProps) {
                     onClick={toggleExpanded}
                   />
                 )}
+              </span>
+            )}
+            {isShell && (
+              <span title={t('common.runInTerminal', { defaultValue: 'Run in Terminal' })} style={{ display: 'flex' }}>
+                <PlayOne
+                  theme='outline'
+                  size='14'
+                  style={{ cursor: 'pointer', display: 'block' }}
+                  fill={iconFill}
+                  onClick={handleRunInTerminal}
+                  data-testid='run-in-terminal-button'
+                />
               </span>
             )}
             <span title={t('common.copy')} style={{ display: 'flex' }}>
