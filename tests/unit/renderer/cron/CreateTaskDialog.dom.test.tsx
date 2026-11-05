@@ -78,10 +78,20 @@ vi.mock('@renderer/pages/guid/components/GuidModelSelector', () => ({
 }));
 
 vi.mock('@renderer/components/workspace', () => ({
-  WorkspaceFolderSelect: () => <div data-testid='workspace-folder-select' />,
+  WorkspaceFolderSelect: ({ onChange, onClear }: { onChange: (value?: string) => void; onClear: () => void }) => (
+    <div data-testid='workspace-folder-select'>
+      <button type='button' data-testid='workspace-pick' onClick={() => onChange('/picked/forks')}>
+        pick
+      </button>
+      <button type='button' data-testid='workspace-clear' onClick={() => onClear()}>
+        clear
+      </button>
+    </div>
+  ),
 }));
 
-vi.mock('@renderer/pages/cron/cronUtils', () => ({
+vi.mock('@renderer/pages/cron/cronUtils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@renderer/pages/cron/cronUtils')>()),
   createCronSchedule: (expr: string, description: string) => ({
     kind: 'cron',
     expr,
@@ -376,6 +386,106 @@ describe('CreateTaskDialog', () => {
     });
     await waitFor(() => expect(ipcBridge.cron.addJob.invoke).toHaveBeenCalledTimes(1));
   });
+
+  it('updates a shell job without touching agent config', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} editJob={shellJob()} />);
+
+    // Task type is immutable after creation — both radios stay disabled.
+    expect(screen.getByRole('radio', { name: 'cron.page.form.taskTypeAgent' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'cron.page.form.taskTypeShell' })).toBeDisabled();
+    // Assistant section is not rendered for shell jobs.
+    expect(screen.queryByTestId('cron-assistant-select')).not.toBeInTheDocument();
+
+    const command = await screen.findByTestId('cron-prompt-input');
+    await user.clear(command);
+    await user.type(command, 'git fetch --all --prune');
+    await user.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledTimes(1));
+    const [{ updates }] = vi.mocked(ipcBridge.cron.updateJob.invoke).mock.calls[0];
+    expect(updates.target?.payload).toEqual({
+      kind: 'shell',
+      command: 'git fetch --all --prune',
+      workspace: '/tmp/forks',
+      timeout_ms: 600_000,
+    });
+    expect(updates.target?.execution_mode).toBe('existing');
+    expect(updates.metadata).not.toHaveProperty('agent_config');
+  });
+
+  it('creates a shell job bound to the current conversation', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} conversation_id='conv-1' />);
+
+    const shellRadio = screen.getByRole('radio', { name: 'cron.page.form.taskTypeShell' });
+    expect(shellRadio).toBeEnabled();
+    await user.click(shellRadio);
+
+    await user.type(screen.getByTestId('cron-name-input'), 'Mirror repos');
+    await user.type(screen.getByTestId('cron-prompt-input'), 'echo shell-cron-ok');
+    await user.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(ipcBridge.cron.addJob.invoke).toHaveBeenCalledTimes(1));
+    const [params] = vi.mocked(ipcBridge.cron.addJob.invoke).mock.calls[0];
+    expect(params).toMatchObject({
+      name: 'Mirror repos',
+      action: 'shell',
+      message: 'echo shell-cron-ok',
+      execution_mode: 'existing',
+      conversation_id: 'conv-1',
+    });
+    expect(params).not.toHaveProperty('agent_config');
+  });
+
+  it('disables the shell option when creating without a bound conversation', () => {
+    render(<CreateTaskDialog visible onClose={() => {}} />);
+
+    expect(screen.getByRole('radio', { name: 'cron.page.form.taskTypeAgent' })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: 'cron.page.form.taskTypeShell' })).toBeDisabled();
+  });
+
+  it('switching back to the assistant type restores the default execution mode', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} conversation_id='conv-1' />);
+
+    // Shell mode hides the execution-mode section entirely…
+    await user.click(screen.getByRole('radio', { name: 'cron.page.form.taskTypeShell' }));
+    expect(screen.queryByTestId('cron-execution-mode-group')).not.toBeInTheDocument();
+
+    // …and switching back restores the section with the create default.
+    await user.click(screen.getByRole('radio', { name: 'cron.page.form.taskTypeAgent' }));
+    expect(screen.getByTestId('cron-execution-mode-group')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.executionModeDescriptionNew')).toBeInTheDocument();
+  });
+
+  it('persists shell workspace and timeout overrides', async () => {
+    const user = userEvent.setup();
+
+    render(<CreateTaskDialog visible onClose={() => {}} conversation_id='conv-1' />);
+
+    await user.click(screen.getByRole('radio', { name: 'cron.page.form.taskTypeShell' }));
+    await user.click(await screen.findByTestId('workspace-pick'));
+    await user.click(screen.getByTestId('workspace-clear'));
+    await user.click(screen.getByTestId('workspace-pick'));
+    await user.click(await screen.findByTestId('cron-shell-timeout-select'));
+    fireEvent.click(await screen.findByText('30 min'));
+
+    await user.type(screen.getByTestId('cron-name-input'), 'Mirror repos');
+    await user.type(screen.getByTestId('cron-prompt-input'), 'git fetch --all --prune');
+    await user.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => expect(ipcBridge.cron.addJob.invoke).toHaveBeenCalledTimes(1));
+    const [params] = vi.mocked(ipcBridge.cron.addJob.invoke).mock.calls[0];
+    expect(params).toMatchObject({
+      action: 'shell',
+      shell_workspace: '/picked/forks',
+      shell_timeout_ms: 1_800_000,
+    });
+  });
 });
 
 function job(): ICronJob {
@@ -445,6 +555,26 @@ function ongoingConversationJob(): ICronJob {
   } as ICronJob;
 }
 
+function shellJob(): ICronJob {
+  return {
+    ...job(),
+    metadata: {
+      ...job().metadata,
+      agent_type: 'shell',
+      agent_config: undefined,
+    },
+    target: {
+      execution_mode: 'existing',
+      payload: {
+        kind: 'shell',
+        command: 'gh repo fork owner/repo --clone',
+        workspace: '/tmp/forks',
+        timeout_ms: 600_000,
+      },
+    },
+  } as ICronJob;
+}
+
 function teamOwnedJob(): ICronJob {
   return {
     ...ongoingConversationJob(),
@@ -456,7 +586,9 @@ function teamOwnedJob(): ICronJob {
 }
 
 function executionModeInputs(): HTMLInputElement[] {
-  return Array.from(document.querySelectorAll<HTMLInputElement>('.arco-radio input[type="radio"]'));
+  return Array.from(
+    document.querySelectorAll<HTMLInputElement>('[data-testid="cron-execution-mode-group"] input[type="radio"]')
+  );
 }
 
 function assistants(): Assistant[] {

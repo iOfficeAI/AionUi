@@ -22,7 +22,7 @@ import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { buildAssistantModelInfo } from '@renderer/pages/guid/hooks/useGuidAssistantSelection';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
-import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
+import { createCronSchedule, getJobCommandText, isShellJob } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveAssistantName } from '@renderer/utils/model/assistantDisplay';
@@ -46,6 +46,7 @@ type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'cu
 type CustomFrequencyMode = 'interval' | 'daily' | 'weekly' | 'monthly' | 'advanced';
 type CustomIntervalUnit = 'minutes' | 'hours';
 type ExecutionMode = 'new_conversation' | 'existing';
+type ExecutionAction = 'agent' | 'shell';
 
 type CustomScheduleState = {
   mode: CustomFrequencyMode;
@@ -252,6 +253,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const isEditMode = !!editJob;
   const [execution_mode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+  const [executionAction, setExecutionAction] = useState<ExecutionAction>('agent');
+  const [shellWorkspace, setShellWorkspace] = useState<string | undefined>(undefined);
+  const [shellTimeoutMinutes, setShellTimeoutMinutes] = useState<number>(10);
   const [queueEnabled, setQueueEnabled] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [teamOwnershipStatus, setTeamOwnershipStatus] = useState<'checking' | 'team' | 'standalone'>('standalone');
@@ -276,6 +280,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWeekday(parsed.weekday);
       setCustomSchedule(parsed.frequency === 'custom' ? parseCustomSchedule(cronExpr) : createDefaultCustomSchedule());
       setExecutionMode(editJob.target.execution_mode || 'existing');
+      setExecutionAction(isShellJob(editJob) ? 'shell' : 'agent');
+      setShellWorkspace(isShellJob(editJob) ? editJob.target.payload.workspace : undefined);
+      setShellTimeoutMinutes(
+        isShellJob(editJob) ? Math.max(1, Math.round((editJob.target.payload.timeout_ms ?? 600_000) / 60_000)) : 10
+      );
       setQueueEnabled(editJob.state.queue_enabled);
       setSelectedAssistantId(agentKey);
       setAdvancedOpen(
@@ -289,7 +298,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       form.setFieldsValue({
         name: editJob.name,
         assistant: agentKey,
-        prompt: editJob.target.payload.text,
+        prompt: getJobCommandText(editJob),
       });
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agent_config?.model_id ?? editJob.metadata.agent_config?.model?.model);
@@ -302,6 +311,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWeekday('MON');
       setCustomSchedule(createDefaultCustomSchedule());
       setExecutionMode('new_conversation');
+      setExecutionAction('agent');
+      setShellWorkspace(undefined);
+      setShellTimeoutMinutes(10);
       setQueueEnabled(false);
       setAdvancedOpen(false);
       setModelId(undefined);
@@ -495,9 +507,26 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const isOriginalExistingConversationTask = isEditMode && editJob?.target.execution_mode === 'existing';
   const isCheckingTeamOwnership = teamOwnershipStatus === 'checking';
   const isTeamOwnedTask = teamOwnershipStatus === 'team';
-  const isExecutionModeLocked = isCheckingTeamOwnership || isTeamOwnedTask;
+  const isExecutionModeLocked = isCheckingTeamOwnership || isTeamOwnedTask || executionAction === 'shell';
   const canEditAgentConfig =
-    !isExecutionModeLocked && !isOriginalExistingConversationTask && (!isEditMode || execution_mode !== 'existing');
+    !isExecutionModeLocked &&
+    !isOriginalExistingConversationTask &&
+    (!isEditMode || execution_mode !== 'existing') &&
+    executionAction === 'agent';
+  /** Shell jobs must be bound to a conversation (results are written back there). */
+  const shellActionDisabled = !isEditMode && !_conversation_id;
+
+  const handleExecutionActionChange = useCallback(
+    (value: ExecutionAction) => {
+      setExecutionAction(value);
+      if (value === 'shell') {
+        setExecutionMode('existing');
+      } else {
+        setExecutionMode(isEditMode ? editJob?.target.execution_mode || 'existing' : 'new_conversation');
+      }
+    },
+    [isEditMode, editJob]
+  );
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
@@ -569,7 +598,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           name: values.name,
           schedule,
           target: {
-            payload: { kind: 'message', text: values.prompt },
+            payload:
+              executionAction === 'shell'
+                ? {
+                    kind: 'shell',
+                    command: values.prompt,
+                    workspace: shellWorkspace,
+                    timeout_ms: shellTimeoutMinutes * 60_000,
+                  }
+                : { kind: 'message', text: values.prompt },
             execution_mode: resolvedExecutionMode,
           },
           metadata,
@@ -584,6 +621,23 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates,
         });
         Message.success(t('cron.page.updateSuccess'));
+      } else if (executionAction === 'shell') {
+        // Create mode — native shell action (no agent, no model tokens)
+        const params: ICreateCronJobParams = {
+          name: values.name,
+          schedule,
+          message: values.prompt,
+          conversation_id: _conversation_id ?? '',
+          conversation_title,
+          created_by: 'user',
+          execution_mode: 'existing',
+          queue_enabled: queueEnabled,
+          action: 'shell',
+          shell_workspace: shellWorkspace,
+          shell_timeout_ms: shellTimeoutMinutes * 60_000,
+        };
+        await ipcBridge.cron.addJob.invoke(params);
+        Message.success(t('cron.page.createSuccess'));
       } else {
         // Create mode
         const params: ICreateCronJobParams = {
@@ -629,52 +683,61 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             field='name'
             rules={[{ required: true, message: t('cron.page.form.nameRequired') }]}
           >
-            <Input placeholder={t('cron.page.form.namePlaceholder')} />
+            <Input data-testid='cron-name-input' placeholder={t('cron.page.form.namePlaceholder')} />
           </FormItem>
 
-          <FormItem
-            label={t('cron.page.form.assistant')}
-            field='assistant'
-            rules={canEditAgentConfig ? [{ required: true, message: t('cron.page.form.assistantRequired') }] : []}
-          >
-            <Select
-              data-testid='cron-assistant-select'
-              value={selectedAssistantId}
-              placeholder={t('cron.page.form.assistantPlaceholder')}
-              disabled={!canEditAgentConfig}
-              onChange={handleAssistantChange}
-              renderFormat={(_option, value) => {
-                const assistantId = value as unknown as string;
-                if (!assistantId) return '';
-
-                const assistant = presetAssistants.find((item) => item.id === assistantId);
-                const name = resolveAssistantName(assistant, localeKey, assistantId);
-                const avatar = resolveAssistantAvatar(assistant?.avatar);
-
-                return (
-                  <div className='flex items-center gap-8px'>
-                    {avatar.kind === 'image' ? (
-                      <ThemedLogo src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
-                    ) : avatar.kind === 'emoji' ? (
-                      <span className='text-14px leading-16px'>{avatar.value}</span>
-                    ) : (
-                      <Robot size='16' />
-                    )}
-                    <span>{name}</span>
-                  </div>
-                );
-              }}
+          <FormItem label={t('cron.page.form.taskType')}>
+            <Radio.Group
+              value={executionAction}
+              disabled={isEditMode}
+              onChange={(value) => handleExecutionActionChange(value as ExecutionAction)}
+              className='flex flex-wrap items-center gap-20px'
             >
-              {presetAssistants.map((assistant) => {
-                const name = resolveAssistantName(assistant, localeKey, assistant.name);
-                const avatar = resolveAssistantAvatar(assistant.avatar);
-                const disabled = isAionrsAssistant(assistant) && !hasAionrsProvider;
-                return (
-                  <Option key={assistant.id} value={assistant.id} disabled={disabled}>
-                    <div
-                      className='flex items-center gap-8px'
-                      title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
-                    >
+              <Radio value='agent' disabled={isEditMode} className='m-0 min-w-0 text-14px text-t-secondary'>
+                <span className='ps-4px text-14px font-medium text-t-primary'>{t('cron.page.form.taskTypeAgent')}</span>
+              </Radio>
+              <Radio
+                value='shell'
+                disabled={isEditMode || shellActionDisabled}
+                className={`m-0 min-w-0 text-14px text-t-secondary ${shellActionDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span className='ps-4px text-14px font-medium text-t-primary'>{t('cron.page.form.taskTypeShell')}</span>
+              </Radio>
+            </Radio.Group>
+            {executionAction === 'shell' && (
+              <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+                <p className='m-0 text-12px leading-18px text-t-primary'>{t('cron.page.form.shellModeHint')}</p>
+              </div>
+            )}
+            {shellActionDisabled && (
+              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+                {t('cron.page.form.shellNeedsConversation')}
+              </p>
+            )}
+          </FormItem>
+
+          {executionAction === 'agent' && (
+            <FormItem
+              label={t('cron.page.form.assistant')}
+              field='assistant'
+              rules={canEditAgentConfig ? [{ required: true, message: t('cron.page.form.assistantRequired') }] : []}
+            >
+              <Select
+                data-testid='cron-assistant-select'
+                value={selectedAssistantId}
+                placeholder={t('cron.page.form.assistantPlaceholder')}
+                disabled={!canEditAgentConfig}
+                onChange={handleAssistantChange}
+                renderFormat={(_option, value) => {
+                  const assistantId = value as unknown as string;
+                  if (!assistantId) return '';
+
+                  const assistant = presetAssistants.find((item) => item.id === assistantId);
+                  const name = resolveAssistantName(assistant, localeKey, assistantId);
+                  const avatar = resolveAssistantAvatar(assistant?.avatar);
+
+                  return (
+                    <div className='flex items-center gap-8px'>
                       {avatar.kind === 'image' ? (
                         <ThemedLogo src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
                       ) : avatar.kind === 'emoji' ? (
@@ -683,57 +746,138 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                         <Robot size='16' />
                       )}
                       <span>{name}</span>
-                      {disabled && (
-                        <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
-                      )}
                     </div>
-                  </Option>
-                );
-              })}
-            </Select>
-            {!canEditAgentConfig && (
-              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
-                {t('cron.page.form.assistantLockedExistingConversation')}
-              </p>
-            )}
-          </FormItem>
+                  );
+                }}
+              >
+                {presetAssistants.map((assistant) => {
+                  const name = resolveAssistantName(assistant, localeKey, assistant.name);
+                  const avatar = resolveAssistantAvatar(assistant.avatar);
+                  const disabled = isAionrsAssistant(assistant) && !hasAionrsProvider;
+                  return (
+                    <Option key={assistant.id} value={assistant.id} disabled={disabled}>
+                      <div
+                        className='flex items-center gap-8px'
+                        title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
+                      >
+                        {avatar.kind === 'image' ? (
+                          <ThemedLogo src={avatar.value} alt={name} className='w-16px h-16px object-contain' />
+                        ) : avatar.kind === 'emoji' ? (
+                          <span className='text-14px leading-16px'>{avatar.value}</span>
+                        ) : (
+                          <Robot size='16' />
+                        )}
+                        <span>{name}</span>
+                        {disabled && (
+                          <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
+                        )}
+                      </div>
+                    </Option>
+                  );
+                })}
+              </Select>
+              {!canEditAgentConfig && (
+                <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+                  {t('cron.page.form.assistantLockedExistingConversation')}
+                </p>
+              )}
+            </FormItem>
+          )}
 
-          <FormItem label={t('cron.page.form.executionMode')}>
-            <Radio.Group
-              value={execution_mode}
-              disabled={isExecutionModeLocked}
-              onChange={(value) => setExecutionMode(value as ExecutionMode)}
-              className='flex flex-wrap items-center gap-20px'
-            >
-              {executionModeOptions.map((option) => {
-                return (
-                  <Radio
-                    key={option.value}
-                    value={option.value}
-                    className={`m-0 min-w-0 text-14px text-t-secondary ${isExecutionModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <span className='ps-4px text-14px font-medium text-t-primary'>{option.label}</span>
-                  </Radio>
-                );
-              })}
-            </Radio.Group>
-            <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
-              <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
-            </div>
-            {isTeamOwnedTask && (
-              <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
-                {t('cron.page.form.teamTaskExecutionModeLockedReason')}
-              </p>
-            )}
-          </FormItem>
+          {executionAction === 'agent' && (
+            <FormItem label={t('cron.page.form.executionMode')}>
+              <Radio.Group
+                data-testid='cron-execution-mode-group'
+                value={execution_mode}
+                disabled={isExecutionModeLocked}
+                onChange={(value) => setExecutionMode(value as ExecutionMode)}
+                className='flex flex-wrap items-center gap-20px'
+              >
+                {executionModeOptions.map((option) => {
+                  return (
+                    <Radio
+                      key={option.value}
+                      value={option.value}
+                      className={`m-0 min-w-0 text-14px text-t-secondary ${isExecutionModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span className='ps-4px text-14px font-medium text-t-primary'>{option.label}</span>
+                    </Radio>
+                  );
+                })}
+              </Radio.Group>
+              <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+                <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
+              </div>
+              {isTeamOwnedTask && (
+                <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+                  {t('cron.page.form.teamTaskExecutionModeLockedReason')}
+                </p>
+              )}
+            </FormItem>
+          )}
 
           <FormItem
-            label={t('cron.page.form.prompt')}
+            label={executionAction === 'shell' ? t('cron.page.form.shellCommand') : t('cron.page.form.prompt')}
             field='prompt'
-            rules={[{ required: true, message: t('cron.page.form.promptRequired') }]}
+            rules={[
+              {
+                required: true,
+                message:
+                  executionAction === 'shell'
+                    ? t('cron.page.form.shellCommandRequired')
+                    : t('cron.page.form.promptRequired'),
+              },
+            ]}
           >
-            <TextArea placeholder={t('cron.page.form.promptPlaceholder')} autoSize={{ minRows: 3, maxRows: 8 }} />
+            <TextArea
+              data-testid='cron-prompt-input'
+              placeholder={
+                executionAction === 'shell'
+                  ? t('cron.page.form.shellCommandPlaceholder')
+                  : t('cron.page.form.promptPlaceholder')
+              }
+              autoSize={{ minRows: 3, maxRows: 8 }}
+            />
           </FormItem>
+
+          {executionAction === 'shell' && (
+            <div className='mb-20px grid gap-x-16px gap-y-16px md:grid-cols-2'>
+              <div className='min-w-0'>
+                <label className='mb-8px block text-14px font-medium text-t-primary'>
+                  {t('cron.page.form.workspace')}
+                </label>
+                <WorkspaceFolderSelect
+                  value={shellWorkspace}
+                  onChange={(next) => setShellWorkspace(next || undefined)}
+                  onClear={() => setShellWorkspace(undefined)}
+                  placeholder={t('cron.page.form.selectFolder')}
+                  recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                  chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+                    defaultValue: 'Choose a different folder',
+                  })}
+                  triggerTestId='cron-shell-workspace-trigger'
+                  menuTestId='cron-shell-workspace-menu'
+                  menuZIndex={10020}
+                />
+              </div>
+              <div>
+                <label className='mb-8px block text-14px font-medium text-t-primary'>
+                  {t('cron.page.form.shellTimeout')}
+                </label>
+                <Select
+                  data-testid='cron-shell-timeout-select'
+                  value={shellTimeoutMinutes}
+                  onChange={(minutes: number) => setShellTimeoutMinutes(minutes)}
+                >
+                  {[1, 5, 10, 30, 60].map((minutes) => (
+                    <Option key={minutes} value={minutes}>
+                      {`${minutes} min`}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          )}
 
           <div className='mb-20px flex items-start justify-between gap-16px rounded-12px border border-solid border-[var(--color-border-2)] px-14px py-12px'>
             <div className='min-w-0'>

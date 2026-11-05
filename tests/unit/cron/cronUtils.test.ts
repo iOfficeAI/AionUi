@@ -9,6 +9,8 @@ import {
   createCronSchedule,
   formatCronRunConversationTitle,
   getCurrentCronTimeZone,
+  getJobCommandText,
+  isShellJob,
 } from '@/renderer/pages/cron/cronUtils';
 
 const originalDateTimeFormat = Intl.DateTimeFormat;
@@ -51,5 +53,25 @@ describe('cronUtils', () => {
     expect(formatCronRunConversationTitle('Daily report', runAt, 'de-DE')).toBe('Daily report 01.07.26');
     // No language falls back to the default (en-US), never the host locale.
     expect(formatCronRunConversationTitle('Daily report', runAt)).toBe('Daily report 07/01/26');
+  });
+
+  describe('shell job helpers', () => {
+    const agentJob = {
+      target: { payload: { kind: 'message', text: 'do the thing' } },
+    } as never;
+
+    const shellJob = {
+      target: { payload: { kind: 'shell', command: 'git fetch --all --prune', workspace: '/tmp/forks' } },
+    } as never;
+
+    it('detects shell jobs', () => {
+      expect(isShellJob(agentJob)).toBe(false);
+      expect(isShellJob(shellJob)).toBe(true);
+    });
+
+    it('returns prompt text for agent jobs and commands for shell jobs', () => {
+      expect(getJobCommandText(agentJob)).toBe('do the thing');
+      expect(getJobCommandText(shellJob)).toBe('git fetch --all --prune');
+    });
   });
 });

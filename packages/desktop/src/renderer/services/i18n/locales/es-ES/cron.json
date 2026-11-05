@@ -44,7 +44,10 @@
     "notFound": "Tarea no encontrada",
     "executionModeDescriptionNew": "Cada ejecución inicia una conversación nueva, por lo que el contexto anterior no se lleva. Ideal para informes o verificaciones periódicas que deben ser independientes.",
     "executionModeDescriptionExisting": "Cada ejecución continúa en la misma conversación, por lo que el contexto y los resultados anteriores están disponibles. Ideal para tareas de seguimiento que se basan en ejecuciones previas.",
-    "assistant": "Assistant"
+    "assistant": "Assistant",
+    "command": "Comando",
+    "shellWorkspace": "Espacio de trabajo",
+    "shellTimeout": "Tiempo límite"
   },
   "notification": {
     "taskComplete": "Tarea completada",
@@ -114,7 +117,16 @@
       "assistantRequired": "Please select an assistant",
       "assistantPlaceholder": "Select the assistant to execute this task",
       "assistantLockedExistingConversation": "Ongoing conversation tasks must keep their original assistant. Create a new task to use another assistant.",
-      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed."
+      "teamTaskExecutionModeLockedReason": "Team scheduled tasks must keep running in the owning team conversation, so the execution mode cannot be changed.",
+      "taskType": "Tipo de tarea",
+      "taskTypeAgent": "Asistente de IA",
+      "taskTypeShell": "Script de Shell",
+      "shellCommand": "Comando de Shell",
+      "shellCommandPlaceholder": "p. ej., gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Introduce el comando de Shell",
+      "shellModeHint": "Las tareas de Shell ejecutan el comando directamente, sin asistente de IA, y escriben el resultado en la conversación vinculada.",
+      "shellTimeout": "Tiempo límite",
+      "shellNeedsConversation": "Las tareas de Shell necesitan una conversación vinculada. Créalas desde el panel de tareas de una conversación."
     },
     "freq": {
       "manual": "Manual",

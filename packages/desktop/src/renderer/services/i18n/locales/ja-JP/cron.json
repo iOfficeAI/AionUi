@@ -55,7 +55,10 @@
     "noHistory": "実行履歴はありません",
     "notFound": "タスクが見つかりません",
     "executionModeDescriptionNew": "実行のたびに新しい会話を作成するため、前回までの文脈は引き継がれません。定期レポートや巡回チェックなど、各回を独立させたいタスクに向いています。",
-    "executionModeDescriptionExisting": "実行のたびに同じ会話で続行するため、過去の文脈や結果を引き継げます。前回の内容を踏まえて追跡したい継続タスクに向いています。"
+    "executionModeDescriptionExisting": "実行のたびに同じ会話で続行するため、過去の文脈や結果を引き継げます。前回の内容を踏まえて追跡したい継続タスクに向いています。",
+    "command": "コマンド",
+    "shellWorkspace": "ワークスペース",
+    "shellTimeout": "タイムアウト"
   },
   "notification": {
     "taskComplete": "タスク完了",
@@ -124,7 +127,16 @@
       "aionrsModelRequired": "Aion CLI のモデルを選択してください",
       "aionrsNoProvider": "利用可能なモデルがありません",
       "assistantLockedExistingConversation": "同じ会話で実行するタスクは元のアシスタントを維持する必要があります。別のアシスタントを使うには新しいタスクを作成してください。",
-      "teamTaskExecutionModeLockedReason": "Team のスケジュールタスクは所属する Team 会話で継続実行する必要があるため、実行モードは変更できません。"
+      "teamTaskExecutionModeLockedReason": "Team のスケジュールタスクは所属する Team 会話で継続実行する必要があるため、実行モードは変更できません。",
+      "taskType": "タスク種別",
+      "taskTypeAgent": "AIアシスタント",
+      "taskTypeShell": "Shellスクリプト",
+      "shellCommand": "Shellコマンド",
+      "shellCommandPlaceholder": "例: gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Shellコマンドを入力してください",
+      "shellModeHint": "ShellタスクはAIアシスタントを介さずコマンドを直接実行し、結果を紐づいた会話に書き戻します。",
+      "shellTimeout": "タイムアウト",
+      "shellNeedsConversation": "Shellタスクには会話の紐付けが必要です。会話内のタスクパネルから作成してください。"
     },
     "freq": {
       "manual": "手動",

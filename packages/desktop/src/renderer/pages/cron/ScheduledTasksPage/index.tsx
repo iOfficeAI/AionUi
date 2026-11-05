@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Empty, Message, Spin, Switch, Tooltip } from '@arco-design/web-react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
-import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
+import { formatSchedule, formatNextRun, getJobCommandText } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
@@ -83,7 +83,7 @@ const ScheduledTasksPage: React.FC = () => {
       const searchableText = [
         job.name,
         job.description,
-        job.target.payload.text,
+        getJobCommandText(job),
         job.metadata.conversation_title,
         job.metadata.agent_type,
         job.metadata.agent_config?.name,

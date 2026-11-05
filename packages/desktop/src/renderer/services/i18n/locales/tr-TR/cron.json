@@ -55,7 +55,10 @@
     "noHistory": "Henüz çalıştırılmadı",
     "notFound": "Görev bulunamadı",
     "executionModeDescriptionNew": "Her çalıştırma yeni bir konuşma başlatır; önceki bağlam sonraki çalıştırmaya taşınmaz. Bağımsız kalması gereken düzenli raporlar ve kontrol görevleri için uygundur.",
-    "executionModeDescriptionExisting": "Her çalıştırma aynı konuşmada devam eder; önceki bağlam ve sonuçlar korunur. Önceki çalıştırmaların üzerine eklenen takip işleri için uygundur."
+    "executionModeDescriptionExisting": "Her çalıştırma aynı konuşmada devam eder; önceki bağlam ve sonuçlar korunur. Önceki çalıştırmaların üzerine eklenen takip işleri için uygundur.",
+    "command": "Komut",
+    "shellWorkspace": "Çalışma alanı",
+    "shellTimeout": "Zaman aşımı"
   },
   "notification": {
     "taskComplete": "Görev Tamamlandı",
@@ -124,7 +127,16 @@
       "aionrsModelRequired": "Aion CLI için bir model seçin",
       "aionrsNoProvider": "Kullanılabilir model yok",
       "assistantLockedExistingConversation": "Aynı konuşma görevleri özgün yürütme asistanını korumalıdır. Başka bir asistan kullanmak için yeni bir görev oluşturun.",
-      "teamTaskExecutionModeLockedReason": "Team zamanlanmış görevleri ait oldukları Team konuşmasında çalışmaya devam etmelidir, bu nedenle yürütme modu değiştirilemez."
+      "teamTaskExecutionModeLockedReason": "Team zamanlanmış görevleri ait oldukları Team konuşmasında çalışmaya devam etmelidir, bu nedenle yürütme modu değiştirilemez.",
+      "taskType": "Görev türü",
+      "taskTypeAgent": "AI asistanı",
+      "taskTypeShell": "Shell betiği",
+      "shellCommand": "Shell komutu",
+      "shellCommandPlaceholder": "örn. gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Lütfen Shell komutunu girin",
+      "shellModeHint": "Shell görevleri bir AI asistanı olmadan komutu doğrudan çalıştırır ve sonucu bağlı sohbete yazar.",
+      "shellTimeout": "Zaman aşımı",
+      "shellNeedsConversation": "Shell görevleri bağlı bir sohbet gerektirir. Lütfen bir sohbetin görev panelinden oluşturun."
     },
     "freq": {
       "manual": "Manuel",

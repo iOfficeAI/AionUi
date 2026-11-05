@@ -1634,18 +1634,23 @@ export const cron = {
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
   updateJob: httpPut<ICronJob, { job_id: string; updates: ICronJobUpdateParams }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
-    (p) => ({
-      name: p.updates.name,
-      description: p.updates.description,
-      enabled: p.updates.enabled,
-      schedule: p.updates.schedule,
-      message: p.updates.target?.payload.text,
-      execution_mode: p.updates.target?.execution_mode,
-      agent_config: p.updates.metadata?.agent_config,
-      conversation_title: p.updates.metadata?.conversation_title,
-      max_retries: p.updates.state?.max_retries,
-      queue_enabled: p.updates.state?.queue_enabled,
-    })
+    (p) => {
+      const payload = p.updates.target?.payload;
+      return {
+        name: p.updates.name,
+        description: p.updates.description,
+        enabled: p.updates.enabled,
+        schedule: p.updates.schedule,
+        message: payload?.kind === 'shell' ? payload.command : payload?.text,
+        execution_mode: p.updates.target?.execution_mode,
+        shell_workspace: payload?.kind === 'shell' ? (payload.workspace ?? '') : undefined,
+        shell_timeout_ms: payload?.kind === 'shell' ? payload.timeout_ms : undefined,
+        agent_config: p.updates.metadata?.agent_config,
+        conversation_title: p.updates.metadata?.conversation_title,
+        max_retries: p.updates.state?.max_retries,
+        queue_enabled: p.updates.state?.queue_enabled,
+      };
+    }
   ),
   removeJob: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   runNow: httpPost<{ conversation_id: string }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/run`),
@@ -1675,6 +1680,13 @@ export type ICronSchedule =
   | { kind: 'every'; everyMs: number; description: string }
   | { kind: 'cron'; expr: string; tz?: string; description: string };
 
+/** What a triggered job does: an agent turn (default) or a native shell command. */
+export type ICronJobPayload =
+  | { kind: 'message'; text: string }
+  | { kind: 'shell'; command: string; workspace?: string; timeout_ms?: number };
+
+export type ICronShellPayload = Extract<ICronJobPayload, { kind: 'shell' }>;
+
 export interface ICronJob {
   id: string;
   name: string;
@@ -1682,7 +1694,7 @@ export interface ICronJob {
   enabled: boolean;
   schedule: ICronSchedule;
   target: {
-    payload: { kind: 'message'; text: string };
+    payload: ICronJobPayload;
     execution_mode?: 'existing' | 'new_conversation';
   };
   metadata: {
@@ -1748,6 +1760,12 @@ export interface ICreateCronJobParams {
   execution_mode?: 'existing' | 'new_conversation';
   queue_enabled?: boolean;
   agent_config?: ICronAgentConfigWrite;
+  /** `'agent'` (default) starts an agent turn; `'shell'` runs `message` natively. */
+  action?: 'agent' | 'shell';
+  /** Working directory override for shell jobs; defaults to the bound conversation's workspace. */
+  shell_workspace?: string;
+  /** Timeout in ms for shell jobs; clamped server-side to [1s, 1h], default 10 min. */
+  shell_timeout_ms?: number;
 }
 
 export interface ICronJobUpdateParams {
@@ -1756,7 +1774,7 @@ export interface ICronJobUpdateParams {
   enabled?: boolean;
   schedule?: ICronSchedule;
   target?: {
-    payload?: { kind: 'message'; text: string };
+    payload?: ICronJobPayload;
     execution_mode?: 'existing' | 'new_conversation';
   };
   metadata?: {

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { ICronJob, ICronShellPayload } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { formatDate, formatDateTime } from '@/renderer/services/i18n/format';
 import type { TFunction } from 'i18next';
@@ -122,6 +122,16 @@ export function formatCronRunConversationTitle(jobName: string, runAtMs: number,
 /**
  * Get job status flags
  */
+/** Whether the job runs a native shell command instead of an agent turn. */
+export function isShellJob(job: ICronJob): job is ICronJob & { target: { payload: ICronShellPayload } } {
+  return job.target.payload.kind === 'shell';
+}
+
+/** The job's prompt text (agent jobs) or shell command (shell jobs). */
+export function getJobCommandText(job: ICronJob): string {
+  return job.target.payload.kind === 'shell' ? job.target.payload.command : job.target.payload.text;
+}
+
 export function getJobStatusFlags(job: ICronJob): { hasError: boolean; isPaused: boolean } {
   return {
     hasError: job.state.last_status === 'error' || job.state.last_status === 'missed',

@@ -42,7 +42,10 @@
     "noHistory": "Nenhuma execução ainda",
     "notFound": "Tarefa não encontrada",
     "executionModeDescriptionNew": "Cada execução inicia uma nova conversa, de forma que o contexto anterior não é mantido. Melhor para relatórios ou verificações recorrentes que devem permanecer independentes.",
-    "executionModeDescriptionExisting": "Cada execução continua na mesma conversa, de forma que o contexto anterior e os resultados continuam disponíveis. Melhor para tarefas de acompanhamento que se baseiam em execuções anteriores."
+    "executionModeDescriptionExisting": "Cada execução continua na mesma conversa, de forma que o contexto anterior e os resultados continuam disponíveis. Melhor para tarefas de acompanhamento que se baseiam em execuções anteriores.",
+    "command": "Comando",
+    "shellWorkspace": "Espaço de trabalho",
+    "shellTimeout": "Tempo limite"
   },
   "notification": {
     "taskComplete": "Tarefa Concluída",
@@ -111,7 +114,16 @@
       "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
       "aionrsNoProvider": "Nenhum modelo disponível",
       "assistantLockedExistingConversation": "Tarefas de conversa em andamento devem manter o assistente original. Crie uma nova tarefa para usar outro assistente.",
-      "teamTaskExecutionModeLockedReason": "Tarefas agendadas de Team devem continuar executando na conversa de Team proprietária, por isso o modo de execução não pode ser alterado."
+      "teamTaskExecutionModeLockedReason": "Tarefas agendadas de Team devem continuar executando na conversa de Team proprietária, por isso o modo de execução não pode ser alterado.",
+      "taskType": "Tipo de tarefa",
+      "taskTypeAgent": "Assistente de IA",
+      "taskTypeShell": "Script Shell",
+      "shellCommand": "Comando Shell",
+      "shellCommandPlaceholder": "ex.: gh repo fork owner/repo --clone",
+      "shellCommandRequired": "Insira o comando Shell",
+      "shellModeHint": "Tarefas Shell executam o comando diretamente, sem assistente de IA, e gravam o resultado na conversa vinculada.",
+      "shellTimeout": "Tempo limite",
+      "shellNeedsConversation": "Tarefas Shell exigem uma conversa vinculada. Crie-as no painel de tarefas de uma conversa."
     },
     "freq": {
       "manual": "Manual",

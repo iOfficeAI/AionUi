@@ -375,6 +375,41 @@ describe('TaskDetailPage', () => {
     });
     expect(removeJobInvokeMock).not.toHaveBeenCalled();
   });
+
+  it('renders shell jobs with command heading, workspace and timeout', async () => {
+    getJobInvokeMock.mockResolvedValue(
+      job({
+        metadata: {
+          agent_type: 'shell',
+          agent_config: undefined,
+        },
+        target: {
+          execution_mode: 'existing',
+          payload: {
+            kind: 'shell',
+            command: 'gh repo fork owner/repo --clone',
+            workspace: '/Users/me/forks',
+            timeout_ms: 600_000,
+          },
+        },
+      } as Partial<ICronJob>)
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('cron.detail.command')).toBeInTheDocument();
+    expect(screen.getByText('gh repo fork owner/repo --clone')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.shellWorkspace: /Users/me/forks')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.shellTimeout: 10 min')).toBeInTheDocument();
+    // Agent-only sections are not rendered for shell jobs.
+    expect(screen.queryByText('cron.detail.instructions')).not.toBeInTheDocument();
+  });
 });
 
 function conversation(overrides?: Partial<TChatConversation>): TChatConversation {
