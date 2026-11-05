@@ -1,6 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ITeamRunEvent, ITeamRunStateResponse, TeamRunStatus, TTeam } from '@/common/types/team/teamTypes';
+import type {
+  ITeamRunEvent,
+  ITeamRunStateResponse,
+  ITeamSlotWork,
+  TeamRunStatus,
+  TTeam,
+} from '@/common/types/team/teamTypes';
 import { useSiderTeamRunning } from '@/renderer/components/layout/Sider/useSiderTeamRunning';
 
 type TeamRunHandler = (event: ITeamRunEvent) => void;
@@ -81,6 +87,33 @@ const runEvent = (overrides: Partial<ITeamRunEvent> = {}): ITeamRunEvent => ({
   slot_work: [],
   ...overrides,
 });
+
+const idleSlot = (overrides: Partial<ITeamSlotWork> = {}): ITeamSlotWork => ({
+  slot_id: 'slot-1',
+  role: 'lead',
+  state: 'idle',
+  queued_foreground_count: 0,
+  queued_background_count: 0,
+  active_turn_id: null,
+  active_turn_started_at_ms: null,
+  active_turn_elapsed_ms: null,
+  active_turn_slow: null,
+  active_turn_slow_threshold_ms: null,
+  blocked_reason: null,
+  team_run_id: 'run-1',
+  ...overrides,
+});
+
+/** A running event with zero work counters and all-idle slots (orphaned state). */
+const idleRunEvent = (overrides: Partial<ITeamRunEvent> = {}): ITeamRunEvent =>
+  runEvent({
+    queued_intent_count: 0,
+    starting_batch_count: 0,
+    running_batch_count: 0,
+    active_enqueue_lease_count: 0,
+    slot_work: [idleSlot()],
+    ...overrides,
+  });
 
 const emitRun = (channel: keyof typeof bridgeMocks.on, event: ITeamRunEvent) => {
   act(() => {
@@ -404,5 +437,113 @@ describe('useSiderTeamRunning', () => {
     expect(Object.values(bridgeMocks.unsubscribes).every((unsubscribe) => unsubscribe.mock.calls.length === 1)).toBe(
       true
     );
+  });
+
+  describe('orphaned running protection', () => {
+    it('does not mark a team as running for an idle running event (zero counters, idle slots)', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+
+      emitRun('runStarted', idleRunEvent());
+
+      expect(result.current('team-1')).toBe(false);
+    });
+
+    it('does not mark a team as running for an idle running event with empty slot_work', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+
+      emitRun('runStarted', idleRunEvent({ slot_work: [] }));
+
+      expect(result.current('team-1')).toBe(false);
+    });
+
+    it.each([
+      ['queued intents', { queued_intent_count: 1 }],
+      ['starting batches', { starting_batch_count: 1 }],
+      ['running batches', { running_batch_count: 1 }],
+      ['active enqueue leases', { active_enqueue_lease_count: 1 }],
+    ] as const)('marks a running event as active when %s is nonzero', async (_, overrides) => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+
+      emitRun('runStarted', idleRunEvent(overrides));
+
+      expect(result.current('team-1')).toBe(true);
+    });
+
+    it.each(['queued', 'starting', 'running', 'paused', 'blocked'] as const)(
+      'keeps a team running when a slot is %s even with zero counters',
+      async (state) => {
+        const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+        await flushInitialReconcile();
+
+        emitRun('runStarted', idleRunEvent({ slot_work: [idleSlot({ state })] }));
+
+        expect(result.current('team-1')).toBe(true);
+      }
+    );
+
+    it('treats an accepted event with zero counters as active', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+
+      emitRun('runAccepted', idleRunEvent({ status: 'accepted' }));
+
+      expect(result.current('team-1')).toBe(true);
+    });
+
+    it('treats a cancelling event with zero counters as active', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+
+      emitRun('runUpdated', idleRunEvent({ status: 'cancelling' }));
+
+      expect(result.current('team-1')).toBe(true);
+    });
+
+    it('keeps an already-active team running when a transient idle running update arrives', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+      emitRun('runAccepted', runEvent({ status: 'accepted' }));
+
+      emitRun('runUpdated', idleRunEvent());
+
+      expect(result.current('team-1')).toBe(true);
+    });
+
+    it('does not resurrect the spinner from a late idle running replay after a terminal event', async () => {
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+      await flushInitialReconcile();
+      emitRun('runAccepted', runEvent({ status: 'accepted' }));
+      emitRun('runCompleted', runEvent({ status: 'completed' }));
+      expect(result.current('team-1')).toBe(false);
+
+      emitRun('runStarted', idleRunEvent());
+
+      expect(result.current('team-1')).toBe(false);
+    });
+
+    it('clears an orphaned running snapshot when counters are zero and slots are idle', async () => {
+      bridgeMocks.getRunState.mockResolvedValue({
+        ...emptyRunState(),
+        active_run: idleRunEvent(),
+      });
+
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+
+      await waitFor(() => expect(result.current('team-1')).toBe(false));
+    });
+
+    it('keeps a team running when a snapshot active_run has a busy slot with zero counters', async () => {
+      bridgeMocks.getRunState.mockResolvedValue({
+        ...emptyRunState(),
+        active_run: idleRunEvent({ slot_work: [idleSlot({ state: 'running' })] }),
+      });
+
+      const { result } = renderHook(() => useSiderTeamRunning([team('team-1')]));
+
+      await waitFor(() => expect(result.current('team-1')).toBe(true));
+    });
   });
 });

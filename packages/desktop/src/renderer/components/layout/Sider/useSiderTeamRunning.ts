@@ -6,6 +6,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const ACTIVE_RUN_STATUSES = new Set<TeamRunStatus>(['accepted', 'running', 'cancelling']);
 const TERMINAL_RUN_STATUSES = new Set<TeamRunStatus>(['completed', 'cancelled', 'failed']);
 
+/**
+ * A `running` event is idle when no work counters are pending and every bound
+ * slot is idle. Backend run status can linger in `running` after a finish
+ * signal is lost, so orphaned events/snapshots must not keep the spinner up.
+ */
+const isRunIdle = (event: ITeamRunEvent): boolean =>
+  event.queued_intent_count === 0 &&
+  event.starting_batch_count === 0 &&
+  event.running_batch_count === 0 &&
+  event.active_enqueue_lease_count === 0 &&
+  event.slot_work.every((slot) => slot.state === 'idle');
+
+const isActiveRun = (event: ITeamRunEvent): boolean =>
+  ACTIVE_RUN_STATUSES.has(event.status) && !(event.status === 'running' && isRunIdle(event));
+
 type ActiveRunIdsByTeam = Map<string, Set<string>>;
 
 const addActiveRun = (runsByTeam: ActiveRunIdsByTeam, event: ITeamRunEvent): ActiveRunIdsByTeam => {
@@ -37,7 +52,7 @@ const replaceActiveRun = (
   team_id: string,
   activeRun: ITeamRunEvent | null
 ): ActiveRunIdsByTeam => {
-  const activeRunId = activeRun && ACTIVE_RUN_STATUSES.has(activeRun.status) ? activeRun.team_run_id : null;
+  const activeRunId = activeRun && isActiveRun(activeRun) ? activeRun.team_run_id : null;
   const currentRuns = runsByTeam.get(team_id);
 
   if (!activeRunId) {
@@ -58,6 +73,10 @@ const replaceActiveRun = (
  *
  * Run events provide immediate updates. Authoritative snapshots on team-list
  * load and WebSocket reconnect recover state when lifecycle events were missed.
+ *
+ * A `running` event or snapshot whose counters are all zero and whose slots
+ * are all idle is treated as not running: it is an orphaned backend state
+ * (the finish signal was lost) and must not resurrect the sidebar spinner.
  */
 export function useSiderTeamRunning(teams: TTeam[]): (team_id: string) => boolean {
   const teamSignature = teams
@@ -112,7 +131,7 @@ export function useSiderTeamRunning(teams: TTeam[]): (team_id: string) => boolea
     const applyRunEvent = (event: ITeamRunEvent) => {
       if (!mountedRef.current || !knownTeamIdsRef.current.has(event.team_id)) return;
       eventVersionByTeamRef.current.set(event.team_id, (eventVersionByTeamRef.current.get(event.team_id) ?? 0) + 1);
-      if (ACTIVE_RUN_STATUSES.has(event.status)) {
+      if (isActiveRun(event)) {
         setActiveRunIdsByTeam((current) => addActiveRun(current, event));
       } else if (TERMINAL_RUN_STATUSES.has(event.status)) {
         setActiveRunIdsByTeam((current) => removeActiveRun(current, event));
