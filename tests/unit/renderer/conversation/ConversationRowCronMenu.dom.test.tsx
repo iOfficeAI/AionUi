@@ -9,8 +9,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+const translate = vi.hoisted(() =>
+  vi.fn((key: string) => {
+    if (key === 'settings.channels.weixinTitle') return '微信';
+    if (key === 'settings.channels.slackTitle') return 'Localized Slack';
+    return key;
+  })
+);
+
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: translate }),
 }));
 
 vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({
@@ -99,5 +107,120 @@ describe('conversation scheduled-task menu item', () => {
     render(<ConversationRow {...makeProps({ batchMode: true, menuVisible: false })} />);
 
     expect(screen.queryByText('conversation.history.createCronTask')).not.toBeInTheDocument();
+  });
+});
+
+describe('conversation source badge', () => {
+  it('shows the localized channel name for a known source', () => {
+    render(
+      <ConversationRow
+        {...makeProps({ conversation: { ...conversation, source: 'weixin' } as TChatConversation, menuVisible: false })}
+      />
+    );
+
+    const badge = screen.getByTestId('conversation-source-badge');
+    expect(badge).toHaveTextContent('微信');
+    expect(badge).toHaveAccessibleName('微信');
+  });
+
+  it('localizes a Slack source instead of using the raw fallback value', () => {
+    render(
+      <ConversationRow
+        {...makeProps({ conversation: { ...conversation, source: 'slack' } as TChatConversation, menuVisible: false })}
+      />
+    );
+
+    expect(screen.getByTestId('conversation-source-badge')).toHaveTextContent(/^Localized Slack$/);
+  });
+
+  it('falls back to the original value for an unknown source', () => {
+    render(
+      <ConversationRow
+        {...makeProps({
+          conversation: { ...conversation, source: 'partner-channel' } as TChatConversation,
+          menuVisible: false,
+        })}
+      />
+    );
+
+    expect(screen.getByTestId('conversation-source-badge')).toHaveTextContent('partner-channel');
+  });
+
+  it('makes a truncated unknown source fully discoverable', () => {
+    const source = 'partner-channel-with-an-unusually-long-name';
+    render(
+      <ConversationRow
+        {...makeProps({ conversation: { ...conversation, source } as TChatConversation, menuVisible: false })}
+      />
+    );
+
+    const badge = screen.getByTitle(source);
+    expect(badge).toHaveTextContent(source);
+    expect(badge).toHaveAccessibleName(source);
+  });
+
+  it.each([['aionui'], [undefined]])('does not show a source badge for %s conversations', (source) => {
+    render(
+      <ConversationRow
+        {...makeProps({ conversation: { ...conversation, source } as TChatConversation, menuVisible: false })}
+      />
+    );
+
+    expect(screen.queryByTestId('conversation-source-badge')).not.toBeInTheDocument();
+  });
+
+  it('keeps source badges out of the collapsed sidebar row', () => {
+    render(
+      <ConversationRow
+        {...makeProps({
+          collapsed: true,
+          conversation: { ...conversation, source: 'telegram' } as TChatConversation,
+          menuVisible: false,
+        })}
+      />
+    );
+
+    expect(screen.queryByTestId('conversation-source-badge')).not.toBeInTheDocument();
+  });
+
+  it('keeps the localized source visible alongside the fork badge and open row menu', () => {
+    render(
+      <ConversationRow
+        {...makeProps({
+          conversation: {
+            ...conversation,
+            source: 'weixin',
+            extra: {
+              ...conversation.extra,
+              fork: { parent_conversation_id: 'parent-conversation' },
+            },
+          } as TChatConversation,
+          menuVisible: true,
+          resolveConversationName: () => 'Parent conversation',
+        })}
+      />
+    );
+
+    expect(screen.getByTestId('conversation-source-badge')).toHaveTextContent('微信');
+    expect(screen.getByTestId('conversation-fork-badge')).toBeInTheDocument();
+    expect(screen.getByTestId(`conversation-row-menu-${conversation.id}`)).toBeInTheDocument();
+  });
+
+  it('keeps the source visible without row actions during batch selection', () => {
+    render(
+      <ConversationRow
+        {...makeProps({
+          batchMode: true,
+          checked: true,
+          conversation: { ...conversation, source: 'weixin' } as TChatConversation,
+          hasCompletionUnread: true,
+          menuVisible: true,
+        })}
+      />
+    );
+
+    expect(screen.getByTestId('conversation-source-badge')).toHaveTextContent('微信');
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.queryByTestId(`conversation-row-menu-${conversation.id}`)).not.toBeInTheDocument();
   });
 });
