@@ -59,6 +59,7 @@
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
   "wavedromTitle": "WaveDrom Diagram",
+  "echartsTitle": "ECharts Chart",
   "oversized": {
     "title": "File too large to preview",
     "detail": "File size {{size}} exceeds the {{threshold}} limit. Please open it in a system editor.",

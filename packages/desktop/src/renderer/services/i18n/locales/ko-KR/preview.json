@@ -59,6 +59,7 @@
   "openInPanelTooltip": "미리보기 패널에서 보기",
   "mermaidTitle": "Mermaid 다이어그램",
   "wavedromTitle": "WaveDrom 파형도",
+  "echartsTitle": "ECharts 차트",
   "oversized": {
     "title": "파일이 너무 커서 미리 볼 수 없습니다",
     "detail": "파일 크기 {{size}}이(가) 제한 {{threshold}}을(를) 초과합니다. 시스템 편집기로 열어 주세요.",

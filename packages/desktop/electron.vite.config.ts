@@ -301,7 +301,10 @@ export default defineConfig(({ mode }) => {
                 id.includes('/@codemirror/') ||
                 id.includes('/katex/') ||
                 // WaveDrom timing diagrams (markdown code blocks, CJS)
-                id.includes('/wavedrom/')
+                id.includes('/wavedrom/') ||
+                // ECharts data visualization
+                id.includes('/echarts/') ||
+                id.includes('/zrender/')
               )
                 return 'vendor';
               if (id.includes('/@icon-park/')) return 'vendor-icons';

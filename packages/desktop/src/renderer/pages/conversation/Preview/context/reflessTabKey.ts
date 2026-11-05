@@ -52,10 +52,11 @@ const SEP = '\0';
  * @param meta    Tab metadata, for the file name a diff carries.
  */
 export const reflessTabKey = (type: PreviewContentType, content?: string, meta?: PreviewMetadata): string | null => {
-  // A mermaid diagram is its code. Keying on the rendered title instead is what let
-  // two different diagrams sharing a first line overwrite each other.
-  if (type === 'markdown' && content?.startsWith('```mermaid')) {
-    return `mermaid${SEP}${hashText(content)}`;
+  // Diagram blocks (mermaid, echarts) are keyed on their code content. Keying on the rendered title
+  // instead is what let two different diagrams sharing a first line overwrite each other.
+  if (type === 'markdown' && (content?.startsWith('```mermaid') || content?.startsWith('```echarts'))) {
+    const kind = content.startsWith('```echarts') ? 'echarts' : 'mermaid';
+    return `${kind}${SEP}${hashText(content)}`;
   }
 
   // A diff needs both parts: the file name alone merged same-named files from
