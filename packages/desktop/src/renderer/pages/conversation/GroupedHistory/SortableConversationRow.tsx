@@ -4,58 +4,186 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Drag } from '@icon-park/react';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ConversationRow from './ConversationRow';
+import { useConversationDrag } from './hooks/ConversationDragContext';
 import type { ConversationRowProps } from './types';
+import type { ConversationDragSource, ConversationDropTarget } from './utils/conversationDropTargets';
 
-const SortableConversationRow: React.FC<ConversationRowProps> = (props) => {
-  const { t } = useTranslation();
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
-    id: props.conversation.id,
-    disabled: props.batchMode,
-    data: {
-      type: 'conversation',
-      conversation: props.conversation,
-    },
-  });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.72 : undefined,
-    position: 'relative' as const,
-    zIndex: isDragging ? 1 : undefined,
+/**
+ * A click on a drag handle is the row's click unless it is the tail of a drag.
+ *
+ * The handle lies over the row's icon, and in the collapsed rail the icon is
+ * the whole row: swallowing every click there meant a tap on a conversation's
+ * icon opened nothing. Only the click a drag ends with (the pointer let go over
+ * the very element it started on) must not fall through, or a drag returned to
+ * its origin would open the row it was merely moving. Dragging is remembered
+ * until the next click has been swallowed.
+ */
+export const useSwallowClickAfterDrag = (isDragging: boolean): ((event: React.MouseEvent) => void) => {
+  const dragged = useRef(false);
+  useEffect(() => {
+    if (isDragging) {
+      dragged.current = true;
+      return;
+    }
+    // The click a drag ends with, if there is one, dispatches in the same task
+    // as the pointer-up that ended it. A drop somewhere else produces no click
+    // on the handle at all, so the latch must not wait for one: it is cleared
+    // as soon as that task is over, or it would eat the next unrelated click.
+    const timer = setTimeout(() => {
+      dragged.current = false;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isDragging]);
+  return (event) => {
+    if (!dragged.current) return;
+    dragged.current = false;
+    event.stopPropagation();
   };
+};
 
-  // Hover-reveal drag handle overlaying the leading icon (same affordance as
-  // assistant / draft-box sorting). The handle is the only drag activator so
-  // clicks elsewhere on the row keep their normal meaning.
-  const dragHandle = (
+/**
+ * Hover-reveal drag handle overlaying the leading icon (same affordance as
+ * assistant / draft-box sorting). The handle is the only drag activator; a
+ * click that is not a drag still reaches the row, so the icon under it opens
+ * the conversation as it always did.
+ */
+export const DragHandle: React.FC<{
+  conversation_id: string;
+  label: string;
+  isDragging: boolean;
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+}> = ({ conversation_id, label, isDragging, setActivatorNodeRef, attributes, listeners }) => {
+  const onClick = useSwallowClickAfterDrag(isDragging);
+  return (
     <span
       ref={setActivatorNodeRef}
       {...attributes}
       {...listeners}
       role='button'
-      aria-label={t('conversation.history.reorderPinned')}
-      data-testid={`conversation-drag-handle-${props.conversation.id}`}
+      aria-label={label}
+      data-testid={`conversation-drag-handle-${conversation_id}`}
       className={`absolute inset-0 flex-center text-t-secondary transition-opacity ${
         isDragging ? 'opacity-100 cursor-grabbing' : 'opacity-0 group-hover:opacity-100 cursor-grab'
       }`}
-      style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'none' }}
-      onClick={(event) => event.stopPropagation()}
+      // `manipulation`, not `none`: a swipe that starts on the handle must still
+      // scroll the list; the touch sensor only takes over after a hold.
+      style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'manipulation' }}
+      onClick={onClick}
     >
       <Drag theme='outline' size='14' fill='currentColor' />
     </span>
   );
+};
+
+/**
+ * The 2px between consecutive sidebar entries, the same rule the rows and the
+ * split-group blocks carry. The droppable wrapper sits between the row and its
+ * siblings, so it has to carry the rule too, or the rows inside touch and the
+ * gap a member is dropped into to leave its group does not exist.
+ */
+export const ROW_SPACING = 'conversation-item [&.conversation-item+&.conversation-item]:mt-2px';
+
+const dragSource = (conversation_id: string): ConversationDragSource => ({ kind: 'conversation', conversation_id });
+const rowTarget = (conversation_id: string): ConversationDropTarget => ({
+  kind: 'conversation',
+  conversation_id,
+  surface: 'row',
+});
+
+/**
+ * A pinned row: sortable among its pinned siblings (drop between rows to
+ * reorder) and a drop target in its own right (drop onto it to fuse into a
+ * split group). The dragged row itself stays put at reduced opacity; the
+ * ghost that follows the pointer is the DragOverlay in ConversationDragContext.
+ */
+const SortableConversationRow: React.FC<ConversationRowProps> = (props) => {
+  const { t } = useTranslation();
+  const { dropTarget } = useConversationDrag();
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.conversation.id,
+    disabled: props.batchMode,
+    data: { ...dragSource(props.conversation.id), ...rowTarget(props.conversation.id) },
+  });
+
+  const style: React.CSSProperties = {
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+    position: 'relative' as const,
+  };
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <ConversationRow {...props} dragHandle={dragHandle} />
+    // The wrapper is the list's sibling, not the row inside it, so it carries
+    // the row spacing: without it rows touch and there is no gap to drop into.
+    <div ref={setNodeRef} style={style} className={ROW_SPACING}>
+      <ConversationRow
+        {...props}
+        dropTargeted={dropTarget?.id === props.conversation.id && dropTarget.intent === 'onto'}
+        dragHandle={
+          <DragHandle
+            conversation_id={props.conversation.id}
+            label={t('conversation.history.reorderPinned')}
+            isDragging={isDragging}
+            setActivatorNodeRef={setActivatorNodeRef}
+            attributes={attributes}
+            listeners={listeners}
+          />
+        }
+      />
+    </div>
+  );
+};
+
+/**
+ * Any other row: draggable onto another row, a pill or the open chat area to
+ * fuse into a split group, and a drop target for the same gesture. Not
+ * sortable — there is no order to keep outside the pinned section.
+ */
+export const DraggableConversationRow: React.FC<ConversationRowProps> = (props) => {
+  const { t } = useTranslation();
+  const { dropTarget } = useConversationDrag();
+  const id = props.conversation.id;
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
+    id,
+    disabled: props.batchMode,
+    data: dragSource(id),
+  });
+  const { setNodeRef: setDroppableRef } = useDroppable({ id, disabled: props.batchMode, data: rowTarget(id) });
+
+  return (
+    <div
+      ref={(element) => {
+        setNodeRef(element);
+        setDroppableRef(element);
+      }}
+      style={{ opacity: isDragging ? 0.4 : undefined, position: 'relative' }}
+      className={ROW_SPACING}
+    >
+      <ConversationRow
+        {...props}
+        dropTargeted={dropTarget?.id === id}
+        dragHandle={
+          <DragHandle
+            conversation_id={id}
+            label={t('conversation.splitGroup.dragToSplit')}
+            isDragging={isDragging}
+            setActivatorNodeRef={setActivatorNodeRef}
+            attributes={attributes}
+            listeners={listeners}
+          />
+        }
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { isConversationMounted } from '@/renderer/pages/conversation/hooks/focusedConversationStore';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
@@ -215,6 +216,8 @@ export const shouldReconcileMarkWaiting = (pendingConfirmations: number): boolea
 
 type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
+  /** The first list fetch has settled (with data or with an error). */
+  listLoaded: boolean;
   generatingConversationIds: Set<string>;
   waitingConfirmationConversationIds: Set<string>;
   completionUnreadConversationIds: Set<string>;
@@ -253,6 +256,7 @@ const listeners = new Set<() => void>();
 
 let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
+let listLoadedState = false;
 let generatingConversationIdsState = new Set<string>();
 // Per-conversation set of pending confirmation ids (permission / acp_permission
 // / ask). A conversation with a non-empty set is "waiting on the user" and gets
@@ -275,6 +279,7 @@ let projectIdByIdState = new Map<string, string | null>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
+  listLoaded: listLoadedState,
   generatingConversationIds: generatingConversationIdsState,
   waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
@@ -284,6 +289,7 @@ let snapshotState: ConversationListSyncSnapshot = {
 const emitStoreChange = () => {
   snapshotState = {
     conversations: conversationsState,
+    listLoaded: listLoadedState,
     generatingConversationIds: generatingConversationIdsState,
     waitingConfirmationConversationIds: waitingConfirmationConversationIdsState,
     completionUnreadConversationIds: completionUnreadConversationIdsState,
@@ -332,43 +338,108 @@ export const getSnapshotConversationName = (conversation_id: string): string | u
   return name ? name : undefined;
 };
 
-const refreshConversations = () => {
+/**
+ * Sequence tokens for list requests. `latestSequence` is the newest request
+ * issued; `publishedSequence` is the newest one whose snapshot was published.
+ * A response that lands after a newer request was issued is stale — the list
+ * as it was between two writes — so it is dropped, and whoever awaited it is
+ * settled by the newer request instead: resolved once a snapshot at or after
+ * their own request has landed, rejected if the newest request fails first.
+ */
+let latestSequence = 0;
+let publishedSequence = 0;
+const waiters: Array<{ sequence: number; resolve: () => void; reject: (error: unknown) => void }> = [];
+
+const settleWaiters = (): void => {
+  for (let index = waiters.length - 1; index >= 0; index -= 1) {
+    if (waiters[index].sequence <= publishedSequence) waiters.splice(index, 1)[0].resolve();
+  }
+};
+
+const failWaiters = (error: unknown): void => {
+  waiters.splice(0).forEach((waiter) => waiter.reject(error));
+};
+
+const publishItems = (items: TChatConversation[] | undefined): void => {
+  listLoadedState = true;
+  if (items && Array.isArray(items)) {
+    const filteredData = items.filter((conv) => {
+      // Legacy rows from the pre-provider-probe health check flow are hidden
+      // from normal history. New health checks must not create conversations.
+      const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
+      return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
+    });
+    conversationsState = filteredData;
+    // Use ALL conversation IDs (including team/legacy health-check rows) so the
+    // responseStream listener recognises them as known and doesn't
+    // trigger an infinite refreshConversations loop.
+    conversation_idsState = new Set(items.map((conversation) => conversation.id));
+    // Map ALL rows (unfiltered) so a team member conversation's project_id is
+    // resolvable too — the team route looks up its leader conversation here.
+    projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
+    emitStoreChange();
+    return;
+  }
+  conversationsState = [];
+  conversation_idsState = new Set();
+  projectIdByIdState = new Map();
+  emitStoreChange();
+};
+
+/**
+ * Fetch the list and publish it. The returned promise settles by sequence
+ * (see above): it resolves only when a snapshot that includes this request's
+ * point in time has been published, and rejects when no such snapshot can
+ * come. A failed request keeps the previously published snapshot: an empty
+ * list would tell every reader the conversations are gone when only one
+ * request was.
+ */
+const loadConversations = (): Promise<void> => {
+  const sequence = ++latestSequence;
+  const settled = new Promise<void>((resolve, reject) => {
+    waiters.push({ sequence, resolve, reject });
+  });
   void ipcBridge.database.getUserConversations
     .invoke({ limit: 10000 })
     .then((result) => {
-      const items = result?.items;
-      if (items && Array.isArray(items)) {
-        const filteredData = items.filter((conv) => {
-          // Legacy rows from the pre-provider-probe health check flow are hidden
-          // from normal history. New health checks must not create conversations.
-          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
-        });
-        conversationsState = filteredData;
-        // Use ALL conversation IDs (including team/legacy health-check rows) so the
-        // responseStream listener recognises them as known and doesn't
-        // trigger an infinite refreshConversations loop.
-        conversation_idsState = new Set(items.map((conversation) => conversation.id));
-        // Map ALL rows (unfiltered) so a team member conversation's project_id is
-        // resolvable too — the team route looks up its leader conversation here.
-        projectIdByIdState = new Map(items.map((conversation) => [conversation.id, conversation.project_id ?? null]));
-        emitStoreChange();
-        return;
-      }
-
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
-      emitStoreChange();
+      if (sequence < latestSequence) return;
+      publishItems(result?.items);
+      publishedSequence = sequence;
+      settleWaiters();
     })
-    .catch((error) => {
-      console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
-      conversationsState = [];
-      conversation_idsState = new Set();
-      projectIdByIdState = new Map();
+    .catch((error: unknown) => {
+      if (sequence < latestSequence) return;
+      listLoadedState = true;
       emitStoreChange();
+      failWaiters(error);
     });
+  return settled;
 };
+
+/** The background refresh: a failure is logged and the last snapshot stands. */
+const refreshConversations = (): Promise<void> =>
+  loadConversations().catch((error: unknown) => {
+    console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
+  });
+
+/**
+ * Reload the sidebar list and resolve once the new snapshot is published, so a
+ * caller that just changed a row on the backend can navigate to what it now
+ * shows (a split group pill, say) without racing the refetch. Rejects when the
+ * reload fails, so the caller does not navigate to something the list never
+ * confirmed; the previous snapshot stays published.
+ */
+export const refreshConversationList = (): Promise<void> => loadConversations();
+
+/** The published conversation list, for callers that need it outside React. */
+export const getSnapshotConversations = (): readonly TChatConversation[] => conversationsState;
+
+/**
+ * Conversations with a turn in flight right now, from the same stream the
+ * sidebar spinner reads. The preview panel uses it to attribute a backend
+ * frame that names no conversation while several columns are on screen.
+ */
+export const getGeneratingConversationIds = (): ReadonlySet<string> => generatingConversationIdsState;
 
 /** Source of a generating-state transition, logged for field diagnosis. */
 type GeneratingTransitionSource = 'stream' | 'reconcile' | 'terminal' | 'turnCompleted' | 'deleted';
@@ -580,15 +651,27 @@ const setActiveConversationState = (conversation_id: string | null) => {
   activeConversationIdState = conversation_id;
 };
 
+/**
+ * True when the user can currently see this conversation, so a finished turn
+ * must not raise an unread badge on it.
+ *
+ * "On screen" is the set of mounted conversation views — several can be mounted
+ * at once, so a single active id would badge every column but one as unread —
+ * union the route's active conversation, which the sidebar publishes before the
+ * view itself finishes loading.
+ */
+export const isConversationOnScreen = (conversation_id: string, activeConversationId: string | null): boolean =>
+  isConversationMounted(conversation_id) || activeConversationId === conversation_id;
+
 const initializeConversationListSyncStore = () => {
   if (isStoreInitialized) {
     return;
   }
 
   isStoreInitialized = true;
-  refreshConversations();
+  void refreshConversations();
 
-  addEventListener('chat.history.refresh', refreshConversations);
+  addEventListener('chat.history.refresh', () => void refreshConversations());
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id, 'deleted');
@@ -597,7 +680,7 @@ const initializeConversationListSyncStore = () => {
       clearManualUnreadState(event.conversation_id);
       clearCompleted(event.conversation_id);
     }
-    refreshConversations();
+    void refreshConversations();
   });
   ipcBridge.conversation.confirmation.remove.on((event) => {
     if (!event?.conversation_id || !event.id) {
@@ -612,12 +695,12 @@ const initializeConversationListSyncStore = () => {
     }
 
     if (!conversation_idsState.has(conversation_id)) {
-      refreshConversations();
+      void refreshConversations();
     }
 
     if (isTerminalStreamMessage(message)) {
       const wasGenerating = generatingConversationIdsState.has(conversation_id);
-      if (wasGenerating && activeConversationIdState !== conversation_id) {
+      if (wasGenerating && !isConversationOnScreen(conversation_id, activeConversationIdState)) {
         markCompletionUnread(conversation_id);
       }
       clearGenerating(conversation_id, 'terminal');
@@ -654,12 +737,12 @@ const initializeConversationListSyncStore = () => {
     }
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
-    if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
+    if (isTerminalTurnState(event.state) && !isConversationOnScreen(event.session_id, activeConversationIdState)) {
       markCompletionUnread(event.session_id);
     }
     markCompleted(event.session_id, event.turn_id);
     clearGenerating(event.session_id, 'turnCompleted');
-    refreshConversations();
+    void refreshConversations();
   });
 };
 
@@ -670,6 +753,7 @@ export const useConversationListSync = () => {
 
   const {
     conversations,
+    listLoaded,
     generatingConversationIds,
     waitingConfirmationConversationIds,
     completionUnreadConversationIds,
@@ -726,6 +810,7 @@ export const useConversationListSync = () => {
 
   return {
     conversations,
+    listLoaded,
     isConversationGenerating,
     isConversationWaitingConfirmation,
     hasCompletionUnread,

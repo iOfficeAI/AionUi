@@ -284,3 +284,87 @@ describe('attachWindowBoundsPersistence', () => {
     consoleError.mockRestore();
   });
 });
+
+/**
+ * A second window (a detached conversation, say) must remember its own size and
+ * position. Both the in-memory cache and the persisted key are per kind, so one
+ * window resizing cannot move the other on next launch.
+ */
+describe('per-window-kind bounds', () => {
+  type WinStub = {
+    isDestroyed: () => boolean;
+    isMaximized: () => boolean;
+    isFullScreen: () => boolean;
+    isMinimized: () => boolean;
+    getNormalBounds: () => { x: number; y: number; width: number; height: number };
+    on: (event: string, fn: () => void) => void;
+  };
+
+  const makeWindow = (bounds: { x: number; y: number; width: number; height: number }) => {
+    const handlers: Record<string, Array<() => void>> = {};
+    const win: WinStub = {
+      isDestroyed: () => false,
+      isMaximized: () => false,
+      isFullScreen: () => false,
+      isMinimized: () => false,
+      getNormalBounds: () => bounds,
+      on: (event, fn) => {
+        (handlers[event] ??= []).push(fn);
+      },
+    };
+    return { win, fire: (event: string) => (handlers[event] ?? []).forEach((fn) => fn()) };
+  };
+
+  beforeEach(() => {
+    setDisplays([
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+        workAreaSize: { width: 1920, height: 1080 },
+      },
+    ]);
+    loadSavedWindowBounds(undefined);
+    loadSavedWindowBounds(undefined, 'popout');
+  });
+
+  it('restores each kind from its own saved bounds', () => {
+    loadSavedWindowBounds({ x: 0, y: 0, width: 1400, height: 900 });
+    loadSavedWindowBounds({ x: 500, y: 200, width: 700, height: 800 }, 'popout');
+
+    expect(resolveInitialBounds()).toEqual({ x: 0, y: 0, width: 1400, height: 900 });
+    expect(resolveInitialBounds('popout')).toEqual({ x: 500, y: 200, width: 700, height: 800 });
+  });
+
+  it('leaves the other kind alone when one window is resized', () => {
+    vi.useFakeTimers();
+    try {
+      loadSavedWindowBounds({ x: 0, y: 0, width: 1400, height: 900 });
+      loadSavedWindowBounds({ x: 500, y: 200, width: 700, height: 800 }, 'popout');
+
+      const mainPersist = vi.fn();
+      const popoutPersist = vi.fn();
+      const main = makeWindow({ x: 10, y: 10, width: 1200, height: 800 });
+      const popout = makeWindow({ x: 600, y: 300, width: 640, height: 720 });
+
+      attachWindowBoundsPersistence(main.win as never, mainPersist);
+      attachWindowBoundsPersistence(popout.win as never, popoutPersist, 'popout');
+
+      popout.fire('resize');
+      vi.advanceTimersByTime(300);
+
+      expect(popoutPersist).toHaveBeenCalledWith({ x: 600, y: 300, width: 640, height: 720 });
+      expect(mainPersist).not.toHaveBeenCalled();
+      expect(resolveInitialBounds('popout')).toEqual({ x: 600, y: 300, width: 640, height: 720 });
+      // The main window's remembered geometry is untouched.
+      expect(resolveInitialBounds()).toEqual({ x: 0, y: 0, width: 1400, height: 900 });
+
+      main.fire('resize');
+      vi.advanceTimersByTime(300);
+
+      expect(mainPersist).toHaveBeenCalledWith({ x: 10, y: 10, width: 1200, height: 800 });
+      expect(resolveInitialBounds()).toEqual({ x: 10, y: 10, width: 1200, height: 800 });
+      expect(resolveInitialBounds('popout')).toEqual({ x: 600, y: 300, width: 640, height: 720 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
