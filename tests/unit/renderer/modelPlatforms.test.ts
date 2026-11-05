@@ -32,4 +32,17 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.ai/v1',
     ]);
   });
+
+  it('defines exactly one Nebius Token Factory custom preset with the documented base URL', () => {
+    const nebiusEntries = MODEL_PLATFORMS.filter((p) => p.value === 'Nebius');
+    expect(nebiusEntries).toEqual([
+      {
+        name: 'Nebius Token Factory',
+        value: 'Nebius',
+        logo: null,
+        platform: 'custom',
+        base_url: 'https://api.tokenfactory.nebius.com/v1',
+      },
+    ]);
+  });
 });
