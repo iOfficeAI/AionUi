@@ -47,7 +47,7 @@ Formatting rules (Oxfmt, Prettier-compatible):
 
 ### Internationalization (i18n)
 
-New or changed user-facing text must use i18n keys; do not introduce hardcoded strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
+New or changed user-facing text must use i18n keys; do not introduce hardcoded strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`; the translation files live in `packages/desktop/src/renderer/services/i18n/locales/`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
 
@@ -94,7 +94,7 @@ bun run format         # auto-format all files (oxfmt)
 bunx tsc --noEmit      # verify no type errors
 ```
 
-If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, also run:
+If your changes touch `packages/desktop/src/renderer/`, `packages/desktop/src/renderer/services/i18n/locales/`, or `packages/desktop/src/common/config/i18n-config.json`, also run:
 
 ```bash
 bun run i18n:types
@@ -144,11 +144,11 @@ When opening a PR, fill in the PR body using [.github/pull_request_template.md](
 
 ## Skills Index
 
-| Skill            | Purpose                                                                     | Triggers                                                                                               |
-| ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **architecture** | File & directory structure conventions for all process types                | Creating files, adding modules, architectural decisions                                                |
-| **i18n**         | Internationalization workflow and standards                                 | Adding or changing user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
-| **testing**      | Testing workflow and quality standards                                      | Writing tests, changing runtime behavior, fixing bugs, or claiming behavior is verified                |
-| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                                       |
+| Skill            | Purpose                                                                     | Triggers                                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **architecture** | File & directory structure conventions for all process types                | Creating files, adding modules, architectural decisions                                                                     |
+| **i18n**         | Internationalization workflow and standards                                 | Adding or changing user-facing text, modifying `packages/desktop/src/renderer/services/i18n/locales/` or `i18n-config.json` |
+| **testing**      | Testing workflow and quality standards                                      | Writing tests, changing runtime behavior, fixing bugs, or claiming behavior is verified                                     |
+| **bump-version** | Version bump workflow: update package.json, checks, branch, PR, tag release | Bumping version, `/bump-version`                                                                                            |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

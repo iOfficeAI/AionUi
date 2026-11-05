@@ -14,75 +14,83 @@ Rules for organizing files and directories across the entire Electron project.
 - **Config files** (`tsconfig.json`, `package.json`, etc.) stay at root — Node.js/Electron ecosystem convention
 - **New documentation** should be placed under the appropriate `docs/` subdirectory, not at project root
 
-### Current Root Cleanup Targets
+## Project Layout
 
-| Action                                     | Files                              |
-| ------------------------------------------ | ---------------------------------- |
-| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md` |
-
-## Project Layout (`src/`)
-
-AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
-
-### Target Structure
+The repository is a monorepo. The desktop app is one package among several:
 
 ```
-src/
+packages/
+├── desktop/           # The Electron app — almost all work happens here
+├── web-host/          # Serves the WebUI and proxies to the backend (no Electron)
+├── web-cli/           # Standalone web runtime launcher
+└── shared-scripts/    # Build scripts shared across packages
+```
+
+Inside `packages/desktop/src/` there are three layers plus the entry files:
+
+```
+packages/desktop/src/
 ├── renderer/          # Renderer layer — React UI, no Node.js APIs
-├── process/           # Main process layer — all Node.js / Electron business
-│   ├── bridge/        #   IPC handlers
-│   ├── services/      #   Business logic
-│   ├── database/      #   SQLite
-│   ├── task/          #   Agent/task management
-│   ├── agent/         #   AI platform connections
-│   ├── channels/      #   Multi-channel messaging
-│   ├── extensions/    #   Plugin system
-│   ├── webserver/     #   WebUI server
-│   ├── worker/        #   Background workers (fork)
-│   └── i18n/          #   Main-process i18n
-├── common/            # Shared layer — cross-process types, adapters, utilities
-├── preload.ts         # IPC bridge — contextBridge between main ↔ renderer
-└── index.ts           # Main process entry point
+├── process/           # Main process layer — Node.js / Electron only
+│   ├── bridge/        #   IPC handlers exposed to the renderer
+│   ├── services/      #   Desktop-side services (updater, local database, i18n, skills)
+│   ├── startup/       #   Launch sequence, backend startup, single-instance gating
+│   ├── backend/       #   Locating and launching the aioncore binary
+│   ├── pet/           #   Desktop pet windows
+│   ├── feedback/      #   Diagnostics and feedback reporting
+│   ├── resources/     #   Packaged resource resolution
+│   └── utils/         #   Main-process utilities
+├── common/            # Shared layer — cross-process types, config, adapters, utilities
+├── preload/           # IPC bridge — contextBridge between main ↔ renderer
+├── index.ts           # Main process entry point
+├── sentry.ts          # Error reporting setup
+└── types.d.ts         # Ambient type declarations
 ```
 
-### Current Structure
+Note what is **not** in this list: conversations, agents, models, assistants, skills,
+MCP servers, scheduled tasks and their persistence all live in **aioncore**, a separate
+backend binary that the main process launches on startup. The renderer reaches it over
+HTTP, not through IPC. See [`../architecture/overview.md`](../architecture/overview.md)
+for how the three runtimes fit together.
 
-All main-process modules now live under `src/process/`. The `src/` root contains only the three core layers (`renderer/`, `process/`, `common/`), the entry files (`index.ts`, `preload.ts`), and the ambient type declaration (`types.d.ts`).
+This means most feature work touches only `renderer/` — adding a module under
+`process/` is for genuine desktop/OS concerns.
 
 ## Directory Naming — Two Conventions by Process
 
 This project straddles two ecosystems. Each follows its own convention:
 
-| Scope                              | Directory naming                         | Reason                                                                      |
-| ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| **Renderer** (`src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
-| **Everything else**                | **lowercase**                            | Node.js ecosystem                                                           |
-| **Categorical dirs** (everywhere)  | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
-| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `src/process/agent/<platform>/` naming for cross-process consistency |
+| Scope                                           | Directory naming                         | Reason                                                                      |
+| ----------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| **Renderer** (`packages/desktop/src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
+| **Everything else**                             | **lowercase**                            | Node.js ecosystem                                                           |
+| **Categorical dirs** (everywhere)               | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
+| **Platform dirs** (renderer pages)              | **lowercase**                            | They name a wire protocol, not a component — see the exception below        |
 
 ### Quick test
 
-> "Is this directory inside `src/renderer/` AND does it represent a specific component or feature module (not a category)?"
+> "Is this directory inside `packages/desktop/src/renderer/` AND does it represent a specific component or feature module (not a category)?"
 >
 > **YES** → PascalCase. **NO** → lowercase.
 >
-> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `src/process/agent/`.
+> **Exception**: Platform directories under `renderer/pages/conversation/platforms/` (`acp/`, `aionrs/`, `gemini/`, `legacy/`) always use lowercase, even inside the renderer. They are named after the protocol the conversation speaks, not after a component.
 
 ### Renderer examples
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── components/              # categorical → lowercase
-│   ├── SettingsModal/       # component → PascalCase
-│   └── EmojiPicker/         # component → PascalCase
+│   ├── Markdown/            # component → PascalCase
+│   └── chat/                # categorical → lowercase
 ├── pages/                   # categorical → lowercase
 │   ├── settings/            # top-level page → lowercase (route segment)
-│   │   ├── CssThemeSettings/   # feature module → PascalCase
-│   │   └── McpManagement/      # feature module → PascalCase
+│   │   ├── AgentSettings/      # feature module → PascalCase
+│   │   └── SkillsSettings/     # feature module → PascalCase
 │   └── conversation/        # top-level page → lowercase
 │       ├── GroupedHistory/  # feature module → PascalCase
-│       ├── Workspace/       # feature module → PascalCase
-│       ├── acp/             # platform dir → lowercase (mirrors src/agent/acp/)
+│       ├── Preview/         # feature module → PascalCase
+│       ├── platforms/       # categorical → lowercase
+│       │   └── acp/         # platform dir → lowercase (protocol name)
 │       └── components/      # categorical → lowercase
 └── hooks/                   # categorical → lowercase
 ```
@@ -90,45 +98,44 @@ src/renderer/
 ### Non-renderer examples
 
 ```
-src/process/services/cron/            # lowercase
-src/process/agent/acp/               # lowercase
-src/process/channels/plugins/dingtalk/  # lowercase
+packages/desktop/src/process/services/database/   # lowercase
+packages/desktop/src/process/bridge/              # lowercase
+packages/desktop/src/process/startup/             # lowercase
 ```
 
 ## File Naming — Same Everywhere
 
-| Content                   | Convention                      | Examples                              |
-| ------------------------- | ------------------------------- | ------------------------------------- |
-| React components, classes | PascalCase                      | `SettingsModal.tsx`, `CronService.ts` |
-| Hooks                     | camelCase with `use` prefix     | `useTheme.ts`, `useCronJobs.ts`       |
-| Utilities, helpers        | camelCase                       | `formatDate.ts`, `cronUtils.ts`       |
-| Entry points              | `index.ts` / `index.tsx`        | Required for directory-based modules  |
-| Config, types, constants  | camelCase                       | `types.ts`, `constants.ts`            |
-| Styles                    | kebab-case or `Name.module.css` | `chat-layout.css`                     |
+| Content                   | Convention                      | Examples                                   |
+| ------------------------- | ------------------------------- | ------------------------------------------ |
+| React components, classes | PascalCase                      | `CssThemeModal.tsx`, `ApiKeyManager.ts`    |
+| Hooks                     | camelCase with `use` prefix     | `useDebounce.ts`, `useCompositionInput.ts` |
+| Utilities, helpers        | camelCase                       | `backgroundUtils.ts`, `latexDelimiters.ts` |
+| Entry points              | `index.ts` / `index.tsx`        | Required for directory-based modules       |
+| Config, types, constants  | camelCase                       | `types.ts`, `constants.ts`                 |
+| Styles                    | kebab-case or `Name.module.css` | `chat-layout.css`                          |
 
 ## Process Boundary Rules
 
 **Violating these causes runtime crashes.**
 
-| Process                            | Can use                       | Cannot use                       |
-| ---------------------------------- | ----------------------------- | -------------------------------- |
-| **Main** (`src/process/`)          | Node.js, Electron main APIs   | DOM APIs, React                  |
-| **Renderer** (`src/renderer/`)     | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
-| **Worker** (`src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
+| Process                                         | Can use                       | Cannot use                       |
+| ----------------------------------------------- | ----------------------------- | -------------------------------- |
+| **Main** (`packages/desktop/src/process/`)      | Node.js, Electron main APIs   | DOM APIs, React                  |
+| **Renderer** (`packages/desktop/src/renderer/`) | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
 
 Cross-process communication MUST go through:
 
-- Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
-- Main ↔ Worker: fork protocol via `src/process/worker/WorkerProtocol.ts`
+- Main ↔ Renderer: IPC via `packages/desktop/src/preload/main.ts` + `packages/desktop/src/process/bridge/*.ts`
+- Renderer ↔ backend: HTTP via `packages/desktop/src/common/adapter/httpBridge.ts` (not IPC)
 
 ## Main Process Naming
 
-| Type       | Pattern               | Examples                          |
-| ---------- | --------------------- | --------------------------------- |
-| Bridge     | `<domain>Bridge.ts`   | `cronBridge.ts`, `webuiBridge.ts` |
-| Service    | `<Name>Service.ts`    | `CronService.ts`, `McpService.ts` |
-| Interface  | `I<Name>Service.ts`   | `IConversationService.ts`         |
-| Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
+| Type       | Pattern                | Examples                                                                        |
+| ---------- | ---------------------- | ------------------------------------------------------------------------------- |
+| Bridge     | `<domain>Bridge.ts`    | `webuiBridge.ts`, `dialogBridge.ts`                                             |
+| Service    | `<Name>Service.ts`     | `autoUpdaterService.ts`                                                         |
+| Interface  | `I<Name>Repository.ts` | `IConversationRepository.ts`                                                    |
+| Repository | `<Name>Repository.ts`  | `IConversationRepository.ts` implementations under `services/database/drivers/` |
 
 ## Service Testability Rules
 
@@ -163,15 +170,14 @@ For existing code using direct imports, `vi.mock()` is acceptable. For new code,
 
 Test files must mirror the source file they test:
 
-| Source                                       | Test                                            |
-| -------------------------------------------- | ----------------------------------------------- |
-| `src/process/services/CronService.ts`        | `tests/unit/cronService.test.ts`                |
-| `src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
-| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
-| `src/renderer/hooks/ui/useAutoScroll.ts`     | `tests/unit/useAutoScroll.dom.test.ts`          |
-| `src/process/extensions/ExtensionLoader.ts`  | `tests/unit/extensions/extensionLoader.test.ts` |
+| Source                                                            | Test                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- |
+| `packages/desktop/src/renderer/utils/ui/clipboard.ts`             | `tests/unit/renderer/utils/clipboard.dom.test.ts`             |
+| `packages/desktop/src/process/backend/binaryResolver.ts`          | `packages/desktop/src/process/backend/binaryResolver.test.ts` |
+| `packages/desktop/src/renderer/utils/chat/latexDelimiters.ts`     | `tests/unit/renderer/utils/latexDelimiters.test.ts`           |
+| `packages/desktop/src/renderer/hooks/chat/useCompositionInput.ts` | `tests/unit/renderer/useCompositionInput.dom.test.ts`         |
 
-When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
+When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/renderer/`, `tests/unit/adapter/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
 
 ## Directory Size Limit
 
@@ -188,29 +194,35 @@ A single directory must not contain more than **10** direct children (files + su
 
 - **Prefer UnoCSS utility classes**: Use atomic classes for simple styles (`flex items-center gap-8px`).
 - **Complex/reusable styles**: Must use **CSS Modules** (`ComponentName.module.css`). Plain `.css` files are not allowed for component styles.
-- **Semantic color tokens only**: Use colors from `uno.config.ts` (e.g., `text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. **Hardcoded color values are forbidden** (e.g., `#86909C`, `rgb(0,0,0)`). Exception: theme preset files under `src/renderer/pages/settings/CssThemeSettings/presets/` may use hardcoded values since they define the theme tokens themselves.
+- **Semantic color tokens only**: Use colors from `uno.config.ts` (e.g., `text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. **Hardcoded color values are forbidden** (e.g., `#86909C`, `rgb(0,0,0)`). Exception: theme preset files (`packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets.ts`, `packages/desktop/src/renderer/theme/builtinThemes.ts`) may use hardcoded values since they define the theme tokens themselves.
 - **No inline styles**: Do not use `style={{}}` except for dynamically computed values (e.g., calculated widths, positions).
 - **Arco style overrides**: Co-locate in the component's CSS Module using `:global(.arco-xxx)`. Do not use a global override file.
-- **Global styles**: Only allowed in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root.
+- **Global styles**: Only allowed in `packages/desktop/src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `packages/desktop/src/renderer/` root.
 
 ## Renderer Root Directory — Standard Layout
 
 The renderer root must contain **at most 3 entry files + 7 directories = 10 items**.
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── index.html      # Vite HTML entry
 ├── main.tsx        # React mount + app bootstrap
 ├── types.d.ts      # Ambient type declarations
 ├── pages/          # Page-level modules (business code goes here)
 ├── components/     # Shared UI components (used across multiple pages)
 ├── hooks/          # Shared React hooks (supports business domain subdirs)
-├── context/        # Global React contexts
+├── api/            # HTTP client for the aioncore backend
 ├── services/       # Client-side services + i18n
 ├── utils/          # Utility functions + types + constants
 ├── styles/         # Global styles + theme configuration
+├── theme/          # Theme definitions and tokens
+├── pet/            # Desktop pet renderer entry
 └── assets/         # Static assets — Vite resolves to hashed URLs
 ```
+
+The renderer root currently holds 3 entry files + 10 directories = **13 items**, which
+is over the limit above. Reducing it is a known cleanup target: `theme/` and `styles/`
+overlap, and `pet/` exists only because the pet windows render separately.
 
 **What does NOT belong at the renderer root:**
 
@@ -225,7 +237,7 @@ src/renderer/
 - **Single-file directory rule**: A directory containing only 1 file should be merged into its parent or a related directory
 - Page-private code stays under `pages/<PageName>/`; move to shared only when a second consumer appears
 
-### `src/renderer/components/` Structure
+### `packages/desktop/src/renderer/components/` Structure
 
 `components/` is for shared components used across multiple pages. It has two layers:
 
@@ -245,7 +257,7 @@ src/renderer/
 - Components used by only **one** page must live in `pages/<PageName>/components/`, not here
 
 ```
-src/renderer/components/
+packages/desktop/src/renderer/components/
 ├── base/           # UI primitives — AionModal, AionSelect, FlexFullContainer, etc.
 ├── chat/           # Conversation/message domain (example, not exhaustive)
 ├── agent/          # Agent selection/configuration domain
@@ -257,7 +269,7 @@ src/renderer/components/
 
 > The business subdirectory list above is illustrative. New domains are created as needed following the same rules.
 
-### `src/renderer/hooks/` — Grouping by Business Domain
+### `packages/desktop/src/renderer/hooks/` — Grouping by Business Domain
 
 When `hooks/` exceeds 10 direct children, group hooks into business domain subdirectories. Generic hooks with no clear domain stay at the root. The root must stay ≤ 10 direct children.
 
@@ -274,7 +286,7 @@ hooks/
 
 > Domain names are recommendations. Create new domains as needed following the same pattern.
 
-### `src/renderer/utils/` — Grouping by Business Domain
+### `packages/desktop/src/renderer/utils/` — Grouping by Business Domain
 
 Same principle as `hooks/`. When `utils/` exceeds 10 direct children, group into domain subdirectories. The root must stay ≤ 10 direct children.
 
@@ -306,10 +318,10 @@ PageName/                  # PascalCase
 
 Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
 
-| Type                                                  | Convention | Examples                                             |
-| ----------------------------------------------------- | ---------- | ---------------------------------------------------- |
-| **Categorical** (standard role)                       | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
-| **Feature module** (business feature)                 | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
-| **Platform directory** (mirrors `src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
+| Type                                            | Convention | Examples                                      |
+| ----------------------------------------------- | ---------- | --------------------------------------------- |
+| **Categorical** (standard role)                 | lowercase  | `components/`, `hooks/`, `context/`, `utils/` |
+| **Feature module** (business feature)           | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`   |
+| **Platform directory** (conversation protocols) | lowercase  | `acp/`, `aionrs/`, `gemini/`, `legacy/`       |
 
-Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/process/agent/<platform>/`.
+Platform directories are an exception to PascalCase. They are named after the protocol a conversation speaks, not after a component, and live under `packages/desktop/src/renderer/pages/conversation/platforms/`.
