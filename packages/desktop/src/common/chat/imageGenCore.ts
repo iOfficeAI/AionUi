@@ -15,11 +15,15 @@ import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
+import type { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
+import type { OpenAIChatCompletionParams } from '@/common/api/OpenAI2GeminiConverter';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { UnifiedChatCompletionResponse } from '@/common/api/RotatingApiClient';
 import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/config/constants';
+import { resolveImageGenerationApiMode } from '@/common/utils/imageModelAllowlist';
 
-const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
+const API_TIMEOUT_MS = 180000; // High-quality image renders can take longer than ordinary chat calls
+const MAX_IMAGE_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 
 type ImageExtension = (typeof IMAGE_EXTENSIONS)[number];
 
@@ -115,14 +119,59 @@ export function getFileExtensionFromDataUrl(dataUrl: string): string {
   return DEFAULT_IMAGE_EXTENSION;
 }
 
-export async function saveGeneratedImage(base64Data: string, workspaceDir: string): Promise<string> {
+async function downloadGeneratedImage(url: string, workspaceDir: string, signal?: AbortSignal): Promise<string> {
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to download generated image: HTTP ${response.status} ${response.statusText}`);
+  }
+
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_DOWNLOAD_BYTES) {
+    throw new Error(`Generated image exceeds the ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024} MB download limit.`);
+  }
+
+  const contentType = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (contentType && !contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+    throw new Error(`Generated image URL returned unsupported content type: ${contentType}`);
+  }
+
+  const imageBuffer = Buffer.from(await response.arrayBuffer());
+  if (imageBuffer.byteLength > MAX_IMAGE_DOWNLOAD_BYTES) {
+    throw new Error(`Generated image exceeds the ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024} MB download limit.`);
+  }
+
+  let fileExtension = contentType.startsWith('image/')
+    ? MIME_TO_EXT_MAP[contentType.slice('image/'.length)]
+    : undefined;
+  if (!fileExtension) {
+    const urlExtension = path.extname(new URL(url).pathname).toLowerCase();
+    if (IMAGE_EXTENSIONS.includes(urlExtension as ImageExtension)) {
+      fileExtension = urlExtension;
+    }
+  }
+
+  const fileName = `img-${Date.now()}${fileExtension || DEFAULT_IMAGE_EXTENSION}`;
+  const filePath = path.join(path.resolve(workspaceDir), fileName);
+  await fs.promises.writeFile(filePath, imageBuffer);
+  return filePath;
+}
+
+export async function saveGeneratedImage(
+  imageSource: string,
+  workspaceDir: string,
+  signal?: AbortSignal
+): Promise<string> {
+  if (isHttpUrl(imageSource)) {
+    return await downloadGeneratedImage(imageSource, workspaceDir, signal);
+  }
+
   const timestamp = Date.now();
-  const fileExtension = getFileExtensionFromDataUrl(base64Data);
+  const fileExtension = getFileExtensionFromDataUrl(imageSource);
   const file_name = `img-${timestamp}${fileExtension}`;
   const resolvedDir = path.resolve(workspaceDir);
   const file_path = path.join(resolvedDir, file_name);
 
-  const base64WithoutPrefix = base64Data.replace(/^data:image\/[^;]+;base64,/, '');
+  const base64WithoutPrefix = imageSource.replace(/^data:image\/[^;]+;base64,/, '');
   const imageBuffer = Buffer.from(base64WithoutPrefix, 'base64');
 
   try {
@@ -208,6 +257,97 @@ export interface ImageGenResult {
   error?: string;
 }
 
+type OpenAIImageClient = RotatingClient & Pick<OpenAIRotatingClient, 'createImage'>;
+type ImageResultItem = { b64_json?: string; url?: string; revised_prompt?: string };
+
+type ImagesApiResponse = OpenAI.Images.ImagesResponse & {
+  images?: ImageResultItem[];
+  output_format?: string;
+};
+
+function supportsOpenAIImagesApi(client: RotatingClient): client is OpenAIImageClient {
+  return 'createImage' in client && typeof client.createImage === 'function';
+}
+
+function extractImageResultItems(response: ImagesApiResponse): ImageResultItem[] {
+  if (Array.isArray(response.data) && response.data.length > 0) {
+    return response.data;
+  }
+  return Array.isArray(response.images) ? response.images : [];
+}
+
+function isMicrosoftMaiProvider(provider: TProviderWithModel): boolean {
+  const baseUrl = provider.base_url.toLowerCase();
+  return (
+    baseUrl.includes('services.ai.azure.com/mai/v1') ||
+    (baseUrl.includes('services.ai.azure.com') && /^mai[-_/ ]?image/i.test(provider.use_model))
+  );
+}
+
+function ensureVersionedImagesBaseUrl(provider: TProviderWithModel): string {
+  const trimmed = provider.base_url.replace(/\/+$/, '');
+  if (isMicrosoftMaiProvider(provider) && !/\/mai\/v1$/i.test(trimmed)) {
+    return `${trimmed}/mai/v1`;
+  }
+  if (!trimmed || /\/v\d+(?:beta)?$/i.test(trimmed) || /\/openai\/deployments\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed}/v1`;
+}
+
+async function executeOpenAIImagesGeneration(
+  prompt: string,
+  provider: TProviderWithModel,
+  rotatingClient: RotatingClient,
+  workspaceDir: string,
+  signal?: AbortSignal
+): Promise<ImageGenResult> {
+  if (!supportsOpenAIImagesApi(rotatingClient)) {
+    return {
+      success: false,
+      text: `Model ${provider.use_model} requires an OpenAI-compatible Images API provider.`,
+      error: 'OpenAI Images API is not available for the selected provider.',
+    };
+  }
+
+  const generationParams: Record<string, unknown> = { model: provider.use_model, prompt };
+  if (isMicrosoftMaiProvider(provider)) {
+    generationParams.width = 1024;
+    generationParams.height = 1024;
+  }
+
+  const response = (await rotatingClient.createImage(generationParams as unknown as OpenAI.Images.ImageGenerateParams, {
+    signal,
+    timeout: API_TIMEOUT_MS,
+  })) as ImagesApiResponse;
+  const image = extractImageResultItems(response)[0];
+  if (!image?.b64_json && !image?.url) {
+    return {
+      success: false,
+      text: 'Image generation API did not return image data or an image URL.',
+      error: 'No image data returned.',
+    };
+  }
+
+  let imagePath: string;
+  if (image.b64_json) {
+    const outputFormat = String(response.output_format || 'png');
+    const mimeSubtype = outputFormat === 'jpg' ? 'jpeg' : outputFormat;
+    imagePath = await saveGeneratedImage(`data:image/${mimeSubtype};base64,${image.b64_json}`, workspaceDir, signal);
+  } else {
+    imagePath = await saveGeneratedImage(image.url!, workspaceDir, signal);
+  }
+  const relativeImagePath = path.relative(workspaceDir, imagePath);
+  const revisedPrompt = image.revised_prompt ? `\n\nRevised prompt: ${image.revised_prompt}` : '';
+
+  return {
+    success: true,
+    text: `Image generated successfully.${revisedPrompt}\n\nGenerated image saved to: ${imagePath}`,
+    imagePath,
+    relativeImagePath,
+  };
+}
+
 /**
  * Core image generation function shared between MCP server and Gemini tool.
  */
@@ -257,6 +397,33 @@ export async function executeImageGeneration(
     }
 
     const hasImages = imageUris.length > 0;
+    const apiMode = resolveImageGenerationApiMode(provider, provider.use_model) || 'chat-completions';
+    if (apiMode === 'openai-images' && hasImages) {
+      return {
+        success: false,
+        text: `Image editing is not yet supported for ${provider.use_model}. Generate a new image without image_uris instead.`,
+        error: 'OpenAI Images API editing is not implemented.',
+      };
+    }
+
+    const clientOptions = {
+      proxy,
+      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+      ...(apiMode === 'openai-images'
+        ? {
+            baseConfig: {
+              baseURL: ensureVersionedImagesBaseUrl(provider),
+              ...(isMicrosoftMaiProvider(provider) ? { defaultHeaders: { 'api-key': provider.api_key } } : {}),
+            },
+          }
+        : {}),
+    };
+    const rotatingClient: RotatingClient = await ClientFactory.createRotatingClient(provider, clientOptions);
+
+    if (apiMode === 'openai-images') {
+      return await executeOpenAIImagesGeneration(params.prompt, provider, rotatingClient, resolvedWorkspaceDir, signal);
+    }
+
     let enhancedPrompt: string;
     if (hasImages) {
       enhancedPrompt = `Analyze/Edit image: ${params.prompt}`;
@@ -264,7 +431,7 @@ export async function executeImageGeneration(
       enhancedPrompt = `Generate image: ${params.prompt}`;
     }
 
-    const contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [{ type: 'text', text: enhancedPrompt }];
+    const contentParts: Array<{ type: 'text'; text: string } | ImageContent> = [{ type: 'text', text: enhancedPrompt }];
 
     // Process image URIs
     if (hasImages) {
@@ -294,17 +461,24 @@ export async function executeImageGeneration(
       }
     }
 
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [{ role: 'user', content: contentParts }];
-
-    // Create client and call API
-    const rotatingClient: RotatingClient = await ClientFactory.createRotatingClient(provider, {
-      proxy,
-      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
-    });
-
+    const messages = [{ role: 'user' as const, content: contentParts }];
+    const completionParams: OpenAIChatCompletionParams &
+      Omit<OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming, 'modalities'> & {
+        modalities?: Array<'image' | 'text'>;
+      } = {
+      model: provider.use_model,
+      messages,
+      ...(provider.base_url.toLowerCase().includes('openrouter.ai') ? { modalities: ['image', 'text'] } : {}),
+    };
     const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion(
-      { model: provider.use_model, messages: messages as any },
-      { signal, timeout: API_TIMEOUT_MS }
+      // OpenRouter extends OpenAI's modalities union with `image`; the OpenAI
+      // SDK type only declares `text | audio`, although it forwards this field.
+      completionParams as unknown as OpenAIChatCompletionParams &
+        OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+      {
+        signal,
+        timeout: API_TIMEOUT_MS,
+      }
     );
 
     const choice = completion.choices[0];
@@ -358,7 +532,7 @@ export async function executeImageGeneration(
 
     const firstImage = images[0];
     if (firstImage.type === 'image_url' && firstImage.image_url?.url) {
-      const imagePath = await saveGeneratedImage(firstImage.image_url.url, resolvedWorkspaceDir);
+      const imagePath = await saveGeneratedImage(firstImage.image_url.url, resolvedWorkspaceDir, signal);
       const relativeImagePath = path.relative(resolvedWorkspaceDir, imagePath);
 
       // Strip any inline base64 data URLs from the human-readable text before
