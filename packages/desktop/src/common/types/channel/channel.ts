@@ -89,8 +89,15 @@ export interface IChannelDefaultModelSetting {
   use_model: string;
 }
 
+/** Platform-level workspace used for new channel conversations. */
+export type IChannelWorkspaceSetting = {
+  path: string;
+};
+
 export interface IChannelPlatformSettings {
   platform: string;
   assistant: IChannelAssistantBindingRead | null;
   default_model: IChannelDefaultModelSetting | null;
+  /** When set, channel conversations use this path instead of a temp workspace. */
+  workspace?: IChannelWorkspaceSetting | null;
 }
