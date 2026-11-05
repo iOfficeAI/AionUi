@@ -8,7 +8,15 @@ import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { processImageUri, saveGeneratedImage, executeImageGeneration } from '@/common/chat/imageGenCore';
+import {
+  processImageUri,
+  saveGeneratedImage,
+  executeImageGeneration,
+  isMinimaxImageProvider,
+  resolveMinimaxImageRequestPath,
+  buildMinimaxImageRequestBody,
+  parseMinimaxImageResponse,
+} from '@/common/chat/imageGenCore';
 
 let cleanupDirs: string[] = [];
 
@@ -219,5 +227,106 @@ describe('executeImageGeneration', () => {
 
     expect(result.success).toBe(false);
     expect(result.text).toContain('not a directory');
+  });
+});
+
+describe('isMinimaxImageProvider', () => {
+  it('detects image models on both regional hosts', () => {
+    expect(isMinimaxImageProvider({ base_url: 'https://api.minimax.io/v1', use_model: 'image-01' })).toBe(true);
+    expect(isMinimaxImageProvider({ base_url: 'https://api.minimaxi.com/v1', use_model: 'image-01-live' })).toBe(true);
+  });
+
+  it('recognises later models in the same family', () => {
+    expect(isMinimaxImageProvider({ base_url: 'https://api.minimax.io/v1', use_model: 'image-02' })).toBe(true);
+  });
+
+  it('rejects chat models served by the same host', () => {
+    expect(isMinimaxImageProvider({ base_url: 'https://api.minimax.io/v1', use_model: 'MiniMax-M2' })).toBe(false);
+  });
+
+  it('rejects an unrelated host even for a matching model name', () => {
+    expect(isMinimaxImageProvider({ base_url: 'https://example.com/v1', use_model: 'image-01' })).toBe(false);
+  });
+
+  it('rejects a missing base url or model', () => {
+    expect(isMinimaxImageProvider({ use_model: 'image-01' })).toBe(false);
+    expect(isMinimaxImageProvider({ base_url: 'https://api.minimax.io/v1', use_model: '' })).toBe(false);
+  });
+});
+
+describe('resolveMinimaxImageRequestPath', () => {
+  it('drops the version segment when the base url already carries it', () => {
+    expect(resolveMinimaxImageRequestPath('https://api.minimax.io/v1')).toBe('/image_generation');
+    expect(resolveMinimaxImageRequestPath('https://api.minimax.io/v1/')).toBe('/image_generation');
+  });
+
+  it('keeps the versioned path when the base url has none', () => {
+    expect(resolveMinimaxImageRequestPath('https://api.minimax.io')).toBe('/v1/image_generation');
+    expect(resolveMinimaxImageRequestPath(undefined)).toBe('/v1/image_generation');
+  });
+});
+
+describe('buildMinimaxImageRequestBody', () => {
+  it('sends the required fields plus a single url-formatted image', () => {
+    expect(buildMinimaxImageRequestBody('image-01', 'a cat')).toEqual({
+      model: 'image-01',
+      prompt: 'a cat',
+      n: 1,
+      response_format: 'url',
+    });
+  });
+});
+
+describe('parseMinimaxImageResponse', () => {
+  it('extracts generated image urls', () => {
+    const result = parseMinimaxImageResponse({
+      data: { image_urls: ['https://cdn.example.com/a.png', 'https://cdn.example.com/b.png'] },
+      metadata: { success_count: 2, failed_count: 0 },
+      base_resp: { status_code: 0, status_msg: 'success' },
+    });
+
+    expect(result.imageUrls).toEqual(['https://cdn.example.com/a.png', 'https://cdn.example.com/b.png']);
+    expect(result.successCount).toBe(2);
+    expect(result.failedCount).toBe(0);
+  });
+
+  it('reports api level failures that arrive with a 200 response', () => {
+    expect(() =>
+      parseMinimaxImageResponse({
+        base_resp: { status_code: 1004, status_msg: 'invalid api key' },
+      })
+    ).toThrow(/1004: invalid api key/);
+  });
+
+  it('coerces metadata counts reported as strings', () => {
+    const result = parseMinimaxImageResponse({
+      data: { image_urls: ['https://cdn.example.com/a.png'] },
+      metadata: { success_count: '1', failed_count: '0' },
+      base_resp: { status_code: 0 },
+    });
+
+    expect(result.successCount).toBe(1);
+    expect(result.failedCount).toBe(0);
+  });
+
+  it('returns no urls when the response carries none', () => {
+    expect(parseMinimaxImageResponse({ data: { image_urls: [] }, base_resp: { status_code: 0 } }).imageUrls).toEqual(
+      []
+    );
+    expect(parseMinimaxImageResponse({ base_resp: { status_code: 0 } }).imageUrls).toEqual([]);
+  });
+
+  it('ignores blank entries in the url list', () => {
+    const result = parseMinimaxImageResponse({
+      data: { image_urls: ['https://cdn.example.com/a.png', '', '   ', null, 7] },
+      base_resp: { status_code: 0 },
+    });
+
+    expect(result.imageUrls).toEqual(['https://cdn.example.com/a.png']);
+  });
+
+  it('rejects a payload that is not an object', () => {
+    expect(() => parseMinimaxImageResponse(null)).toThrow(/unexpected response/);
+    expect(() => parseMinimaxImageResponse('nope')).toThrow(/unexpected response/);
   });
 });

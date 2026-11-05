@@ -115,3 +115,28 @@ export const TEAM_MODE_ENABLED = true;
 // Stable ID for the Google Auth virtual provider.
 // Shared between frontend (useModelProviderList) and backend (SystemActions).
 export const GOOGLE_AUTH_PROVIDER_ID = 'google-auth-gemini';
+
+// ===== Image generation API =====
+
+/**
+ * Hosts serving the MiniMax image generation API — one per region, both exposing
+ * the same contract. MiniMax is configured as a generic custom platform, so the
+ * platform field cannot identify it and the built-in image generation tool has to
+ * key off the base URL host instead.
+ */
+export const MINIMAX_IMAGE_API_HOSTS = ['api.minimax.io', 'api.minimaxi.com'] as const;
+
+/** MiniMax image generation endpoint path, relative to the API host. */
+export const MINIMAX_IMAGE_GENERATION_PATH = '/v1/image_generation';
+
+/** Models served by the MiniMax image generation endpoint. */
+export const MINIMAX_IMAGE_MODELS = ['image-01', 'image-01-live'] as const;
+
+/** Default MiniMax image generation model. */
+export const MINIMAX_DEFAULT_IMAGE_MODEL = 'image-01';
+
+/**
+ * Shared name prefix of the models above, used to recognise later models in the
+ * same family without pinning the list to a release.
+ */
+export const MINIMAX_IMAGE_MODEL_PREFIX = 'image-';

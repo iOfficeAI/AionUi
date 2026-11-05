@@ -29,6 +29,22 @@ describe('isImageGenSupported', () => {
     expect(isImageGenSupported(provider, 'gemini-3-pro-image-1x1')).toBe(true);
   });
 
+  it('accepts MiniMax image models via base_url', () => {
+    const provider = { platform: 'custom', base_url: 'https://api.minimax.io/v1', name: 'MiniMax' };
+    expect(isImageGenSupported(provider, 'image-01')).toBe(true);
+    expect(isImageGenSupported(provider, 'image-01-live')).toBe(true);
+  });
+
+  it('accepts MiniMax image models on the other regional host', () => {
+    const provider = { platform: 'custom', base_url: 'https://api.minimaxi.com/v1', name: 'MiniMax' };
+    expect(isImageGenSupported(provider, 'image-01')).toBe(true);
+  });
+
+  it('rejects MiniMax chat models', () => {
+    const provider = { platform: 'custom', base_url: 'https://api.minimax.io/v1', name: 'MiniMax' };
+    expect(isImageGenSupported(provider, 'MiniMax-M2')).toBe(false);
+  });
+
   it('rejects models without an image-style suffix even on supported providers', () => {
     const provider = { platform: 'gemini', name: 'Gemini' };
     expect(isImageGenSupported(provider, 'gemini-2.5-pro')).toBe(false);
