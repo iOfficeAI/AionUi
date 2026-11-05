@@ -216,6 +216,10 @@ export type IMessageToolCall = IMessage<
   'tool_call',
   {
     call_id: string;
+    /** Subagent attribution: call_id of the Task/Agent tool call that spawned
+     * the subagent which produced this call. Already on the wire (claude-direct
+     * path); `undefined` for main-agent calls and agents without attribution. */
+    parent_call_id?: string;
     name: string;
     args: Record<string, any>;
     error?: string;
