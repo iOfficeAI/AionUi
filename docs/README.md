@@ -18,6 +18,7 @@ Documentation is organized by reader intent, not by document type.
 - Setting up a dev environment? See [`contributing/development.md`](contributing/development.md).
 - Writing code? The entry point for code-style, linting, formatting, and commit rules is [`AGENTS.md`](../AGENTS.md) at the repo root.
 - Deploying a server? [`guides/deploy-server.md`](guides/deploy-server.md).
+- Connecting Baizhi Cloud Browser? [Guide](guides/baizhi-cloud-browser.md) ([中文](guides/baizhi-cloud-browser.zh-CN.md)) and [importable configuration](guides/baizhi-cloud-browser.json).
 
 ## Where to put new docs
 
