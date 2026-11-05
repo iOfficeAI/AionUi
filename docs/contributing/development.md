@@ -168,6 +168,7 @@ Use the Rust MSVC toolchain and install Microsoft C++ Build Tools. After install
 | `bun run build-win:arm64` | Build Windows distributable for ARM64                   |
 | `bun run build-win:x64`   | Build Windows distributable for x64                     |
 | `bun run build-deb`       | Build Linux (.deb) distributable                        |
+| `bun run build-rpm`       | Build Linux (.rpm) distributable                        |
 | `bun run build`           | Alias for `bun run build-mac`                           |
 
 ### Standalone Server (non-Electron)

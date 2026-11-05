@@ -31,6 +31,7 @@
     "build-mac": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
     "build-win": "node scripts/build-with-builder.js auto --win",
     "build-deb": "node scripts/build-with-builder.js auto --linux",
+    "build-rpm": "node scripts/build-with-builder.js auto --linux",
     "build-mac:arm64": "node scripts/build-with-builder.js arm64 --mac --arm64",
     "build-mac:x64": "node scripts/build-with-builder.js x64 --mac --x64",
     "build-win:arm64": "node scripts/build-with-builder.js arm64 --win --arm64",

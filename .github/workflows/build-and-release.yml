@@ -307,6 +307,7 @@ jobs:
             release-assets/**/*.msi
             release-assets/**/*.dmg
             release-assets/**/*.deb
+            release-assets/**/*.rpm
             release-assets/**/*.zip
             release-assets/**/*.yml
             release-assets/**/*.tar.gz

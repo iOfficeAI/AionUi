@@ -31,6 +31,7 @@ done < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "*.msi" -o \
   -name "*.dmg" -o \
   -name "*.deb" -o \
+  -name "*.rpm" -o \
   -name "*.zip" \
 \) | sort)
 
