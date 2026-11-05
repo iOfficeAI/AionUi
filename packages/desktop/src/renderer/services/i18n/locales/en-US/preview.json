@@ -176,5 +176,8 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "zoomReset": "Reset view",
-  "diagramZoomHint": "Scroll to zoom • Drag to pan • ESC to close"
+  "diagramZoomHint": "Scroll to zoom • Drag to pan • ESC to close",
+  "addToChatUnavailable": "Nothing to add to: the focused conversation has no composer right now.",
+  "openFromOtherColumn": "A preview from “{{name}}” was not shown because that column is not focused.",
+  "openUnattributed": "A preview was not shown: several conversations are active and it could not be attributed to one of them."
 }

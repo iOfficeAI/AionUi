@@ -176,5 +176,8 @@
   "zoomIn": "Yakınlaştır",
   "zoomOut": "Uzaklaştır",
   "zoomReset": "Görünümü sıfırla",
-  "diagramZoomHint": "Yakınlaştırmak için kaydırın • Taşımak için sürükleyin • ESC ile kapatın"
+  "diagramZoomHint": "Yakınlaştırmak için kaydırın • Taşımak için sürükleyin • ESC ile kapatın",
+  "addToChatUnavailable": "Eklenecek yer yok: odaklanılan sohbetin şu anda bir yazma alanı yok.",
+  "openFromOtherColumn": "“{{name}}” kaynaklı önizleme gösterilmedi çünkü o sütun odakta değil.",
+  "openUnattributed": "Önizleme gösterilmedi: birden fazla sohbet etkin ve hangisinden geldiği belirlenemedi."
 }

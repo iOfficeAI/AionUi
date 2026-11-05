@@ -28,6 +28,7 @@
 
 import React, { useRef } from 'react';
 
+import { PanelEmptyState } from '@/renderer/pages/conversation/Preview';
 import { ExplorerContainer } from '@/renderer/pages/conversation/explorer/ExplorerContainer';
 import { useCurrentProject } from '@/renderer/pages/conversation/explorer/currentProjectStore';
 
@@ -38,15 +39,48 @@ export type ProjectPanelHostProps = {
   collapsed: boolean;
   /** Left-edge resize handle from Layout's `useResizableSplit`. */
   dragHandle?: React.ReactNode;
+  /**
+   * Keep the column on screen while the route still hosts it but no project is
+   * published — a cold conversation, or a split column whose member carries
+   * none. Without this the whole column is torn out and put back around a
+   * momentary null project, which reads as the right-hand panel flickering.
+   */
+  keepMountedWhileEmpty?: boolean;
 };
 
-export const ProjectPanelHost: React.FC<ProjectPanelHostProps> = ({ widthPx, collapsed, dragHandle }) => {
+export const ProjectPanelHost: React.FC<ProjectPanelHostProps> = ({
+  widthPx,
+  collapsed,
+  dragHandle,
+  keepMountedWhileEmpty = false,
+}) => {
   const projectId = useCurrentProject();
   const mountIdRef = useRef<string>('');
   if (mountIdRef.current === '') mountIdRef.current = `pec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  // No active project (no-project conversation / non-chat route) → no host.
-  if (!projectId) return null;
+  // No active project (no-project conversation / non-chat route) → no host,
+  // unless the route still hosts the column: then hold the empty column open,
+  // with a quiet empty state, so it does not vanish and come back.
+  if (!projectId) {
+    if (!keepMountedWhileEmpty) return null;
+    return (
+      <div
+        data-project-panel-host
+        data-explorer-column
+        data-mount-id={mountIdRef.current}
+        data-collapsed={collapsed ? 'true' : 'false'}
+        data-empty='true'
+        className='!bg-1 h-full flex-shrink-0 overflow-hidden relative'
+        style={{
+          width: collapsed ? '0px' : `${widthPx}px`,
+          borderLeft: collapsed ? 'none' : '1px solid var(--bg-3)',
+        }}
+      >
+        {!collapsed && dragHandle}
+        {!collapsed && <PanelEmptyState testId='project-panel-empty-state' />}
+      </div>
+    );
+  }
 
   return (
     <div

@@ -176,5 +176,8 @@
   "zoomIn": "拡大",
   "zoomOut": "縮小",
   "zoomReset": "表示をリセット",
-  "diagramZoomHint": "スクロールでズーム • ドラッグで移動 • ESC で閉じる"
+  "diagramZoomHint": "スクロールでズーム • ドラッグで移動 • ESC で閉じる",
+  "addToChatUnavailable": "追加先がありません: フォーカス中の会話に入力欄がありません。",
+  "openFromOtherColumn": "「{{name}}」からのプレビューは、その列がフォーカスされていないため表示されませんでした。",
+  "openUnattributed": "プレビューは表示されませんでした: 複数の会話が実行中で、どれからのものか判断できません。"
 }
