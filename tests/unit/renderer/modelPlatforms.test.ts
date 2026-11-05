@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, getPresetProviders, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +31,28 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+});
+
+describe('aimlapi.com preset provider', () => {
+  const entry = MODEL_PLATFORMS.find((p) => p.value === 'AIMLAPI');
+
+  it('shows the brand exactly as users know it', () => {
+    // The brand is the domain, lowercase. It is not translated, so it carries
+    // no i18nKey and the raw `name` is what the picker renders.
+    expect(entry?.name).toBe('aimlapi.com');
+    expect(entry?.i18nKey).toBeUndefined();
+  });
+
+  it('points at the OpenAI-compatible endpoint', () => {
+    // /v1/completions does not exist on this API, so the OpenAI-compatible
+    // chat surface at /v1 is the only correct base URL.
+    expect(entry?.base_url).toBe('https://api.aimlapi.com/v1');
+    expect(entry?.platform).toBe('custom');
+  });
+
+  it('is offered as a preset provider with a logo', () => {
+    expect(getPresetProviders()).toContain(entry);
+    expect(entry?.logo).toBeTruthy();
   });
 });
