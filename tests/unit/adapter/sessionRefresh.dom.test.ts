@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { refreshSession } from '@/common/adapter/sessionRefresh';
+import { refreshSession, refreshSessionOutcome, resetSessionRefresh } from '@/common/adapter/sessionRefresh';
 
 type WindowWithPort = { __backendPort?: number };
 
@@ -13,11 +13,15 @@ describe('refreshSession (WebUI session refresh)', () => {
   beforeEach(() => {
     // Browser mode: real DOM (jsdom) with no Electron preload port.
     delete (window as WindowWithPort).__backendPort;
+    // The expiry latch and the retry cooldown are module-level state; clear them
+    // so tests do not inherit a previous test's verdict.
+    resetSessionRefresh();
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSessionRefresh();
     delete (window as WindowWithPort).__backendPort;
   });
 
@@ -87,5 +91,81 @@ describe('refreshSession (WebUI session refresh)', () => {
 
     await expect(refreshSession()).resolves.toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('latches on 401 so repeated failures cost exactly one POST (#4155)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(refreshSessionOutcome()).resolves.toBe('expired');
+
+    // A dead refresh credential cannot become alive again. Every later 401 in the
+    // app must be answered from the latch, not with another POST — otherwise a
+    // revalidation burst turns into a storm against a rate-limited endpoint.
+    const repeats = await Promise.all(Array.from({ length: 20 }, () => refreshSessionOutcome()));
+    expect(repeats.every((outcome) => outcome === 'expired')).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats an inconclusive failure as retryable, not as a dead session', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    resetSessionRefresh();
+    await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+  });
+
+  it('backs off between inconclusive attempts instead of retrying on every 401', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Inside the cooldown the answer comes back without touching the network.
+      await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Once it elapses the session gets another chance — this must not latch.
+      vi.setSystemTime(Date.now() + 1_001);
+      await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('resumes refreshing after resetSessionRefresh() (re-auth)', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 401 }).mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(refreshSessionOutcome()).resolves.toBe('expired');
+    await expect(refreshSessionOutcome()).resolves.toBe('expired');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resetSessionRefresh();
+    await expect(refreshSessionOutcome()).resolves.toBe('refreshed');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears a previous cooldown once a refresh succeeds', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValue({ ok: true });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(refreshSessionOutcome()).resolves.toBe('unavailable');
+      vi.setSystemTime(Date.now() + 1_001);
+      await expect(refreshSessionOutcome()).resolves.toBe('refreshed');
+
+      // Back to the 1s floor: a later failure must not inherit the grown delay.
+      await expect(refreshSessionOutcome()).resolves.toBe('refreshed');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
