@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEEPGRAM_SPEECH_MODEL_PRESETS,
   DEFAULT_SPEECH_TO_TEXT_CONFIG,
+  LOCAL_SPEECH_MODEL_PRESETS,
   OPENAI_SPEECH_MODEL_PRESETS,
   SPEECH_LANGUAGE_OPTIONS,
   applySpeechSource,
@@ -47,6 +48,11 @@ describe('deriveSpeechSource', () => {
     });
     expect(deriveSpeechSource(config)).toBe('openai');
   });
+
+  it('returns local when provider is local', () => {
+    const config = normalizeSpeechToTextConfig({ enabled: true, provider: 'local' });
+    expect(deriveSpeechSource(config)).toBe('local');
+  });
 });
 
 describe('applySpeechSource', () => {
@@ -79,9 +85,20 @@ describe('applySpeechSource', () => {
     const next = applySpeechSource(customConfig, 'custom', 'https://other/v1');
     expect(next.openai?.base_url).toBe('https://my-host/v1');
   });
+
+  it('switching to local sets provider to local and keeps local model', () => {
+    const next = applySpeechSource(customConfig, 'local');
+    expect(next.provider).toBe('local');
+    expect(next.local?.model).toBe('parakeet-tdt-0.6b-v3-int8');
+  });
 });
 
 describe('model presets', () => {
+  it('local presets include Parakeet TDT v3 and v2', () => {
+    expect(LOCAL_SPEECH_MODEL_PRESETS).toContain('parakeet-tdt-0.6b-v3-int8');
+    expect(LOCAL_SPEECH_MODEL_PRESETS).toContain('parakeet-tdt-0.6b-v2-int8');
+  });
+
   it('openai presets exclude realtime-only models in phase 1', () => {
     expect(OPENAI_SPEECH_MODEL_PRESETS).toContain('gpt-4o-transcribe');
     expect(OPENAI_SPEECH_MODEL_PRESETS).toContain('whisper-1');

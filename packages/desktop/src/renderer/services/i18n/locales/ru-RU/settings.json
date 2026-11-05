@@ -1428,5 +1428,9 @@
   "crossSessionMessageDesc": "Разрешить агентам отправлять сообщения в ваши другие беседы. При отключении также отключается упоминание @@ в поле ввода.",
   "crossSessionMessageDisabledBanner": "Сообщения между беседами отключены, упоминание @@ недоступно.",
   "crossSessionMessageResume": "Включить снова",
-  "crossSessionMessageUpdateFailed": "Не удалось обновить настройку сообщений между беседами"
+  "crossSessionMessageUpdateFailed": "Не удалось обновить настройку сообщений между беседами",
+  "speechToTextSourceLocal": "Локально (Офлайн - Parakeet TDT)",
+  "speechToTextDownloadModel": "Скачать модель (~670 МБ)",
+  "speechToTextDownloadingModel": "Скачивание модели...",
+  "speechToTextLocalModelReady": "Модель готова к офлайн-диктованию"
 }

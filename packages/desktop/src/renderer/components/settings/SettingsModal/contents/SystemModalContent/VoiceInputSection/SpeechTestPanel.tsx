@@ -62,6 +62,9 @@ const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config, source }) => 
   }, [isRecording, recordingDurationMs, stopRecording]);
 
   const validate = useCallback((): string | null => {
+    if (source === 'local') {
+      return null;
+    }
     if (source === 'custom') {
       if (!isValidHttpUrl(config.openai?.base_url ?? '')) {
         return t('settings.speechToTextBaseUrlInvalid');

@@ -1415,5 +1415,9 @@
   "crossSessionMessageDesc": "允许 Agent 向你的其他会话发送消息。关闭后，输入框的 @@ 会话提及与投递能力同时停用。",
   "crossSessionMessageDisabledBanner": "跨会话消息已关闭，输入框的 @@ 会话提及不可用。",
   "crossSessionMessageResume": "重新开启",
-  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败"
+  "crossSessionMessageUpdateFailed": "跨会话消息设置更新失败",
+  "speechToTextSourceLocal": "本地（离线 - Parakeet TDT）",
+  "speechToTextDownloadModel": "下载模型 (~670 MB)",
+  "speechToTextDownloadingModel": "正在下载模型...",
+  "speechToTextLocalModelReady": "模型已准备就绪，支持离线语音识别"
 }

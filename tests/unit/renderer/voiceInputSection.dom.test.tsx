@@ -7,6 +7,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ipcBridge } from '@/common';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 
 const configStore: { value?: SpeechToTextConfig } = {};
@@ -25,11 +26,14 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
 }));
 
+import { Message } from '@arco-design/web-react';
 import VoiceInputSection from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/VoiceInputSection';
 
 describe('VoiceInputSection', () => {
   beforeEach(() => {
     configStore.value = undefined;
+    vi.spyOn(Message, 'success').mockImplementation(() => undefined as never);
+    vi.spyOn(Message, 'error').mockImplementation(() => undefined as never);
     speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(undefined);
     speechSettingsMocks.setClientBusinessSetting.mockResolvedValue(undefined);
     // jsdom does not implement matchMedia; arco-design's responsive Grid needs it
@@ -159,5 +163,160 @@ describe('VoiceInputSection', () => {
     expect(screen.queryByText('settings.speechToTextDetectLanguage')).toBeNull();
     expect(screen.queryByText('settings.speechToTextPunctuate')).toBeNull();
     expect(screen.queryByText('settings.speechToTextSmartFormat')).toBeNull();
+  });
+
+  it('local provider renders download button and handles download model click', async () => {
+    configStore.value = {
+      enabled: true,
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+        language: '',
+      },
+    };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
+
+    const checkModelSpy = vi.spyOn(ipcBridge.speech.checkModel, 'invoke').mockResolvedValue({
+      isReady: false,
+      status: {
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+        status: 'idle',
+        progress: 0,
+        downloadedBytes: 0,
+        totalBytes: 670000000,
+      },
+    });
+
+    const downloadModelSpy = vi.spyOn(ipcBridge.speech.downloadModel, 'invoke').mockResolvedValue({
+      modelId: 'parakeet-tdt-0.6b-v3-int8',
+      status: 'ready',
+      progress: 100,
+      downloadedBytes: 670000000,
+      totalBytes: 670000000,
+    });
+
+    render(<VoiceInputSection />);
+
+    await waitFor(() => expect(screen.getByText('settings.speechToTextDownloadModel')).toBeTruthy());
+    expect(screen.queryByText('settings.speechToTextApiKey')).toBeNull();
+    expect(screen.queryByText('settings.speechToTextBaseUrl')).toBeNull();
+    expect(checkModelSpy).toHaveBeenCalledWith({ modelId: 'parakeet-tdt-0.6b-v3-int8' });
+
+    // Click download button
+    const downloadBtn = screen.getByText('settings.speechToTextDownloadModel');
+    fireEvent.click(downloadBtn);
+
+    await waitFor(() => {
+      expect(downloadModelSpy).toHaveBeenCalledWith({ modelId: 'parakeet-tdt-0.6b-v3-int8' });
+    });
+  });
+
+  it('local provider renders ready checkmark when model is already downloaded', async () => {
+    configStore.value = {
+      enabled: true,
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+        language: '',
+      },
+    };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
+
+    vi.spyOn(ipcBridge.speech.checkModel, 'invoke').mockResolvedValue({
+      isReady: true,
+      status: {
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+        status: 'ready',
+        progress: 100,
+        downloadedBytes: 670000000,
+        totalBytes: 670000000,
+      },
+    });
+
+    render(<VoiceInputSection />);
+
+    await waitFor(() => expect(screen.getByText(/settings\.speechToTextLocalModelReady/)).toBeTruthy());
+    expect(screen.queryByText('settings.speechToTextDownloadModel')).toBeNull();
+  });
+
+  it('shows error message when model download fails', async () => {
+    configStore.value = {
+      enabled: true,
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+        language: '',
+      },
+    };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
+
+    vi.spyOn(ipcBridge.speech.checkModel, 'invoke').mockResolvedValue({
+      isReady: false,
+      status: {
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+        status: 'idle',
+        progress: 0,
+        downloadedBytes: 0,
+        totalBytes: 670000000,
+      },
+    });
+
+    vi.spyOn(ipcBridge.speech.downloadModel, 'invoke').mockRejectedValue(new Error('Network error'));
+    const messageErrorSpy = vi.spyOn(Message, 'error');
+
+    render(<VoiceInputSection />);
+
+    await waitFor(() => expect(screen.getByText('settings.speechToTextDownloadModel')).toBeTruthy());
+    fireEvent.click(screen.getByText('settings.speechToTextDownloadModel'));
+
+    await waitFor(() => {
+      expect(messageErrorSpy).toHaveBeenCalledWith('Network error');
+    });
+  });
+
+  it('updates local model download status when onDownloadProgress emits', async () => {
+    configStore.value = {
+      enabled: true,
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+        language: '',
+      },
+    };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
+
+    let progressListener: Function | null = null;
+    vi.spyOn(ipcBridge.speech.onDownloadProgress, 'on').mockImplementation((cb: any) => {
+      progressListener = cb;
+      return () => {};
+    });
+
+    vi.spyOn(ipcBridge.speech.checkModel, 'invoke').mockResolvedValue({
+      isReady: false,
+      status: {
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+        status: 'idle',
+        progress: 0,
+        downloadedBytes: 0,
+        totalBytes: 670000000,
+      },
+    });
+
+    render(<VoiceInputSection />);
+
+    await waitFor(() => expect(progressListener).toBeTruthy());
+
+    // Emit progress event
+    await waitFor(() => {
+      progressListener!({
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+        percent: 45,
+        downloadedBytes: 300000000,
+        totalBytes: 670000000,
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText('45%')).toBeTruthy());
+    expect(screen.getByText('settings.speechToTextDownloadingModel')).toBeTruthy();
   });
 });

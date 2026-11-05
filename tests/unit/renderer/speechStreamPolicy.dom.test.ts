@@ -139,6 +139,17 @@ describe('getStreamCapability', () => {
       expect(getStreamCapability(config)).toBe('unsupported');
     });
   });
+
+  describe('local provider', () => {
+    it('returns unsupported for local speech provider', () => {
+      const config: SpeechToTextConfig = {
+        enabled: true,
+        provider: 'local',
+        local: { model: 'parakeet-tdt-0.6b-v3-int8', language: '' },
+      };
+      expect(getStreamCapability(config)).toBe('unsupported');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -184,6 +195,17 @@ describe('shouldTryStreaming', () => {
 
   it('unknown capability with no memory → true (optimistic)', () => {
     expect(shouldTryStreaming(openaiCustom('gpt-4o-transcribe'))).toBe(true);
+  });
+
+  it('local provider always returns false for shouldTryStreaming', () => {
+    const localConfig: SpeechToTextConfig = {
+      enabled: true,
+      provider: 'local',
+      local: { model: 'parakeet-tdt-0.6b-v3-int8', language: '' },
+    };
+    expect(shouldTryStreaming(localConfig)).toBe(false);
+    rememberStreamUnsupported(localConfig);
+    expect(shouldTryStreaming(localConfig)).toBe(false);
   });
 });
 

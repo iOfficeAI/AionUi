@@ -4,15 +4,34 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for renderer/services/SpeechToTextService.ts.
- * Regression tests for voice input failing with 400: the backend /api/stt
- * endpoint only accepts multipart with fields `file`, `fileName`, `mimeType`,
- * `languageHint` — the previous code sent JSON (Electron) or a wrong
- * `audio` multipart field (WebUI).
  *
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const settingsMocks = vi.hoisted(() => ({
+  getClientBusinessSetting: vi.fn(),
+}));
+
+const ipcMocks = vi.hoisted(() => ({
+  transcribeInvoke: vi.fn(),
+}));
+
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: settingsMocks.getClientBusinessSetting,
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    speech: {
+      transcribe: {
+        invoke: ipcMocks.transcribeInvoke,
+      },
+    },
+  },
+}));
+
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 
 type XhrListener = () => void;
@@ -50,6 +69,14 @@ class FakeXMLHttpRequest {
     this.responseText = responseText;
     this.listeners.load?.();
   }
+
+  triggerError() {
+    this.listeners.error?.();
+  }
+
+  triggerAbort() {
+    this.listeners.abort?.();
+  }
 }
 
 const waitForRequest = async (): Promise<FakeXMLHttpRequest> => {
@@ -65,10 +92,61 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
   beforeEach(() => {
     FakeXMLHttpRequest.instances = [];
     vi.stubGlobal('XMLHttpRequest', FakeXMLHttpRequest);
+    settingsMocks.getClientBusinessSetting.mockResolvedValue(undefined);
+    ipcMocks.transcribeInvoke.mockReset();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('rejects with STT_FILE_TOO_LARGE when audio blob exceeds 30MB', async () => {
+    const hugeBlob = {
+      size: 31 * 1024 * 1024,
+      type: 'audio/webm',
+    } as unknown as Blob;
+
+    await expect(transcribeAudioBlob(hugeBlob)).rejects.toThrow('STT_FILE_TOO_LARGE');
+  });
+
+  it('transcribes via local IPC bridge when provider is local', async () => {
+    settingsMocks.getClientBusinessSetting.mockResolvedValue({
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+      },
+    });
+
+    ipcMocks.transcribeInvoke.mockResolvedValueOnce({
+      model: 'parakeet-tdt-0.6b-v3-int8',
+      provider: 'local',
+      text: 'Local dictation result',
+    });
+
+    const blob = new Blob(['pcm-audio-data'], { type: 'audio/wav' });
+    const result = await transcribeAudioBlob(blob);
+
+    expect(result.text).toBe('Local dictation result');
+    expect(ipcMocks.transcribeInvoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelId: 'parakeet-tdt-0.6b-v3-int8',
+      })
+    );
+  });
+
+  it('re-throws STT_LOCAL_MODEL_NOT_DOWNLOADED when local model is missing', async () => {
+    settingsMocks.getClientBusinessSetting.mockResolvedValue({
+      provider: 'local',
+      local: {
+        model: 'parakeet-tdt-0.6b-v3-int8',
+      },
+    });
+
+    ipcMocks.transcribeInvoke.mockRejectedValueOnce(new Error('STT_LOCAL_MODEL_NOT_DOWNLOADED'));
+
+    const blob = new Blob(['pcm-audio-data'], { type: 'audio/wav' });
+    await expect(transcribeAudioBlob(blob)).rejects.toThrow('STT_LOCAL_MODEL_NOT_DOWNLOADED');
   });
 
   it('sends multipart fields matching the backend contract (file/fileName/mimeType/languageHint)', async () => {
@@ -78,8 +156,6 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
     const xhr = await waitForRequest();
     expect(xhr.method).toBe('POST');
     expect(xhr.url).toContain('/api/stt');
-    // Credentialed cross-origin requests are rejected by the browser because
-    // the desktop backend responds with Access-Control-Allow-Origin: *
     expect(xhr.withCredentials).toBe(false);
     expect(xhr.sentBody).toBeInstanceOf(FormData);
 
@@ -96,6 +172,46 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
       JSON.stringify({ success: true, data: { model: 'whisper-1', provider: 'openai', text: 'hello' } })
     );
     await expect(pending).resolves.toEqual({ model: 'whisper-1', provider: 'openai', text: 'hello' });
+  });
+
+  it('correctly maps audio extensions for different mime types', async () => {
+    const typesAndExtensions = [
+      { mime: 'audio/mp4', ext: 'm4a' },
+      { mime: 'audio/mpeg', ext: 'mp3' },
+      { mime: 'audio/ogg', ext: 'ogg' },
+      { mime: 'audio/wav', ext: 'wav' },
+    ];
+
+    for (const item of typesAndExtensions) {
+      FakeXMLHttpRequest.instances = [];
+      const blob = new Blob(['audio'], { type: item.mime });
+      const pending = transcribeAudioBlob(blob);
+      const xhr = await waitForRequest();
+      const formData = xhr.sentBody as FormData;
+      expect(formData.get('fileName')).toBe(`speech-input.${item.ext}`);
+      xhr.respond(200, JSON.stringify({ success: true, data: { text: 'ok' } }));
+      await pending;
+    }
+  });
+
+  it('handles network error', async () => {
+    const blob = new Blob(['fake-audio'], { type: 'audio/webm' });
+    const pending = transcribeAudioBlob(blob);
+
+    const xhr = await waitForRequest();
+    xhr.triggerError();
+
+    await expect(pending).rejects.toThrow('STT_NETWORK_ERROR');
+  });
+
+  it('handles abort error', async () => {
+    const blob = new Blob(['fake-audio'], { type: 'audio/webm' });
+    const pending = transcribeAudioBlob(blob);
+
+    const xhr = await waitForRequest();
+    xhr.triggerAbort();
+
+    await expect(pending).rejects.toThrow('STT_ABORTED');
   });
 
   it('rejects with the backend error code so STT errors map correctly', async () => {
