@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ClientFactory, normalizeNewApiBaseUrl } from '@/common/api/ClientFactory';
+import { buildDefaultHeaders, ClientFactory, normalizeNewApiBaseUrl } from '@/common/api/ClientFactory';
 import { OpenAIRotatingClient } from '@/common/api/OpenAIRotatingClient';
 import { GeminiRotatingClient } from '@/common/api/GeminiRotatingClient';
 import { AnthropicRotatingClient } from '@/common/api/AnthropicRotatingClient';
@@ -205,6 +205,80 @@ describe('ClientFactory', () => {
       };
       await ClientFactory.createRotatingClient(unknownProvider);
       expect(OpenAIRotatingClient).toHaveBeenCalled();
+    });
+  });
+
+  describe('buildDefaultHeaders', () => {
+    // A malformed partner id is never rejected by the gateway — the request
+    // succeeds and the attribution is silently dropped — so the shape has to be
+    // asserted here or a typo would go unnoticed forever.
+    const PARTNER_ID_PATTERN = /^part_[A-Za-z0-9]{1,64}$/;
+
+    it('sends a well-formed partner id to aimlapi.com', () => {
+      const headers = buildDefaultHeaders('https://api.aimlapi.com/v1');
+      expect(headers['X-AIMLAPI-Partner-ID']).toMatch(PARTNER_ID_PATTERN);
+      expect(headers['X-AIMLAPI-Source']).toBe('agent/aionui');
+    });
+
+    it('identifies the host app, not the vendor, in HTTP-Referer and X-Title', () => {
+      const headers = buildDefaultHeaders('https://api.aimlapi.com/v1');
+      expect(headers['HTTP-Referer']).toBe('https://aionui.com');
+      expect(headers['X-Title']).toBe('AionUi');
+    });
+
+    it('keeps vendor headers off other origins, including a proxy that fronts the same API', () => {
+      for (const url of [
+        'https://api.openai.com/v1',
+        'https://openrouter.ai/api/v1',
+        'https://my-gateway.example.com/aimlapi/v1',
+        'http://localhost:3000/v1',
+        undefined,
+        'not-a-url',
+      ]) {
+        const headers = buildDefaultHeaders(url);
+        expect(headers).toEqual({ 'HTTP-Referer': 'https://aionui.com', 'X-Title': 'AionUi' });
+      }
+    });
+
+    it('returns a fresh object so the shared constants cannot be mutated', () => {
+      const first = buildDefaultHeaders('https://api.aimlapi.com/v1');
+      first['X-Title'] = 'mutated';
+      delete first['X-AIMLAPI-Partner-ID'];
+      const second = buildDefaultHeaders('https://api.aimlapi.com/v1');
+      expect(second['X-Title']).toBe('AionUi');
+      expect(second['X-AIMLAPI-Partner-ID']).toMatch(PARTNER_ID_PATTERN);
+    });
+  });
+
+  describe('attribution headers on the created client', () => {
+    const aimlapiProvider = {
+      id: 'aimlapi-provider',
+      platform: 'custom',
+      api_key: 'sk-test-key',
+      base_url: 'https://api.aimlapi.com/v1',
+      use_model: 'openai/gpt-4o-mini',
+      authType: AuthType.USE_OPENAI,
+    };
+
+    it('attaches the aimlapi.com attribution headers to the OpenAI client', async () => {
+      await ClientFactory.createRotatingClient(aimlapiProvider);
+      const config = vi.mocked(OpenAIRotatingClient).mock.calls[0][1];
+      expect(config.defaultHeaders).toEqual({
+        'HTTP-Referer': 'https://aionui.com',
+        'X-Title': 'AionUi',
+        'X-AIMLAPI-Partner-ID': 'part_UJK4IAHBjvT9g4cPDrb7B7KT',
+        'X-AIMLAPI-Source': 'agent/aionui',
+      });
+    });
+
+    it('merges caller headers instead of dropping the attribution ones', async () => {
+      await ClientFactory.createRotatingClient(aimlapiProvider, {
+        baseConfig: { defaultHeaders: { 'X-Custom': 'caller', 'X-Title': 'caller wins' } },
+      });
+      const config = vi.mocked(OpenAIRotatingClient).mock.calls[0][1];
+      expect(config.defaultHeaders['X-Custom']).toBe('caller');
+      expect(config.defaultHeaders['X-Title']).toBe('caller wins');
+      expect(config.defaultHeaders['X-AIMLAPI-Partner-ID']).toBe('part_UJK4IAHBjvT9g4cPDrb7B7KT');
     });
   });
 });
