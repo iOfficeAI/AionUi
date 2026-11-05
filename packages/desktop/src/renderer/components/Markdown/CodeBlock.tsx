@@ -75,17 +75,14 @@ function CodeBlock(props: CodeBlockProps) {
   const match = /language-(\w+)/.exec(className || '');
   const language = match?.[1] || 'text';
 
-  // KaTeX math blocks
-  if (language === 'latex' || language === 'math' || language === 'tex') {
-    const latexSource = String(children).replace(/\n$/, '');
-    const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
-    if (!isFullDocument) {
-      try {
-        const html = katex.renderToString(latexSource, { displayMode: true, throwOnError: false });
-        return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
-      } catch {
-        // fall through
-      }
+  // KaTeX math blocks (rendered only for explicitly tagged ```math code fences)
+  if (language === 'math') {
+    const mathSource = String(children).replace(/\n$/, '');
+    try {
+      const html = katex.renderToString(mathSource, { displayMode: true, throwOnError: true });
+      return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch {
+      // Fall through to normal code block renderer if KaTeX parsing fails
     }
   }
 
