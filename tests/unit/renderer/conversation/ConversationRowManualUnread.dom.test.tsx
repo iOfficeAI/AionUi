@@ -13,9 +13,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({
-  usePresetAssistantInfo: () => ({ info: null }),
+const { usePresetAssistantInfo } = vi.hoisted(() => ({
+  usePresetAssistantInfo: vi.fn(() => ({ info: null })),
 }));
+vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({ usePresetAssistantInfo }));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
@@ -68,7 +69,7 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
   onMenuVisibleChange: vi.fn(),
   onEditStart: vi.fn(),
   onCreateCronTask: vi.fn(),
-  onDelete: vi.fn(),
+  onArchive: vi.fn(),
   onTogglePin: vi.fn(),
   onToggleManualUnread: vi.fn(),
   getJobStatus: () => 'none',
@@ -76,6 +77,16 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
 });
 
 describe('conversation mark-as-unread menu item', () => {
+  it('does not rerender when every row prop is unchanged', () => {
+    const props = makeProps();
+    const { rerender } = render(<ConversationRow {...props} />);
+    const renderCount = usePresetAssistantInfo.mock.calls.length;
+
+    rerender(<ConversationRow {...props} />);
+
+    expect(usePresetAssistantInfo).toHaveBeenCalledTimes(renderCount);
+  });
+
   it('offers "Mark as unread" when the conversation is not manually unread', async () => {
     render(<ConversationRow {...makeProps({ isManualUnread: false })} />);
 
