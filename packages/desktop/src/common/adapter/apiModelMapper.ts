@@ -47,6 +47,23 @@ export type CreateConversationBodyInput = {
   extra?: unknown;
 };
 
+const withPersistedSessionMcpServers = (extra: unknown): unknown => {
+  if (!extra || typeof extra !== 'object' || Array.isArray(extra)) {
+    return extra;
+  }
+
+  const record = extra as Record<string, unknown>;
+  const selectedSessionMcpServers = record.selected_session_mcp_servers;
+  if (!Array.isArray(selectedSessionMcpServers) || 'session_mcp_servers' in record) {
+    return extra;
+  }
+
+  return {
+    ...record,
+    session_mcp_servers: selectedSessionMcpServers,
+  };
+};
+
 /**
  * Build the HTTP body for `POST /api/conversations`.
  *
@@ -60,7 +77,7 @@ export function buildCreateConversationBody(p: CreateConversationBodyInput): Rec
     id: p.id,
     name: p.name,
     assistant: p.assistant,
-    extra: p.extra,
+    extra: withPersistedSessionMcpServers(p.extra),
   };
   const model = p.type === 'acp' ? undefined : toApiModelOptional(p.model);
   if (model) body.model = model;

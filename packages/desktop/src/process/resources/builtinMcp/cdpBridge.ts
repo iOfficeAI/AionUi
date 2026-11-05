@@ -21,9 +21,11 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { webContents, type Debugger, type WebContents } from 'electron';
+import { session, webContents, type Debugger, type WebContents } from 'electron';
+import { BROWSER_SESSION_PARTITION } from '@/common/config/constants';
 import {
   SINGLE_SESSION_ID,
+  SINGLE_TARGET_ID,
   buildListPayload,
   buildTargetInfo,
   buildVersionPayload,
@@ -35,6 +37,12 @@ import {
 
 const HOST = '127.0.0.1';
 const WS_PATH = '/aionui-cdp';
+const ATTACH_WAIT_TIMEOUT_MS = 10_000;
+
+export type CdpBridgeOptions = {
+  requestBrowserPanelOpen?: () => void | Promise<void>;
+  attachWaitTimeoutMs?: number;
+};
 
 export type CdpBridgeHandle = {
   port: number;
@@ -55,10 +63,32 @@ type AttachedState = {
 
 let attached: AttachedState | null = null;
 let sockets = new Set<WebSocket>();
+let attachWaiters = new Set<() => void>();
+
+const hasLiveAttachment = () => Boolean(attached && !attached.contents.isDestroyed());
+
+const notifyAttached = () => {
+  for (const resolve of attachWaiters) resolve();
+  attachWaiters.clear();
+};
+
+const waitForAttachment = (timeoutMs: number): Promise<boolean> => {
+  if (hasLiveAttachment()) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timeout);
+      attachWaiters.delete(finish);
+      resolve(hasLiveAttachment());
+    };
+    const timeout = setTimeout(finish, timeoutMs);
+    attachWaiters.add(finish);
+  });
+};
 
 const currentTargetInfo = () => {
-  if (!attached || attached.contents.isDestroyed()) return buildTargetInfo('', 'about:blank');
-  return buildTargetInfo(attached.contents.getTitle(), attached.contents.getURL());
+  if (!attached || attached.contents.isDestroyed()) return null;
+  return buildTargetInfo(attached.contents.getTitle(), attached.contents.getURL() || 'about:blank');
 };
 
 const broadcast = (payload: Record<string, unknown>) => {
@@ -85,14 +115,17 @@ const detachInternal = () => {
 /**
  * 附加到指定 webContents。
  *
- * 两道校验都必须报错而不是「尽力而为」：
+ * 校验必须报错而不是「尽力而为」：
  *  - getType() 必须是 webview：防止把主窗口（带 preload 桥）交出去，这正是原方案的漏洞。
+ *  - session 必须是浏览器专用 partition：防止普通预览 webview 被误暴露。
  *  - debugger.attach() 会和同一个 webContents 上打开的 DevTools 冲突（Electron 限制），
  *    这时给出可读的原因，而不是抛一个原始异常。
  *
- * Both checks must fail loudly rather than degrade:
+ * These checks must fail loudly rather than degrade:
  *  - getType() must be 'webview', so the main window (with its preload bridge) can never
  *    be handed over — that is precisely the hole in the process-wide approach.
+ *  - session must be the dedicated browser partition, so an ordinary preview webview cannot
+ *    accidentally be exposed.
  *  - debugger.attach() conflicts with DevTools open on the same webContents (an Electron
  *    limitation); surface a readable reason instead of a raw throw.
  */
@@ -107,6 +140,13 @@ const attachInternal = (webContentsId: number): { ok: true } | { ok: false; reas
     return {
       ok: false,
       reason: `Refusing to attach to webContents of type "${type}"; only the in-app browser webview may be exposed.`,
+    };
+  }
+
+  if (contents.session !== session.fromPartition(BROWSER_SESSION_PARTITION)) {
+    return {
+      ok: false,
+      reason: 'Refusing to attach to a non-browser webview; only the in-app browser partition may be exposed.',
     };
   }
 
@@ -137,12 +177,17 @@ const attachInternal = (webContentsId: number): { ok: true } | { ok: false; reas
 
   const onDestroyed = () => {
     detachInternal();
-    broadcast({ method: 'Target.targetDestroyed', params: { targetId: currentTargetInfo().targetId } });
+    broadcast({ method: 'Target.targetDestroyed', params: { targetId: SINGLE_TARGET_ID } });
   };
 
   dbg.on('message', onMessage);
   contents.once('destroyed', onDestroyed);
   attached = { contents, dbg, onMessage, onDestroyed };
+  console.info('[CDP] Attached to in-app browser webContents', {
+    webContentsId,
+    url: contents.getURL() || 'about:blank',
+  });
+  notifyAttached();
   return { ok: true };
 };
 
@@ -184,7 +229,12 @@ const sendError = (ws: WebSocket, id: number | undefined, message: string, sessi
  * the set across connections would starve the second client of that event, leaving
  * browser.pages() at 0 forever.
  */
-const handleSocketMessage = async (ws: WebSocket, raw: string, announcedSessions: Set<string>) => {
+const handleSocketMessage = async (
+  ws: WebSocket,
+  raw: string,
+  announcedSessions: Set<string>,
+  ensureAttached: () => Promise<boolean>
+) => {
   let req: CdpRequest;
   try {
     req = JSON.parse(raw) as CdpRequest;
@@ -200,7 +250,24 @@ const handleSocketMessage = async (ws: WebSocket, raw: string, announcedSessions
     return;
   }
 
-  const decision = decideCdpCommand(req, currentTargetInfo);
+  if (!hasLiveAttachment()) {
+    await ensureAttached();
+  }
+
+  if (!hasLiveAttachment()) {
+    console.warn('[CDP] Browser command rejected because no browser webview attached', { method, id });
+    sendError(
+      ws,
+      id,
+      'The in-app browser is not currently attached. AionUi tried to open the browser panel, but no controllable page became ready.',
+      sessionId
+    );
+    return;
+  }
+
+  const targetInfo = currentTargetInfo();
+  if (!targetInfo) return;
+  const decision = decideCdpCommand(req, () => targetInfo);
 
   if (decision.kind === 'error') {
     sendError(ws, id, decision.message, sessionId);
@@ -255,27 +322,6 @@ const handleSocketMessage = async (ws: WebSocket, raw: string, announcedSessions
         ws.send(JSON.stringify({ method: evt.method, params: evt.params }));
       }
     }
-    return;
-  }
-
-  // forward
-  if (!attached || attached.contents.isDestroyed()) {
-    /**
-     * 说清楚「怎么办」，因为 Agent 侧无法自己修复：attach 只由渲染进程在 webview
-     * dom-ready 时上报触发（WebviewHost.tsx），Target.createTarget 又是明确拒绝的。
-     * 所以这条消息必须告诉用户去开浏览器面板，否则 Agent 只能反复撞同一面墙。
-     *
-     * Say what to do about it: the agent cannot fix this itself. Attachment is only
-     * triggered by the renderer reporting its webContents id on dom-ready
-     * (WebviewHost.tsx), and Target.createTarget is explicitly refused — so this message
-     * has to point at opening the browser panel, or the agent just retries into the same wall.
-     */
-    sendError(
-      ws,
-      id,
-      'The in-app browser is not currently attached. Open the browser panel in AionUi so a page is available to control.',
-      sessionId
-    );
     return;
   }
 
@@ -337,23 +383,56 @@ const writeJson = (res: ServerResponse, body: unknown) => {
  * main window never is (see the getType() check in attachInternal). Treating same-user local
  * processes as inside the trust boundary is an explicit assumption here.
  */
-export const startCdpBridge = async (): Promise<CdpBridgeHandle> => {
+export const startCdpBridge = async (options: CdpBridgeOptions = {}): Promise<CdpBridgeHandle> => {
   const token = randomBytes(24).toString('hex');
+  let pendingAttachment: Promise<boolean> | null = null;
+  const ensureAttached = async (): Promise<boolean> => {
+    if (hasLiveAttachment()) return true;
+    if (pendingAttachment) return await pendingAttachment;
+
+    pendingAttachment = (async () => {
+      try {
+        console.info('[CDP] Requesting in-app browser panel open');
+        await options.requestBrowserPanelOpen?.();
+      } catch (error) {
+        console.warn('[CDP] Failed to request opening the in-app browser panel:', error);
+      }
+      const didAttach = await waitForAttachment(options.attachWaitTimeoutMs ?? ATTACH_WAIT_TIMEOUT_MS);
+      if (!didAttach) console.warn('[CDP] Timed out waiting for in-app browser webContents attachment');
+      return didAttach;
+    })().finally(() => {
+      pendingAttachment = null;
+    });
+    return await pendingAttachment;
+  };
 
   const httpServer: Server = createServer((req: IncomingMessage, res: ServerResponse) => {
-    const url = new URL(req.url ?? '/', `http://${HOST}`);
-    const wsUrl = `ws://${HOST}:${port}${WS_PATH}?token=${token}`;
-    const info = currentTargetInfo();
+    void (async () => {
+      const url = new URL(req.url ?? '/', `http://${HOST}`);
+      const wsUrl = `ws://${HOST}:${port}${WS_PATH}?token=${token}`;
 
-    if (url.pathname === '/json/version') {
-      writeJson(res, buildVersionPayload(wsUrl, process.versions.chrome ?? '0.0.0.0'));
-      return;
-    }
-    if (url.pathname === '/json/list' || url.pathname === '/json') {
-      writeJson(res, buildListPayload(wsUrl, info.title, info.url));
-      return;
-    }
-    res.writeHead(404).end('not found');
+      if (url.pathname === '/json/version') {
+        writeJson(res, buildVersionPayload(wsUrl, process.versions.chrome ?? '0.0.0.0'));
+        return;
+      }
+      if (url.pathname === '/json/list' || url.pathname === '/json') {
+        const didAttach = await ensureAttached();
+        if (!didAttach) {
+          res.writeHead(503, { 'Content-Type': 'application/json; charset=UTF-8' });
+          res.end(JSON.stringify({ error: 'The in-app browser is not currently attached.' }));
+          return;
+        }
+        const info = currentTargetInfo();
+        if (!info) {
+          res.writeHead(503, { 'Content-Type': 'application/json; charset=UTF-8' });
+          res.end(JSON.stringify({ error: 'The in-app browser is not currently attached.' }));
+          return;
+        }
+        writeJson(res, buildListPayload(wsUrl, info.title, info.url));
+        return;
+      }
+      res.writeHead(404).end('not found');
+    })();
   });
 
   const wss = new WebSocketServer({ noServer: true });
@@ -368,7 +447,7 @@ export const startCdpBridge = async (): Promise<CdpBridgeHandle> => {
     wss.handleUpgrade(req, socket, head, (ws) => {
       sockets.add(ws);
       const announcedSessions = new Set<string>();
-      ws.on('message', (data) => void handleSocketMessage(ws, data.toString(), announcedSessions));
+      ws.on('message', (data) => void handleSocketMessage(ws, data.toString(), announcedSessions, ensureAttached));
       ws.on('close', () => sockets.delete(ws));
       ws.on('error', () => sockets.delete(ws));
     });
