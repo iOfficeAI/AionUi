@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PLATFORM_VALUE, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
+import { DEFAULT_PLATFORM_VALUE, getPresetProviders, MODEL_PLATFORMS } from '@renderer/utils/model/modelPlatforms';
 
 describe('MODEL_PLATFORMS ordering', () => {
   it('keeps Custom first and pins both Moonshot entries right after it', () => {
@@ -31,5 +31,25 @@ describe('MODEL_PLATFORMS ordering', () => {
       'https://api.moonshot.cn/v1',
       'https://api.moonshot.ai/v1',
     ]);
+  });
+});
+
+describe('CloudGPU preset provider', () => {
+  const entry = MODEL_PLATFORMS.find((p) => p.value === 'CloudGPU');
+
+  it('points at the OpenAI-compatible endpoint', () => {
+    expect(entry?.name).toBe('CloudGPU');
+    expect(entry?.base_url).toBe('https://cloudgpu.app/v1');
+    expect(entry?.platform).toBe('custom');
+  });
+
+  it('is offered as a preset provider with a logo', () => {
+    expect(getPresetProviders()).toContain(entry);
+    expect(entry?.logo).toBeTruthy();
+  });
+
+  it('stays out of the preset list when the value is unknown', () => {
+    expect(getPresetProviders().filter((p) => p.value === 'CloudGPU')).toHaveLength(1);
+    expect(getPresetProviders().find((p) => p.value === 'CloudGPU-unknown')).toBeUndefined();
   });
 });
