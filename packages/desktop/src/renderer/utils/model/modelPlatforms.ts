@@ -13,6 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import cloudgpuLogo from '@/renderer/assets/logos/cloudgpu.svg';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -260,6 +261,15 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-china/stepfun.svg'),
     platform: 'custom',
     base_url: 'https://api.stepfun.com/v1',
+  },
+  {
+    // OpenAI-compatible model API. The logo is bundled locally because the
+    // backend logo service has no asset for it.
+    name: 'CloudGPU',
+    value: 'CloudGPU',
+    logo: cloudgpuLogo,
+    platform: 'custom',
+    base_url: 'https://cloudgpu.app/v1',
   },
 ];
 
