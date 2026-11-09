@@ -8,6 +8,7 @@ import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from 
 import { assistants, channel } from '@/common/adapter/ipcBridge';
 import { isAionrsAssistant, type Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { formatDateTime } from '@/renderer/services/i18n/format';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
@@ -20,7 +21,7 @@ import {
   buildChannelAssistantBinding,
   getDefaultChannelAssistant,
   resolveChannelAssistantSelection,
-} from './assistantBinding';
+} from '../assistantBinding';
 
 /**
  * Preference row component
@@ -29,12 +30,16 @@ const PreferenceRow: React.FC<{
   label: string;
   description?: React.ReactNode;
   extra?: React.ReactNode;
+  required?: boolean;
   children: React.ReactNode;
-}> = ({ label, description, extra, children }) => (
+}> = ({ label, description, extra, required, children }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
     <div className='flex-1'>
       <div className='flex items-center gap-8px'>
-        <span className='text-14px text-t-primary'>{label}</span>
+        <span className='text-14px text-t-primary'>
+          {label}
+          {required && <span className='text-red-500 ms-2px'>*</span>}
+        </span>
         {extra}
       </div>
       {description && <div className='text-12px text-t-tertiary mt-2px'>{description}</div>}
@@ -53,32 +58,30 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-interface TelegramConfigFormProps {
+interface DingTalkConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GoogleModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
-  onTokenChange?: (token: string) => void;
 }
 
-const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
-  pluginStatus,
-  modelSelection,
-  onStatusChange,
-  onTokenChange,
-}) => {
+const DINGTALK_DEV_DOCS_URL = 'https://github.com/iOfficeAI/AionUi/wiki/DingTalk-Bot-Setup-Guide';
+
+const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n?.language ?? 'en-US');
 
-  const [telegramToken, setTelegramToken] = useState('');
+  // DingTalk credentials
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+
   const [testLoading, setTestLoading] = useState(false);
-  const [tokenTested, setTokenTested] = useState(false);
-  const [testedBotUsername, setTestedBotUsername] = useState<string | null>(null);
+  const [_credentialsTested, setCredentialsTested] = useState(false);
+  const [touched, setTouched] = useState({ clientId: false, clientSecret: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
-  // Assistant selection (used for Telegram conversations)
   const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [hasBrokenSavedAssistant, setHasBrokenSavedAssistant] = useState(false);
@@ -89,10 +92,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     try {
       const pairings = await channel.getPendingPairings.invoke();
       if (pairings) {
-        setPendingPairings(pairings.filter((p) => p.platformType === 'telegram'));
+        setPendingPairings(pairings.filter((p) => p.platformType === 'dingtalk'));
       }
     } catch (error) {
-      console.error('[ChannelSettings] Failed to load pending pairings:', error);
+      console.error('[DingTalkConfig] Failed to load pending pairings:', error);
     } finally {
       setPairingLoading(false);
     }
@@ -104,10 +107,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     try {
       const users = await channel.getAuthorizedUsers.invoke();
       if (users) {
-        setAuthorizedUsers(users.filter((u) => u.platformType === 'telegram'));
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'dingtalk'));
       }
     } catch (error) {
-      console.error('[ChannelSettings] Failed to load authorized users:', error);
+      console.error('[DingTalkConfig] Failed to load authorized users:', error);
     } finally {
       setUsersLoading(false);
     }
@@ -125,7 +128,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          channel.getPlatformSettings.invoke({ platform: 'telegram' }),
+          channel.getPlatformSettings.invoke({ platform: 'dingtalk' }),
         ]);
 
         setAvailableAssistants(assistantList);
@@ -139,7 +142,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         setHasBrokenSavedAssistant(selection.hasBrokenSavedAssistant);
         setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[TelegramConfig] Failed to load assistants:', error);
+        console.error('[DingTalkConfig] Failed to load assistants:', error);
       }
     };
 
@@ -149,12 +152,12 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
       await channel.setAssistantSetting.invoke({
-        platform: 'telegram',
+        platform: 'dingtalk',
         assistant: buildChannelAssistantBinding(assistant),
       });
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[TelegramConfig] Failed to save assistant:', error);
+      console.error('[DingTalkConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -162,7 +165,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
-      if (request.platformType !== 'telegram') return;
+      if (request.platformType !== 'dingtalk') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -175,6 +178,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Listen for user authorization
   useEffect(() => {
     const unsubscribe = channel.userAuthorized.on((user) => {
+      if (user.platformType !== 'dingtalk') return;
       setAuthorizedUsers((prev) => {
         const exists = prev.some((u) => u.id === user.id);
         if (exists) return prev;
@@ -185,42 +189,38 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     return () => unsubscribe();
   }, []);
 
-  // Test Telegram connection
+  // Test DingTalk connection
   const handleTestConnection = async () => {
-    if (!telegramToken.trim()) {
-      Message.warning(t('settings.assistant.tokenRequired', 'Please enter a bot token'));
+    setTouched({ clientId: true, clientSecret: true });
+
+    if (!clientId.trim() || !clientSecret.trim()) {
+      Message.warning(t('settings.dingtalk.credentialsRequired', 'Please enter Client ID and Client Secret'));
       return;
     }
 
     setTestLoading(true);
-    setTokenTested(false);
-    setTestedBotUsername(null);
+    setCredentialsTested(false);
     try {
       // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
-        plugin_id: 'telegram',
-        token: telegramToken.trim(),
+        plugin_id: 'dingtalk',
+        token: clientId.trim(),
+        extra_config: {
+          app_secret: clientSecret.trim(),
+        },
       });
 
       if (result.success) {
-        setTokenTested(true);
-        setTestedBotUsername(result.bot_username || null);
-        Message.success(
-          t('settings.assistant.connectionSuccess', {
-            defaultValue: 'Connected! Bot: @{{username}}',
-            username: result.bot_username || 'unknown',
-          })
-        );
-
-        // Auto-enable bot after successful test
+        setCredentialsTested(true);
+        Message.success(t('settings.dingtalk.connectionSuccess', 'Connected to DingTalk API!'));
         await handleAutoEnable();
       } else {
-        setTokenTested(false);
-        Message.error(result.error || t('settings.assistant.connectionFailed', 'Connection failed'));
+        setCredentialsTested(false);
+        Message.error(result.error || t('settings.dingtalk.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
-      setTokenTested(false);
-      Message.error(error.message || t('settings.assistant.connectionFailed', 'Connection failed'));
+      setCredentialsTested(false);
+      Message.error(error.message || t('settings.dingtalk.connectionFailed', 'Connection failed'));
     } finally {
       setTestLoading(false);
     }
@@ -229,29 +229,34 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Auto-enable plugin after successful test
   const handleAutoEnable = async () => {
     try {
-      // enablePlugin returns void; success if no throw
       await channel.enablePlugin.invoke({
-        plugin_id: 'telegram',
-        config: { credentials: { token: telegramToken.trim() } },
+        plugin_id: 'dingtalk',
+        config: {
+          credentials: {
+            client_id: clientId.trim(),
+            client_secret: clientSecret.trim(),
+          },
+        },
       });
 
-      Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
+      Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
       const plugins = await channel.getPluginStatus.invoke();
       if (plugins) {
-        const telegramPlugin = plugins.find((p) => p.type === 'telegram');
-        onStatusChange(telegramPlugin || null);
+        const dingtalkPlugin = plugins.find((p) => p.type === 'dingtalk');
+        onStatusChange(dingtalkPlugin || null);
       }
     } catch (error: unknown) {
-      console.error('[ChannelSettings] Auto-enable failed:', error);
+      console.error('[DingTalkConfig] Auto-enable failed:', error);
+      Message.error(
+        (error instanceof Error ? error.message : String(error)) ||
+          t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin')
+      );
     }
   };
 
-  // Reset token tested state when token changes
-  const handleTokenChange = (value: string) => {
-    setTelegramToken(value);
-    setTokenTested(false);
-    setTestedBotUsername(null);
-    onTokenChange?.(value);
+  // Reset credentials tested state when credentials change
+  const handleCredentialsChange = () => {
+    setCredentialsTested(false);
   };
 
   // Approve pairing
@@ -304,6 +309,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000 / 60));
   };
 
+  const hasExistingUsers = authorizedUsers.length > 0;
   const showModelSelector = isAionrsAssistant(selectedAssistant);
   const assistantOptions = availableAssistants;
   const selectedAssistantName = selectedAssistant
@@ -312,76 +318,142 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
   return (
     <div className='flex flex-col gap-24px'>
+      {/* Client ID */}
       <PreferenceRow
-        label={t('settings.assistant.botToken', 'Bot Token')}
-        description={t(
-          'settings.assistant.botTokenDesc',
-          'Open Telegram, find @BotFather and send /newbot to get your Bot Token.'
-        )}
+        label={t('settings.dingtalk.clientId', 'Client ID')}
+        description={
+          <span>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={DINGTALK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
+              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
+            </a>{' '}
+            {t('settings.dingtalk.clientIdDescSuffix', 'to get your Client ID')}
+          </span>
+        }
+        required
       >
-        <div className='flex items-center gap-8px'>
-          {authorizedUsers.length > 0 ? (
-            <Tooltip
-              content={t(
-                'settings.assistant.tokenLocked',
-                'Please close the Channel and delete all authorized users before modifying the configuration'
-              )}
-            >
-              <span>
-                <Input.Password
-                  value={telegramToken}
-                  onChange={handleTokenChange}
-                  placeholder={
-                    authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'
-                  }
-                  style={{ width: 240 }}
-                  visibilityToggle
-                  disabled={authorizedUsers.length > 0}
-                />
-              </span>
-            </Tooltip>
-          ) : (
-            <Input.Password
-              value={telegramToken}
-              onChange={handleTokenChange}
-              placeholder={
-                authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'
-              }
-              style={{ width: 240 }}
-              visibilityToggle
-              disabled={authorizedUsers.length > 0}
-            />
-          )}
-          {authorizedUsers.length > 0 ? (
-            <Tooltip
-              content={t(
-                'settings.assistant.tokenLocked',
-                'Please close the Channel and delete all authorized users before modifying the configuration'
-              )}
-            >
-              <span>
-                <Button
-                  type='outline'
-                  loading={testLoading}
-                  onClick={handleTestConnection}
-                  disabled={authorizedUsers.length > 0}
-                >
-                  {t('settings.assistant.testConnection', 'Test')}
-                </Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button
-              type='outline'
-              loading={testLoading}
-              onClick={handleTestConnection}
-              disabled={authorizedUsers.length > 0}
-            >
-              {t('settings.assistant.testConnection', 'Test')}
-            </Button>
-          )}
-        </div>
+        {hasExistingUsers ? (
+          <Tooltip
+            content={t(
+              'settings.assistant.tokenLocked',
+              'Please close the Channel and delete all authorized users before modifying'
+            )}
+          >
+            <span>
+              <Input
+                value={clientId}
+                onChange={(value) => {
+                  setClientId(value);
+                  handleCredentialsChange();
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, clientId: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'dingxxxxxxxxxx'}
+                style={{ width: 240 }}
+                status={touched.clientId && !clientId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                disabled={hasExistingUsers}
+              />
+            </span>
+          </Tooltip>
+        ) : (
+          <Input
+            value={clientId}
+            onChange={(value) => {
+              setClientId(value);
+              handleCredentialsChange();
+            }}
+            onBlur={() => setTouched((prev) => ({ ...prev, clientId: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'dingxxxxxxxxxx'}
+            style={{ width: 240 }}
+            status={touched.clientId && !clientId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            disabled={hasExistingUsers}
+          />
+        )}
       </PreferenceRow>
+
+      {/* Client Secret */}
+      <PreferenceRow
+        label={t('settings.dingtalk.clientSecret', 'Client Secret')}
+        description={
+          <span>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={DINGTALK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
+              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
+            </a>{' '}
+            {t('settings.dingtalk.clientSecretDescSuffix', 'to get Client Secret')}
+          </span>
+        }
+        required
+      >
+        {hasExistingUsers ? (
+          <Tooltip
+            content={t(
+              'settings.assistant.tokenLocked',
+              'Please close the Channel and delete all authorized users before modifying'
+            )}
+          >
+            <span>
+              <Input.Password
+                value={clientSecret}
+                onChange={(value) => {
+                  setClientSecret(value);
+                  handleCredentialsChange();
+                }}
+                onBlur={() => setTouched((prev) => ({ ...prev, clientSecret: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+                style={{ width: 240 }}
+                status={touched.clientSecret && !clientSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                visibilityToggle
+                disabled={hasExistingUsers}
+              />
+            </span>
+          </Tooltip>
+        ) : (
+          <Input.Password
+            value={clientSecret}
+            onChange={(value) => {
+              setClientSecret(value);
+              handleCredentialsChange();
+            }}
+            onBlur={() => setTouched((prev) => ({ ...prev, clientSecret: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
+            style={{ width: 240 }}
+            status={touched.clientSecret && !clientSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            visibilityToggle
+            disabled={hasExistingUsers}
+          />
+        )}
+      </PreferenceRow>
+
+      {/* Test Connection Button */}
+      {!hasExistingUsers && !pluginStatus?.connected && (
+        <div className='flex justify-end'>
+          {pluginStatus?.hasToken && !clientId.trim() && !clientSecret.trim() ? (
+            <span className='text-12px text-t-tertiary me-12px self-center'>
+              {t('settings.dingtalk.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
+            </span>
+          ) : null}
+          <Button
+            type='primary'
+            loading={testLoading}
+            onClick={handleTestConnection}
+            disabled={pluginStatus?.hasToken && !clientId.trim() && !clientSecret.trim()}
+          >
+            {t('settings.dingtalk.testAndConnect', 'Test & Connect')}
+          </Button>
+        </div>
+      )}
 
       {/* Assistant Selection */}
       <div className='flex flex-col gap-8px'>
@@ -389,7 +461,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           label={t('settings.assistant.name', 'Assistant')}
           description={
             <div className='flex flex-col gap-4px'>
-              <span>{t('settings.assistant.agentDescTelegram', 'Used for Telegram conversations')}</span>
+              <span>{t('settings.dingtalk.agentDesc', 'Used for DingTalk conversations')}</span>
               {hasBrokenSavedAssistant && (
                 <span className='text-orange-6'>
                   {t(
@@ -412,8 +484,9 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
                     <Menu.Item
                       key={assistant.id}
                       onClick={() => {
-                        if (assistant.id === selectedAssistant?.id) return;
-
+                        if (assistant.id === selectedAssistant?.id) {
+                          return;
+                        }
                         setHasBrokenSavedAssistant(false);
                         setSelectedAssistant(assistant);
                         void persistSelectedAssistant(assistant);
@@ -449,57 +522,75 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
       {/* Default Model Selection */}
       <PreferenceRow
-        label={t('settings.assistant.defaultModel', 'Default Model')}
-        description={t(
-          'settings.assistant.defaultModelDesc',
-          'Model used for Telegram conversations handled by this assistant'
-        )}
+        label={t('settings.assistant.defaultModel', 'Model')}
+        description={t('settings.dingtalk.defaultModelDesc', 'Model used for conversations handled by this assistant')}
       >
         <GoogleModelSelector
           selection={showModelSelector ? modelSelection : undefined}
           disabled={!showModelSelector}
           label={
-            !showModelSelector
-              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
-              : undefined
+            !showModelSelector ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined
           }
           variant='settings'
         />
       </PreferenceRow>
 
-      {/* Next Steps Guide - show when bot is enabled and no authorized users yet */}
-      {pluginStatus?.enabled && pluginStatus?.connected && authorizedUsers.length === 0 && (
-        <div className='bg-blue-50 dark:bg-blue-900/20 rd-12px p-16px border border-blue-200 dark:border-blue-800'>
-          <SectionHeader title={t('settings.assistant.nextSteps', 'Next Steps')} />
-          <div className='text-14px text-t-secondary space-y-8px'>
-            <p className='m-0'>
-              <strong>1.</strong> {t('settings.assistant.step1', 'Open Telegram and search for your bot')}
-              {pluginStatus.botUsername && (
-                <span className='ms-4px'>
-                  <code className='bg-fill-2 px-6px py-2px rd-4px'>@{pluginStatus.botUsername}</code>
-                </span>
-              )}
-            </p>
-            <p className='m-0'>
-              <strong>2.</strong>{' '}
-              {t('settings.assistant.step2', 'Send any message or click /start to initiate pairing')}
-            </p>
-            <p className='m-0'>
-              <strong>3.</strong>{' '}
-              {t(
-                'settings.assistant.step3',
-                'A pairing request will appear below. Click "Approve" to authorize the user.'
-              )}
-            </p>
-            <p className='m-0'>
-              <strong>4.</strong>{' '}
-              {t('settings.assistant.step4', 'Once approved, you can start chatting with Gemini through Telegram!')}
-            </p>
-          </div>
+      {/* Connection Status */}
+      {pluginStatus?.enabled && authorizedUsers.length === 0 && (
+        <div
+          className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}
+        >
+          <SectionHeader
+            title={t('settings.dingtalk.connectionStatus', 'Connection Status')}
+            action={
+              <span
+                className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}
+              >
+                {pluginStatus?.connected
+                  ? t('settings.dingtalk.statusConnected', 'Connected')
+                  : pluginStatus?.error
+                    ? t('settings.dingtalk.statusError', 'Error')
+                    : t('settings.dingtalk.statusConnecting', 'Connecting...')}
+              </span>
+            }
+          />
+          {pluginStatus?.error && (
+            <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>
+          )}
+          {pluginStatus?.connected && (
+            <div className='text-14px text-t-secondary space-y-8px'>
+              <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
+              <p className='m-0'>
+                <strong>1.</strong> {t('settings.dingtalk.step1', 'Open DingTalk and find your bot application')}
+              </p>
+              <p className='m-0'>
+                <strong>2.</strong> {t('settings.dingtalk.step2', 'Send any message to initiate pairing')}
+              </p>
+              <p className='m-0'>
+                <strong>3.</strong>{' '}
+                {t(
+                  'settings.dingtalk.step3',
+                  'A pairing request will appear below. Click "Approve" to authorize the user.'
+                )}
+              </p>
+              <p className='m-0'>
+                <strong>4.</strong>{' '}
+                {t(
+                  'settings.dingtalk.step4',
+                  'Once approved, you can start chatting with the AI assistant through DingTalk!'
+                )}
+              </p>
+            </div>
+          )}
+          {!pluginStatus?.connected && !pluginStatus?.error && (
+            <div className='text-14px text-t-secondary'>
+              {t('settings.dingtalk.waitingConnection', 'Connection is being established. Please wait...')}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Pending Pairings - show when bot is enabled and no authorized users yet */}
+      {/* Pending Pairings */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
         <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
@@ -512,7 +603,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
                 loading={pairingLoading}
                 onClick={loadPendingPairings}
               >
-                {t('common.refresh', 'Refresh')}
+                {t('conversation.workspace.refresh', 'Refresh')}
               </Button>
             }
           />
@@ -574,7 +665,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         </div>
       )}
 
-      {/* Authorized Users - show when there are authorized users */}
+      {/* Authorized Users */}
       {authorizedUsers.length > 0 && (
         <div className='bg-fill-1 rd-12px pt-16px pe-16px pb-16px ps-0'>
           <SectionHeader
@@ -629,4 +720,4 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   );
 };
 
-export default TelegramConfigForm;
+export default DingTalkConfigForm;

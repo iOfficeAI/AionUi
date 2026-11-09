@@ -8,13 +8,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import type { ChildProcess } from 'node:child_process';
 import type { Socket } from 'node:net';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // ---- Module-level mocks ----
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(),
 }));
 
-vi.mock('node:fs', () => ({
+vi.mock('node:fs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('node:fs')>()),
   mkdirSync: vi.fn(),
   statSync: vi.fn(),
 }));
@@ -278,6 +282,54 @@ describe('buildSpawnEnv', () => {
         if (saved[k] === undefined) delete process.env[k];
         else process.env[k] = saved[k];
       }
+    }
+  });
+
+  it('uses bundled extensions path when no explicit extension path is set', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aionui-extensions-'));
+    const prevExtensionsPath = process.env.AIONUI_EXTENSIONS_PATH;
+    const prevBundledExtensionsPath = process.env.AIONUI_BUNDLED_EXTENSIONS_PATH;
+    try {
+      delete process.env.AIONUI_EXTENSIONS_PATH;
+      process.env.AIONUI_BUNDLED_EXTENSIONS_PATH = dir;
+
+      const env = buildSpawnEnv({
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+
+      expect(env.AIONUI_EXTENSIONS_PATH).toBe(dir);
+    } finally {
+      if (prevExtensionsPath === undefined) delete process.env.AIONUI_EXTENSIONS_PATH;
+      else process.env.AIONUI_EXTENSIONS_PATH = prevExtensionsPath;
+      if (prevBundledExtensionsPath === undefined) delete process.env.AIONUI_BUNDLED_EXTENSIONS_PATH;
+      else process.env.AIONUI_BUNDLED_EXTENSIONS_PATH = prevBundledExtensionsPath;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not override an explicit extension path', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aionui-extensions-'));
+    const prevExtensionsPath = process.env.AIONUI_EXTENSIONS_PATH;
+    const prevBundledExtensionsPath = process.env.AIONUI_BUNDLED_EXTENSIONS_PATH;
+    try {
+      process.env.AIONUI_EXTENSIONS_PATH = '/custom/extensions';
+      process.env.AIONUI_BUNDLED_EXTENSIONS_PATH = dir;
+
+      const env = buildSpawnEnv({
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+
+      expect(env.AIONUI_EXTENSIONS_PATH).toBe('/custom/extensions');
+    } finally {
+      if (prevExtensionsPath === undefined) delete process.env.AIONUI_EXTENSIONS_PATH;
+      else process.env.AIONUI_EXTENSIONS_PATH = prevExtensionsPath;
+      if (prevBundledExtensionsPath === undefined) delete process.env.AIONUI_BUNDLED_EXTENSIONS_PATH;
+      else process.env.AIONUI_BUNDLED_EXTENSIONS_PATH = prevBundledExtensionsPath;
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });
