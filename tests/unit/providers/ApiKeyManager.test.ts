@@ -32,25 +32,26 @@ describe('ApiKeyManager', () => {
     });
 
     it('parses comma-separated keys', () => {
-      const manager = new ApiKeyManager('key1,key2,key3', AuthType.USE_OPENAI);
+      const manager = new ApiKeyManager('sk-alpha-0001,sk-bravo-0002,sk-delta-0003', AuthType.USE_OPENAI);
       expect(manager.hasMultipleKeys()).toBe(true);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.maskedKeys).toEqual(['sk-a...0001', 'sk-b...0002', 'sk-d...0003']);
       expect(status.total).toBe(3);
     });
 
     it('parses newline-separated keys', () => {
-      const manager = new ApiKeyManager('key1\nkey2\nkey3', AuthType.USE_ANTHROPIC);
+      const manager = new ApiKeyManager('sk-alpha-0001\nsk-bravo-0002\nsk-delta-0003', AuthType.USE_ANTHROPIC);
       expect(manager.hasMultipleKeys()).toBe(true);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.maskedKeys).toEqual(['sk-a...0001', 'sk-b...0002', 'sk-d...0003']);
       expect(status.envKey).toBe('ANTHROPIC_API_KEY');
     });
 
     it('trims whitespace and filters empty lines', () => {
-      const manager = new ApiKeyManager(' key1 , key2 ,  ,key3  ', AuthType.USE_OPENAI);
+      const manager = new ApiKeyManager(' sk-alpha-0001 , sk-bravo-0002 ,  ,sk-delta-0003  ', AuthType.USE_OPENAI);
       const status = manager.getStatus();
-      expect(status.keys).toEqual(['key1', 'key2', 'key3']);
+      expect(status.total).toBe(3);
+      expect(status.maskedKeys).toEqual(['sk-a...0001', 'sk-b...0002', 'sk-d...0003']);
     });
   });
 
@@ -180,7 +181,7 @@ describe('ApiKeyManager', () => {
       expect(status).toHaveProperty('envKey', 'ANTHROPIC_API_KEY');
       expect(status).toHaveProperty('current');
       expect(status).toHaveProperty('total', 3);
-      expect(status).toHaveProperty('keys');
+      expect(status).toHaveProperty('maskedKeys');
       expect(status).toHaveProperty('blacklisted');
       expect(Array.isArray(status.blacklisted)).toBe(true);
     });
@@ -205,6 +206,54 @@ describe('ApiKeyManager', () => {
       const manager = new ApiKeyManager('key1,key2,key3,key4,key5', AuthType.USE_OPENAI);
       const key = manager.getCurrentKey();
       expect(['key1', 'key2', 'key3', 'key4', 'key5']).toContain(key);
+    });
+  });
+
+  // getStatus() output reaches logs, Sentry and IPC. It must never carry a
+  // usable credential, however it is serialized. (#4125)
+  describe('getStatus credential masking', () => {
+    const SECRETS = ['sk-alpha-secret-0001', 'sk-bravo-secret-0002'];
+
+    it('never returns a plaintext key', () => {
+      const status = new ApiKeyManager(SECRETS.join(','), AuthType.USE_OPENAI).getStatus();
+
+      for (const secret of SECRETS) {
+        expect(status.maskedKeys).not.toContain(secret);
+      }
+      expect(status.maskedKeys).toEqual(['sk-a...0001', 'sk-b...0002']);
+    });
+
+    it('does not leak a plaintext key through JSON serialization', () => {
+      const status = new ApiKeyManager(SECRETS.join(','), AuthType.USE_OPENAI).getStatus();
+      const serialized = JSON.stringify(status);
+
+      for (const secret of SECRETS) {
+        expect(serialized).not.toContain(secret);
+      }
+    });
+
+    it('exposes no plaintext under any property of the status object', () => {
+      const status = new ApiKeyManager(SECRETS.join(','), AuthType.USE_OPENAI).getStatus();
+
+      // Guards against a future field reintroducing the raw array.
+      expect(Object.values(status).flat()).not.toContain(SECRETS[0]);
+      expect(status).not.toHaveProperty('keys');
+    });
+
+    it('fully masks a key too short to show edges', () => {
+      const status = new ApiKeyManager('short', AuthType.USE_OPENAI).getStatus();
+
+      expect(status.maskedKeys).toEqual(['***']);
+      expect(JSON.stringify(status)).not.toContain('short');
+    });
+
+    it('keeps the debugging fields that carry no secret', () => {
+      const status = new ApiKeyManager(SECRETS.join(','), AuthType.USE_OPENAI).getStatus();
+
+      expect(status.total).toBe(2);
+      expect(status.envKey).toBe('OPENAI_API_KEY');
+      expect(status.blacklisted).toEqual([]);
+      expect(status.current).toBeGreaterThanOrEqual(1);
     });
   });
 });

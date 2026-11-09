@@ -189,6 +189,22 @@ export const createInitStyle = (
     font-family: var(--font-mono);
     font-weight: var(--font-mono-weight);
   }
+  .markdown-shadow-body kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.8em;
+    line-height: 1.2;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+    font-weight: 500;
+    color: var(--text-primary);
+    background-color: var(--bg-2);
+    border: 1px solid var(--bg-3);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    box-shadow: inset 0 -1px 0 var(--bg-3);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
   blockquote {
     border-left: 3px solid var(--bg-3);
     padding-left: 12px;
