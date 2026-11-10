@@ -292,14 +292,14 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     : undefined;
 
   const menuStyle: React.CSSProperties = useMemo(() => {
-    if (!isMacRuntime || !showSiderToggle) return {};
-    // macOS: sit the menu buttons right next to the traffic lights (which occupy ~70px).
-    // Mobile keeps its own layout (no traffic lights).
-    const marginLeft = layout?.isMobile ? '0px' : '76px';
+    if (!isMacRuntime) return {};
+    // macOS desktop: the native traffic lights (~70px) always sit in the top-left corner,
+    // including in narrow windows where the layout switches to its compact (mobile) mode.
+    // Keep the menu buttons clear of them regardless of the layout mode.
     return {
-      marginLeft,
+      marginLeft: '76px',
     };
-  }, [isMacRuntime, showSiderToggle, layout?.isMobile]);
+  }, [isMacRuntime]);
 
   return (
     <div
