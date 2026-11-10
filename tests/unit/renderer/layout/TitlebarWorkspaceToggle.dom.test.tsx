@@ -3,6 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const platform = vi.hoisted(() => ({ desktop: true, mac: false }));
+const layoutState = vi.hoisted(() => ({ isMobile: false, setSiderCollapsed: undefined as undefined | (() => void) }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -12,7 +13,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 vi.mock('@/common', () => ({
-  ipcBridge: { conversation: { get: { invoke: vi.fn() } } },
+  ipcBridge: { conversation: { get: { invoke: vi.fn().mockResolvedValue(null) } } },
 }));
 vi.mock('@/common/config/constants', () => ({ TEAM_MODE_ENABLED: false }));
 vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover', () => ({ default: () => null }));
@@ -21,7 +22,7 @@ vi.mock('@/renderer/components/layout/WindowControls', () => ({
   default: () => <div data-testid='window-controls' />,
 }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
-  useLayoutContext: () => ({ isMobile: false }),
+  useLayoutContext: () => layoutState,
 }));
 vi.mock('@/renderer/hooks/context/NavigationHistoryContext', () => ({
   useNavigationHistory: () => null,
@@ -44,6 +45,8 @@ describe('Titlebar workspace toggle', () => {
   beforeEach(() => {
     platform.desktop = true;
     platform.mac = false;
+    layoutState.isMobile = false;
+    layoutState.setSiderCollapsed = undefined;
   });
 
   it('places the Windows workspace toggle directly after Bug Report', () => {
@@ -86,5 +89,25 @@ describe('Titlebar workspace toggle', () => {
 
     expect(screen.queryByRole('button', { name: 'common.expandMore' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'common.collapse' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { isMobile: false, mode: 'regular' },
+    { isMobile: true, mode: 'compact (narrow window)' },
+  ])('keeps the menu clear of the macOS traffic lights in $mode layout', ({ isMobile }) => {
+    platform.mac = true;
+    layoutState.isMobile = isMobile;
+    layoutState.setSiderCollapsed = vi.fn();
+    const { container } = render(<Titlebar workspaceAvailable />);
+
+    const menu = container.querySelector<HTMLElement>('.app-titlebar__menu');
+    expect(menu?.style.marginLeft).toBe('76px');
+  });
+
+  it('does not reserve traffic-light space outside macOS desktop', () => {
+    layoutState.setSiderCollapsed = vi.fn();
+    const { container } = render(<Titlebar workspaceAvailable />);
+
+    expect(container.querySelector<HTMLElement>('.app-titlebar__menu')?.style.marginLeft).toBe('');
   });
 });
