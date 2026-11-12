@@ -413,14 +413,17 @@ const ChatConversation: React.FC<{
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
-      {conversation && conversation.type === 'acp' && !isMobile && !isLegacyReadOnlyConversation && (
-        <div className='shrink-0'>
-          <AcpRuntimeRestartButton
-            conversation_id={conversation.id}
-            availability={runtimeReadyConversationId === conversation.id ? 'ready' : 'initializing'}
-          />
-        </div>
-      )}
+      {conversation &&
+        (conversation.type === 'acp' || conversation.type === 'antigravity') &&
+        !isMobile &&
+        !isLegacyReadOnlyConversation && (
+          <div className='shrink-0'>
+            <AcpRuntimeRestartButton
+              conversation_id={conversation.id}
+              availability={runtimeReadyConversationId === conversation.id ? 'ready' : 'initializing'}
+            />
+          </div>
+        )}
     </div>
   );
 

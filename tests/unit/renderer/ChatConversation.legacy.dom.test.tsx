@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TChatConversation } from '@/common/config/storage';
@@ -8,6 +8,7 @@ import ChatConversation from '@/renderer/pages/conversation/components/ChatConve
 const usePresetAssistantInfoMock = vi.fn();
 const acpChatMock = vi.fn(() => <div data-testid='mock-acp-chat'>acp chat</div>);
 const acpModelSelectorMock = vi.fn(() => <div data-testid='mock-acp-model-selector'>model selector</div>);
+const acpRuntimeRestartButtonMock = vi.fn(() => <div data-testid='mock-acp-runtime-restart'>runtime restart</div>);
 
 vi.mock('@/renderer/pages/conversation/Messages/MessageList', () => ({
   default: ({ className }: { className?: string }) => <div className={className}>message history</div>,
@@ -41,6 +42,11 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/AcpChat', () => ({
 vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
   __esModule: true,
   default: (props: unknown) => acpModelSelectorMock(props),
+}));
+
+vi.mock('@/renderer/components/agent/AcpRuntimeRestartButton', () => ({
+  __esModule: true,
+  default: (props: unknown) => acpRuntimeRestartButtonMock(props),
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatSlider.tsx', () => ({
@@ -85,6 +91,7 @@ describe('ChatConversation legacy runtime rendering', () => {
     usePresetAssistantInfoMock.mockReset();
     acpChatMock.mockClear();
     acpModelSelectorMock.mockClear();
+    acpRuntimeRestartButtonMock.mockClear();
     usePresetAssistantInfoMock.mockReturnValue({ info: undefined, isLoading: false });
   });
 
@@ -181,6 +188,52 @@ describe('ChatConversation legacy runtime rendering', () => {
         backend: 'codex',
         initialModelId: 'model-1',
         waitForWarmup: true,
+      })
+    );
+  });
+
+  it('renders the runtime restart button for Antigravity conversations and updates availability when ready', () => {
+    render(
+      <ChatConversation
+        conversation={
+          {
+            id: 'conv-agy',
+            user_id: 'user-1',
+            name: 'Antigravity chat',
+            type: 'antigravity',
+            model: {},
+            extra: { workspace: '/tmp/aionui-agy', current_model_id: 'claude-opus-4-6' },
+            status: 'finished',
+            source: 'aionui',
+            created_at: 1,
+            modified_at: 1,
+            pinned: false,
+          } as TChatConversation
+        }
+      />
+    );
+
+    expect(screen.getByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-acp-model-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-acp-runtime-restart')).toBeInTheDocument();
+    expect(acpRuntimeRestartButtonMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-agy',
+        availability: 'initializing',
+      })
+    );
+
+    const selectorProps = acpModelSelectorMock.mock.calls[0]?.[0] as
+      | { onRuntimeReadyChange?: (ready: boolean) => void }
+      | undefined;
+    act(() => {
+      selectorProps?.onRuntimeReadyChange?.(true);
+    });
+
+    expect(acpRuntimeRestartButtonMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-agy',
+        availability: 'ready',
       })
     );
   });
