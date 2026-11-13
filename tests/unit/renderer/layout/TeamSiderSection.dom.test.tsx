@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TTeam } from '@/common/types/team/teamTypes';
@@ -175,5 +175,43 @@ describe('TeamSiderSection running state', () => {
 
     expect(screen.getByTestId('collapsed-team-icon-idle-team')).toHaveAttribute('data-mock-icon', 'Peoples');
     expect(screen.queryByTestId('collapsed-team-spinner-idle-team')).not.toBeInTheDocument();
+  });
+});
+
+describe('TeamSiderSection default expansion', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    fixtures.runningTeamIds.clear();
+    fixtures.teamBadgeCounts.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('shows existing teams in a new browser profile (expansion never set)', () => {
+    renderSection(false);
+
+    expect(screen.getByTestId('sider-item-Running team')).toBeInTheDocument();
+    expect(screen.getByTestId('sider-item-Idle team')).toBeInTheDocument();
+    expect(localStorage.getItem('team-section-expanded')).toBe('true');
+  });
+
+  it('keeps an explicit collapse', () => {
+    localStorage.setItem('team-section-expanded', 'false');
+    renderSection(false);
+
+    expect(screen.queryByTestId('sider-item-Running team')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sider-item-Idle team')).not.toBeInTheDocument();
+    expect(localStorage.getItem('team-section-expanded')).toBe('false');
+  });
+
+  it('collapses on a click on the section label and remembers it', () => {
+    renderSection(false);
+    fireEvent.click(screen.getByTestId('team-section-toggle'));
+
+    expect(screen.queryByTestId('sider-item-Running team')).not.toBeInTheDocument();
+    expect(localStorage.getItem('team-section-expanded')).toBe('false');
   });
 });

@@ -47,7 +47,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
-  const [expanded, setExpanded] = useState<boolean>(() => localStorage.getItem('team-section-expanded') === 'true');
+  // Expanded unless the user collapsed it: a never-set key (new browser profile) must not hide existing teams.
+  const [expanded, setExpanded] = useState<boolean>(() => localStorage.getItem('team-section-expanded') !== 'false');
   useEffect(() => {
     localStorage.setItem('team-section-expanded', String(expanded));
   }, [expanded]);
