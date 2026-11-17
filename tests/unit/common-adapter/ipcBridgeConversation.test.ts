@@ -49,6 +49,7 @@ const httpBridgeMocks = vi.hoisted(() => {
         invoke: vi.fn(async (params?: unknown) => map(await inner.invoke(params))),
       })
     ),
+    expectBridgeSuccess: vi.fn((inner: { provider: unknown; invoke: (params?: unknown) => Promise<unknown> }) => inner),
     wsEmitter: vi.fn(emitter),
     wsMappedEmitter: vi.fn(emitter),
     stubEmitter: vi.fn(emitter),

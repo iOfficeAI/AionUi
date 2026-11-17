@@ -19,6 +19,7 @@ import {
   httpDelete,
   stubProvider,
   withResponseMap,
+  expectBridgeSuccess,
   BackendHttpError,
   isBackendHttpError,
   wsEmitter,
@@ -327,6 +328,43 @@ describe('httpBridge', () => {
 
       const result = await mapped.invoke();
       expect(result).toBe('ABC');
+    });
+  });
+
+  describe('expectBridgeSuccess', () => {
+    const bridgeResponse = (body: { success: boolean; error?: string; message?: string }) =>
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: body }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+
+    it('resolves when the backend reports success', async () => {
+      vi.stubGlobal('fetch', bridgeResponse({ success: true }));
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      const provider = expectBridgeSuccess(httpPost<{ success: boolean }, { id: string }>('/api/x'));
+
+      await expect(provider.invoke({ id: '1' })).resolves.toBeUndefined();
+    });
+
+    it('throws the backend error when success is false (HTTP 200)', async () => {
+      vi.stubGlobal('fetch', bridgeResponse({ success: false, error: 'restart failed' }));
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      const provider = expectBridgeSuccess(httpPost<{ success: boolean }, { id: string }>('/api/x'));
+
+      await expect(provider.invoke({ id: '1' })).rejects.toThrow('restart failed');
+    });
+
+    it('falls back to a generic message when no error is provided', async () => {
+      vi.stubGlobal('fetch', bridgeResponse({ success: false }));
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+      const provider = expectBridgeSuccess(httpPost<{ success: boolean }>('/api/x'));
+
+      await expect(provider.invoke()).rejects.toThrow('Operation failed');
     });
   });
 
