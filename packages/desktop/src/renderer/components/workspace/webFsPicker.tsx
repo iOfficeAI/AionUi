@@ -153,6 +153,8 @@ export const WebFsPicker: React.FC<PickerProps> = ({ options, onDone }) => {
       autoFocus={false}
       focusLock
       style={{ width: 'calc(100vw - 32px)', maxWidth: 640 }}
+      wrapStyle={{ zIndex: 10050 }}
+      maskStyle={{ zIndex: 10040 }}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <span
