@@ -13,6 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import martllmLogo from '@/renderer/assets/logos/martllm.svg';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -146,6 +147,14 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: buildLogoAssetUrl('ai-cloud/openrouter.svg'),
     platform: 'custom',
     base_url: 'https://openrouter.ai/api/v1',
+  },
+  {
+    // Logo is bundled locally because the backend logo service has no MartLLM asset.
+    name: 'MartLLM',
+    value: 'MartLLM',
+    logo: martllmLogo,
+    platform: 'custom',
+    base_url: 'https://api.martllm.com/v1',
   },
   {
     name: 'Dashscope',
