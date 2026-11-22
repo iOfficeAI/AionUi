@@ -13,7 +13,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
-import uberllmLogo from '@/renderer/assets/logos/uberllm.svg';
+import martllmLogo from '@/renderer/assets/logos/martllm.svg';
 
 const buildLogoAssetUrl = (path: string): string => {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
@@ -149,12 +149,12 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     base_url: 'https://openrouter.ai/api/v1',
   },
   {
-    // Logo is bundled locally because the backend logo service has no UberLLM asset.
-    name: 'UberLLM',
-    value: 'UberLLM',
-    logo: uberllmLogo,
+    // Logo is bundled locally because the backend logo service has no MartLLM asset.
+    name: 'MartLLM',
+    value: 'MartLLM',
+    logo: martllmLogo,
     platform: 'custom',
-    base_url: 'https://api.uberllm.dev/v1',
+    base_url: 'https://api.martllm.com/v1',
   },
   {
     name: 'Dashscope',
