@@ -62,12 +62,17 @@ document.addEventListener('pointerup', (e: PointerEvent) => {
 
   if (wasDrag) return;
 
-  // Click detection
+  // Click detection — optimistic dispatch. Every click is forwarded to the
+  // main process IMMEDIATELY (no waiting out CLICK_WINDOW to classify
+  // single/double click); the click handler escalates the reaction with the
+  // running click count and the pet state machine preempts the previous
+  // reaction, so the perceived latency of the first reaction is zero.
+  // CLICK_WINDOW only bounds how long consecutive clicks keep escalating.
   clickCount++;
   lastClickSide = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+  window.petHitAPI.click({ side: lastClickSide, count: clickCount });
   if (clickTimer) clearTimeout(clickTimer);
   clickTimer = setTimeout(() => {
-    window.petHitAPI.click({ side: lastClickSide, count: clickCount });
     clickCount = 0;
     clickTimer = null;
   }, CLICK_WINDOW);

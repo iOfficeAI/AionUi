@@ -66,6 +66,21 @@ export const STATE_PRIORITY: Record<PetState, number> = {
   sleeping: 0,
 };
 
+/**
+ * States triggered directly by the user interacting with the pet (clicks,
+ * pats). The state machine shows these immediately: they preempt whatever
+ * animation is currently playing (queueing is what made clicks feel laggy)
+ * and re-trigger when already active so the reaction animation replays.
+ * `dragging` still outranks them — never interrupt an active drag.
+ */
+export const USER_INTERACTION_STATES: ReadonlySet<PetState> = new Set([
+  'attention',
+  'poke-left',
+  'poke-right',
+  'juggling',
+  'happy',
+]);
+
 export const MIN_DISPLAY_MS: Partial<Record<PetState, number>> = {
   done: 3500,
   happy: 3000,
