@@ -1,5 +1,5 @@
 import type { PetState, StateChangeCallback } from './petTypes';
-import { STATE_PRIORITY, MIN_DISPLAY_MS, AUTO_RETURN } from './petTypes';
+import { STATE_PRIORITY, MIN_DISPLAY_MS, AUTO_RETURN, USER_INTERACTION_STATES } from './petTypes';
 
 export class PetStateMachine {
   private current: PetState = 'idle';
@@ -28,6 +28,17 @@ export class PetStateMachine {
 
   requestState(state: PetState): PetState | null {
     if (this.dnd && state !== 'dragging') return null;
+
+    // User interaction states must feel instant: skip the priority ladder and
+    // the MIN_DISPLAY_MS queue entirely — the pet dodges the moment it is
+    // clicked. Re-requesting the same interaction state re-fires listeners so
+    // the renderer replays the reaction animation. Dragging is never
+    // interrupted (it is an ongoing gesture, not an animation).
+    if (USER_INTERACTION_STATES.has(state) && this.current !== 'dragging') {
+      this.applyState(state);
+      return state;
+    }
+
     if (state === this.current) return null;
 
     const newPri = STATE_PRIORITY[state];

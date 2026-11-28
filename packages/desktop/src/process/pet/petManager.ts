@@ -423,19 +423,19 @@ function registerIpcHandlers(): void {
 
     idleTicker.resetIdle();
 
-    // Click reactions — keep `error` reserved for genuine AI errors so the user
-    // can distinguish "I poked the pet a lot" from "the agent just failed".
-    // 1 click  → attention (small surprise)
-    // 2 clicks → poke left/right (directional wobble)
-    // 4+       → juggling (overwhelmed / flustered)
-    // 3        → still poke — nothing interesting happens but we avoid the old
-    //            error misfire; the next click bumps into the 4+ bucket.
-    if (data.count >= 4) {
+    // Click reactions — optimistic escalation (the hit window sends every
+    // click immediately; see petHitRenderer). Keep `error` reserved for
+    // genuine AI errors so the user can distinguish "I poked the pet a lot"
+    // from "the agent just failed".
+    // 1st click → poke left/right (instant directional dodge)
+    // 2nd click → attention (small surprise, takes over the dodge)
+    // 3rd+      → juggling (overwhelmed / flustered)
+    if (data.count >= 3) {
       stateMachine.requestState('juggling');
-    } else if (data.count >= 2) {
-      stateMachine.requestState(data.side === 'left' ? 'poke-left' : 'poke-right');
-    } else if (data.count === 1) {
+    } else if (data.count === 2) {
       stateMachine.requestState('attention');
+    } else {
+      stateMachine.requestState(data.side === 'left' ? 'poke-left' : 'poke-right');
     }
   });
 
