@@ -55,13 +55,21 @@ async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
   const cleanup = async () => {
     deps.disposeCronResumeListener();
 
-    await deps.stopBackend().catch((err) => deps.logError('[App] Failed to stop backend:', err));
+    // Destroy the pet windows IMMEDIATELY — the user has quit, so the pet
+    // must vanish from screen right away. Backend shutdown can take seconds
+    // (graceful SIGTERM), so the two run in parallel instead of sequentially:
+    // awaiting stopBackend first left the pet visible through the whole
+    // backend teardown.
+    const petDestroyed = Promise.resolve()
+      .then(() => deps.destroyPetWindow())
+      .catch(() => {
+        /* pet not initialized */
+      });
 
-    try {
-      await deps.destroyPetWindow();
-    } catch {
-      /* pet not initialized */
-    }
+    await Promise.all([
+      petDestroyed,
+      deps.stopBackend().catch((err) => deps.logError('[App] Failed to stop backend:', err)),
+    ]);
   };
 
   await runWithTimeout(cleanup(), deps.timeoutMs ?? DEFAULT_QUIT_CLEANUP_TIMEOUT_MS, deps.logWarn);
